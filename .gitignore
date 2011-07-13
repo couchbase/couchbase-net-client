@@ -1,0 +1,7 @@
+bin
+obj
+TestResults
+*.suo
+*.user
+build/output/*
+_ReSharper*
