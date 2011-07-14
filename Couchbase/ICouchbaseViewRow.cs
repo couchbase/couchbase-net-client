@@ -20,7 +20,7 @@ namespace Couchbase
 		/// <summary>
 		/// Returns all data from the row. These are usually parts of the original document emitted by the mapper (or the reducer).
 		/// </summary>
-		JObject Info { get; }
+		Dictionary<string, object> Info { get; }
 
 		/// <summary>
 		/// Returns the original item.

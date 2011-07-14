@@ -196,14 +196,10 @@ namespace Couchbase
 
 				if (!shouldDeserialize) yield break;
 
-				var serializer = new JsonSerializer();
-
 				// read until the end of the rows array
 				while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
 				{
-					var row = new __Row(this);
-
-					serializer.Populate(jsonReader, row);
+					var row = new __Row(this, Json.Parse(jsonReader) as Dictionary<string, object>);
 
 					yield return row;
 				}
@@ -219,22 +215,24 @@ namespace Couchbase
 
 		private class __Row : ICouchbaseViewRow
 		{
-			private CouchbaseView owner;
+			private readonly CouchbaseView owner;
+			private readonly string key;
+			private readonly string id;
+			private readonly Dictionary<string, object> info;
 
-			public __Row(CouchbaseView owner)
+			public __Row(CouchbaseView owner, Dictionary<string, object> row)
 			{
 				this.owner = owner;
-			}
 
-			// these will be set by the deserializer
-#pragma warning disable 0649
-			[JsonProperty("key")]
-			public string key;
-			[JsonProperty("id")]
-			public string id;
-			[JsonProperty("value")]
-			public JObject info;
-#pragma warning restore 0649
+				if (row == null) throw new ArgumentNullException("row", "Missing row info");
+
+				if (!row.TryGetValue("key", out this.key))
+					throw new InvalidOperationException("The value 'key' was not found in the row definition.");
+				if (!row.TryGetValue("id", out this.id))
+					throw new InvalidOperationException("The value 'id' was not found in the row definition.");
+
+				row.TryGetValue("value", out this.info);
+			}
 
 			string ICouchbaseViewRow.ItemId
 			{
@@ -251,7 +249,7 @@ namespace Couchbase
 				return this.owner.ownerClient.Get(this.id);
 			}
 
-			JObject ICouchbaseViewRow.Info
+			Dictionary<string, object> ICouchbaseViewRow.Info
 			{
 				get { return this.info; }
 			}

@@ -34,9 +34,6 @@
     <Reference Include="Hammock, Version=1.0.0.0, Culture=neutral, PublicKeyToken=c148cfba29ed1a4d, processorArchitecture=MSIL">
       <HintPath>..\packages\Hammock.1.2.4\lib\net35\Hammock.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json.Net35, Version=4.0.2.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.4.0.2\lib\net35\Newtonsoft.Json.Net35.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -47,6 +44,16 @@
     <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
+    <Compile Include="externals\Newtonsoft\IJsonLineInfo.cs" />
+    <Compile Include="externals\Newtonsoft\JsonConvert.cs" />
+    <Compile Include="externals\Newtonsoft\JsonReader.cs" />
+    <Compile Include="externals\Newtonsoft\JsonReaderException.cs" />
+    <Compile Include="externals\Newtonsoft\JsonTextReader.cs" />
+    <Compile Include="externals\Newtonsoft\JsonToken.cs" />
+    <Compile Include="externals\Newtonsoft\JTokenType.cs" />
+    <Compile Include="externals\Newtonsoft\MathUtils.cs" />
+    <Compile Include="externals\Newtonsoft\StringBuffer.cs" />
+    <Compile Include="externals\Newtonsoft\StringUtils.cs" />
     <Compile Include="ICouchbaseViewRow.cs" />
     <Compile Include="CouchbaseClient.cs" />
     <Compile Include="CouchbaseNode.cs" />
@@ -54,9 +61,11 @@
     <Compile Include="CouchbaseView.cs" />
     <Compile Include="DictionaryEx.cs" />
     <Compile Include="ICouchbaseView.cs" />
+    <Compile Include="Json.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="externals\Newtonsoft\README" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

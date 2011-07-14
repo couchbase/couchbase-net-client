@@ -1,0 +1,4 @@
+This is the JsonTextReader implementation from Newtonsoft.Json (aka. Json.NET). Classes has been internalized and 
+unused code has been removed but most of the classes here are the same as the original.
+
+The Json.NET library is available at http://json.codeplex.com and licensed under the MIT license.
