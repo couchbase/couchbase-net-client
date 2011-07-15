@@ -1,0 +1,5 @@
+﻿# Couchbase .NET Client Library Version History
+
+## Version 1.0
+
+Initial release.
