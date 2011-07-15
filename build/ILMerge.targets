@@ -1,0 +1,9 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
+		<CreateItem Include="@(ReferencePath)" Condition=" '%(CopyLocal)' == 'true' ">
+			<Output TaskParameter="Include" ItemName="MergeAssemblies"/>
+		</CreateItem>
+		<Exec Command="..\build\tools\ilmerge.exe /out:@(MainAssembly) &quot;@(IntermediateAssembly)&quot; @(MergeAssemblies->'&quot;%(FullPath)&quot;', ' ') /internalize:&quot;..\build\internalize.exclude&quot; /keyfile:&quot;$(AssemblyOriginatorKeyFile)&quot;"/>
+	</Target>
+	<Target Name="_CopyFilesMarkedCopyLocal"  Condition=" '$(Configuration)' == 'Release' " />
+</Project>

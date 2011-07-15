@@ -9,27 +9,10 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Couchbase</RootNamespace>
-    <AssemblyName>Couchbase.Driver</AssemblyName>
+    <AssemblyName>Couchbase</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+  <Import Project="..\build\CommonProperties.targets" />
   <ItemGroup>
     <Reference Include="Hammock, Version=1.0.0.0, Culture=neutral, PublicKeyToken=c148cfba29ed1a4d, processorArchitecture=MSIL">
       <HintPath>..\packages\Hammock.1.2.4\lib\net35\Hammock.dll</HintPath>
@@ -44,6 +27,9 @@
     <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
+    <Compile Include="CouchbaseClient.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="externals\Newtonsoft\IJsonLineInfo.cs" />
     <Compile Include="externals\Newtonsoft\JsonConvert.cs" />
     <Compile Include="externals\Newtonsoft\JsonReader.cs" />
@@ -55,7 +41,6 @@
     <Compile Include="externals\Newtonsoft\StringBuffer.cs" />
     <Compile Include="externals\Newtonsoft\StringUtils.cs" />
     <Compile Include="ICouchbaseViewRow.cs" />
-    <Compile Include="CouchbaseClient.cs" />
     <Compile Include="CouchbaseNode.cs" />
     <Compile Include="CouchbasePool.cs" />
     <Compile Include="CouchbaseView.cs" />
@@ -65,6 +50,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Changes.mdown" />
+    <None Include="Demo.config" />
     <None Include="externals\Newtonsoft\README" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -79,11 +66,9 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <PropertyGroup>
+    <GitTagMatch>cb*</GitTagMatch>
+  </PropertyGroup>
+  <Import Project="..\build\VersionInfo.targets" />
+  <Import Project="..\build\ILMerge.targets" />
 </Project>
