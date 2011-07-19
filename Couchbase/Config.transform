@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+	<configSections>
+		<section name="couchbase" type="Couchbase.Configuration.CouchbaseClientSection, Couchbase" />
+	</configSections>
+
+	<couchbase>
+		<servers bucket="MyBucket" bucketPassword="MyBucketPassword" retryCount="2" retryTimeout="00:00:02">
+			<!--
+				Provide at least 2-3 urls from your cluster. Usually you only need to change the host name.
+			-->
+			<add uri="http://192.168.2.202:8091/pools/default" />
+			<add uri="http://192.168.2.200:8091/pools/default" />
+		</servers>
+	</couchbase>
+</configuration>

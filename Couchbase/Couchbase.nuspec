@@ -1,0 +1,18 @@
+﻿<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+	<metadata>
+		<id>Couchbase</id>
+		<version>$version$</version>
+		<authors>Couchbase, Inc.</authors>
+		<owners>Couchbase, Inc.</owners>
+		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+		<projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>Couchbase .NET client library (official)</description>
+		<tags>couchbase nosql</tags>
+	</metadata>
+	<files>
+		<file src="bin\Release\Couchbase.*" target="lib\net35" />
+		<file src="config.transform" target="content\app.config.transform" />
+	</files>
+</package>

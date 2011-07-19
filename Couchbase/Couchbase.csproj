@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Changes.mdown" />
+    <None Include="Config.transform" />
     <None Include="Demo.config" />
     <None Include="externals\Newtonsoft\README" />
     <None Include="packages.config" />
