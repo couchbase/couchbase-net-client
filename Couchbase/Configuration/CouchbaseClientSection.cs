@@ -9,7 +9,7 @@ using Membase.Configuration;
 using Couchbase.Configuration;
 using System.Diagnostics;
 
-namespace Couchbase
+namespace Couchbase.Configuration
 {
 	/// <summary>
 	/// Configures the <see cref="T:MembaseClient"/>. This class cannot be inherited.
