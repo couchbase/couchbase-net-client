@@ -7,6 +7,7 @@ using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
 using Membase.Configuration;
 using Couchbase.Configuration;
+using System.Diagnostics;
 
 namespace Couchbase
 {
@@ -25,6 +26,13 @@ namespace Couchbase
 			set { base["documentNameTransformer"] = value; }
 		}
 
+		[ConfigurationProperty("httpClientFactory", IsRequired = false)]
+		public ProviderElement<IHttpClientFactory> HttpClientFactory
+		{
+			get { return (ProviderElement<IHttpClientFactory>)base["httpClientFactory"]; }
+			set { base["httpClientFactory"] = value; }
+		}
+
 		#region [ interface                     ]
 
 		INameTransformer ICouchbaseClientConfiguration.CreateDesignDocumentNameTransformer()
@@ -32,6 +40,22 @@ namespace Couchbase
 			return this.DocumentNameTransformer == null
 					? null
 					: this.DocumentNameTransformer.CreateInstance();
+		}
+
+		IHttpClientFactory clientFactory;
+
+		IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri)
+		{
+			if (this.clientFactory == null)
+			{
+				var tmp = this.HttpClientFactory;
+
+				this.clientFactory = tmp == null ? HammockHttpClientFactory.Instance : tmp.CreateInstance();
+			}
+
+			Debug.Assert(this.clientFactory != null);
+
+			return this.clientFactory.Create(baseUri);
 		}
 
 		#endregion

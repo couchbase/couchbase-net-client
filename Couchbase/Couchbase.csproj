@@ -27,6 +27,7 @@
     <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
+    <Compile Include="HammockHttpClient.cs" />
     <Compile Include="CouchbaseClient.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -46,6 +47,7 @@
     <Compile Include="CouchbaseView.cs" />
     <Compile Include="DictionaryEx.cs" />
     <Compile Include="ICouchbaseView.cs" />
+    <Compile Include="IHttpClient.cs" />
     <Compile Include="Json.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

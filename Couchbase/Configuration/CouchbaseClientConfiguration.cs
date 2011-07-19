@@ -11,14 +11,25 @@ namespace Couchbase.Configuration
 	/// </summary>
 	public class CouchbaseClientConfiguration : MembaseClientConfiguration, ICouchbaseClientConfiguration
 	{
+		public CouchbaseClientConfiguration()
+		{
+			this.HttpClientFactory = HammockHttpClientFactory.Instance;
+		}
+
 		/// <summary>
 		/// Gets or sets the INameTransformer instance.
 		/// </summary>
 		public INameTransformer DesignDocumentNameTransformer { get; set; }
+		public IHttpClientFactory HttpClientFactory { get; set; }
 
 		INameTransformer ICouchbaseClientConfiguration.CreateDesignDocumentNameTransformer()
 		{
 			return this.DesignDocumentNameTransformer;
+		}
+
+		IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri)
+		{
+			return this.HttpClientFactory.Create(baseUri);
 		}
 	}
 }

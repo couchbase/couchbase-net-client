@@ -9,6 +9,7 @@ using Hammock;
 using Membase.Configuration;
 using Newtonsoft.Json;
 using Hammock.Retries;
+using Couchbase.Configuration;
 
 namespace Couchbase
 {
@@ -16,42 +17,17 @@ namespace Couchbase
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseNode));
 
-		public CouchbaseNode(IPEndPoint endpoint, Uri couchApiBase, IMembaseClientConfiguration config, ISaslAuthenticationProvider authenticationProvider)
+		public CouchbaseNode(IPEndPoint endpoint, Uri couchApiBase, ICouchbaseClientConfiguration config, ISaslAuthenticationProvider authenticationProvider)
 			: base(endpoint, config.SocketPool, authenticationProvider)
 		{
-			this.Client = CreateClient(couchApiBase);
-		}
-
-		private static RestClient CreateClient(Uri baseUri)
-		{
-			var ub = new UriBuilder(baseUri);
+			var ub = new UriBuilder(couchApiBase);
 			ub.Path = System.IO.Path.Combine(ub.Path, "_design");
 
-			var endpoint = ub.Uri;
-
-			var client = new RestClient { Authority = endpoint.ToString() };
-
-			client.AddHeader("Accept", "application/json");
-			client.AddHeader("Content-Type", "application/json; charset=utf-8");
-
-			client.ServicePoint = System.Net.ServicePointManager.FindServicePoint(endpoint);
-			client.ServicePoint.SetTcpKeepAlive(true, 300, 30);
-
-			client.RetryPolicy = new RetryPolicy
-			{
-				RetryConditions =
-				{
-					new Hammock.Retries.NetworkError(),
-					new Hammock.Retries.Timeout(),
-					new Hammock.Retries.ConnectionClosed()
-				},
-				RetryCount = 3
-			};
-
-			return client;
+			this.Client = config.CreateHttpClient(ub.Uri);
+			this.Client.RetryCount = config.RetryCount;
 		}
 
-		internal RestClient Client { get; private set; }
+		internal IHttpClient Client { get; private set; }
 	}
 }
 

@@ -107,13 +107,9 @@ namespace Couchbase
 		/// Builds the request uri based on the parameters set by the user
 		/// </summary>
 		/// <returns></returns>
-		private Hammock.RestRequest CreateRequest()
+		private IHttpRequest CreateRequest(IHttpClient client)
 		{
-			var retval = new RestRequest
-			{
-				Path = this.designDocument + "/_view/" + this.indexName,
-				Method = Hammock.Web.WebMethod.Get
-			};
+			var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
 
 			if (this.endKey != null) retval.AddParameter("endKey", this.endKey);
 			if (this.startKey != null) retval.AddParameter("startKey", this.startKey);
@@ -130,7 +126,7 @@ namespace Couchbase
 			return this.designDocument + "/" + this.indexName;
 		}
 
-		private RestClient GetRestClient()
+		private IHttpClient GetRestClient()
 		{
 			// find the node hosting this design document
 			var pool = ((Enyim.Caching.Memcached.IServerPool)this.ownerClient.PoolInstance);
@@ -142,7 +138,7 @@ namespace Couchbase
 					: null;
 		}
 
-		private RestResponse GetResponse()
+		private IHttpResponse GetResponse()
 		{
 			Debug.Assert(this.ownerClient != null);
 
@@ -155,14 +151,9 @@ namespace Couchbase
 				throw new InvalidOperationException();
 			}
 
-			var request = CreateRequest();
-			var response = client.Request(request);
+			var request = CreateRequest(client);
 
-			if (response.InnerException != null) throw response.InnerException;
-			if (response.StatusCode != System.Net.HttpStatusCode.OK)
-				throw new InvalidOperationException(String.Format("Server returned {0}: {1}, {2}", response.StatusCode, response.StatusDescription, response.Content));
-
-			return response;
+			return request.GetResponse();
 		}
 
 		IEnumerator<ICouchbaseViewRow> IEnumerable<ICouchbaseViewRow>.GetEnumerator()
@@ -170,7 +161,7 @@ namespace Couchbase
 			var response = GetResponse();
 			Debug.Assert(response != null);
 
-			using (var sr = new StreamReader(response.ContentStream, Encoding.UTF8, true))
+			using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
 			using (var jsonReader = new JsonTextReader(sr))
 			{
 				// position the reader on the first "rows" field which contains the actual resultset

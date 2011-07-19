@@ -17,6 +17,7 @@ namespace Couchbase
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbasePool));
 
 		private INameTransformer docNameTransformer;
+		private ICouchbaseClientConfiguration configuration;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Membase.MembasePool" />.
@@ -35,6 +36,7 @@ namespace Couchbase
 			: base(configuration, bucketName, bucketPassword)
 		{
 			this.docNameTransformer = configuration.CreateDesignDocumentNameTransformer();
+			this.configuration = configuration;
 		}
 
 		protected override IMemcachedNode CreateNode(IPEndPoint endpoint, ISaslAuthenticationProvider auth, Dictionary<string, object> nodeInfo)
@@ -44,7 +46,7 @@ namespace Couchbase
 				|| String.IsNullOrEmpty(couchApiBase))
 				throw new InvalidOperationException("The node configuration does not contain the required 'couchApiBase' attribute.");
 
-			return new CouchbaseNode(endpoint, new Uri(couchApiBase), this.Configuration, auth);
+			return new CouchbaseNode(endpoint, new Uri(couchApiBase), this.configuration, auth);
 		}
 	}
 }

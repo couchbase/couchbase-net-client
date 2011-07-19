@@ -16,6 +16,7 @@ namespace Couchbase.Configuration
 		/// </remarks>
 		/// <returns>A transformed name.</returns>
 		INameTransformer CreateDesignDocumentNameTransformer();
+		IHttpClient CreateHttpClient(Uri baseUri);
 	}
 
 	public interface INameTransformer
