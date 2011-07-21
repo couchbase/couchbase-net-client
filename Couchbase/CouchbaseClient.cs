@@ -36,7 +36,7 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="configuration">The custom configuration provider.</param>
 		public CouchbaseClient(ICouchbaseClientConfiguration configuration) :
-			this(configuration, configuration.Bucket, configuration.BucketPassword) { }
+			this(ThrowIfNull(configuration, "configuration"), configuration.Bucket, configuration.BucketPassword) { }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the specified configuration 
@@ -46,7 +46,9 @@ namespace Couchbase
 		/// <param name="bucketName">The name of the bucket this client will connect to.</param>
 		/// <param name="bucketPassword">The password of the bucket this client will connect to.</param>
 		public CouchbaseClient(string sectionName, string bucketName, string bucketPassword) :
-			this((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName), bucketName, bucketPassword) { }
+			this(If((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName),
+					(o) => { if (o == null) throw new ArgumentException("Missing section: " + sectionName); }),
+				bucketName, bucketPassword) { }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class 
@@ -56,13 +58,23 @@ namespace Couchbase
 		/// <param name="bucketName">The name of the bucket this client will connect to.</param>
 		/// <param name="bucketPassword">The password of the bucket this client will connect to.</param>
 		public CouchbaseClient(ICouchbaseClientConfiguration configuration, string bucketName, string bucketPassword) :
-			this(new CouchbasePool(configuration, bucketName, bucketPassword), configuration) { }
+			this(new CouchbasePool(ThrowIfNull(configuration, "configuration"), bucketName, bucketPassword), configuration) { }
 
 		protected CouchbaseClient(CouchbasePool pool, ICouchbaseClientConfiguration configuration)
 			: base(pool, configuration)
 		{
 			this.documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
 		}
+
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the specified configuration 
+		/// section.
+		/// </summary>
+		/// <param name="sectionName">The name of the configuration section to load.</param>
+		public CouchbaseClient(string sectionName) :
+			this(If((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName),
+					(o) => { if (o == null) throw new ArgumentException("Missing section: " + sectionName); })) { }
 
 		/// <summary>
 		/// Returns an object representing the specified view in the specified design document.
@@ -87,6 +99,26 @@ namespace Couchbase
 
 			return this.Get(keys);
 		}
+
+		#region [ parameter helpers            ]
+
+		private static T ThrowIfNull<T>(T input, string parameterName)
+			where T : class
+		{
+			if (input == null) throw new ArgumentNullException(parameterName);
+
+			return input;
+		}
+
+		private static T If<T>(T input, Action<T> check)
+		{
+			check(input);
+
+			return input;
+		}
+
+		#endregion
+		#region [ IHttpClientLocator           ]
 
 		IHttpClient IHttpClientLocator.Locate(string designDocument)
 		{
