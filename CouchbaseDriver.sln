@@ -20,10 +20,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enyim.Caching.Log4NetAdapte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enyim.Caching.NLogAdapter", "libs\EnyimMemcached\Enyim.Caching.NLogAdapter\Enyim.Caching.NLogAdapter.csproj", "{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CouchbaseTests", "CouchbaseTests\CouchbaseTests.csproj", "{EE307486-7210-438B-AC60-6C2D41BFB3E9}"
+EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = CouchbaseDriver.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -83,6 +82,16 @@ Global
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|x86.ActiveCfg = Release|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{EE307486-7210-438B-AC60-6C2D41BFB3E9}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
