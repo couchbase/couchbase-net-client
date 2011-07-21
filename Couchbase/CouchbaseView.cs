@@ -50,6 +50,7 @@ namespace Couchbase
 			this.descending = original.descending;
 			this.skip = original.skip;
 			this.limit = original.limit;
+			this.stale = original.stale;
 		}
 
 		/// <summary>
