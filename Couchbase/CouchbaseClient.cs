@@ -12,12 +12,11 @@ namespace Couchbase
 	/// <summary>
 	/// Couchbase client.
 	/// </summary>
-	public class CouchbaseClient : MembaseClient
+	public class CouchbaseClient : MembaseClient, IHttpClientLocator
 	{
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
 
 		private INameTransformer documentNameTransformer;
-		internal readonly CouchbasePool PoolInstance;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the default configuration and bucket.
@@ -62,8 +61,6 @@ namespace Couchbase
 		protected CouchbaseClient(CouchbasePool pool, ICouchbaseClientConfiguration configuration)
 			: base(pool, configuration)
 		{
-			this.PoolInstance = (CouchbasePool)this.Pool;
-
 			this.documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
 		}
 
@@ -81,7 +78,7 @@ namespace Couchbase
 			if (this.documentNameTransformer != null)
 				designName = this.documentNameTransformer.Transform(designName);
 
-			return new CouchbaseView(this, designName, viewName);
+			return new CouchbaseView(this, this, designName, viewName);
 		}
 
 		public IDictionary<string, object> Get(ICouchbaseView view)
@@ -90,6 +87,19 @@ namespace Couchbase
 
 			return this.Get(keys);
 		}
+
+		IHttpClient IHttpClientLocator.Locate(string designDocument)
+		{
+			// find the node hosting this design document
+			var node = this.Pool.Locate(designDocument) as CouchbaseNode;
+
+			// return null if the node is dead
+			return (node != null && node.IsAlive)
+					? node.Client
+					: null;
+		}
+
+		#endregion
 	}
 }
 

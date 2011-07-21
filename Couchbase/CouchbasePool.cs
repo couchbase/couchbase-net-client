@@ -16,7 +16,6 @@ namespace Couchbase
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbasePool));
 
-		private INameTransformer docNameTransformer;
 		private ICouchbaseClientConfiguration configuration;
 
 		/// <summary>
@@ -35,7 +34,6 @@ namespace Couchbase
 		public CouchbasePool(ICouchbaseClientConfiguration configuration, string bucketName, string bucketPassword)
 			: base(configuration, bucketName, bucketPassword)
 		{
-			this.docNameTransformer = configuration.CreateDesignDocumentNameTransformer();
 			this.configuration = configuration;
 		}
 

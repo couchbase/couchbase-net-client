@@ -8,6 +8,7 @@ using Hammock;
 using Hammock.Serialization;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
+using Enyim.Caching;
 
 namespace Couchbase
 {
@@ -18,7 +19,8 @@ namespace Couchbase
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
 
-		private readonly CouchbaseClient ownerClient;
+		private readonly IMemcachedClient client;
+		private readonly IHttpClientLocator clientLocator;
 		private readonly string designDocument;
 		private readonly string indexName;
 
@@ -29,16 +31,17 @@ namespace Couchbase
 		private int? limit;
 		private bool stale;
 
-		internal CouchbaseView(CouchbaseClient ownerClient, string designDocument, string indexName)
+		internal CouchbaseView(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
 		{
-			this.ownerClient = ownerClient;
+			this.client = client;
+			this.clientLocator = clientLocator;
 			this.designDocument = designDocument;
 			this.indexName = indexName;
 		}
 
 		protected CouchbaseView(CouchbaseView original)
 		{
-			this.ownerClient = original.ownerClient;
+			this.clientLocator = original.clientLocator;
 			this.designDocument = original.designDocument;
 			this.indexName = original.indexName;
 
@@ -126,23 +129,11 @@ namespace Couchbase
 			return this.designDocument + "/" + this.indexName;
 		}
 
-		private IHttpClient GetRestClient()
-		{
-			// find the node hosting this design document
-			var pool = ((Enyim.Caching.Memcached.IServerPool)this.ownerClient.PoolInstance);
-			var node = pool.Locate(this.designDocument) as CouchbaseNode;
-
-			// return null if the node is dead
-			return (node != null && node.IsAlive)
-					? node.Client
-					: null;
-		}
-
 		private IHttpResponse GetResponse()
 		{
-			Debug.Assert(this.ownerClient != null);
+			Debug.Assert(this.clientLocator != null);
 
-			var client = this.GetRestClient();
+			var client = this.clientLocator.Locate(this.designDocument);
 			if (client == null)
 			{
 				if (log.IsErrorEnabled)
@@ -237,7 +228,7 @@ namespace Couchbase
 
 			object ICouchbaseViewRow.GetItem()
 			{
-				return this.owner.ownerClient.Get(this.id);
+				return this.owner.client.Get(this.id);
 			}
 
 			Dictionary<string, object> ICouchbaseViewRow.Info

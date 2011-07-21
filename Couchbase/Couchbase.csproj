@@ -48,6 +48,7 @@
     <Compile Include="DictionaryEx.cs" />
     <Compile Include="ICouchbaseView.cs" />
     <Compile Include="IHttpClient.cs" />
+    <Compile Include="IHttpClientLocator.cs" />
     <Compile Include="Json.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
