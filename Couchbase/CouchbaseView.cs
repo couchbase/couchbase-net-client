@@ -26,9 +26,12 @@ namespace Couchbase
 
 		private string endKey;
 		private string startKey;
+		private string endId;
+		private string startId;
 		private bool? descending;
 		private int? skip;
 		private int? limit;
+		private bool? reduce;
 		private bool stale;
 
 		internal CouchbaseView(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
@@ -45,9 +48,15 @@ namespace Couchbase
 			this.designDocument = original.designDocument;
 			this.indexName = original.indexName;
 
-			this.endKey = original.endKey;
 			this.startKey = original.startKey;
+			this.endKey = original.endKey;
+
+			this.startId = original.startId;
+			this.endId = original.endId;
+
 			this.descending = original.descending;
+			this.reduce = original.reduce;
+
 			this.skip = original.skip;
 			this.limit = original.limit;
 			this.stale = original.stale;
@@ -97,14 +106,39 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="from"></param>
 		/// <param name="to"></param>
-		/// <returns></returns>
-		ICouchbaseView ICouchbaseView.Range(string from, string to)
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
+		ICouchbaseView ICouchbaseView.KeyRange(string from, string to)
 		{
 			return new CouchbaseView(this)
 			{
 				startKey = from,
 				endKey = to
 			};
+		}
+
+		/// <summary>
+		/// Only return items with document ids in the specified range.
+		/// </summary>
+		/// <param name="from"></param>
+		/// <param name="to"></param>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
+		ICouchbaseView ICouchbaseView.IdRange(string from, string to)
+		{
+			return new CouchbaseView(this)
+			{
+				startId = from,
+				endId = to
+			};
+		}
+
+		/// <summary>
+		/// Run the reduce function on the items.
+		/// </summary>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
+		ICouchbaseView ICouchbaseView.Reduce(bool reduce)
+		{
+			return new CouchbaseView(this) { reduce = reduce };
 		}
 
 		/// <summary>
@@ -115,9 +149,15 @@ namespace Couchbase
 		{
 			var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
 
-			if (this.endKey != null) retval.AddParameter("endKey", this.endKey);
 			if (this.startKey != null) retval.AddParameter("startKey", this.startKey);
+			if (this.endKey != null) retval.AddParameter("endKey", this.endKey);
+
+			if (this.startId != null) retval.AddParameter("startKey_docid", this.startId);
+			if (this.endId != null) retval.AddParameter("endKey_docid", this.endId);
+
 			if (this.descending != null) retval.AddParameter("descending", this.descending.Value ? "true" : "false");
+			if (this.reduce != null) retval.AddParameter("reduce", this.reduce.Value ? "true" : "false");
+
 			if (this.skip != null) retval.AddParameter("skip", this.skip.ToString());
 			if (this.limit != null) retval.AddParameter("limit", this.limit.ToString());
 			if (this.stale) retval.AddParameter("stale", "ok");

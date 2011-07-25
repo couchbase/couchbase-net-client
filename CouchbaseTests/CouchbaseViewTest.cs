@@ -78,16 +78,22 @@ namespace CouchbaseTests
 				Stale().
 				Skip(20).
 				Limit(30).
-				Range("from", "to").
-				OrderByDescending().ToList();
+				KeyRange("from-key", "to-key").
+				IdRange("from-id", "to-id").
+				OrderByDescending().
+				Reduce(true).
+				ToList();
 
 			var expectedParameters = new Dictionary<string, string>()
 			{
 				{ "descending", "true" },
 				{ "skip", "20" },
 				{ "limit", "30" },
-				{ "startKey", "from" },
-				{ "endKey", "to" },
+				{ "startKey", "from-key" },
+				{ "endKey", "to-key" },
+				{ "startKey_docid", "from-id" },
+				{ "endKey_docid", "to-id" },
+				{ "reduce", "true" },
 				{ "stale", "ok" }
 			};
 

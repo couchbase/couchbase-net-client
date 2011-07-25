@@ -13,6 +13,7 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="value"></param>
 		/// <returns></returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return only the specified number of items.</returns>
 		ICouchbaseView Limit(int value);
 
 		/// <summary>
@@ -20,19 +21,20 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="value"></param>
 		/// <returns></returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the skip the specified number of items.</returns>
 		ICouchbaseView Skip(int value);
 
 		/// <summary>
 		/// Couchbase will not update the view before erturning the data even if it contains stale values. Use this mode if you favor improved query latency over data constistency.
 		/// </summary>
 		/// <param name="value"></param>
-		/// <returns></returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will include stale items from the index.</returns>
 		ICouchbaseView Stale();
 
 		/// <summary>
 		/// Orders the items of the view in descending order.
 		/// </summary>
-		/// <returns></returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the items in descending order.</returns>
 		ICouchbaseView OrderByDescending();
 
 		/// <summary>
@@ -40,8 +42,23 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="from"></param>
 		/// <param name="to"></param>
-		/// <returns></returns>
-		ICouchbaseView Range(string from, string to);
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
+		ICouchbaseView KeyRange(string from, string to);
+
+		/// <summary>
+		/// Only return items with document ids in the specified range.
+		/// </summary>
+		/// <param name="from"></param>
+		/// <param name="to"></param>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
+		ICouchbaseView IdRange(string from, string to);
+
+		/// <summary>
+		/// Run the reduce function on the items.
+		/// </summary>
+		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
+		ICouchbaseView Reduce(bool reduce);
 	}
 }
 
