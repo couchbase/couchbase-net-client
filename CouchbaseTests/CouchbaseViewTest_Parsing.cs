@@ -14,10 +14,33 @@ namespace CouchbaseTests
 {
 	public partial class CouchbaseViewTest
 	{
+		[TestMethod, DeploymentItem("ErrorResponse.txt")]
+		public void EnumerationShouldFailWhenErrorResponseIsReceived()
+		{
+			var view = GetViewFromResponse("ErrorResponse.txt");
+
+			Action tmp = () => view.ToList();
+
+			tmp.ShouldThrow<InvalidOperationException>();
+		}
+
 		[TestMethod, DeploymentItem("MixedResponse.txt")]
 		public void ItemsShouldBeReturnedByView()
 		{
-			var content = File.ReadAllText(@"MixedResponse.txt");
+			var view = GetViewFromResponse("MixedResponse.txt");
+
+			var expectedKeys = (from index in Enumerable.Range(0, 10)
+								from prefix in new[] { "binary", "json" }
+								select prefix + "_" + index).ToList();
+
+			var resultKeys = view.Select(row => row.ItemId).ToList();
+
+			resultKeys.Should().BeEquivalentTo(expectedKeys);
+		}
+
+		private IView GetViewFromResponse(string fileName)
+		{
+			var content = File.ReadAllText(fileName);
 
 			var response = new Mock<IHttpResponse>();
 			response.Setup(r => r.GetResponseStream()).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(content), false));
@@ -32,15 +55,7 @@ namespace CouchbaseTests
 			var locator = new Mock<IHttpClientLocator>();
 			locator.Setup(l => l.Locate(It.IsAny<string>())).Returns(client.Object);
 
-			var view = new CouchbaseView(new Mock<IMemcachedClient>().Object, locator.Object, "doc", "index");
-
-			var expectedKeys = (from index in Enumerable.Range(0, 10)
-								from prefix in new[] { "binary", "json" }
-								select prefix + "_" + index).ToList();
-
-			var resultKeys = view.Select(row => row.ItemId).ToList();
-
-			resultKeys.Should().BeEquivalentTo(expectedKeys);
+			return new CouchbaseView(new Mock<IMemcachedClient>().Object, locator.Object, "doc", "index");
 		}
 	}
 }
