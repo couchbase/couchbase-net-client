@@ -15,7 +15,7 @@ namespace Couchbase
 	/// <summary>
 	/// Represents the results of a Couchbase index.
 	/// </summary>
-	public class CouchbaseView : ICouchbaseView
+	internal class CouchbaseView : IView
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
 
@@ -28,11 +28,17 @@ namespace Couchbase
 		private string startKey;
 		private string endId;
 		private string startId;
+
+		private StaleMode? stale;
 		private bool? descending;
+		private bool? inclusive;
+
 		private int? skip;
 		private int? limit;
+
 		private bool? reduce;
-		private bool stale;
+		private bool? group;
+		private int? groupAt;
 
 		internal CouchbaseView(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
 		{
@@ -54,141 +60,18 @@ namespace Couchbase
 			this.startId = original.startId;
 			this.endId = original.endId;
 
+			this.stale = original.stale;
 			this.descending = original.descending;
-			this.reduce = original.reduce;
+			this.inclusive = original.inclusive;
 
 			this.skip = original.skip;
 			this.limit = original.limit;
-			this.stale = original.stale;
+
+			this.reduce = original.reduce;
+			this.groupAt = original.groupAt;
 		}
 
-		/// <summary>
-		/// The view will return only the specified number of items.
-		/// </summary>
-		/// <param name="value"></param>
-		/// <returns></returns>
-		ICouchbaseView ICouchbaseView.Limit(int value)
-		{
-			return new CouchbaseView(this) { limit = value };
-		}
-
-		/// <summary>
-		/// Bypasses the specified number of elements in the view then returns the remaining items.
-		/// </summary>
-		/// <param name="value"></param>
-		/// <returns></returns>
-		ICouchbaseView ICouchbaseView.Skip(int value)
-		{
-			return new CouchbaseView(this) { skip = value };
-		}
-
-		/// <summary>
-		/// Couchbase will not update the view before erturning the data even if it contains stale values. Use this mode if you favor improved query latency over data constistency.
-		/// </summary>
-		/// <param name="value"></param>
-		/// <returns></returns>
-		ICouchbaseView ICouchbaseView.Stale()
-		{
-			return new CouchbaseView(this) { stale = true };
-		}
-
-		/// <summary>
-		/// Orders the items of the view in descending order.
-		/// </summary>
-		/// <returns></returns>
-		ICouchbaseView ICouchbaseView.OrderByDescending()
-		{
-			return new CouchbaseView(this) { descending = true };
-		}
-
-		/// <summary>
-		/// Only return items with keys in the specified range.
-		/// </summary>
-		/// <param name="from"></param>
-		/// <param name="to"></param>
-		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
-		ICouchbaseView ICouchbaseView.KeyRange(string from, string to)
-		{
-			return new CouchbaseView(this)
-			{
-				startKey = from,
-				endKey = to
-			};
-		}
-
-		/// <summary>
-		/// Only return items with document ids in the specified range.
-		/// </summary>
-		/// <param name="from"></param>
-		/// <param name="to"></param>
-		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
-		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return items from the specified range.</returns>
-		ICouchbaseView ICouchbaseView.IdRange(string from, string to)
-		{
-			return new CouchbaseView(this)
-			{
-				startId = from,
-				endId = to
-			};
-		}
-
-		/// <summary>
-		/// Run the reduce function on the items.
-		/// </summary>
-		/// <returns>A new <see cref="T:ICouchbaseView"/> instance, which when enumerated will return the map-reduced items.</returns>
-		ICouchbaseView ICouchbaseView.Reduce(bool reduce)
-		{
-			return new CouchbaseView(this) { reduce = reduce };
-		}
-
-		/// <summary>
-		/// Builds the request uri based on the parameters set by the user
-		/// </summary>
-		/// <returns></returns>
-		private IHttpRequest CreateRequest(IHttpClient client)
-		{
-			var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
-
-			if (this.startKey != null) retval.AddParameter("startKey", this.startKey);
-			if (this.endKey != null) retval.AddParameter("endKey", this.endKey);
-
-			if (this.startId != null) retval.AddParameter("startKey_docid", this.startId);
-			if (this.endId != null) retval.AddParameter("endKey_docid", this.endId);
-
-			if (this.descending != null) retval.AddParameter("descending", this.descending.Value ? "true" : "false");
-			if (this.reduce != null) retval.AddParameter("reduce", this.reduce.Value ? "true" : "false");
-
-			if (this.skip != null) retval.AddParameter("skip", this.skip.ToString());
-			if (this.limit != null) retval.AddParameter("limit", this.limit.ToString());
-			if (this.stale) retval.AddParameter("stale", "ok");
-
-			return retval;
-		}
-
-		public override string ToString()
-		{
-			return this.designDocument + "/" + this.indexName;
-		}
-
-		private IHttpResponse GetResponse()
-		{
-			Debug.Assert(this.clientLocator != null);
-
-			var client = this.clientLocator.Locate(this.designDocument);
-			if (client == null)
-			{
-				if (log.IsErrorEnabled)
-					log.WarnFormat("View {0} was mapped to a dead node, failing.", this);
-
-				throw new InvalidOperationException();
-			}
-
-			var request = CreateRequest(client);
-
-			return request.GetResponse();
-		}
-
-		IEnumerator<ICouchbaseViewRow> IEnumerable<ICouchbaseViewRow>.GetEnumerator()
+		IEnumerator<IViewRow> IEnumerable<IViewRow>.GetEnumerator()
 		{
 			var response = GetResponse();
 			Debug.Assert(response != null);
@@ -222,7 +105,7 @@ namespace Couchbase
 				// read until the end of the rows array
 				while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
 				{
-					var row = new __Row(this, Json.Parse(jsonReader) as Dictionary<string, object>);
+					var row = new __Row(this, Json.Parse(jsonReader) as IDictionary<string, object>);
 
 					yield return row;
 				}
@@ -231,48 +114,191 @@ namespace Couchbase
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return ((IEnumerable<ICouchbaseViewRow>)this).GetEnumerator();
+			return ((IEnumerable<IViewRow>)this).GetEnumerator();
 		}
 
+		/// <summary>
+		/// Builds the request uri based on the parameters set by the user
+		/// </summary>
+		/// <returns></returns>
+		private IHttpRequest CreateRequest(IHttpClient client)
+		{
+			var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
+
+			AddOptionalRequestParam(retval, "startKey", this.startKey);
+			AddOptionalRequestParam(retval, "endKey", this.endKey);
+			AddOptionalRequestParam(retval, "startKey_docid", this.startId);
+			AddOptionalRequestParam(retval, "endKey_docid", this.endId);
+			AddOptionalRequestParam(retval, "skip", this.skip);
+			AddOptionalRequestParam(retval, "limit", this.limit);
+
+			AddOptionalRequestParam(retval, "inclusive_end", this.inclusive);
+			AddOptionalRequestParam(retval, "descending", this.descending);
+			AddOptionalRequestParam(retval, "reduce", this.reduce);
+			AddOptionalRequestParam(retval, "group", this.group);
+			AddOptionalRequestParam(retval, "group_level", this.groupAt);
+
+			if (this.stale != null)
+				switch (this.stale.Value)
+				{
+					case StaleMode.AllowStale:
+						retval.AddParameter("stale", "ok");
+						break;
+					case StaleMode.UpdateAfter:
+						retval.AddParameter("stale", "update_after");
+						break;
+					default: throw new ArgumentOutOfRangeException("stale: " + this.stale);
+				}
+
+			return retval;
+		}
+
+		private IHttpResponse GetResponse()
+		{
+			Debug.Assert(this.clientLocator != null);
+
+			var client = this.clientLocator.Locate(this.designDocument);
+			if (client == null)
+			{
+				if (log.IsErrorEnabled)
+					log.WarnFormat("View {0} was mapped to a dead node, failing.", this);
+
+				throw new InvalidOperationException();
+			}
+
+			var request = CreateRequest(client);
+
+			return request.GetResponse();
+		}
+
+		#region [ IView                        ]
+
+		IView IView.Limit(int value)
+		{
+			return new CouchbaseView(this) { limit = value };
+		}
+
+		IView IView.Skip(int value)
+		{
+			return new CouchbaseView(this) { skip = value };
+		}
+
+		IView IView.Stale(StaleMode mode)
+		{
+			return new CouchbaseView(this) { stale = mode };
+		}
+
+		IView IView.Descending(bool descending)
+		{
+			return new CouchbaseView(this) { descending = descending };
+		}
+
+		IView IView.StartKey(string from)
+		{
+			return new CouchbaseView(this) { startKey = from };
+		}
+
+		IView IView.EndKey(string to)
+		{
+			return new CouchbaseView(this) { endKey = to };
+		}
+
+		IView IView.StartDocumentId(string from)
+		{
+			return new CouchbaseView(this) { startId = from };
+		}
+
+		IView IView.EndDocumentId(string to)
+		{
+			return new CouchbaseView(this) { endId = to };
+		}
+
+		IView IView.Reduce(bool reduce)
+		{
+			return new CouchbaseView(this) { reduce = reduce };
+		}
+
+		IView IView.Group(bool group)
+		{
+			return new CouchbaseView(this) { group = group };
+		}
+
+		IView IView.GroupAt(int level)
+		{
+			return new CouchbaseView(this) { groupAt = level };
+		}
+
+		IView IView.WithInclusiveEnd(bool inclusive)
+		{
+			return new CouchbaseView(this) { inclusive = inclusive };
+		}
+
+		#endregion
+		#region [ Request helpers              ]
+
+		private static void AddOptionalRequestParam(IHttpRequest request, string name, bool? value)
+		{
+			if (value != null)
+				request.AddParameter(name, value.Value ? "true" : "false");
+		}
+
+		private static void AddOptionalRequestParam(IHttpRequest request, string name, int? value)
+		{
+			if (value != null)
+				request.AddParameter(name, value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		}
+
+		private static void AddOptionalRequestParam<T>(IHttpRequest request, string name, T value)
+			where T : IConvertible
+		{
+			if (value != null)
+				request.AddParameter(name, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		}
+
+		#endregion
 		#region [ __Row                        ]
 
-		private class __Row : ICouchbaseViewRow
+		private class __Row : IViewRow
 		{
 			private readonly CouchbaseView owner;
-			private readonly string key;
+			private readonly object[] key;
 			private readonly string id;
-			private readonly Dictionary<string, object> info;
+			private readonly IDictionary<string, object> info;
 
-			public __Row(CouchbaseView owner, Dictionary<string, object> row)
+			public __Row(CouchbaseView owner, IDictionary<string, object> row)
 			{
 				this.owner = owner;
 
 				if (row == null) throw new ArgumentNullException("row", "Missing row info");
 
-				if (!row.TryGetValue("key", out this.key))
-					throw new InvalidOperationException("The value 'key' was not found in the row definition.");
 				if (!row.TryGetValue("id", out this.id))
 					throw new InvalidOperationException("The value 'id' was not found in the row definition.");
 
-				row.TryGetValue("value", out this.info);
+				object tempKey;
+
+				if (!row.TryGetValue("key", out tempKey))
+					throw new InvalidOperationException("The value 'key' was not found in the row definition.");
+
+				this.key = (tempKey as object[]) ?? (new object[] { tempKey });
+				this.info = row.AsReadOnly();
 			}
 
-			string ICouchbaseViewRow.ItemId
+			string IViewRow.ItemId
 			{
 				get { return this.id; }
 			}
 
-			string ICouchbaseViewRow.ViewKey
+			object[] IViewRow.ViewKey
 			{
 				get { return this.key; }
 			}
 
-			object ICouchbaseViewRow.GetItem()
+			object IViewRow.GetItem()
 			{
 				return this.owner.client.Get(this.id);
 			}
 
-			Dictionary<string, object> ICouchbaseViewRow.Info
+			IDictionary<string, object> IViewRow.Info
 			{
 				get { return this.info; }
 			}
@@ -280,6 +306,8 @@ namespace Couchbase
 
 		#endregion
 	}
+
+	public enum StaleMode { AllowStale, UpdateAfter }
 }
 
 #region [ License information          ]

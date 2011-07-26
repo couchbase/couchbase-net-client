@@ -44,20 +44,17 @@ namespace CouchbaseTests
 			resultKeys.Should().BeEquivalentTo(expectedKeys);
 		}
 
-		[TestMethod]
-		public void AllRequestParametersShouldBeApplied()
+		private IHttpClientLocator CreateParameterValidatingLocator(Dictionary<string, string> collectedParameters, List<string> requestedPaths)
 		{
-			var collectedParameters = new Dictionary<string, string>();
-			var requestedPaths = new List<string>();
-
 			var response = new Mock<IHttpResponse>();
 			response.Setup(r => r.GetResponseStream()).Returns(Stream.Null);
 
 			var request = new Mock<IHttpRequest>();
+			request.SetupAllProperties();
+
 			request.Setup(r => r.GetResponse()).Returns(response.Object);
 			request.Setup(r => r.AddParameter(It.IsAny<string>(), It.IsAny<string>())).
 					Callback<string, string>((k, v) => collectedParameters.Add(k, v));
-			request.SetupAllProperties();
 
 			var client = new Mock<IHttpClient>();
 			client.Setup(c => c.CreateRequest(It.IsAny<string>())).
@@ -72,33 +69,175 @@ namespace CouchbaseTests
 			var locator = new Mock<IHttpClientLocator>();
 			locator.Setup(l => l.Locate(It.IsAny<string>())).Returns(client.Object);
 
-			ICouchbaseView view = new CouchbaseView(new Mock<IMemcachedClient>().Object, locator.Object, "doc", "index");
+			return locator.Object;
+		}
 
-			view.
-				Stale().
-				Skip(20).
-				Limit(30).
-				KeyRange("from-key", "to-key").
-				IdRange("from-id", "to-id").
-				OrderByDescending().
-				Reduce(true).
-				ToList();
+		private void CheckViewParameters(Func<IView, IView> setupView, Dictionary<string, string> expectedParameters)
+		{
+			var collectedParameters = new Dictionary<string, string>();
+			var requestedPaths = new List<string>();
+			var locator = CreateParameterValidatingLocator(collectedParameters, requestedPaths);
 
-			var expectedParameters = new Dictionary<string, string>()
-			{
-				{ "descending", "true" },
-				{ "skip", "20" },
-				{ "limit", "30" },
-				{ "startKey", "from-key" },
-				{ "endKey", "to-key" },
-				{ "startKey_docid", "from-id" },
-				{ "endKey_docid", "to-id" },
-				{ "reduce", "true" },
-				{ "stale", "ok" }
-			};
+			IView view = new CouchbaseView(new Mock<IMemcachedClient>().Object, locator, "doc", "index");
+
+			setupView(view).ToList();
 
 			collectedParameters.Should().Equal(expectedParameters);
-			requestedPaths.Should().BeEquivalentTo(new[] { "doc/_view/index" });
+		}
+
+		[TestMethod]
+		public void KeyRangeParametersShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.StartKey("start-key").EndKey("end-key"),
+				new Dictionary<string, string>()
+				{
+					{ "startKey", "start-key" },
+					{ "endKey", "end-key" }
+				});
+		}
+
+		[TestMethod]
+		public void DocumentIdRangeParametersShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.StartDocumentId("start-doc").EndDocumentId("end-doc"),
+				new Dictionary<string, string>()
+				{
+					{ "startKey_docid", "start-doc" },
+					{ "endKey_docid", "end-doc" }
+				});
+		}
+
+		[TestMethod]
+		public void LimitParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Limit(1234),
+				new Dictionary<string, string>()
+				{
+					{ "limit", "1234" }
+				});
+		}
+
+		[TestMethod]
+		public void SkipParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Skip(4567),
+				new Dictionary<string, string>()
+				{
+					{ "skip", "4567" }
+				});
+		}
+
+		[TestMethod]
+		public void StaleParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Stale(StaleMode.AllowStale),
+				new Dictionary<string, string>()
+				{
+					{ "stale", "ok" }
+				});
+
+			CheckViewParameters(
+				view => view.Stale(StaleMode.UpdateAfter),
+				new Dictionary<string, string>()
+				{
+					{ "stale", "update_after" }
+				});
+		}
+
+		[TestMethod]
+		public void ReduceParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Reduce(false),
+				new Dictionary<string, string>()
+				{
+					{ "reduce", "false" }
+				});
+
+			CheckViewParameters(
+			view => view.Reduce(true),
+			new Dictionary<string, string>()
+				{
+					{ "reduce", "true" }
+				});
+		}
+
+		[TestMethod]
+		public void GroupParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Group(false),
+				new Dictionary<string, string>()
+				{
+					{ "group", "false" }
+				});
+
+			CheckViewParameters(
+			view => view.Group(true),
+			new Dictionary<string, string>()
+				{
+					{ "group", "true" }
+				});
+		}
+
+		[TestMethod]
+		public void GroupAtParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.GroupAt(4567),
+				new Dictionary<string, string>()
+				{
+					{ "group_level", "4567" }
+				});
+		}
+
+		[TestMethod]
+		public void InclusiveParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.WithInclusiveEnd(true),
+				new Dictionary<string, string>()
+				{
+					{ "inclusive_end", "true" }
+				});
+
+			CheckViewParameters(
+			view => view.WithInclusiveEnd(false),
+			new Dictionary<string, string>()
+				{
+					{ "inclusive_end", "false" }
+				});
+		}
+
+		[TestMethod]
+		public void DescendingParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view.Descending(true),
+				new Dictionary<string, string>()
+				{
+					{ "descending", "true" }
+				});
+
+			CheckViewParameters(
+			view => view.Descending(false),
+			new Dictionary<string, string>()
+				{
+					{ "descending", "false" }
+				});
+		}
+
+		[TestMethod]
+		public void NoParameterShouldBeApplied()
+		{
+			CheckViewParameters(
+				view => view,
+				new Dictionary<string, string>() { });
 		}
 	}
 }

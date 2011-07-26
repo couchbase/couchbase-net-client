@@ -82,7 +82,7 @@ namespace Couchbase
 		/// <param name="designName">The name of the design document.</param>
 		/// <param name="viewName">The name of the view.</param>
 		/// <returns></returns>
-		public ICouchbaseView GetView(string designName, string viewName)
+		public IView GetView(string designName, string viewName)
 		{
 			if (String.IsNullOrEmpty(designName)) throw new ArgumentNullException("designName");
 			if (String.IsNullOrEmpty(viewName)) throw new ArgumentNullException("viewName");
@@ -93,7 +93,7 @@ namespace Couchbase
 			return new CouchbaseView(this, this, designName, viewName);
 		}
 
-		public IDictionary<string, object> Get(ICouchbaseView view)
+		public IDictionary<string, object> Get(IView view)
 		{
 			var keys = view.Select(row => row.ItemId);
 

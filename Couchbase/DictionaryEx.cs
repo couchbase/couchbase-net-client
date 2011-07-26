@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Couchbase
 {
-	internal static class DictionaryEx
+	public static class DictionaryEx
 	{
-		internal static bool TryGetValue<TValue>(this Dictionary<string, object> dict, string key, out TValue result)
+		internal static bool TryGetValue<TValue>(this IDictionary<string, object> dict, string key, out TValue result)
 		{
 			object tmp;
 
@@ -22,6 +22,114 @@ namespace Couchbase
 
 			return false;
 		}
+
+		public static IDictionary<TKey, TValue> AsReadOnly<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
+		{
+			return new ReadOnlyDictionary<TKey, TValue>(dictionary);
+		}
+
+		#region [ ReadOnlyDictionary           ]
+
+		private class ReadOnlyDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+		{
+			private IDictionary<TKey, TValue> original;
+
+			public ReadOnlyDictionary(IDictionary<TKey, TValue> original)
+			{
+				if (original == null)
+					throw new ArgumentNullException("original");
+
+				this.original = original;
+			}
+
+			private static Exception ItsReadOnly()
+			{
+				return new NotSupportedException("Dictionary is read-only!");
+			}
+
+			void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
+			{
+				throw ItsReadOnly();
+			}
+
+			bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
+			{
+				return this.original.ContainsKey(key);
+			}
+
+			ICollection<TKey> IDictionary<TKey, TValue>.Keys
+			{
+				get { return this.original.Keys; }
+			}
+
+			bool IDictionary<TKey, TValue>.Remove(TKey key)
+			{
+				throw ItsReadOnly();
+			}
+
+			bool IDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value)
+			{
+				return this.original.TryGetValue(key, out value);
+			}
+
+			ICollection<TValue> IDictionary<TKey, TValue>.Values
+			{
+				get { return this.original.Values; }
+			}
+
+			TValue IDictionary<TKey, TValue>.this[TKey key]
+			{
+				get { return this.original[key]; }
+				set { throw ItsReadOnly(); }
+			}
+
+			void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+			{
+				throw ItsReadOnly();
+			}
+
+			void ICollection<KeyValuePair<TKey, TValue>>.Clear()
+			{
+				throw ItsReadOnly();
+			}
+
+			bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+			{
+				return this.original.Contains(item);
+			}
+
+			void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+			{
+				this.original.CopyTo(array, arrayIndex);
+			}
+
+			int ICollection<KeyValuePair<TKey, TValue>>.Count
+			{
+				get { return this.original.Count; }
+			}
+
+			bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly
+			{
+				get { return true; }
+			}
+
+			bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+			{
+				throw ItsReadOnly();
+			}
+
+			IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+			{
+				return this.original.GetEnumerator();
+			}
+
+			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+			{
+				return this.original.GetEnumerator();
+			}
+		}
+
+		#endregion
 	}
 }
 
