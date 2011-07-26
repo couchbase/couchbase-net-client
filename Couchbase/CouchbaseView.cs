@@ -271,6 +271,8 @@ namespace Couchbase
 
 				if (row == null) throw new ArgumentNullException("row", "Missing row info");
 
+				CheckForError(row);
+
 				if (!row.TryGetValue("id", out this.id))
 					throw new InvalidOperationException("The value 'id' was not found in the row definition.");
 
@@ -281,6 +283,20 @@ namespace Couchbase
 
 				this.key = (tempKey as object[]) ?? (new object[] { tempKey });
 				this.info = row.AsReadOnly();
+			}
+
+			private static void CheckForError(IDictionary<string, object> row)
+			{
+				bool isError;
+
+				if (row.TryGetValue("error", out isError) && isError)
+				{
+					string reason;
+					if (row.TryGetValue("reason", out reason))
+						reason = " Reason: " + reason;
+
+					throw new InvalidOperationException("Failed to parse the row." + reason);
+				}
 			}
 
 			string IViewRow.ItemId
