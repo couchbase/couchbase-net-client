@@ -38,6 +38,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseViewTest.cs" />
+    <Compile Include="CouchbaseViewTest_Params.cs" />
+    <Compile Include="CouchbaseViewTest_Parsing.cs" />
     <Compile Include="DevelopmentModeNameTransformerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ConfigurationTest.cs" />
