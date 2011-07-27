@@ -64,9 +64,10 @@ Task _Clean -depends _CheckConfig {
 Task _Build -depends _CheckConfig {
 
 	Write-Host "Building the solution." -ForegroundColor Green
-		"got it: $script:private_key_path"
 
-	Exec { msbuild "$source_root\$solution_name" /t:Build /p:"Configuration=Release;PrivateKeyName=$private_key_name;PrivateKeyPath=$script:private_key_path" }
+	$ilmerge = global:getilmerge
+
+	Exec { msbuild "$source_root\$solution_name" /t:Build /p:"Configuration=Release;PrivateKeyName=$private_key_name;PrivateKeyPath=$script:private_key_path;IlMergePath=$ilmerge" }
 }
 
 #################### Nuget ####################
