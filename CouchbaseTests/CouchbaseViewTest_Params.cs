@@ -80,38 +80,6 @@ namespace CouchbaseTests
 		}
 
 		[TestMethod]
-		public void DocumentIdRangeShouldRemoveKeyRange()
-		{
-			CheckViewParameters(
-				view => view.
-							StartKey("start-key").
-							EndKey("end-key").
-							StartDocumentId("start-doc").
-							EndDocumentId("end-doc"),
-				new Dictionary<string, string>()
-				{
-					{ "startKey_docid", "start-doc" },
-					{ "endKey_docid", "end-doc" }
-				});
-		}
-
-		[TestMethod]
-		public void KeyRangeShouldRemoveDocumentIdRange()
-		{
-			CheckViewParameters(
-				view => view.
-							StartDocumentId("start-doc").
-							EndDocumentId("end-doc").
-							StartKey("start-key").
-							EndKey("end-key"),
-				new Dictionary<string, string>()
-				{
-					{ "startKey", "start-key" },
-					{ "endKey", "end-key" }
-				});
-		}
-
-		[TestMethod]
 		public void LimitParameterShouldBeApplied()
 		{
 			CheckViewParameters(
