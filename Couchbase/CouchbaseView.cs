@@ -71,6 +71,27 @@ namespace Couchbase
 			this.groupAt = original.groupAt;
 		}
 
+		private static bool MoveToArray(JsonReader reader, int depth, string name)
+		{
+			while (reader.Read())
+			{
+				if (reader.TokenType == Newtonsoft.Json.JsonToken.PropertyName
+					&& reader.Depth == 1
+					&& ((string)reader.Value) == name)
+				{
+					if (!reader.Read()
+						|| (reader.TokenType != Newtonsoft.Json.JsonToken.StartArray
+							&& reader.TokenType != Newtonsoft.Json.JsonToken.Null))
+						throw new InvalidOperationException("Expecting array named '" + name + "'!");
+
+					// we skip the deserialization if the array is null
+					return reader.TokenType == Newtonsoft.Json.JsonToken.StartArray;
+				}
+			}
+
+			return false;
+		}
+
 		IEnumerator<IViewRow> IEnumerable<IViewRow>.GetEnumerator()
 		{
 			var response = GetResponse();
@@ -81,34 +102,42 @@ namespace Couchbase
 			{
 				// position the reader on the first "rows" field which contains the actual resultset
 				// this way we do not have to deserialize the whole response twice
-				bool shouldDeserialize = false;
-
-				while (jsonReader.Read())
+				if (MoveToArray(jsonReader, 1, "rows"))
 				{
-					if (jsonReader.TokenType == Newtonsoft.Json.JsonToken.PropertyName
-						&& jsonReader.Depth == 1
-						&& ((string)jsonReader.Value) == "rows")
+					// read until the end of the rows array
+					while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
 					{
-						if (!jsonReader.Read()
-							|| (jsonReader.TokenType != Newtonsoft.Json.JsonToken.StartArray
-								&& jsonReader.TokenType != Newtonsoft.Json.JsonToken.Null))
-							throw new InvalidOperationException("Expecting array at 'rows'");
+						var row = new __Row(this, Json.Parse(jsonReader) as IDictionary<string, object>);
 
-						// we skip the deserialization if the array is null
-						shouldDeserialize = jsonReader.TokenType == Newtonsoft.Json.JsonToken.StartArray;
-						break;
+						yield return row;
 					}
 				}
 
-				if (!shouldDeserialize) yield break;
-
-				// read until the end of the rows array
-				while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
+				if (MoveToArray(jsonReader, 1, "errors"))
 				{
-					var row = new __Row(this, Json.Parse(jsonReader) as IDictionary<string, object>);
+					var errors = Json.Parse(jsonReader);
+					var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
+					if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
 
-					yield return row;
+					throw new InvalidOperationException("Cannot read view: " + formatted);
 				}
+			}
+		}
+
+		private static IEnumerable<string> FormatErrors(object[] list)
+		{
+			if (list == null || list.Length == 0)
+				yield break;
+
+			foreach (IDictionary<string, object> error in list)
+			{
+				string reason;
+				string from;
+
+				if (!error.TryGetValue("from", out from)) continue;
+				if (!error.TryGetValue("reason", out reason)) continue;
+
+				yield return from + ": " + reason;
 			}
 		}
 
@@ -271,8 +300,6 @@ namespace Couchbase
 
 				if (row == null) throw new ArgumentNullException("row", "Missing row info");
 
-				CheckForError(row);
-
 				if (!row.TryGetValue("id", out this.id))
 					throw new InvalidOperationException("The value 'id' was not found in the row definition.");
 
@@ -283,20 +310,6 @@ namespace Couchbase
 
 				this.key = (tempKey as object[]) ?? (new object[] { tempKey });
 				this.info = row.AsReadOnly();
-			}
-
-			private static void CheckForError(IDictionary<string, object> row)
-			{
-				bool isError;
-
-				if (row.TryGetValue("error", out isError) && isError)
-				{
-					string reason;
-					if (row.TryGetValue("reason", out reason))
-						reason = " Reason: " + reason;
-
-					throw new InvalidOperationException("Failed to parse the row." + reason);
-				}
 			}
 
 			string IViewRow.ItemId

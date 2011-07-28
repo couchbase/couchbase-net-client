@@ -21,7 +21,7 @@ namespace CouchbaseTests
 
 			Action tmp = () => view.ToList();
 
-			tmp.ShouldThrow<InvalidOperationException>();
+			tmp.ShouldThrow<InvalidOperationException>().WithMessage("Cannot read view*", FluentAssertions.Assertions.ComparisonMode.Wildcard);
 		}
 
 		[TestMethod, DeploymentItem("MixedResponse.txt")]
