@@ -16,7 +16,7 @@ namespace CouchbaseTests
 		{
 			INameTransformer nt = new DevelopmentModeNameTransformer();
 
-			nt.Transform("key").Should().Be("$dev_key");
+			nt.Transform("key").Should().Be("dev_key");
 		}
 	}
 }
