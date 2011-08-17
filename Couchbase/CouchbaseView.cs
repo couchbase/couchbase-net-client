@@ -262,6 +262,11 @@ namespace Couchbase
 			return new CouchbaseView(this) { inclusive = inclusive };
 		}
 
+		IPagedView IView.GetPagedView(int pageSize)
+		{
+			return new PagedView(this, pageSize);
+		}
+
 		#endregion
 		#region [ Request helpers              ]
 

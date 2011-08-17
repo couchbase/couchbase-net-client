@@ -91,6 +91,13 @@ namespace Couchbase
 		/// <param name="inclusive">A value that specifies whether the end of the range is included in the result.</param>
 		/// <returns>A new <see cref="T:Couchbase.IView"/> that can be used to retrieve the items.</returns>
 		IView WithInclusiveEnd(bool inclusive);
+
+		/// <summary>
+		/// Returns a view which allows the user to page retrieve all items of an index in pages.
+		/// </summary>
+		/// <param name="pageSize"></param>
+		/// <returns></returns>
+		IPagedView GetPagedView(int pageSize);
 	}
 }
 

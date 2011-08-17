@@ -64,7 +64,9 @@
     <Compile Include="ICouchbaseView.cs" />
     <Compile Include="IHttpClient.cs" />
     <Compile Include="IHttpClientLocator.cs" />
+    <Compile Include="IPagedView.cs" />
     <Compile Include="Json.cs" />
+    <Compile Include="PagedView.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
