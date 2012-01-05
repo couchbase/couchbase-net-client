@@ -275,7 +275,9 @@ namespace Couchbase.Configuration
 #region [ License information          ]
 /* ************************************************************
  * 
- *    Copyright (c) 2010 Attila Kiskó, enyim.com
+ *    @author Couchbase <info@couchbase.com>
+ *    @copyright 2012 Couchbase, Inc.
+ *    @copyright 2010 Attila Kiskó, enyim.com
  *    
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

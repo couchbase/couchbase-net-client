@@ -95,7 +95,6 @@
     <None Include="Demo.config" />
     <None Include="Changes.mdown" />
     <None Include="Couchbase.nuspec" />
-    <None Include="public_key.snk" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\EnyimMemcached\Enyim.Caching\Enyim.Caching.csproj">
