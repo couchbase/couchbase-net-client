@@ -16,7 +16,7 @@ namespace Couchbase
 	public class CouchbaseClient : MemcachedClient
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
-		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("Couchbase");
+		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
 
 		private ICouchbaseServerPool poolInstance;
 
@@ -446,7 +446,9 @@ namespace Couchbase
 #region [ License information          ]
 /* ************************************************************
  * 
- *    Copyright (c) 2010 Attila Kiskó, enyim.com
+ *    @author Couchbase <info@couchbase.com>
+ *    @copyright 2012 Couchbase, Inc.
+ *    @copyright 2010 Attila Kiskó, enyim.com
  *    
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
