@@ -1,0 +1,46 @@
+# Couchbase .NET Client Library
+
+This is a .NET client library for [Couchbase Server](http://couchbase.com).
+
+## Features:
+
+The client currently provides support for Couchbase Server 1.8.  
+
+* Understands both the binary and text protocols
+* Highly configurable and extendable (custom configuration, serialization)
+* Supports consistent hashing
+* CheckAndSet operations
+* Persistent connections for more speed
+* SASL Authentication
+
+## Requirements
+
+You'll need .NET Framework 3.5 or later to use the precompiled binaries. To build client, you'll need Visual Studio 2010.
+
+## Building the Client
+
+The client has a dependency on [Enyim.Memcached](https://github.com/enyim/EnyimMemcached), which is included via a git submodule.
+
+    git clone https://<your-user-name>@github.com/couchbase/couchbase-net-client
+    cd couchbase-net-client    
+	git submodule init
+    git submodule update	
+	
+Note also that Enyim.Memcached is delay signed, which means you'll receive exceptions when trying to run your projects from Visual Studio.  To work around this security measure locally, you could either disable assembly verification for Enyim.Memcached or modify the project files locally.
+
+To disable assembly verification open the Visual Studio Command Prompt (2010) and run the command below.  Note you must run this command as an administrator because it will modify a setting in the registry.
+
+	sn -Vr *,cec98615db04012e
+	
+To modify the project files:
+
+* In Visual Studio 2010, open the property pages for Enyim.Caching (Right Click on the project -> Properties or Alt + Enter when the project is highlighted)
+* Select "Signing" from the left hand menu and uncheck "Sign the Assembly"
+* Open the "CommonProperties.targets" which is located in the "build" directory, which is a sibling to the "Enyim.Caching" directory
+* Comment out or remove the last three "PropertyGroup" blocks
+
+## Getting Help
+
+For help with the Couchbase .NET Client Library see the [Couchbase SDK Forums](http://www.couchbase.com/forums/sdks/sdks).
+
+    
