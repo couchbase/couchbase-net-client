@@ -13,10 +13,12 @@ namespace Couchbase
 	/// <summary>
 	/// Client which can be used to connect to NothScale's Memcached and Couchbase servers.
 	/// </summary>
-	public class CouchbaseClient : MemcachedClient
+	public class CouchbaseClient : MemcachedClient, IHttpClientLocator
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
+
+		private INameTransformer documentNameTransformer;
 
 		private ICouchbaseServerPool poolInstance;
 
@@ -48,7 +50,9 @@ namespace Couchbase
 		/// <param name="bucketName">The name of the bucket this client will connect to.</param>
 		/// <param name="bucketPassword">The password of the bucket this client will connect to.</param>
 		public CouchbaseClient(string sectionName, string bucketName, string bucketPassword) :
-			this((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName), bucketName, bucketPassword) { }
+			this(If((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName),
+					(o) => { if (o == null) throw new ArgumentException("Missing section: " + sectionName); }),
+				bucketName, bucketPassword) { }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class 
@@ -58,7 +62,7 @@ namespace Couchbase
 		/// <param name="bucketName">The name of the bucket this client will connect to.</param>
 		/// <param name="bucketPassword">The password of the bucket this client will connect to.</param>
 		public CouchbaseClient(ICouchbaseClientConfiguration configuration, string bucketName, string bucketPassword) :
-			this(new CouchbasePool(configuration, bucketName, bucketPassword), configuration) { }
+			this(new CouchbasePool(ThrowIfNull(configuration, "configuration"), bucketName, bucketPassword), configuration) { }
 
 		protected CouchbaseClient(ICouchbaseServerPool pool, ICouchbaseClientConfiguration configuration)
 			: base(pool,
@@ -66,26 +70,18 @@ namespace Couchbase
 					configuration.CreateTranscoder(),
 					configuration.CreatePerformanceMonitor())
 		{
+			this.documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
 			this.poolInstance = (ICouchbaseServerPool)this.Pool;
 		}
 
-		#region Obsolete code
-
-		/// <summary>Obsolete. Use .ctor(bucket, password) to explicitly set the bucket password.</summary>
-		[Obsolete("Use .ctor(bucket, password) to explicitly set the bucket password.", true)]
-		public CouchbaseClient(string bucketName)
-		{
-			throw new InvalidOperationException("Use .ctor(bucket, password) to explicitly set the bucket password.");
-		}
-
-		/// <summary>Obsolete. Use .ctor(config, bucket, password) to explicitly set the bucket password.</summary>
-		[Obsolete("Use .ctor(config, bucket, password) to explicitly set the bucket password.", true)]
-		public CouchbaseClient(ICouchbaseClientConfiguration configuration, string bucketName)
-		{
-			throw new InvalidOperationException("Use .ctor(config, bucket, password) to explicitly set the bucket password.");
-		}
-
-		#endregion
+		/// <summary>
+		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the specified configuration 
+		/// section.
+		/// </summary>
+		/// <param name="sectionName">The name of the configuration section to load.</param>
+		public CouchbaseClient(string sectionName) :
+			this(If((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName),
+					(o) => { if (o == null) throw new ArgumentException("Missing section: " + sectionName); })) { }
 
 		protected override bool PerformTryGet(string key, out ulong cas, out object value)
 		{
@@ -440,7 +436,76 @@ namespace Couchbase
 			return retval;
 		}
 
-	}
+		/// <summary>
+		/// Returns an object representing the specified view in the specified design document.
+		/// </summary>
+		/// <param name="designName">The name of the design document.</param>
+		/// <param name="viewName">The name of the view.</param>
+		/// <returns></returns>
+		public IView<IViewRow> GetView(string designName, string viewName) 
+		{
+			getViewSetup(designName, viewName);
+			return new CouchbaseView(this, this, designName, viewName);
+		}
+
+		/// <summary>
+		/// Returns an object representing the specified view in the specified design document.
+		/// </summary>
+		/// <param name="designName">The name of the design document.</param>
+		/// <param name="viewName">The name of the view.</param>
+		/// <returns></returns>
+		public IView<T> GetView<T>(string designName, string viewName) {
+
+			getViewSetup(designName, viewName);
+			return new CouchbaseView<T>(this, this, designName, viewName);
+		}
+
+		public IDictionary<string, object> Get(IView view) {
+			var keys = view.Select(row => row.ItemId);
+
+			return this.Get(keys);
+		}
+
+		private void getViewSetup(string designName, string viewName) 
+		{
+			if (String.IsNullOrEmpty(designName)) throw new ArgumentNullException("designName");
+			if (String.IsNullOrEmpty(viewName)) throw new ArgumentNullException("viewName");
+
+			if (this.documentNameTransformer != null)
+				designName = this.documentNameTransformer.Transform(designName);
+		}
+
+		#region [ IHttpClientLocator           ]
+
+		IHttpClient IHttpClientLocator.Locate(string designDocument) {
+			// find the node hosting this design document
+			var node = this.Pool.Locate(designDocument) as CouchbaseNode;
+
+			// return null if the node is dead
+			return (node != null && node.IsAlive)
+					? node.Client
+					: null;
+		}
+
+		#endregion
+
+		#region [ parameter helpers            ]
+
+		private static T ThrowIfNull<T>(T input, string parameterName)
+			where T : class {
+			if (input == null) throw new ArgumentNullException(parameterName);
+
+			return input;
+		}
+
+		private static T If<T>(T input, Action<T> check) {
+			check(input);
+
+			return input;
+		}
+
+		#endregion        
+	}	
 }
 
 #region [ License information          ]

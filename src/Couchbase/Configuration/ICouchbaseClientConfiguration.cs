@@ -49,6 +49,16 @@ namespace Couchbase.Configuration
 		/// </summary>
 		IPerformanceMonitor CreatePerformanceMonitor();
 
+        /// <summary>
+        /// Creates a name transformer instance whihc will be used to change the design document's name before retrieving it from the server.
+        /// </summary>
+        /// <remarks>
+        /// This way you can create additional views over the same data, and use one set production and other set(s) for testing and development without changing your application code. (Couchbase provides UI support 'development views' where the name of the design document is prefixed with dev_.)
+        /// </remarks>
+        /// <returns>A transformed name.</returns>
+        INameTransformer CreateDesignDocumentNameTransformer();
+        IHttpClient CreateHttpClient(Uri baseUri);
+
 		TimeSpan RetryTimeout { get; }
 		int RetryCount { get; }
 	}

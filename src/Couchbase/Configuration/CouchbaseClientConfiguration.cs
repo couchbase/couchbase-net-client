@@ -17,15 +17,35 @@ namespace Couchbase.Configuration
 		private ITranscoder transcoder;
 		private IMemcachedKeyTransformer keyTransformer;
 
-		/// <summary>
+        #region
+        /// <summary>
 		/// Initializes a new instance of the <see cref="T:MemcachedClientConfiguration"/> class.
 		/// </summary>
 		public CouchbaseClientConfiguration()
 		{
+            this.HttpClientFactory = HammockHttpClientFactory.Instance;
+
 			this.Urls = new List<Uri>();
 
 			this.SocketPool = new SocketPoolConfiguration();
 		}
+
+        /// <summary>
+        /// Gets or sets the INameTransformer instance.
+        /// </summary>
+        public INameTransformer DesignDocumentNameTransformer { get; set; }
+        public IHttpClientFactory HttpClientFactory { get; set; }
+
+        INameTransformer ICouchbaseClientConfiguration.CreateDesignDocumentNameTransformer() 
+        {
+            return this.DesignDocumentNameTransformer;
+        }
+
+        IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) 
+        {
+            return this.HttpClientFactory.Create(baseUri);
+        }
+        #endregion
 
 		/// <summary>
 		/// Gets or sets the name of the bucket to be used. Can be overriden at the pool's constructor, and if not specified the "default" bucket will be used.
@@ -94,6 +114,7 @@ namespace Couchbase.Configuration
 		/// </summary>
 		public ICouchbasePerformanceMonitorFactory PerformanceMonitorFactory { get; set; }
 
+                
 		public int RetryCount { get; set; }
 		public TimeSpan RetryTimeout { get; set; }
 
@@ -239,6 +260,20 @@ namespace Couchbase.Configuration
 		{
 			get { return this.retryCount; }
 		}
+
+        INameTransformer ICouchbaseClientConfiguration.CreateDesignDocumentNameTransformer() {
+            return this.original.CreateDesignDocumentNameTransformer();
+        }
+
+        IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) {
+            return this.original.CreateHttpClient(baseUri);
+        }
+
+        /// <summary>
+        /// Gets or sets the INameTransformer instance.
+        /// </summary>
+        public INameTransformer DesignDocumentNameTransformer { get; set; }
+        public IHttpClientFactory HttpClientFactory { get; set; }
 
 		private class SPC : ISocketPoolConfiguration
 		{

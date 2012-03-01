@@ -43,6 +43,12 @@
     <DocumentationFile>bin\Release\Couchbase.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Hammock, Version=1.0.0.0, Culture=neutral, PublicKeyToken=c148cfba29ed1a4d, processorArchitecture=MSIL">
+      <HintPath>..\packages\Hammock.1.2.9\lib\4.0\Hammock.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=4.0.8.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.4.0.8\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core">
@@ -65,15 +71,31 @@
     <Compile Include="BucketConfigListener.cs" />
     <Compile Include="ConfigHelper.cs" />
     <Compile Include="Configuration\BucketPortType.cs" />
+    <Compile Include="Configuration\ProductionModeNameTransformer.cs" />
     <Compile Include="Configuration\DefaultPerformanceMonitorFactory.cs" />
+    <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
     <Compile Include="Configuration\ICouchbasePerformanceMonitorFactory.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
+    <Compile Include="Configuration\INameTransformer.cs" />
     <Compile Include="Configuration\ServersElement.cs" />
     <Compile Include="Configuration\UriElement.cs" />
     <Compile Include="Configuration\UriElementCollection.cs" />
     <Compile Include="Configuration\UriValidator.cs" />
+    <Compile Include="CouchbaseViewBase.cs" />
+    <Compile Include="ICouchbaseView`1.cs" />
+    <Compile Include="CouchbaseNode.cs" />
+    <Compile Include="CouchbaseView`1.cs" />
+    <Compile Include="CouchbaseView.cs" />
+    <Compile Include="DictionaryEx.cs" />
+    <Compile Include="HammockHttpClient.cs" />
+    <Compile Include="ICouchbaseView.cs" />
+    <Compile Include="ICouchbaseViewRow.cs" />
+    <Compile Include="IHttpClient.cs" />
+    <Compile Include="IHttpClientLocator.cs" />
+    <Compile Include="IPagedView.cs" />
+    <Compile Include="Json.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />
@@ -84,6 +106,7 @@
     <Compile Include="CouchbaseClient.cs" />
     <Compile Include="CouchbasePool.cs" />
     <Compile Include="Operations\SyncOperation.cs" />
+    <Compile Include="PagedView.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Operations\TouchOperation.cs" />
     <Compile Include="VBucketAwareOperationFactory.cs" />
@@ -96,6 +119,7 @@
     <None Include="Demo.config" />
     <None Include="Changes.mdown" />
     <None Include="Couchbase.nuspec" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\EnyimMemcached\Enyim.Caching\Enyim.Caching.csproj">
