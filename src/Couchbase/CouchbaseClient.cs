@@ -386,7 +386,7 @@ namespace Couchbase
 			if (hashedAndMapped.Count == 0) return retval;
 
 			using (var spin = new ReaderWriterLockSlim())
-			using (var latch = new CountdownEvent(hashedAndMapped.Count))
+			using (var latch = new Enyim.Caching.CountdownEvent(hashedAndMapped.Count))
 			{
 				//execute each list of keys on their respective node
 				foreach (var slice in hashedAndMapped)
