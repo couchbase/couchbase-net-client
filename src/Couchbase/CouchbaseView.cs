@@ -80,8 +80,6 @@ namespace Couchbase
 
 		#endregion
 	}
-
-	public enum StaleMode { AllowStale, UpdateAfter }
 }
 
 #region [ License information          ]

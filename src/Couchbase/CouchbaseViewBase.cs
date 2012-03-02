@@ -9,6 +9,9 @@ using System.IO;
 using System.Collections;
 
 namespace Couchbase {
+
+    public enum StaleMode { AllowStale, UpdateAfter, False }
+
     internal abstract class CouchbaseViewBase<T> : IView<T> {
 
         protected static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
@@ -150,6 +153,9 @@ namespace Couchbase {
                         break;
                     case StaleMode.UpdateAfter:
                         retval.AddParameter("stale", "update_after");
+                        break;
+                    case StaleMode.False:
+                        retval.AddParameter("stale", "false");
                         break;
                     default: throw new ArgumentOutOfRangeException("stale: " + this.stale);
                 }
