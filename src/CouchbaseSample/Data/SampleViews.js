@@ -26,9 +26,9 @@ function (doc) {
     }
 }
 
-//all_breweries::map
+//all_beers::map
 function (doc) {
     if (doc.type == "beer") {
-        emit(doc.name, doc)
+        emit(doc.id, doc)
     }
 }
