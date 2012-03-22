@@ -8,7 +8,7 @@ namespace Couchbase.Configuration
 	/// <summary>
 	/// Name transformer for Couchbase's development views. Prefixes all design document names with 'dev_'.
 	/// </summary>
-	public sealed class ProductionModeModeNameTransformer : INameTransformer
+	public sealed class ProductionModeNameTransformer : INameTransformer
 	{
 		public const string NamePrefix = "";
 
