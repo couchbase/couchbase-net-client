@@ -9,11 +9,14 @@ using Hammock.Serialization;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using Enyim.Caching;
+using System.Reflection;
 
 namespace Couchbase
 {
 	internal class PagedView<T> : IPagedView<T>
 	{
+        private static Dictionary<Type, PropertyInfo> propertyCache = new Dictionary<Type, PropertyInfo>();
+
 		private IView<T> currentView;
 
 		private int pageIndex;
@@ -81,11 +84,30 @@ namespace Couchbase
                     this.items.Add(row);
                 else {
                     //HACK: This needs to be a transform function or something
-                    if (row is IViewRow) {
+                    if (row is IViewRow)
+                    {
                         lastId = ((IViewRow)row).ItemId;
-                    }                    
+                    }
+                    else
+                    {
+                        var typeOfRow = row.GetType();
+
+                        if (! propertyCache.ContainsKey(typeOfRow))
+                        {
+                            //for strongly typed views suppor possible variations of Id property naming
+                            var docIdPropNames = new string[] { "Id", "_Id" };
+                            Func<PropertyInfo, bool> idPredicate =
+                                p => docIdPropNames.Contains(p.Name, StringComparer.CurrentCultureIgnoreCase);
+                            var property = typeOfRow.GetProperties().FirstOrDefault(p => idPredicate(p));
+                            propertyCache[typeOfRow] = property;
+                        }
+
+                        if (propertyCache[typeOfRow] != null)
+                        {
+                            lastId = propertyCache[typeOfRow].GetValue(row, null) as string;
+                        }
+                    }
                 }
-					
 
 				count--;
 			}
