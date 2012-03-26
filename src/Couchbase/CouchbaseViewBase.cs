@@ -133,10 +133,10 @@ namespace Couchbase {
         private IHttpRequest CreateRequest(IHttpClient client) {
             var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
 
-            AddOptionalRequestParam(retval, "start_key", this.startKey);
-            AddOptionalRequestParam(retval, "end_key", this.endKey);
-            AddOptionalRequestParam(retval, "startKey_docid", this.startId);
-            AddOptionalRequestParam(retval, "endKey_docid", this.endId);
+            AddOptionalRequestParam(retval, "startkey", this.startKey);
+            AddOptionalRequestParam(retval, "endkey", this.endKey);
+            AddOptionalRequestParam(retval, "startkey_docid", this.startId);
+            AddOptionalRequestParam(retval, "endkey_docid", this.endId);
             AddOptionalRequestParam(retval, "skip", this.skip);
             AddOptionalRequestParam(retval, "limit", this.limit);
 
