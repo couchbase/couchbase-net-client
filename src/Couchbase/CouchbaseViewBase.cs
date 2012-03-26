@@ -26,6 +26,7 @@ namespace Couchbase {
         protected string endId;
         protected string startId;
         protected string key;
+        protected string keys;
         
         protected StaleMode? stale;
         protected bool? descending;
@@ -135,6 +136,7 @@ namespace Couchbase {
             var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
 
             AddOptionalRequestParam(retval, "key", this.key);
+            AddOptionalRequestParam(retval, "keys", this.keys);
             AddOptionalRequestParam(retval, "startkey", this.startKey);
             AddOptionalRequestParam(retval, "endkey", this.endKey);
             AddOptionalRequestParam(retval, "startkey_docid", this.startId);
@@ -229,6 +231,11 @@ namespace Couchbase {
             return this;
         }
 
+        public IView<T> Keys<KeyType>(KeyType keys) {
+            this.keys = formatKey<KeyType>(keys);
+            return this;
+        }
+
         public IView<T> StartKey<KeyType>(KeyType from) {
             this.startKey = formatKey<KeyType>(from);
             return this;
@@ -308,6 +315,9 @@ namespace Couchbase {
                         sb.Append(formatWithQuotes(arr.GetValue(i) as string));
                     } else if (isNumeric(arr.GetValue(i))) {
                         sb.Append(arr.GetValue(i));
+                    }
+                    else if (arr.GetValue(i) is Array) {
+                        sb.Append(formatKey(arr.GetValue(i)));
                     } else {
                         throw new ArgumentException(arr.GetValue(i).GetType().Name + " is not a valid key value.");
                     }

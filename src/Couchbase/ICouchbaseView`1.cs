@@ -50,6 +50,13 @@ namespace Couchbase
         /// <returns>A new <see cref="T:Couchbase.IView"/> for the row of the given key.</returns>
 		IView<T> Key<KeyType>(KeyType key);
 
+        /// <summary>
+        /// Keys of document set
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <returns>A new <see cref="T:Couchbase.IView"/> for the rows for the given keys.</returns>
+        IView<T> Keys<KeyType>(KeyType keys);
+
 		/// <summary>
 		/// End of key range
 		/// </summary>
