@@ -36,12 +36,19 @@ namespace Couchbase
 		/// <returns>A new <see cref="T:Couchbase.IView"/> whose elements are sorted in descending order .</returns>
 		IView<T>Descending(bool descending);
 
-		/// <summary>
+        /// <summary>
 		/// Start of key range
 		/// </summary>
 		/// <param name="from"></param>
-		/// <returns>TBD</returns>
+        /// <returns>A new <see cref="T:Couchbase.IView"/> with the row for the given key.</returns>
 		IView<T>StartKey<KeyType>(KeyType from);
+
+		/// <summary>
+		/// Key of document
+		/// </summary>
+		/// <param name="key"></param>
+        /// <returns>A new <see cref="T:Couchbase.IView"/> for the row of the given key.</returns>
+		IView<T> Key<KeyType>(KeyType key);
 
 		/// <summary>
 		/// End of key range

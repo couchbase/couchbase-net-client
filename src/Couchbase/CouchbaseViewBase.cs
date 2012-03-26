@@ -25,7 +25,8 @@ namespace Couchbase {
         protected string startKey;
         protected string endId;
         protected string startId;
-
+        protected string key;
+        
         protected StaleMode? stale;
         protected bool? descending;
         protected bool? inclusive;
@@ -133,6 +134,7 @@ namespace Couchbase {
         private IHttpRequest CreateRequest(IHttpClient client) {
             var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
 
+            AddOptionalRequestParam(retval, "key", this.key);
             AddOptionalRequestParam(retval, "startkey", this.startKey);
             AddOptionalRequestParam(retval, "endkey", this.endKey);
             AddOptionalRequestParam(retval, "startkey_docid", this.startId);
@@ -219,6 +221,11 @@ namespace Couchbase {
 
         public IView<T> Descending(bool descending) {
             this.descending = descending;
+            return this;
+        }
+
+        public IView<T> Key<KeyType>(KeyType key) {
+            this.key = formatKey<KeyType>(key);
             return this;
         }
 
