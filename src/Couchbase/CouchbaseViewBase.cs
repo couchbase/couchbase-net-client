@@ -12,6 +12,8 @@ namespace Couchbase {
 
     public enum StaleMode { AllowStale, UpdateAfter, False }
 
+    public enum OnErrorMode { Continue, Stop }
+
     internal abstract class CouchbaseViewBase<T> : IView<T> {
 
         protected static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
@@ -29,6 +31,7 @@ namespace Couchbase {
         protected string keys;
         
         protected StaleMode? stale;
+        protected OnErrorMode? onError;
         protected bool? descending;
         protected bool? inclusive;
 
@@ -164,6 +167,19 @@ namespace Couchbase {
                     default: throw new ArgumentOutOfRangeException("stale: " + this.stale);
                 }
 
+            if (this.onError != null)
+            {
+                switch (onError.Value) {
+                    case OnErrorMode.Continue:
+                        retval.AddParameter("on_error", "continue");
+                        break;
+                    case OnErrorMode.Stop:
+                        retval.AddParameter("on_error", "stop");
+                        break;
+                    default: throw new ArgumentOutOfRangeException("on_error: " + this.onError);
+                }
+            }
+
             return retval;
         }
 
@@ -213,6 +229,11 @@ namespace Couchbase {
 
         public IView<T> Skip(int value) {
             this.skip = value;
+            return this;
+        }
+
+        public IView<T> OnError(OnErrorMode mode) {
+            this.onError = mode;
             return this;
         }
 

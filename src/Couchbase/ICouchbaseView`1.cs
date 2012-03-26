@@ -30,6 +30,13 @@ namespace Couchbase
 		/// <returns>A new <see cref="T:Couchbase.IView"/> instance that includes the stale items from the view.</returns>
 		IView<T>Stale(StaleMode mode);
 
+        /// <summary>
+        /// Control the behavior of view engine when returning a request in the event of an error.
+        /// </summary>
+        /// <param name="mode"></param>
+        /// <returns>A new <see cref="T:Couchbase.IView"/> instance potentially abbreviated by error conditions.</returns>
+        IView<T> OnError(OnErrorMode mode);
+
 		/// <summary>
 		/// Sort the items of the view in descending order.
 		/// </summary>
