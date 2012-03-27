@@ -32,6 +32,7 @@ while not line is None:
         
 content = sb.ToString()
 content = content.Replace("<DelaySign>true</DelaySign>", "<DelaySign>false</DelaySign>")
+content = content.Replace("<SignAssembly>true</SignAssembly>", "<SignAssembly>false</SignAssembly>")
 sr.Dispose()
 
 sw = StreamWriter(path, False)
