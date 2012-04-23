@@ -7,6 +7,9 @@ using Couchbase.Configuration;
 using System.Collections.Generic;
 using System.Threading;
 using KVP_SU = System.Collections.Generic.KeyValuePair<string, ulong>;
+using Enyim.Caching.Memcached.Results.Factories;
+using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Results;
 
 namespace Couchbase
 {
@@ -67,6 +70,12 @@ namespace Couchbase
 					configuration.CreatePerformanceMonitor())
 		{
 			this.poolInstance = (ICouchbaseServerPool)this.Pool;
+
+			StoreOperationResultFactory = new DefaultStoreOperationResultFactory();
+			GetOperationResultFactory = new DefaultGetOperationResultFactory();
+			MutateOperationResultFactory = new DefaultMutateOperationResultFactory();
+			ConcatOperationResultFactory = new DefaultConcatOperationResultFactory();
+			RemoveOperationResultFactory = new DefaultRemoveOperationResultFactory();
 		}
 
 		#region Obsolete code
@@ -87,22 +96,25 @@ namespace Couchbase
 
 		#endregion
 
-		protected override bool PerformTryGet(string key, out ulong cas, out object value)
+		protected override IGetOperationResult PerformTryGet(string key, out ulong cas, out object value)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
+			var result = GetOperationResultFactory.Create();
 
 			if (node != null)
 			{
 				var command = this.Pool.OperationFactory.Get(hashedKey);
 
-				if (ExecuteWithRedirect(node, command))
+				var executeResult = ExecuteWithRedirect(node, command);
+				if (executeResult.Success)
 				{
-					value = this.Transcoder.Deserialize(command.Result);
-					cas = command.CasValue;
+					result.Value = value = this.Transcoder.Deserialize(command.Result);
+					result.Cas = cas = command.CasValue;
 					if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, true);
 
-					return true;
+					result.Pass();
+					return result;
 				}
 			}
 
@@ -110,57 +122,82 @@ namespace Couchbase
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
-			return false;
+			result.Fail("Unable to locate node");
+			return result;
 		}
 
-		protected override ulong PerformMutate(MutationMode mode, string key, ulong defaultValue, ulong delta, uint expires, ref ulong cas)
+		protected override IMutateOperationResult PerformMutate(MutationMode mode, string key, ulong defaultValue, ulong delta, uint expires, ref ulong cas)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
+			var result = MutateOperationResultFactory.Create();
 
 			if (node != null)
 			{
 				var command = this.Pool.OperationFactory.Mutate(mode, hashedKey, defaultValue, delta, expires, cas);
-				var success = ExecuteWithRedirect(node, command);
+				var commandResult = ExecuteWithRedirect(node, command);
 
-				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, success);
+				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, commandResult.Success);
 
-				cas = command.CasValue;
+				result.Cas = cas = command.CasValue;
 
-				if (success)
-					return command.Result;
+				if (commandResult.Success)
+				{
+					result.Value = command.Result;
+					result.Pass();
+				}
+				else
+				{
+					result.Value = defaultValue;
+					result.Fail("Mutate operation failed, see InnerException or StatusCode for details.");					
+				}
+					
+				return result;
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, false);
 
-			return defaultValue;
+			result.Value = defaultValue;
+			result.Fail("Failed to locate node");
+			return result;
 		}
 
-		protected override bool PerformConcatenate(ConcatenationMode mode, string key, ref ulong cas, ArraySegment<byte> data)
+		protected override IConcatOperationResult PerformConcatenate(ConcatenationMode mode, string key, ref ulong cas, ArraySegment<byte> data)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
+			var result = ConcatOperationResultFactory.Create();
 
 			if (node != null)
 			{
 				var command = this.Pool.OperationFactory.Concat(mode, hashedKey, cas, data);
 				var retval = this.ExecuteWithRedirect(node, command);
 
-				cas = command.CasValue;
+				if (!retval.Success)
+				{
+					result.InnerResult = retval;
+					result.Fail("Concat operation failed, see InnerResult or StatusCode for more information");
+					return result;
+				}
+
+				result.Cas = cas = command.CasValue;
 				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, true);
 
-				return retval;
+				result.Pass();
+				return result;
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, false);
 
-			return false;
+			result.Fail("Failed to locate node");
+			return result;
 		}
 
-		protected override bool PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out int statusCode)
+		protected override IStoreOperationResult PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out int statusCode)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
+			var result = StoreOperationResultFactory.Create();
 			statusCode = -1;
 
 			if (node != null)
@@ -174,34 +211,50 @@ namespace Couchbase
 
 					if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
 
-					return false;
+					result.Fail("Store operation failed during serialization", e);
+					return result;
 				}
 
 				var command = this.Pool.OperationFactory.Store(mode, hashedKey, item, expires, cas);
-				var retval = ExecuteWithRedirect(node, command);
+				var commandResult = ExecuteWithRedirect(node, command);
 
-				cas = command.CasValue;
-				statusCode = command.StatusCode;
+				if (!commandResult.Success)
+				{
+					result.InnerResult = commandResult;
+					result.Fail("Store operation failed, see InnerResult or StatusCode for details");
+					return result;					
+				}
+
+				result.Cas = cas = command.CasValue;
+				result.StatusCode = statusCode = command.StatusCode;
 
 				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, true);
 
-				return retval;
+				result.Pass();
+				return result;
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
 
-			return false;
+			result.Fail("Failed to locate node");
+			return result;
 		}
 
-		private bool ExecuteWithRedirect(IMemcachedNode startNode, ISingleItemOperation op)
+		private IOperationResult ExecuteWithRedirect(IMemcachedNode startNode, ISingleItemOperation op)
 		{
-			if (startNode.Execute(op)) return true;
+			var result = new BinaryOperationResult();
+
+			var opResult = startNode.Execute(op);
+			if (opResult.Success) return result.Pass();
 
 			var iows = op as IOperationWithState;
 
 			// different op factory, we do not know how to retry
 			if (iows == null)
-				return false;
+			{
+				result.InnerResult = opResult.InnerResult;
+				return result.Fail("Operation state was invalid");
+			}
 
 #if HAS_FORWARD_MAP
 			// node responded with invalid vbucket
@@ -229,8 +282,11 @@ namespace Couchbase
 
 				foreach (var node in nodes)
 				{
-					if (node.Execute(op))
-						return true;
+					opResult = node.Execute(op);
+					if (opResult.Success)
+					{
+						return result.Pass();
+					}
 
 					// the node accepted our request so quit
 					if (iows.State != OperationState.InvalidVBucket)
@@ -238,7 +294,8 @@ namespace Couchbase
 				}
 			}
 
-			return false;
+			//TODO: why would this happen?
+			return result.Fail("Failed to execute operation");
 		}
 
 		public void Touch(string key, DateTime nextExpiration)
@@ -319,7 +376,7 @@ namespace Couchbase
 			{
 				var command = this.poolInstance.OperationFactory.GetAndTouch(hashedKey, nextExpiration);
 
-				if (this.ExecuteWithRedirect(node, command))
+				if (this.ExecuteWithRedirect(node, command).Success)
 				{
 					value = this.Transcoder.Deserialize(command.Result);
 					cas = command.CasValue;

@@ -7,6 +7,8 @@ using Enyim.Caching.Memcached;
 using System.IO;
 using System.Threading;
 using Enyim.Caching;
+using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
@@ -45,13 +47,16 @@ namespace Couchbase
 			return retval;
 		}
 
-		protected override bool ProcessResponse(BinaryResponse response)
+		protected override IOperationResult ProcessResponse(BinaryResponse response)
 		{
 			var r = base.ProcessResponse(response);
+			var result = new BinaryOperationResult();
 
 			if (this.locator != null &&
 				!VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
-				return false;
+			{
+				return result.Fail("Failed to process response");
+			}
 
 			return r;
 		}

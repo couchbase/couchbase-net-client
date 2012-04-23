@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using Enyim.Caching.Memcached.Protocol.Binary;
 using Enyim.Caching.Memcached;
+using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
@@ -42,15 +44,18 @@ namespace Couchbase
 			return retval;
 		}
 
-		protected override bool ProcessResponse(BinaryResponse response)
+		protected override IOperationResult ProcessResponse(BinaryResponse response)
 		{
 			var r = response.StatusCode == 0;
+			var result = new BinaryOperationResult();
 
 			if (this.locator != null &&
 				!VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
-				return false;
+			{
+				return result.Fail("Process response failed");
+			}				
 
-			return r;
+			return result.PassOrFail(r, "Processing response failed");
 		}
 
 		#region [ IOperationWithState          ]
