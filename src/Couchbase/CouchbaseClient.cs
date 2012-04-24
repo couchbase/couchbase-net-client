@@ -218,15 +218,15 @@ namespace Couchbase
 				var command = this.Pool.OperationFactory.Store(mode, hashedKey, item, expires, cas);
 				var commandResult = ExecuteWithRedirect(node, command);
 
+				result.Cas = cas = command.CasValue;
+				result.StatusCode = statusCode = command.StatusCode;
+
 				if (!commandResult.Success)
 				{
 					result.InnerResult = commandResult;
 					result.Fail("Store operation failed, see InnerResult or StatusCode for details");
-					return result;					
+					return result;
 				}
-
-				result.Cas = cas = command.CasValue;
-				result.StatusCode = statusCode = command.StatusCode;
 
 				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, true);
 
