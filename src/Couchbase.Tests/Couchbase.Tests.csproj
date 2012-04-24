@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseClientGetTests.cs" />
+    <Compile Include="CouchbaseClientStoreTests.cs" />
     <Compile Include="CouchbaseClientTestsBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
