@@ -171,16 +171,18 @@ namespace Couchbase
 			if (node != null)
 			{
 				var command = this.Pool.OperationFactory.Concat(mode, hashedKey, cas, data);
-				var retval = this.ExecuteWithRedirect(node, command);
+				var commandResult = this.ExecuteWithRedirect(node, command);
 
-				if (!retval.Success)
+				result.Cas = cas = command.CasValue;
+				result.StatusCode = command.StatusCode;
+
+				if (!commandResult.Success)
 				{
-					result.InnerResult = retval;
+					result.InnerResult = commandResult;
 					result.Fail("Concat operation failed, see InnerResult or StatusCode for more information");
 					return result;
 				}
 
-				result.Cas = cas = command.CasValue;
 				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, true);
 
 				result.Pass();
