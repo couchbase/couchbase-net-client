@@ -47,6 +47,7 @@
     <Compile Include="CouchbaseClientConcatTests.cs" />
     <Compile Include="CouchbaseClientGetTests.cs" />
     <Compile Include="CouchbaseClientMutateTests.cs" />
+    <Compile Include="CouchbaseClientRemoveTests.cs" />
     <Compile Include="CouchbaseClientStoreTests.cs" />
     <Compile Include="CouchbaseClientTestsBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
