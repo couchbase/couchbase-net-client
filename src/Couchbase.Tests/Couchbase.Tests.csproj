@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CouchbaseClientCasTests.cs" />
     <Compile Include="CouchbaseClientGetTests.cs" />
     <Compile Include="CouchbaseClientStoreTests.cs" />
     <Compile Include="CouchbaseClientTestsBase.cs" />
