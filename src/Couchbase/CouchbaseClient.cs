@@ -16,7 +16,7 @@ namespace Couchbase
 	/// <summary>
 	/// Client which can be used to connect to NothScale's Memcached and Couchbase servers.
 	/// </summary>
-	public class CouchbaseClient : MemcachedClient, ICouchbaseClient
+	public class CouchbaseClient : MemcachedClient, ICouchbaseClient, ICouchbaseResultsClient
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
@@ -334,7 +334,49 @@ namespace Couchbase
 			return TryGet(key, newExpiration, out tmp) ? (T)tmp : default(T);
 		}
 
+		public IGetOperationResult ExecuteGet(string key, DateTime newExpiration)
+		{
+			object tmp;
+
+			return this.ExecuteTryGet(key, newExpiration, out tmp);
+		}
+		
+		public IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration)
+		{
+			object tmp;
+			var result = new DefaultGetOperationResultFactory<T>().Create();
+
+			var tryGetResult = ExecuteTryGet(key, newExpiration, out tmp);
+			if (tryGetResult.Success)
+			{
+				if (tryGetResult.Value is T)
+				{
+					//HACK: this isn't optimal
+					tryGetResult.Copy(result);
+
+					result.Value = (T)tmp;
+					result.Cas = tryGetResult.Cas;
+				}
+				else
+				{
+					result.Value = default(T);
+					result.Fail("Type mismatch", new InvalidCastException());
+				}
+				return result;
+			}
+			result.InnerResult = tryGetResult;
+			result.Fail("Get failed. See InnerResult or StatusCode for details");
+			return result;
+		}
+
 		public bool TryGet(string key, DateTime newExpiration, out object value)
+		{
+			ulong cas = 0;
+
+			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value).Success;
+		}
+
+		public IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value)
 		{
 			ulong cas = 0;
 
@@ -360,37 +402,48 @@ namespace Couchbase
 			object tmp;
 			ulong cas;
 
-			var retval = this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out tmp);
+			var retval = this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out tmp).Success;
 
 			value = new CasResult<object> { Cas = cas, Result = tmp };
 
 			return retval;
 		}
 
-		protected bool PerformTryGetAndTouch(string key, uint nextExpiration, out ulong cas, out object value)
+		protected IGetOperationResult PerformTryGetAndTouch(string key, uint nextExpiration, out ulong cas, out object value)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
+			var result = GetOperationResultFactory.Create();
 
 			if (node != null)
 			{
 				var command = this.poolInstance.OperationFactory.GetAndTouch(hashedKey, nextExpiration);
+				var commandResult = this.ExecuteWithRedirect(node, command);
 
-				if (this.ExecuteWithRedirect(node, command).Success)
+				if (commandResult.Success)
 				{
-					value = this.Transcoder.Deserialize(command.Result);
-					cas = command.CasValue;
+					result.Value = value = this.Transcoder.Deserialize(command.Result);
+					result.Cas = cas = command.CasValue;
 					if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, true);
 
-					return true;
+					result.Pass();
+					return result;
+				}
+				else
+				{
+					cas = 0; 
+					value = null;
+					result.InnerResult = commandResult;
+					result.Fail("Failed to execute Get and Touch operation, see InnerException or StatusCode for details");
 				}
 			}
-
+			
 			value = null;
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
-			return false;
+			result.Fail("Unable to locate node");
+			return result;
 		}
 
 		public SyncResult Sync(string key, ulong cas, SyncMode mode)

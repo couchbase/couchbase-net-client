@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests
 {
 	[TestFixture]
-	public class MemcachedClientGetTests : CouchbaseClientTestsBase
+	public class CouchbaseClientGetTests : CouchbaseClientTestsBase
 	{
 
 		[Test]
@@ -57,6 +57,7 @@ namespace Couchbase.Tests
 			Assert.That(getResult.Cas, Is.GreaterThan(0), "Cas value was 0");
 			Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
 			Assert.That(getResult.Value, Is.EqualTo(value), "Actual value was not expected value: " + getResult.Value);
+			Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
 		}
 
 		[Test]
@@ -75,6 +76,56 @@ namespace Couchbase.Tests
 			{
 				Assert.That(dict[key].Success, Is.True, "Get failed for key: " + key);
 			}
+		}
+
+		[Test]
+		public void When_Getting_Existing_Item_Value_With_Expiration_Is_Not_Null_And_Result_Is_Successful()
+		{
+			var key = GetUniqueKey("get");
+			var value = GetRandomString();
+			var storeResult = Store(key: key, value: value);
+			StoreAssertPass(storeResult);
+
+			var getResult = _Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
+			GetAssertPass(getResult, value);
+		}
+
+		[Test]
+		public void When_Getting_Item_For_With_Expiration_And_Invalid_Key_HasValue_Is_False_And_Result_Is_Not_Successful()
+		{
+			var key = GetUniqueKey("get");
+
+			var getResult = _Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_TryGetting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
+		{
+			var key = GetUniqueKey("get");
+			var value = GetRandomString();
+			var storeResult = Store(key: key, value: value);
+			StoreAssertPass(storeResult);
+
+			object temp;
+			var getResult = _Client.ExecuteTryGet(key, DateTime.Now.AddSeconds(10), out temp);
+			GetAssertPass(getResult, temp);
+		}
+
+		[Test]
+		public void When_Generic_Getting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
+		{
+			var key = GetUniqueKey("get");
+			var value = GetRandomString();
+			var storeResult = Store(key: key, value: value);
+			StoreAssertPass(storeResult);
+
+			var getResult = _Client.ExecuteGet<string>(key, DateTime.Now.AddSeconds(10));
+			Assert.That(getResult.Success, Is.True, "Success was false");
+			Assert.That(getResult.Cas, Is.GreaterThan(0), "Cas value was 0");
+			Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
+			Assert.That(getResult.Value, Is.EqualTo(value), "Actual value was not expected value: " + getResult.Value);
+			Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
 		}
 	}
 }
