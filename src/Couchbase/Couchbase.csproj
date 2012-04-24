@@ -73,6 +73,7 @@
     <Compile Include="Configuration\UriElement.cs" />
     <Compile Include="Configuration\UriElementCollection.cs" />
     <Compile Include="Configuration\UriValidator.cs" />
+    <Compile Include="ICouchbaseClient.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />
