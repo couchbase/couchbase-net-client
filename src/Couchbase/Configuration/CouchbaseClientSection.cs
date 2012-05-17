@@ -32,6 +32,16 @@ namespace Couchbase.Configuration
 		}
 
 		/// <summary>
+		/// Gets or sets the configuration of the socket pool.
+		/// </summary>
+		[ConfigurationProperty("heartbeatMonitor", IsRequired = false)]
+		public HeartbeatMonitorElement HeartbeatMonitor
+		{
+			get { return (HeartbeatMonitorElement)base["heartbeatMonitor"]; }
+			set { base["heartbeatMonitor"] = value; }
+		}
+
+		/// <summary>
 		/// Gets or sets the <see cref="T:Enyim.Caching.Memcached.IMemcachedNodeLocator"/> which will be used to assign items to Memcached nodes.
 		/// </summary>
 		[ConfigurationProperty("locator", IsRequired = false)]
@@ -94,6 +104,11 @@ namespace Couchbase.Configuration
 		ISocketPoolConfiguration ICouchbaseClientConfiguration.SocketPool
 		{
 			get { return this.SocketPool; }
+		}
+
+		IHeartbeatMonitorConfiguration ICouchbaseClientConfiguration.HeartbeatMonitor
+		{
+			get { return this.HeartbeatMonitor; }
 		}
 
 		IMemcachedKeyTransformer ICouchbaseClientConfiguration.CreateKeyTransformer()

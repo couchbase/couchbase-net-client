@@ -62,17 +62,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BucketConfigListener.cs" />
+    <Compile Include="BucketConfigSettings.cs" />
     <Compile Include="ConfigHelper.cs" />
     <Compile Include="Configuration\BucketPortType.cs" />
     <Compile Include="Configuration\DefaultPerformanceMonitorFactory.cs" />
+    <Compile Include="Configuration\HeartbeatMonitorElement.cs" />
     <Compile Include="Configuration\ICouchbasePerformanceMonitorFactory.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
+    <Compile Include="Configuration\IHeartbeatMonitorConfiguration.cs" />
     <Compile Include="Configuration\ServersElement.cs" />
     <Compile Include="Configuration\UriElement.cs" />
     <Compile Include="Configuration\UriElementCollection.cs" />
     <Compile Include="Configuration\UriValidator.cs" />
+    <Compile Include="HeartbeatSettings.cs" />
     <Compile Include="ICouchbaseClient.cs" />
     <Compile Include="ICouchbaseResultsClient.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />

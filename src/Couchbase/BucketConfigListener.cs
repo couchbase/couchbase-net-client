@@ -14,11 +14,22 @@ namespace Couchbase
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(BucketConfigListener));
 
 		private Uri[] poolUrls;
+		private Uri heartbeatUri;
+		private int heartbeatInterval;
+		private bool isHeartbeatEnabled;
 		private string bucketName;
 		private NetworkCredential credential;
 		private int? lastHash;
 		private ManualResetEvent mre;
 		private MessageStreamListener listener;
+
+		public BucketConfigListener(BucketConfigSettings settings)
+			:this(settings.Uris, settings.BucketName, settings.BucketPassword)
+		{
+			heartbeatUri = settings.HeartbeatUri;
+			heartbeatInterval = settings.HeartbeatInterval;
+			isHeartbeatEnabled = settings.IsHeartbeatEnabled;
+		}
 
 		public BucketConfigListener(Uri[] poolUrls, string bucketName, string bucketPassword)
 		{
@@ -208,7 +219,8 @@ namespace Couchbase
 					var name = this.bucketName;
 
 					// create a new listener for the pool urls
-					retval = new MessageStreamListener(poolUrls, (client, root) => ResolveBucketUri(client, root, name));
+					retval = new MessageStreamListener(poolUrls, heartbeatUri, heartbeatInterval, isHeartbeatEnabled,
+												(client, root) => ResolveBucketUri(client, root, name));
 
 					retval.ConnectionTimeout = this.Timeout;
 					retval.DeadTimeout = this.DeadTimeout;

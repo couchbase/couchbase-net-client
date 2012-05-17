@@ -17,6 +17,9 @@ namespace Couchbase
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(MessageStreamListener));
 
 		private Uri[] urls;
+		private Uri heartbeatUri;
+		private int heartbeatInterval;
+		private bool isHeartbeatEnabled;
 		private ManualResetEvent stopEvent;
 		private ManualResetEvent sleepEvent;
 		private WaitHandle[] sleepHandles;
@@ -42,12 +45,16 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="urls"></param>
 		/// <param name="converter">You use this to redirect the original url into somewhere else. Called only once for each url before the MessageStreamListener starts processing it.</param>
-		public MessageStreamListener(Uri[] urls, Func<WebClientWithTimeout, Uri, Uri> converter)
+		public MessageStreamListener(Uri[] urls, Uri heartbeatUri, int heartbeatInterval, bool isHeartbeatEnabled,
+												Func<WebClientWithTimeout, Uri, Uri> converter)
 		{
 			if (urls == null) throw new ArgumentNullException("urls");
 			if (urls.Length == 0) throw new ArgumentException("must specify at least 1 url");
 
 			this.urls = urls;
+			this.heartbeatUri = heartbeatUri;
+			this.heartbeatInterval = heartbeatInterval;
+			this.isHeartbeatEnabled = isHeartbeatEnabled;
 			this.DeadTimeout = 2000;
 			this.uriConverter = converter;
 
@@ -376,7 +383,15 @@ namespace Couchbase
 			var reader = new StreamReader(stream, Encoding.UTF8, false);
 
 			// TODO make the 10 seconds configurable (it if makes sense)
-			using (this.heartbeat = new Heartbeat(heartBeatUrl, this.ConnectionTimeout, 10 * 1000, this.AbortRequests, this.Credentials))
+			using (this.heartbeat = new Heartbeat(new HeartbeatSettings
+			{
+				Uri = this.heartbeatUri ?? heartBeatUrl,
+				Timeout = this.ConnectionTimeout,
+				Interval = this.heartbeatInterval,
+				IsEnabled = this.isHeartbeatEnabled,
+				AbortAction = this.AbortRequests,
+				Credentials = this.Credentials
+			}))
 			{
 				string line;
 				var emptyCounter = 0;
@@ -445,21 +460,26 @@ namespace Couchbase
 			private int shouldAbort;
 			private int interval;
 			private int timeout;
+			private bool isHeartbeatEnabled;
 
 			private WebRequest request;
 			private WebResponse response;
 			private Action abortAction;
 			private NetworkCredential credentials;
 
-			public Heartbeat(Uri uri, int timeout, int interval, Action abortAction, NetworkCredential credentials)
+			public Heartbeat(HeartbeatSettings settings)
 			{
-				this.uri = uri;
-				this.interval = interval;
-				this.timeout = timeout;
-				this.abortAction = abortAction;
-				this.credentials = credentials;
+				this.uri = settings.Uri;
+				this.interval = settings.Interval;
+				this.timeout = settings.Timeout;
+				this.isHeartbeatEnabled = settings.IsEnabled;
+				this.abortAction = settings.AbortAction;
+				this.credentials = settings.Credentials;
 
-				this.timer = new Timer(this.Worker, null, interval, Timeout.Infinite);
+				if (isHeartbeatEnabled)
+				{
+					this.timer = new Timer(this.Worker, null, interval, Timeout.Infinite);
+				}
 			}
 
 			void IDisposable.Dispose()

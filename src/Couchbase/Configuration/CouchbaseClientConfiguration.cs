@@ -25,6 +25,8 @@ namespace Couchbase.Configuration
 			this.Urls = new List<Uri>();
 
 			this.SocketPool = new SocketPoolConfiguration();
+
+			this.HeartbeatMonitor = new HeartbeatMonitorElement();
 		}
 
 		/// <summary>
@@ -50,6 +52,11 @@ namespace Couchbase.Configuration
 		/// Gets the configuration of the socket pool.
 		/// </summary>
 		public ISocketPoolConfiguration SocketPool { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the configuration of the heartbeat monitor.
+		/// </summary>
+		public IHeartbeatMonitorConfiguration HeartbeatMonitor { get; set; }
 
 		/// <summary>
 		/// Gets or sets the <see cref="T:Enyim.Caching.Memcached.IMemcachedKeyTransformer"/> which will be used to convert item keys for Memcached.
@@ -167,6 +174,7 @@ namespace Couchbase.Configuration
 		private TimeSpan retryTimeout;
 		private int retryCount;
 		private ISocketPoolConfiguration spc;
+		private IHeartbeatMonitorConfiguration hbm;
 
 		private ICouchbaseClientConfiguration original;
 
@@ -180,6 +188,7 @@ namespace Couchbase.Configuration
 			this.retryTimeout = original.RetryTimeout;
 
 			this.spc = new SPC(original.SocketPool);
+			this.hbm = new HBM(original.HeartbeatMonitor);
 
 			this.original = original;
 		}
@@ -208,6 +217,11 @@ namespace Couchbase.Configuration
 		ISocketPoolConfiguration ICouchbaseClientConfiguration.SocketPool
 		{
 			get { return this.spc; }
+		}
+
+		IHeartbeatMonitorConfiguration ICouchbaseClientConfiguration.HeartbeatMonitor
+		{
+			get { return this.hbm; }
 		}
 
 		IMemcachedKeyTransformer ICouchbaseClientConfiguration.CreateKeyTransformer()
@@ -268,6 +282,24 @@ namespace Couchbase.Configuration
 			TimeSpan ISocketPoolConfiguration.ReceiveTimeout { get { return this.receiveTimeout; } set { } }
 			TimeSpan ISocketPoolConfiguration.DeadTimeout { get { return this.deadTimeout; } set { } }
 			INodeFailurePolicyFactory ISocketPoolConfiguration.FailurePolicyFactory { get { return this.fpf; } set { } }
+		}
+
+		private class HBM : IHeartbeatMonitorConfiguration
+		{
+			private string uri;
+			private int interval;
+			private bool enabled;
+
+			public HBM(IHeartbeatMonitorConfiguration original)
+			{
+				this.interval = original.Interval;
+				this.uri = original.Uri;
+				this.enabled = original.Enabled;
+			}
+
+			string IHeartbeatMonitorConfiguration.Uri { get { return this.uri; } set { } }
+			int IHeartbeatMonitorConfiguration.Interval { get { return this.interval; } set { } }
+			bool IHeartbeatMonitorConfiguration.Enabled { get { return this.enabled; } set { } }
 		}
 	}
 }
