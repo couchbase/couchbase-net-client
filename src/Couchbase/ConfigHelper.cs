@@ -31,14 +31,15 @@ namespace Couchbase
 			return jss.Deserialize<T>(info);
 		}
 
-		private static readonly JavaScriptConverter[] JSC = { ClusterNode.ConverterInstance };
+		private static readonly JavaScriptConverter[] PoolsJSC = { ClusterNode.PoolsConfigConverterInstance };
+		private static readonly JavaScriptConverter[] BootstrapJSC = { ClusterNode.BootstrapConfigConverterInstance };
 
-		private static ClusterInfo GetClusterInfo(WebClient client, Uri clusterUrl)
+		private static ClusterInfo GetClusterInfo(WebClient client, Uri poolsUrl)
 		{
-			var info = DeserializeUri<ClusterInfo>(client, clusterUrl, JSC);
+			var info = DeserializeUri<ClusterInfo>(client, poolsUrl, PoolsJSC);
 
 			if (info == null)
-				throw new ArgumentException("invalid pool url: " + clusterUrl);
+				throw new ArgumentException("invalid pool url: " + poolsUrl);
 
 			if (info.buckets == null || String.IsNullOrEmpty(info.buckets.uri))
 				throw new ArgumentException("got an invalid response, missing { buckets : { uri : '' } }");
@@ -46,23 +47,36 @@ namespace Couchbase
 			return info;
 		}
 
+		private static BootstrapInfo GetPoolsConfigUri(WebClient client, Uri clusterUrl)
+		{
+			var info = DeserializeUri<BootstrapInfo>(client, clusterUrl, BootstrapJSC);
+
+			if (info == null)
+				throw new ArgumentException("invalid bootstrap config: " + clusterUrl);
+
+			return info;
+		}
+
 		/// <summary>
 		/// Asks the cluster for the specified bucket's configuration.
 		/// </summary>
-		/// <param name="poolUri"></param>
+		/// <param name="bootstrapUri"></param>
 		/// <param name="name"></param>
 		/// <returns></returns>
-		public static ClusterConfig ResolveBucket(WebClient client, Uri poolUri, string name)
+		public static ClusterConfig ResolveBucket(WebClient client, Uri bootstrapUri, string name)
 		{
-			var info = ConfigHelper.GetClusterInfo(client, poolUri);
-			var root = new Uri(poolUri, info.buckets.uri);
+			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, bootstrapUri);
 
-			var allBuckets = ConfigHelper.DeserializeUri<ClusterConfig[]>(client, root, JSC);
+			var basePoolsConfigUri = new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
+			var info = ConfigHelper.GetClusterInfo(client, new Uri(basePoolsConfigUri, bootstrapConfig.Uri));
+			var root = new Uri(bootstrapUri, info.buckets.uri);
+
+			var allBuckets = ConfigHelper.DeserializeUri<ClusterConfig[]>(client, root, PoolsJSC);
 			var retval = allBuckets.FirstOrDefault(b => b.name == name);
 
 			if (retval == null)
 			{
-				if (log.IsWarnEnabled) log.WarnFormat("Could not find the pool '{0}' at {1}", name, poolUri);
+				if (log.IsWarnEnabled) log.WarnFormat("Could not find the pool '{0}' at {1}", name, bootstrapUri);
 			}
 			else if (log.IsDebugEnabled) log.DebugFormat("Found config for bucket {0}.", name);
 

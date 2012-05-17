@@ -81,7 +81,7 @@ namespace Couchbase
 			this.listener = null;
 		}
 
-		private static readonly JavaScriptConverter[] KnownConverters = { ClusterNode.ConverterInstance };
+		private static readonly JavaScriptConverter[] KnownConverters = { ClusterNode.PoolsConfigConverterInstance };
 
 		private void HandleMessage(string message)
 		{

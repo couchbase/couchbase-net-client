@@ -21,7 +21,7 @@ namespace Couchbase.Tests
 		public void SetUp()
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
+			config.Urls.Add(new Uri("http://localhost:8091/pools"));
 			config.Bucket = "default";
 
 			_Client = new CouchbaseClient(config);
