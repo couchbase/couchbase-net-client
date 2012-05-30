@@ -65,7 +65,7 @@ namespace Couchbase
 		/// <returns></returns>
 		public static ClusterConfig ResolveBucket(WebClient client, Uri bootstrapUri, string name)
 		{
-			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, bootstrapUri);
+			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, cleanBootstrapUri(bootstrapUri));
 
 			var basePoolsConfigUri = new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
 			var info = ConfigHelper.GetClusterInfo(client, new Uri(basePoolsConfigUri, bootstrapConfig.Uri));
@@ -82,6 +82,34 @@ namespace Couchbase
 
 			return retval;
 		}
+
+		private static Uri cleanBootstrapUri(Uri bootstrapUri)
+		{
+			var lastSegment = bootstrapUri.Segments[bootstrapUri.Segments.Length - 1];
+
+			if (lastSegment == "/" && log.IsErrorEnabled) log.ErrorFormat("Invalid pool uri. No path specified: {0}", bootstrapUri.AbsoluteUri);
+
+			if (lastSegment.StartsWith("default", StringComparison.CurrentCultureIgnoreCase))
+			{
+				if (log.IsWarnEnabled) log.WarnFormat("Client should bootstrap off of /pools, not {0}.", bootstrapUri.PathAndQuery);
+
+				//Previously the client expected to boostrap off of /pools/default,
+				//when it should be bootstrapping off of /pools.  This code
+				//hides the change by forcing /default to /pools, though after
+				//a grace period a future release will not clean the Uri
+				var cleanedBootstrapUri = new UriBuilder
+				{
+					Scheme = bootstrapUri.Scheme,
+					Host = bootstrapUri.Host,
+					Port = bootstrapUri.Port,
+					Path = bootstrapUri.PathAndQuery.Replace(lastSegment, "")
+				}.Uri;
+
+				return cleanedBootstrapUri;
+			}
+
+			return bootstrapUri;
+		}
 	}
 }
 
@@ -90,7 +118,7 @@ namespace Couchbase
  * 
  *    @author Couchbase <info@couchbase.com>
  *    @copyright 2012 Couchbase, Inc.
- *    @copyright 2010 Attila Kiskó, enyim.com
+ *    @copyright 2010 Attila KiskÃ³, enyim.com
  *    
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
