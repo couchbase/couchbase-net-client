@@ -497,7 +497,15 @@ namespace Couchbase
 			if (this.poolUrls.Length == 0)
 				throw new InvalidOperationException("At least 1 pool url must be specified.");
 
-			this.configListener = new BucketConfigListener(this.poolUrls, this.configuration.Bucket, this.configuration.BucketPassword)
+			this.configListener = new BucketConfigListener(new BucketConfigSettings {
+				BucketName = this.configuration.Bucket,
+				BucketPassword = this.configuration.BucketPassword,
+				Uris = this.poolUrls,
+				IsHeartbeatEnabled = configuration.HeartbeatMonitor.Enabled,
+				HeartbeatUri = string.IsNullOrEmpty(configuration.HeartbeatMonitor.Uri)
+					? null : new Uri(configuration.HeartbeatMonitor.Uri),
+				HeartbeatInterval = configuration.HeartbeatMonitor.Interval
+			})
 			{
 				Timeout = (int)this.configuration.SocketPool.ConnectionTimeout.TotalMilliseconds,
 				DeadTimeout = (int)this.configuration.SocketPool.DeadTimeout.TotalMilliseconds,

@@ -7,6 +7,8 @@ using Enyim.Caching.Memcached;
 using System.IO;
 using System.Threading;
 using Enyim.Caching;
+using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
@@ -124,17 +126,21 @@ namespace Couchbase
 			return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
 		}
 
-		protected override bool ReadResponse(PooledSocket socket)
+		protected override IOperationResult ReadResponse(PooledSocket socket)
 		{
 			var response = new BinaryResponse();
+			var result = new BinaryOperationResult();
+
 			if (response.Read(socket))
 			{
 				this.Result = DecodeResult(response.Data);
 
-				return true;
+				result.Pass();
+				return result;
 			}
 
-			return false;
+			result.Fail("Processing of response failed");
+			return result;
 		}
 
 		protected override bool ReadResponseAsync(PooledSocket socket, Action<bool> next)

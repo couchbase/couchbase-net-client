@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
+using System.Collections;
 
 namespace Couchbase.Configuration
 {
@@ -11,6 +12,13 @@ namespace Couchbase.Configuration
 		public string name;
 		public ClusterNode[] nodes;
 		public ClusterBucketInfo buckets;
+	}
+
+	internal class BootstrapInfo
+	{
+		public string Name { get; set; }
+		public string Uri { get; set; }
+		public string StreamingUri { get; set; }
 	}
 
 	internal class ClusterBucketInfo
@@ -91,7 +99,8 @@ namespace Couchbase.Configuration
 	{
 		private static readonly Type[] SupportedTypes = { typeof(ClusterNode) };
 
-		internal static readonly System.Web.Script.Serialization.JavaScriptConverter ConverterInstance = new Converter();
+		internal static readonly System.Web.Script.Serialization.JavaScriptConverter PoolsConfigConverterInstance = new PoolsConfigConverter();
+		internal static readonly System.Web.Script.Serialization.JavaScriptConverter BootstrapConfigConverterInstance = new BootstrapConfigConverter();
 		internal static readonly IEqualityComparer<ClusterNode> ComparerInstance = new Comparer();
 
 		private string hostNname;
@@ -152,7 +161,7 @@ namespace Couchbase.Configuration
 		#endregion
 		#region [ JSON Converter               ]
 
-		private class Converter : System.Web.Script.Serialization.JavaScriptConverter
+		private class PoolsConfigConverter : System.Web.Script.Serialization.JavaScriptConverter
 		{
 			public override object Deserialize(IDictionary<string, object> dictionary, Type type, System.Web.Script.Serialization.JavaScriptSerializer serializer)
 			{
@@ -189,6 +198,40 @@ namespace Couchbase.Configuration
 			public override IEnumerable<Type> SupportedTypes
 			{
 				get { return ClusterNode.SupportedTypes; }
+			}
+		}
+
+		private class BootstrapConfigConverter : System.Web.Script.Serialization.JavaScriptConverter
+		{
+			public override object Deserialize(IDictionary<string, object> dictionary, Type type, System.Web.Script.Serialization.JavaScriptSerializer serializer)
+			{
+				var retval = new BootstrapInfo();
+
+				object poolsConfig;
+				if (dictionary.TryGetValue("pools", out poolsConfig))
+				{
+					var dict = (poolsConfig as ArrayList)[0] as Dictionary<string, object>;
+					retval.Name = dict["name"] as string;
+					retval.StreamingUri = dict["streamingUri"] as string;
+					retval.Uri = dict["uri"] as string;
+				}
+				else
+				{
+					throw new InvalidOperationException("Pools element was not found in the bootstrap response.");
+				}
+
+				return retval;
+			}
+
+
+			public override IDictionary<string, object> Serialize(object obj, System.Web.Script.Serialization.JavaScriptSerializer serializer)
+			{
+				throw new NotImplementedException();
+			}
+
+			public override IEnumerable<Type> SupportedTypes
+			{
+				get { return new Type[] { typeof(BootstrapInfo) }; }
 			}
 		}
 

@@ -7,6 +7,9 @@ using Enyim.Caching.Memcached;
 using System.IO;
 using System.Threading;
 using Enyim.Caching;
+using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.Helpers;
+using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
@@ -111,14 +114,18 @@ namespace Couchbase
 				return retval;
 			}
 
-			protected override bool ProcessResponse(BinaryResponse response)
+			protected override IOperationResult ProcessResponse(BinaryResponse response)
 			{
 				base.ProcessResponse(response);
+				var result = new BinaryOperationResult();
 
-				if (!GuessResponseState(response, out this.state))
-					return false;
+				if (!GuessResponseState(response, out this.state)) 
+				{
+					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					return result.Fail(message);
+				}
 
-				return true;
+				return result.Pass();
 			}
 
 			#region [ IOperationWithState          ]
@@ -153,14 +160,18 @@ namespace Couchbase
 				return retval;
 			}
 
-			protected override bool ProcessResponse(BinaryResponse response)
+			protected override IOperationResult ProcessResponse(BinaryResponse response)
 			{
 				base.ProcessResponse(response);
+				var result = new BinaryOperationResult();
 
 				if (!GuessResponseState(response, out this.state))
-					return false;
+				{
+					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					return result.Fail(message);
+				}
 
-				return true;
+				return result.Pass();
 			}
 
 			#region [ IOperationWithState          ]
@@ -195,14 +206,17 @@ namespace Couchbase
 				return retval;
 			}
 
-			protected override bool ProcessResponse(BinaryResponse response)
+			protected override IOperationResult ProcessResponse(BinaryResponse response)
 			{
 				base.ProcessResponse(response);
+				var result = new BinaryOperationResult();
 
 				if (!GuessResponseState(response, out this.state))
-					return false;
-
-				return true;
+				{
+					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					return result.Fail(message);
+				}
+				return result.Pass();
 			}
 
 			#region [ IOperationWithState          ]
@@ -259,14 +273,18 @@ namespace Couchbase
 				return retval;
 			}
 
-			protected override bool ProcessResponse(BinaryResponse response)
+			protected override IOperationResult ProcessResponse(BinaryResponse response)
 			{
 				base.ProcessResponse(response);
+				var result = new BinaryOperationResult();
 
 				if (!GuessResponseState(response, out this.state))
-					return false;
+				{
+					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					return result.Fail(message);
+				}
 
-				return true;
+				return result.Pass();
 			}
 
 			#region [ IOperationWithState          ]
@@ -302,14 +320,18 @@ namespace Couchbase
 				return retval;
 			}
 
-			protected override bool ProcessResponse(BinaryResponse response)
+			protected override IOperationResult ProcessResponse(BinaryResponse response)
 			{
 				base.ProcessResponse(response);
+				var result = new BinaryOperationResult();
 
 				if (!GuessResponseState(response, out this.state))
-					return false;
+				{
+					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					return result.Fail(message);
+				}
 
-				return true;
+				return result.Pass();
 			}
 
 			#region [ IOperationWithState          ]

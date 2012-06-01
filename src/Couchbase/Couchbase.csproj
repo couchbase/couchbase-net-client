@@ -70,16 +70,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BucketConfigListener.cs" />
+    <Compile Include="BucketConfigSettings.cs" />
     <Compile Include="ConfigHelper.cs" />
     <Compile Include="Configuration\BucketPortType.cs" />
     <Compile Include="Configuration\ProductionModeNameTransformer.cs" />
     <Compile Include="Configuration\DefaultPerformanceMonitorFactory.cs" />
     <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
+    <Compile Include="Configuration\HeartbeatMonitorElement.cs" />
     <Compile Include="Configuration\ICouchbasePerformanceMonitorFactory.cs" />
     <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientConfiguration.cs" />
     <Compile Include="Configuration\CouchbaseClientSection.cs" />
     <Compile Include="Configuration\INameTransformer.cs" />
+    <Compile Include="Configuration\IHeartbeatMonitorConfiguration.cs" />
     <Compile Include="Configuration\ServersElement.cs" />
     <Compile Include="Configuration\UriElement.cs" />
     <Compile Include="Configuration\UriElementCollection.cs" />
@@ -97,6 +100,9 @@
     <Compile Include="IHttpClientLocator.cs" />
     <Compile Include="IPagedView.cs" />
     <Compile Include="Json.cs" />
+    <Compile Include="HeartbeatSettings.cs" />
+    <Compile Include="ICouchbaseClient.cs" />
+    <Compile Include="ICouchbaseResultsClient.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />

@@ -30,6 +30,11 @@ namespace Couchbase.Configuration
 		ISocketPoolConfiguration SocketPool { get; }
 
 		/// <summary>
+		/// Gets the configuration of the heartbeat monitor.
+		/// </summary>
+		IHeartbeatMonitorConfiguration HeartbeatMonitor { get; }
+
+		/// <summary>
 		/// Creates an <see cref="T:Enyim.Caching.Memcached.IMemcachedKeyTransformer"/> instance which will be used to convert item keys for Memcached.
 		/// </summary>
 		IMemcachedKeyTransformer CreateKeyTransformer();
