@@ -319,37 +319,7 @@ namespace Couchbase {
 
         private string formatKey<KeyType>(KeyType key) {
 
-            Func<object, bool> isNumeric = o => (o is int || o is decimal || o is long || o is double);
-            Func<object, bool> isString = o => o is string;
-            Func<string, string> formatWithQuotes = s =>"\"" + s + "\"";
-
-            if (isNumeric(key)) {
-                return key.ToString();
-            } else if (isString(key)) {
-                return formatWithQuotes(key as string);
-            } else if (key is Array) {
-                var arr = key as Array;
-                var sb = new StringBuilder();
-                sb.Append("[");
-                for (var i = 0; i < arr.Length; i++) {
-                    if (isString(arr.GetValue(i))) {
-                        sb.Append(formatWithQuotes(arr.GetValue(i) as string));
-                    } else if (isNumeric(arr.GetValue(i))) {
-                        sb.Append(arr.GetValue(i));
-                    }
-                    else if (arr.GetValue(i) is Array) {
-                        sb.Append(formatKey(arr.GetValue(i)));
-                    } else {
-                        throw new ArgumentException(arr.GetValue(i).GetType().Name + " is not a valid key value.");
-                    }
-
-                    if (i != arr.Length - 1) sb.Append(",");
-                }    
-                sb.Append("]");
-                return sb.ToString();
-            } else {
-                throw new ArgumentException(typeof(KeyType) + " is not supported.");
-            }            
+			return JsonConvert.SerializeObject(key);
         }
     }
 }

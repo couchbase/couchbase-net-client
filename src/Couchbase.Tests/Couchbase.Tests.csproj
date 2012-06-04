@@ -45,6 +45,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
+    <Compile Include="CouchbaseClientViewParameterTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CouchbaseClientViewTestsBase.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="HeartbeatConfigTests.cs" />
     <Compile Include="CouchbaseClientCasTests.cs" />
     <Compile Include="CouchbaseClientConcatTests.cs" />
