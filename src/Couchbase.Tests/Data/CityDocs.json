@@ -1,0 +1,21 @@
+﻿{ "name" : "Hartford", "state" : "CT", "type" : "city" }
+{ "name" : "Bridgeport", "state" : "CT", "type" : "city" }
+{ "name" : "Stamford", "state" : "CT", "type" : "city" }
+{ "name" : "New Haven", "state" : "CT", "type" : "city" }
+{ "name" : "New London", "state" : "CT", "type" : "city" }
+{ "name" : "Norwalk", "state" : "CT", "type" : "city" }
+{ "name" : "Boston", "state" : "MA", "type" : "city" }
+{ "name" : "Cambridge", "state" : "MA", "type" : "city" }
+{ "name" : "Somerville", "state" : "MA", "type" : "city" }
+{ "name" : "Springfield", "state" : "MA", "type" : "city" }
+{ "name" : "Worcester", "state" : "MA", "type" : "city" }
+{ "name" : "Portsmouth", "state" : "NH", "type" : "city" }
+{ "name" : "Concord", "state" : "NH", "type" : "city" }
+{ "name" : "Manchester", "state" : "NH", "type" : "city" }
+{ "name" : "Burlington", "state" : "VT", "type" : "city" }
+{ "name" : "Montpelier", "state" : "VT", "type" : "city" }
+{ "name" : "Providence", "state" : "RI", "type" : "city" }
+{ "name" : "Warwick", "state" : "RI", "type" : "city" }
+{ "name" : "Newport", "state" : "RI", "type" : "city" }
+{ "name" : "Bangor", "state" : "ME", "type" : "city" }
+{ "name" : "Portland", "state" : "ME", "type" : "city" }

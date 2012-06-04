@@ -565,11 +565,16 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="designName">The name of the design document.</param>
 		/// <param name="viewName">The name of the view.</param>
+		/// <param name="shouldLookupDocById">
+		///		When true, the client will return an instance of T by deserializing the document that
+		///		is retrieved using the row's id.  When false (use when emitting projections), the client 
+		///		simply attempts to deserialize the view's value into an instance of T by matching properties.
+		/// </param>
 		/// <returns></returns>
-		public IView<T> GetView<T>(string designName, string viewName) {
+		public IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false) {
 
 			getViewSetup(ref designName, ref viewName);
-			return new CouchbaseView<T>(this, this, designName, viewName);
+			return new CouchbaseView<T>(this, this, designName, viewName, shouldLookupDocById);
 		}
 
 		public IDictionary<string, object> Get(IView view) {

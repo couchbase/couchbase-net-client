@@ -4,10 +4,16 @@ using System.Linq;
 using System.Text;
 using Couchbase.Configuration;
 using Couchbase.Tests.Mocks;
+using System.IO;
+using System.Net;
+using Enyim.Caching.Memcached;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
 namespace Couchbase.Tests
 {
-	public abstract class CouchbaseClientViewTestsBase
+	public abstract class CouchbaseClientViewTestsBase : CouchbaseClientTestsBase
 	{
 		protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
 		{
@@ -25,6 +31,36 @@ namespace Couchbase.Tests
 			var httpClientFactory = clientWithConfig.Item2.HttpClientFactory as MockHttpClientFactory;
 			var httpClient = httpClientFactory.Client as MockHttpClient;
 			return httpClient.Request as MockHttpRequest;
+		}
+
+		protected void CreateViewFromFile(string viewFile, string docName)
+		{
+			var viewContent = File.ReadAllText(viewFile).Replace("[[DESIGNDOC]]", docName);
+			byte[] arr = System.Text.Encoding.UTF8.GetBytes(viewContent);
+			var request = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8091/couchBase/default/_design/" + docName);
+			request.Method = "PUT";
+			request.ContentType = "application/json";
+			request.ContentLength = arr.Length;
+			var dataStream = request.GetRequestStream();
+			dataStream.Write(arr, 0, arr.Length);
+			dataStream.Close();
+			var response = (HttpWebResponse)request.GetResponse();
+			string returnString = response.StatusCode.ToString();
+		}
+
+		protected void CreateDocsFromFile(string docFile, string keyPrefix, string keyProperty)
+		{
+			using (var reader = new StreamReader(docFile))
+			{
+				string line;
+				while ((line = reader.ReadLine()) != null)
+				{
+					var lineObj = JsonConvert.DeserializeObject(line) as JObject;
+					var key = keyPrefix + lineObj[keyProperty].ToString().Replace(" ", "_");
+					var result = _Client.ExecuteStore(StoreMode.Set, key, line);
+					Assert.That(result.Success, Is.True, string.Format("Store failed for {0} with message {1}", key, result.Message));
+				}
+			}
 		}
 	}
 }

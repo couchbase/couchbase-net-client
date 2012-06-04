@@ -22,7 +22,7 @@ namespace Couchbase.Tests
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			config.DesignDocumentNameTransformer = new DevelopmentModeNameTransformer();
+			config.DesignDocumentNameTransformer = new ProductionModeNameTransformer();
 			config.HttpClientFactory = new HammockHttpClientFactory();
 			config.Bucket = "default";
 
