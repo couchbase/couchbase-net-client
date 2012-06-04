@@ -6,6 +6,10 @@
         },
         "by_city_and_state": {
             "map": "function (doc) { if (doc.type == \"city\") { emit(null, { \"cityState\" : doc.name + \",\" + doc.state }); } }"
+        },
+        "by_state": {
+            "map": "function (doc) { if (doc.type == \"city\") { emit(doc.state, doc.name); } }",
+			"reduce" : "_count"
         }
     }
 }

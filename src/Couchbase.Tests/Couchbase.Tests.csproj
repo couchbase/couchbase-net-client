@@ -53,6 +53,7 @@
     <Compile Include="CouchbaseClientViewParameterTests.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CouchbaseClientViewReduceTests.cs" />
     <Compile Include="CouchbaseClientViewTestsBase.cs">
       <SubType>Code</SubType>
     </Compile>

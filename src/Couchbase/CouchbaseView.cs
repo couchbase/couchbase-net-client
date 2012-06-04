@@ -46,7 +46,7 @@ namespace Couchbase
 				if (row == null) throw new ArgumentNullException("row", "Missing row info");
 
 				if (!row.TryGetValue("id", out this.id))
-					throw new InvalidOperationException("The value 'id' was not found in the row definition.");
+					this.id = null; //this is the case when the row is from a reduced view
 
 				object tempKey;
 
