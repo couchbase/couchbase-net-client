@@ -53,6 +53,10 @@
     <Compile Include="CouchbaseClientRemoveTests.cs" />
     <Compile Include="CouchbaseClientStoreTests.cs" />
     <Compile Include="CouchbaseClientTestsBase.cs" />
+    <Compile Include="Mocks\MockHttpClient.cs" />
+    <Compile Include="Mocks\MockHttpClientFactory.cs" />
+    <Compile Include="Mocks\MockHttpRequest.cs" />
+    <Compile Include="Mocks\MockHttpResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
