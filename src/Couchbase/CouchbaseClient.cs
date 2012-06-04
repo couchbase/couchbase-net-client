@@ -556,7 +556,7 @@ namespace Couchbase
 		/// <returns></returns>
 		public IView<IViewRow> GetView(string designName, string viewName) 
 		{
-			getViewSetup(designName, viewName);
+			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseView(this, this, designName, viewName);
 		}
 
@@ -568,7 +568,7 @@ namespace Couchbase
 		/// <returns></returns>
 		public IView<T> GetView<T>(string designName, string viewName) {
 
-			getViewSetup(designName, viewName);
+			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseView<T>(this, this, designName, viewName);
 		}
 
@@ -578,7 +578,7 @@ namespace Couchbase
 			return this.Get(keys);
 		}
 
-		private void getViewSetup(string designName, string viewName) 
+		private void getViewSetup(ref string designName, ref string viewName)
 		{
 			if (String.IsNullOrEmpty(designName)) throw new ArgumentNullException("designName");
 			if (String.IsNullOrEmpty(viewName)) throw new ArgumentNullException("viewName");

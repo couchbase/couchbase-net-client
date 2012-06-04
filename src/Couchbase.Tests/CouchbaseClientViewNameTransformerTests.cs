@@ -4,27 +4,34 @@ using System.Linq;
 using System.Text;
 using Couchbase.Configuration;
 using Couchbase.Tests.Mocks;
+using NUnit.Framework;
 
 namespace Couchbase.Tests
 {
-	public abstract class CouchbaseClientViewTestsBase
+	[TestFixture]
+	public class CouchbaseClientViewNameTransformerTests : CouchbaseClientViewTestsBase
 	{
-		protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
+		[Test]
+		public void When_Setting_Design_Document_Name_Transformer_To_Dev_Views_Are_Prefixed_With_Dev()
 		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
-			config.Bucket = "default";
-			config.DesignDocumentNameTransformer = nameTransformer ?? new DevelopmentModeNameTransformer();
-			config.HttpClientFactory = new MockHttpClientFactory();
-
-			return Tuple.Create(new CouchbaseClient(config), config);
+			testTransformedDesignDocName(new DevelopmentModeNameTransformer(), "foo", "dev_foo");
 		}
 
-		protected MockHttpRequest GetHttpRequest(Tuple<CouchbaseClient, CouchbaseClientConfiguration> clientWithConfig)
+		[Test]
+		public void When_Setting_Design_Document_Name_Transformer_To_Prod_Views_Are_Not_Prefixed()
 		{
-			var httpClientFactory = clientWithConfig.Item2.HttpClientFactory as MockHttpClientFactory;
-			var httpClient = httpClientFactory.Client as MockHttpClient;
-			return httpClient.Request as MockHttpRequest;
+			testTransformedDesignDocName(new ProductionModeNameTransformer(), "foo", "foo");
+		}
+
+		private void testTransformedDesignDocName(INameTransformer transformer, string designDoc, string expected)
+		{
+			var clientWithConfig = GetClientWithConfig(transformer);
+			var view = clientWithConfig.Item1.GetView(designDoc, "by_bar");
+			foreach (var item in view) { }
+			var request = GetHttpRequest(clientWithConfig);
+
+			Assert.That(request.Path, Is.StringStarting(expected), "Path did not contain " + expected);
+
 		}
 	}
 }
