@@ -7,6 +7,7 @@ using Couchbase.Configuration;
 using NUnit.Framework.Constraints;
 using System.Net;
 using Couchbase.Management;
+using Enyim.Caching.Memcached;
 
 namespace Couchbase.Tests
 {
@@ -50,6 +51,29 @@ namespace Couchbase.Tests
 			var server = new CouchbaseCluster(config);
 			Bucket[] buckets;
 			var result = _Cluster.TryListBuckets(out buckets);
+		}
+
+		[Test]
+		public void When_Flushing_Bucket_Data_Are_Removed()
+		{
+			var config = new CouchbaseClientConfiguration();
+			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
+			config.Bucket = "default";
+
+			var client = new CouchbaseClient(config);
+			var storeResult = client.ExecuteStore(StoreMode.Set, "SomeKey", "SomeValue");
+
+			Assert.That(storeResult.Success, Is.True);
+
+			var getResult = client.ExecuteGet<string>("SomeKey");
+			Assert.That(getResult.Success, Is.True);
+			Assert.That(getResult.Value, Is.StringMatching("SomeValue"));
+
+			_Cluster.FlushBucket("default");
+
+			getResult = client.ExecuteGet<string>("SomeKey");
+			Assert.That(getResult.Success, Is.False);
+			Assert.That(getResult.Value, Is.Null);
 		}
 	}
 }

@@ -41,6 +41,8 @@ namespace Couchbase.Management
 		public CouchbaseCluster(string configSectionName) :
 			this((CouchbaseClientSection)ConfigurationManager.GetSection(configSectionName)) { }
 
+		#region ICouchbaseCluster ethods
+
 		public Bucket[] ListBuckets()
 		{
 			var json = HttpHelper.Get(_bucketUri, _username, _password);
@@ -59,17 +61,32 @@ namespace Couchbase.Management
 				buckets = null;
 				return false;
 			}
-		}		
+		}
 
+		public void FlushBucket(string bucketName)
+		{
+			var flushUri = UriHelper.Combine(_bucketUri, bucketName, "controller", "doFlush");
+			var json = HttpHelper.Post(flushUri, _username, _password, "");
+		}
+
+		#endregion
+
+		#region Bootstrapping methods
 		private Uri getBucketUri(IList<Uri> uris)
 		{
 			var bootstrapUri = uris.First();
 			var poolsUri = getPoolsUri(bootstrapUri);
-			
+
 			//GET /pools/default
 			var json = HttpHelper.Get(poolsUri);
 			var buckets = ClusterConfigParser.ParseNested<Dictionary<string, object>>(json, "buckets");
 			var path = buckets["uri"] as string;
+
+			var idx = -1;
+			if ((idx = path.IndexOf("?")) != -1)
+			{
+				path = path.Substring(0, idx);
+			}
 
 			return UriHelper.Combine(getAuthority(bootstrapUri), path);
 		}
@@ -86,11 +103,12 @@ namespace Couchbase.Management
 			return UriHelper.Combine(getAuthority(bootstrapUri), path);
 		}
 
-		private Uri getAuthority(Uri bootstrapUri)
+		private Uri getAuthority(Uri uri)
 		{
-			return new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
+			return new UriBuilder(uri.Scheme, uri.Host, uri.Port).Uri;
 		}
-
+		#endregion
+		
 	}
 }
 

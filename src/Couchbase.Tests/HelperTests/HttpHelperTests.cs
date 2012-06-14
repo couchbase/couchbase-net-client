@@ -13,15 +13,16 @@ namespace Couchbase.Tests.HelperTests
 	{
 		private string _url = "http://localhost:8888/";
 		private string _output = "OK";
-		private HttpListener _listener = new HttpListener();
+		private HttpListener _listener = null;
 
 		[SetUp]
-		public void Setup()
+		public void SetUp()
 		{
+			_listener = new HttpListener();
 			_listener.Prefixes.Add(_url);
 			_listener.Start();
 
-			_listener.BeginGetContext(result =>
+			var ctxResult = _listener.BeginGetContext(result =>
 			{
 				var listener = result.AsyncState as HttpListener;
 				var bytes = Encoding.Default.GetBytes(_output);
@@ -30,6 +31,7 @@ namespace Couchbase.Tests.HelperTests
 				ctx.Response.OutputStream.Close();
 			}, _listener);
 
+			
 		}
 
 		[TearDown]
@@ -38,11 +40,19 @@ namespace Couchbase.Tests.HelperTests
 			_listener.Stop();
 			_listener.Close();
 		}
-
+		
 		[Test]
 		public void When_Performing_Get_Response_Is_OK()
 		{
 			var output = HttpHelper.Get(new Uri(_url));
+			
+			Assert.That(output, Is.StringMatching(_output));
+		}
+
+		[Test]
+		public void When_Performing_Post_Response_Is_OK()
+		{
+			var output = HttpHelper.Post(new Uri(_url), "", "", "");
 			Assert.That(output, Is.StringMatching(_output));
 		}
 

@@ -18,6 +18,8 @@ namespace Couchbase.Tests
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
 			config.Bucket = "default";
+			config.Username = "Administrator";
+			config.Password = "qwerty";
 
 			_Cluster = new CouchbaseCluster(config);
 		}

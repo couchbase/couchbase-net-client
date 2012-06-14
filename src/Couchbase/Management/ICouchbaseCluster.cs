@@ -15,6 +15,12 @@ namespace Couchbase.Management
 		/// </summary>
 		/// <returns>An array of Bucket instances</returns>
 		bool TryListBuckets(out Bucket[] buckets);
+
+		/// <summary>
+		/// Flush all data from a bucket
+		/// </summary>
+		/// <param name="bucketName">bucket name</param>
+		void FlushBucket(string bucketName);
 	}
 }
 

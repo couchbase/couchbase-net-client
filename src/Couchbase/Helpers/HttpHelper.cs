@@ -9,6 +9,9 @@ namespace Couchbase.Helpers
 {
 	public static class HttpHelper
 	{
+		public const string CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
+		public const string CONTENT_TYPE_JSON = "application/x-www-form-urlencoded";
+
 		public static string Get(Uri uri)
 		{
 			return Get(uri, "", "");
@@ -28,6 +31,41 @@ namespace Couchbase.Helpers
 
 			var response = request.GetResponse() as HttpWebResponse;
 
+			using (var responseStream = response.GetResponseStream())
+			{
+				using (var reader = new StreamReader(responseStream))
+				{
+					return reader.ReadToEnd();
+				}
+			}
+		}
+
+		public static string Post(Uri uri, string username, string password, string postData)
+		{
+			return Post(uri, username, password, postData, null);
+		}
+
+		public static string Post(Uri uri, string username, string password, string postData, string contentType)
+		{
+			if (uri == null) throw new ArgumentNullException("uri");
+
+			var request = WebRequest.Create(uri) as HttpWebRequest;
+			request.Method = "POST";
+			request.ContentType = contentType ?? CONTENT_TYPE_JSON;
+			request.ContentLength = postData.Length;
+
+			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+			{
+				buildAuthorizationHeader(request, username, password);
+			}
+
+			using (var requestStream = request.GetRequestStream())
+			{
+				var bytesToWrite = Encoding.UTF8.GetBytes(postData);
+				requestStream.Write(bytesToWrite, 0, bytesToWrite.Length);
+			}
+
+			var response = request.GetResponse() as HttpWebResponse;
 			using (var responseStream = response.GetResponseStream())
 			{
 				using (var reader = new StreamReader(responseStream))
