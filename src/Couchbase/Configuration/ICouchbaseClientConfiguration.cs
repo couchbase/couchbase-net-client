@@ -14,10 +14,20 @@ namespace Couchbase.Configuration
 		string Bucket { get; }
 
 		/// <summary>
-		/// Gets the pasword used to connect to the bucket.
+		/// Gets the password used to connect to the bucket.
 		/// </summary>
 		/// <remarks> If null, the bucket name will be used. Set to String.Empty to use an empty password.</remarks>
 		string BucketPassword { get; }
+
+		/// <summary>
+		/// Gets the name of the administrator account for the cluster
+		/// </summary>
+		string Username { get; }
+
+		/// <summary>
+		/// Gets the password of the administrator account for the cluster
+		/// </summary>
+		string Password { get; }
 
 		/// <summary>
 		/// Gets a list of <see cref="T:IPEndPoint"/> each representing a Memcached server in the pool.

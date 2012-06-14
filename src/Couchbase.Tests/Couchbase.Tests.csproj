@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
+    <Compile Include="CouchbaseClientConfigTests.cs" />
     <Compile Include="HeartbeatConfigTests.cs" />
     <Compile Include="CouchbaseClientCasTests.cs" />
     <Compile Include="CouchbaseClientConcatTests.cs" />
@@ -56,6 +57,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
