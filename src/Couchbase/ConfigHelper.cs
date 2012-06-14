@@ -65,7 +65,7 @@ namespace Couchbase
 		/// <returns></returns>
 		public static ClusterConfig ResolveBucket(WebClient client, Uri bootstrapUri, string name)
 		{
-			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, cleanBootstrapUri(bootstrapUri));
+			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, CleanBootstrapUri(bootstrapUri));
 
 			var basePoolsConfigUri = new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
 			var info = ConfigHelper.GetClusterInfo(client, new Uri(basePoolsConfigUri, bootstrapConfig.Uri));
@@ -83,7 +83,7 @@ namespace Couchbase
 			return retval;
 		}
 
-		private static Uri cleanBootstrapUri(Uri bootstrapUri)
+		public static Uri CleanBootstrapUri(Uri bootstrapUri)
 		{
 			var lastSegment = bootstrapUri.Segments[bootstrapUri.Segments.Length - 1];
 

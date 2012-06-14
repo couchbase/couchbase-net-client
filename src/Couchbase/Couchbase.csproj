@@ -61,6 +61,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\JsonHelper.cs" />
+    <Compile Include="Management\Bucket.cs" />
     <Compile Include="BucketConfigListener.cs" />
     <Compile Include="BucketConfigSettings.cs" />
     <Compile Include="ConfigHelper.cs" />
@@ -76,9 +78,14 @@
     <Compile Include="Configuration\UriElement.cs" />
     <Compile Include="Configuration\UriElementCollection.cs" />
     <Compile Include="Configuration\UriValidator.cs" />
+    <Compile Include="Management\ClusterConfigParser.cs" />
+    <Compile Include="Management\CouchbaseCluster.cs" />
     <Compile Include="HeartbeatSettings.cs" />
+    <Compile Include="Helpers\HttpHelper.cs" />
+    <Compile Include="Helpers\UriHelper.cs" />
     <Compile Include="ICouchbaseClient.cs" />
     <Compile Include="ICouchbaseResultsClient.cs" />
+    <Compile Include="Management\ICouchbaseCluster.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />
