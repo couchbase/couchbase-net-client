@@ -15,7 +15,7 @@ namespace Couchbase
 {
 	internal class PagedView<T> : IPagedView<T>
 	{
-        private static Dictionary<Type, PropertyInfo> propertyCache = new Dictionary<Type, PropertyInfo>();
+		private static Dictionary<Type, Tuple<PropertyInfo,PropertyInfo>> propertyCache = new Dictionary<Type, Tuple<PropertyInfo, PropertyInfo>>();
 
 		private IView<T> currentView;
 
@@ -24,22 +24,34 @@ namespace Couchbase
 		private List<T> items;
 
 		private string nextId;
+		private object nextKey;
 		private int state;
+		private int totalRows;
 
-        public PagedView(IView<T> view, int pageSize)
-        {
-            this.items = new List<T>();
-            this.pageSize = pageSize;
-            this.currentView = view.EndDocumentId(null);
+		private readonly string _pagedViewIdProperty;
+		private readonly string _pagedViewKeyProperty;
 
-            this.state = -1;
-        }
+		public PagedView(IView<T> view, int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null)
+		{
+			this.items = new List<T>();
+			this.pageSize = pageSize;
+			this.currentView = view.EndDocumentId(null);
+
+			this.state = -1;
+
+			_pagedViewIdProperty = pagedViewIdProperty;
+			_pagedViewKeyProperty = pagedViewKeyProperty;
+		}
 
 		public bool MoveNext()
 		{
+			Tuple<string, object> lastIdAndKey;
+
 			if (this.state == -1)
 			{
-				this.nextId = this.LoadData(this.currentView);
+				lastIdAndKey = this.LoadData(this.currentView);
+				this.nextId = lastIdAndKey.Item1;
+				this.nextKey = lastIdAndKey.Item2;
 				this.state = 1;
 
 				return this.nextId != null;
@@ -50,9 +62,12 @@ namespace Couchbase
 				return false;
 
 			// get a reference to the current page
-			var page = this.currentView.StartDocumentId(this.nextId);
+			this.currentView.StartDocumentId(this.nextId);
+			this.currentView.StartKey(this.nextKey);
 
-			this.nextId = this.LoadData(page);
+			lastIdAndKey = this.LoadData(this.currentView);
+			this.nextId = lastIdAndKey.Item1;
+			this.nextKey = lastIdAndKey.Item2;
 			this.pageIndex++;
 
 			// did not load anything, we're at the end
@@ -69,50 +84,60 @@ namespace Couchbase
 			get { return this.pageIndex; }
 		}
 
-		private string LoadData(IView<T> view)
+		public int TotalRows
+		{
+			get { return this.totalRows; }
+		}
+
+		private Tuple<string, object> LoadData(IView<T> view)
 		{
 			this.items.Clear();
 
 			var count = this.pageSize;
-			string lastId = null;
+			var lastIdAndKey = Tuple.Create<string, object>(null, null);
 
 			foreach (var row in view.Limit(this.pageSize + 1))
 			{
+				this.totalRows = view.TotalRows;
+
 				// only store pageSize count of items
 				// the last one will be only stored as a reference to the next page
-                if (count > 0)
-                    this.items.Add(row);
-                else {
-                    //HACK: This needs to be a transform function or something
-                    if (row is IViewRow)
-                    {
-                        lastId = ((IViewRow)row).ItemId;
-                    }
-                    else
-                    {
-                        var typeOfRow = row.GetType();
+				if (count > 0)
+					this.items.Add(row);
+				else
+				{
+					//HACK: This needs to be a transform function or something
+					if (row is IViewRow)
+					{
+						var viewRow = (IViewRow)row;
+						return Tuple.Create(viewRow.ItemId, viewRow.Info["key"]);
+					}
+					else
+					{
+						var genericView = view as CouchbaseView<T>;
 
-                        if (! propertyCache.ContainsKey(typeOfRow))
-                        {
-                            //for strongly typed views suppor possible variations of Id property naming
-                            var docIdPropNames = new string[] { "Id", "_Id" };
-                            Func<PropertyInfo, bool> idPredicate =
-                                p => docIdPropNames.Contains(p.Name, StringComparer.CurrentCultureIgnoreCase);
-                            var property = typeOfRow.GetProperties().FirstOrDefault(p => idPredicate(p));
-                            propertyCache[typeOfRow] = property;
-                        }
+						if (string.IsNullOrEmpty(_pagedViewIdProperty) ||
+							string.IsNullOrEmpty(_pagedViewKeyProperty))
+							throw new InvalidOperationException("Generic view paging requires setting the view id and key properties when calling GetView<T>");
 
-                        if (propertyCache[typeOfRow] != null)
-                        {
-                            lastId = propertyCache[typeOfRow].GetValue(row, null) as string;
-                        }
-                    }
-                }
+						var typeOfRow = row.GetType();
+						if (!propertyCache.ContainsKey(typeOfRow))
+						{
+							var idProperty = typeOfRow.GetProperties().FirstOrDefault(p => p.Name == _pagedViewIdProperty);
+							var keyProperty = typeOfRow.GetProperties().FirstOrDefault(p => p.Name == _pagedViewKeyProperty);
+							propertyCache[typeOfRow] = Tuple.Create(idProperty, keyProperty);
+						}
+
+						var lastId = propertyCache[typeOfRow].Item1.GetValue(row, null) as string;
+						var lastKey = propertyCache[typeOfRow].Item2.GetValue(row, null);
+						return Tuple.Create(lastId, lastKey);
+					}
+				}
 
 				count--;
 			}
 
-			return lastId;
+			return lastIdAndKey;
 		}
 
 		IEnumerator<T> IEnumerable<T>.GetEnumerator()

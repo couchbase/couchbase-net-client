@@ -15,6 +15,13 @@ namespace Couchbase.Tests
 {
 	public abstract class CouchbaseClientViewTestsBase : CouchbaseClientTestsBase
 	{
+		[SetUp]
+		public void Setup()
+		{
+			CreateDocsFromFile("Data\\CityDocs.json", "city_", "state", "name");
+			CreateViewFromFile("Data\\CityViews.json", "cities");
+		}
+
 		protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
 		{
 			var config = new CouchbaseClientConfiguration();
@@ -48,7 +55,7 @@ namespace Couchbase.Tests
 			string returnString = response.StatusCode.ToString();
 		}
 
-		protected void CreateDocsFromFile(string docFile, string keyPrefix, string keyProperty)
+		protected void CreateDocsFromFile(string docFile, string keyPrefix, params string[] keyProperties)
 		{
 			using (var reader = new StreamReader(docFile))
 			{
@@ -56,11 +63,40 @@ namespace Couchbase.Tests
 				while ((line = reader.ReadLine()) != null)
 				{
 					var lineObj = JsonConvert.DeserializeObject(line) as JObject;
-					var key = keyPrefix + lineObj[keyProperty].ToString().Replace(" ", "_");
+
+					var keys = "";
+					foreach (var item in keyProperties)
+					{
+						keys += lineObj[item].ToString().Replace(" ", "_") + "_";
+					}
+
+					var key = keyPrefix + keys.TrimEnd('_');
+
 					var result = _Client.ExecuteStore(StoreMode.Set, key, line);
 					Assert.That(result.Success, Is.True, string.Format("Store failed for {0} with message {1}", key, result.Message));
 				}
 			}
+		}
+
+		protected class City
+		{
+			[JsonProperty("_id")]
+			public string Id { get; set; }
+
+			[JsonProperty("name")]
+			public string Name { get; set; }
+
+			[JsonProperty("state")]
+			public string State { get; set; }
+
+			[JsonProperty("type")]
+			public string Type { get; set; }
+		}
+
+		protected class CityProjection
+		{
+			[JsonProperty("cityState")]
+			public string CityState { get; set; }
 		}
 	}
 }

@@ -9,6 +9,11 @@ namespace Couchbase
 	public interface IView<T> : IEnumerable<T>
 	{
 		/// <summary>
+		/// TotalRows that would be returned by view, regardless of filters
+		/// </summary>
+		int TotalRows { get; set; }
+
+		/// <summary>
 		/// The view will return only the specified number of items.
 		/// </summary>
 		/// <param name="value">The number of items to return.</param>
@@ -117,8 +122,10 @@ namespace Couchbase
 		/// Returns a view which allows the user to page retrieve all items of an index in pages.
 		/// </summary>
 		/// <param name="pageSize"></param>
+		/// <param name="pagedViewIdProperty">When paging over a generic view, this is the property to which the row's ID is mapped</param>
+		/// <param name="pagedViewKeyProperty">When paging over a generic view, this is the property to which the row's key is mapped</param>
 		/// <returns></returns>
-		IPagedView<T> GetPagedView(int pageSize);
+		IPagedView<T> GetPagedView(int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null);
 	}
 }
 

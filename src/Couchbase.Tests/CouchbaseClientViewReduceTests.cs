@@ -9,13 +9,6 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientViewReduceTests : CouchbaseClientViewTestsBase
 	{
-		[SetUp]
-		public void Setup()
-		{
-			CreateDocsFromFile("Data\\CityDocs.json", "city_", "name");
-			CreateViewFromFile("Data\\CityViews.json", "cities");
-		}
-
 		[Test]
 		public void When_View_Is_Reduced_Without_Group_Row_Count_Is_One()
 		{
@@ -34,7 +27,6 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(1), "Row count was not 1");
 
 		}
-
 	}
 }
 

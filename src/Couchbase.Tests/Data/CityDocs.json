@@ -14,6 +14,7 @@
 { "name" : "Manchester", "state" : "NH", "type" : "city" }
 { "name" : "Burlington", "state" : "VT", "type" : "city" }
 { "name" : "Montpelier", "state" : "VT", "type" : "city" }
+{ "name" : "Newport", "state" : "VT", "type" : "city" }
 { "name" : "Providence", "state" : "RI", "type" : "city" }
 { "name" : "Warwick", "state" : "RI", "type" : "city" }
 { "name" : "Newport", "state" : "RI", "type" : "city" }

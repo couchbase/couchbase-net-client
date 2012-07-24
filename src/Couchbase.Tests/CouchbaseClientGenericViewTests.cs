@@ -14,13 +14,6 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientGenericViewTests : CouchbaseClientViewTestsBase
 	{
-		[SetUp]
-		public void Setup()
-		{
-			CreateDocsFromFile("Data\\CityDocs.json", "city_", "name");
-			CreateViewFromFile("Data\\CityViews.json", "cities");
-		}
-
 		[Test]
 		public void When_Should_Lookup_By_Id_Is_True_Document_Is_Retrieved_By_Id()
 		{

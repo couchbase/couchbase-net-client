@@ -12,6 +12,8 @@ namespace Couchbase
 
 		int PageSize { get; }
 		int PageIndex { get; }
+
+		int TotalRows { get; }
 	}
 }
 

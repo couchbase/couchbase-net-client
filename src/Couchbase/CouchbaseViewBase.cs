@@ -42,6 +42,8 @@ namespace Couchbase {
         protected bool? group;
         protected int? groupAt;
 
+		public int TotalRows { get; set; }
+
         internal CouchbaseViewBase(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName) {
             this.client = client;
             this.clientLocator = clientLocator;
@@ -74,7 +76,7 @@ namespace Couchbase {
         protected bool MoveToArray(JsonReader reader, int depth, string name) {
             while (reader.Read()) {
                 if (reader.TokenType == Newtonsoft.Json.JsonToken.PropertyName
-                    && reader.Depth == 1
+                    && reader.Depth == depth
                     && ((string)reader.Value) == name) {
                     if (!reader.Read()
                         || (reader.TokenType != Newtonsoft.Json.JsonToken.StartArray
@@ -96,23 +98,36 @@ namespace Couchbase {
             using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
             using (var jsonReader = new JsonTextReader(sr)) {
 
-                // position the reader on the first "rows" field which contains the actual resultset
-                // this way we do not have to deserialize the whole response twice
-                if (MoveToArray(jsonReader, 1, "rows")) {
-                    // read until the end of the rows array
-                    while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray) {
-                        var row = rowTransformer(jsonReader);
-                        yield return row;
-                    }
-                }
+				while (jsonReader.Read())
+				{
+					if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Depth == 1)
+					{
+						if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
+						{
+							TotalRows = Convert.ToInt32(jsonReader.Value);
+						}
+						else if (jsonReader.Value as string == "rows" && jsonReader.Read())
+						{
+							// position the reader on the first "rows" field which contains the actual resultset
+							// this way we do not have to deserialize the whole response twice
+							// read until the end of the rows array
+							while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
+							{
+								var row = rowTransformer(jsonReader);
+								yield return row;
+							}
 
-                if (MoveToArray(jsonReader, 1, "errors")) {
-                    var errors = Json.Parse(jsonReader);
-                    var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
-                    if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
+							if (MoveToArray(jsonReader, 1, "errors"))
+							{
+								var errors = Json.Parse(jsonReader);
+								var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
+								if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
 
-                    throw new InvalidOperationException("Cannot read view: " + formatted);
-                }
+								throw new InvalidOperationException("Cannot read view: " + formatted);
+							}
+						}
+					}
+				}
             }
         }
 
@@ -297,8 +312,8 @@ namespace Couchbase {
             return this;
         }
 
-        public IPagedView<T> GetPagedView(int pageSize) {
-            return new PagedView<T>(this, pageSize);
+        public IPagedView<T> GetPagedView(int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null) {
+            return new PagedView<T>(this, pageSize, pagedViewIdProperty, pagedViewKeyProperty);
         }
 
         #endregion     
