@@ -30,7 +30,7 @@ namespace Couchbase.Tests
 		}
 
 		[Test]
-		public void Client_Operations_Fail_When_Bootstrapping_To_Pools_Default_Root_Uri()
+		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Default_Root_Uri()
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
@@ -40,11 +40,10 @@ namespace Couchbase.Tests
 
 			string key = GetUniqueKey(), value = GetRandomString();
 			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			Assert.That(storeResult.Success, Is.Not.True, "Success was true");
-			Assert.That(storeResult.Message, Is.Not.Empty, "Message was empty");
+			StoreAssertPass(storeResult);
 
 			var getResult = client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			GetAssertPass(getResult, value);
 
 		}
 	}
