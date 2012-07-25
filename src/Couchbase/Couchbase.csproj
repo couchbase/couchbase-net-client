@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Management\BucketEnums.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />
     <Compile Include="Management\Bucket.cs" />
     <Compile Include="BucketConfigListener.cs" />

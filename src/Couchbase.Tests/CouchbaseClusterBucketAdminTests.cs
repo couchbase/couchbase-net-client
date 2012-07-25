@@ -75,6 +75,80 @@ namespace Couchbase.Tests
 			Assert.That(getResult.Success, Is.False);
 			Assert.That(getResult.Value, Is.Null);
 		}
+
+		[Test]
+		public void When_Creating_New_Bucket_That_Bucket_Is_Listed()
+		{
+			Func<Bucket> testExists = () => _Cluster.ListBuckets().Where(b => b.Name == "TestCreateBucket").FirstOrDefault();
+
+			if (testExists() != null)
+			{
+				Assert.Ignore("TestCreateBucket already exists");
+				return;
+			}
+
+			_Cluster.CreateBucket(new Bucket {
+				Name = "TestCreateBucket",
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 128 }
+				);
+
+			Assert.That(testExists, Is.Not.Null);
+		}
+
+		[Test]
+		[ExpectedException(typeof(WebException))]
+		public void When_Creating_New_Bucket_With_Existing_Name_Web_Exception_Is_Thrown()
+		{
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = "default",
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 128
+			});
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage="ProxyPort", MatchType=MessageMatch.Contains)]
+		public void When_Creating_New_Bucket_With_Auth_Type_None_And_No_Port_Argument_Exception_Is_Thrown()
+		{
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = "default",
+				AuthType = AuthTypes.None,
+				BucketType = BucketTypes.Memcached,
+				RamQuotaMB = 128
+			});
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "ProxyPort", MatchType = MessageMatch.Contains)]
+		public void When_Creating_New_Bucket_With_Auth_Type_Sasl_And_Port_Argument_Exception_Is_Thrown()
+		{
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = "default",
+				AuthType = AuthTypes.None,
+				BucketType = BucketTypes.Memcached,
+				RamQuotaMB = 128
+			});
+		}
+
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "RamQuotaMB", MatchType = MessageMatch.Contains)]
+		public void When_Creating_New_Bucket_With_Ram_Quota_Less_Than_100_Argument_Exception_Is_Thrown()
+		{
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = "default",
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Memcached,
+				RamQuotaMB = 99
+			});
+		}
 	}
 }
 

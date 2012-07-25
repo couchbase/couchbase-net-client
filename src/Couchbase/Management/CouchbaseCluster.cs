@@ -69,6 +69,32 @@ namespace Couchbase.Management
 			var json = HttpHelper.Post(flushUri, _username, _password, "");
 		}
 
+		public bool CreateBucket(Bucket bucket)
+		{
+			if (!bucket.IsValid())
+			{
+				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
+				throw new ArgumentException(message);
+			}
+
+			var sb = new StringBuilder();
+			sb.AppendFormat("name={0}", bucket.Name);
+			sb.AppendFormat("&ramQuotaMB={0}", bucket.RamQuotaMB);
+
+			if (bucket.AuthType == AuthTypes.None)
+				sb.AppendFormat("&proxyPort={0}", bucket.ProxyPort);
+			if (bucket.AuthType == AuthTypes.Sasl && ! string.IsNullOrEmpty(bucket.Password))
+				sb.AppendFormat("&saslPassword={0}", bucket.Password);
+
+			sb.AppendFormat("&authType={0}", Enum.GetName(typeof(AuthTypes), bucket.AuthType).ToLower());										;
+			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
+			sb.AppendFormat("&replicaNumber={0}", bucket.ReplicaNumber);
+
+			var response = HttpHelper.Post(_bucketUri, _username, _password, sb.ToString(), HttpHelper.CONTENT_TYPE_FORM);
+			return response.Contains(bucket.Name);
+		}
+
+
 		#endregion
 
 		#region Bootstrapping methods

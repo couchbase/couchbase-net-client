@@ -1,33 +1,20 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Couchbase.Management
 {
-	interface ICouchbaseCluster
+	public enum BucketTypes
 	{
-		/// <summary>
-		/// List the buckets from the cluster
-		/// </summary>
-		/// <returns>An array of Bucket instances</returns>
-		Bucket[] ListBuckets();
+		Memcached,
+		Membase
+	}
 
-		/// <summary>
-		/// List the buckets from the cluster, swallowing possible exceptions
-		/// </summary>
-		/// <returns>An array of Bucket instances</returns>
-		bool TryListBuckets(out Bucket[] buckets);
-
-		/// <summary>
-		/// Flush all data from a bucket
-		/// </summary>
-		/// <param name="bucketName">bucket name</param>
-		void FlushBucket(string bucketName);
-
-		/// <summary>
-		/// Create a new bucket on the server
-		/// </summary>
-		/// <param name="bucket">Bucket to create</param>
-		/// <returns>True if successful</returns>
-		bool CreateBucket(Bucket bucket);
+	public enum AuthTypes
+	{
+		None,
+		Sasl
 	}
 }
 
