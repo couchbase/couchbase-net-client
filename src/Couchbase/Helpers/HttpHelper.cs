@@ -19,25 +19,7 @@ namespace Couchbase.Helpers
 
 		public static string Get(Uri uri, string username, string password)
 		{
-			if (uri == null) throw new ArgumentNullException("uri");
-
-			var request = WebRequest.Create(uri) as HttpWebRequest;
-			request.Method = "GET";
-
-			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
-			{
-				buildAuthorizationHeader(request, username, password);
-			}
-
-			var response = request.GetResponse() as HttpWebResponse;
-
-			using (var responseStream = response.GetResponseStream())
-			{
-				using (var reader = new StreamReader(responseStream))
-				{
-					return reader.ReadToEnd();
-				}
-			}
+			return doRequest(uri, "GET", username, password);
 		}
 
 		public static string Post(Uri uri, string username, string password, string postData)
@@ -47,22 +29,39 @@ namespace Couchbase.Helpers
 
 		public static string Post(Uri uri, string username, string password, string postData, string contentType)
 		{
+			return doRequest(uri, "POST", username, password, postData, contentType);
+		}
+
+		public static string Delete(Uri uri, string username, string password)
+		{
+			return doRequest(uri, "DELETE", username, password);
+		}
+
+		private static string doRequest(Uri uri, string verb, string username, string password, string postData, string contentType)
+		{
 			if (uri == null) throw new ArgumentNullException("uri");
 
 			var request = WebRequest.Create(uri) as HttpWebRequest;
-			request.Method = "POST";
-			request.ContentType = contentType ?? CONTENT_TYPE_JSON;
-			request.ContentLength = postData.Length;
+			request.Method = verb.ToUpper();
+
+			if (verb == "POST")
+			{
+				request.ContentType = contentType ?? CONTENT_TYPE_JSON;
+				request.ContentLength = postData.Length;
+			}
 
 			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
 			{
 				buildAuthorizationHeader(request, username, password);
 			}
 
-			using (var requestStream = request.GetRequestStream())
+			if (!string.IsNullOrEmpty(postData))
 			{
-				var bytesToWrite = Encoding.UTF8.GetBytes(postData);
-				requestStream.Write(bytesToWrite, 0, bytesToWrite.Length);
+				using (var requestStream = request.GetRequestStream())
+				{
+					var bytesToWrite = Encoding.UTF8.GetBytes(postData);
+					requestStream.Write(bytesToWrite, 0, bytesToWrite.Length);
+				}
 			}
 
 			var response = request.GetResponse() as HttpWebResponse;
@@ -73,6 +72,11 @@ namespace Couchbase.Helpers
 					return reader.ReadToEnd();
 				}
 			}
+		}
+
+		private static string doRequest(Uri uri, string verb, string username, string password)
+		{
+			return doRequest(uri, verb, username, password, null, null);
 		}
 
 		private static void buildAuthorizationHeader(HttpWebRequest request, string username, string password)

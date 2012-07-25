@@ -66,10 +66,10 @@ namespace Couchbase.Management
 		public void FlushBucket(string bucketName)
 		{
 			var flushUri = UriHelper.Combine(_bucketUri, bucketName, "controller", "doFlush");
-			var json = HttpHelper.Post(flushUri, _username, _password, "");
+			HttpHelper.Post(flushUri, _username, _password, "");
 		}
 
-		public bool CreateBucket(Bucket bucket)
+		public void CreateBucket(Bucket bucket)
 		{
 			if (!bucket.IsValid())
 			{
@@ -90,10 +90,13 @@ namespace Couchbase.Management
 			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
 			sb.AppendFormat("&replicaNumber={0}", bucket.ReplicaNumber);
 
-			var response = HttpHelper.Post(_bucketUri, _username, _password, sb.ToString(), HttpHelper.CONTENT_TYPE_FORM);
-			return response.Contains(bucket.Name);
+			HttpHelper.Post(_bucketUri, _username, _password, sb.ToString(), HttpHelper.CONTENT_TYPE_FORM);
 		}
 
+		public void DeleteBucket(string bucketName)
+		{
+			HttpHelper.Delete(UriHelper.Combine(_bucketUri, bucketName), _username, _password);
+		}
 
 		#endregion
 

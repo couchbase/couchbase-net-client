@@ -79,22 +79,20 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Creating_New_Bucket_That_Bucket_Is_Listed()
 		{
-			Func<Bucket> testExists = () => _Cluster.ListBuckets().Where(b => b.Name == "TestCreateBucket").FirstOrDefault();
-
-			if (testExists() != null)
-			{
-				Assert.Ignore("TestCreateBucket already exists");
-				return;
-			}
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
 			_Cluster.CreateBucket(new Bucket {
-				Name = "TestCreateBucket",
+				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
 				RamQuotaMB = 128 }
 				);
 
-			Assert.That(testExists, Is.Not.Null);
+			var bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+
 		}
 
 		[Test]
@@ -148,6 +146,39 @@ namespace Couchbase.Tests
 				BucketType = BucketTypes.Memcached,
 				RamQuotaMB = 99
 			});
+		}
+
+		[Test]
+		public void When_Deleting_Bucket_Bucket_Is_No_Longer_Listed()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 128
+			});
+
+			var bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+
+			Assert.That(bucket, Is.Not.Null, "New bucket was null");
+
+			_Cluster.DeleteBucket(bucketName);
+
+			bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+
+			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
+		}
+
+		[Test]
+		[ExpectedException(typeof(WebException), ExpectedMessage="404", MatchType=MessageMatch.Contains)]
+		public void When_Deleting_Bucket_That_Does_Not_Exist_404_Web_Exception_Is_Thrown()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.DeleteBucket(bucketName);
 		}
 	}
 }

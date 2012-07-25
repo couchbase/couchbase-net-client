@@ -27,7 +27,14 @@ namespace Couchbase.Management
 		/// </summary>
 		/// <param name="bucket">Bucket to create</param>
 		/// <returns>True if successful</returns>
-		bool CreateBucket(Bucket bucket);
+		void CreateBucket(Bucket bucket);
+
+		/// <summary>
+		/// Delete a bucket on the server
+		/// </summary>
+		/// <param name="bucket">Bucket to create</param>
+		/// <returns>True if successful</returns>
+		void DeleteBucket(string bucketName);
 	}
 }
 
