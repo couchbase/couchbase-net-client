@@ -95,6 +95,14 @@ namespace Couchbase.Configuration
 			get { return (TimeSpan)base["retryTimeout"]; }
 			set { base["retryTimeout"] = value; }
 		}
+
+		[ConfigurationProperty("observeTimeout", IsRequired = false, DefaultValue = "00:01:00"), PositiveTimeSpanValidator]
+		[TypeConverter(typeof(TimeSpanConverter))]
+		public TimeSpan ObserveTimeout
+		{
+			get { return (TimeSpan)base["observeTimeout"]; }
+			set { base["observeTimeout"] = value; }
+		}
 	}
 }
 

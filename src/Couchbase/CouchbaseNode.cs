@@ -9,6 +9,10 @@ using Hammock;
 using Newtonsoft.Json;
 using Hammock.Retries;
 using Couchbase.Configuration;
+using Couchbase.Results;
+using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Protocol;
+using System.IO;
 
 namespace Couchbase
 {
@@ -27,6 +31,50 @@ namespace Couchbase
 		}
 
 		internal IHttpClient Client { get; private set; }
+
+		public IObserveOperationResult ExecuteObserveOperation(IObserveOperation op)
+		{
+			var readResult = new ObserveOperationResult();
+			var result = this.Acquire();
+			if (result.Success && result.HasValue)
+			{
+				try
+				{
+					var socket = result.Value;
+					var b = op.GetBuffer();
+
+					socket.Write(b);
+
+					readResult = op.ReadResponse(socket) as ObserveOperationResult;
+					if (readResult.Success)
+					{
+						readResult.Pass();
+					}
+					else
+					{
+						readResult.InnerResult = result;
+						readResult.Fail("Failed to read response, see inner result for details");
+					}
+					return readResult;
+				}
+				catch (IOException e)
+				{
+					log.Error(e);
+
+					readResult.Fail("Exception reading response", e);
+					return readResult;
+				}
+				finally
+				{
+					((IDisposable)result.Value).Dispose();
+				}
+			}
+			else
+			{
+				readResult.Fail("Failed to obtain socket from pool");
+				return readResult;
+			}
+		}
 	}
 }
 

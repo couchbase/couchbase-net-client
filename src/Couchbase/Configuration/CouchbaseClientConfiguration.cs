@@ -124,6 +124,7 @@ namespace Couchbase.Configuration
                 
 		public int RetryCount { get; set; }
 		public TimeSpan RetryTimeout { get; set; }
+		public TimeSpan ObserveTimeout { get; set; }
 
 		#region [ interface                     ]
 
@@ -194,6 +195,7 @@ namespace Couchbase.Configuration
 		private Uri[] urls;
 		private TimeSpan retryTimeout;
 		private int retryCount;
+		private TimeSpan observeTimeout;
 		private ISocketPoolConfiguration spc;
 		private IHeartbeatMonitorConfiguration hbm;
 
@@ -207,6 +209,7 @@ namespace Couchbase.Configuration
 
 			this.retryCount = original.RetryCount;
 			this.retryTimeout = original.RetryTimeout;
+			this.observeTimeout = original.ObserveTimeout;
 
 			this.spc = new SPC(original.SocketPool);
 			this.hbm = new HBM(original.HeartbeatMonitor);
@@ -263,6 +266,11 @@ namespace Couchbase.Configuration
 		IPerformanceMonitor ICouchbaseClientConfiguration.CreatePerformanceMonitor()
 		{
 			return this.original.CreatePerformanceMonitor();
+		}
+
+		TimeSpan ICouchbaseClientConfiguration.ObserveTimeout
+		{
+			get { return this.observeTimeout; }
 		}
 
 		TimeSpan ICouchbaseClientConfiguration.RetryTimeout

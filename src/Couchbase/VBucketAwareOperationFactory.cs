@@ -10,6 +10,7 @@ using Enyim.Caching;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Helpers;
 using Enyim.Caching.Memcached.Results.Extensions;
+using Couchbase.Operations;
 
 namespace Couchbase
 {
@@ -88,6 +89,11 @@ namespace Couchbase
 		IGetAndTouchOperation ICouchbaseOperationFactory.GetAndTouch(string key, uint newExpiration)
 		{
 			return new GetAndTouchOperation(this.locator, key, newExpiration);
+		}
+
+		IObserveOperation ICouchbaseOperationFactory.Observe(string key, int vbucket, ulong cas)
+		{
+			return new ObserveOperation(key, vbucket, cas);
 		}
 
 		#region [ Custom operations            ]

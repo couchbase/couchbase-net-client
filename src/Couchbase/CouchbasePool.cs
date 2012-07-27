@@ -186,7 +186,8 @@ namespace Couchbase
 			ValidateVBucketMap(vbsm, vbsm.serverList.Length);
 
 			// create vbuckets from the int[][] arrays
-			var buckets = vbsm.vBucketMap.Select(a => new VBucket(a[0], a.Skip(1).ToArray())).ToArray();
+			int i = 0;
+			var buckets = vbsm.vBucketMap.Select(a => new VBucket(a[0], a.Skip(1).ToArray(), i++)).ToArray();
 
 			var locator = new VBucketNodeLocator(vbsm.hashAlgorithm, buckets);
 
@@ -473,6 +474,18 @@ namespace Couchbase
 		IMemcachedNode IServerPool.Locate(string key)
 		{
 			return this.state.Locator.Locate(key);
+		}
+
+		VBucket ICouchbaseServerPool.GetVBucket(string key)
+		{
+			var locator = state.Locator as VBucketNodeLocator;
+
+			if (locator == null)
+			{
+				throw new NotImplementedException("GetVBucket is implemented only for VBucketNodeLocator implementation of IMemcachedNodeLocator");
+			}
+			return locator.GetVBucket(key);
+
 		}
 
 		IOperationFactory IServerPool.OperationFactory

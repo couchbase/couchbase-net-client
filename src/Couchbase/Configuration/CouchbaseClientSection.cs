@@ -199,6 +199,11 @@ namespace Couchbase.Configuration
 			get { return this.Servers.RetryTimeout; }
 		}
 
+		TimeSpan ICouchbaseClientConfiguration.ObserveTimeout
+		{
+			get { return this.Servers.ObserveTimeout; }
+		}
+
 		#endregion
 	}
 }

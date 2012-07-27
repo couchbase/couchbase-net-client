@@ -65,6 +65,7 @@ namespace Couchbase.Configuration
         IHttpClient CreateHttpClient(Uri baseUri);
 
 		TimeSpan RetryTimeout { get; }
+		TimeSpan ObserveTimeout { get; }
 		int RetryCount { get; }
 	}
 }

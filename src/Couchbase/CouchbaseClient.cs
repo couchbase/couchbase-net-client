@@ -10,6 +10,11 @@ using KVP_SU = System.Collections.Generic.KeyValuePair<string, ulong>;
 using Enyim.Caching.Memcached.Results.Factories;
 using Enyim.Caching.Memcached.Results.Extensions;
 using Enyim.Caching.Memcached.Results;
+using Couchbase.Operations;
+using Couchbase.Results;
+using Enyim.Caching.Memcached.Protocol.Binary;
+using System.Threading.Tasks;
+using Couchbase.Settings;
 
 namespace Couchbase
 {
@@ -24,6 +29,8 @@ namespace Couchbase
 		private INameTransformer documentNameTransformer;
 
 		private ICouchbaseServerPool poolInstance;
+
+		private TimeSpan observeTimeout;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the default configuration and bucket.
@@ -75,6 +82,7 @@ namespace Couchbase
 		{
 			this.documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
 			this.poolInstance = (ICouchbaseServerPool)this.Pool;
+			observeTimeout = configuration.ObserveTimeout;
 
 			StoreOperationResultFactory = new DefaultStoreOperationResultFactory();
 			GetOperationResultFactory = new DefaultGetOperationResultFactory();
@@ -145,9 +153,9 @@ namespace Couchbase
 				else
 				{
 					result.Value = defaultValue;
-					result.Fail("Mutate operation failed, see InnerException or StatusCode for details.");					
+					result.Fail("Mutate operation failed, see InnerException or StatusCode for details.");
 				}
-					
+
 				return result;
 			}
 
@@ -338,7 +346,7 @@ namespace Couchbase
 
 			return this.ExecuteTryGet(key, newExpiration, out tmp);
 		}
-		
+
 		public IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration)
 		{
 			object tmp;
@@ -429,19 +437,128 @@ namespace Couchbase
 				}
 				else
 				{
-					cas = 0; 
+					cas = 0;
 					value = null;
 					result.InnerResult = commandResult;
 					result.Fail("Failed to execute Get and Touch operation, see InnerException or StatusCode for details");
 				}
 			}
-			
+
 			value = null;
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
 			result.Fail("Unable to locate node");
 			return result;
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)
+		{
+			var storeResult = base.ExecuteStore(mode, key, value);
+			var observeResult = Observe(key, storeResult.Cas, persistTo, replciateTo);
+
+			if (observeResult.Success)
+			{
+				storeResult.Pass();
+			}
+			else
+			{
+				observeResult.Copy(storeResult);
+			}
+
+			return storeResult;
+		}
+
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo)
+		{
+			return ExecuteStore(mode, key, value, persistTo, ReplicateTo.Zero);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo)
+		{
+			return ExecuteStore(mode, key, value, PersistTo.Zero, replicateTo);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo)
+		{
+			return ExecuteStore(mode, key, value, expiresAt, persistTo, ReplicateTo.Zero);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, ReplicateTo replicateTo)
+		{
+			return ExecuteStore(mode, key, value, expiresAt, PersistTo.Zero, replicateTo);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo, ReplicateTo replicateTo)
+		{
+			var storeResult = base.ExecuteStore(mode, key, value, expiresAt);
+			var observeResult = Observe(key, storeResult.Cas, persistTo, replicateTo);
+
+			if (observeResult.Success)
+			{
+				storeResult.Pass();
+			}
+			else
+			{
+				observeResult.Copy(storeResult);
+			}
+
+			return storeResult;
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, ReplicateTo replicateTo)
+		{
+			return ExecuteStore(mode, key, value, validFor, PersistTo.Zero, replicateTo);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo)
+		{
+			return ExecuteStore(mode, key, value, validFor, persistTo, ReplicateTo.Zero);
+		}
+
+		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replciateTo)
+		{
+			var storeResult = base.ExecuteStore(mode, key, value, validFor);
+			var observeResult = Observe(key, storeResult.Cas, persistTo, replciateTo);
+
+			if (observeResult.Success)
+			{
+				storeResult.Pass();
+			}
+			else
+			{
+				observeResult.Copy(storeResult);
+			}
+
+			return storeResult;
+		}
+
+		public IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo)
+		{
+			var hashedKey = this.KeyTransformer.Transform(key);
+			var vbucket = this.poolInstance.GetVBucket(key);
+			var nodes = this.poolInstance.GetWorkingNodes().ToArray();
+			var command = this.poolInstance.OperationFactory.Observe(hashedKey, vbucket.Index, cas);
+			var runner = new ObserveHandler(new ObserveSettings
+			{
+				PersistTo = persistTo,
+				ReplicateTo = replicateTo,
+				Key = hashedKey,
+				Cas = cas,
+				Timeout = observeTimeout
+			});
+
+			//Master only persistence
+			if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.One)
+			{
+				return runner.HandleMasterPersistence(poolInstance);
+			}
+			else
+			{
+				return runner.HandleMasterPersistenceWithReplication(poolInstance);
+			}
+
 		}
 
 		public SyncResult Sync(string key, ulong cas, SyncMode mode)
@@ -554,7 +671,7 @@ namespace Couchbase
 		/// <param name="designName">The name of the design document.</param>
 		/// <param name="viewName">The name of the view.</param>
 		/// <returns></returns>
-		public IView<IViewRow> GetView(string designName, string viewName) 
+		public IView<IViewRow> GetView(string designName, string viewName)
 		{
 			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseView(this, this, designName, viewName);
@@ -571,13 +688,15 @@ namespace Couchbase
 		///		simply attempts to deserialize the view's value into an instance of T by matching properties.
 		/// </param>
 		/// <returns></returns>
-		public IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false) {
+		public IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false)
+		{
 
 			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseView<T>(this, this, designName, viewName, shouldLookupDocById);
 		}
 
-		public IDictionary<string, object> Get(IView view) {
+		public IDictionary<string, object> Get(IView view)
+		{
 			var keys = view.Select(row => row.ItemId);
 
 			return this.Get(keys);
@@ -594,7 +713,8 @@ namespace Couchbase
 
 		#region [ IHttpClientLocator           ]
 
-		IHttpClient IHttpClientLocator.Locate(string designDocument) {
+		IHttpClient IHttpClientLocator.Locate(string designDocument)
+		{
 			// find the node hosting this design document
 			var node = this.Pool.Locate(designDocument) as CouchbaseNode;
 
@@ -609,20 +729,22 @@ namespace Couchbase
 		#region [ parameter helpers            ]
 
 		private static T ThrowIfNull<T>(T input, string parameterName)
-			where T : class {
+			where T : class
+		{
 			if (input == null) throw new ArgumentNullException(parameterName);
 
 			return input;
 		}
 
-		private static T If<T>(T input, Action<T> check) {
+		private static T If<T>(T input, Action<T> check)
+		{
 			check(input);
 
 			return input;
 		}
 
-		#endregion        
-	}	
+		#endregion
+	}
 }
 
 #region [ License information          ]

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached;
+using Couchbase.Operations;
 
 namespace Couchbase
 {
@@ -11,6 +13,18 @@ namespace Couchbase
 		IGetOperationResult ExecuteGet(string key, DateTime newExpiration);
 		IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration);
 		IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value);
+
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replicateTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo);
+
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo, ReplicateTo replicateTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, ReplicateTo replicateTo);
+
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replicateTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo);
+		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, ReplicateTo replicateTo);
 
 	}
 }

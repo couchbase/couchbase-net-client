@@ -21,10 +21,12 @@ namespace Couchbase.Tests
 		public void SetUp()
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
+			config.Urls.Add(new Uri("http://127.0.0.1:8091/pools"));
 			config.DesignDocumentNameTransformer = new ProductionModeNameTransformer();
 			config.HttpClientFactory = new HammockHttpClientFactory();
 			config.Bucket = "default";
+			config.SocketPool.ConnectionTimeout = TimeSpan.FromMilliseconds(20000);
+			config.ObserveTimeout = TimeSpan.FromSeconds(5);
 
 			_Client = new CouchbaseClient(config);
 		}

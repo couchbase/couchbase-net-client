@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Operations;
 
 namespace Couchbase
 {
@@ -20,6 +21,11 @@ namespace Couchbase
 		ISyncOperation ICouchbaseOperationFactory.Sync(SyncMode mode, IList<KeyValuePair<string, ulong>> keys, int replicationCount)
 		{
 			throw new NotSupportedException("Sync is not supported on memcached buckets.");
+		}
+
+		IObserveOperation ICouchbaseOperationFactory.Observe(string key, int vbucket, ulong cas)
+		{
+			return new ObserveOperation(key, vbucket, cas);
 		}
 	}
 }

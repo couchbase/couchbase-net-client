@@ -10,6 +10,7 @@ namespace Couchbase
 	{
 		ITouchOperation Touch(string key, uint newExpiration);
 		IGetAndTouchOperation GetAndTouch(string key, uint newExpiration);
+		IObserveOperation Observe(string key, int vbucket, ulong cas);
 		ISyncOperation Sync(SyncMode mode, IList<KeyValuePair<string, ulong>> keys, int replicationCount);
 	}
 }

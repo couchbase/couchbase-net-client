@@ -8,4 +8,5 @@ namespace Couchbase
 {
 	public interface ITouchOperation : ISingleItemOperation { }
 	public interface IGetAndTouchOperation : IGetOperation { }
+	public interface IObserveOperation : IOperation {}
 }

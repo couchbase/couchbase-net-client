@@ -103,6 +103,9 @@
     <Compile Include="HeartbeatSettings.cs" />
     <Compile Include="ICouchbaseClient.cs" />
     <Compile Include="ICouchbaseResultsClient.cs" />
+    <Compile Include="ObservedNode.cs" />
+    <Compile Include="ObserveHandler.cs" />
+    <Compile Include="Operations\Constants\ObserveOperationConstants.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />
@@ -112,10 +115,20 @@
     <Compile Include="MessageStreamListener.cs" />
     <Compile Include="CouchbaseClient.cs" />
     <Compile Include="CouchbasePool.cs" />
+    <Compile Include="Operations\ObserveKeyState.cs" />
+    <Compile Include="Operations\ObserveOperation.cs" />
+    <Compile Include="Operations\PersistTo.cs" />
+    <Compile Include="Operations\ReplicateTo.cs" />
     <Compile Include="Operations\SyncOperation.cs" />
     <Compile Include="PagedView.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Operations\TouchOperation.cs" />
+    <Compile Include="Protocol\CouchbaseOpCode.cs" />
+    <Compile Include="Protocol\ObserveResponse.cs" />
+    <Compile Include="Protocol\ObserveRequest.cs" />
+    <Compile Include="Results\IObserveOperationResult.cs" />
+    <Compile Include="Results\ObserveOperationResult.cs" />
+    <Compile Include="Settings\ObserveSettings.cs" />
     <Compile Include="VBucketAwareOperationFactory.cs" />
     <Compile Include="WebClientWithTimeout.cs">
       <SubType>Component</SubType>
