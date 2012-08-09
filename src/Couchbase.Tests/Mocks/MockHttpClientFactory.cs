@@ -9,7 +9,7 @@ namespace Couchbase.Tests.Mocks
 	{
 		public IHttpClient Client { get; set; }
 
-		public IHttpClient Create(Uri baseUri)
+		public IHttpClient Create(Uri baseUri, string username, string password)
 		{
 			return (Client = new MockHttpClient() { BaseUri = baseUri });	
 		}

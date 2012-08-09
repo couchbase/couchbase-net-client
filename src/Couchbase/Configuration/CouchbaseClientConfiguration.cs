@@ -45,7 +45,7 @@ namespace Couchbase.Configuration
 
         IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) 
         {
-            return this.HttpClientFactory.Create(baseUri);
+            return this.HttpClientFactory.Create(baseUri, Bucket, BucketPassword);
         }
         #endregion
 

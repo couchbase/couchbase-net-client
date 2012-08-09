@@ -129,7 +129,7 @@ namespace Couchbase.Configuration
 
             Debug.Assert(this.clientFactory != null);
 
-            return this.clientFactory.Create(baseUri);
+            return this.clientFactory.Create(baseUri, Servers.Bucket, Servers.BucketPassword);
         }
 
         #endregion

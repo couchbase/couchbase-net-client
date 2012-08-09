@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using Hammock;
 using Hammock.Retries;
+using System.Net;
 
 namespace Couchbase
 {
@@ -17,7 +18,7 @@ namespace Couchbase
 
 		private RestClient client;
 
-		public HammockHttpClient(Uri baseUri)
+		public HammockHttpClient(Uri baseUri, string username, string password)
 		{
 			this.client = new RestClient { Authority = baseUri.ToString() };
 
@@ -26,6 +27,13 @@ namespace Couchbase
 
 			client.ServicePoint = System.Net.ServicePointManager.FindServicePoint(baseUri);
 			client.ServicePoint.SetTcpKeepAlive(true, 300, 30);
+
+			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+			{
+				var credentials = username + ":" + password;
+				var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+				client.AddHeader("Authorization", "Basic " + base64Credentials);
+			}
 
 			client.RetryPolicy = new RetryPolicy
 			{
@@ -142,9 +150,9 @@ namespace Couchbase
 	{
 		public static readonly IHttpClientFactory Instance = new HammockHttpClientFactory();
 
-		IHttpClient IHttpClientFactory.Create(Uri baseUri)
+		IHttpClient IHttpClientFactory.Create(Uri baseUri, string username, string password)
 		{
-			return new HammockHttpClient(baseUri);
+			return new HammockHttpClient(baseUri, username, password);
 		}
 	}
 }
