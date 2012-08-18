@@ -55,10 +55,20 @@ namespace Couchbase.Configuration
 		public string Bucket { get; set; }
 
 		/// <summary>
-		/// Gets or sets the pasword used to connect to the bucket.
+		/// Gets or sets the password used to connect to the bucket.
 		/// </summary>
 		/// <remarks> If null, the bucket name will be used. Set to String.Empty to use an empty password.</remarks>
 		public string BucketPassword { get; set; }
+
+		/// <summary>
+		/// Gets or sets the admin username
+		/// </summary>
+		public string Username { get; set; }
+
+		/// <summary>
+		/// Gets or sets the admin password
+		/// </summary>
+		public string Password { get; set; }
 
 		/// <summary>
 		/// Gets a list of <see cref="T:IPEndPoint"/> each representing a Memcached server in the pool.
@@ -192,6 +202,8 @@ namespace Couchbase.Configuration
 	{
 		private string bucket;
 		private string bucketPassword;
+		private string username;
+		private string password;
 		private Uri[] urls;
 		private TimeSpan retryTimeout;
 		private int retryCount;
@@ -205,6 +217,8 @@ namespace Couchbase.Configuration
 		{
 			this.bucket = original.Bucket;
 			this.bucketPassword = original.BucketPassword;
+			this.username = original.Username;
+			this.password = original.Password;
 			this.urls = original.Urls.ToArray();
 
 			this.retryCount = original.RetryCount;
@@ -231,6 +245,16 @@ namespace Couchbase.Configuration
 		string ICouchbaseClientConfiguration.BucketPassword
 		{
 			get { return this.bucketPassword; }
+		}
+
+		string ICouchbaseClientConfiguration.Username
+		{
+			get { return this.username; }
+		}
+
+		string ICouchbaseClientConfiguration.Password
+		{
+			get { return this.password; }
 		}
 
 		IList<Uri> ICouchbaseClientConfiguration.Urls

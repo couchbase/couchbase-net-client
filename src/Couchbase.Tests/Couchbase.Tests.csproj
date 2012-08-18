@@ -60,6 +60,11 @@
     <Compile Include="CouchbaseClientViewTestsBase.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CouchbaseClientConfigTests.cs" />
+    <Compile Include="CouchbaseClusterBucketAdminTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CouchbaseClusterTestsBase.cs" />
     <Compile Include="HeartbeatConfigTests.cs" />
     <Compile Include="CouchbaseClientCasTests.cs" />
     <Compile Include="CouchbaseClientConcatTests.cs" />
@@ -72,7 +77,10 @@
     <Compile Include="Mocks\MockHttpClientFactory.cs" />
     <Compile Include="Mocks\MockHttpRequest.cs" />
     <Compile Include="Mocks\MockHttpResponse.cs" />
+    <Compile Include="HelperTests\HttpHelperTests.cs" />
+    <Compile Include="HelperTests\JsonHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="HelperTests\UriHelperTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\CityDocs.json">
@@ -81,6 +89,7 @@
     <None Include="Data\CityViews.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="App.config" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>

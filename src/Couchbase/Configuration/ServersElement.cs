@@ -40,21 +40,19 @@ namespace Couchbase.Configuration
 		}
 
 		/// <summary>
-		/// (Obsolete) Gets or sets the user name used to connect to a secured cluster
+		/// Gets or sets the username used to connect to a secured cluster
 		/// </summary>
-		[ConfigurationProperty("userName", IsRequired = false)]
-		[Obsolete("Please use the bucket name&password for specifying credentials. This property has no use now, and will be completely removed in the next version.", true)]
-		public string UserName
+		[ConfigurationProperty("username", IsRequired = false)]
+		public string Username
 		{
-			get { return (string)base["userName"]; }
-			set { base["userName"] = value; }
+			get { return (string)base["username"]; }
+			set { base["username"] = value; }
 		}
 
 		/// <summary>
-		/// (Obsolete) Gets or sets the password used to connect to a secured cluster
+		/// Gets or sets the password used to connect to a secured cluster
 		/// </summary>
 		[ConfigurationProperty("password", IsRequired = false)]
-		[Obsolete("Please use the bucket name&password for specifying credentials. This property has no use now, and will be completely removed in the next version.", true)]
 		public string Password
 		{
 			get { return (string)base["password"]; }

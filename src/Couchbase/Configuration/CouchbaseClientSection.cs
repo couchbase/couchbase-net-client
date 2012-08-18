@@ -189,6 +189,16 @@ namespace Couchbase.Configuration
 			get { return this.Servers.BucketPassword; }
 		}
 
+		string ICouchbaseClientConfiguration.Username
+		{
+			get { return this.Servers.Username; }
+		}
+
+		string ICouchbaseClientConfiguration.Password
+		{
+			get { return this.Servers.Password; }
+		}
+
 		int ICouchbaseClientConfiguration.RetryCount
 		{
 			get { return this.Servers.RetryCount; }
