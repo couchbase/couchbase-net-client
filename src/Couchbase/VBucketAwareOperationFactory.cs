@@ -127,7 +127,7 @@ namespace Couchbase
 
 				if (!GuessResponseState(response, out this.state)) 
 				{
-					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					var message = ResultHelper.ProcessResponseData(response.Data, "Failed to process response");
 					return result.Fail(message);
 				}
 
@@ -173,7 +173,7 @@ namespace Couchbase
 
 				if (!GuessResponseState(response, out this.state))
 				{
-					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					var message = ResultHelper.ProcessResponseData(response.Data, "Failed to process response");
 					return result.Fail(message);
 				}
 
@@ -219,7 +219,7 @@ namespace Couchbase
 
 				if (!GuessResponseState(response, out this.state))
 				{
-					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					var message = ResultHelper.ProcessResponseData(response.Data, "Failed to process response");
 					return result.Fail(message);
 				}
 				return result.Pass();
@@ -286,7 +286,7 @@ namespace Couchbase
 
 				if (!GuessResponseState(response, out this.state))
 				{
-					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					var message = ResultHelper.ProcessResponseData(response.Data, "Failed to process response");
 					return result.Fail(message);
 				}
 
@@ -333,7 +333,7 @@ namespace Couchbase
 
 				if (!GuessResponseState(response, out this.state))
 				{
-					var message = ResultHelper.ProcessResponseData("Failed to process response", response.Data);
+					var message = ResultHelper.ProcessResponseData(response.Data, "Failed to process response");
 					return result.Fail(message);
 				}
 

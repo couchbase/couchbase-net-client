@@ -49,7 +49,7 @@ namespace Couchbase.Operations
 
 			this.StatusCode = response.StatusCode;
 
-			result.PassOrFail(retval, ResultHelper.ProcessResponseData("Failed: ", response.Data));
+			result.PassOrFail(retval, ResultHelper.ProcessResponseData(response.Data, "Failed: "));
 			return result;
 		}
 
