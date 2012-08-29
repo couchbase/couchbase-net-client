@@ -100,7 +100,18 @@ namespace Couchbase.Configuration
         /// </summary>
         [ConfigurationProperty("documentNameTransformer", IsRequired = false)]
         public ProviderElement<INameTransformer> DocumentNameTransformer {
-            get { return (ProviderElement<INameTransformer>)base["documentNameTransformer"]; }
+            get
+			{
+				var provider = base["documentNameTransformer"] as ProviderElement<INameTransformer>;
+				if (provider != null && provider.Type == null)
+				{
+					return new ProviderElement<INameTransformer>()
+					{
+						Type = typeof(ProductionModeNameTransformer)
+					};
+				}
+				return (ProviderElement<INameTransformer>)base["documentNameTransformer"];
+			}
             set { base["documentNameTransformer"] = value; }
         }
 

@@ -40,7 +40,8 @@ namespace Couchbase.Configuration
 
         INameTransformer ICouchbaseClientConfiguration.CreateDesignDocumentNameTransformer() 
         {
-            return this.DesignDocumentNameTransformer;
+            return this.DesignDocumentNameTransformer ??
+				(this.DesignDocumentNameTransformer = new ProductionModeNameTransformer());
         }
 
         IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) 
