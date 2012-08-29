@@ -106,7 +106,18 @@ namespace Couchbase.Configuration
 
         [ConfigurationProperty("httpClientFactory", IsRequired = false)]
         public ProviderElement<IHttpClientFactory> HttpClientFactory {
-            get { return (ProviderElement<IHttpClientFactory>)base["httpClientFactory"]; }
+			get
+			{
+				var provider = base["httpClientFactory"] as ProviderElement<IHttpClientFactory>;
+				if (provider != null && provider.Type == null)
+				{
+					return new ProviderElement<IHttpClientFactory>()
+					{
+						Type = typeof(HammockHttpClientFactory)
+					};
+				}
+				return (ProviderElement<IHttpClientFactory>)provider;
+			}
             set { base["httpClientFactory"] = value; }
         }
 
