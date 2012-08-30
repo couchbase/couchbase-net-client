@@ -455,6 +455,7 @@ namespace Couchbase
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value);
+
 			var observeResult = Observe(key, storeResult.Cas, persistTo, replciateTo);
 
 			if (observeResult.Success)
@@ -524,11 +525,11 @@ namespace Couchbase
 
 			if (observeResult.Success)
 			{
-				storeResult.Pass();
+				observeResult.Combine(storeResult);
 			}
 			else
 			{
-				observeResult.Copy(storeResult);
+				observeResult.Combine(storeResult);
 			}
 
 			return storeResult;

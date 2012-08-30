@@ -22,6 +22,8 @@ namespace Couchbase.Tests
 		public void SetUp()
 		{
 			_Client = CouchbaseClientFactory.CreateCouchbaseClient();
+
+			log4net.Config.XmlConfigurator.Configure();
 		}
 
 		protected string GetUniqueKey(string prefix = null)

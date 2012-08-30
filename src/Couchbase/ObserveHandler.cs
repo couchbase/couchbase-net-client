@@ -10,11 +10,15 @@ using Couchbase.Results;
 using Enyim.Caching.Memcached;
 using System.Threading.Tasks;
 using Couchbase.Operations.Constants;
+using Enyim.Caching.Memcached.Results.Extensions;
+using System.Net;
 
 namespace Couchbase
 {
 	internal class ObserveHandler
 	{
+		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger("ObserveHandler");
+
 		private readonly ObserveSettings _settings;
 
 		public ObserveHandler(ObserveSettings settings)
@@ -30,31 +34,41 @@ namespace Couchbase
 			try
 			{
 				var commandConfig = setupObserveOperation(pool);
-
-				var node = commandConfig.Item2[commandConfig.Item1.Master] as CouchbaseNode;
+				var node = commandConfig.Item2[0] as CouchbaseNode;
 				IObserveOperationResult result = new ObserveOperationResult();
 
 				do
 				{
-					result.Success = retryWithTimer(result, state =>
+					var are = new AutoResetEvent(false);
+					var timer = new Timer(state =>
 					{
-						var stateInfo = state as AutoResetEvent;
 						result = node.ExecuteObserveOperation(commandConfig.Item3);
 
-						if (result.Success && result.Cas > 0 && result.Cas != _settings.Cas)
+						if (log.IsDebugEnabled) log.Debug("Node: " + node.EndPoint + ", Result: " + result.KeyState + ", Cas: " + result.Cas + ", Key: " + _settings.Key);
+
+						if (result.Success && result.Cas != _settings.Cas && result.Cas > 0)
 						{
-							result.Success = false;
-							result.Message = ObserveOperationConstants.MESSAGE_MODIFIED;
-							stateInfo.Set();
+							result.Fail(ObserveOperationConstants.MESSAGE_MODIFIED);
+							are.Set();
 						}
 						else if (result.KeyState == ObserveKeyState.FoundPersisted)
 						{
-							result.Success = true;
-							stateInfo.Set();
+							result.Pass();
+							are.Set();
 						}
-					});
 
-				} while (result.KeyState != ObserveKeyState.FoundPersisted);
+					}, are, 0, 500);
+
+					if (!are.WaitOne(_settings.Timeout))
+					{
+						timer.Change(-1, -1);
+						result.Fail(ObserveOperationConstants.MESSAGE_TIMEOUT, new TimeoutException());
+						break;
+					}
+
+					timer.Change(-1, -1);
+
+				} while (result.Message == string.Empty && result.KeyState != ObserveKeyState.FoundPersisted);
 
 				return result;
 			}
@@ -76,40 +90,13 @@ namespace Couchbase
 			}
 		}
 
-		private bool retryWithTimer(IObserveOperationResult previousResult, TimerCallback tcb)
-		{
-			var autoResetEvent = new AutoResetEvent(false);
-
-			var pollingInterval = Math.Max(previousResult.ReplicationStats, previousResult.PersistenceStats);
-			pollingInterval = pollingInterval > 0 ? pollingInterval : 400; //default to 400ms when unknown server stats
-
-			var timer = new Timer(state =>
-			{
-				tcb(state);
-
-			}, autoResetEvent, 0, pollingInterval);
-
-			if (autoResetEvent.WaitOne(_settings.Timeout))
-			{
-				timer.Change(Timeout.Infinite, Timeout.Infinite);
-				timer.Dispose();
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
-
 		private IObserveOperationResult performParallelObserve(ICouchbaseServerPool pool)
 		{
 			var commandConfig = setupObserveOperation(pool);
-
-			var i = 0;
 			var observedNodes = commandConfig.Item2.Select(n => new ObservedNode
 			{
 				Node = n as CouchbaseNode,
-				IsMaster = i++ == commandConfig.Item1.Master
+				IsMaster = n == commandConfig.Item2[0]
 			}).ToArray();
 
 			var replicaFoundCount = 0;
@@ -118,32 +105,40 @@ namespace Couchbase
 
 			IObserveOperationResult result = new ObserveOperationResult();
 
-			Func<int, int, bool, bool> isInExpectedState = (f, p, m) =>
-			{
-				var persisteTo = (int)_settings.PersistTo;
-				var replicateTo = (int)_settings.ReplicateTo;
-				
-				//check whether the key has been replicated (found) or persisted to the specified 
-				//number of replicas or it's been persisted to the specified number of nodes.
-				return (f >= replicateTo || p >= replicateTo) || (p >= persisteTo);
-							
-			};
-
 			do
 			{
-				var autoResetEvent = new AutoResetEvent(false);
-				result.Success = retryWithTimer(result, state =>
+				var are = new AutoResetEvent(false);
+				var timer = new Timer(state =>
 				{
 					result = checkNodesForKey(observedNodes, commandConfig.Item3, ref isKeyPersistedToMaster, ref replicaFoundCount, ref replicaPersistedCount);
 
-					if (isInExpectedState(replicaFoundCount, replicaPersistedCount, isKeyPersistedToMaster))
+					if (result.Message == ObserveOperationConstants.MESSAGE_MODIFIED)
 					{
-						(state as AutoResetEvent).Set();
-						result.Success = true;
+						are.Set();
+						result.Fail(ObserveOperationConstants.MESSAGE_MODIFIED);
 					}
-				});
-			
-			} while (!isInExpectedState(replicaFoundCount, replicaPersistedCount, isKeyPersistedToMaster));
+					else if (isInExpectedState(replicaFoundCount, replicaPersistedCount, isKeyPersistedToMaster))
+					{
+						are.Set();
+						result.Pass();
+					}
+
+				}, are, 0, 500);
+
+				if (!are.WaitOne(_settings.Timeout))
+				{
+					timer.Change(-1, -1);
+					result.Fail(ObserveOperationConstants.MESSAGE_TIMEOUT, new TimeoutException());
+					return result;
+				}
+
+				if (result.Success)
+				{
+					timer.Change(-1, -1);
+				}
+
+
+			} while (result.Message == string.Empty && !isInExpectedState(replicaFoundCount, replicaPersistedCount, isKeyPersistedToMaster));
 
 			return result;
 		}
@@ -155,29 +150,29 @@ namespace Couchbase
 			var tmpIsPersistedToMaster = false;
 			var result = new ObserveOperationResult();
 
-			//if node already marked as having persisted the node, don't recheck
-			//var nodesToRecheck = nodes.Where(n => !n.KeyIsPersisted).ToArray();
-
 			var lockObject = new object();
-			Parallel.ForEach(nodes, (n, s) =>
+			foreach (var node in nodes)
 			{
 				lock (lockObject)
 				{
-					var opResult = n.Node.ExecuteObserveOperation(command);
+					var opResult = node.Node.ExecuteObserveOperation(command);
+
+					if (log.IsDebugEnabled) log.Debug("Node: " + node.Node.EndPoint + ", Result: " + opResult.KeyState + ", Master: " + node.IsMaster + ", Cas: " + opResult.Cas + ", Key: " + _settings.Key);
+
 					if (!opResult.Success) //Probably an IO Exception
 					{
-						s.Stop();
+						break;
 					}
-					else if (n.IsMaster && opResult.Cas > 0 && opResult.Cas != _settings.Cas)
+					else if (node.IsMaster && opResult.Cas != _settings.Cas)
 					{
 						result.Success = false;
 						result.Message = ObserveOperationConstants.MESSAGE_MODIFIED;
-						s.Stop();
+						break;
 					}
 					else if (opResult.KeyState == ObserveKeyState.FoundPersisted)
 					{
-						n.KeyIsPersisted = true;
-						if (n.IsMaster)
+						node.KeyIsPersisted = true;
+						if (node.IsMaster)
 						{
 							tmpIsPersistedToMaster = true;
 						}
@@ -188,15 +183,35 @@ namespace Couchbase
 					}
 					else if (opResult.KeyState == ObserveKeyState.FoundNotPersisted)
 					{
-						tmpReplicaFoundCount++;
+						if (!node.IsMaster)
+						{
+							tmpReplicaFoundCount++;
+						}
 					}
 				}
-			});
+			}
 
 			isMasterInExpectedState = tmpIsPersistedToMaster;
 			replicaFoundCount = tmpReplicaFoundCount;
 			replicaPersistedCount = tmpReplicaPersistedCount;
+
+			if (log.IsDebugEnabled) log.Debug("Master Persisted: " + tmpIsPersistedToMaster + ", Replica Found: " + replicaFoundCount + ", Replica Persisted: " + tmpReplicaPersistedCount);
+
 			return result;
+		}
+
+		private bool isInExpectedState(int replicaFoundCount, int replicaPersistedCount, bool masterPersisted)
+		{
+			var persistedTo = (int)_settings.PersistTo;
+			var replicateTo = (int)_settings.ReplicateTo;
+
+			var isExpectedReplication = (replicaFoundCount >= replicateTo || replicaPersistedCount >= replicateTo);
+			var isExpectedReplicationPersistence = (replicaPersistedCount >= persistedTo-1); //don't count master
+			var isExpectedMasterPersistence = _settings.PersistTo == PersistTo.Zero || ((persistedTo >= 1) && masterPersisted);
+
+			if (log.IsDebugEnabled) log.Debug("Expected Replication: " + isExpectedReplication + ", Expected Persistence: " + isExpectedReplicationPersistence + ", Expected Master Persistence: " + isExpectedMasterPersistence);
+
+			return isExpectedReplication && isExpectedReplicationPersistence && isExpectedMasterPersistence;
 		}
 
 		private Tuple<VBucket, CouchbaseNode[], IObserveOperation> setupObserveOperation(ICouchbaseServerPool pool)
@@ -205,9 +220,11 @@ namespace Couchbase
 			var command = pool.OperationFactory.Observe(_settings.Key, vbucket.Index, _settings.Cas);
 
 			var workingNodes = pool.GetWorkingNodes().ToArray();
+
 			var masterAndReplicaNodes = new CouchbaseNode[vbucket.Replicas.Count() + 1];
 
 			masterAndReplicaNodes[0] = workingNodes[vbucket.Master] as CouchbaseNode;
+
 			for (var i = 0; i < vbucket.Replicas.Length; i++)
 			{
 				masterAndReplicaNodes[i + 1] = workingNodes[vbucket.Replicas[i]] as CouchbaseNode;

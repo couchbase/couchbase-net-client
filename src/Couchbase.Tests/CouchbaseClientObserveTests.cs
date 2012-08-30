@@ -6,123 +6,96 @@ using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Couchbase.Operations;
 using Couchbase.Operations.Constants;
+using Couchbase.Tests.Utils;
 
 namespace Couchbase.Tests
 {
 	[TestFixture]
 	public class CouchbaseClientObserveTests : CouchbaseClientTestsBase
 	{
+
 		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Succeed_When_Persist_Is_One_And_Replicate_Is_Default_Cas_Is_Same()
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Master_Only_Persistence()
 		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value, PersistTo.One);
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.One);
 			StoreAssertPass(storeResult);
 		}
 
 		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Succeed_When_Persist_Is_One_And_Cas_Is_Same()
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Master_Persistence_And_Single_Node_Replication()
 		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.One, ReplicateTo.One);
 			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas, PersistTo.One, ReplicateTo.Zero);
-			Assert.That(observeResult.Success, Is.True, observeResult.Message);
 		}
 
 		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Persist_Is_One_And_Cas_Is_Different()
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Master_Persistence_And_Mutli_Node_Replication()
 		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.One, ReplicateTo.Two);
 			StoreAssertPass(storeResult);
+		}
 
-			var observeResult = _Client.Observe(key, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Zero);
-			Assert.That(observeResult.Success, Is.Not.True);
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Persistence()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two);
+			StoreAssertPass(storeResult);
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Persistence_And_Single_Node_Replication()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two, ReplicateTo.One);
+			StoreAssertPass(storeResult);
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Single_Node_Replication()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.One);
+			StoreAssertPass(storeResult);
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Replication()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.One);
+			StoreAssertPass(storeResult);
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Cluster_Has_Too_Few_Nodes_For_Replication()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Three);
+			Assert.That(storeResult.Success, Is.False);
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_Observe_Will_Fail_With_Master_Persistence_And_Cas_Value_Has_Changed()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
+			var observeResult = _Client.Observe(kv.Item2, storeResult.Cas-1, PersistTo.One, ReplicateTo.Zero);
+			Assert.That(observeResult.Success, Is.False);
 			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
-
 		}
 
 		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Succeed_When_Persist_Is_Two_And_Cas_Is_Same()
+		public void When_Storing_A_New_Key_Observe_Will_Fail_With_Master_Persistence_And_Replication_And_Cas_Value_Has_Changed()
 		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas, PersistTo.Two, ReplicateTo.Zero);
-			Assert.That(observeResult.Success, Is.True, observeResult.Message);
-		}
-
-		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Persist_Is_Two_And_Cas_Is_Different()
-		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas - 1, PersistTo.Two, ReplicateTo.Zero);
-			Assert.That(observeResult.Success, Is.Not.True);
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
+			var observeResult = _Client.Observe(kv.Item2, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Two);
+			Assert.That(observeResult.Success, Is.False);
 			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
-
-		}
-
-		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Succeed_When_Persist_Is_Two_And_Replicate_Is_Two_And_Cas_Is_Same()
-		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas, PersistTo.Two, ReplicateTo.Two);
-			Assert.That(observeResult.Success, Is.True, observeResult.Message);
-		}
-
-		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Persist_Is_Two_And_Replicate_Is_Two_And_Cas_Is_Different()
-		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas - 1, PersistTo.Two, ReplicateTo.Two);
-			Assert.That(observeResult.Success, Is.Not.True);
-			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
-
-		}
-
-		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Succeed_When_Persist_Is_Zero_And_Replicate_Is_Two_And_Cas_Is_Same()
-		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas, PersistTo.Two, ReplicateTo.Two);
-			Assert.That(observeResult.Success, Is.True, observeResult.Message);
-		}
-
-		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Persist_Is_Zero_And_Replicate_Is_Two_And_Cas_Is_Different()
-		{
-			var key = GetUniqueKey("store");
-			var value = GetRandomString();
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
-			StoreAssertPass(storeResult);
-
-			var observeResult = _Client.Observe(key, storeResult.Cas - 1, PersistTo.Two, ReplicateTo.Two);
-			Assert.That(observeResult.Success, Is.Not.True);
-			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
-
 		}
 	}
 }
