@@ -68,6 +68,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CouchbaseClusterTestsBase.cs" />
+    <Compile Include="CouchbaseJsonExtensionTests.cs" />
     <Compile Include="DefaultCouchbaseClientConfigurationTests.cs" />
     <Compile Include="Factories\CouchbaseClientFactory.cs" />
     <Compile Include="HeartbeatConfigTests.cs" />
