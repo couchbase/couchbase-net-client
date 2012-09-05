@@ -5,6 +5,7 @@ using System.Text;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
+using Couchbase.Tests.Utils;
 
 namespace Couchbase.Tests
 {
@@ -14,14 +15,22 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Heartbeat_Is_Configured()
 		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			config.Bucket = "default";
-			config.HeartbeatMonitor = new HeartbeatMonitorElement();
-			config.HeartbeatMonitor.Enabled = true;
-			config.HeartbeatMonitor.Interval = 100;
-			config.HeartbeatMonitor.Uri = "http://localhost:8091/pools";
+			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-on");
+			var client = new CouchbaseClient(config);
 
+			string key = GetUniqueKey(), value = GetRandomString();
+			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
+			StoreAssertPass(storeResult);
+
+			var getResult = client.ExecuteGet(key);
+			GetAssertPass(getResult, value);
+
+		}
+
+		[Test]
+		public void Client_Operations_Succeed_When_Heartbeat_Is_Disabled()
+		{
+			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-off");
 			var client = new CouchbaseClient(config);
 
 			string key = GetUniqueKey(), value = GetRandomString();
@@ -36,11 +45,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Heartbeat_Is_Not_Configured()
 		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			config.Bucket = "default";
-			config.HeartbeatMonitor = new HeartbeatMonitorElement();
-
+			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("min-config");
 			var client = new CouchbaseClient(config);
 
 			string key = GetUniqueKey(), value = GetRandomString();
