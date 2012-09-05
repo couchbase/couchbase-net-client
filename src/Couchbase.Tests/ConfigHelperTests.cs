@@ -5,6 +5,7 @@ using System.Text;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
+using Couchbase.Tests.Utils;
 
 namespace Couchbase.Tests
 {
@@ -14,10 +15,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Root_Uri()
 		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			config.Bucket = "default";
-
+			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("pools-config");
 			var client = new CouchbaseClient(config);
 
 			string key = GetUniqueKey(), value = GetRandomString();
@@ -32,10 +30,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Default_Root_Uri()
 		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
-			config.Bucket = "default";
-
+			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("pools-default-config");			
 			var client = new CouchbaseClient(config);
 
 			string key = GetUniqueKey(), value = GetRandomString();

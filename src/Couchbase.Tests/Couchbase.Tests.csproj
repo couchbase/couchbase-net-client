@@ -87,6 +87,7 @@
     <Compile Include="HelperTests\JsonHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="HelperTests\UriHelperTests.cs" />
+    <Compile Include="Utils\ConfigSectionUtils.cs" />
     <Compile Include="Utils\KeyValueUtils.cs" />
   </ItemGroup>
   <ItemGroup>
