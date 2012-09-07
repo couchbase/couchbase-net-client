@@ -10,7 +10,7 @@ namespace Couchbase.Helpers
 	public static class HttpHelper
 	{
 		public const string CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
-		public const string CONTENT_TYPE_JSON = "application/x-www-form-urlencoded";
+		public const string CONTENT_TYPE_JSON = "application/json";
 
 		public static string Get(Uri uri)
 		{
@@ -32,6 +32,16 @@ namespace Couchbase.Helpers
 			return doRequest(uri, "POST", username, password, postData, contentType);
 		}
 
+		public static string Put(Uri uri, string username, string password, string postData)
+		{
+			return doRequest(uri, "PUT", username, password, postData, null);
+		}
+
+		public static string Put(Uri uri, string username, string password, string postData, string contentType)
+		{
+			return doRequest(uri, "PUT", username, password, postData, contentType);
+		}
+
 		public static string Delete(Uri uri, string username, string password)
 		{
 			return doRequest(uri, "DELETE", username, password);
@@ -44,7 +54,7 @@ namespace Couchbase.Helpers
 			var request = WebRequest.Create(uri) as HttpWebRequest;
 			request.Method = verb.ToUpper();
 
-			if (verb == "POST")
+			if (verb == "POST" || verb == "PUT")
 			{
 				request.ContentType = contentType ?? CONTENT_TYPE_JSON;
 				request.ContentLength = postData.Length;

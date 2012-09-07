@@ -63,6 +63,13 @@ namespace Couchbase.Tests.HelperTests
 			Assert.That(output, Is.StringMatching(_output));
 		}
 
+		[Test]
+		public void When_Performing_Put_Response_Is_OK()
+		{
+			var output = HttpHelper.Put(new Uri(_url), "", "", "");
+			Assert.That(output, Is.StringMatching(_output));
+		}
+
 	}
 }
 

@@ -8,6 +8,8 @@ using System.Net;
 using System.IO;
 using System.Web.Script.Serialization;
 using Couchbase.Helpers;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Couchbase.Management
 {
@@ -100,6 +102,48 @@ namespace Couchbase.Management
 
 		#endregion
 
+		#region Design Document methods
+
+		public bool CreateDesignDocument(string bucket, string name, string document)
+		{
+			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Document name must be specified");
+
+			JObject jObj;
+			validateDesignDocument(document, out jObj);
+			var uri = getDesignDocumentUri(bucket, name);
+
+			var response = HttpHelper.Put(uri, _username, _password, document, HttpHelper.CONTENT_TYPE_JSON);
+
+			var jsonResponse = JObject.Parse(response);
+			return jsonResponse["ok"].Value<string>().Equals("true", StringComparison.CurrentCultureIgnoreCase);
+		}
+
+		public bool CreateDesignDocument(string bucket, string name, Stream source)
+		{
+			string json = null;
+			using (var reader = new StreamReader(source))
+			{
+				json = reader.ReadToEnd();
+			}
+
+			return CreateDesignDocument(bucket, name, json);
+		}
+
+		public string RetrieveDesignDocument(string bucket, string name)
+		{
+			var uri = getDesignDocumentUri(bucket, name);
+			return HttpHelper.Get(uri, _username, _password);
+		}
+
+		public bool DeleteDesignDocument(string bucket, string name)
+		{
+			var uri = getDesignDocumentUri(bucket, name);
+			var response = HttpHelper.Delete(uri, _username, _password);
+			var jsonResponse = JObject.Parse(response);
+			return jsonResponse["ok"].Value<string>().Equals("true", StringComparison.CurrentCultureIgnoreCase);
+		}
+		#endregion
+
 		#region Bootstrapping methods
 		private Uri getBucketUri(IList<Uri> uris)
 		{
@@ -132,11 +176,31 @@ namespace Couchbase.Management
 			return UriHelper.Combine(getAuthority(bootstrapUri), path);
 		}
 
+		private Uri getDesignDocumentUri(string bucket, string name)
+		{
+			var rootUri = getAuthority(new UriBuilder(_bucketUri.Scheme, _bucketUri.Host, 8092).Uri);
+			return UriHelper.Combine(rootUri, bucket, "_design/", name);
+		}
+
 		private Uri getAuthority(Uri uri)
 		{
 			return new UriBuilder(uri.Scheme, uri.Host, uri.Port).Uri;
 		}
 		#endregion
+
+		private void validateDesignDocument(string document, out JObject jObj)
+		{
+			try
+			{
+				jObj = JObject.Parse(document);
+			}
+			catch (JsonReaderException)
+			{
+				throw new ArgumentException("Document was not valid JSON");
+			}
+
+			if (jObj["views"] == null) throw new ArgumentException("Design document must contain 'views' property");
+		}
 
 	}
 }

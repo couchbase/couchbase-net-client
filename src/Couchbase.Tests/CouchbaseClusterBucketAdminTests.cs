@@ -9,6 +9,8 @@ using System.Net;
 using Couchbase.Management;
 using Enyim.Caching.Memcached;
 using System.Threading;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Couchbase.Tests
 {
@@ -208,6 +210,107 @@ namespace Couchbase.Tests
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
 			_Cluster.DeleteBucket(bucketName);
+		}
+
+		[Test]
+		public void When_Creating_Design_Document_Operation_Is_Successful()
+		{
+			var json =
+@"{
+    ""views"": {
+        ""by_name"": {
+            ""map"": ""function (doc) { if (doc.type == \""city\"") { emit(doc.name, null); } }""
+        }
+    }
+}";
+			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			Assert.That(result, Is.True);
+		}
+
+		[Test]
+		public void When_Creating_Design_Document_With_Stream_Operation_Is_Successful()
+		{
+			var stream = new FileStream("Data\\CityViews.json", FileMode.Open);
+			Assert.That(stream.CanRead, Is.True);
+			var result = _Cluster.CreateDesignDocument("default", "cities", stream);
+			Assert.That(result, Is.True);
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException))]
+		public void When_Creating_Design_Document_With_Invalid_Json_Argument_Exception_Is_Thrown()
+		{
+			_Cluster.CreateDesignDocument("default", "cities", "foo");
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "nam", MatchType = MessageMatch.Contains)]
+		public void When_Creating_Design_Document_With_Missing_Name_Argument_Exception_Is_Thrown()
+		{
+			var json = "{ \"id\" : \"foo\" }";
+			_Cluster.CreateDesignDocument("default", "", json);
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "nam", MatchType = MessageMatch.Contains)]
+		public void When_Creating_Design_Document_With_Missing_Views_Argument_Exception_Is_Thrown()
+		{
+			var json = "{ \"notviews\" : \"foo\" }";
+			_Cluster.CreateDesignDocument("default", "", json);
+		}
+
+		[Test]
+		public void When_Retrieving_Design_Document_Operation_Is_Successful()
+		{
+			var json =
+@"{
+    ""views"": {
+        ""by_name"": {
+            ""map"": ""function (doc) { if (doc.type == \""city\"") { emit(doc.name, null); } }""
+        }
+    }
+}";
+			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			Assert.That(result, Is.True);
+
+			var clusterJson = _Cluster.RetrieveDesignDocument("default", "cities");
+			Assert.That(Regex.Replace(json, @"\s", ""), Is.StringContaining(Regex.Replace(clusterJson, @"\s", "")));
+		}
+
+		[Test]
+		[ExpectedException(typeof(WebException), ExpectedMessage="404", MatchType=MessageMatch.Contains)]
+		public void When_Retrieving_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
+		{
+			var result = _Cluster.RetrieveDesignDocument("foo", "bar");
+		}
+
+		[Test]
+		public void When_Deleting_Design_Document_Operation_Is_Successful()
+		{
+			var json =
+@"{
+    ""views"": {
+        ""by_name"": {
+            ""map"": ""function (doc) { if (doc.type == \""city\"") { emit(doc.name, null); } }""
+        }
+    }
+}";
+			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			Assert.That(result, Is.True);
+
+			var clusterJson = _Cluster.RetrieveDesignDocument("default", "cities");
+			Assert.That(Regex.Replace(json, @"\s", ""), Is.StringContaining(Regex.Replace(clusterJson, @"\s", "")));
+
+			var deleteResult = _Cluster.DeleteDesignDocument("default", "cities");
+			Assert.That(deleteResult, Is.True);
+
+		}
+
+		[Test]
+		[ExpectedException(typeof(WebException), ExpectedMessage = "404", MatchType = MessageMatch.Contains)]
+		public void When_Deleting_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
+		{
+			var result = _Cluster.DeleteDesignDocument("foo", "bar");
 		}
 
 		private Bucket waitForListed(string bucketName, int ubound = 10, int miliseconds = 1000)

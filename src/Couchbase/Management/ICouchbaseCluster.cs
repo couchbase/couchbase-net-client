@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace Couchbase.Management
 {
@@ -35,6 +36,36 @@ namespace Couchbase.Management
 		/// <param name="bucket">Bucket to create</param>
 		/// <returns>True if successful</returns>
 		void DeleteBucket(string bucketName);
+
+		/// <summary>
+		/// Create a new design document on the cluster
+		/// </summary>
+		/// <param name="bucket">The name of the bucket</param>
+		/// <param name="name">The name of the design document, less the _design</param>
+		/// <param name="document">The JSON body of the document</param>
+		bool CreateDesignDocument(string bucket, string name, string document);
+
+		/// <summary>
+		/// Create a new design document on the cluster
+		/// </summary>
+		/// <param name="bucket">The name of the bucket</param>
+		/// <param name="name">The name of the design document, less the _design</param>
+		/// <param name="source">A stream that can be read and contains a JSON document</param>
+		bool CreateDesignDocument(string bucket, string name, Stream source);
+
+		/// <summary>
+		/// Retrieve an existing design document from the cluster
+		/// </summary>
+		/// <param name="bucket">The name of the bucket</param>
+		/// <param name="name">The name of the design document, less the _design</param>
+		string RetrieveDesignDocument(string bucket, string name);
+
+		/// <summary>
+		/// Delete an existing design document from the cluster
+		/// </summary>
+		/// <param name="bucket">The name of the bucket</param>
+		/// <param name="name">The name of the design document, less the _design</param>
+		bool DeleteDesignDocument(string bucket, string name);
 	}
 }
 
