@@ -7,12 +7,42 @@ namespace Couchbase.Management
 {
 	public class Bucket
 	{
+		private const int MIN_RAM_QUOTA = 100;
+
 		public string Name { get; set; }
 
-		public string BucketType { get; set; }
+		public BucketTypes BucketType { get; set; }
 
-		public string AuthType { get; set; }
+		public AuthTypes AuthType { get; set; }
 
+		public int RamQuotaMB { get; set; }
+
+		public int? ProxyPort { get; set; }
+
+		public short ReplicaNumber { get; set; }
+
+		public string Password { get; set; }
+
+		public IDictionary<string, string> ValidationErrors { get; set; }
+
+		public bool IsValid()
+		{
+			ValidationErrors = new Dictionary<string, string>();
+
+			if (string.IsNullOrEmpty(Name))
+				ValidationErrors["Name"] = "Name must be specified";
+
+			if (RamQuotaMB < MIN_RAM_QUOTA)
+				ValidationErrors["RamQuotaMB"] = "RamQuotaMB must be at least " + MIN_RAM_QUOTA;
+
+			if (AuthType == AuthTypes.None && (ProxyPort == null || !ProxyPort.HasValue))
+				ValidationErrors["ProxyPort"] = "ProxyPort is required when AuthType is 'none'";
+
+			if (AuthType == AuthTypes.Sasl && (ProxyPort != null && ProxyPort.HasValue))
+				ValidationErrors["ProxyPort"] = "ProxyPort may not be used with AuthType 'sasl'";
+
+			return ValidationErrors.Keys.Count == 0;
+		}
 	}
 }
 

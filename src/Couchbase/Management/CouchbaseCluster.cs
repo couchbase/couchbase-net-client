@@ -66,7 +66,36 @@ namespace Couchbase.Management
 		public void FlushBucket(string bucketName)
 		{
 			var flushUri = UriHelper.Combine(_bucketUri, bucketName, "controller", "doFlush");
-			var json = HttpHelper.Post(flushUri, _username, _password, "");
+			HttpHelper.Post(flushUri, _username, _password, "");
+		}
+
+		public void CreateBucket(Bucket bucket)
+		{
+			if (!bucket.IsValid())
+			{
+				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
+				throw new ArgumentException(message);
+			}
+
+			var sb = new StringBuilder();
+			sb.AppendFormat("name={0}", bucket.Name);
+			sb.AppendFormat("&ramQuotaMB={0}", bucket.RamQuotaMB);
+
+			if (bucket.AuthType == AuthTypes.None)
+				sb.AppendFormat("&proxyPort={0}", bucket.ProxyPort);
+			if (bucket.AuthType == AuthTypes.Sasl && !string.IsNullOrEmpty(bucket.Password))
+				sb.AppendFormat("&saslPassword={0}", bucket.Password);
+
+			sb.AppendFormat("&authType={0}", Enum.GetName(typeof(AuthTypes), bucket.AuthType).ToLower()); ;
+			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
+			sb.AppendFormat("&replicaNumber={0}", bucket.ReplicaNumber);
+
+			HttpHelper.Post(_bucketUri, _username, _password, sb.ToString(), HttpHelper.CONTENT_TYPE_FORM);
+		}
+
+		public void DeleteBucket(string bucketName)
+		{
+			HttpHelper.Delete(UriHelper.Combine(_bucketUri, bucketName), _username, _password);
 		}
 
 		#endregion
@@ -108,7 +137,7 @@ namespace Couchbase.Management
 			return new UriBuilder(uri.Scheme, uri.Host, uri.Port).Uri;
 		}
 		#endregion
-		
+
 	}
 }
 

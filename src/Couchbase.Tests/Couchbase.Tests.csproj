@@ -71,6 +71,7 @@
     <Compile Include="CouchbaseJsonExtensionTests.cs" />
     <Compile Include="DefaultCouchbaseClientConfigurationTests.cs" />
     <Compile Include="Factories\CouchbaseClientFactory.cs" />
+    <Compile Include="Factories\CouchbaseClusterFactory.cs" />
     <Compile Include="HeartbeatConfigTests.cs" />
     <Compile Include="CouchbaseClientCasTests.cs" />
     <Compile Include="CouchbaseClientConcatTests.cs" />

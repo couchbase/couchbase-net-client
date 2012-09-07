@@ -2,23 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using NUnit.Framework;
-using Couchbase.Configuration;
 using Couchbase.Management;
-using Couchbase.Tests.Factories;
 
-namespace Couchbase.Tests
+namespace Couchbase.Tests.Factories
 {
-	public abstract class CouchbaseClusterTestsBase
+	public static class CouchbaseClusterFactory
 	{
-		protected CouchbaseCluster _Cluster;
+		private static CouchbaseCluster _cluster;
 
-		[SetUp]
-		public void SetUp()
+		public static CouchbaseCluster CreateCouchbaseCluster()
 		{
-			_Cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
-		}
+			if (_cluster == null)
+			{
+				_cluster = new CouchbaseCluster("couchbase");
+			}
 
+			return _cluster;
+		}
 	}
 }
 

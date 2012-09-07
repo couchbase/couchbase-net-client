@@ -103,6 +103,7 @@
     <Compile Include="IHttpClientLocator.cs" />
     <Compile Include="IPagedView.cs" />
     <Compile Include="Json.cs" />
+    <Compile Include="Management\BucketEnums.cs" />
     <Compile Include="Management\ClusterConfigParser.cs" />
     <Compile Include="Management\CouchbaseCluster.cs" />
     <Compile Include="HeartbeatSettings.cs" />

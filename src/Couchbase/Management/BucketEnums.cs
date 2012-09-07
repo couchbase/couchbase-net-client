@@ -2,23 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using NUnit.Framework;
-using Couchbase.Configuration;
-using Couchbase.Management;
-using Couchbase.Tests.Factories;
 
-namespace Couchbase.Tests
+namespace Couchbase.Management
 {
-	public abstract class CouchbaseClusterTestsBase
+	public enum BucketTypes
 	{
-		protected CouchbaseCluster _Cluster;
+		Memcached,
+		Membase
+	}
 
-		[SetUp]
-		public void SetUp()
-		{
-			_Cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
-		}
-
+	public enum AuthTypes
+	{
+		None,
+		Sasl
 	}
 }
 

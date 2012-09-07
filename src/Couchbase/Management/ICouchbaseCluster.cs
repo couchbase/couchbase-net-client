@@ -9,8 +9,8 @@ namespace Couchbase.Management
 		/// </summary>
 		/// <returns>An array of Bucket instances</returns>
 		Bucket[] ListBuckets();
-
 		/// <summary>
+
 		/// List the buckets from the cluster, swallowing possible exceptions
 		/// </summary>
 		/// <returns>An array of Bucket instances</returns>
@@ -21,6 +21,20 @@ namespace Couchbase.Management
 		/// </summary>
 		/// <param name="bucketName">bucket name</param>
 		void FlushBucket(string bucketName);
+
+		/// <summary>
+		/// Create a new bucket on the server
+		/// </summary>
+		/// <param name="bucket">Bucket to create</param>
+		/// <returns>True if successful</returns>
+		void CreateBucket(Bucket bucket);
+
+		/// <summary>
+		/// Delete a bucket on the server
+		/// </summary>
+		/// <param name="bucket">Bucket to create</param>
+		/// <returns>True if successful</returns>
+		void DeleteBucket(string bucketName);
 	}
 }
 
