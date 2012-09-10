@@ -7,6 +7,8 @@ using Enyim.Caching.Memcached;
 using Couchbase.Operations;
 using Couchbase.Operations.Constants;
 using Couchbase.Tests.Utils;
+using Couchbase.Tests.Factories;
+using System.IO;
 
 namespace Couchbase.Tests
 {
@@ -96,6 +98,38 @@ namespace Couchbase.Tests
 			var observeResult = _Client.Observe(kv.Item2, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Two);
 			Assert.That(observeResult.Success, Is.False);
 			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
+		}
+
+		[Test]
+		public void When_Storing_A_New_Key_With_Master_Persistence_That_Key_Is_In_View_When_Stale_Is_False()
+		{
+			var cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
+			var docResult = cluster.CreateDesignDocument("default", "cities", new FileStream("Data\\CityViews.json", FileMode.Open));
+			Assert.That(docResult, Is.True, "Create design doc failed");
+
+			var key = "city_Waterbury_CT";
+			var value = "{ \"name\" : \"Waterbury\", \"state\" : \"CT\", \"type\" : \"city\" }";
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value, PersistTo.One);
+			Assert.That(storeResult.Success, Is.True);
+
+			var view = _Client.GetView("cities", "by_id").Key(key);
+
+
+			int i = 0;
+			foreach (var item in view)
+			{
+				i++;
+				Assert.That(item.ItemId, Is.StringMatching(key));
+				break;
+			}
+
+			Assert.That(i, Is.EqualTo(1));
+
+			var deleteResult = _Client.Remove(key);
+			Assert.That(deleteResult, Is.True);
+
+			var deleteDesignDocResult = cluster.DeleteDesignDocument("default", "cities");
+			Assert.That(deleteDesignDocResult, Is.True);
 		}
 	}
 }

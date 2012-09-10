@@ -1,5 +1,8 @@
 ﻿{
     "views": {
+		"by_id": {
+            "map": "function (doc, meta) { if (doc.type == \"city\") { emit(meta.id, null); } }"
+        },
         "by_name": {
             "map": "function (doc) { if (doc.type == \"city\") { emit(doc.name, null); } }"
         },
