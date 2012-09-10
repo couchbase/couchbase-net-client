@@ -313,6 +313,37 @@ namespace Couchbase.Tests
 			var result = _Cluster.DeleteDesignDocument("foo", "bar");
 		}
 
+		[Test]
+		public void When_Managing_Design_Document_On_Non_Default_Bucket_Operation_Is_Successful()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+			var bucket = new Bucket
+			{
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				Name = bucketName,
+				Password = "qwerty",
+				RamQuotaMB = 100
+			};
+
+			_Cluster.CreateBucket(bucket);
+			var createdBucket = waitForListed(bucket.Name);
+			Assert.That(createdBucket, Is.Not.Null);
+
+			var createResult = _Cluster.CreateDesignDocument(bucket.Name, "cities", new FileStream("Data\\CityViews.json", FileMode.Open));
+			Assert.That(createResult, Is.True);
+
+			var retrieveResult = _Cluster.RetrieveDesignDocument(bucket.Name, "cities");
+			Assert.That(retrieveResult, Is.Not.Null);
+
+			var deleteResult = _Cluster.DeleteDesignDocument(bucket.Name, "cities");
+			Assert.That(deleteResult, Is.True);
+
+			_Cluster.DeleteBucket(bucket.Name);
+			var deletedBucket = waitForListed(bucket.Name);
+			Assert.That(deletedBucket, Is.Null);
+		}
+
 		private Bucket waitForListed(string bucketName, int ubound = 10, int miliseconds = 1000)
 		{
 			//Wait 10 seconds for bucket creation
