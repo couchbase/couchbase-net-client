@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Enyim.Caching;
 namespace Couchbase
 {
-	public interface ICouchbaseClient
+	public interface ICouchbaseClient : IMemcachedClient
 	{
 		object Get(string key, DateTime newExpiration);
 		T Get<T>(string key, DateTime newExpiration);
