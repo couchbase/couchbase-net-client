@@ -1,9 +1,10 @@
 ﻿using System;
 using Enyim.Caching.Memcached;
 using System.Collections.Generic;
+using Enyim.Caching;
 namespace Couchbase
 {
-	interface ICouchbaseClient
+	public interface ICouchbaseClient
 	{
 		object Get(string key, DateTime newExpiration);
 		T Get<T>(string key, DateTime newExpiration);
