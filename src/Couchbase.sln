@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enyim.Caching.Log4NetAdapte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CouchbaseSample", "CouchbaseSample\CouchbaseSample.csproj", "{4ADBF446-1666-4728-9F72-EEBACC4E100C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enyim.Caching.NLogAdapter", "..\lib\EnyimMemcached\Enyim.Caching.NLogAdapter\Enyim.Caching.NLogAdapter.csproj", "{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,16 @@ Global
 		{4ADBF446-1666-4728-9F72-EEBACC4E100C}.Release|Mixed Platforms.Build.0 = Release|x86
 		{4ADBF446-1666-4728-9F72-EEBACC4E100C}.Release|x86.ActiveCfg = Release|x86
 		{4ADBF446-1666-4728-9F72-EEBACC4E100C}.Release|x86.Build.0 = Release|x86
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
