@@ -455,7 +455,10 @@ namespace Couchbase
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value);
-
+			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
+			{
+				return storeResult;
+			}
 			var observeResult = Observe(key, storeResult.Cas, persistTo, replciateTo);
 
 			if (observeResult.Success)
@@ -494,6 +497,12 @@ namespace Couchbase
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo, ReplicateTo replicateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value, expiresAt);
+
+			if (persistTo == PersistTo.Zero && replicateTo == ReplicateTo.Zero)
+			{
+				return storeResult;
+			}
+
 			var observeResult = Observe(key, storeResult.Cas, persistTo, replicateTo);
 
 			if (observeResult.Success)
@@ -521,6 +530,12 @@ namespace Couchbase
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value, validFor);
+
+			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
+			{
+				return storeResult;
+			}
+
 			var observeResult = Observe(key, storeResult.Cas, persistTo, replciateTo);
 
 			if (observeResult.Success)
