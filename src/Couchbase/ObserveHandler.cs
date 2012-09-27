@@ -15,6 +15,14 @@ using System.Net;
 
 namespace Couchbase
 {
+	internal class ObserveExpectationException : Exception
+	{
+		public ObserveExpectationException(string msg)
+			: base(msg)
+		{
+		}
+	}
+
 	internal class ObserveHandler
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger("ObserveHandler");
@@ -72,6 +80,10 @@ namespace Couchbase
 
 				return result;
 			}
+			catch (ObserveExpectationException ex)
+			{
+				return new ObserveOperationResult { Success = false, Message = ex.Message };
+			}
 			catch (Exception ex)
 			{
 				return new ObserveOperationResult { Success = false, Exception = ex };
@@ -83,6 +95,10 @@ namespace Couchbase
 			try
 			{
 				return performParallelObserve(pool);
+			}
+			catch (ObserveExpectationException ex)
+			{
+				return new ObserveOperationResult { Success = false, Message = ex.Message };
 			}
 			catch (Exception ex)
 			{
@@ -217,6 +233,15 @@ namespace Couchbase
 		private Tuple<VBucket, CouchbaseNode[], IObserveOperation> setupObserveOperation(ICouchbaseServerPool pool)
 		{
 			var vbucket = pool.GetVBucket(_settings.Key);
+
+			// Check to see if our persistence requirements can be satisfied
+			if (((int)_settings.ReplicateTo > vbucket.Replicas.Length + 1) ||
+				 ((int)_settings.PersistTo > vbucket.Replicas.Length + 1))
+			{
+				throw new ObserveExpectationException(
+					"Requested replication or persistence to more nodes than are currently " +
+					"available");
+			}
 			var command = pool.OperationFactory.Observe(_settings.Key, vbucket.Index, _settings.Cas);
 
 			var workingNodes = pool.GetWorkingNodes().ToArray();
