@@ -220,17 +220,20 @@ namespace Couchbase
 			var command = pool.OperationFactory.Observe(_settings.Key, vbucket.Index, _settings.Cas);
 
 			var workingNodes = pool.GetWorkingNodes().ToArray();
-
-			var masterAndReplicaNodes = new CouchbaseNode[vbucket.Replicas.Count() + 1];
-
-			masterAndReplicaNodes[0] = workingNodes[vbucket.Master] as CouchbaseNode;
+			var masterAndReplicaNodes = new List<CouchbaseNode>();
+			masterAndReplicaNodes.Add(workingNodes[vbucket.Master] as CouchbaseNode);
 
 			for (var i = 0; i < vbucket.Replicas.Length; i++)
 			{
-				masterAndReplicaNodes[i + 1] = workingNodes[vbucket.Replicas[i]] as CouchbaseNode;
+				int replicaIndex = vbucket.Replicas[i];
+				if (replicaIndex < 0)
+				{
+					continue;
+				}
+				masterAndReplicaNodes.Add(workingNodes[replicaIndex] as CouchbaseNode);
 			}
 
-			return Tuple.Create(vbucket, masterAndReplicaNodes, command);
+			return Tuple.Create(vbucket, masterAndReplicaNodes.ToArray(), command);
 		}
 	}
 }
