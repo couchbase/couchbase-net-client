@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Couchbase.Tests
 {
@@ -28,6 +29,7 @@ namespace Couchbase.Tests
 			var key = GetUniqueKey("get");
 
 			var getResult = _Client.ExecuteGet(key);
+			Assert.That(getResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound));
 			GetAssertFail(getResult);
 		}
 

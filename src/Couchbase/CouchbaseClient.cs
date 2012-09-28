@@ -120,6 +120,14 @@ namespace Couchbase
 					result.Pass();
 					return result;
 				}
+				else
+				{
+					value = null;
+					cas = 0;
+					executeResult.Combine(result);
+					return result;
+				}
+
 			}
 
 			value = null;
@@ -248,18 +256,15 @@ namespace Couchbase
 
 		private IOperationResult ExecuteWithRedirect(IMemcachedNode startNode, ISingleItemOperation op)
 		{
-			var result = new BinaryOperationResult();
-
 			var opResult = startNode.Execute(op);
-			if (opResult.Success) return result.Pass();
+			if (opResult.Success) return opResult;
 
 			var iows = op as IOperationWithState;
 
 			// different op factory, we do not know how to retry
 			if (iows == null)
 			{
-				result.InnerResult = opResult.InnerResult;
-				return result.Fail("Operation state was invalid");
+				return opResult;
 			}
 
 #if HAS_FORWARD_MAP
@@ -291,7 +296,7 @@ namespace Couchbase
 					opResult = node.Execute(op);
 					if (opResult.Success)
 					{
-						return result.Pass();
+						return opResult;
 					}
 
 					// the node accepted our request so quit
@@ -301,7 +306,7 @@ namespace Couchbase
 			}
 
 			//TODO: why would this happen?
-			return result.Fail("Failed to execute operation");
+			return opResult;
 		}
 
 		public void Touch(string key, DateTime nextExpiration)
