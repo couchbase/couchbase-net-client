@@ -16,7 +16,7 @@
 			<!--
 				Provide at least 2-3 urls from your cluster. 
 				Usually you only need to change the host, except when connecting to older versions.
-				Couchbase uses port 8091, while the NorthScale Memcached Server (1.0.3) uses 8080
+				Couchbase uses port 8091
 			-->
 			<add uri="http://192.168.2.202:8091/pools/default" />
 			<add uri="http://192.168.2.200:8091/pools/default" />

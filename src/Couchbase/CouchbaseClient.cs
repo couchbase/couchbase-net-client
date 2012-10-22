@@ -19,7 +19,7 @@ using Couchbase.Settings;
 namespace Couchbase
 {
 	/// <summary>
-	/// Client which can be used to connect to NothScale's Memcached and Couchbase servers.
+	/// Client which can be used to connect to Couchbase servers.
 	/// </summary>
 	public class CouchbaseClient : MemcachedClient, IHttpClientLocator, ICouchbaseClient, ICouchbaseResultsClient
 	{
