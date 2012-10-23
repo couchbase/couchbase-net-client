@@ -736,8 +736,10 @@ namespace Couchbase
 
 		IHttpClient IHttpClientLocator.Locate(string designDocument)
 		{
-			// find the node hosting this design document
-			var node = this.Pool.Locate(designDocument) as CouchbaseNode;
+			//pick a node at random to avoid overloading a single node with view requests
+			var nodes = this.Pool.GetWorkingNodes().ToArray();
+			var idx = new Random(Environment.TickCount).Next(nodes.Length);
+			var node = nodes[idx] as CouchbaseNode;
 
 			// return null if the node is dead
 			return (node != null && node.IsAlive)
