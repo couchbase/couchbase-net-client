@@ -65,6 +65,26 @@ namespace Couchbase.Management
 			}
 		}
 
+		public Bucket GetBucket(string bucketName)
+		{
+			var json = HttpHelper.Get(UriHelper.Combine(_bucketUri, bucketName), _username, _password);
+			return JsonHelper.Deserialize<Bucket>(json);
+		}
+
+		public bool TryGetBucket(string bucketName, out Bucket bucket)
+		{
+			try
+			{
+				bucket = GetBucket(bucketName);
+				return true;
+			}
+			catch (Exception)
+			{
+				bucket = null;
+				return false;
+			}
+		}
+
 		public void FlushBucket(string bucketName)
 		{
 			var flushUri = UriHelper.Combine(_bucketUri, bucketName, "controller", "doFlush");

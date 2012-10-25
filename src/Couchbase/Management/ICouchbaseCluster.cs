@@ -18,6 +18,21 @@ namespace Couchbase.Management
 		bool TryListBuckets(out Bucket[] buckets);
 
 		/// <summary>
+		/// Get a single bucket
+		/// </summary>
+		/// <param name="buckeName">Bucket name</param>
+		/// <returns>Instance of a Bucket</returns>
+		Bucket GetBucket(string bucketName);
+
+		/// <summary>
+		/// Get a single bucket
+		/// </summary>
+		/// <param name="buckeName">Bucket name</param>
+		/// <param name="bucket">Bucket to return</param>
+		/// <returns>True if bucket is found</returns>
+		bool TryGetBucket(string bucketName, out Bucket bucket);
+
+		/// <summary>
 		/// Flush all data from a bucket
 		/// </summary>
 		/// <param name="bucketName">bucket name</param>

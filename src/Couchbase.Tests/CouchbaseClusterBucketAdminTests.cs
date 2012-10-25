@@ -59,6 +59,80 @@ namespace Couchbase.Tests
 			Assert.That(result, Is.False);
 		}
 
+		[Test]
+		public void When_Getting_Bucket_That_Bucket_Is_Not_Null()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			}
+			);
+
+			var bucket = waitForBucket(bucketName);
+
+			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+		}
+
+		[ExpectedException(typeof(WebException))]
+		[Test]
+		public void When_Getting_Invalid_Bucket_Web_Exception_Is_Thrown()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			}
+			);
+
+			var bucket = waitForBucket(bucketName);
+
+			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+
+		}
+
+		[Test]
+		public void When_Try_Getting_Bucket_That_Bucket_Is_Not_Null()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			}
+			);
+
+			var bucket = tryWaitForBucket(bucketName);
+
+			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+		}
+
+		[Test]
+		public void When_Try_Getting_Invalid_Bucket_Web_Exception_Is_Not_Thrown()
+		{
+
+			var bucket = tryWaitForBucket("ShouldNotExist");
+			Assert.That(bucket, Is.Null);
+
+		}
+
 		[Ignore("Restful flush has been delayed")]
 		[Test]
 		public void When_Flushing_Bucket_Data_Are_Removed()
@@ -97,7 +171,7 @@ namespace Couchbase.Tests
 			}
 			);
 
-			var bucket = waitForListed(bucketName);
+			var bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Not.Null);
 
@@ -120,7 +194,7 @@ namespace Couchbase.Tests
 			}
 			);
 
-			var bucket = waitForListed(bucketName);
+			var bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Not.Null);
 
@@ -194,13 +268,13 @@ namespace Couchbase.Tests
 				RamQuotaMB = 100
 			});
 
-			var bucket = waitForListed(bucketName);
+			var bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Not.Null, "New bucket was null");
 
 			_Cluster.DeleteBucket(bucketName);
 
-			bucket = waitForListed(bucketName);
+			bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
@@ -227,7 +301,7 @@ namespace Couchbase.Tests
 				RamQuotaMB = 100
 			});
 
-			var bucket = waitForListed(bucketName);
+			var bucket = waitForListedBucket(bucketName);
 			Assert.That(bucket, Is.Not.Null, "New bucket was null");
 
 			var count = bucket.BasicStats.ItemCount;
@@ -257,7 +331,7 @@ namespace Couchbase.Tests
 			Assert.That(count, Is.EqualTo(3), "Item count was not 3");
 
 			_Cluster.DeleteBucket(bucketName);
-			bucket = waitForListed(bucketName);
+			bucket = waitForListedBucket(bucketName);
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
 
@@ -274,7 +348,7 @@ namespace Couchbase.Tests
 				RamQuotaMB = 100
 			});
 
-			var bucket = waitForListed(bucketName);
+			var bucket = waitForListedBucket(bucketName);
 			Assert.That(bucket, Is.Not.Null, "New bucket was null");
 
 			Assert.That(bucket.VBucketServerMap, Is.Not.Null);
@@ -296,7 +370,7 @@ namespace Couchbase.Tests
 
 			_Cluster.DeleteBucket(bucketName);
 
-			bucket = waitForListed(bucketName);
+			bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
@@ -417,7 +491,7 @@ namespace Couchbase.Tests
 			};
 
 			_Cluster.CreateBucket(bucket);
-			var createdBucket = waitForListed(bucket.Name);
+			var createdBucket = waitForListedBucket(bucket.Name);
 			Assert.That(createdBucket, Is.Not.Null);
 
 			var createResult = _Cluster.CreateDesignDocument(bucket.Name, "cities", new FileStream("Data\\CityViews.json", FileMode.Open));
@@ -430,19 +504,41 @@ namespace Couchbase.Tests
 			Assert.That(deleteResult, Is.True);
 
 			_Cluster.DeleteBucket(bucket.Name);
-			var deletedBucket = waitForListed(bucket.Name);
+			var deletedBucket = waitForListedBucket(bucket.Name);
 			Assert.That(deletedBucket, Is.Null);
 		}
 
 		#endregion
 
-		private Bucket waitForListed(string bucketName, int ubound = 10, int miliseconds = 1000)
+		private Bucket waitForListedBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
+		{
+			Func<string, Bucket> func = (s) => _Cluster.ListBuckets().Where(b => b.Name == s).FirstOrDefault();
+			return wait(bucketName, ubound, milliseconds, func);
+		}
+
+		private Bucket waitForBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
+		{
+			return wait(bucketName, ubound, milliseconds, _Cluster.GetBucket);
+		}
+
+		private Bucket tryWaitForBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
+		{
+			Func<string, Bucket> func = (s) =>
+			{
+				Bucket bucket = null;
+				_Cluster.TryGetBucket(s, out bucket);
+				return bucket;
+			};
+			return wait(bucketName, ubound, milliseconds, func);
+		}
+
+		private Bucket wait(string bucketName, int ubound, int milliseconds, Func<string, Bucket> getAction)
 		{
 			//Wait 10 seconds for bucket creation
 			Bucket bucket = null;
 			for (var i = 0; i < ubound; i++)
 			{
-				bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+				bucket = getAction(bucketName);
 				if (bucket != null) break;
 				Thread.Sleep(1000);
 			}
