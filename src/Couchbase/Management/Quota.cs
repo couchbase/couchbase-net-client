@@ -2,29 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Script.Serialization;
 
-namespace Couchbase.Helpers
+namespace Couchbase.Management
 {
-	public static class JsonHelper
+	public class Quota
 	{
-		private static readonly JavaScriptSerializer _serializer;
-		private static object _lockObject = new object();
+		public long RAM { get; set; }
 
-		static JsonHelper()
-		{
-			_serializer = new JavaScriptSerializer();
-		}
-
-		public static T Deserialize<T>(string json)
-		{
-			T obj = default(T);
-			lock (_lockObject)
-			{
-				obj = _serializer.Deserialize<T>(json);
-			}
-			return obj;
-		}
+		public long RawRAM { get; set; }
 	}
 }
 

@@ -2,29 +2,43 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Script.Serialization;
 
-namespace Couchbase.Helpers
+namespace Couchbase.Management
 {
-	public static class JsonHelper
+	public class Node
 	{
-		private static readonly JavaScriptSerializer _serializer;
-		private static object _lockObject = new object();
+		public int UpTime { get; set; }
 
-		static JsonHelper()
-		{
-			_serializer = new JavaScriptSerializer();
-		}
+		public long MemoryTotal { get; set; }
 
-		public static T Deserialize<T>(string json)
-		{
-			T obj = default(T);
-			lock (_lockObject)
-			{
-				obj = _serializer.Deserialize<T>(json);
-			}
-			return obj;
-		}
+		public long MemoryFree { get; set; }
+
+		public int MCDMemoryReserved { get; set; }
+
+		public int MCDMemoryAllocated { get; set; }
+
+		public string CouchApiBase { get; set; }
+
+		public string ClusterMembership { get; set; }
+
+		public string Status { get; set; }
+
+		public bool ThisNode { get; set; }
+
+		public string HostName { get; set; }
+
+		public int ClusterCompatibility { get; set; }
+
+		public float Replication { get; set; }
+
+		public string Version { get; set; }
+
+		public string OS { get; set; }
+
+		public InterestingStats InterestingStats { get; set; }
+
+		public SystemStats SystemStats { get; set; }
+
 	}
 }
 

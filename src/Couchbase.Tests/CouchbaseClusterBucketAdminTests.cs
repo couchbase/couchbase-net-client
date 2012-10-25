@@ -11,6 +11,8 @@ using Enyim.Caching.Memcached;
 using System.Threading;
 using System.IO;
 using System.Text.RegularExpressions;
+using Couchbase.Tests.Factories;
+using Couchbase.Operations;
 
 namespace Couchbase.Tests
 {
@@ -213,6 +215,94 @@ namespace Couchbase.Tests
 		}
 
 		[Test]
+		public void When_Creating_New_Bucket_Item_Counts_Are_Set_On_Basic_Stats()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			});
+
+			var bucket = waitForListed(bucketName);
+			Assert.That(bucket, Is.Not.Null, "New bucket was null");
+
+			var count = bucket.BasicStats.ItemCount;
+			Assert.That(count, Is.EqualTo(0), "Item count was not 0");
+
+			var client = new CouchbaseClient(bucketName, "");
+
+			var result = false;
+			for(var i = 0; i < 10; i++)
+			{
+				var aResult = client.ExecuteStore(StoreMode.Set, "a", "a");
+				var bResult = client.ExecuteStore(StoreMode.Set, "b", "b");
+				var cResult = client.ExecuteStore(StoreMode.Set, "c", "c");
+				result = aResult.Success & bResult.Success & cResult.Success;
+				if (result) break;
+				Thread.Sleep(2000); //wait for the bucket to be ready for writing
+			}
+			Assert.That(result, Is.True, "Store operations failed");
+
+			for (var i = 0; i < 10; i++)
+			{
+				bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+				count = bucket.BasicStats.ItemCount;
+				if (count == 3) break;
+				Thread.Sleep(2000); //wait for the bucket to compute writes into basic stats
+			}
+			Assert.That(count, Is.EqualTo(3), "Item count was not 3");
+
+			_Cluster.DeleteBucket(bucketName);
+			bucket = waitForListed(bucketName);
+			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
+		}
+
+		[Test]
+		public void When_Listing_Bucket_Object_Graph_Is_Populated()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			});
+
+			var bucket = waitForListed(bucketName);
+			Assert.That(bucket, Is.Not.Null, "New bucket was null");
+
+			Assert.That(bucket.VBucketServerMap, Is.Not.Null);
+			Assert.That(bucket.VBucketServerMap.VBucketMap, Is.Not.Null);
+
+			Assert.That(bucket.Quota, Is.Not.Null);
+			Assert.That(bucket.DDocs, Is.Not.Null);
+			Assert.That(bucket.Controllers, Is.Not.Null);
+			Assert.That(bucket.BasicStats, Is.Not.Null);
+
+			var node = bucket.Nodes.FirstOrDefault();
+			Assert.That(node, Is.Not.Null, "Node was null");
+
+			Assert.That(node.MemoryTotal, Is.GreaterThan(0));
+			Assert.That(node.MemoryFree, Is.GreaterThan(0));
+			Assert.That(node.Replication, Is.GreaterThanOrEqualTo(0));
+			Assert.That(node.OS, Is.Not.Null);
+			Assert.That(node.Version, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+
+			bucket = waitForListed(bucketName);
+
+			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
+		}
+
+		#region Design Documents
+		[Test]
 		public void When_Creating_Design_Document_Operation_Is_Successful()
 		{
 			var json =
@@ -343,6 +433,8 @@ namespace Couchbase.Tests
 			var deletedBucket = waitForListed(bucket.Name);
 			Assert.That(deletedBucket, Is.Null);
 		}
+
+		#endregion
 
 		private Bucket waitForListed(string bucketName, int ubound = 10, int miliseconds = 1000)
 		{

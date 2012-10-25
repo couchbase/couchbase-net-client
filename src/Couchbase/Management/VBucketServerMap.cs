@@ -2,29 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web.Script.Serialization;
 
-namespace Couchbase.Helpers
+namespace Couchbase.Management
 {
-	public static class JsonHelper
+	public class VBucketServerMap
 	{
-		private static readonly JavaScriptSerializer _serializer;
-		private static object _lockObject = new object();
+		public string HahAlgorithm { get; set; }
 
-		static JsonHelper()
-		{
-			_serializer = new JavaScriptSerializer();
-		}
+		public short NumReplicas { get; set; }
 
-		public static T Deserialize<T>(string json)
-		{
-			T obj = default(T);
-			lock (_lockObject)
-			{
-				obj = _serializer.Deserialize<T>(json);
-			}
-			return obj;
-		}
+		public IList<string> ServerList { get; set; }
+
+		public IList<int[]> VBucketMap { get; set; }
 	}
 }
 

@@ -19,11 +19,47 @@ namespace Couchbase.Management
 
 		public int? ProxyPort { get; set; }
 
-		public short ReplicaNumber { get; set; }
-
 		public string Password { get; set; }
 
+		public string SaslPassword { get; set; }
+
 		public IDictionary<string, string> ValidationErrors { get; set; }
+
+		public IList<Node> Nodes { get; set; }
+
+		public BasicStats BasicStats { get; set; }
+
+		public bool ReplicaIndex { get; set; }
+
+		public string Uri { get; set; }
+
+		public string StreamingUri { get; set; }
+
+		public string LocalRandomKeyUri { get; set; }
+
+		public Controllers Controllers { get; set; }
+
+		public Stats Stats { get; set; }
+
+		public DDocs DDocs { get; set; }
+
+		public string NodeLocator { get; set; }
+
+		public bool AutoCompactionSettings { get; set; }
+
+		public bool FastWarmupSettings { get; set; }
+
+		public string UUID { get; set; }
+
+		public short ReplicaNumber { get; set; }
+
+		public Quota Quota { get; set; }
+
+		public string BucketCapabilitiesVer { get; set; }
+
+		public IList<string> BucketCapabilities { get; set; }
+
+		public VBucketServerMap VBucketServerMap { get; set; }
 
 		public bool IsValid()
 		{
