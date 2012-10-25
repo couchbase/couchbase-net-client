@@ -97,7 +97,20 @@ namespace Couchbase.Management
 
 		public void DeleteBucket(string bucketName)
 		{
-			HttpHelper.Delete(UriHelper.Combine(_bucketUri, bucketName), _username, _password);
+			try
+			{
+				HttpHelper.Delete(UriHelper.Combine(_bucketUri, bucketName), _username, _password);
+			}
+			catch (WebException ex)
+			{
+				//if the server takes longer than 30 seconds to complete deletion
+				//a 500 error is thrown and results in the ProtocolError
+				//Bug filed on the server, but this will handle this condition until it's fixed
+				if (ex.Status != WebExceptionStatus.ProtocolError)
+				{
+					throw;
+				}
+			}
 		}
 
 		#endregion
