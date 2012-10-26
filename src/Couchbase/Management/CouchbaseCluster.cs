@@ -133,6 +133,17 @@ namespace Couchbase.Management
 			}
 		}
 
+		public long GetItemCount(string bucketName)
+		{
+			var bucket = GetBucket(bucketName);
+			return bucket.BasicStats.ItemCount;
+		}
+
+		public long GetItemCount()
+		{
+			return ListBuckets().First().Nodes.First().InterestingStats.Curr_Items_Tot;
+		}
+
 		#endregion
 
 		#region Design Document methods

@@ -33,6 +33,19 @@ namespace Couchbase.Management
 		bool TryGetBucket(string bucketName, out Bucket bucket);
 
 		/// <summary>
+		/// Get count of items for a given bucket
+		/// </summary>
+		/// <param name="bucketName">Bucket name</param>
+		/// <returns>Count of items</returns>
+		long GetItemCount(string bucketName);
+
+		/// <summary>
+		/// Get count of items for all buckets
+		/// </summary>
+		/// <returns>Count of items</returns>
+		long GetItemCount();
+
+		/// <summary>
 		/// Flush all data from a bucket
 		/// </summary>
 		/// <param name="bucketName">bucket name</param>

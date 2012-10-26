@@ -125,6 +125,52 @@ namespace Couchbase.Tests
 		}
 
 		[Test]
+		public void When_Getting_Bucket_Item_Count_Count_Matches_Basic_Stats()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			}
+			);
+
+			var bucket = waitForBucket(bucketName);
+			Assert.That(bucket, Is.Not.Null);
+			long count = _Cluster.GetItemCount(bucketName);
+
+			Assert.That(count, Is.EqualTo(bucket.BasicStats.ItemCount));
+
+			_Cluster.DeleteBucket(bucketName);
+		}
+
+		[Test]
+		public void When_Getting_Cluster_Item_Count_Count_Matches_Interesting_Stats()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				RamQuotaMB = 100
+			}
+			);
+
+			var bucket = waitForBucket(bucketName);
+			Assert.That(bucket, Is.Not.Null);
+			long count = _Cluster.GetItemCount();
+
+			Assert.That(count, Is.EqualTo(bucket.Nodes.FirstOrDefault().InterestingStats.Curr_Items_Tot));
+
+			_Cluster.DeleteBucket(bucketName);
+		}
+
+		[Test]
 		public void When_Try_Getting_Invalid_Bucket_Web_Exception_Is_Not_Thrown()
 		{
 
