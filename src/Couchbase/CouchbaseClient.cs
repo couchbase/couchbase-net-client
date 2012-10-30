@@ -237,8 +237,7 @@ namespace Couchbase
 
 				if (!commandResult.Success)
 				{
-					result.InnerResult = commandResult;
-					result.Fail("Store operation failed, see InnerResult or StatusCode for details");
+					commandResult.Combine(result);
 					return result;
 				}
 

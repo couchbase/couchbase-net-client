@@ -142,7 +142,6 @@ namespace Couchbase
 								: this.InitVBucket(config, authenticator);
 
 				var nodes = state.CurrentNodes;
-
 				state.Locator.Initialize(nodes);
 
 				// we need to subscribe the failed event, 
@@ -182,7 +181,7 @@ namespace Couchbase
 			if (log.IsInfoEnabled) log.Info("Has vbucket. Server count: " + (vbsm.serverList == null ? 0 : vbsm.serverList.Length));
 
 			// parse the ip addresses of the servers in the vbucket map
-			// make sure we have a propert vbucket map
+			// make sure we have a proper vbucket map
 			ValidateVBucketMap(vbsm, vbsm.serverList.Length);
 
 			// create vbuckets from the int[][] arrays
@@ -227,7 +226,7 @@ namespace Couchbase
 				var map = vbsm.vBucketMap[i];
 				if (map == null || map.Length == 0)
 					throw new InvalidOperationException("Server sent an empty vbucket definition at index " + i);
-				if (map[0] >= knownNodeCount || map[0] < 0)
+				if (map[0] >= knownNodeCount)
 					throw new InvalidOperationException(String.Format("VBucket line {0} has a master index {1} out of range of the server list ({2})", i, map[0], knownNodeCount));
 			}
 		}
