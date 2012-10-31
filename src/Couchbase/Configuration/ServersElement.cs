@@ -101,6 +101,14 @@ namespace Couchbase.Configuration
 			get { return (TimeSpan)base["observeTimeout"]; }
 			set { base["observeTimeout"] = value; }
 		}
+
+		[ConfigurationProperty("httpRequestTimeout", IsRequired = false, DefaultValue = "00:01:00"), PositiveTimeSpanValidator]
+		[TypeConverter(typeof(TimeSpanConverter))]
+		public TimeSpan HttpRequestTimeout
+		{
+			get { return (TimeSpan)base["httpRequestTimeout"]; }
+			set { base["httpRequestTimeout"] = value; }
+		}
 	}
 }
 

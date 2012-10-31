@@ -516,7 +516,7 @@ namespace Couchbase
 				HeartbeatInterval = configuration.HeartbeatMonitor.Interval
 			})
 			{
-				Timeout = (int)this.configuration.SocketPool.ConnectionTimeout.TotalMilliseconds,
+				Timeout = (int)this.configuration.HttpRequestTimeout.TotalMilliseconds,
 				DeadTimeout = (int)this.configuration.SocketPool.DeadTimeout.TotalMilliseconds,
 				RetryCount = this.configuration.RetryCount,
 				RetryTimeout = this.configuration.RetryTimeout

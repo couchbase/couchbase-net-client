@@ -16,6 +16,7 @@ namespace Couchbase.Configuration
 		private Type nodeLocator;
 		private ITranscoder transcoder;
 		private IMemcachedKeyTransformer keyTransformer;
+		private TimeSpan defaultHttpRequestTimeout = TimeSpan.FromMinutes(1);
 
         #region
         /// <summary>
@@ -137,6 +138,18 @@ namespace Couchbase.Configuration
 		public TimeSpan RetryTimeout { get; set; }
 		public TimeSpan ObserveTimeout { get; set; }
 
+		public TimeSpan HttpRequestTimeout
+		{
+			get { return defaultHttpRequestTimeout; }
+			set
+			{
+				if (value < TimeSpan.Zero)
+					throw new ArgumentOutOfRangeException("HTTPRequestTimeout must be a positive TimeSpan");
+
+				defaultHttpRequestTimeout = value;
+			}
+		}
+
 		#region [ interface                     ]
 
 		IList<Uri> ICouchbaseClientConfiguration.Urls
@@ -209,6 +222,7 @@ namespace Couchbase.Configuration
 		private TimeSpan retryTimeout;
 		private int retryCount;
 		private TimeSpan observeTimeout;
+		private TimeSpan httpRequestTimeout;
 		private ISocketPoolConfiguration spc;
 		private IHeartbeatMonitorConfiguration hbm;
 
@@ -225,6 +239,7 @@ namespace Couchbase.Configuration
 			this.retryCount = original.RetryCount;
 			this.retryTimeout = original.RetryTimeout;
 			this.observeTimeout = original.ObserveTimeout;
+			this.httpRequestTimeout = original.HttpRequestTimeout;
 
 			this.spc = new SPC(original.SocketPool);
 			this.hbm = new HBM(original.HeartbeatMonitor);
@@ -296,6 +311,11 @@ namespace Couchbase.Configuration
 		TimeSpan ICouchbaseClientConfiguration.ObserveTimeout
 		{
 			get { return this.observeTimeout; }
+		}
+
+		TimeSpan ICouchbaseClientConfiguration.HttpRequestTimeout
+		{
+			get { return this.httpRequestTimeout; }
 		}
 
 		TimeSpan ICouchbaseClientConfiguration.RetryTimeout

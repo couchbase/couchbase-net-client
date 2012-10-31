@@ -77,6 +77,11 @@ namespace Couchbase.Configuration
 		TimeSpan RetryTimeout { get; }
 		TimeSpan ObserveTimeout { get; }
 		int RetryCount { get; }
+
+		/// <summary>
+		/// Timeout used for timing out HTTP requests to RESTful API calls
+		/// </summary>
+		TimeSpan HttpRequestTimeout { get; }
 	}
 }
 

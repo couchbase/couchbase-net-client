@@ -236,6 +236,11 @@ namespace Couchbase.Configuration
 			get { return this.Servers.ObserveTimeout; }
 		}
 
+		TimeSpan ICouchbaseClientConfiguration.HttpRequestTimeout
+		{
+			get { return this.Servers.HttpRequestTimeout; }
+		}
+
 		#endregion
 	}
 }
