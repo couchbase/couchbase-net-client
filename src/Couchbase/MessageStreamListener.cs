@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Couchbase.Configuration;
 
 namespace Couchbase
 {
@@ -90,7 +91,7 @@ namespace Couchbase
 			catch { }
 		}
 
-		protected event Action<string> MessageReceived;
+		protected event Action<string, MessageStreamListener> MessageReceived;
 		protected bool IsStarted { get; private set; }
 		public int RetryCount { get; set; }
 		public TimeSpan RetryTimeout { get; set; }
@@ -150,17 +151,37 @@ namespace Couchbase
 			if (log.IsDebugEnabled) log.Debug("Stopped.");
 		}
 
-		public void Subscribe(Action<string> callback)
+		public void Subscribe(Action<string, MessageStreamListener> callback)
 		{
 			if (this.hasMessage)
-				callback(this.lastMessage);
+				callback(this.lastMessage, this);
 
 			this.MessageReceived += callback;
 		}
 
-		public void Unsubscribe(Action<string> callback)
+		public void Unsubscribe(Action<string, MessageStreamListener> callback)
 		{
 			this.MessageReceived -= callback;
+		}
+
+		/// <summary>
+		/// When cluster config changes, update the static config
+		/// list of bootstrap URIs with known working nodes from cluster config
+		/// </summary>
+		public void UpdateNodes(ClusterConfig config)
+		{
+			var currentUri = this.urls[this.urlIndex]; //last known good Uri
+			var serverConfigUris = config.nodes.Where(n => n.Status == "healthy") //healthy nodes from config
+									  .Select(n => new UriBuilder(
+													currentUri.Scheme, n.HostName,
+													currentUri.Port, currentUri.PathAndQuery).Uri).ToList();
+
+			serverConfigUris.ForEach(u => statusPool[u] = true);
+			var newConfigUris = serverConfigUris.Union(this.urls).ToArray(); //allow any client supplied URIs to remain
+
+			Interlocked.Exchange(ref this.urls, newConfigUris);
+			Interlocked.Exchange(ref this.urlIndex, 0);
+			Interlocked.Exchange(ref this.realUrls, this.urls.Distinct().ToDictionary(u => u, u => (Uri)null));
 		}
 
 		private void Worker(object state)
@@ -349,7 +370,7 @@ namespace Couchbase
 		{
 			var mr = this.MessageReceived;
 			if (mr != null)
-				mr(message);
+				mr(message, this);
 
 			if (log.IsDebugEnabled)
 				log.Debug("Processing message: " + message);

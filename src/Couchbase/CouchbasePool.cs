@@ -113,10 +113,7 @@ namespace Couchbase
 			if (config == null)
 			{
 				if (log.IsInfoEnabled) log.Info("Config is empty, all nodes are down.");
-
-				Interlocked.Exchange(ref this.state, InternalState.Empty);
-
-				return;
+				return; //continue to use current state and wait for config update
 			}
 
 			var currentState = this.state;

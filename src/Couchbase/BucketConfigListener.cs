@@ -94,7 +94,7 @@ namespace Couchbase
 
 		private static readonly JavaScriptConverter[] KnownConverters = { ClusterNode.PoolsConfigConverterInstance };
 
-		private void HandleMessage(string message)
+		private void HandleMessage(string message, MessageStreamListener listener)
 		{
 			// everything failed
 			if (String.IsNullOrEmpty(message))
@@ -118,6 +118,7 @@ namespace Couchbase
 			{
 				lastHash = configHash;
 				this.RaiseConfigChanged(config);
+				listener.UpdateNodes(config);
 			}
 			else if (log.IsDebugEnabled)
 				log.Debug("Last message was the same as current, ignoring.");
@@ -150,7 +151,7 @@ namespace Couchbase
 		}
 
 		/// <summary>
-		/// Unsubscibes from a pooled listener, and destrpys it if no additionals subscribers are present.
+		/// Unsubscribes from a pooled listener, and destroys it if no additional subscribers are present.
 		/// </summary>
 		/// <param name="listener"></param>
 		private void ReleaseListener(MessageStreamListener listener)
@@ -176,7 +177,7 @@ namespace Couchbase
 		}
 
 		/// <summary>
-		/// Returns a MessageStreamListener instance based on this instance's configuratino (timeout, bucket name etc.)
+		/// Returns a MessageStreamListener instance based on this instance's configuration (timeout, bucket name etc.)
 		/// 
 		/// When multiple listeners are requested with the exact same parameters (usually when multiple clients are instantiated from the same configuration),
 		/// the same listener will be returned each time.
