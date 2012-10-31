@@ -15,9 +15,7 @@ namespace Couchbase.Management
 
 		public AuthTypes AuthType { get; set; }
 
-		public int RamQuotaMB { get; set; }
-
-		public int? ProxyPort { get; set; }
+		public int ProxyPort { get; set; }
 
 		public string Password { get; set; }
 
@@ -51,7 +49,7 @@ namespace Couchbase.Management
 
 		public string UUID { get; set; }
 
-		public short ReplicaNumber { get; set; }
+		public ReplicaNumbers ReplicaNumber { get; set; }
 
 		public Quota Quota { get; set; }
 
@@ -65,16 +63,28 @@ namespace Couchbase.Management
 		{
 			ValidationErrors = new Dictionary<string, string>();
 
+			if (AuthType == AuthTypes.Empty)
+				ValidationErrors["AuthType"] = "AuthType cannot be Empty";
+
+			if (BucketType == BucketTypes.Empty)
+				ValidationErrors["BucketType"] = "BucketType cannot be Empty";
+
+			if (ReplicaNumber == ReplicaNumbers.Empty)
+				ValidationErrors["ReplicaNumber"] = "ReplicaNumber cannot be Empty";
+
 			if (string.IsNullOrEmpty(Name))
 				ValidationErrors["Name"] = "Name must be specified";
 
-			if (RamQuotaMB < MIN_RAM_QUOTA)
+			if (Quota == null || Quota.RAM < MIN_RAM_QUOTA)
 				ValidationErrors["RamQuotaMB"] = "RamQuotaMB must be at least " + MIN_RAM_QUOTA;
 
-			if (AuthType == AuthTypes.None && (ProxyPort == null || !ProxyPort.HasValue))
+			if (ProxyPort < 0)
+				ValidationErrors["ProxyPort"] = "ProxyPort must be a greater than or equal to 0";
+
+			if (AuthType == AuthTypes.None && ProxyPort == 0)
 				ValidationErrors["ProxyPort"] = "ProxyPort is required when AuthType is 'none'";
 
-			if (AuthType == AuthTypes.Sasl && (ProxyPort != null && ProxyPort.HasValue))
+			if (AuthType == AuthTypes.Sasl && ProxyPort > 0)
 				ValidationErrors["ProxyPort"] = "ProxyPort may not be used with AuthType 'sasl'";
 
 			return ValidationErrors.Keys.Count == 0;

@@ -43,7 +43,7 @@ namespace Couchbase.Management
 		public CouchbaseCluster(string configSectionName) :
 			this((CouchbaseClientSection)ConfigurationManager.GetSection(configSectionName)) { }
 
-		#region ICouchbaseCluster ethods
+		#region ICouchbaseCluster Methods
 
 		public Bucket[] ListBuckets()
 		{
@@ -98,21 +98,32 @@ namespace Couchbase.Management
 				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
 				throw new ArgumentException(message);
 			}
+			var query = getCreateBucketQueryString(bucket);
+			HttpHelper.Post(_bucketUri, _username, _password, query, HttpHelper.CONTENT_TYPE_FORM);
+		}
 
-			var sb = new StringBuilder();
-			sb.AppendFormat("name={0}", bucket.Name);
-			sb.AppendFormat("&ramQuotaMB={0}", bucket.RamQuotaMB);
+		public void UpdateBucket(Bucket bucket)
+		{
+			Bucket existingBucket;
+			if (! TryGetBucket(bucket.Name, out existingBucket))
+			{
+				if (existingBucket == null)
+					throw new ApplicationException("Failed to find bucket named" + bucket);
+			}
 
-			if (bucket.AuthType == AuthTypes.None)
-				sb.AppendFormat("&proxyPort={0}", bucket.ProxyPort);
-			if (bucket.AuthType == AuthTypes.Sasl && !string.IsNullOrEmpty(bucket.Password))
-				sb.AppendFormat("&saslPassword={0}", bucket.Password);
+			existingBucket.Quota.RAM = bucket.Quota.RAM == 0 ? existingBucket.Quota.RAM : bucket.Quota.RAM;
+			existingBucket.AuthType = bucket.AuthType == AuthTypes.Empty ? existingBucket.AuthType : bucket.AuthType;
+			existingBucket.ProxyPort = bucket.ProxyPort == 0 ? existingBucket.ProxyPort : bucket.ProxyPort;
+			existingBucket.BucketType = bucket.BucketType == BucketTypes.Empty ? existingBucket.BucketType : bucket.BucketType;
+			existingBucket.ReplicaNumber = bucket.ReplicaNumber == ReplicaNumbers.Empty ? existingBucket.ReplicaNumber : bucket.ReplicaNumber;
 
-			sb.AppendFormat("&authType={0}", Enum.GetName(typeof(AuthTypes), bucket.AuthType).ToLower()); ;
-			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
-			sb.AppendFormat("&replicaNumber={0}", bucket.ReplicaNumber);
-
-			HttpHelper.Post(_bucketUri, _username, _password, sb.ToString(), HttpHelper.CONTENT_TYPE_FORM);
+			if (!existingBucket.IsValid())
+			{
+				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
+				throw new ArgumentException(message);
+			}
+			var query = getCreateBucketQueryString(existingBucket, false);
+			HttpHelper.Post(UriHelper.Combine(_bucketUri, bucket.Name), _username, _password, query, HttpHelper.CONTENT_TYPE_FORM);
 		}
 
 		public void DeleteBucket(string bucketName)
@@ -142,6 +153,24 @@ namespace Couchbase.Management
 		public long GetItemCount()
 		{
 			return ListBuckets().First().Nodes.First().InterestingStats.Curr_Items_Tot;
+		}
+
+		private string getCreateBucketQueryString(Bucket bucket, bool includeName = true)
+		{
+			var sb = new StringBuilder();
+			if (includeName) sb.AppendFormat("name={0}&", bucket.Name);
+			sb.AppendFormat("ramQuotaMB={0}", bucket.Quota.RAM);
+
+			if (bucket.AuthType == AuthTypes.None)
+				sb.AppendFormat("&proxyPort={0}", bucket.ProxyPort);
+			if (bucket.AuthType == AuthTypes.Sasl && !string.IsNullOrEmpty(bucket.Password))
+				sb.AppendFormat("&saslPassword={0}", bucket.Password);
+
+			sb.AppendFormat("&authType={0}", Enum.GetName(typeof(AuthTypes), bucket.AuthType).ToLower()); ;
+			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
+			sb.AppendFormat("&replicaNumber={0}", (short)bucket.ReplicaNumber);
+
+			return sb.ToString();
 		}
 
 		#endregion

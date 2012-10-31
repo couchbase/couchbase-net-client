@@ -7,14 +7,25 @@ namespace Couchbase.Management
 {
 	public enum BucketTypes
 	{
+		Empty, //used to disallow defaulting to known type
 		Memcached,
 		Membase
 	}
 
 	public enum AuthTypes
 	{
+		Empty, //used to disallow defaulting to known type
 		None,
 		Sasl
+	}
+
+	public enum ReplicaNumbers
+	{
+		Empty=-1,
+		Zero,
+		One,
+		Two,
+		Three
 	}
 }
 

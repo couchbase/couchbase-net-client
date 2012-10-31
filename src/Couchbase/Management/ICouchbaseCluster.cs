@@ -55,8 +55,13 @@ namespace Couchbase.Management
 		/// Create a new bucket on the server
 		/// </summary>
 		/// <param name="bucket">Bucket to create</param>
-		/// <returns>True if successful</returns>
 		void CreateBucket(Bucket bucket);
+
+		/// <summary>
+		/// Update a bucket on the server
+		/// </summary>
+		/// <param name="bucket">Bucket to create</param>
+		void UpdateBucket(Bucket bucket);
 
 		/// <summary>
 		/// Delete a bucket on the server

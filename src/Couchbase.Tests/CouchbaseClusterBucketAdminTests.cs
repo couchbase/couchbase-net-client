@@ -69,7 +69,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
@@ -91,12 +92,12 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
 			var bucket = waitForBucket(bucketName);
-
 			Assert.That(bucket, Is.Not.Null);
 
 			_Cluster.DeleteBucket(bucketName);
@@ -113,7 +114,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
@@ -134,7 +136,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
@@ -157,7 +160,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
@@ -213,13 +217,50 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
 			var bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.DeleteBucket(bucketName);
+
+		}
+
+		[Test]
+		public void When_Updating_Bucket_That_Bucket_Is_Listed()
+		{
+			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+
+			_Cluster.CreateBucket(new Bucket
+			{
+				Name = bucketName,
+				AuthType = AuthTypes.Sasl,
+				BucketType = BucketTypes.Membase,
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
+			}
+			);
+
+			var bucket = waitForListedBucket(bucketName);
+			Assert.That(bucket, Is.Not.Null);
+
+			_Cluster.UpdateBucket(new Bucket
+				{
+					Name = bucketName,
+					Quota = new Quota { RAM = 105 },
+					AuthType = AuthTypes.None,
+					ProxyPort = 8675
+				}
+			);
+
+			bucket = waitForListedBucket(bucketName);
+			Assert.That(bucket.Quota.RAM / 1024 / 1024, Is.EqualTo(105));
+			Assert.That(bucket.ProxyPort, Is.EqualTo(8675));
+			Assert.That(bucket.AuthType, Is.EqualTo(AuthTypes.None));
 
 			_Cluster.DeleteBucket(bucketName);
 
@@ -235,8 +276,9 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.None,
 				BucketType = BucketTypes.Memcached,
-				RamQuotaMB = 100,
-				ProxyPort = 9090
+				Quota = new Quota { RAM = 100 },
+				ProxyPort = 9090,
+				ReplicaNumber = ReplicaNumbers.Zero
 			}
 			);
 
@@ -257,7 +299,8 @@ namespace Couchbase.Tests
 				Name = "default",
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 128
+				Quota = new Quota { RAM = 128 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 		}
 
@@ -270,7 +313,8 @@ namespace Couchbase.Tests
 				Name = "default",
 				AuthType = AuthTypes.None,
 				BucketType = BucketTypes.Memcached,
-				RamQuotaMB = 128
+				Quota = new Quota { RAM = 128 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 		}
 
@@ -283,13 +327,14 @@ namespace Couchbase.Tests
 				Name = "default",
 				AuthType = AuthTypes.None,
 				BucketType = BucketTypes.Memcached,
-				RamQuotaMB = 128
+				Quota = new Quota { RAM = 128 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 		}
 
 
 		[Test]
-		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "RamQuotaMB", MatchType = MessageMatch.Contains)]
+		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "Quota.RAM", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Ram_Quota_Less_Than_100_Argument_Exception_Is_Thrown()
 		{
 			_Cluster.CreateBucket(new Bucket
@@ -297,7 +342,8 @@ namespace Couchbase.Tests
 				Name = "default",
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Memcached,
-				RamQuotaMB = 99
+				Quota = new Quota { RAM = 99 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 		}
 
@@ -311,7 +357,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 
 			var bucket = waitForListedBucket(bucketName);
@@ -344,7 +391,8 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
+				ReplicaNumber = ReplicaNumbers.Zero
 			});
 
 			var bucket = waitForListedBucket(bucketName);
@@ -391,7 +439,7 @@ namespace Couchbase.Tests
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
 			});
 
 			var bucket = waitForListedBucket(bucketName);
@@ -533,7 +581,7 @@ namespace Couchbase.Tests
 				BucketType = BucketTypes.Membase,
 				Name = bucketName,
 				Password = "qwerty",
-				RamQuotaMB = 100
+				Quota = new Quota { RAM = 100 },
 			};
 
 			_Cluster.CreateBucket(bucket);
