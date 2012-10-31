@@ -130,6 +130,30 @@ namespace Couchbase.Tests
 			Assert.That(config, Is.Not.Null, "Config was null");
 			Assert.That(config.Servers.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(30)));
 		}
+
+		[Test]
+		public void When_Observe_Timeout_Is_Not_Set_And_Using_App_Config_Default_Is_1_Minute()
+		{
+			var config = ConfigurationManager.GetSection("observe-default-config") as CouchbaseClientSection;
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.Servers.ObserveTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
+		}
+
+		[Test]
+		public void When_Observe_Timeout_Is_Not_Set_And_Using_Code_Config_Default_Is_1_Minute()
+		{
+			var config = new CouchbaseClientConfiguration();
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.ObserveTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
+		}
+
+		[Test]
+		public void When_Observe_Timeout_Is_Set_To_30_And_Using_App_Config_Value_Is_30_Seconds()
+		{
+			var config = ConfigurationManager.GetSection("observe-explicit-config") as CouchbaseClientSection;
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.Servers.ObserveTimeout, Is.EqualTo(TimeSpan.FromSeconds(30)));
+		}
 		#endregion
 	}
 }

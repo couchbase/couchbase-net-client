@@ -17,6 +17,7 @@ namespace Couchbase.Configuration
 		private ITranscoder transcoder;
 		private IMemcachedKeyTransformer keyTransformer;
 		private TimeSpan defaultHttpRequestTimeout = TimeSpan.FromMinutes(1);
+		private TimeSpan defaultObserveTimeout = TimeSpan.FromMinutes(1);
 
         #region
         /// <summary>
@@ -136,7 +137,18 @@ namespace Couchbase.Configuration
                 
 		public int RetryCount { get; set; }
 		public TimeSpan RetryTimeout { get; set; }
-		public TimeSpan ObserveTimeout { get; set; }
+
+		public TimeSpan ObserveTimeout
+		{
+			get { return defaultObserveTimeout; }
+			set
+			{
+				if (value < TimeSpan.Zero)
+					throw new ArgumentOutOfRangeException("ObserveTimeout must be a positive TimeSpan");
+
+				defaultObserveTimeout = value;
+			}
+		}
 
 		public TimeSpan HttpRequestTimeout
 		{
