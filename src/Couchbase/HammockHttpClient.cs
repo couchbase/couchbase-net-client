@@ -18,7 +18,7 @@ namespace Couchbase
 
 		private RestClient client;
 
-		public HammockHttpClient(Uri baseUri, string username, string password)
+		public HammockHttpClient(Uri baseUri, string username, string password, bool shouldInitConnection)
 		{
 			this.client = new RestClient { Authority = baseUri.ToString() };
 
@@ -47,6 +47,13 @@ namespace Couchbase
 			};
 
 			client.BeforeRetry += new EventHandler<RetryEventArgs>(client_BeforeRetry);
+
+			//The first time a request is made to a URI, the ServicePointManager
+			//will create a ServicePoint to manage connections to a particular host
+			//This process is expensive and slows down the first created view.
+			//The call to BeginRequest is basically an async, no-op HTTP request to
+			//initialize the ServicePoint before the first view request is made.
+			if (shouldInitConnection) client.BeginRequest();
 		}
 
 		void client_BeforeRetry(object sender, RetryEventArgs e)
@@ -150,9 +157,9 @@ namespace Couchbase
 	{
 		public static readonly IHttpClientFactory Instance = new HammockHttpClientFactory();
 
-		IHttpClient IHttpClientFactory.Create(Uri baseUri, string username, string password)
+		IHttpClient IHttpClientFactory.Create(Uri baseUri, string username, string password, bool shouldInitializeConnection)
 		{
-			return new HammockHttpClient(baseUri, username, password);
+			return new HammockHttpClient(baseUri, username, password, shouldInitializeConnection);
 		}
 	}
 }

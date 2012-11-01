@@ -45,6 +45,11 @@ namespace Couchbase.Configuration
 		IHeartbeatMonitorConfiguration HeartbeatMonitor { get; }
 
 		/// <summary>
+		/// Gets the configuration of the http client.
+		/// </summary>
+		IHttpClientConfiguration HttpClient { get; }
+
+		/// <summary>
 		/// Creates an <see cref="T:Enyim.Caching.Memcached.IMemcachedKeyTransformer"/> instance which will be used to convert item keys for Memcached.
 		/// </summary>
 		IMemcachedKeyTransformer CreateKeyTransformer();

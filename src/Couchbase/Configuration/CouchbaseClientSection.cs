@@ -43,6 +43,16 @@ namespace Couchbase.Configuration
 		}
 
 		/// <summary>
+		/// Gets or sets the configuration of the http client.
+		/// </summary>
+		[ConfigurationProperty("httpClient", IsRequired = false)]
+		public HttpClientElement HttpClient
+		{
+			get { return (HttpClientElement)base["httpClient"]; }
+			set { base["httpClient"] = value; }
+		}
+
+		/// <summary>
 		/// Gets or sets the <see cref="T:Enyim.Caching.Memcached.IMemcachedNodeLocator"/> which will be used to assign items to Memcached nodes.
 		/// </summary>
 		[ConfigurationProperty("locator", IsRequired = false)]
@@ -151,7 +161,7 @@ namespace Couchbase.Configuration
 
             Debug.Assert(this.clientFactory != null);
 
-            return this.clientFactory.Create(baseUri, Servers.Bucket, Servers.BucketPassword);
+            return this.clientFactory.Create(baseUri, Servers.Bucket, Servers.BucketPassword, HttpClient.InitializeConnection);
         }
 
         #endregion
@@ -171,6 +181,11 @@ namespace Couchbase.Configuration
 		IHeartbeatMonitorConfiguration ICouchbaseClientConfiguration.HeartbeatMonitor
 		{
 			get { return this.HeartbeatMonitor; }
+		}
+
+		IHttpClientConfiguration ICouchbaseClientConfiguration.HttpClient
+		{
+			get { return this.HttpClient; }
 		}
 
 		IMemcachedKeyTransformer ICouchbaseClientConfiguration.CreateKeyTransformer()

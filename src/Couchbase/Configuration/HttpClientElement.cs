@@ -2,16 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Configuration;
 
-namespace Couchbase.Tests.Mocks
+namespace Couchbase.Configuration
 {
-	public class MockHttpClientFactory : IHttpClientFactory
+	public class HttpClientElement : ConfigurationElement, IHttpClientConfiguration
 	{
-		public IHttpClient Client { get; set; }
-
-		public IHttpClient Create(Uri baseUri, string username, string password, bool shouldInitializeConnection)
+		/// <summary>
+		/// Gets or sets the endpoint uri for the heartbeat request
+		/// </summary>
+		[ConfigurationProperty("initializeConnection", IsRequired = false, DefaultValue = true)]
+		public bool InitializeConnection
 		{
-			return (Client = new MockHttpClient() { BaseUri = baseUri });	
+			get { return (bool)base["initializeConnection"]; }
+			set { base["initializeConnection"] = value; }
 		}
 	}
 }

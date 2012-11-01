@@ -32,6 +32,8 @@ namespace Couchbase.Configuration
 			this.SocketPool = new SocketPoolConfiguration();
 
 			this.HeartbeatMonitor = new HeartbeatMonitorElement();
+
+			this.HttpClient = new HttpClientElement();
 		}
 
         /// <summary>
@@ -48,7 +50,7 @@ namespace Couchbase.Configuration
 
         IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) 
         {
-            return this.HttpClientFactory.Create(baseUri, Bucket, BucketPassword);
+            return this.HttpClientFactory.Create(baseUri, Bucket, BucketPassword, HttpClient.InitializeConnection);
         }
         #endregion
 
@@ -90,6 +92,11 @@ namespace Couchbase.Configuration
 		/// Gets or sets the configuration of the heartbeat monitor.
 		/// </summary>
 		public IHeartbeatMonitorConfiguration HeartbeatMonitor { get; set; }
+
+		/// <summary>
+		/// Gets or sets the configuration of the http client.
+		/// </summary>
+		public IHttpClientConfiguration HttpClient { get; set; }
 
 		/// <summary>
 		/// Gets or sets the <see cref="T:Enyim.Caching.Memcached.IMemcachedKeyTransformer"/> which will be used to convert item keys for Memcached.
@@ -237,6 +244,7 @@ namespace Couchbase.Configuration
 		private TimeSpan httpRequestTimeout;
 		private ISocketPoolConfiguration spc;
 		private IHeartbeatMonitorConfiguration hbm;
+		private IHttpClientConfiguration hcc;
 
 		private ICouchbaseClientConfiguration original;
 
@@ -255,6 +263,7 @@ namespace Couchbase.Configuration
 
 			this.spc = new SPC(original.SocketPool);
 			this.hbm = new HBM(original.HeartbeatMonitor);
+			this.hcc = new HCC(original.HttpClient);
 
 			this.original = original;
 		}
@@ -298,6 +307,11 @@ namespace Couchbase.Configuration
 		IHeartbeatMonitorConfiguration ICouchbaseClientConfiguration.HeartbeatMonitor
 		{
 			get { return this.hbm; }
+		}
+
+		IHttpClientConfiguration ICouchbaseClientConfiguration.HttpClient
+		{
+			get { return this.hcc; }
 		}
 
 		IMemcachedKeyTransformer ICouchbaseClientConfiguration.CreateKeyTransformer()
@@ -401,6 +415,20 @@ namespace Couchbase.Configuration
 			int IHeartbeatMonitorConfiguration.Interval { get { return this.interval; } set { } }
 			bool IHeartbeatMonitorConfiguration.Enabled { get { return this.enabled; } set { } }
 		}
+
+		private class HCC : IHttpClientConfiguration
+		{
+			private bool initializeConnectio;
+
+			public HCC(IHttpClientConfiguration original)
+			{
+				this.initializeConnectio = original.InitializeConnection;
+			}
+
+			bool IHttpClientConfiguration.InitializeConnection { get { return this.initializeConnectio; } set { } }
+
+		}
+
 	}
 }
 

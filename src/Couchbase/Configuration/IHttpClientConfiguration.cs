@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Couchbase.Tests.Mocks
+namespace Couchbase.Configuration
 {
-	public class MockHttpClientFactory : IHttpClientFactory
+	public interface IHttpClientConfiguration
 	{
-		public IHttpClient Client { get; set; }
-
-		public IHttpClient Create(Uri baseUri, string username, string password, bool shouldInitializeConnection)
-		{
-			return (Client = new MockHttpClient() { BaseUri = baseUri });	
-		}
+		/// <summary>
+		/// When true, instructs the client to pre-fetch a given URI
+		/// to initialize the ServicePoint for future requests
+		/// </summary>
+		bool InitializeConnection { get; set; }
 	}
 }
 

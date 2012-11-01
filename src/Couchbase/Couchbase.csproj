@@ -69,6 +69,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\HttpClientElement.cs" />
+    <Compile Include="Configuration\IHttpClientConfiguration.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />
     <Compile Include="Management\Bucket.cs" />
