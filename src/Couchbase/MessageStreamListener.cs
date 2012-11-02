@@ -509,7 +509,10 @@ namespace Couchbase
 
 				Interlocked.Exchange(ref this.shouldAbort, 2);
 
-				this.timer.Change(Timeout.Infinite, Timeout.Infinite);
+				if (timer != null)
+				{
+					this.timer.Change(Timeout.Infinite, Timeout.Infinite);
+				}
 
 				if (this.request != null)
 				{
@@ -525,8 +528,11 @@ namespace Couchbase
 					this.response = null;
 				}
 
-				this.timer.Dispose();
-				this.timer = null;
+				if (timer != null)
+				{
+					this.timer.Dispose();
+					this.timer = null;
+				}
 			}
 
 			private void Worker(object state)
