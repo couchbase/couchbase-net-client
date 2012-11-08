@@ -18,7 +18,7 @@ namespace Couchbase
 	/// </summary>
 	internal class CouchbaseView : CouchbaseViewBase<IViewRow>
 	{
-        internal CouchbaseView(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
+        internal CouchbaseView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
             : base(client, clientLocator, designDocument, indexName) { }
 
         protected CouchbaseView(CouchbaseViewBase<IViewRow> original)
@@ -69,7 +69,7 @@ namespace Couchbase
 
 			object IViewRow.GetItem()
 			{
-				return this.owner.client.Get(this.id);
+				return this.owner.ViewHandler.Client.Get(this.id);
 			}
 
 			IDictionary<string, object> IViewRow.Info

@@ -2,36 +2,24 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Enyim.Caching;
-using System.Diagnostics;
-using System.IO;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
 using Couchbase.Helpers;
 
-namespace Couchbase {
-    internal class CouchbaseView<T> : CouchbaseViewBase<T> {
+namespace Couchbase
+{
+	internal class CouchbaseSpatialView<T> : CouchbaseSpatialViewBase<T>
+	{
+		private readonly bool _shouldLookupDocById;
 
-		private bool _shouldLookupDocById = false;
-
-        internal CouchbaseView(ICouchbaseClient client, IHttpClientLocator clientLocator,
-								string designDocument, string indexName, bool shouldLookupDocById = false,
-								string pagedViewIdProperty = null, string pagedViewKeyProperty = null)
-            : base(client, clientLocator, designDocument, indexName)
+		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, bool shouldLookUpDocById = false)
+			: base(client, clientLocator, designDocument, indexName)
 		{
-			_shouldLookupDocById = shouldLookupDocById;
+			_shouldLookupDocById = shouldLookUpDocById;
 		}
 
-        protected CouchbaseView(CouchbaseView<T> original)
-            : base(original) { }
-
-
-        #region IEnumerable<T> Members
-
-        public override IEnumerator<T> GetEnumerator() 
-        {
-			return TransformResults<T>((jr) =>
+		public override IEnumerator<T> GetEnumerator()
+		{
+			return ViewHandler.TransformResults<T>((jr) =>
 			{
 				if (_shouldLookupDocById)
 				{
@@ -45,20 +33,9 @@ namespace Couchbase {
 					var jObject = Json.ParseValue(jr, "value");
 					return JsonConvert.DeserializeObject<T>(jObject);
 				}
-			});
-        }
-
-        #endregion
-
-		private string addIdToJson(string json, string id)
-		{
-			if (!json.Contains("\"_id\""))
-			{
-				return json.Insert(1, string.Concat("\"_id\":", "\"", id, "\","));
-			}
-			return json;
+			}, BuildParams());
 		}
-    }
+	}
 }
 
 #region [ License information          ]

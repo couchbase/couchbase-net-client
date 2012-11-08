@@ -13,5 +13,9 @@
            "map": "function (doc) { if (doc.type == \"city\") { emit(doc.state, doc.name); } }",
             "reduce": "_count"
         }
-    }
+    },
+	"spatial" : {
+		"by_location" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, null); } }",
+		"by_location_with_city_name" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, { \"cityState\" : doc.name + \",\" + doc.state }); } }"
+	}
 }

@@ -10,18 +10,11 @@ using System.Collections;
 
 namespace Couchbase {
 
-    public enum StaleMode { AllowStale, UpdateAfter, False }
-
-    public enum OnErrorMode { Continue, Stop }
-
     internal abstract class CouchbaseViewBase<T> : IView<T> {
 
         protected static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
 
-        protected readonly IMemcachedClient client;
-        protected readonly IHttpClientLocator clientLocator;
-        protected readonly string designDocument;
-        protected readonly string indexName;
+		protected readonly CouchbaseViewHandler ViewHandler;
 
         protected string endKey;
         protected string startKey;
@@ -42,19 +35,16 @@ namespace Couchbase {
         protected bool? group;
         protected int? groupAt;
 
-		public int TotalRows { get; set; }
+		public int TotalRows {
+			get { return ViewHandler.TotalRows; }
+		}
 
-        internal CouchbaseViewBase(IMemcachedClient client, IHttpClientLocator clientLocator, string designDocument, string indexName) {
-            this.client = client;
-            this.clientLocator = clientLocator;
-            this.designDocument = designDocument;
-            this.indexName = indexName;
+        internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName) {
+			this.ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName);
         }
 
         protected CouchbaseViewBase(CouchbaseViewBase<T> original) {
-            this.clientLocator = original.clientLocator;
-            this.designDocument = original.designDocument;
-            this.indexName = original.indexName;
+			this.ViewHandler = original.ViewHandler;
 
             this.startKey = original.startKey;
             this.endKey = original.endKey;
@@ -73,166 +63,32 @@ namespace Couchbase {
             this.groupAt = original.groupAt;
         }
 
-        protected bool MoveToArray(JsonReader reader, int depth, string name) {
-            while (reader.Read()) {
-                if (reader.TokenType == Newtonsoft.Json.JsonToken.PropertyName
-                    && reader.Depth == depth
-                    && ((string)reader.Value) == name) {
-                    if (!reader.Read()
-                        || (reader.TokenType != Newtonsoft.Json.JsonToken.StartArray
-                            && reader.TokenType != Newtonsoft.Json.JsonToken.Null))
-                        throw new InvalidOperationException("Expecting array named '" + name + "'!");
-
-                    // we skip the deserialization if the array is null
-                    return reader.TokenType == Newtonsoft.Json.JsonToken.StartArray;
-                }
-            }
-
-            return false;
-        }
-
         protected IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer) {
-            var response = GetResponse();
-            Debug.Assert(response != null);
 
-            using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
-            using (var jsonReader = new JsonTextReader(sr)) {
+			var viewParams = new Dictionary<string, string>();
+			var viewParamsBuilder = new ViewParamsBuilder();
 
-				while (jsonReader.Read())
-				{
-					if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Depth == 1)
-					{
-						if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
-						{
-							TotalRows = Convert.ToInt32(jsonReader.Value);
-						}
-						else if (jsonReader.Value as string == "rows" && jsonReader.Read())
-						{
-							// position the reader on the first "rows" field which contains the actual resultset
-							// this way we do not have to deserialize the whole response twice
-							// read until the end of the rows array
-							while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
-							{
-								var row = rowTransformer(jsonReader);
-								yield return row;
-							}
+			viewParamsBuilder.AddOptionalParam("key", this.key);
+			viewParamsBuilder.AddOptionalParam("keys", this.keys);
+			viewParamsBuilder.AddOptionalParam("startkey", this.startKey);
+			viewParamsBuilder.AddOptionalParam("endkey", this.endKey);
+			viewParamsBuilder.AddOptionalParam("startkey_docid", this.startId);
+			viewParamsBuilder.AddOptionalParam("endkey_docid", this.endId);
 
-							if (MoveToArray(jsonReader, 1, "errors"))
-							{
-								var errors = Json.Parse(jsonReader);
-								var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
-								if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
+			viewParamsBuilder.AddOptionalParam("inclusive_end", this.inclusive);
+			viewParamsBuilder.AddOptionalParam("descending", this.descending);
+			viewParamsBuilder.AddOptionalParam("reduce", this.reduce);
+			viewParamsBuilder.AddOptionalParam("group", this.group);
+			viewParamsBuilder.AddOptionalParam("group_level", this.groupAt);
+			viewParamsBuilder.AddOptionalParam("skip", this.skip);
 
-								throw new InvalidOperationException("Cannot read view: " + formatted);
-							}
-						}
-					}
-				}
-            }
+			viewParamsBuilder.AddGreaterThanOneParam("limit", this.limit);
+
+			viewParamsBuilder.AddStaleParam(this.stale);
+			viewParamsBuilder.AddOnErrorParam(this.onError);
+
+			return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());
         }
-
-        protected static IEnumerable<string> FormatErrors(object[] list) {
-            if (list == null || list.Length == 0)
-                yield break;
-
-            foreach (IDictionary<string, object> error in list) {
-                object reason;
-                object from;
-
-                if (!error.TryGetValue("from", out from)) continue;
-                if (!error.TryGetValue("reason", out reason)) continue;
-
-                yield return from + ": " + reason;
-            }
-        }
-
-        /// <summary>
-        /// Builds the request uri based on the parameters set by the user
-        /// </summary>
-        /// <returns></returns>
-        private IHttpRequest CreateRequest(IHttpClient client) {
-            var retval = client.CreateRequest(this.designDocument + "/_view/" + this.indexName);
-
-            AddOptionalRequestParam(retval, "key", this.key);
-            AddOptionalRequestParam(retval, "keys", this.keys);
-            AddOptionalRequestParam(retval, "startkey", this.startKey);
-            AddOptionalRequestParam(retval, "endkey", this.endKey);
-            AddOptionalRequestParam(retval, "startkey_docid", this.startId);
-            AddOptionalRequestParam(retval, "endkey_docid", this.endId);
-            AddOptionalRequestParam(retval, "skip", this.skip);
-            AddOptionalRequestParam(retval, "limit", this.limit);
-
-            AddOptionalRequestParam(retval, "inclusive_end", this.inclusive);
-            AddOptionalRequestParam(retval, "descending", this.descending);
-            AddOptionalRequestParam(retval, "reduce", this.reduce);
-            AddOptionalRequestParam(retval, "group", this.group);
-            AddOptionalRequestParam(retval, "group_level", this.groupAt);
-
-            if (this.stale != null)
-                switch (this.stale.Value) {
-                    case StaleMode.AllowStale:
-                        retval.AddParameter("stale", "ok");
-                        break;
-                    case StaleMode.UpdateAfter:
-                        retval.AddParameter("stale", "update_after");
-                        break;
-                    case StaleMode.False:
-                        retval.AddParameter("stale", "false");
-                        break;
-                    default: throw new ArgumentOutOfRangeException("stale: " + this.stale);
-                }
-
-            if (this.onError != null)
-            {
-                switch (onError.Value) {
-                    case OnErrorMode.Continue:
-                        retval.AddParameter("on_error", "continue");
-                        break;
-                    case OnErrorMode.Stop:
-                        retval.AddParameter("on_error", "stop");
-                        break;
-                    default: throw new ArgumentOutOfRangeException("on_error: " + this.onError);
-                }
-            }
-
-            return retval;
-        }
-
-        protected IHttpResponse GetResponse() {
-            Debug.Assert(this.clientLocator != null);
-
-            var client = this.clientLocator.Locate(this.designDocument);
-            if (client == null) {
-                if (log.IsErrorEnabled)
-                    log.WarnFormat("View {0} was mapped to a dead node, failing.", this);
-
-                throw new InvalidOperationException();
-            }
-
-            var request = CreateRequest(client);
-
-            return request.GetResponse();
-        }
-
-        #region [ Request helpers              ]
-
-        private static void AddOptionalRequestParam(IHttpRequest request, string name, bool? value) {
-            if (value != null)
-                request.AddParameter(name, value.Value ? "true" : "false");
-        }
-
-        private static void AddOptionalRequestParam(IHttpRequest request, string name, int? value) {
-            if (value != null)
-                request.AddParameter(name, value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        private static void AddOptionalRequestParam<T>(IHttpRequest request, string name, T value)
-            where T : IConvertible {
-            if (value != null)
-                request.AddParameter(name, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        #endregion
 
         #region [ IView                        ]
 

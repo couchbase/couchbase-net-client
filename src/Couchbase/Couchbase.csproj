@@ -51,6 +51,7 @@
       <HintPath>..\packages\Newtonsoft.Json.4.5.1\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -71,8 +72,15 @@
   <ItemGroup>
     <Compile Include="Configuration\HttpClientElement.cs" />
     <Compile Include="Configuration\IHttpClientConfiguration.cs" />
+    <Compile Include="CouchbaseSpatialView`1.cs" />
+    <Compile Include="CouchbaseSpatialView.cs" />
+    <Compile Include="CouchbaseSpatialViewBase.cs" />
+    <Compile Include="CouchbaseViewHandler.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
+    <Compile Include="Helpers\DocHelper.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />
+    <Compile Include="ISpatialView`1.cs" />
+    <Compile Include="ISpatialViewRow.cs" />
     <Compile Include="Management\Bucket.cs" />
     <Compile Include="BucketConfigListener.cs" />
     <Compile Include="BucketConfigSettings.cs" />
@@ -150,7 +158,10 @@
     <Compile Include="Results\IObserveOperationResult.cs" />
     <Compile Include="Results\ObserveOperationResult.cs" />
     <Compile Include="Settings\ObserveSettings.cs" />
+    <Compile Include="SpatialViewGeometry.cs" />
+    <Compile Include="SpatialViewRow.cs" />
     <Compile Include="VBucketAwareOperationFactory.cs" />
+    <Compile Include="ViewParamsBuilder.cs" />
     <Compile Include="WebClientWithTimeout.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -167,6 +178,9 @@
       <Project>{D438C0B3-A168-40B8-BDDD-61F0939DFF35}</Project>
       <Name>Enyim.Caching</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Geo\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

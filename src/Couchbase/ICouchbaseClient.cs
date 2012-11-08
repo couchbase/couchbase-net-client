@@ -20,6 +20,8 @@ namespace Couchbase
 		IView<IViewRow> GetView(string designName, string viewName);
 		IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false);
 		IDictionary<string, object> Get(IView view);
+		ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName);
+		ISpatialView<T> GetSpatialView<T>(string designName, string viewName, bool shouldLookupDocById = false);
 	}
 }
 

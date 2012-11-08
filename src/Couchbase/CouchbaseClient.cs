@@ -715,6 +715,18 @@ namespace Couchbase
 			return new CouchbaseView<T>(this, this, designName, viewName, shouldLookupDocById);
 		}
 
+		public ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName)
+		{
+			getViewSetup(ref designName, ref viewName);
+			return new CouchbaseSpatialView(this, this, designName, viewName);
+		}
+
+		public ISpatialView<T> GetSpatialView<T>(string designName, string viewName, bool shouldLookupDocById = false)
+		{
+			getViewSetup(ref designName, ref viewName);
+			return new CouchbaseSpatialView<T>(this, this, designName, viewName, shouldLookupDocById);
+		}
+
 		public IDictionary<string, object> Get(IView view)
 		{
 			var keys = view.Select(row => row.ItemId);

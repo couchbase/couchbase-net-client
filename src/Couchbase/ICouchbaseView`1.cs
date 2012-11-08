@@ -11,7 +11,7 @@ namespace Couchbase
 		/// <summary>
 		/// TotalRows that would be returned by view, regardless of filters
 		/// </summary>
-		int TotalRows { get; set; }
+		int TotalRows { get; }
 
 		/// <summary>
 		/// The view will return only the specified number of items.
