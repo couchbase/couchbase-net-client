@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Enyim.Caching;
 namespace Couchbase
 {
-	public interface ICouchbaseClient : IMemcachedClient
+	public interface ICouchbaseClient : IMemcachedClient, ICouchbaseResultsClient
 	{
 		object Get(string key, DateTime newExpiration);
 		T Get<T>(string key, DateTime newExpiration);
@@ -17,6 +17,9 @@ namespace Couchbase
 		void Touch(string key, TimeSpan nextExpiration);
 		bool TryGet(string key, DateTime newExpiration, out object value);
 		bool TryGetWithCas(string key, DateTime newExpiration, out Enyim.Caching.Memcached.CasResult<object> value);
+		IView<IViewRow> GetView(string designName, string viewName);
+		IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false);
+		IDictionary<string, object> Get(IView view);
 	}
 }
 

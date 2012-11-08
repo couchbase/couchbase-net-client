@@ -16,7 +16,7 @@ namespace Couchbase.Tests
 	public abstract class CouchbaseClientTestsBase
 	{
 
-		protected CouchbaseClient _Client;
+		protected ICouchbaseClient _Client;
 
 		[SetUp]
 		public void SetUp()

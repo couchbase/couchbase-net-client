@@ -10,13 +10,13 @@ namespace Couchbase.Extensions
 {
 	public static class CouchbaseClientExtensions
 	{
-		public static bool StoreJson(this CouchbaseClient client, StoreMode storeMode, string key, object value)
+		public static bool StoreJson(this ICouchbaseClient client, StoreMode storeMode, string key, object value)
 		{
 			var json = JsonConvert.SerializeObject(value);
 			return client.Store(storeMode, key, json);
 		}
 
-		public static T GetJson<T>(this CouchbaseClient client, string key) where T : class
+		public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
 		{
 			var json = client.Get<string>(key);
 			return json == null ? null : JsonConvert.DeserializeObject<T>(json);

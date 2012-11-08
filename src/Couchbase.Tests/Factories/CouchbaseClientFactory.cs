@@ -7,9 +7,9 @@ namespace Couchbase.Tests.Factories
 {
 	public static class CouchbaseClientFactory
 	{
-		private static CouchbaseClient _client;
+		private static ICouchbaseClient _client;
 
-		public static CouchbaseClient CreateCouchbaseClient()
+		public static ICouchbaseClient CreateCouchbaseClient()
 		{
 			if (_client == null)
 			{

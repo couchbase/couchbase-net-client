@@ -21,7 +21,7 @@ namespace Couchbase
 	/// <summary>
 	/// Client which can be used to connect to Couchbase servers.
 	/// </summary>
-	public class CouchbaseClient : MemcachedClient, IHttpClientLocator, ICouchbaseClient, ICouchbaseResultsClient
+	public class CouchbaseClient : MemcachedClient, IHttpClientLocator, ICouchbaseClient
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");

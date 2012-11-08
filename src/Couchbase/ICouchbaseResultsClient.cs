@@ -5,10 +5,12 @@ using System.Text;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached;
 using Couchbase.Operations;
+using Enyim.Caching;
+using Couchbase.Results;
 
 namespace Couchbase
 {
-	interface ICouchbaseResultsClient
+	public interface ICouchbaseResultsClient : IMemcachedResultsClient
 	{
 		IGetOperationResult ExecuteGet(string key, DateTime newExpiration);
 		IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration);
@@ -25,6 +27,8 @@ namespace Couchbase
 		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replicateTo);
 		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo);
 		IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, ReplicateTo replicateTo);
+
+		IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo);
 
 	}
 }
