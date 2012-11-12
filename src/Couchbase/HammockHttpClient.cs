@@ -26,8 +26,9 @@ namespace Couchbase
 			client.AddHeader("Content-Type", "application/json; charset=utf-8");
 
 			client.ServicePoint = System.Net.ServicePointManager.FindServicePoint(baseUri);
+#if ! MONO
 			client.ServicePoint.SetTcpKeepAlive(true, 300, 30);
-
+#endif
 			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
 			{
 				var credentials = username + ":" + password;
