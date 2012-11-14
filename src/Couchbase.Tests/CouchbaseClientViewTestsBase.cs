@@ -80,22 +80,17 @@ namespace Couchbase.Tests
 
 		protected class City
 		{
-			[JsonProperty("_id")]
 			public string Id { get; set; }
 
-			[JsonProperty("name")]
 			public string Name { get; set; }
 
-			[JsonProperty("state")]
 			public string State { get; set; }
 
-			[JsonProperty("type")]
 			public string Type { get; set; }
 		}
 
 		protected class CityProjection
 		{
-			[JsonProperty("cityState")]
 			public string CityState { get; set; }
 		}
 	}

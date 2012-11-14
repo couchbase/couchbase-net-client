@@ -41,27 +41,6 @@ namespace Couchbase.Tests
 
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
-
-		private class City
-		{
-			[JsonProperty("_id")]
-			public string Id { get; set; }
-
-			[JsonProperty("name")]
-			public string Name { get; set; }
-
-			[JsonProperty("state")]
-			public string State { get; set; }
-
-			[JsonProperty("type")]
-			public string Type { get; set; }
-		}
-
-		private class CityProjection
-		{
-			[JsonProperty("cityState")]
-			public string CityState { get; set; }
-		}
 	}
 }
 

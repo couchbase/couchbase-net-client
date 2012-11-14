@@ -9,9 +9,9 @@ namespace Couchbase.Helpers
 	{
 		public static string InsertId(string json, string id)
 		{
-			if (!json.Contains("\"_id\""))
+			if (!json.Contains("\"id\""))
 			{
-				return json.Insert(1, string.Concat("\"_id\":", "\"", id, "\","));
+				return json.Insert(1, string.Concat("\"id\":", "\"", id, "\","));
 			}
 			return json;
 		}
