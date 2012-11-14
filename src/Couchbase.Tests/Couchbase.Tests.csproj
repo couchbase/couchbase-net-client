@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
+    <Compile Include="CouchbaseClientExtensionsTests.cs" />
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="HelperTests\DocHelperTests.cs" />
     <Compile Include="HttpClientConfigTests.cs" />

@@ -5,6 +5,7 @@ using System.Text;
 using Enyim.Caching.Memcached;
 using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Extensions
 {
@@ -12,7 +13,12 @@ namespace Couchbase.Extensions
 	{
 		public static bool StoreJson(this ICouchbaseClient client, StoreMode storeMode, string key, object value)
 		{
-			var json = JsonConvert.SerializeObject(value);
+			var json = JsonConvert.SerializeObject(value,
+										Formatting.None,
+										new JsonSerializerSettings
+										{
+											ContractResolver = new CamelCasePropertyNamesContractResolver()
+										});
 			return client.Store(storeMode, key, json);
 		}
 
