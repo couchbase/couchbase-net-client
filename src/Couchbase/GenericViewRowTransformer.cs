@@ -7,22 +7,24 @@ using Couchbase.Helpers;
 
 namespace Couchbase
 {
-	internal class CouchbaseSpatialView<T> : CouchbaseSpatialViewBase<T>
+	internal static class GenericViewRowTransformer<T>
 	{
-		private readonly bool _shouldLookupDocById;
-
-		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, bool shouldLookUpDocById = false)
-			: base(client, clientLocator, designDocument, indexName)
+		public static T TransformRow(JsonReader reader, ICouchbaseClient client, bool shouldLookupById)
 		{
-			_shouldLookupDocById = shouldLookUpDocById;
-		}
-
-		public override IEnumerator<T> GetEnumerator()
-		{
-			return ViewHandler.TransformResults<T>((jr) =>
+			if (shouldLookupById)
 			{
-				return GenericViewRowTransformer<T>.TransformRow(jr, ViewHandler.Client, _shouldLookupDocById);
-			}, BuildParams());
+				var key = Json.ParseValue(reader, "id") as string;
+				var json = client.Get<string>(key);
+				if (string.IsNullOrEmpty(json)) return default(T);
+
+				var jsonWithId = DocHelper.InsertId(json, key);//_id is omitted from the Json return by Get
+				return JsonConvert.DeserializeObject<T>(jsonWithId);
+			}
+			else
+			{
+				var jObject = Json.ParseValue(reader, "value");
+				return JsonConvert.DeserializeObject<T>(jObject);
+			}
 		}
 	}
 }

@@ -33,18 +33,7 @@ namespace Couchbase {
         {
 			return TransformResults<T>((jr) =>
 			{
-				if (_shouldLookupDocById)
-				{
-					var key = Json.ParseValue(jr, "id") as string;
-					var json = ViewHandler.Client.Get<string>(key);
-					var jsonWithId = DocHelper.InsertId(json, key);//_id is omitted from the Json return by Get
-					return JsonConvert.DeserializeObject<T>(jsonWithId);
-				}
-				else
-				{
-					var jObject = Json.ParseValue(jr, "value");
-					return JsonConvert.DeserializeObject<T>(jObject);
-				}
+				return GenericViewRowTransformer<T>.TransformRow(jr, ViewHandler.Client, _shouldLookupDocById);
 			});
         }
 

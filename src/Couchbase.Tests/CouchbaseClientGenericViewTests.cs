@@ -7,6 +7,7 @@ using System.IO;
 using Enyim.Caching.Memcached;
 using System.Net;
 using Newtonsoft.Json;
+using Couchbase.Operations;
 
 namespace Couchbase.Tests
 {
@@ -40,6 +41,46 @@ namespace Couchbase.Tests
 			}
 
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
+		}
+
+		[Test]
+		public void When_Iterating_Over_A_Non_Stale_View_Deleted_Keys_Return_Null()
+		{
+			var json = "{ \"name\" : \"New Britain\", \"state\" : \"CT\", \"type\" : \"city\", \"loc\" : [-72.4714, 41.4030] }";
+			var key = "city_CT_New_Britain";
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, json, PersistTo.One);
+			StoreAssertPass(storeResult);
+
+			//force view to have new doc indexed
+			var view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+
+			var viewContainsNewDoc = false;
+			foreach (var item in view)
+			{
+				if (item.Id == key)
+				{
+					viewContainsNewDoc = true;
+					break;
+				}
+			}
+
+			Assert.That(viewContainsNewDoc, Is.True, "View did not contain new doc");
+
+			var removeResult = _Client.ExecuteRemove(key);
+			Assert.That(removeResult.Success, Is.True, "Remove failed");
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+
+			view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.AllowStale);
+			var nullItemCount = 0;
+			foreach (var item in view)
+			{
+				if (item == null) ++nullItemCount;
+			}
+
+			Assert.That(nullItemCount, Is.EqualTo(1), "Null item count was not 1");
 		}
 	}
 }
