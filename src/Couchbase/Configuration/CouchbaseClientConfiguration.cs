@@ -418,16 +418,16 @@ namespace Couchbase.Configuration
 
 		private class HCC : IHttpClientConfiguration
 		{
-			private bool initializeConnectio;
+			private bool initializeConnection;
 			private TimeSpan timeout;
 
 			public HCC(IHttpClientConfiguration original)
 			{
-				this.initializeConnectio = original.InitializeConnection;
+				this.initializeConnection = original.InitializeConnection;
 				this.timeout = original.Timeout;
 			}
 
-			bool IHttpClientConfiguration.InitializeConnection { get { return this.initializeConnectio; } set { } }
+			bool IHttpClientConfiguration.InitializeConnection { get { return this.initializeConnection; } set { } }
 			TimeSpan IHttpClientConfiguration.Timeout { get { return this.timeout; } set { } }
 		}
 

@@ -9,7 +9,8 @@ namespace Couchbase.Configuration
 	public class HttpClientElement : ConfigurationElement, IHttpClientConfiguration
 	{
 		/// <summary>
-		/// Gets or sets the endpoint uri for the heartbeat request
+		/// When true, instructs the client to pre-fetch a given URI
+		/// to initialize the ServicePoint for future requests
 		/// </summary>
 		[ConfigurationProperty("initializeConnection", IsRequired = false, DefaultValue = true)]
 		public bool InitializeConnection
