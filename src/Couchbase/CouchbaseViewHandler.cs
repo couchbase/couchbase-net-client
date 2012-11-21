@@ -5,6 +5,8 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO;
+using Newtonsoft.Json.Linq;
+using Couchbase.Helpers;
 
 namespace Couchbase
 {
@@ -29,26 +31,7 @@ namespace Couchbase
 
 		public int TotalRows { get; set; }
 
-		public bool MoveToArray(JsonReader reader, int depth, string name)
-		{
-			while (reader.Read())
-			{
-				if (reader.TokenType == Newtonsoft.Json.JsonToken.PropertyName
-					&& reader.Depth == depth
-					&& ((string)reader.Value) == name)
-				{
-					if (!reader.Read()
-						|| (reader.TokenType != Newtonsoft.Json.JsonToken.StartArray
-							&& reader.TokenType != Newtonsoft.Json.JsonToken.Null))
-						throw new InvalidOperationException("Expecting array named '" + name + "'!");
-
-					// we skip the deserialization if the array is null
-					return reader.TokenType == Newtonsoft.Json.JsonToken.StartArray;
-				}
-			}
-
-			return false;
-		}
+		public IDictionary<string, object> DebugInfo { get; set; }
 
 		public IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer, IDictionary<string, string> viewParams)
 		{
@@ -78,13 +61,29 @@ namespace Couchbase
 								yield return row;
 							}
 
-							if (MoveToArray(jsonReader, 1, "errors"))
+							while (jsonReader.Read())
 							{
-								var errors = Json.Parse(jsonReader);
-								var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
-								if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
+								if (jsonReader.TokenType == JsonToken.PropertyName
+									&& jsonReader.Depth == 1
+									&& ((string)jsonReader.Value) == "errors")
+								{
+									// we skip the deserialization if the array is null
+									if (jsonReader.TokenType == Newtonsoft.Json.JsonToken.StartArray)
+									{
+										var errors = Json.Parse(jsonReader);
+										var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
+										if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
 
-								throw new InvalidOperationException("Cannot read view: " + formatted);
+										throw new InvalidOperationException("Cannot read view: " + formatted);
+									}
+								}
+								else if (jsonReader.TokenType == JsonToken.PropertyName
+										 && jsonReader.Depth == 1
+										 && ((string)jsonReader.Value) == "debug_info")
+								{
+									var debugInfoJson = (JObject.ReadFrom(jsonReader) as JProperty).Value;
+									DebugInfo = JsonHelper.Deserialize<Dictionary<string, object>>(debugInfoJson.ToString());
+								}
 							}
 						}
 					}

@@ -35,8 +35,14 @@ namespace Couchbase {
         protected bool? group;
         protected int? groupAt;
 
+		protected bool? debug;
+
 		public int TotalRows {
 			get { return ViewHandler.TotalRows; }
+		}
+
+		public IDictionary<string, object> DebugInfo {
+			get { return ViewHandler.DebugInfo; }
 		}
 
         internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName) {
@@ -61,6 +67,8 @@ namespace Couchbase {
 
             this.reduce = original.reduce;
             this.groupAt = original.groupAt;
+
+			this.debug = original.debug;
         }
 
         protected IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer) {
@@ -86,6 +94,8 @@ namespace Couchbase {
 
 			viewParamsBuilder.AddStaleParam(this.stale);
 			viewParamsBuilder.AddOnErrorParam(this.onError);
+
+			viewParamsBuilder.AddOptionalParam("debug", this.debug);
 
 			return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());
         }
@@ -167,6 +177,12 @@ namespace Couchbase {
             this.inclusive = inclusive;
             return this;
         }
+
+		public IView<T> Debug(bool debug)
+		{
+			this.debug = debug;
+			return this;
+		}
 
         public IPagedView<T> GetPagedView(int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null) {
             return new PagedView<T>(this, pageSize, pagedViewIdProperty, pagedViewKeyProperty);

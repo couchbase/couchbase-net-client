@@ -14,6 +14,11 @@ namespace Couchbase
 		int TotalRows { get; }
 
 		/// <summary>
+		/// Debug info when Debug param is true
+		/// </summary>
+		IDictionary<string, object> DebugInfo { get; }
+
+		/// <summary>
 		/// The view will return only the specified number of items.
 		/// </summary>
 		/// <param name="value">The number of items to return.</param>
@@ -126,6 +131,13 @@ namespace Couchbase
 		/// <param name="pagedViewKeyProperty">When paging over a generic view, this is the property to which the row's key is mapped</param>
 		/// <returns></returns>
 		IPagedView<T> GetPagedView(int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null);
+
+		/// <summary>
+		/// Specifies whether Couchbase should return debug info
+		/// </summary>
+		/// <param name="debug">A value that specifies whether to include debug info.</param>
+		/// <returns>A new <see cref="T:Couchbase.IView"/> that can be used to retrieve the items, including debug info.</returns>
+		IView<T> Debug(bool debug);
 	}
 }
 
