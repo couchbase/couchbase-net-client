@@ -25,7 +25,7 @@ namespace Couchbase.Tests
 
 			//HammockHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
-			var typeName = (config.HttpClientFactory.Create(config.Urls[0], "", "", true).GetType().Name);
+			var typeName = (config.HttpClientFactory.Create(config.Urls[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
 			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
 		}
 
@@ -39,7 +39,7 @@ namespace Couchbase.Tests
 
 			//HammockHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
-			var typeName = (config.HttpClientFactory.CreateInstance().Create(config.Servers.Urls.ToUriCollection()[0], "", "", true).GetType().Name);
+			var typeName = (config.HttpClientFactory.CreateInstance().Create(config.Servers.Urls.ToUriCollection()[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
 			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
 		}
 
@@ -179,6 +179,30 @@ namespace Couchbase.Tests
 			var config = new CouchbaseClientConfiguration();
 			Assert.That(config, Is.Not.Null, "Config was null");
 			Assert.That(config.HttpClient.InitializeConnection, Is.True);
+		}
+
+		[Test]
+		public void When_Http_Client_Timeout_Is_Not_Set_In_App_Config_Default_Is_True()
+		{
+			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.HttpClient.Timeout, Is.EqualTo(TimeSpan.Parse("00:01:15")));
+		}
+
+		[Test]
+		public void When_Http_Client_Timeout_Is_Set_In_App_Config_Property_Changes_From_Default()
+		{
+			var config = ConfigurationManager.GetSection("httpclient-config-noinitconn") as CouchbaseClientSection;
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.HttpClient.Timeout, Is.EqualTo(TimeSpan.Parse("00:00:45")));
+		}
+
+		[Test]
+		public void When_Http_Client_Timeout_Is_Not_Set_In_Code_Default_Is_75_Seconds()
+		{
+			var config = new CouchbaseClientConfiguration();
+			Assert.That(config, Is.Not.Null, "Config was null");
+			Assert.That(config.HttpClient.Timeout, Is.EqualTo(TimeSpan.Parse("00:01:15")));
 		}
 		#endregion
 	}

@@ -18,7 +18,7 @@ namespace Couchbase
 
 		private RestClient client;
 
-		public HammockHttpClient(Uri baseUri, string username, string password, bool shouldInitConnection)
+		public HammockHttpClient(Uri baseUri, string username, string password, TimeSpan timeout, bool shouldInitConnection)
 		{
 			this.client = new RestClient { Authority = baseUri.ToString() };
 
@@ -36,6 +36,7 @@ namespace Couchbase
 				client.AddHeader("Authorization", "Basic " + base64Credentials);
 			}
 
+			client.Timeout = timeout;
 			client.RetryPolicy = new RetryPolicy
 			{
 				RetryConditions =
@@ -158,9 +159,9 @@ namespace Couchbase
 	{
 		public static readonly IHttpClientFactory Instance = new HammockHttpClientFactory();
 
-		IHttpClient IHttpClientFactory.Create(Uri baseUri, string username, string password, bool shouldInitializeConnection)
+		IHttpClient IHttpClientFactory.Create(Uri baseUri, string username, string password, TimeSpan timeout, bool shouldInitializeConnection)
 		{
-			return new HammockHttpClient(baseUri, username, password, shouldInitializeConnection);
+			return new HammockHttpClient(baseUri, username, password, timeout, shouldInitializeConnection);
 		}
 	}
 }

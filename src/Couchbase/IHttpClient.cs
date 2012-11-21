@@ -54,7 +54,7 @@ namespace Couchbase
 	/// </summary>
 	public interface IHttpClientFactory
 	{
-		IHttpClient Create(Uri baseUri, string username, string password, bool shouldInitializeConnection);
+		IHttpClient Create(Uri baseUri, string username, string password, TimeSpan timeout, bool shouldInitializeConnection);
 	}
 
 	public enum HttpMethod

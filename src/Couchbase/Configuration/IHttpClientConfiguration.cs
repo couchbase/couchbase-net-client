@@ -12,6 +12,11 @@ namespace Couchbase.Configuration
 		/// to initialize the ServicePoint for future requests
 		/// </summary>
 		bool InitializeConnection { get; set; }
+
+		/// <summary>
+		/// Timeout applied to HTTP requests
+		/// </summary>
+		TimeSpan Timeout { get; set; }
 	}
 }
 

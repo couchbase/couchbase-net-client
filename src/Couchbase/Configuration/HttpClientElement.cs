@@ -17,6 +17,16 @@ namespace Couchbase.Configuration
 			get { return (bool)base["initializeConnection"]; }
 			set { base["initializeConnection"] = value; }
 		}
+
+		/// <summary>
+		/// Gets or sets the timeout for http client connections
+		/// </summary>
+		[ConfigurationProperty("timeout", IsRequired = false, DefaultValue = "00:01:15")]
+		public TimeSpan Timeout
+		{
+			get { return (TimeSpan)base["timeout"]; }
+			set { base["timeout"] = value; }
+		}
 	}
 }
 

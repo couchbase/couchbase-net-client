@@ -33,7 +33,7 @@ namespace Couchbase.Configuration
 
 			this.HeartbeatMonitor = new HeartbeatMonitorElement();
 
-			this.HttpClient = new HttpClientElement();
+			this.HttpClient = new HttpClientElement() { Timeout = TimeSpan.Parse("00:01:15") };
 		}
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Couchbase.Configuration
 
         IHttpClient ICouchbaseClientConfiguration.CreateHttpClient(Uri baseUri) 
         {
-            return this.HttpClientFactory.Create(baseUri, Bucket, BucketPassword, HttpClient.InitializeConnection);
+            return this.HttpClientFactory.Create(baseUri, Bucket, BucketPassword, HttpClient.Timeout, HttpClient.InitializeConnection);
         }
         #endregion
 
@@ -419,14 +419,16 @@ namespace Couchbase.Configuration
 		private class HCC : IHttpClientConfiguration
 		{
 			private bool initializeConnectio;
+			private TimeSpan timeout;
 
 			public HCC(IHttpClientConfiguration original)
 			{
 				this.initializeConnectio = original.InitializeConnection;
+				this.timeout = original.Timeout;
 			}
 
 			bool IHttpClientConfiguration.InitializeConnection { get { return this.initializeConnectio; } set { } }
-
+			TimeSpan IHttpClientConfiguration.Timeout { get { return this.timeout; } set { } }
 		}
 
 	}
