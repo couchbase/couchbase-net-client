@@ -783,14 +783,14 @@ namespace Couchbase
 		IHttpClient IHttpClientLocator.Locate(string designDocument)
 		{
 			//pick a node at random to avoid overloading a single node with view requests
-			var nodes = this.Pool.GetWorkingNodes().ToArray();
-			var idx = new Random(Environment.TickCount).Next(nodes.Length);
-			var node = nodes[idx] as CouchbaseNode;
+			var nodes = Pool.GetWorkingNodes()
+				.Where(n => n is CouchbaseNode && n.IsAlive)
+				.Select(n => n as CouchbaseNode)
+				.ToList();
 
-			// return null if the node is dead
-			return (node != null && node.IsAlive)
-					? node.Client
-					: null;
+			var idx = new Random(Environment.TickCount).Next(nodes.Count);
+			var node = nodes[idx] as CouchbaseNode;
+			return node.Client;
 		}
 
 		#endregion
