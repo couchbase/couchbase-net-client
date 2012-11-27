@@ -71,7 +71,7 @@ namespace Couchbase
 			}
 			else
 			{
-				readResult.Fail("Failed to obtain socket from pool");
+				result.Combine(readResult);
 				return readResult;
 			}
 		}
