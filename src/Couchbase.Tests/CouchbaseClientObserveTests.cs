@@ -9,6 +9,7 @@ using Couchbase.Operations.Constants;
 using Couchbase.Tests.Utils;
 using Couchbase.Tests.Factories;
 using System.IO;
+using System.Threading;
 
 namespace Couchbase.Tests
 {
@@ -85,7 +86,7 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
 			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
-			var observeResult = _Client.Observe(kv.Item2, storeResult.Cas-1, PersistTo.One, ReplicateTo.Zero);
+			var observeResult = _Client.Observe(kv.Item2, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Zero);
 			Assert.That(observeResult.Success, Is.False);
 			Assert.That(observeResult.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
 		}
@@ -131,26 +132,90 @@ namespace Couchbase.Tests
 			var deleteDesignDocResult = cluster.DeleteDesignDocument("default", "cities");
 			Assert.That(deleteDesignDocResult, Is.True);
 		}
+
+		[Test]
+		public void When_Observing_A_Removed_Key_Operation_Is_Successful_With_Master_Node_Persistence()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = Store(StoreMode.Set, key, value);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, PersistTo.One);
+			Assert.That(removeResult.Success, Is.True);
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_Observing_A_Removed_Key_Operation_Is_Successful_With_Master_And_Replication_Persistence()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, PersistTo.One, ReplicateTo.Two);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, PersistTo.One, ReplicateTo.Two);
+			Assert.That(removeResult.Success, Is.True);
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_Observing_A_Removed_Key_Operation_Is_Successful_With_Replication_Only()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, PersistTo.One, ReplicateTo.Two);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, PersistTo.Zero, ReplicateTo.Two);
+			Assert.That(removeResult.Success, Is.True);
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_Observing_A_Removed_Key_Operation_Is_Successful_With_Multi_Node_Persistence()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, PersistTo.One, ReplicateTo.Two);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, PersistTo.Two);
+			Assert.That(removeResult.Success, Is.True);
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
 	}
 }
 
-#region [ License information          ]
+#region [ License information		  ]
 /* ************************************************************
  * 
- *    @author Couchbase <info@couchbase.com>
- *    @copyright 2012 Couchbase, Inc.
- *    
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *    
- *        http://www.apache.org/licenses/LICENSE-2.0
- *    
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *    
+ *	@author Couchbase <info@couchbase.com>
+ *	@copyright 2012 Couchbase, Inc.
+ *	
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
+ *	
+ *		http://www.apache.org/licenses/LICENSE-2.0
+ *	
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ *	
  * ************************************************************/
 #endregion

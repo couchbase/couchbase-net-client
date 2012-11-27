@@ -37,7 +37,7 @@ namespace Couchbase
 		/// <summary>
 		/// Handle the scenario when PersistTo == 1
 		/// </summary>
-		public IObserveOperationResult HandleMasterPersistence(ICouchbaseServerPool pool)
+		public IObserveOperationResult HandleMasterPersistence(ICouchbaseServerPool pool, ObserveKeyState passingState = ObserveKeyState.FoundPersisted)
 		{
 			try
 			{
@@ -51,15 +51,14 @@ namespace Couchbase
 					var timer = new Timer(state =>
 					{
 						result = node.ExecuteObserveOperation(commandConfig.Item3);
-
 						if (log.IsDebugEnabled) log.Debug("Node: " + node.EndPoint + ", Result: " + result.KeyState + ", Cas: " + result.Cas + ", Key: " + _settings.Key);
 
-						if (result.Success && result.Cas != _settings.Cas && result.Cas > 0)
+						if (result.Success && result.Cas != _settings.Cas && result.Cas > 0 && passingState == ObserveKeyState.FoundPersisted) //don't check CAS for deleted items
 						{
 							result.Fail(ObserveOperationConstants.MESSAGE_MODIFIED);
 							are.Set();
 						}
-						else if (result.KeyState == ObserveKeyState.FoundPersisted)
+						else if (result.KeyState == passingState)
 						{
 							result.Pass();
 							are.Set();
@@ -76,7 +75,7 @@ namespace Couchbase
 
 					timer.Change(-1, -1);
 
-				} while (result.Message == string.Empty && result.KeyState != ObserveKeyState.FoundPersisted);
+				} while (result.Message == string.Empty && result.KeyState != passingState);
 
 				return result;
 			}
@@ -90,11 +89,11 @@ namespace Couchbase
 			}
 		}
 
-		public IObserveOperationResult HandleMasterPersistenceWithReplication(ICouchbaseServerPool pool)
+		public IObserveOperationResult HandleMasterPersistenceWithReplication(ICouchbaseServerPool pool, ObserveKeyState persistedKeyState, ObserveKeyState replicatedKeyState)
 		{
 			try
 			{
-				return performParallelObserve(pool);
+				return performParallelObserve(pool, persistedKeyState, replicatedKeyState);
 			}
 			catch (ObserveExpectationException ex)
 			{
@@ -106,7 +105,7 @@ namespace Couchbase
 			}
 		}
 
-		private IObserveOperationResult performParallelObserve(ICouchbaseServerPool pool)
+		private IObserveOperationResult performParallelObserve(ICouchbaseServerPool pool, ObserveKeyState persistedKeyState, ObserveKeyState replicatedKeyState)
 		{
 			var commandConfig = setupObserveOperation(pool);
 			var observedNodes = commandConfig.Item2.Select(n => new ObservedNode
@@ -126,7 +125,7 @@ namespace Couchbase
 				var are = new AutoResetEvent(false);
 				var timer = new Timer(state =>
 				{
-					result = checkNodesForKey(observedNodes, commandConfig.Item3, ref isKeyPersistedToMaster, ref replicaFoundCount, ref replicaPersistedCount);
+					result = checkNodesForKey(observedNodes, commandConfig.Item3, ref isKeyPersistedToMaster, ref replicaFoundCount, ref replicaPersistedCount, persistedKeyState, replicatedKeyState);
 
 					if (result.Message == ObserveOperationConstants.MESSAGE_MODIFIED)
 					{
@@ -135,8 +134,8 @@ namespace Couchbase
 					}
 					else if (isInExpectedState(replicaFoundCount, replicaPersistedCount, isKeyPersistedToMaster))
 					{
-						are.Set();
 						result.Pass();
+						are.Set();
 					}
 
 				}, are, 0, 500);
@@ -159,7 +158,7 @@ namespace Couchbase
 			return result;
 		}
 
-		private IObserveOperationResult checkNodesForKey(ObservedNode[] nodes, IObserveOperation command, ref bool isMasterInExpectedState, ref int replicaFoundCount, ref int replicaPersistedCount)
+		private IObserveOperationResult checkNodesForKey(ObservedNode[] nodes, IObserveOperation command, ref bool isMasterInExpectedState, ref int replicaFoundCount, ref int replicaPersistedCount, ObserveKeyState persistedKeyState, ObserveKeyState replicatedKeyState)
 		{
 			var tmpReplicaFoundCount = 0;
 			var tmpReplicaPersistedCount = 0;
@@ -172,20 +171,21 @@ namespace Couchbase
 				lock (lockObject)
 				{
 					var opResult = node.Node.ExecuteObserveOperation(command);
-
 					if (log.IsDebugEnabled) log.Debug("Node: " + node.Node.EndPoint + ", Result: " + opResult.KeyState + ", Master: " + node.IsMaster + ", Cas: " + opResult.Cas + ", Key: " + _settings.Key);
 
 					if (!opResult.Success) //Probably an IO Exception
 					{
 						break;
 					}
-					else if (node.IsMaster && opResult.Cas != _settings.Cas)
+					else if (node.IsMaster && opResult.Cas != _settings.Cas &&
+							 (persistedKeyState == ObserveKeyState.FoundPersisted ||
+							  replicatedKeyState == ObserveKeyState.FoundNotPersisted))
 					{
 						result.Success = false;
 						result.Message = ObserveOperationConstants.MESSAGE_MODIFIED;
 						break;
 					}
-					else if (opResult.KeyState == ObserveKeyState.FoundPersisted)
+					else if (opResult.KeyState == persistedKeyState)
 					{
 						node.KeyIsPersisted = true;
 						if (node.IsMaster)
@@ -197,7 +197,7 @@ namespace Couchbase
 							tmpReplicaPersistedCount++;
 						}
 					}
-					else if (opResult.KeyState == ObserveKeyState.FoundNotPersisted)
+					else if (opResult.KeyState == replicatedKeyState)
 					{
 						if (!node.IsMaster)
 						{
@@ -222,7 +222,7 @@ namespace Couchbase
 			var replicateTo = (int)_settings.ReplicateTo;
 
 			var isExpectedReplication = (replicaFoundCount >= replicateTo || replicaPersistedCount >= replicateTo);
-			var isExpectedReplicationPersistence = (replicaPersistedCount >= persistedTo-1); //don't count master
+			var isExpectedReplicationPersistence = (replicaPersistedCount >= persistedTo - 1); //don't count master
 			var isExpectedMasterPersistence = _settings.PersistTo == PersistTo.Zero || ((persistedTo >= 1) && masterPersisted);
 
 			if (log.IsDebugEnabled) log.Debug("Expected Replication: " + isExpectedReplication + ", Expected Persistence: " + isExpectedReplicationPersistence + ", Expected Master Persistence: " + isExpectedMasterPersistence);
@@ -263,23 +263,23 @@ namespace Couchbase
 	}
 }
 
-#region [ License information          ]
+#region [ License information		  ]
 /* ************************************************************
  * 
- *    @author Couchbase <info@couchbase.com>
- *    @copyright 2012 Couchbase, Inc.
- *    
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *    
- *        http://www.apache.org/licenses/LICENSE-2.0
- *    
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *    
+ *	@author Couchbase <info@couchbase.com>
+ *	@copyright 2012 Couchbase, Inc.
+ *	
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
+ *	
+ *		http://www.apache.org/licenses/LICENSE-2.0
+ *	
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ *	
  * ************************************************************/
 #endregion

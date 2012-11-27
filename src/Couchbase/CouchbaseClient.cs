@@ -18,7 +18,7 @@ using Couchbase.Settings;
 
 namespace Couchbase
 {
-	/// <summary>
+	/// <summary>D:\dev\couchbase-net-client\src\Couchbase\CouchbaseViewBase.cs
 	/// Client which can be used to connect to Couchbase servers.
 	/// </summary>
 	public class CouchbaseClient : MemcachedClient, IHttpClientLocator, ICouchbaseClient
@@ -554,7 +554,42 @@ namespace Couchbase
 			return storeResult;
 		}
 
-		public IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo)
+		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo, ReplicateTo replciateTo)
+		{
+			var removeResult = base.ExecuteRemove(key);
+
+			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
+			{
+				return removeResult;
+			}
+
+			var observeResult = Observe(key, 0, persistTo, replciateTo, ObserveKeyState.NotFound, ObserveKeyState.LogicallyDeleted);
+
+			if (observeResult.Success)
+			{
+				observeResult.Combine(removeResult);
+			}
+			else
+			{
+				observeResult.Combine(removeResult);
+			}
+
+			return removeResult;
+		}
+
+		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo)
+		{
+			return ExecuteRemove(key, persistTo, ReplicateTo.Zero);
+		}
+
+		public IRemoveOperationResult ExecuteRemove(string key, ReplicateTo replicateTo)
+		{
+			return ExecuteRemove(key, PersistTo.Zero, replicateTo);
+		}
+
+		public IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo,
+											   ObserveKeyState persistedKeyState = ObserveKeyState.FoundPersisted,
+											   ObserveKeyState replicatedState = ObserveKeyState.FoundNotPersisted)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var vbucket = this.poolInstance.GetVBucket(key);
@@ -572,11 +607,11 @@ namespace Couchbase
 			//Master only persistence
 			if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.One)
 			{
-				return runner.HandleMasterPersistence(poolInstance);
+				return runner.HandleMasterPersistence(poolInstance, persistedKeyState);
 			}
 			else
 			{
-				return runner.HandleMasterPersistenceWithReplication(poolInstance);
+				return runner.HandleMasterPersistenceWithReplication(poolInstance, persistedKeyState, replicatedState);
 			}
 
 		}
@@ -743,7 +778,7 @@ namespace Couchbase
 				designName = this.documentNameTransformer.Transform(designName);
 		}
 
-		#region [ IHttpClientLocator           ]
+		#region [ IHttpClientLocator		   ]
 
 		IHttpClient IHttpClientLocator.Locate(string designDocument)
 		{
@@ -760,7 +795,7 @@ namespace Couchbase
 
 		#endregion
 
-		#region [ parameter helpers            ]
+		#region [ parameter helpers			]
 
 		private static T ThrowIfNull<T>(T input, string parameterName)
 			where T : class
@@ -781,24 +816,24 @@ namespace Couchbase
 	}
 }
 
-#region [ License information          ]
+#region [ License information		  ]
 /* ************************************************************
  * 
- *    @author Couchbase <info@couchbase.com>
- *    @copyright 2012 Couchbase, Inc.
- *    @copyright 2010 Attila Kiskó, enyim.com
- *    
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *    
- *        http://www.apache.org/licenses/LICENSE-2.0
- *    
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *    
+ *	@author Couchbase <info@couchbase.com>
+ *	@copyright 2012 Couchbase, Inc.
+ *	@copyright 2010 Attila Kiskó, enyim.com
+ *	
+ *	Licensed under the Apache License, Version 2.0 (the "License");
+ *	you may not use this file except in compliance with the License.
+ *	You may obtain a copy of the License at
+ *	
+ *		http://www.apache.org/licenses/LICENSE-2.0
+ *	
+ *	Unless required by applicable law or agreed to in writing, software
+ *	distributed under the License is distributed on an "AS IS" BASIS,
+ *	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *	See the License for the specific language governing permissions and
+ *	limitations under the License.
+ *	
  * ************************************************************/
 #endregion
