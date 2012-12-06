@@ -12,6 +12,12 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseJsonExtensionTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: create a city object, store it in form of json against
+        /// a unique key, then get the value, it should be saved as type string
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if result is of type string
+        /// </summary>
 		[Test]
 		public void When_Saving_City_With_JsonStore_City_Is_Stored_As_String()
 		{
@@ -23,6 +29,12 @@ namespace Couchbase.Tests
 			Assert.That(savedCity, Is.InstanceOf<string>());
 		}
 
+        /// <summary>
+        /// @test: create a city object, store it in form of json against
+        /// a unique key, then get the Json object as return value
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if result is of type json object
+        /// </summary>
 		[Test]
 		public void When_Getting_City_With_JsonGet_City_Is_Returned_As_City()
 		{

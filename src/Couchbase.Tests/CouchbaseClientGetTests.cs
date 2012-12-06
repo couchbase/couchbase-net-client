@@ -10,7 +10,11 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientGetTests : CouchbaseClientTestsBase
 	{
-
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Then get the value associated with the given key
+        /// @pre: Default configuration to initialize client  in App.config
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Getting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
@@ -23,6 +27,11 @@ namespace Couchbase.Tests
 			GetAssertPass(getResult, value);
 		}
 
+        /// <summary>
+        /// @test: Getting a value for key that is invalid and does not exist, the test would fail
+        /// @pre: Default configuration to initialize client  in App.config
+        /// @post: Test passes if Get method to retrive the value for invalid key fails
+        /// </summary>
 		[Test]
 		public void When_Getting_Item_For_Invalid_Key_HasValue_Is_False_And_Result_Is_Not_Successful()
 		{
@@ -33,6 +42,11 @@ namespace Couchbase.Tests
 			GetAssertFail(getResult);
 		}
 
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Then try-get the value associated with the given key
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores key-value and then get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_TryGetting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
@@ -46,6 +60,12 @@ namespace Couchbase.Tests
 			GetAssertPass(getResult, temp);
 		}
 
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Use generic type string.
+        /// Then get the value associated with the given key
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Generic_Getting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
@@ -62,6 +82,11 @@ namespace Couchbase.Tests
 			Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
 		}
 
+        /// <summary>
+        /// @test: Store multiple keys in data bucket. Then get the keys and verify the count
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores all keys and count is correct
+        /// </summary>
 		[Test]
 		public void When_Getting_Multiple_Keys_Result_Is_Successful()
 		{
@@ -80,6 +105,12 @@ namespace Couchbase.Tests
 			}
 		}
 
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Then get the value associated with the given key
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores key-value and then able to get value 
+        /// when expiration is not null
+        /// </summary>
 		[Test]
 		public void When_Getting_Existing_Item_Value_With_Expiration_Is_Not_Null_And_Result_Is_Successful()
 		{
@@ -92,6 +123,11 @@ namespace Couchbase.Tests
 			GetAssertPass(getResult, value);
 		}
 
+        /// <summary>
+        /// @test: Get the value for a key that does not exist, the get operation should fail
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if get operation fails
+        /// </summary>
 		[Test]
 		public void When_Getting_Item_For_With_Expiration_And_Invalid_Key_HasValue_Is_False_And_Result_Is_Not_Successful()
 		{
@@ -101,6 +137,11 @@ namespace Couchbase.Tests
 			GetAssertFail(getResult);
 		}
 
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Then try-get the value with expiration
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_TryGetting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
@@ -114,6 +155,11 @@ namespace Couchbase.Tests
 			GetAssertPass(getResult, temp);
 		}
 
+        /// <summary>
+        /// @test: Store a key-value in data bucket. Then get the value using generic type as string
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Generic_Getting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
 		{

@@ -8,11 +8,16 @@ using Enyim.Caching.Memcached.Results;
 
 namespace Couchbase.Tests
 {
-
 	[TestFixture(Description = "MemcachedClient Store Tests")]
 	public class CouchbaseClientCasTests : CouchbaseClientTestsBase
 	{
-
+        /// <summary>
+        /// @test: Store a randomly generated unique key-value, use he CAS value 
+        /// returned from the Store(), then use ExecuteCas() method
+        /// to compare and set a value using the specified key and return the store operation result
+        /// @pre: No section required in App.config file
+        /// @post: Test passes if successfully able to retrieve the same cas value, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Valid_Cas_Result_Is_Successful()
 		{
@@ -25,6 +30,13 @@ namespace Couchbase.Tests
 			StoreAssertPass(casResult);
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated unique key-value, use the different 
+        /// cas value in ExecuteCas() mehod than what is returned by Store() method, 
+        /// the ExecuteCas() fails due to invalid cas passed
+        /// @pre: No section required in App.config file
+        /// @post: Test passes if ExecuteCas() fals due to invalid cas, fails if ExecuteCas() passes
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Invalid_Cas_Result_Is_Not_Successful()
 		{

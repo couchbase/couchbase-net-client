@@ -11,10 +11,16 @@ using Couchbase.Operations;
 
 namespace Couchbase.Tests
 {
-
 	[TestFixture]
 	public class CouchbaseClientGenericViewTests : CouchbaseClientViewTestsBase
 	{
+        /// <summary>
+        /// @test: Set shouldlookupDocById to true, GetView() method will retrieve
+        /// the view by id and verifies that all properties of 
+        /// view type (City in this context) are correct
+        /// @pre: Define CityViews.json to create views
+        /// @post: Test passes if GetView returns results correctly
+        /// </summary>
 		[Test]
 		public void When_Should_Lookup_By_Id_Is_True_Document_Is_Retrieved_By_Id()
 		{
@@ -31,6 +37,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
 
+        /// <summary>
+        /// @test: Set shouldlookupDocById to false, GetView() method will retrieve
+        /// the view by id and verifies that all properties of 
+        /// view type (City in this context) are correct
+        /// @pre: Define CityViews.json to create views
+        /// @post: Test passes if GetView returns results correctly
+        /// </summary>
 		[Test]
 		public void When_Should_Lookup_By_Id_Is_False_Document_Is_Deserialized_By_Property_Mapping()
 		{
@@ -43,6 +56,11 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
 
+        /// <summary>
+        /// @test: Store a json format document and then get the view with stale mode false
+        /// @pre: Define data to be stored in json format
+        /// @post: Test passes if GetView returns results correctly
+        /// </summary>
 		[Test]
 		public void When_Iterating_Over_A_Non_Stale_View_Deleted_Keys_Return_Null()
 		{

@@ -12,6 +12,13 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientSpatialViewTests : CouchbaseClientViewTestsBase
 	{
+        /// <summary>
+        /// @test: Get spatial view of a given design name and view name, 
+        /// all the propeties of view should have correct values
+        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// City views in cluster
+        /// @post: Test passes if view prperties are not null
+        /// </summary>
 		[Test]
 		public void When_Querying_Spatial_View_Results_Are_Returned()
 		{
@@ -28,6 +35,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
 
+        /// <summary>
+        /// @test: Get spatial view of generic type City of a given design name and view name, 
+        /// set look up by id to true, all the propeties of view should have correct values
+        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// City views in cluster
+        /// @post: Test passes if view prperties are not null
+        /// </summary>
 		[Test]
 		public void When_Querying_Spatial_View_With_Generics_And_Should_Lookup_Doc_By_Id_Is_True_Results_Are_Returned()
 		{
@@ -43,6 +57,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
 
+        /// <summary>
+        /// @test: Get spatial view of generic type City of a given design name and view name, 
+        /// set look up by id to false, all the propeties of view should have correct values
+        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// City views in cluster
+        /// @post: Test passes if the count of view is greater than 0
+        /// </summary>
 		[Test]
 		public void When_Querying_Spatial_View_With_Generics_And_Should_Lookup_Doc_By_Id_Is_False_Results_Are_Returned()
 		{
@@ -55,6 +76,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.GreaterThan(0), "View count was 0");
 		}
 
+        /// <summary>
+        /// @test: Get spatial view of generic type City of a given design name and view name, 
+        /// set limit to 2, then the view should return 2 rows
+        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// City views in cluster
+        /// @post: Test passes if view count is equal to 2
+        /// </summary>
 		[Test]
 		public void When_Querying_Spatial_View_With_Limit_Rows_Are_Limited()
 		{
@@ -62,6 +90,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.EqualTo(2), "View count was not 2");
 		}
 
+        /// <summary>
+        /// @test: Get spatial view with bounding box, the result rows would be limited but 
+        /// should have at least one record
+        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// City views in cluster
+        /// @post: Test passes if view count is at least one
+        /// </summary>
 		[Test]
 		public void When_Querying_Spatial_View_With_Bounding_Box_Rows_Are_Limited()
 		{
@@ -77,6 +112,12 @@ namespace Couchbase.Tests
 			Assert.That(hasAtLeastOneRecord, Is.True, "No records found");
 		}
 
+        /// <summary>
+        /// @test: Store a new json format document and then get spatial view with stale mode false,
+        /// the view result will contain new document
+        /// @pre: Default configuration to initialize client in app.config, create a new json file for view
+        /// @post: Test passes if view contains new json document
+        /// </summary>
 		[Test]
 		public void When_Iterating_Over_A_Non_Stale_Spatial_View_Deleted_Keys_Return_Null()
 		{

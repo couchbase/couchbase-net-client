@@ -9,6 +9,13 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientConcatTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: Store a randomly generated unique key-value, use the different 
+        /// cas value in ExecuteCas() mehod than what is returned by Store() method, 
+        /// the ExecuteCas() fails due to invalid cas passed
+        /// @pre: No section required in App.config file
+        /// @post: Test passes if ExecuteCas() fails due to invalid cas, fails if ExecuteCas() passes
+        /// </summary>
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful()
 		{
@@ -25,9 +32,16 @@ namespace Couchbase.Tests
 
 			var getResult = _Client.ExecuteGet(key);
 			GetAssertPass(getResult, value + toAppend);
-
 		}
 
+
+        /// <summary>
+        /// @test: Generate a unique key, use ExecuteAppend() to save data in that key,
+        /// since the key does not exist aleady, append operation would fail, then get value from
+        /// the same key, it will fail again as the key does not exist
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecuteAppend() and ExecuteGet() both fail, which is the expected behaviour
+        /// </summary>
 		[Test]
 		public void When_Appending_To_Invalid_Key_Result_Is_Not_Successful()
 		{
@@ -43,6 +57,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and store it, Prepend some text to that key-value, 
+        /// it should pass, then get the value against the same key, it should pass
+        /// @pre: Generate a unique key and data to prepend in that key
+        /// @post: Test passes if ExecutePrepend() and ExecuteGet() both pass
+        /// </summary>
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Successful()
 		{
@@ -62,6 +82,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key but do not store it, Prepend some text to that key-value, 
+        /// it should fail as key is invalid, then get the value against the same key, it should fail
+        /// @pre: Generate a unique key and data to prepend in that key
+        /// @post: Test passes if ExecutePrepend() and ExecuteGet() both fail
+        /// </summary>
 		[Test]
 		public void When_Prepending_To_Invalid_Key_Result_Is_Not_Successful()
 		{
@@ -77,6 +103,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and store it, Prepend some text to that key-value, 
+        /// it should pass, then get the value against the same key, it should pass
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecutePrepend() and ExecuteGet() both pass
+        /// </summary>
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful_With_Valid_Cas()
 		{
@@ -96,6 +128,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and store it, Append some text but use a different key
+        /// it should fail
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecuteAppend() fails
+        /// </summary>
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Not_Successful_With_Invalid_Cas()
 		{
@@ -111,6 +149,12 @@ namespace Couchbase.Tests
 			ConcatAssertFail(concatResult);
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and store it, Append some text and use the same cas key
+        /// then get the value against the same key
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecuteAppend() and ExecuteGet() passes
+        /// </summary>
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Successful_With_Valid_Cas()
 		{
@@ -127,9 +171,14 @@ namespace Couchbase.Tests
 
 			var getResult = _Client.ExecuteGet(key);
 			GetAssertPass(getResult, value + tpPrepend);
-
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and store it, Append some text and use the different cas key,
+        /// the test should fail
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecuteAppend() passes
+        /// </summary>
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Not_Successful_With_Invalid_Cas()
 		{

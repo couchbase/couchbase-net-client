@@ -11,7 +11,13 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseAuthenticatedViewTests : CouchbaseClientViewTestsBase
 	{
-
+        /// <summary>
+        /// @test: Verifies that for the bucket which is authenticated with password, it is able to connect successfully 
+        /// if correct cedentials are provided and then returns the object representing the view in specfied design document
+        /// @pre: Provide the bucket name and password in method getClient(), 
+        /// provide correct design name and view name to method GetView()
+        /// @post: Test passes if connects to client successfully and get the details of View with given data, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Bucket_Is_Authenticated_View_Returns_Results()
 		{
@@ -21,6 +27,13 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
 		}
 
+        /// <summary>
+        /// @test: Verifies that for the bucket which is authenticated with password, it throws an error
+        /// if no credentials are provided and hence cannot return the object representing the view in specfied design document
+        /// @pre: Provide the bucket name but no password in method getClient(), 
+        /// provide design name and view name to method GetView()
+        /// @post: Test passes if the web exception (401) is thrown
+        /// </summary>
 		[ExpectedException(typeof(WebException), ExpectedMessage="401", MatchType=MessageMatch.Contains)]
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_No_Credentials_Are_Provided_Exception_Is_Thrown()
@@ -30,6 +43,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// Connects to couchbase client with given configuration details
+        /// </summary>
+        /// <param name="username">Name of bucket to be used</param>
+        /// <param name="password">Password used to connect to bucket</param>
+        /// <returns>Couchbase client object</returns>
 		private CouchbaseClient getClient(string username, string password)
 		{
 			var config = new CouchbaseClientConfiguration();

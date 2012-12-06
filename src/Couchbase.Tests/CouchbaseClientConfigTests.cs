@@ -11,6 +11,14 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientConfigTests
 	{
+        /// <summary>
+        /// @test: Reads the information about couchbase client configuration from App.Config,
+        /// and verifies that all properties are set
+        /// @pre: Add section named "couchbase" in App.config file, 
+        /// configure all the parameters required to initialize Couchbase client like Uri, bucket, username, password etc.
+        /// @post: Test passes if able to retrieve couchbase client configuration, the username and password match with
+        /// expected details, fails otherwise
+        /// </summary>
 		[Test]
 		public void When_Setting_Username_And_Password_In_Config_Section_Config_Instance_Properties_Are_Set()
 		{

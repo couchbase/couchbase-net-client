@@ -12,15 +12,24 @@ namespace Couchbase.Tests
 	[TestFixture(Description = "MemcachedClient Store Tests")]
 	public class CouchbaseClientStoreTests : CouchbaseClientTestsBase
 	{
-
+        /// <summary>
+        /// @test: Store a randomly generated key, with store mode Add, new key is added
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if new key is added successfully
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Add_Result_Is_Successful()
 		{
 			var result = Store(StoreMode.Add);
 			StoreAssertPass(result);
-
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated key, store again using same key with Add operation,
+        /// the result will not be successful
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if new key is added first time and second time it fails
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Add_Result_Is_Not_Successful()
 		{
@@ -32,6 +41,11 @@ namespace Couchbase.Tests
 			StoreAssertFail(result);
 		}
 
+        /// <summary>
+        /// @test: Store a new key with store mode replace will fail as the key does not exist
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if replace fails
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Replace_Result_Is_Not_Successful()
 		{
@@ -40,6 +54,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated key, with store mode Add, then change the key
+        /// with store mode replace, key should be replaced successfully
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if new key is added and later replaced successfully
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Replace_Result_Is_Successful()
 		{
@@ -51,6 +71,12 @@ namespace Couchbase.Tests
 			StoreAssertPass(result);
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated key, with store mode Set, 
+        /// new key should be stored correctly
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if new key is stored successfully
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Set_Result_Is_Successful()
 		{
@@ -59,6 +85,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated key, with store mode Add, then change the key
+        /// with store mode set, key should be set successfully
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if new key is stored successfully
+        /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Set_Result_Is_Successful()
 		{

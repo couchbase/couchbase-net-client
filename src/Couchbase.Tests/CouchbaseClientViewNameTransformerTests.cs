@@ -11,12 +11,22 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientViewNameTransformerTests : CouchbaseClientViewTestsBase
 	{
+        /// <summary>
+        /// @test: Design document name is prefixed with "dev_" in development mode
+        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo" 
+        /// @post: Test passes if name changes and is prefixed with dev_ as expected
+        /// </summary>
 		[Test]
 		public void When_Setting_Design_Document_Name_Transformer_To_Dev_Views_Are_Prefixed_With_Dev()
 		{
 			testTransformedDesignDocName(new DevelopmentModeNameTransformer(), "foo", "dev_foo");
 		}
 
+        /// <summary>
+        /// @test: Design document name is not prefixed in production views
+        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo" 
+        /// @post: Test passes if name does not change and is not prefixed with any string
+        /// </summary>
 		[Test]
 		public void When_Setting_Design_Document_Name_Transformer_To_Prod_Views_Are_Not_Prefixed()
 		{
