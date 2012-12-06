@@ -19,6 +19,11 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClusterBucketAdminTests : CouchbaseClusterTestsBase
 	{
+        /// <summary>
+        /// @test: List buckets in cluster should return default bucket
+        /// @pre: Default configuration to initialize client in app.config to initialize client in app.config and cluster should have a default bucket 
+        /// @post: Test passes if default bucket is found
+        /// </summary>
 		[Test]
 		public void When_Listing_Buckets_Default_Bucket_Is_Returned()
 		{
@@ -26,6 +31,12 @@ namespace Couchbase.Tests
 			Assert.That(buckets.FirstOrDefault(b => b.Name == "default"), Is.Not.Null, "default bucket was not found");
 		}
 
+        /// <summary>
+        /// @test: List buckets in cluster with invalid server configuration 
+        /// should return argument null exception
+        /// @pre: Use incorrect configuration of server 
+        /// @post: Test passes if error is thrown
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentNullException))]
 		public void When_Listing_Buckets_With_Invalid_Config_Argument_Exception_Is_Thrown()
@@ -37,6 +48,11 @@ namespace Couchbase.Tests
 			var buckets = server.ListBuckets();
 		}
 
+        /// <summary>
+        /// @test: Try List buckets in cluster should return default bucket
+        /// @pre: Default configuration to initialize client in app.config and cluster should have a default bucket 
+        /// @post: Test passes if default bucket is found
+        /// </summary>
 		[Test]
 		public void When_Try_Listing_Buckets_Default_Bucket_Is_Returned()
 		{
@@ -46,6 +62,12 @@ namespace Couchbase.Tests
 			Assert.That(result, Is.True);
 		}
 
+        /// <summary>
+        /// @test: Try List buckets in  with invalid configuration should return false
+        /// and no exception is thrown
+        /// @pre: Default configuration to initialize client in app.config an use invalid configuration 
+        /// @post: Test passes if default bucket is found
+        /// </summary>
 		[Test]
 		public void When_Try_Listing_Buckets_With_Invalid_Config_No_Exception_Is_Thrown_And_Return_Value_Is_False()
 		{
@@ -59,6 +81,11 @@ namespace Couchbase.Tests
 			Assert.That(result, Is.False);
 		}
 
+        /// <summary>
+        /// @test: Create a SASL bucket and then retrieve its object and then delete it
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is created, retrieved and later removed successfully
+        /// </summary>
 		[Test]
 		public void When_Getting_Bucket_That_Bucket_Is_Not_Null()
 		{
@@ -81,6 +108,11 @@ namespace Couchbase.Tests
 			_Cluster.DeleteBucket(bucketName);
 		}
 
+        /// <summary>
+        /// @test: create invalid bucket, while retrieving bucket, web exception is thrown
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if invalid bucket throws web exception
+        /// </summary>
 		[ExpectedException(typeof(WebException))]
 		[Test]
 		public void When_Getting_Invalid_Bucket_Web_Exception_Is_Thrown()
@@ -104,6 +136,11 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: create sasl bucket and try get bucket should not be null
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if bucket is created and found
+        /// </summary>
 		[Test]
 		public void When_Try_Getting_Bucket_That_Bucket_Is_Not_Null()
 		{
@@ -126,6 +163,11 @@ namespace Couchbase.Tests
 			_Cluster.DeleteBucket(bucketName);
 		}
 
+        /// <summary>
+        /// @test: Create bucket, getting bucket item count should match basic stats
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is created and the item count matches basic stats
+        /// </summary>
 		[Test]
 		public void When_Getting_Bucket_Item_Count_Count_Matches_Basic_Stats()
 		{
@@ -150,6 +192,11 @@ namespace Couchbase.Tests
 			_Cluster.DeleteBucket(bucketName);
 		}
 
+        /// <summary>
+        /// @test: Create bucket, getting cluster item count should match interesting stats
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is created and the item count matches interesting stats
+        /// </summary>
 		[Test]
 		public void When_Getting_Cluster_Item_Count_Count_Matches_Interesting_Stats()
 		{
@@ -174,6 +221,11 @@ namespace Couchbase.Tests
 			_Cluster.DeleteBucket(bucketName);
 		}
 
+        /// <summary>
+        /// @test: Try get invalid bucket should throw an invalid exception
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception is thrown
+        /// </summary>
 		[Test]
 		public void When_Try_Getting_Invalid_Bucket_Web_Exception_Is_Not_Thrown()
 		{
@@ -207,6 +259,11 @@ namespace Couchbase.Tests
 			Assert.That(getResult.Value, Is.Null);
 		}
 
+        /// <summary>
+        /// @test: create bucket and verify that the bucket gets listed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is listed correctly
+        /// </summary>
 		[Test]
 		public void When_Creating_New_Bucket_That_Bucket_Is_Listed()
 		{
@@ -230,6 +287,11 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: create bucket and update it and verify that the bucket gets listed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if updated bucket is listed correctly
+        /// </summary>
 		[Test]
 		public void When_Updating_Bucket_That_Bucket_Is_Listed()
 		{
@@ -266,6 +328,11 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: create new memcached bucket and verify that the bucket gets listed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is listed correctly
+        /// </summary>
 		[Test]
 		public void When_Creating_New_Memcached_Bucket_That_Bucket_Is_Listed()
 		{
@@ -290,6 +357,11 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: create new bucket with existing name and verify that the exception is thrown
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if error is thrown
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(WebException))]
 		public void When_Creating_New_Bucket_With_Existing_Name_Web_Exception_Is_Thrown()
@@ -304,7 +376,12 @@ namespace Couchbase.Tests
 			});
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: create bucket with no authorizaton and port and verify that the error is thrown
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if error is thrown
+        /// </summary>
+        [Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "ProxyPort", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Auth_Type_None_And_No_Port_Argument_Exception_Is_Thrown()
 		{
@@ -318,6 +395,11 @@ namespace Couchbase.Tests
 			});
 		}
 
+        /// <summary>
+        /// @test: create sasl bucket with no authorization type and verify that the error is thrown
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if error is thrown
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "ProxyPort", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Auth_Type_Sasl_And_Port_Argument_Exception_Is_Thrown()
@@ -332,7 +414,11 @@ namespace Couchbase.Tests
 			});
 		}
 
-
+        /// <summary>
+        /// @test: create bucket with RAM quota less than 100 and verify that the error is thrown
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is error is thrown
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "Quota.RAM", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Ram_Quota_Less_Than_100_Argument_Exception_Is_Thrown()
@@ -347,6 +433,11 @@ namespace Couchbase.Tests
 			});
 		}
 
+        /// <summary>
+        /// @test: create and delete bucket and verify that the bucket no longer is listed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if bucket is not listed after deletion
+        /// </summary>
 		[Test]
 		public void When_Deleting_Bucket_Bucket_Is_No_Longer_Listed()
 		{
@@ -372,7 +463,12 @@ namespace Couchbase.Tests
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: delete bucket that does not exist and exception is thrown
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if deleting bucket throws an error
+        /// </summary>
+        [Test]
 		[ExpectedException(typeof(WebException), ExpectedMessage = "404", MatchType = MessageMatch.Contains)]
 		public void When_Deleting_Bucket_That_Does_Not_Exist_404_Web_Exception_Is_Thrown()
 		{
@@ -381,6 +477,11 @@ namespace Couchbase.Tests
 			_Cluster.DeleteBucket(bucketName);
 		}
 
+        /// <summary>
+        /// @test: create new bucket, wait that it gets listed, and verify that bucket counts are set on basic stats
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if deleting bucket throws an error
+        /// </summary>
 		[Test]
 		public void When_Creating_New_Bucket_Item_Counts_Are_Set_On_Basic_Stats()
 		{
@@ -429,7 +530,11 @@ namespace Couchbase.Tests
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: create bucket and then list the bucket, object graph should be populated
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if graph is populated
+        /// </summary>
 		public void When_Listing_Bucket_Object_Graph_Is_Populated()
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
@@ -470,6 +575,10 @@ namespace Couchbase.Tests
 		}
 
 		#region Design Documents
+        /// <summary>
+        /// @test: create design document and verify that the operation is successful
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if operation is successful
 		[Test]
 		public void When_Creating_Design_Document_Operation_Is_Successful()
 		{
@@ -485,6 +594,11 @@ namespace Couchbase.Tests
 			Assert.That(result, Is.True);
 		}
 
+        /// <summary>
+        /// @test: create stream to read json file and use stream to create design document
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if operation to create design document is successful
+        /// </summary>
 		[Test]
 		public void When_Creating_Design_Document_With_Stream_Operation_Is_Successful()
 		{
@@ -494,6 +608,11 @@ namespace Couchbase.Tests
 			Assert.That(result, Is.True);
 		}
 
+        /// <summary>
+        /// @test: create design document with invalid json argument and exception should occur
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception occurs
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentException))]
 		public void When_Creating_Design_Document_With_Invalid_Json_Argument_Exception_Is_Thrown()
@@ -501,6 +620,11 @@ namespace Couchbase.Tests
 			_Cluster.CreateDesignDocument("default", "cities", "foo");
 		}
 
+        /// <summary>
+        /// @test: create design document with missing argument and exception should occur
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception occurs
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "nam", MatchType = MessageMatch.Contains)]
 		public void When_Creating_Design_Document_With_Missing_Name_Argument_Exception_Is_Thrown()
@@ -509,6 +633,11 @@ namespace Couchbase.Tests
 			_Cluster.CreateDesignDocument("default", "", json);
 		}
 
+        /// <summary>
+        /// @test: create design document with missing view argument and exception should occur
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception occurs
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "nam", MatchType = MessageMatch.Contains)]
 		public void When_Creating_Design_Document_With_Missing_Views_Argument_Exception_Is_Thrown()
@@ -517,6 +646,11 @@ namespace Couchbase.Tests
 			_Cluster.CreateDesignDocument("default", "", json);
 		}
 
+        /// <summary>
+        /// @test: create design document and then retrieve it, operation should succeed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if operaton is successful
+        /// </summary>
 		[Test]
 		public void When_Retrieving_Design_Document_Operation_Is_Successful()
 		{
@@ -535,6 +669,11 @@ namespace Couchbase.Tests
 			Assert.That(Regex.Replace(json, @"\s", ""), Is.StringContaining(Regex.Replace(clusterJson, @"\s", "")));
 		}
 
+        /// <summary>
+        /// @test: retrieve design document that is invalid, exception should occur
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception occurs
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(WebException), ExpectedMessage="404", MatchType=MessageMatch.Contains)]
 		public void When_Retrieving_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
@@ -542,6 +681,10 @@ namespace Couchbase.Tests
 			var result = _Cluster.RetrieveDesignDocument("foo", "bar");
 		}
 
+        /// <summary>
+        /// @test: create design document and then delete it, operation should be successful
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if deletion happens successfully
 		[Test]
 		public void When_Deleting_Design_Document_Operation_Is_Successful()
 		{
@@ -564,6 +707,11 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: delete invalid design document and exception should occur
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if exception occurs
+        /// </summary>
 		[Test]
 		[ExpectedException(typeof(WebException), ExpectedMessage = "404", MatchType = MessageMatch.Contains)]
 		public void When_Deleting_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
@@ -571,7 +719,13 @@ namespace Couchbase.Tests
 			var result = _Cluster.DeleteDesignDocument("foo", "bar");
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: create design document, retrieve and delete it using a non default bucket and
+        /// verify that the operation is successful
+        /// @pre: non default configuration to initialize client in app.config
+        /// @post: Test passes if all the operations happen successfully
+        /// </summary>
+        [Test]
 		public void When_Managing_Design_Document_On_Non_Default_Bucket_Operation_Is_Successful()
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;

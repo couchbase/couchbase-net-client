@@ -12,6 +12,15 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class ConfigHelperTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: Reads the information about available data buckets from pools, 
+        /// generates a random key-value, stores in the available data bucket, and then
+        /// retrive the value by passing the same key for verification
+        /// @pre: Add section named "pools-config" in App.config file, 
+        /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
+        /// mention uri = http://<Url_Of_Couchbase_Server>/pools
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Root_Uri()
 		{
@@ -21,12 +30,19 @@ namespace Couchbase.Tests
 			string key = GetUniqueKey(), value = GetRandomString();
 			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
 			StoreAssertPass(storeResult);
-
 			var getResult = client.ExecuteGet(key);
 			GetAssertPass(getResult, value);
-
 		}
 
+        /// <summary>
+        /// @test: Reads the information about available data buckets from pools/default, 
+        /// generates a random key-value, stores in the default data bucket, and then
+        /// retrive the value by passing the same key for verification
+        /// @pre: Add section named "pools-default-config" in App.config file, 
+        /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
+        /// mention uri = http://<Url_Of_Couchbase_Server>/pools/default
+        /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
+        /// </summary>
 		[Test]
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Default_Root_Uri()
 		{

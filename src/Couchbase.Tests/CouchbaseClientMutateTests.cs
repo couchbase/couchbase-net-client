@@ -9,6 +9,12 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientMutateTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: Store a randomly generated key, with a value lets say 100, increment
+        /// the key with the delta of lets say 10, the result of mutation should be 110
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if mutate operation increments the key correctly
+        /// </summary>
 		[Test]
 		public void When_Incrementing_Value_Result_Is_Successful()
 		{
@@ -20,6 +26,12 @@ namespace Couchbase.Tests
 			MutateAssertPass(mutateResult, 110);
 		}
 
+        /// <summary>
+        /// @test: Store a randomly generated key, with a value lets say 100, decrement
+        /// the key with the delta of lets say 10, the result of mutation should be 90
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if mutate operation decrements the key correctly
+        /// </summary>
 		[Test]
 		public void When_Decrementing_Value_Result_Is_Successful()
 		{

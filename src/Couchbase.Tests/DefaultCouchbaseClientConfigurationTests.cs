@@ -16,6 +16,12 @@ namespace Couchbase.Tests
 	{
 		#region HTTP Factory Tests
 
+        /// <summary>
+        /// @test: create couchbase client using configuration and http client is not set, 
+        /// then it creates instance of hammock http client
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if result is of type hammock http client
+        /// </summary>
 		[Test]
 		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Hammock_Factory_Is_Default()
 		{
@@ -29,6 +35,12 @@ namespace Couchbase.Tests
 			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
 		}
 
+        /// <summary>
+        /// @test: create couchbase client using configuration from app.config and http client is not set, 
+        /// then it creates instance of hammock http client
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if result is of type hammock http client
+        /// </summary>
 		[Test]
 		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Hammock_Factory_Is_Default()
 		{
@@ -43,6 +55,13 @@ namespace Couchbase.Tests
 			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
 		}
 
+        /// <summary>
+        /// @test: create couchbase client using configuration and http client is not set, 
+        /// then it creates instance of hammock http client. perform operations like storing key value, 
+        /// the operations should all succeed
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if all operations succeed
+        /// </summary>
 		[Test]
 		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Operations_Succeed()
 		{
@@ -61,6 +80,13 @@ namespace Couchbase.Tests
 			Assert.That(value, Is.StringMatching(kv.Item2));
 		}
 
+        /// <summary>
+        /// @test: create couchbase client using configuration from code and http client is not set, 
+        /// then it creates instance of hammock http client. perform operations like
+        /// get and store and they should all pass
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if all operations should happen successfully
+        /// </summary>
 		[Test]
 		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Operations_Succeed()
 		{
@@ -85,6 +111,12 @@ namespace Couchbase.Tests
 
 		#region Design Doc Name Transformer Tests
 
+        /// <summary>
+        /// @test: Create couchbase client using code configuration, create design document with
+        /// no transformer name, the default mode will be production
+        /// @pre: Provide configuration of client like Uri, etc
+        /// @post: Test passes if Production mode is the default mode
+        /// </summary>
 		[Test]
 		public void When_Using_Code_Config_And_Design_Document_Name_Transformer_Is_Not_Set_Production_Mode_Is_Default()
 		{
@@ -94,6 +126,12 @@ namespace Couchbase.Tests
 
 			Assert.That(config.DesignDocumentNameTransformer, Is.InstanceOf<ProductionModeNameTransformer>());		}
 
+        /// <summary>
+        /// @test: Create couchbase client using configuration from App.config, create design document with
+        /// no transformer name, the default mode will be production
+        /// @pre: Provide configuration of client in app.config
+        /// @post: Test passes if Production mode is the default mode
+        /// </summary>
 		[Test]
 		public void When_Using_App_Config_And_Design_Document_Name_Transformer_Is_Not_Set_Production_Mode_Is_Default()
 		{
@@ -107,6 +145,12 @@ namespace Couchbase.Tests
 		#endregion
 
 		#region Timeouts
+
+        /// <summary>
+        /// @test: Create couchbase client and dont set time out, default would be 20 seconds
+        /// @pre: Provide configuration of client in app.config
+        /// @post: Test passes if http request time out is 20 seconds
+        /// </summary>
 		[Test]
 		public void When_Http_Timeout_Is_Not_Set_And_Using_App_Config_Default_Is_20_Seconds()
 		{
@@ -115,6 +159,11 @@ namespace Couchbase.Tests
 			Assert.That(config.Servers.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
 		}
 
+        /// <summary>
+        /// @test: Create couchbase client using code configuration and dont set time out, default would be 20 seconds
+        /// @pre: Provide configuration of client in code
+        /// @post: Test passes if http request time out is 20 seconds
+        /// </summary>
 		[Test]
 		public void When_Http_Timeout_Is_Not_Set_And_Using_Code_Config_Default_Is_20_Seconds()
 		{
@@ -123,6 +172,12 @@ namespace Couchbase.Tests
 			Assert.That(config.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
 		}
 
+        /// <summary>
+        /// @test: Create couchbase client, set time out to 30 seconds, server time out should be 30 seconds,
+        /// it will overwrite the default time out
+        /// @pre: Provide configuration of client in app.config
+        /// @post: Test passes if http request time out is 30 seconds
+        /// </summary>
 		[Test]
 		public void When_Http_Timeout_Is_Set_To_30_And_Using_App_Config_Value_Is_30_Seconds()
 		{
@@ -131,6 +186,12 @@ namespace Couchbase.Tests
 			Assert.That(config.Servers.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(30)));
 		}
 
+        /// <summary>
+        /// @test: Create couchbase client using configuration from app.config and dont set observe time out,
+        /// default would be 1 minute
+        /// @pre: Provide configuration of client in app.config
+        /// @post: Test passes if observe request time out is 1 minute
+        /// </summary>
 		[Test]
 		public void When_Observe_Timeout_Is_Not_Set_And_Using_App_Config_Default_Is_1_Minute()
 		{
@@ -139,6 +200,11 @@ namespace Couchbase.Tests
 			Assert.That(config.Servers.ObserveTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
 		}
 
+        /// <summary>
+        /// @test: Create couchbase client using code config and dont set observe time out, default would be 1 minute
+        /// @pre: Provide configuration of client in code config
+        /// @post: Test passes if observe request time out is 1 minute
+        /// </summary>
 		[Test]
 		public void When_Observe_Timeout_Is_Not_Set_And_Using_Code_Config_Default_Is_1_Minute()
 		{
@@ -147,6 +213,12 @@ namespace Couchbase.Tests
 			Assert.That(config.ObserveTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
 		}
 
+        /// <summary>
+        /// @test: Create couchbase client usng ap.config and set observe time out to 30 seconds,
+        /// the time out would be 30 seconds
+        /// @pre: Provide configuration of client in app.config
+        /// @post: Test passes if observe request time out is 30 seconds
+        /// </summary>
 		[Test]
 		public void When_Observe_Timeout_Is_Set_To_30_And_Using_App_Config_Value_Is_30_Seconds()
 		{
@@ -157,14 +229,26 @@ namespace Couchbase.Tests
 		#endregion
 
 		#region HttpClient
+
+        /// <summary>
+        /// @test: Default value of InitializeConnection property in HttpClient class from appconfig is true.
+        /// @pre: Provide configuration of client in app.config, dont specify InitializeConnection
+        /// @post: Test passes if HttpClient.InitializeConnection returns true
+        /// </summary>
 		[Test]
 		public void When_Initialize_Connection_Is_Not_Set_In_App_Config_Default_Is_True()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 			Assert.That(config, Is.Not.Null, "Config was null");
-			Assert.That(config.HttpClient.InitializeConnection, Is.True);
+            Assert.That(config.HttpClient.InitializeConnection, Is.True);
 		}
 
+        /// <summary>
+        /// @test: When InitializeConnection property in HttpClient class is set in app.config,
+        /// default value is overwritten.
+        /// @pre: Provide configuration of client in app.config, set InitializeConnection to false
+        /// @post: Test passes if HttpClient.InitializeConnection returns false
+        /// </summary>
 		[Test]
 		public void When_Initialize_Connection_Is_Set_In_App_Config_Property_Changes_From_Default()
 		{
@@ -173,6 +257,11 @@ namespace Couchbase.Tests
 			Assert.That(config.HttpClient.InitializeConnection, Is.False);
 		}
 
+        /// <summary>
+        /// @test: Default value of InitializeConnection property in HttpClient class from code config is true.
+        /// @pre: Provide configuration of client in app.config, dont specify InitializeConnection
+        /// @post: Test passes if HttpClient.InitializeConnection returns true
+        /// </summary>
 		[Test]
 		public void When_Initialize_Connection_Is_Not_Set_In_Code_Default_Is_True()
 		{
@@ -181,7 +270,12 @@ namespace Couchbase.Tests
 			Assert.That(config.HttpClient.InitializeConnection, Is.True);
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: Default value of Httpclient time out property in HttpClient class from appconfig is 00:01:15.
+        /// @pre: Provide configuration of client in app.config, dont specify timeout
+        /// @post: Test passes if HttpClient.timeout is 00:01:15
+        /// </summary>
+        [Test]
 		public void When_Http_Client_Timeout_Is_Not_Set_In_App_Config_Default_Is_True()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
@@ -189,6 +283,12 @@ namespace Couchbase.Tests
 			Assert.That(config.HttpClient.Timeout, Is.EqualTo(TimeSpan.Parse("00:01:15")));
 		}
 
+        /// <summary>
+        /// @test: Default value of Httpclient time out property in HttpClient class from appconfig 
+        /// is overwritten if specified
+        /// @pre: Provide configuration of client in app.config, dont specify timeout
+        /// @post: Test passes if HttpClient.timeout isas per mentioned in app.config
+        /// </summary>
 		[Test]
 		public void When_Http_Client_Timeout_Is_Set_In_App_Config_Property_Changes_From_Default()
 		{
@@ -197,6 +297,11 @@ namespace Couchbase.Tests
 			Assert.That(config.HttpClient.Timeout, Is.EqualTo(TimeSpan.Parse("00:00:45")));
 		}
 
+        /// <summary>
+        /// @test: Default value of Httpclient time out property in HttpClient class is 75 seconds
+        /// @pre: Provide default configuration of client
+        /// @post: Test passes if HttpClient.timeout is 00:01:15
+        /// </summary>
 		[Test]
 		public void When_Http_Client_Timeout_Is_Not_Set_In_Code_Default_Is_75_Seconds()
 		{
