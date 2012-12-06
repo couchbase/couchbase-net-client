@@ -9,6 +9,11 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientViewReduceTests : CouchbaseClientViewTestsBase
 	{
+        /// <summary>
+        /// @test: Row count of view result is one when it is not grouped
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if the view count is one
+        /// </summary>
 		[Test]
 		public void When_View_Is_Reduced_Without_Group_Row_Count_Is_One()
 		{
@@ -18,6 +23,11 @@ namespace Couchbase.Tests
 			Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
 		}
 
+        /// <summary>
+        /// @test: Row count of view result is greater than one when it is grouped
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if the view count is greater than one
+        /// </summary>
 		[Test]
 		public void When_View_Is_Reduced_With_Group_Row_Count_Is_Greater_Than_One()
 		{

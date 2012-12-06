@@ -12,6 +12,13 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class HttpClientConfigTests : CouchbaseClientViewTestsBase
 	{
+        /// <summary>
+        /// @test: Reads the configuration of Http client from App.config and gets the view in specified design document
+        /// @pre: Add section named "httpclient-config-initconn" in App.config file,
+        /// set the initializeConnection parameter to true 
+        /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
+        /// @post: Test passes if successfully gets the view, fails otherwise
+        /// </summary>
 		[Test]
 		public void View_Operations_Succeed_When_Initialize_Connection_Is_True()
 		{
@@ -21,6 +28,13 @@ namespace Couchbase.Tests
 			viewPass(view);
 		}
 
+        /// <summary>
+        /// @test: Reads the configuration of Http client from App.config and gets the view in specified design document
+        /// @pre: Add section named "httpclient-config-initconn" in App.config file, 
+        /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
+        /// set the initializeConnection parameter to false 
+        /// @post: Test passes if successfully gets the view, fails otherwise
+        /// </summary>
 		[Test]
 		public void View_Operations_Succeed_When_Initialize_Connection_Is_False()
 		{
@@ -32,6 +46,12 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// @test: when no configuration for Http client is mentioned in App.config, 
+        /// the test would get the view in specified design document
+        /// @pre: no section in App.config file to initialize client
+        /// @post: Test passes if successfully gets the view, fails otherwise
+        /// </summary>
 		[Test]
 		public void View_Operations_Succeed_When_HTTP_Client_Is_Not_Configured_In_App_Config()
 		{
@@ -40,6 +60,10 @@ namespace Couchbase.Tests
 
 		}
 
+        /// <summary>
+        /// Verifies all the properties of view and asserts true if it is not null, false otherwise
+        /// </summary>
+        /// <param name="view">Name of design view</param>
 		private void viewPass(IView<City> view)
 		{			
 			foreach (var item in view)

@@ -11,6 +11,12 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientExtensionsTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: Generate a unique key and store key using StoreJson(), without converting into json 
+        /// the store operation would fail
+        /// @pre: Generate a unique key and data to append in that key
+        /// @post: Test passes if ExecuteAppend() passes
+        /// </summary>
 		[Test]
 		public void When_Serializing_Class_Without_Json_Property_Attributes_Properties_Are_Camel_Cased()
 		{
@@ -24,6 +30,12 @@ namespace Couchbase.Tests
 			Assert.That(savedThing, Is.StringContaining("someProperty").And.StringContaining("someOtherProperty"));
 		}
 
+        /// <summary>
+        /// @test: Generate a unique key and map the properties, store the json format data. 
+        /// Then get the json data and deserialize. the properties would map
+        /// @pre: set properties to random values before storing data
+        /// @post: Test passes properties are correctly mapped
+        /// </summary>
 		[Test]
 		public void When_Deserializing_Class_Without_Json_Property_Attributes_Camel_Cased_Properties_Are_Mapped()
 		{

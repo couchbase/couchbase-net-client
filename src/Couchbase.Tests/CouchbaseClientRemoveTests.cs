@@ -9,6 +9,13 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientRemoveTests : CouchbaseClientTestsBase
 	{
+        /// <summary>
+        /// @test: Store a randomly generated key, remove that key and then get value
+        /// agsinst the same key, the Get operation should fail as key is already deleted
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if store and deletion operation are success and Get operation 
+        /// must fail ideally
+        /// </summary>
 		[Test]
 		public void When_Removing_A_Valid_Key_Result_Is_Successful()
 		{
@@ -24,7 +31,12 @@ namespace Couchbase.Tests
 			GetAssertFail(getResult);
 		}
 
-		[Test]
+        /// <summary>
+        /// @test: Deleting a key which does not exist will fail the Remove operation
+        /// @pre: Default configuration to initialize client in app.config 
+        /// @post: Test passes if Remove operation fails
+        /// </summary>
+        [Test]
 		public void When_Removing_An_Invalid_Key_Result_Is_Not_Successful()
 		{
 			var key = GetUniqueKey("remove");
