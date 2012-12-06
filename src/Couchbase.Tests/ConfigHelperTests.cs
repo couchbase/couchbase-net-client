@@ -18,7 +18,7 @@ namespace Couchbase.Tests
         /// retrive the value by passing the same key for verification
         /// @pre: Add section named "pools-config" in App.config file, 
         /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
-        /// mention uri = http://<Url_Of_Couchbase_Server>/pools
+        /// mention uri = http://Url_Of_Couchbase_Server/pools
         /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
         /// </summary>
 		[Test]
@@ -40,7 +40,7 @@ namespace Couchbase.Tests
         /// retrive the value by passing the same key for verification
         /// @pre: Add section named "pools-default-config" in App.config file, 
         /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
-        /// mention uri = http://<Url_Of_Couchbase_Server>/pools/default
+        /// mention uri = http://Url_Of_Couchbase_Server/pools/default
         /// @post: Test passes if successfully stores key-value and then able to get value, fails otherwise
         /// </summary>
 		[Test]

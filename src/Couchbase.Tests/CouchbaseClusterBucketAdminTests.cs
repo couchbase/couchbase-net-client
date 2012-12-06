@@ -579,6 +579,7 @@ namespace Couchbase.Tests
         /// @test: create design document and verify that the operation is successful
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if operation is successful
+        /// </summary>
 		[Test]
 		public void When_Creating_Design_Document_Operation_Is_Successful()
 		{
@@ -685,6 +686,7 @@ namespace Couchbase.Tests
         /// @test: create design document and then delete it, operation should be successful
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if deletion happens successfully
+        /// </summary>
 		[Test]
 		public void When_Deleting_Design_Document_Operation_Is_Successful()
 		{
