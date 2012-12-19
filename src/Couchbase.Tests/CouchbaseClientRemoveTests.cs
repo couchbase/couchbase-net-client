@@ -17,7 +17,7 @@ namespace Couchbase.Tests
         /// @test: Store a randomly generated key, remove that key and then get value
         /// agsinst the same key, the Get operation should fail as key is already deleted
         /// @pre: Default configuration to initialize client in app.config 
-        /// @post: Test passes if store and deletion operation are success and Get operation 
+        /// @post: Test passes if store and deletion operation are success and Get operation
         /// must fail ideally
         /// </summary>
 		[Test]
@@ -37,7 +37,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Deleting a key which does not exist will fail the Remove operation
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if Remove operation fails
         /// </summary>
         [Test]

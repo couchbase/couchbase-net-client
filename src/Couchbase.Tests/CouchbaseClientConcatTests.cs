@@ -10,11 +10,10 @@ namespace Couchbase.Tests
 	public class CouchbaseClientConcatTests : CouchbaseClientTestsBase
 	{
         /// <summary>
-        /// @test: Store a randomly generated unique key-value, use the different 
-        /// cas value in ExecuteCas() mehod than what is returned by Store() method, 
-        /// the ExecuteCas() fails due to invalid cas passed
-        /// @pre: No section required in App.config file
-        /// @post: Test passes if ExecuteCas() fails due to invalid cas, fails if ExecuteCas() passes
+        /// @test: Store a randomly generated unique key-value, use ExecuteAppend() to append some string
+        /// to its value and then get the new string after appending
+        /// @pre: No section required in App.config file, it picks up the default configuration
+        /// @post: Test passes if ExecuteAppend() passes and Get method returns the new string after appending text to it
         /// </summary>
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful()
@@ -37,7 +36,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Generate a unique key, use ExecuteAppend() to save data in that key,
-        /// since the key does not exist aleady, append operation would fail, then get value from
+        /// since the key does not exist already, append operation would fail, then get value from
         /// the same key, it will fail again as the key does not exist
         /// @pre: Generate a unique key and data to append in that key
         /// @post: Test passes if ExecuteAppend() and ExecuteGet() both fail, which is the expected behaviour
@@ -104,10 +103,11 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Generate a unique key and store it, Prepend some text to that key-value, 
-        /// it should pass, then get the value against the same key, it should pass
+        /// @test: Generate a unique key and store it, test checks to see that
+        /// the final output key contains both the 'original' (i.e. "concat") value as well as
+        /// the appended value. (i.e. "concatTheEnd")
         /// @pre: Generate a unique key and data to append in that key
-        /// @post: Test passes if ExecutePrepend() and ExecuteGet() both pass
+        /// @post: Test passes if ExecuteAppend() and ExecuteGet() both pass
         /// </summary>
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful_With_Valid_Cas()
@@ -177,7 +177,7 @@ namespace Couchbase.Tests
         /// @test: Generate a unique key and store it, Append some text and use the different cas key,
         /// the test should fail
         /// @pre: Generate a unique key and data to append in that key
-        /// @post: Test passes if ExecuteAppend() passes
+        /// @post: Test passes if ExecuteAppend() fails since the Cas is invalid
         /// </summary>
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Not_Successful_With_Invalid_Cas()

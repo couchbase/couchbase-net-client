@@ -29,7 +29,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Store a randomly generated key, with a value lets say 100, decrement
         /// the key with the delta of lets say 10, the result of mutation should be 90
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if mutate operation decrements the key correctly
         /// </summary>
 		[Test]

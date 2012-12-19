@@ -121,7 +121,7 @@ namespace Couchbase.Tests
 		public void When_Using_Code_Config_And_Design_Document_Name_Transformer_Is_Not_Set_Production_Mode_Is_Default()
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
+			config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
 			var client = new CouchbaseClient(config); //client sets up transformer
 
 			Assert.That(config.DesignDocumentNameTransformer, Is.InstanceOf<ProductionModeNameTransformer>());		}
@@ -284,7 +284,7 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Default value of Httpclient time out property in HttpClient class from appconfig 
+        /// @test: Default value of Httpclient time out property in HttpClient class from appconfig
         /// is overwritten if specified
         /// @pre: Provide configuration of client in app.config, dont specify timeout
         /// @post: Test passes if HttpClient.timeout isas per mentioned in app.config

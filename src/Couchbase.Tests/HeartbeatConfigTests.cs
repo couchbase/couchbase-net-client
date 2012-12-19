@@ -20,10 +20,10 @@ namespace Couchbase.Tests
 	public class HeartbeatConfigTests : CouchbaseClientTestsBase
 	{
         /// <summary>
-        /// @test: Reads the configuration from App.config which enables the heartbeat and then perform 
-        /// client operations 
-        /// @pre: Add section named "heartbeat-config-on" in App.config file, enable heartbeat at a specific time interval 
-        /// @post: Test passes if with heartbeat on, the client can successfully store key-value and then able to get value; 
+        /// @test: Reads the configuration from App.config which enables the heartbeat and then perform
+        /// client operations
+        /// @pre: Add section named "heartbeat-config-on" in App.config file, enable heartbeat at a specific time interval
+        /// @post: Test passes if with heartbeat on, the client can successfully store key-value and then able to get value;
         /// fails otherwise
         /// </summary>
 		[Test]
@@ -38,14 +38,13 @@ namespace Couchbase.Tests
 
 			var getResult = client.ExecuteGet(key);
 			GetAssertPass(getResult, value);
-
 		}
 
         /// <summary>
-        /// @test: Reads the configuration from App.config which disables the heartbeat and then perform 
-        /// client operations 
+        /// @test: Reads the configuration from App.config which disables the heartbeat and then perform
+        /// client operations
         /// @pre: Add section named "heartbeat-config-off" in App.config file, disable heartbeat
-        /// @post: Test passes if with heartbeat off, the client can successfully store key-value and then able to get value; 
+        /// @post: Test passes if with heartbeat off, the client can successfully store key-value and then able to get value;
         /// fails otherwise
         /// </summary>
 		[Test]
@@ -60,31 +59,8 @@ namespace Couchbase.Tests
 
 			var getResult = client.ExecuteGet(key);
 			GetAssertPass(getResult, value);
-
 		}
-
-        /// <summary>
-        /// @test: Reads the configuration from App.config which has no information on heartbeat and then perform 
-        /// client operations 
-        /// @pre: Add section named "min-config" in App.config file, add information about bucket, bucket password, username/password
-        /// and server uri.
-        /// @post: Test passes if the client can successfully store key-value and then able to get value; fails otherwise
-        /// </summary>
-		[Test]
-		public void Client_Operations_Succeed_When_Heartbeat_Is_Not_Configured()
-		{
-			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("min-config");
-			var client = new CouchbaseClient(config);
-
-			string key = GetUniqueKey(), value = GetRandomString();
-			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
-
-			var getResult = client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
-
-		}
-	}
+    }
 }
 
 #region [ License information          ]

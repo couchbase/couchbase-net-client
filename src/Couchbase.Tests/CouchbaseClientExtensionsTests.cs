@@ -12,7 +12,7 @@ namespace Couchbase.Tests
 	public class CouchbaseClientExtensionsTests : CouchbaseClientTestsBase
 	{
         /// <summary>
-        /// @test: Generate a unique key and store key using StoreJson(), without converting into json 
+        /// @test: Generate a unique key and store key using StoreJson(), without converting into json
         /// the store operation would fail
         /// @pre: Generate a unique key and data to append in that key
         /// @post: Test passes if ExecuteAppend() passes

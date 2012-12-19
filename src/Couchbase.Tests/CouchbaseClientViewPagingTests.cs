@@ -11,7 +11,7 @@ namespace Couchbase.Tests
 	{
         /// <summary>
         /// @test: Get the view results and display all items of an index in pages
-        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities' 
+        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities'
         /// @post: Test passes if it retrives all items in view and page size is correct
         /// </summary>
 		[Test]
@@ -24,7 +24,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Get view results with generic type, key and id are not set, page results will throw error
-        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities' 
+        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities'
         /// @post: Test passes if the view results throw invalid operation exception
         /// </summary>
 		[Test]
@@ -40,7 +40,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Get view results with generic type, key and if are set properly,
         /// page results will display correct results
-        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities' 
+        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities'
         /// @post: Test passes if the view results show correct page sizes
         /// </summary>
 		[Test]
@@ -54,7 +54,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Get view results with generic type, key and id are set, paging view count is correct
-        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities' 
+        /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities'
         /// @post: Test passes if thecount of view results is correct
         /// </summary>
 		[Test]

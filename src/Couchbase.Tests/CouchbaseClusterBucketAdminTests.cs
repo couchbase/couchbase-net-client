@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -22,7 +23,7 @@ namespace Couchbase.Tests
 	{
         /// <summary>
         /// @test: List buckets in cluster should return default bucket
-        /// @pre: Default configuration to initialize client in app.config to initialize client in app.config and cluster should have a default bucket 
+        /// @pre: Default configuration to initialize client in app.config to initialize client in app.config and cluster should have a default bucket
         /// @post: Test passes if default bucket is found
         /// </summary>
 		[Test]
@@ -33,9 +34,9 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: List buckets in cluster with invalid server configuration 
+        /// @test: List buckets in cluster with invalid server configuration
         /// should return argument null exception
-        /// @pre: Use incorrect configuration of server 
+        /// @pre: Use incorrect configuration of server
         /// @post: Test passes if error is thrown
         /// </summary>
 		[Test]
@@ -43,7 +44,7 @@ namespace Couchbase.Tests
 		public void When_Listing_Buckets_With_Invalid_Config_Argument_Exception_Is_Thrown()
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/doesnotexist/"));
+			config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/doesnotexist/"));
 			config.Bucket = "default";
 			var server = new CouchbaseCluster(config);
 			var buckets = server.ListBuckets();
@@ -51,7 +52,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Try List buckets in cluster should return default bucket
-        /// @pre: Default configuration to initialize client in app.config and cluster should have a default bucket 
+        /// @pre: Default configuration to initialize client in app.config and cluster should have a default bucket
         /// @post: Test passes if default bucket is found
         /// </summary>
 		[Test]
@@ -66,14 +67,14 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Try List buckets in  with invalid configuration should return false
         /// and no exception is thrown
-        /// @pre: Default configuration to initialize client in app.config an use invalid configuration 
+        /// @pre: Default configuration to initialize client in app.config an use invalid configuration
         /// @post: Test passes if default bucket is found
         /// </summary>
 		[Test]
 		public void When_Try_Listing_Buckets_With_Invalid_Config_No_Exception_Is_Thrown_And_Return_Value_Is_False()
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/doesnotexist/"));
+            config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/doesnotexist/"));
 			config.Bucket = "default";
 
 			var server = new CouchbaseCluster(config);
@@ -111,7 +112,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create invalid bucket, while retrieving bucket, web exception is thrown
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if invalid bucket throws web exception
         /// </summary>
 		[ExpectedException(typeof(WebException))]
@@ -139,7 +140,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create sasl bucket and try get bucket should not be null
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if bucket is created and found
         /// </summary>
 		[Test]
@@ -241,6 +242,7 @@ namespace Couchbase.Tests
 		{
 			var storedConfig = ConfigurationManager.GetSection("couchbase") as ICouchbaseClientConfiguration;
 			var config = new CouchbaseClientConfiguration();
+
 			config.Bucket = "Bucket-" + DateTime.Now.Ticks;
 			config.Username = storedConfig.Username;
 			config.Password = storedConfig.Password;

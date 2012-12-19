@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using Couchbase.Configuration;
@@ -25,8 +26,8 @@ namespace Couchbase.Tests
 		protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
-			config.Bucket = "default";
+            config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
+		    config.Bucket = ConfigurationManager.AppSettings["CouchbaseServerUrl"];
 			config.DesignDocumentNameTransformer = nameTransformer ?? new DevelopmentModeNameTransformer();
 			config.HttpClientFactory = new MockHttpClientFactory();
 
@@ -44,10 +45,10 @@ namespace Couchbase.Tests
 		{
 			var viewContent = File.ReadAllText(viewFile).Replace("[[DESIGNDOC]]", docName);
 			byte[] arr = System.Text.Encoding.UTF8.GetBytes(viewContent);
-			var request = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8091/couchBase/default/_design/" + docName);
+            var request = (HttpWebRequest)HttpWebRequest.Create(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/couchBase/default/_design/" + docName);
 			request.Method = "PUT";
 			request.ContentType = "application/json";
-			request.ContentLength = arr.Length;
+            request.ContentLength = arr.Length;
 			var dataStream = request.GetRequestStream();
 			dataStream.Write(arr, 0, arr.Length);
 			dataStream.Close();

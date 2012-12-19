@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -8,29 +9,28 @@ using Couchbase.Configuration;
 
 namespace Couchbase.Tests
 {
-	[TestFixture]
-	public class CouchbaseAuthenticatedViewTests : CouchbaseClientViewTestsBase
-	{
+    [TestFixture]
+    public class CouchbaseAuthenticatedViewTests : CouchbaseClientViewTestsBase
+    {
         /// <summary>
-        /// @test: Verifies that for the bucket which is authenticated with password, it is able to connect successfully 
+        /// @test: Verifies that for the bucket which is authenticated with password, it is able to connect successfully
         /// if correct cedentials are provided and then returns the object representing the view in specfied design document
-        /// @pre: Provide the bucket name and password in method getClient(), 
+        /// @pre: Provide the bucket name and password in method getClient(),
         /// provide correct design name and view name to method GetView()
         /// @post: Test passes if connects to client successfully and get the details of View with given data, fails otherwise
         /// </summary>
-		[Test]
-		public void When_Bucket_Is_Authenticated_View_Returns_Results()
-		{
-			var view = getClient("authenticated", "secret").GetView("cities", "by_name");
-			foreach (var item in view) { }
-
-			Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
-		}
+        [Test]
+        public void When_Bucket_Is_Authenticated_View_Returns_Results()
+        {
+            var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], ConfigurationManager.AppSettings["SaslBucketPassword"]);
+            var view = client.GetView("cities", "by_name");
+            Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
+        }
 
         /// <summary>
         /// @test: Verifies that for the bucket which is authenticated with password, it throws an error
         /// if no credentials are provided and hence cannot return the object representing the view in specfied design document
-        /// @pre: Provide the bucket name but no password in method getClient(), 
+        /// @pre: Provide the bucket name but no password in method getClient(),
         /// provide design name and view name to method GetView()
         /// @post: Test passes if the web exception (401) is thrown
         /// </summary>
@@ -38,29 +38,28 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_No_Credentials_Are_Provided_Exception_Is_Thrown()
 		{
-			var view = getClient("authenticated", "").GetView("cities", "by_name");
+			var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], "");
+            var view = client.GetView("cities", "by_name");
 			foreach (var item in view) { Console.WriteLine(item); }
-
 		}
 
         /// <summary>
         /// Connects to couchbase client with given configuration details
         /// </summary>
-        /// <param name="username">Name of bucket to be used</param>
-        /// <param name="password">Password used to connect to bucket</param>
+        /// <param name="bucketName">Name of bucket to be used</param>
+        /// <param name="bucketPassword">Password used to connect to bucket</param>
         /// <returns>Couchbase client object</returns>
-		private CouchbaseClient getClient(string username, string password)
-		{
-			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			config.Bucket = username;
-			config.BucketPassword = password;
-			config.DesignDocumentNameTransformer = new DevelopmentModeNameTransformer();
-			config.HttpClientFactory = new HammockHttpClientFactory();
-
-			return new CouchbaseClient(config);
-		}
-	}
+        private CouchbaseClient getClient(string bucketName, string bucketPassword)
+        {
+            var config = new CouchbaseClientConfiguration();
+            config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
+            config.Bucket = bucketName;
+            config.BucketPassword = bucketPassword;
+            config.DesignDocumentNameTransformer = new DevelopmentModeNameTransformer();
+            config.HttpClientFactory = new HammockHttpClientFactory();
+            return new CouchbaseClient(config);
+        }
+    }
 }
 
 #region [ License information          ]

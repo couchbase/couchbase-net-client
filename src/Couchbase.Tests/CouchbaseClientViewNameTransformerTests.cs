@@ -13,7 +13,7 @@ namespace Couchbase.Tests
 	{
         /// <summary>
         /// @test: Design document name is prefixed with "dev_" in development mode
-        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo" 
+        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo"
         /// @post: Test passes if name changes and is prefixed with dev_ as expected
         /// </summary>
 		[Test]
@@ -24,7 +24,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Design document name is not prefixed in production views
-        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo" 
+        /// @pre: Default configuration to initialize client in app.config, create a design document in server named "foo"
         /// @post: Test passes if name does not change and is not prefixed with any string
         /// </summary>
 		[Test]

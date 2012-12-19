@@ -15,7 +15,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Reads the configuration of Http client from App.config and gets the view in specified design document
         /// @pre: Add section named "httpclient-config-initconn" in App.config file,
-        /// set the initializeConnection parameter to true 
+        /// set the initializeConnection parameter to true
         /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
         /// @post: Test passes if successfully gets the view, fails otherwise
         /// </summary>
@@ -30,9 +30,9 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Reads the configuration of Http client from App.config and gets the view in specified design document
-        /// @pre: Add section named "httpclient-config-initconn" in App.config file, 
+        /// @pre: Add section named "httpclient-config-initconn" in App.config file,
         /// configure all the parameters required to initialize Couchbase client like Uri, bucket, etc.
-        /// set the initializeConnection parameter to false 
+        /// set the initializeConnection parameter to false
         /// @post: Test passes if successfully gets the view, fails otherwise
         /// </summary>
 		[Test]
@@ -42,12 +42,11 @@ namespace Couchbase.Tests
 			var client = new CouchbaseClient(config);
 
 			var view = client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
-			viewPass(view);			
-
+			viewPass(view);
 		}
 
         /// <summary>
-        /// @test: when no configuration for Http client is mentioned in App.config, 
+        /// @test: when no configuration for Http client is mentioned in App.config,
         /// the test would get the view in specified design document
         /// @pre: no section in App.config file to initialize client
         /// @post: Test passes if successfully gets the view, fails otherwise
@@ -56,8 +55,7 @@ namespace Couchbase.Tests
 		public void View_Operations_Succeed_When_HTTP_Client_Is_Not_Configured_In_App_Config()
 		{
 			var view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
-			viewPass(view);	
-
+			viewPass(view);
 		}
 
         /// <summary>

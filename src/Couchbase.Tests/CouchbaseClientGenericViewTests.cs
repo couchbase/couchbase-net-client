@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +16,7 @@ namespace Couchbase.Tests
 	{
         /// <summary>
         /// @test: Set shouldlookupDocById to true, GetView() method will retrieve
-        /// the view by id and verifies that all properties of 
+        /// the view by id and verifies that all properties of
         /// view type (City in this context) are correct
         /// @pre: Define CityViews.json to create views
         /// @post: Test passes if GetView returns results correctly

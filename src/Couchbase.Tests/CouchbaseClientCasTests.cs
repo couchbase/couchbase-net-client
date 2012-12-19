@@ -12,11 +12,12 @@ namespace Couchbase.Tests
 	public class CouchbaseClientCasTests : CouchbaseClientTestsBase
 	{
         /// <summary>
-        /// @test: Store a randomly generated unique key-value, use he CAS value 
+        /// @test: Store a randomly generated unique key-value, use he CAS value
         /// returned from the Store(), then use ExecuteCas() method
         /// to compare and set a value using the specified key and return the store operation result
         /// @pre: No section required in App.config file
-        /// @post: Test passes if successfully able to retrieve the same cas value, fails otherwise
+        /// @post: Test passes if successfully able to add a key-value pair and then retrieve the same cas value,
+        /// fails otherwise
         /// </summary>
 		[Test]
 		public void When_Storing_Item_With_Valid_Cas_Result_Is_Successful()

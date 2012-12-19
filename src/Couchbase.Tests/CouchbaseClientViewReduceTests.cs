@@ -11,7 +11,7 @@ namespace Couchbase.Tests
 	{
         /// <summary>
         /// @test: Row count of view result is one when it is not grouped
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if the view count is one
         /// </summary>
 		[Test]
@@ -25,7 +25,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Row count of view result is greater than one when it is grouped
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if the view count is greater than one
         /// </summary>
 		[Test]

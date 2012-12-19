@@ -13,9 +13,9 @@ namespace Couchbase.Tests
 	public class CouchbaseClientSpatialViewTests : CouchbaseClientViewTestsBase
 	{
         /// <summary>
-        /// @test: Get spatial view of a given design name and view name, 
+        /// @test: Get spatial view of a given design name and view name,
         /// all the propeties of view should have correct values
-        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// @pre: Default configuration to initialize client in app.config, configure
         /// City views in cluster
         /// @post: Test passes if view prperties are not null
         /// </summary>
@@ -36,9 +36,9 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Get spatial view of generic type City of a given design name and view name, 
+        /// @test: Get spatial view of generic type City of a given design name and view name,
         /// set look up by id to true, all the propeties of view should have correct values
-        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// @pre: Default configuration to initialize client in app.config, configure
         /// City views in cluster
         /// @post: Test passes if view prperties are not null
         /// </summary>
@@ -58,7 +58,7 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Get spatial view of generic type City of a given design name and view name, 
+        /// @test: Get spatial view of generic type City of a given design name and view name,
         /// set look up by id to false, all the propeties of view should have correct values
         /// @pre: Default configuration to initialize client in app.config, configure 
         /// City views in cluster
@@ -91,9 +91,9 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Get spatial view with bounding box, the result rows would be limited but 
+        /// @test: Get spatial view with bounding box, the result rows would be limited but
         /// should have at least one record
-        /// @pre: Default configuration to initialize client in app.config, configure 
+        /// @pre: Default configuration to initialize client in app.config, configure
         /// City views in cluster
         /// @post: Test passes if view count is at least one
         /// </summary>
@@ -101,7 +101,7 @@ namespace Couchbase.Tests
 		public void When_Querying_Spatial_View_With_Bounding_Box_Rows_Are_Limited()
 		{
 			var hasAtLeastOneRecord = false;
-			var view = _Client.GetSpatialView("cities", "by_location").BoundingBox(-73.789673f, 41.093704f, -71.592407f, 42.079742f); //bbox around Connecticut
+			var view = _Client.GetSpatialView("cities", "by_location").BoundingBox(-73.789673f, 41.093704f, -71.592407f, 42.079742f); //box around Connecticut
 			foreach (var item in view)
 			{
 				hasAtLeastOneRecord = true;

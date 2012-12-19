@@ -29,7 +29,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Store a randomly generated key, store again using same key with Add operation,
         /// the result will not be successful
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if new key is added first time and second time it fails
         /// </summary>
 		[Test]
@@ -45,7 +45,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Store a new key with store mode replace will fail as the key does not exist
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if replace fails
         /// </summary>
 		[Test]
@@ -59,7 +59,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Store a randomly generated key, with store mode Add, then change the key
         /// with store mode replace, key should be replaced successfully
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if new key is added and later replaced successfully
         /// </summary>
 		[Test]
@@ -74,9 +74,9 @@ namespace Couchbase.Tests
 		}
 
         /// <summary>
-        /// @test: Store a randomly generated key, with store mode Set, 
+        /// @test: Store a randomly generated key, with store mode Set,
         /// new key should be stored correctly
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if new key is stored successfully
         /// </summary>
 		[Test]
@@ -90,7 +90,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Store a randomly generated key, with store mode Add, then change the key
         /// with store mode set, key should be set successfully
-        /// @pre: Default configuration to initialize client in app.config 
+        /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if new key is stored successfully
         /// </summary>
 		[Test]

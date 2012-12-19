@@ -13,7 +13,7 @@ namespace Couchbase.Tests
         /// <summary>
         /// @test: Retrieve view result with debug true should return debug information
         /// of data type dictionary
-        /// @pre: Default configuration to initialize client in app.config and have view wih design document cities and view name by_name 
+        /// @pre: Default configuration to initialize client in app.config and have view wih design document cities and view name by_name
         /// @post: Test passes if debug info is returned correctly
         /// </summary>
 		[Test]
@@ -44,7 +44,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: Retrieve view result with debug false should return no debug information
-        /// @pre: Default configuration to initialize client in app.config and have view wih design document cities and view name by_name 
+        /// @pre: Default configuration to initialize client in app.config and have view wih design document cities and view name by_name
         /// @post: Test passes if no debug info is returned
         /// </summary>
 		[Test]
