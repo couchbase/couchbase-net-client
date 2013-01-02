@@ -27,6 +27,12 @@ namespace Couchbase.Management
 		Two,
 		Three
 	}
+
+	public enum FlushOptions
+	{
+		Disabled,
+		Enabled
+	}
 }
 
 #region [ License information          ]

@@ -13,6 +13,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using Couchbase.Tests.Factories;
 using Couchbase.Operations;
+using System.Configuration;
 
 namespace Couchbase.Tests
 {
@@ -235,28 +236,55 @@ namespace Couchbase.Tests
 
 		}
 
-		[Ignore("Restful flush has been delayed")]
 		[Test]
 		public void When_Flushing_Bucket_Data_Are_Removed()
 		{
+			var storedConfig = ConfigurationManager.GetSection("couchbase") as ICouchbaseClientConfiguration;
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri("http://localhost:8091/pools/default"));
-			config.Bucket = "default";
+			config.Bucket = "Bucket-" + DateTime.Now.Ticks;
+			config.Username = storedConfig.Username;
+			config.Password = storedConfig.Password;
+			config.Urls.Add(storedConfig.Urls[0]);
+
+			var cluster = new CouchbaseCluster(config);
+			cluster.CreateBucket(new Bucket
+				{
+					Name = config.Bucket,
+					AuthType = AuthTypes.Sasl,
+					BucketType = BucketTypes.Membase,
+					Quota = new Quota { RAM = 100 },
+					ReplicaNumber = ReplicaNumbers.Zero,
+					FlushOption = FlushOptions.Enabled
+				}
+			);
+
+			Bucket bucket = null;
+			for (int i = 0; i < 10; i++) //wait for bucket to be ready to accept ops
+			{
+				bucket = waitForBucket(config.Bucket);
+				if (bucket.Nodes.First().Status == "healthy") break;
+				Thread.Sleep(1000);
+			}
+
+			Assert.That(bucket, Is.Not.Null);
 
 			var client = new CouchbaseClient(config);
-			var storeResult = client.ExecuteStore(StoreMode.Set, "SomeKey", "SomeValue");
 
-			Assert.That(storeResult.Success, Is.True);
+			var storeResult = client.ExecuteStore(StoreMode.Set, "SomeKey", "SomeValue");
+			Assert.That(storeResult.Success, Is.True, "Message: " + storeResult.Message);
 
 			var getResult = client.ExecuteGet<string>("SomeKey");
 			Assert.That(getResult.Success, Is.True);
 			Assert.That(getResult.Value, Is.StringMatching("SomeValue"));
 
-			_Cluster.FlushBucket("default");
+			cluster.FlushBucket(config.Bucket);
 
 			getResult = client.ExecuteGet<string>("SomeKey");
 			Assert.That(getResult.Success, Is.False);
 			Assert.That(getResult.Value, Is.Null);
+
+			_Cluster.DeleteBucket(config.Bucket);
+
 		}
 
         /// <summary>

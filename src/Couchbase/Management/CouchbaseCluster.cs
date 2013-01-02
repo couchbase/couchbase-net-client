@@ -169,6 +169,7 @@ namespace Couchbase.Management
 			sb.AppendFormat("&authType={0}", Enum.GetName(typeof(AuthTypes), bucket.AuthType).ToLower()); ;
 			sb.AppendFormat("&bucketType={0}", Enum.GetName(typeof(BucketTypes), bucket.BucketType).ToLower());
 			sb.AppendFormat("&replicaNumber={0}", (short)bucket.ReplicaNumber);
+			sb.AppendFormat("&flushEnabled={0}", (short)bucket.FlushOption);
 
 			return sb.ToString();
 		}

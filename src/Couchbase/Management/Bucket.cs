@@ -15,6 +15,8 @@ namespace Couchbase.Management
 
 		public AuthTypes AuthType { get; set; }
 
+		public FlushOptions FlushOption { get; set; }
+
 		public int ProxyPort { get; set; }
 
 		public string Password { get; set; }
