@@ -469,6 +469,11 @@ namespace Couchbase
 
 		IMemcachedNode IServerPool.Locate(string key)
 		{
+			if (this.state == null) {
+				if (log.IsDebugEnabled) log.Debug("this.state was null, returning null node for key '" + key + "'");
+				return null;
+			}
+
 			return this.state.Locator.Locate(key);
 		}
 

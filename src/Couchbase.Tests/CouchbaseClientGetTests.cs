@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using Enyim.Caching.Memcached.Results.StatusCodes;
+using Couchbase.Configuration;
+using Couchbase.Constants;
 
 namespace Couchbase.Tests
 {
@@ -174,6 +176,20 @@ namespace Couchbase.Tests
 			Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
 			Assert.That(getResult.Value, Is.EqualTo(value), "Actual value was not expected value: " + getResult.Value);
 			Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
+		}
+
+		[Test]
+		public void When_Getting_A_Key_From_A_Down_Node_No_Exception_Is_Thrown_And_Success_Is_False()
+		{
+			var config = new CouchbaseClientConfiguration();
+			config.Urls.Add(new Uri("http://doesnotexist:8091/pools/"));
+			config.Bucket = "default";
+
+			var client = new CouchbaseClient(config);
+			var getResult = client.ExecuteGet("foo");
+
+			Assert.That(getResult.Success, Is.False);
+			Assert.That(getResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
 		}
 	}
 }

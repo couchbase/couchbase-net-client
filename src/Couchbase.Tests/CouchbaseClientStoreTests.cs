@@ -5,6 +5,8 @@ using System.Text;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
+using Couchbase.Configuration;
+using Couchbase.Constants;
 
 namespace Couchbase.Tests
 {
@@ -100,6 +102,20 @@ namespace Couchbase.Tests
 
 			result = Store(StoreMode.Set, key);
 			StoreAssertPass(result);
+		}
+
+		[Test]
+		public void When_Storing_A_Key_From_A_Down_Node_No_Exception_Is_Thrown_And_Success_Is_False()
+		{
+			var config = new CouchbaseClientConfiguration();
+			config.Urls.Add(new Uri("http://doesnotexist:8091/pools/"));
+			config.Bucket = "default";
+
+			var client = new CouchbaseClient(config);
+			var storeResult = client.ExecuteStore(StoreMode.Set, "foo", "bar");
+
+			Assert.That(storeResult.Success, Is.False);
+			Assert.That(storeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
 		}
 	}
 }

@@ -15,6 +15,7 @@ using Couchbase.Results;
 using Enyim.Caching.Memcached.Protocol.Binary;
 using System.Threading.Tasks;
 using Couchbase.Settings;
+using Couchbase.Constants;
 
 namespace Couchbase
 {
@@ -134,7 +135,7 @@ namespace Couchbase
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
-			result.Fail("Unable to locate node");
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
@@ -170,7 +171,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, false);
 
 			result.Value = defaultValue;
-			result.Fail("Failed to locate node");
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
@@ -203,7 +204,7 @@ namespace Couchbase
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, false);
 
-			result.Fail("Failed to locate node");
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
@@ -249,7 +250,7 @@ namespace Couchbase
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
 
-			result.Fail("Failed to locate node");
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
@@ -452,7 +453,7 @@ namespace Couchbase
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
-			result.Fail("Unable to locate node");
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
