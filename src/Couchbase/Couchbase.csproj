@@ -72,6 +72,7 @@
   <ItemGroup>
     <Compile Include="Configuration\HttpClientElement.cs" />
     <Compile Include="Configuration\IHttpClientConfiguration.cs" />
+    <Compile Include="Constants\ClientErrors.cs" />
     <Compile Include="CouchbaseSpatialView`1.cs" />
     <Compile Include="CouchbaseSpatialView.cs" />
     <Compile Include="CouchbaseSpatialViewBase.cs" />
@@ -171,7 +172,9 @@
     <None Include="Config.transform" />
     <None Include="Demo.config" />
     <None Include="Changes.mdown" />
-    <None Include="Couchbase.nuspec" />
+    <None Include="Couchbase.nuspec">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
