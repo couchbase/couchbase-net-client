@@ -6,13 +6,15 @@ using NUnit.Framework;
 using Newtonsoft.Json;
 using Couchbase.Extensions;
 using Enyim.Caching.Memcached;
+using System.Threading;
 
 namespace Couchbase.Tests
 {
 	[TestFixture]
 	public class CouchbaseJsonExtensionTests : CouchbaseClientTestsBase
 	{
-        /// <summary>
+		#region Store tests
+		/// <summary>
         /// @test: create a city object, store it in form of json against
         /// a unique key, then get the value, it should be saved as type string
         /// @pre: Default configuration to initialize client in app.config
@@ -29,12 +31,112 @@ namespace Couchbase.Tests
 			Assert.That(savedCity, Is.InstanceOf<string>());
 		}
 
-        /// <summary>
+		/// <summary>
+		/// @test: create a city object, store it in form of json against
+		/// a unique key, then get the value, it should be saved as type string
+		/// After expiry, item should not be valid
+		/// @pre: Default configuration to initialize client in app.config
+		/// @post: Test passes if result is of type string
+		/// </summary>
+		[Test]
+		public void When_Saving_City_With_JsonStore_And_DateTime_Expiry_Item_Expires()
+		{
+			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, DateTime.Now.AddSeconds(2));
+			Assert.That(result.Success, Is.True, result.Message);
+			Thread.Sleep(3000);
+			var savedCity = _Client.Get("city_Hartford_CT_Exp");
+			Assert.That(savedCity, Is.Null);
+		}
+
+		/// <summary>
+		/// @test: create a city object, store it in form of json against
+		/// a unique key, then get the value, it should be saved as type string
+		/// When passing valid Cas, operation is successful
+		/// After expiry, item should not be valid
+		/// @pre: Default configuration to initialize client in app.config
+		/// @post: Test passes if result is of type string
+		/// </summary>
+		[Test]
+		public void When_Saving_City_With_JsonStore_City_And_TimeSpan_Expiry_Item_Expires()
+		{
+			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, TimeSpan.FromSeconds(2));
+			Assert.That(result.Success, Is.True);
+			Thread.Sleep(3000);
+			var savedCity = _Client.Get("city_Hartford_CT_Exp");
+			Assert.That(savedCity, Is.Null);
+		}
+
+		/// <summary>
+		/// @test: create a city object, store it in form of json against
+		/// a unique key, then get the value, it should be saved as type string
+		/// After expiry, item should not be valid
+		/// @pre: Default configuration to initialize client in app.config
+		/// @post: Test passes if result is of type string
+		/// </summary>
+		[Test]
+		public void When_Saving_City_With_JsonStore_And_Valid_Cas_Store_Is_Successful()
+		{
+			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
+			Assert.That(result.Success, Is.True);
+
+			city.Name = "New Haven";
+			var casResult = _Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas);
+			Assert.That(casResult.Success, Is.True);
+		}
+
+		/// <summary>
+		/// @test: create a city object, store it in form of json against
+		/// a unique key, then get the value, it should be saved as type string
+		/// After expiry, item should not be valid
+		/// @pre: Default configuration to initialize client in app.config
+		/// @post: Test passes if result is of type string
+		/// </summary>
+		[Test]
+		public void When_Saving_City_With_JsonStore_And_Invalid_Cas_Store_Is_Successful()
+		{
+			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
+			Assert.That(result.Success, Is.True);
+
+			city.Name = "New Haven";
+			var casResult = _Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas-1);
+			Assert.That(casResult.Success, Is.False);
+
+		}
+
+		#endregion
+
+		#region Get extension tests
+		/// <summary>
         /// @test: create a city object, store it in form of json against
-        /// a unique key, then get the Json object as return value
+        /// a unique key, then get the Json object as return IGetOperationResult
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if result is of type json object
         /// </summary>
+		[Test]
+		public void When_Execute_Getting_City_With_Json_Get_Result_Value_Is_Returned_As_City()
+		{
+			var city = new City { Name = "Boston", State = "MA", Type = "city" };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Boston_MA", city);
+			Assert.That(result.Success, Is.True);
+
+			var savedCity = _Client.ExecuteGetJson<City>("city_Boston_MA").Value;
+
+			Assert.That(savedCity, Is.InstanceOf<City>());
+			Assert.That(savedCity.Name, Is.StringMatching("Boston"));
+			Assert.That(savedCity.Type, Is.StringMatching("city"));
+			Assert.That(savedCity.State, Is.StringMatching("MA"));
+		}
+
+		/// <summary>
+		/// @test: create a city object, store it in form of json against
+		/// a unique key, then get the Json object as return value
+		/// @pre: Default configuration to initialize client in app.config
+		/// @post: Test passes if result is of type json object
+		/// </summary>
 		[Test]
 		public void When_Getting_City_With_JsonGet_City_Is_Returned_As_City()
 		{
@@ -48,6 +150,8 @@ namespace Couchbase.Tests
 			Assert.That(savedCity.Type, Is.StringMatching("city"));
 			Assert.That(savedCity.State, Is.StringMatching("MA"));
 		}
+		#endregion
+
 
 		private class City
 		{
@@ -59,6 +163,9 @@ namespace Couchbase.Tests
 
 			[JsonProperty("type")]
 			public string Type { get; set; }
+
+			[JsonProperty("lastUpdated")]
+			public DateTime LastUpdated { get; set; }
 		}
 	}
 }
