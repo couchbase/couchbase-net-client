@@ -501,6 +501,12 @@ namespace Couchbase
 
 		IEnumerable<IMemcachedNode> IServerPool.GetWorkingNodes()
 		{
+			if (this.state == null)
+			{
+				if (log.IsDebugEnabled) log.Debug("this.state was null, returning empty array for working nodes");
+				return new CouchbaseNode[] { };
+			}
+
 			return this.state.Locator.GetWorkingNodes();
 		}
 

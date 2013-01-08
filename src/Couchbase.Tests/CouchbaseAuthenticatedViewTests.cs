@@ -34,7 +34,7 @@ namespace Couchbase.Tests
         /// provide design name and view name to method GetView()
         /// @post: Test passes if the web exception (401) is thrown
         /// </summary>
-		[ExpectedException(typeof(WebException), ExpectedMessage="401", MatchType=MessageMatch.Contains)]
+		[ExpectedException(typeof(InvalidOperationException))]
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_No_Credentials_Are_Provided_Exception_Is_Thrown()
 		{

@@ -789,6 +789,12 @@ namespace Couchbase
 				.Select(n => n as CouchbaseNode)
 				.ToList();
 
+			if (nodes.Count == 0)
+			{
+				if (log.IsDebugEnabled) log.Debug("No working nodes found. Unable to execute view query");
+				return null;
+			}
+
 			var idx = new Random(Environment.TickCount).Next(nodes.Count);
 			var node = nodes[idx] as CouchbaseNode;
 			return node.Client;
