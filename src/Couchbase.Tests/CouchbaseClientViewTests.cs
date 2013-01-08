@@ -16,12 +16,29 @@ namespace Couchbase.Tests
         /// @post: Test passes if debug info is returned correctly
         /// </summary>
 		[Test]
+		public void When_Querying_Grouped_View_With_Debug_True_Debug_Info_Dictionary_Is_Returned()
+		{
+			var view = _Client.GetView("cities", "by_state").Group(true).Debug(true);
+			foreach (var item in view) { }
+
+			Assert.That(view.DebugInfo, Is.InstanceOf(typeof(Dictionary<string, object>)));
+			Console.WriteLine(view.DebugInfo.Keys.Count);
+		}
+
+		/// <summary>
+		/// @test: Retrieve view result with debug true should return debug information
+		/// of data type dictionary
+		/// @pre: Default configuration to initialize client in app.config and have view wih design document cities and view name by_name 
+		/// @post: Test passes if debug info is returned correctly
+		/// </summary>
+		[Test]
 		public void When_Querying_View_With_Debug_True_Debug_Info_Dictionary_Is_Returned()
 		{
 			var view = _Client.GetView("cities", "by_name").Limit(1).Debug(true);
 			foreach (var item in view) { }
 
 			Assert.That(view.DebugInfo, Is.InstanceOf(typeof(Dictionary<string, object>)));
+			Console.WriteLine(view.DebugInfo.Keys.Count);
 		}
 
         /// <summary>
@@ -30,9 +47,9 @@ namespace Couchbase.Tests
         /// @post: Test passes if no debug info is returned
         /// </summary>
 		[Test]
-		public void When_Querying_View_With_Debug_False_Debug_Info_Dictionary_Is_Returned()
+		public void When_Querying_View_With_Debug_False_Debug_Info_Dictionary_Is_Null()
 		{
-			var view = _Client.GetView("cities", "by_name").Limit(1).Debug(true);
+			var view = _Client.GetView("cities", "by_name").Limit(1).Debug(false);
 			foreach (var item in view) { }
 
 			Assert.That(view.DebugInfo, Is.Null);

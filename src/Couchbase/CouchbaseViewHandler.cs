@@ -46,7 +46,14 @@ namespace Couchbase
 				{
 					if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Depth == 1)
 					{
-						if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
+						if (jsonReader.TokenType == JsonToken.PropertyName
+										 && jsonReader.Depth == 1
+										 && ((string)jsonReader.Value) == "debug_info")
+						{
+							var debugInfoJson = (JObject.ReadFrom(jsonReader) as JProperty).Value;
+							DebugInfo = JsonHelper.Deserialize<Dictionary<string, object>>(debugInfoJson.ToString());
+						}
+						else if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
 						{
 							TotalRows = Convert.ToInt32(jsonReader.Value);
 						}
@@ -76,13 +83,6 @@ namespace Couchbase
 
 										throw new InvalidOperationException("Cannot read view: " + formatted);
 									}
-								}
-								else if (jsonReader.TokenType == JsonToken.PropertyName
-										 && jsonReader.Depth == 1
-										 && ((string)jsonReader.Value) == "debug_info")
-								{
-									var debugInfoJson = (JObject.ReadFrom(jsonReader) as JProperty).Value;
-									DebugInfo = JsonHelper.Deserialize<Dictionary<string, object>>(debugInfoJson.ToString());
 								}
 							}
 						}
