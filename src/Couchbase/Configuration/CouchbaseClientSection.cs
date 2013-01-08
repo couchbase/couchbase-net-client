@@ -134,7 +134,7 @@ namespace Couchbase.Configuration
 				{
 					return new ProviderElement<IHttpClientFactory>()
 					{
-						Type = typeof(HammockHttpClientFactory)
+						Type = typeof(RestSharpHttpClientFactory)
 					};
 				}
 				return (ProviderElement<IHttpClientFactory>)provider;
@@ -156,7 +156,7 @@ namespace Couchbase.Configuration
             if (this.clientFactory == null) {
                 var tmp = this.HttpClientFactory;
 
-                this.clientFactory = tmp == null ? HammockHttpClientFactory.Instance : tmp.CreateInstance();
+				this.clientFactory = tmp == null ? RestSharpHttpClientFactory.Instance : tmp.CreateInstance();
             }
 
             Debug.Assert(this.clientFactory != null);

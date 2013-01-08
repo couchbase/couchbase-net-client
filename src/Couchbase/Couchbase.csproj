@@ -50,6 +50,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.4.5.1\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="RestSharp">
+      <HintPath>..\packages\RestSharp.104.1\lib\net4\RestSharp.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.configuration" />
@@ -157,6 +160,7 @@
     <Compile Include="Protocol\CouchbaseOpCode.cs" />
     <Compile Include="Protocol\ObserveResponse.cs" />
     <Compile Include="Protocol\ObserveRequest.cs" />
+    <Compile Include="RestSharpHttpClient.cs" />
     <Compile Include="Results\IObserveOperationResult.cs" />
     <Compile Include="Results\ObserveOperationResult.cs" />
     <Compile Include="Settings\ObserveSettings.cs" />

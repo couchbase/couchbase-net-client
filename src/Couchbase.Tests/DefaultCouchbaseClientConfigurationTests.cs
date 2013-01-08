@@ -18,46 +18,46 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create couchbase client using configuration and http client is not set, 
-        /// then it creates instance of hammock http client
+        /// then it creates instance of RestSharp http client
         /// @pre: Default configuration to initialize client in app.config
-        /// @post: Test passes if result is of type hammock http client
+        /// @post: Test passes if result is of type RestSharp http client
         /// </summary>
 		[Test]
-		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Hammock_Factory_Is_Default()
+		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_RestSharp_Factory_Is_Default()
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<HammockHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
 
-			//HammockHttpClient is an internal class to the Couchbase assembly,
+			//RestSharpHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
 			var typeName = (config.HttpClientFactory.Create(config.Urls[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
-			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
+			Assert.That(typeName, Is.StringContaining("RestSharpHttpClient"));
 		}
 
         /// <summary>
         /// @test: create couchbase client using configuration from app.config and http client is not set, 
-        /// then it creates instance of hammock http client
+        /// then it creates instance of RestSharp http client
         /// @pre: Default configuration to initialize client in app.config
-        /// @post: Test passes if result is of type hammock http client
+        /// @post: Test passes if result is of type RestSharp http client
         /// </summary>
 		[Test]
-		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Hammock_Factory_Is_Default()
+		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_RestSharp_Factory_Is_Default()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 
 			Assert.That(config, Is.Not.Null, "min-config section missing from app.config");
 			Assert.That(config.HttpClientFactory, Is.InstanceOf<ProviderElement<IHttpClientFactory>>());
 
-			//HammockHttpClient is an internal class to the Couchbase assembly,
+			//RestSharpHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
 			var typeName = (config.HttpClientFactory.CreateInstance().Create(config.Servers.Urls.ToUriCollection()[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
-			Assert.That(typeName, Is.StringContaining("HammockHttpClient"));
+			Assert.That(typeName, Is.StringContaining("RestSharpHttpClient"));
 		}
 
         /// <summary>
         /// @test: create couchbase client using configuration and http client is not set, 
-        /// then it creates instance of hammock http client. perform operations like storing key value, 
+        /// then it creates instance of RestSharp http client. perform operations like storing key value, 
         /// the operations should all succeed
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if all operations succeed
@@ -73,8 +73,8 @@ namespace Couchbase.Tests
 			var client = new CouchbaseClient(config);
 			var kv = KeyValueUtils.GenerateKeyAndValue("default_config");
 
-			var result = client.Store(StoreMode.Add, kv.Item1, kv.Item2);
-			Assert.That(result, Is.True, "Store failed");
+			var result = client.ExecuteStore(StoreMode.Add, kv.Item1, kv.Item2);
+			Assert.That(result.Success, Is.True, "Store failed: " + result.Message);
 
 			var value = client.Get(kv.Item1);
 			Assert.That(value, Is.StringMatching(kv.Item2));
@@ -82,7 +82,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create couchbase client using configuration from code and http client is not set, 
-        /// then it creates instance of hammock http client. perform operations like
+        /// then it creates instance of RestSharp http client. perform operations like
         /// get and store and they should all pass
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if all operations should happen successfully
@@ -92,16 +92,16 @@ namespace Couchbase.Tests
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<HammockHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
 
 			Assert.That(config, Is.Not.Null, "min-config section missing from app.config");
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<HammockHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
 
 			var client = new CouchbaseClient(config);
 			var kv = KeyValueUtils.GenerateKeyAndValue("default_config");
 
-			var result = client.Store(StoreMode.Add, kv.Item1, kv.Item2);
-			Assert.That(result, Is.True, "Store failed");
+			var result = client.ExecuteStore(StoreMode.Add, kv.Item1, kv.Item2);
+			Assert.That(result.Success, Is.True, "Store failed: " + result.Message);
 
 			var value = client.Get(kv.Item1);
 			Assert.That(value, Is.StringMatching(kv.Item2));
