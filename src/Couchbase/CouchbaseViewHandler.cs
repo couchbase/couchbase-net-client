@@ -7,11 +7,14 @@ using System.Diagnostics;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using Couchbase.Helpers;
+using Couchbase.Exceptions;
 
 namespace Couchbase
 {
 	internal class CouchbaseViewHandler
 	{
+		private const string ERROR_VIEW_NOT_FOUND = "not_found";
+
 		protected static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseViewHandler));
 
 		public ICouchbaseClient Client { get; private set; }
@@ -36,7 +39,6 @@ namespace Couchbase
 		public IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer, IDictionary<string, string> viewParams)
 		{
 			var response = GetResponse(viewParams);
-			Debug.Assert(response != null);
 
 			using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
 			using (var jsonReader = new JsonTextReader(sr))
@@ -56,6 +58,26 @@ namespace Couchbase
 						else if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
 						{
 							TotalRows = Convert.ToInt32(jsonReader.Value);
+						}
+						else if (jsonReader.Value as string == "error" && jsonReader.Read())
+						{
+							var error = jsonReader.Value as string;
+							var reason = "";
+							while (jsonReader.Read())
+							{
+								if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Value as string == "reason" && jsonReader.Read())
+								{
+									reason = jsonReader.Value.ToString();
+								}
+							}
+
+							//When requesting a bad design document, the response will be a 404 with the error == "not_found"
+							//When requesting a bad view name and a valid design doc, response will be a 500 with a reason containing "not_found"
+							if (error == ERROR_VIEW_NOT_FOUND || reason.Contains(ERROR_VIEW_NOT_FOUND))
+							{
+								throw new ViewNotFoundException(DesignDocument, IndexName, error, reason);
+							}
+							throw new ViewException(DesignDocument, IndexName, error, reason);
 						}
 						else if (jsonReader.Value as string == "rows" && jsonReader.Read())
 						{
@@ -89,6 +111,35 @@ namespace Couchbase
 					}
 				}
 			}
+		}
+
+		public bool CheckViewExists()
+		{
+			var client = ClientLocator.Locate(DesignDocument);
+			var request = client.CreateRequest(this.DesignDocument + "/");
+			var response = request.GetResponse();
+
+			using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
+			using (var jsonReader = new JsonTextReader(sr))
+			{
+				while (jsonReader.Read())
+				{
+					if (jsonReader.TokenType == JsonToken.PropertyName
+											 && jsonReader.Depth == 1
+											 && ((string)jsonReader.Value) == "views")
+					{
+						while (jsonReader.Read())
+						{
+							if (jsonReader.TokenType == JsonToken.PropertyName && (string)jsonReader.Value == IndexName)
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
 		}
 
 		protected static IEnumerable<string> FormatErrors(object[] list)

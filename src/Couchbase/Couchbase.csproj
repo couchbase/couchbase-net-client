@@ -80,6 +80,8 @@
     <Compile Include="CouchbaseSpatialView.cs" />
     <Compile Include="CouchbaseSpatialViewBase.cs" />
     <Compile Include="CouchbaseViewHandler.cs" />
+    <Compile Include="Exceptions\ViewExceptions.cs" />
+    <Compile Include="Exceptions\ViewNotFoundException.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
     <Compile Include="GenericViewRowTransformer.cs" />
     <Compile Include="Helpers\DocHelper.cs" />

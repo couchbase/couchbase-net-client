@@ -110,8 +110,6 @@ namespace Couchbase
 				this.response = client.Execute(request);
 
 				if (response.ErrorException != null) throw response.ErrorException;
-				if (response.StatusCode != System.Net.HttpStatusCode.OK)
-					throw new InvalidOperationException(String.Format("Server returned {0}: {1}, {2}", response.StatusCode, response.StatusDescription, response.Content));
 			}
 
 			Stream IHttpResponse.GetResponseStream()

@@ -188,6 +188,11 @@ namespace Couchbase {
             return new PagedView<T>(this, pageSize, pagedViewIdProperty, pagedViewKeyProperty);
         }
 
+		public bool CheckExists()
+		{
+			return ViewHandler.CheckViewExists();
+		}
+
         #endregion     
 
         #region IEnumerable<IViewRow> Members
