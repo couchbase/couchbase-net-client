@@ -6,6 +6,7 @@ using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
 using Couchbase.Constants;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Couchbase.Tests
 {
@@ -46,6 +47,7 @@ namespace Couchbase.Tests
 
 			var removeResult = _Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.False, "Success was true");
+			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound), "Status code was not NotFound");
 		}
 
 		[Test]
