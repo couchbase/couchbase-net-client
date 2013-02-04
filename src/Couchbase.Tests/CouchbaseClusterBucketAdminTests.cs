@@ -450,7 +450,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if bucket is error is thrown
         /// </summary>
 		[Test]
-		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "Quota.RAM", MatchType = MessageMatch.Contains)]
+        [ExpectedException(typeof(ArgumentException), ExpectedMessage = "RamQuotaMB must be at least 100", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Ram_Quota_Less_Than_100_Argument_Exception_Is_Thrown()
 		{
 			_Cluster.CreateBucket(new Bucket

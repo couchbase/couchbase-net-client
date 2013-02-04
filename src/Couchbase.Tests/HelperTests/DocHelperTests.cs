@@ -17,7 +17,7 @@ namespace Couchbase.Tests.HelperTests
 			var json = "{ \"message\" : \"Test\" }";
 			var jsonWithId = DocHelper.InsertId(json, "8675309");
 
-			Assert.That(jsonWithId, Is.StringContaining("\"_id\":\"8675309\""));
+			Assert.That(jsonWithId, Is.StringContaining("\"id\":\"8675309\""));
 			Assert.That(JsonConvert.DeserializeObject(jsonWithId), Is.Not.Null);
 		}
 	}

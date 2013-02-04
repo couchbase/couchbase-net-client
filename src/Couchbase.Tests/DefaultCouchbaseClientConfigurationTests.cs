@@ -147,30 +147,30 @@ namespace Couchbase.Tests
 		#region Timeouts
 
         /// <summary>
-        /// @test: Create couchbase client and dont set time out, default would be 20 seconds
+        /// @test: Create couchbase client and dont set time out, default would be one minute
         /// @pre: Provide configuration of client in app.config
-        /// @post: Test passes if http request time out is 20 seconds
+        /// @post: Test passes if http request time out is one minute
         /// </summary>
-		[Test]
-		public void When_Http_Timeout_Is_Not_Set_And_Using_App_Config_Default_Is_20_Seconds()
-		{
-			var config = ConfigurationManager.GetSection("httptimeout-default-config") as CouchbaseClientSection;
-			Assert.That(config, Is.Not.Null, "Config was null");
-			Assert.That(config.Servers.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
-		}
+        [Test]
+        public void When_Http_Timeout_Is_Not_Set_And_Using_App_Config_Default_Is_One_Minute()
+        {
+            var config = ConfigurationManager.GetSection("httptimeout-default-config") as CouchbaseClientSection;
+            Assert.That(config, Is.Not.Null, "Config was null");
+            Assert.That(config.Servers.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
+        }
 
         /// <summary>
-        /// @test: Create couchbase client using code configuration and dont set time out, default would be 20 seconds
+        /// @test: Create couchbase client using code configuration and dont set time out, default would be one minute
         /// @pre: Provide configuration of client in code
-        /// @post: Test passes if http request time out is 20 seconds
+        /// @post: Test passes if http request time out is one minute
         /// </summary>
-		[Test]
-		public void When_Http_Timeout_Is_Not_Set_And_Using_Code_Config_Default_Is_20_Seconds()
-		{
-			var config = new CouchbaseClientConfiguration();
-			Assert.That(config, Is.Not.Null, "Config was null");
-			Assert.That(config.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromSeconds(20)));
-		}
+        [Test]
+        public void When_Http_Timeout_Is_Not_Set_And_Using_Code_Config_Default_Is_One_Minute()
+        {
+            var config = new CouchbaseClientConfiguration();
+            Assert.That(config, Is.Not.Null, "Config was null");
+            Assert.That(config.HttpRequestTimeout, Is.EqualTo(TimeSpan.FromMinutes(1)));
+        }
 
         /// <summary>
         /// @test: Create couchbase client, set time out to 30 seconds, server time out should be 30 seconds,
