@@ -138,6 +138,12 @@ namespace Couchbase
 		/// <param name="debug">A value that specifies whether to include debug info.</param>
 		/// <returns>A new <see cref="T:Couchbase.IView"/> that can be used to retrieve the items, including debug info.</returns>
 		IView<T> Debug(bool debug);
+
+		/// <summary>
+		/// Will execute an HTTP query to check the design document for the existence of a view
+		/// </summary>
+		/// <returns>True if design doc is found</returns>
+		bool CheckExists();
 	}
 }
 
