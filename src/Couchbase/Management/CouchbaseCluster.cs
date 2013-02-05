@@ -225,7 +225,7 @@ namespace Couchbase.Management
 			var poolsUri = getPoolsUri(bootstrapUri);
 
 			//GET /pools/default
-			var json = HttpHelper.Get(poolsUri);
+			var json = HttpHelper.Get(poolsUri, _username, _password);
 			var buckets = ClusterConfigParser.ParseNested<Dictionary<string, object>>(json, "buckets");
 			var path = buckets["uri"] as string;
 
@@ -243,7 +243,7 @@ namespace Couchbase.Management
 			var bucketUri = ConfigHelper.CleanBootstrapUri(bootstrapUri);
 
 			//GET /pools
-			var json = HttpHelper.Get(bucketUri);
+			var json = HttpHelper.Get(bucketUri, _username, _password);
 			var pools = ClusterConfigParser.ParseNested<object[]>(json, "pools");
 			var path = (pools.First() as Dictionary<string, object>)["uri"] as string;
 
