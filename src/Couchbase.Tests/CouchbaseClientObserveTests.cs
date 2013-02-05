@@ -150,7 +150,7 @@ namespace Couchbase.Tests
 			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value, PersistTo.One);
 			Assert.That(storeResult.Success, Is.True);
 
-			var view = _Client.GetView("cities", "by_id").Key(key);
+			var view = _Client.GetView("cities", "by_id").Key(key).Stale(StaleMode.False);
 
 
 			int i = 0;

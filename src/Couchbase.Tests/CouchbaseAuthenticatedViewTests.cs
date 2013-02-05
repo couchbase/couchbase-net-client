@@ -24,7 +24,7 @@ namespace Couchbase.Tests
         {
             var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], ConfigurationManager.AppSettings["SaslBucketPassword"]);
             var view = client.GetView("cities", "by_name");
-            Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
+            Assert.That(view.Count(), Is.GreaterThanOrEqualTo(1), "Row count was not 1");
         }
 
         /// <summary>
@@ -49,17 +49,16 @@ namespace Couchbase.Tests
         /// <param name="bucketName">Name of bucket to be used</param>
         /// <param name="bucketPassword">Password used to connect to bucket</param>
         /// <returns>Couchbase client object</returns>
-        private CouchbaseClient getClient(string bucketName, string bucketPassword)
-        {
-            var config = new CouchbaseClientConfiguration();
-            config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
-            config.Bucket = bucketName;
-            config.BucketPassword = bucketPassword;
-            config.DesignDocumentNameTransformer = new DevelopmentModeNameTransformer();
-            config.HttpClientFactory = new HammockHttpClientFactory();
-            return new CouchbaseClient(config);
-        }
-    }
+		private CouchbaseClient getClient(string bucketName, string bucketPassword)
+		{
+			var config = new CouchbaseClientConfiguration();
+			config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
+			config.Bucket = bucketName;
+			config.BucketPassword = bucketPassword;
+
+			return new CouchbaseClient(config);
+		}
+	}
 }
 
 #region [ License information          ]
