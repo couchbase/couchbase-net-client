@@ -63,6 +63,58 @@ namespace Couchbase.Tests
 			Assert.That(removeResult.Success, Is.False);
 			Assert.That(removeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
 		}
+
+		[Test]
+		public void When_ExecuteRemoving_A_Key_With_A_Valid_Cas_Result_Success_Is_True()
+		{
+			var key = GetUniqueKey("remove");
+			var storeResult = Store(key: key);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, storeResult.Cas);
+			Assert.That(removeResult.Success, Is.True, "Success was false");
+			Assert.That(removeResult.StatusCode, Is.Null.Or.EqualTo(0), "StatusCode was neither null nor 0");
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_ExecuteRemoving_A_Key_With_An_Invalid_Cas_Result_Success_Is_False()
+		{
+			var key = GetUniqueKey("remove");
+			var storeResult = Store(key: key);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.ExecuteRemove(key, storeResult.Cas-1);
+			Assert.That(removeResult.Success, Is.False, "Success was false");
+			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey), "StatusCode was not 2");
+		}
+
+		[Test]
+		public void When_Removing_A_Key_With_A_Valid_Cas_Success_Is_True()
+		{
+			var key = GetUniqueKey("remove");
+			var storeResult = Store(key: key);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.Remove(key, storeResult.Cas);
+			Assert.That(removeResult, Is.True, "Success was false");
+
+			var getResult = _Client.ExecuteGet(key);
+			GetAssertFail(getResult);
+		}
+
+		[Test]
+		public void When_Removing_A_Key_With_An_Invalid_Cas_Success_Is_False()
+		{
+			var key = GetUniqueKey("remove");
+			var storeResult = Store(key: key);
+			StoreAssertPass(storeResult);
+
+			var removeResult = _Client.Remove(key, storeResult.Cas - 1);
+			Assert.That(removeResult, Is.False, "Success was false");
+		}
 	}
 }
 
