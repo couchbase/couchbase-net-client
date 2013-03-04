@@ -43,6 +43,22 @@ namespace Couchbase.Tests
 			foreach (var item in view) { Console.WriteLine(item); }
 		}
 
+		/// <summary>
+		/// @test: Verifies that for the bucket which is authenticated with password, it throws an error
+		/// if bad credentials are provided and hence cannot return the object representing the view in specfied design document
+		/// @pre: Provide the bucket name but no password in method getClient(),
+		/// provide design name and view name to method GetView()
+		/// @post: Test passes if the web exception (401) is thrown
+		/// </summary>
+		[ExpectedException(typeof(InvalidOperationException))]
+		[Test]
+		public void When_Bucket_Is_Authenticated_And_Bad_Credentials_Are_Provided_Exception_Is_Thrown()
+		{
+			var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], "bad_credentials");
+			var view = client.GetView("cities", "by_name");
+			foreach (var item in view) { Console.WriteLine(item); }
+		}
+
         /// <summary>
         /// Connects to couchbase client with given configuration details
         /// </summary>

@@ -90,7 +90,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if successfully stores all keys and count is correct
         /// </summary>
 		[Test]
-		public void When_Getting_Multiple_Keys_Result_Is_Successful()
+		public void When_Getting_Multiple_Existing_Keys_Result_Is_Successful()
 		{
 			var keys = GetUniqueKeys().Distinct();
 			foreach (var key in keys)
@@ -105,6 +105,21 @@ namespace Couchbase.Tests
 			{
 				Assert.That(dict[key].Success, Is.True, "Get failed for key: " + key);
 			}
+		}
+
+		/// <summary>
+		/// @test: Get unique set of keys but do not store them in bucket. Get the keys and verify the count
+		/// should be zero and no key should be found as a result of get operation
+		/// @pre: Default configuration to initialize client in app.config 
+		/// @post: Test passes if no key is found
+		/// </summary>
+		[Test]
+		public void When_Getting_Multiple_Non_Existent_Keys_Result_Is_Not_Successful()
+		{
+			var keys = GetUniqueKeys().Distinct();
+
+			var dict = _Client.ExecuteGet(keys);
+			Assert.That(dict.Keys.Count, Is.EqualTo(0), "Keys count expected is zero as none of the keys exist, but it is {0} which is incorrect.", dict.Keys.Count);
 		}
 
         /// <summary>

@@ -50,6 +50,24 @@ namespace Couchbase.Tests
 			StoreAssertFail(casResult);
 		}
 
+		/// <summary>
+		/// @test: Store a randomly generated unique key-value, use the CAS value
+		/// returned from the Store(), then use ExecuteCas() method
+		/// to replace the value using the specified key and return the store operation result
+		/// @pre: No section required in App.config file
+		/// @post: Test passes if successfully able to replace a key-value pair, fails otherwise
+		/// </summary>
+		[Test]
+		public void When_Replacing_Item_With_Valid_Cas_Result_Is_Successful()
+		{
+			var key = GetUniqueKey("cas");
+			var value = GetRandomString();
+			var storeResult = Store(StoreMode.Add, key, value);
+			StoreAssertPass(storeResult);
+
+			var casResult = _Client.ExecuteCas(StoreMode.Replace, key, value, storeResult.Cas);
+			StoreAssertPass(casResult);
+		}
 	}
 }
 
