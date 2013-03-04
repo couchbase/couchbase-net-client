@@ -5,6 +5,7 @@ using System.Text;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Couchbase.Tests.Mocks;
+using System.Reflection;
 
 namespace Couchbase.Tests
 {
@@ -191,12 +192,12 @@ namespace Couchbase.Tests
 
 		private void testJsonStartKeySerialization(object value, string serializedValue)
 		{
-			testJsonSerialization(value, serializedValue, "startkey");
+			testJsonSerialization(value, serializedValue, "startKey");
 		}
 
 		private void testJsonEndKeySerialization(object value, string serializedValue)
 		{
-			testJsonSerialization(value, serializedValue, "endkey");
+			testJsonSerialization(value, serializedValue, "endKey");
 		}
 
 		private void testJsonKeySerialization(object value, string serializedValue)
@@ -211,21 +212,25 @@ namespace Couchbase.Tests
 
 			switch (paramName)
 			{
-				case "startkey":
+				case "startKey":
 					view.StartKey(value);
 					break;
-				case "endkey":
+				case "endKey":
 					view.EndKey(value);
 					break;
 				case "key":
 					view.Key(value);
 					break;
 			}
-			
-			foreach (var item in view) { } //iteration sends request
-			var request = GetHttpRequest(clientWithConfig);
 
-			Assert.That(request.Parameters[paramName], Is.EqualTo(serializedValue), "Key was not " + serializedValue);
+			//Previously, params were exposed via a public property on the IHttpRequest,
+			//which was available on the view instance after executing a view.
+			//This is no longer the case and currently, private fields offer the only
+			//means of testing values of view params.
+			var field = view.GetType().GetField(paramName, BindingFlags.NonPublic | BindingFlags.Instance);
+			var val = field.GetValue(view).ToString();
+
+			Assert.That(val, Is.EqualTo(serializedValue), "Key was not " + serializedValue);
 		}
 		
 	}
