@@ -123,12 +123,15 @@ namespace Couchbase.Tests
 			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Boston_MA", city);
 			Assert.That(result.Success, Is.True);
 
-			var savedCity = _Client.ExecuteGetJson<City>("city_Boston_MA").Value;
+			var getResult = _Client.ExecuteGetJson<City>("city_Boston_MA");
+			Assert.That(getResult.Success, Is.True);
+			Assert.That(getResult.Cas, Is.GreaterThan(0).And.EqualTo(result.Cas));
 
-			Assert.That(savedCity, Is.InstanceOf<City>());
-			Assert.That(savedCity.Name, Is.StringMatching("Boston"));
-			Assert.That(savedCity.Type, Is.StringMatching("city"));
-			Assert.That(savedCity.State, Is.StringMatching("MA"));
+			Assert.That(getResult.Value, Is.InstanceOf<City>());
+			Assert.That(getResult.Value.Name, Is.StringMatching("Boston"));
+			Assert.That(getResult.Value.Type, Is.StringMatching("city"));
+			Assert.That(getResult.Value.State, Is.StringMatching("MA"));
+
 		}
 
 		/// <summary>
@@ -151,7 +154,6 @@ namespace Couchbase.Tests
 			Assert.That(savedCity.State, Is.StringMatching("MA"));
 		}
 		#endregion
-
 
 		private class City
 		{

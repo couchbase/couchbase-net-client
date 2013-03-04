@@ -102,6 +102,7 @@ namespace Couchbase.Extensions
 			var result = client.ExecuteGet<string>(key);
 			var retVal = new GetOperationResult<T>();
 			result.Combine(retVal);
+			retVal.Cas = result.Cas;
 
 			if (! result.Success)
 			{
