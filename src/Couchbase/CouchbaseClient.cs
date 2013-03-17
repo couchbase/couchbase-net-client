@@ -311,12 +311,12 @@ namespace Couchbase
 
 		public void Touch(string key, DateTime nextExpiration)
 		{
-			PerformTouch(key, GetExpiration(null, nextExpiration));
+			PerformTouch(key, GetExpiration(nextExpiration));
 		}
 
 		public void Touch(string key, TimeSpan nextExpiration)
 		{
-			PerformTouch(key, GetExpiration(nextExpiration, null));
+			PerformTouch(key, GetExpiration(nextExpiration));
 		}
 
 		protected void PerformTouch(string key, uint nextExpiration)
@@ -384,14 +384,14 @@ namespace Couchbase
 		{
 			ulong cas = 0;
 
-			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value).Success;
+			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(newExpiration), out cas, out value).Success;
 		}
 
 		public IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value)
 		{
 			ulong cas = 0;
 
-			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value);
+			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(newExpiration), out cas, out value);
 		}
 
 		public CasResult<object> GetWithCas(string key, DateTime newExpiration)
@@ -413,7 +413,7 @@ namespace Couchbase
 			object tmp;
 			ulong cas;
 
-			var retval = this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out tmp).Success;
+			var retval = this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(newExpiration), out cas, out tmp).Success;
 
 			value = new CasResult<object> { Cas = cas, Result = tmp };
 
