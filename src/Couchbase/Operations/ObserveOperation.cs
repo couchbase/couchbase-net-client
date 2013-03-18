@@ -10,6 +10,7 @@ using Couchbase.Protocol;
 using Enyim.Caching.Memcached.Protocol;
 using Enyim.Caching.Memcached.Results.Helpers;
 using Couchbase.Results;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Couchbase.Operations
 {
@@ -47,7 +48,7 @@ namespace Couchbase.Operations
 				result.ReplicationStats = response.ReplicationStats;
 			}
 
-			this.StatusCode = response.StatusCode;
+            this.StatusCode = response.StatusCode.ToStatusCode();
 
 			result.PassOrFail(retval, ResultHelper.ProcessResponseData(response.Data, "Failed: "));
 			return result;

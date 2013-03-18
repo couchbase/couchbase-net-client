@@ -6,6 +6,7 @@ using Enyim.Caching.Memcached;
 using Couchbase.Configuration;
 using System.Collections.Generic;
 using System.Threading;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 using KVP_SU = System.Collections.Generic.KeyValuePair<string, ulong>;
 using Enyim.Caching.Memcached.Results.Factories;
 using Enyim.Caching.Memcached.Results.Extensions;
@@ -134,7 +135,7 @@ namespace Couchbase
 			value = null;
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
-
+            result.StatusCode = StatusCode.NodeNotFound;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
@@ -169,7 +170,7 @@ namespace Couchbase
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, false);
-
+            result.StatusCode = StatusCode.NodeNotFound;
 			result.Value = defaultValue;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
@@ -203,17 +204,17 @@ namespace Couchbase
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, false);
-
+            result.StatusCode = StatusCode.NodeNotFound;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
 
-		protected override IStoreOperationResult PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out int statusCode)
+		protected override IStoreOperationResult PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out StatusCode statusCode)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = StoreOperationResultFactory.Create();
-			statusCode = -1;
+		    statusCode = StatusCode.UnspecifiedError;
 
 			if (node != null)
 			{
@@ -249,7 +250,7 @@ namespace Couchbase
 			}
 
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
-
+            result.StatusCode = StatusCode.NodeNotFound;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}
@@ -452,7 +453,7 @@ namespace Couchbase
 			value = null;
 			cas = 0;
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
-
+            result.StatusCode = StatusCode.NodeNotFound;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
 		}

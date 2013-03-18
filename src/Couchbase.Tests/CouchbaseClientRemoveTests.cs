@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Couchbase.Configuration;
-using Enyim.Caching.Memcached;
 using Couchbase.Constants;
 using Enyim.Caching.Memcached.Results.StatusCodes;
 
@@ -47,7 +43,7 @@ namespace Couchbase.Tests
 
 			var removeResult = _Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.False, "Success was true");
-			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound), "Status code was not NotFound");
+			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCode.KeyNotFound), "Status code was not KeyNotFound");
 		}
 
 		[Test]
@@ -88,7 +84,7 @@ namespace Couchbase.Tests
 
 			var removeResult = _Client.ExecuteRemove(key, storeResult.Cas-1);
 			Assert.That(removeResult.Success, Is.False, "Success was false");
-			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey), "StatusCode was not 2");
+			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCode.KeyExists), "StatusCode was not 2 (Key Exists)");
 		}
 
 		[Test]
