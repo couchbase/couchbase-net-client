@@ -12,7 +12,8 @@ namespace Couchbase.Protocol
 	/// </summary>
 	public enum CouchbaseOpCode
 	{
-		Observe = 0x92
+		Observe = 0x92,
+		GetL = 0x94
 	}
 }
 

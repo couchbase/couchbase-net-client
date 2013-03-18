@@ -151,6 +151,7 @@
     <Compile Include="MessageStreamListener.cs" />
     <Compile Include="CouchbaseClient.cs" />
     <Compile Include="CouchbasePool.cs" />
+    <Compile Include="Operations\GetWithLockOperation.cs" />
     <Compile Include="Operations\ObserveKeyState.cs" />
     <Compile Include="Operations\ObserveOperation.cs" />
     <Compile Include="Operations\PersistTo.cs" />
@@ -160,6 +161,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Operations\TouchOperation.cs" />
     <Compile Include="Protocol\CouchbaseOpCode.cs" />
+    <Compile Include="Protocol\CouchbaseStatusCodeEnums.cs" />
     <Compile Include="Protocol\ObserveResponse.cs" />
     <Compile Include="Protocol\ObserveRequest.cs" />
     <Compile Include="RestSharpHttpClient.cs" />

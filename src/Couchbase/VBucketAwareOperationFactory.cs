@@ -96,6 +96,11 @@ namespace Couchbase
 			return new ObserveOperation(key, vbucket, cas);
 		}
 
+		IGetWithLockOperation ICouchbaseOperationFactory.GetWithLock(string key, uint lockExpiration)
+		{
+			return new GetWithLockOperation(locator, key, lockExpiration);
+		}
+
 		#region [ Custom operations            ]
 
 		private class VBStore : StoreOperation, IOperationWithState

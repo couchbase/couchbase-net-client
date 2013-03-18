@@ -394,6 +394,83 @@ namespace Couchbase
 			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value);
 		}
 
+		public IGetOperationResult TryGetWithLock(string key, TimeSpan lockExpiration, out CasResult<object> value)
+		{
+			object tmp;
+			ulong cas;
+
+			var retval = this.PerformTryGetWithLock(key, lockExpiration, out cas, out tmp);
+			value = new CasResult<object> { Cas = cas, Result = tmp };
+
+			return retval;
+		}
+
+		public IGetOperationResult ExecuteGetWithLock(string key)
+		{
+			return this.ExecuteGetWithLock(key, TimeSpan.Zero);
+		}
+
+		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key)
+		{
+			return ExecuteGetWithLock<T>(key, TimeSpan.Zero);
+		}
+
+		public IGetOperationResult ExecuteGetWithLock(string key, TimeSpan lockExpiration)
+		{
+			CasResult<object> tmp;
+			return this.TryGetWithLock(key, lockExpiration, out tmp);
+		}
+
+		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key, TimeSpan lockExpiration)
+		{
+			CasResult<object> tmp;
+			var retVal = new DefaultGetOperationResultFactory<T>().Create();
+
+			var result = TryGetWithLock(key, lockExpiration, out tmp);
+			if (result.Success)
+			{
+				if (result.Value is T)
+				{
+					result.Copy(retVal);
+					retVal.Value = (T)tmp.Result;
+					retVal.Cas = result.Cas;
+				}
+				else
+				{
+					retVal.Value = default(T);
+					retVal.Fail("Type mismatch", new InvalidCastException());
+				}
+				return retVal;
+			}
+			retVal.InnerResult = result;
+			retVal.Fail(result.Message);
+			return retVal;
+		}
+
+		public CasResult<object> GetWithLock(string key)
+		{
+			return this.GetWithLock<object>(key);
+		}
+
+		public CasResult<T> GetWithLock<T>(string key)
+		{
+			return GetWithLock<T>(key, TimeSpan.Zero);
+		}
+
+		public CasResult<object> GetWithLock(string key, TimeSpan lockExpiration)
+		{
+			return this.GetWithLock<object>(key, lockExpiration);
+		}
+
+		public CasResult<T> GetWithLock<T>(string key, TimeSpan lockExpiration)
+		{
+			CasResult<object> tmp;
+
+			return this.TryGetWithLock(key, lockExpiration, out tmp).Success
+					? new CasResult<T> { Cas = tmp.Cas, Result = (T)tmp.Result }
+					: new CasResult<T> { Cas = tmp.Cas, Result = default(T) };
+		}
+
 		public CasResult<object> GetWithCas(string key, DateTime newExpiration)
 		{
 			return this.GetWithCas<object>(key, newExpiration);
@@ -446,6 +523,43 @@ namespace Couchbase
 					value = null;
 					result.InnerResult = commandResult;
 					result.Fail("Failed to execute Get and Touch operation, see InnerException or StatusCode for details");
+				}
+			}
+
+			value = null;
+			cas = 0;
+			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
+
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			return result;
+		}
+
+		protected IGetOperationResult PerformTryGetWithLock(string key, TimeSpan lockExpiration, out ulong cas, out object value)
+		{
+			var hashedKey = this.KeyTransformer.Transform(key);
+			var node = this.Pool.Locate(hashedKey);
+			var result = GetOperationResultFactory.Create();
+
+			if (node != null)
+			{
+				var command = this.poolInstance.OperationFactory.GetWithLock(hashedKey, (uint)lockExpiration.Seconds);
+				var commandResult = this.ExecuteWithRedirect(node, command);
+
+				if (commandResult.Success)
+				{
+					result.Value = value = this.Transcoder.Deserialize(command.Result);
+					result.Cas = cas = command.CasValue;
+					if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, true);
+
+					result.Pass();
+					return result;
+				}
+				else
+				{
+					commandResult.Combine(result);
+					value = null;
+					cas = 0;
+					return result;
 				}
 			}
 

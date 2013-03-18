@@ -16,6 +16,11 @@ namespace Couchbase
         IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration);
         IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value);
 
+        IGetOperationResult ExecuteGetWithLock(string key);
+        IGetOperationResult<T> ExecuteGetWithLock<T>(string key);
+        IGetOperationResult ExecuteGetWithLock(string key, TimeSpan lockExpiration);
+        IGetOperationResult<T> ExecuteGetWithLock<T>(string key, TimeSpan lockExpiration);
+
         IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replicateTo);
         IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo);
         IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo);

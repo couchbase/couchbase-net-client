@@ -18,6 +18,11 @@ namespace Couchbase
 			return new GetAndTouchOperation(null, key, newExpiration);
 		}
 
+		IGetWithLockOperation ICouchbaseOperationFactory.GetWithLock(string key, uint lockExpiration)
+		{
+			return new GetWithLockOperation(null, key, lockExpiration);
+		}
+
 		ISyncOperation ICouchbaseOperationFactory.Sync(SyncMode mode, IList<KeyValuePair<string, ulong>> keys, int replicationCount)
 		{
 			throw new NotSupportedException("Sync is not supported on memcached buckets.");
