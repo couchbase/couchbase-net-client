@@ -40,7 +40,7 @@ namespace Couchbase.Tests
 			var key = GetUniqueKey("get");
 
 			var getResult = _Client.ExecuteGet(key);
-			Assert.That(getResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound));
+			Assert.That(getResult.StatusCode, Is.EqualTo((int)StatusCode.KeyNotFound));
 			GetAssertFail(getResult);
 		}
 
