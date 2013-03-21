@@ -26,6 +26,8 @@ namespace Couchbase
 		IDictionary<string, object> Get(IView view);
 		ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName);
 		ISpatialView<T> GetSpatialView<T>(string designName, string viewName, bool shouldLookupDocById = false);
+		bool KeyExists(string key);
+		bool KeyExists(string key, ulong cas);
 	}
 }
 

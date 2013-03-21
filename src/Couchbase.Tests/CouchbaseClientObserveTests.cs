@@ -331,6 +331,80 @@ namespace Couchbase.Tests
 			GetAssertFail(getResult);
 		}
 
+		[Test]
+		public void When_Observing_A_New_Key_With_Persist_To_Zero_And_Replicate_To_Zero_Operation_Is_Successful()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			StoreAssertPass(storeResult);
+
+			var observeResult = _Client.Observe(key, storeResult.Cas, PersistTo.Zero, ReplicateTo.Zero);
+			Assert.That(observeResult.Success, Is.True);
+			Assert.That(observeResult.KeyState, Is.EqualTo(ObserveKeyState.FoundNotPersisted).Or.EqualTo(ObserveKeyState.FoundPersisted));
+		}
+
+		[Test]
+		public void When_Observing_A_Missing_Key_With_Persist_To_Zero_And_Replicate_To_Zero_Operation_Is_Not_Successful()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var observeResult = _Client.Observe(key, 0, PersistTo.Zero, ReplicateTo.Zero);
+			Assert.That(observeResult.Success, Is.False);
+			Assert.That(observeResult.KeyState, Is.EqualTo(ObserveKeyState.NotFound));
+
+		}
+
+		[Test]
+		public void When_Checking_Key_Exists_With_No_Cas_Result_Is_True_For_Existing_Key()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			StoreAssertPass(storeResult);
+
+			var result = _Client.KeyExists(key);
+			Assert.That(result, Is.True);
+		}
+
+		[Test]
+		public void When_Checking_Key_Exists_With_Cas_Result_Is_True_For_Existing_Key_And_Valid_Cas()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			StoreAssertPass(storeResult);
+
+			var result = _Client.KeyExists(key, storeResult.Cas);
+			Assert.That(result, Is.True);
+		}
+
+		[Test]
+		public void When_Checking_Key_Exists_With_No_Cas_Result_Is_False_For_Missing_Key()
+		{
+			var key = GetUniqueKey("observe");
+
+			var result = _Client.KeyExists(key);
+			Assert.That(result, Is.False);
+		}
+
+		[Test]
+		public void When_Checking_Key_Exists_With_Invalid_Cas_Result_Is_False_For_Existing_Key_And_Invalid_Cas()
+		{
+			var key = GetUniqueKey("observe");
+			var value = GetRandomString();
+
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, value);
+			StoreAssertPass(storeResult);
+
+			var result = _Client.KeyExists(key, storeResult.Cas-1);
+			Assert.That(result, Is.False);
+		}
+
 		private IEnumerable<IMemcachedNode> getWorkingNodes()
 		{
 			var poolField = _Client.GetType().GetField("poolInstance", BindingFlags.Instance | BindingFlags.NonPublic);

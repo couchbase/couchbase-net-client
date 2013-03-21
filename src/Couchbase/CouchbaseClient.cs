@@ -702,6 +702,17 @@ namespace Couchbase
 			return ExecuteRemove(key, PersistTo.Zero, replicateTo);
 		}
 
+		public bool KeyExists(string key)
+		{
+			return KeyExists(key, 0);
+		}
+
+		public bool KeyExists(string key, ulong cas)
+		{
+			var result = Observe(key, cas, PersistTo.Zero, ReplicateTo.Zero);
+			return result.Success;
+		}
+
 		public IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo,
 											   ObserveKeyState persistedKeyState = ObserveKeyState.FoundPersisted,
 											   ObserveKeyState replicatedState = ObserveKeyState.FoundNotPersisted)
@@ -723,6 +734,10 @@ namespace Couchbase
 			if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.One)
 			{
 				return runner.HandleMasterPersistence(poolInstance, persistedKeyState);
+			}
+			else if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.Zero) //used for key exists checks
+			{
+				return runner.HandleMasterOnlyInCache(poolInstance);
 			}
 			else
 			{

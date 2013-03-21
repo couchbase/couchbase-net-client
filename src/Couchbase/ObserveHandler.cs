@@ -35,8 +35,41 @@ namespace Couchbase
 		}
 
 		/// <summary>
-		/// Handle the scenario when PersistTo == 1
+		/// Handle the scenario when PersistTo == 0 && ReplicateTo == 0
+		/// Primary use case is to check whether key exists without 
+		/// having to perform a Get + null check
 		/// </summary>
+		public IObserveOperationResult HandleMasterOnlyInCache(ICouchbaseServerPool pool)
+		{
+			try
+			{
+				var commandConfig = setupObserveOperation(pool);
+				var node = commandConfig.Item2[0] as CouchbaseNode;
+				var result = node.ExecuteObserveOperation(commandConfig.Item3);
+				if (log.IsDebugEnabled) log.Debug("Node: " + node.EndPoint + ", Result: " + result.KeyState + ", Cas: " + result.Cas + ", Key: " + _settings.Key);
+
+				if ((_settings.Cas == 0 || result.Cas == _settings.Cas) &&
+						(result.KeyState == ObserveKeyState.FoundNotPersisted || result.KeyState == ObserveKeyState.FoundPersisted))
+				{
+					result.Pass();
+				}
+				else
+				{
+					result.Fail("Key not found");
+				}
+
+				return result;
+			}
+			catch (ObserveExpectationException ex)
+			{
+				return new ObserveOperationResult { Success = false, Message = ex.Message };
+			}
+			catch (Exception ex)
+			{
+				return new ObserveOperationResult { Success = false, Exception = ex };
+			}
+		}
+
 		public IObserveOperationResult HandleMasterPersistence(ICouchbaseServerPool pool, ObserveKeyState passingState = ObserveKeyState.FoundPersisted)
 		{
 			try
@@ -58,8 +91,12 @@ namespace Couchbase
 							result.Fail(ObserveOperationConstants.MESSAGE_MODIFIED);
 							are.Set();
 						}
-						else if (result.KeyState == passingState)
+						else if (result.KeyState == passingState ||
+								  (result.KeyState == ObserveKeyState.FoundPersisted &&
+									passingState == ObserveKeyState.FoundNotPersisted)) //if checking in memory, on disk should pass too
 						{
+							//though in memory checks are supported in this condition
+							//a miss will require a timeout
 							result.Pass();
 							are.Set();
 						}
