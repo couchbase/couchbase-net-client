@@ -18,7 +18,7 @@ namespace Couchbase
 		public RestSharpHttpClient(Uri baseUri, string username, string password, TimeSpan timeout, bool shouldInitConnection)
 		{
 			client = new RestClient { BaseUrl = baseUri.ToString() };
-			client.Timeout = timeout.Milliseconds;
+			client.Timeout = (int)timeout.TotalMilliseconds;
 
 			if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
 			{
