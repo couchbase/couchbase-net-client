@@ -21,7 +21,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_View_Returns_Results()
 		{
-			var view = getClient("authenticated", "secret").GetView("cities", "by_name");
+			var view = getClient("authenticated", "password").GetView("cities", "by_name");
 			foreach (var item in view) { }
 
 			Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
