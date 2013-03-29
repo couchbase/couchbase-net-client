@@ -277,7 +277,7 @@ namespace Couchbase
 			{
 				throw new ObserveExpectationException(
 					"Requested replication or persistence to more nodes than are currently " +
-					"available");
+					"configured");
 			}
 			var command = pool.OperationFactory.Observe(_settings.Key, vbucket.Index, _settings.Cas);
 
@@ -293,6 +293,14 @@ namespace Couchbase
 					continue;
 				}
 				masterAndReplicaNodes.Add(workingNodes[replicaIndex] as CouchbaseNode);
+			}
+
+			if (masterAndReplicaNodes.Count < (int)_settings.PersistTo ||
+				masterAndReplicaNodes.Count - 1 < (int)_settings.ReplicateTo)
+			{
+				throw new ObserveExpectationException(
+					"Requested replication or persistence to more nodes than are currently " +
+					"online");
 			}
 
 			return Tuple.Create(vbucket, masterAndReplicaNodes.ToArray(), command);
