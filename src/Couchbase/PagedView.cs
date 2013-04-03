@@ -15,7 +15,7 @@ namespace Couchbase
 {
 	internal class PagedView<T> : IPagedView<T>
 	{
-		private static Dictionary<Type, Tuple<PropertyInfo,PropertyInfo>> propertyCache = new Dictionary<Type, Tuple<PropertyInfo, PropertyInfo>>();
+		private static Dictionary<Type, PropertyCacheItem> propertyCache = new Dictionary<Type, PropertyCacheItem>();
 
 		private IView<T> currentView;
 
@@ -45,13 +45,13 @@ namespace Couchbase
 
 		public bool MoveNext()
 		{
-			Tuple<string, object> lastIdAndKey;
+			PageInfo pageInfo;
 
 			if (this.state == -1)
 			{
-				lastIdAndKey = this.LoadData(this.currentView);
-				this.nextId = lastIdAndKey.Item1;
-				this.nextKey = lastIdAndKey.Item2;
+				pageInfo = this.LoadData(this.currentView);
+				this.nextId = pageInfo.LastId;
+				this.nextKey = pageInfo.LastKey;
 				this.state = 1;
 
 				return this.nextId != null;
@@ -65,9 +65,9 @@ namespace Couchbase
 			this.currentView.StartDocumentId(this.nextId);
 			this.currentView.StartKey(this.nextKey);
 
-			lastIdAndKey = this.LoadData(this.currentView);
-			this.nextId = lastIdAndKey.Item1;
-			this.nextKey = lastIdAndKey.Item2;
+			pageInfo = this.LoadData(this.currentView);
+			this.nextId = pageInfo.LastId;
+			this.nextKey = pageInfo.LastKey;
 			this.pageIndex++;
 
 			// did not load anything, we're at the end
@@ -89,12 +89,12 @@ namespace Couchbase
 			get { return this.totalRows; }
 		}
 
-		private Tuple<string, object> LoadData(IView<T> view)
+		private PageInfo LoadData(IView<T> view)
 		{
 			this.items.Clear();
 
 			var count = this.pageSize;
-			var lastIdAndKey = Tuple.Create<string, object>(null, null);
+			var lastIdAndKey = new PageInfo();
 
 			foreach (var row in view.Limit(this.pageSize + 1))
 			{
@@ -110,7 +110,7 @@ namespace Couchbase
 					if (row is IViewRow)
 					{
 						var viewRow = (IViewRow)row;
-						return Tuple.Create(viewRow.ItemId, viewRow.Info["key"]);
+						return new PageInfo { LastId = viewRow.ItemId, LastKey = viewRow.Info["key"] };
 					}
 					else
 					{
@@ -125,12 +125,12 @@ namespace Couchbase
 						{
 							var idProperty = typeOfRow.GetProperties().FirstOrDefault(p => p.Name == _pagedViewIdProperty);
 							var keyProperty = typeOfRow.GetProperties().FirstOrDefault(p => p.Name == _pagedViewKeyProperty);
-							propertyCache[typeOfRow] = Tuple.Create(idProperty, keyProperty);
+							propertyCache[typeOfRow] = new PropertyCacheItem { IdProperty = idProperty, KeyProperty = keyProperty };
 						}
 
-						var lastId = propertyCache[typeOfRow].Item1.GetValue(row, null) as string;
-						var lastKey = propertyCache[typeOfRow].Item2.GetValue(row, null);
-						return Tuple.Create(lastId, lastKey);
+						var lastId = propertyCache[typeOfRow].IdProperty.GetValue(row, null) as string;
+						var lastKey = propertyCache[typeOfRow].KeyProperty.GetValue(row, null);
+						return new PageInfo { LastId = lastId, LastKey = lastKey };
 					}
 				}
 
@@ -148,6 +148,19 @@ namespace Couchbase
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return this.items.GetEnumerator();
+		}
+
+		private class PageInfo
+		{
+			public string LastId { get; set; }
+
+			public object LastKey { get; set; }
+		}
+
+		private class PropertyCacheItem
+		{
+			public PropertyInfo IdProperty { get; set; }
+			public PropertyInfo KeyProperty { get; set; }
 		}
 	}
 }

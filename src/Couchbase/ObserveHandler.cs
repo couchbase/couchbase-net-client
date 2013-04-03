@@ -8,7 +8,6 @@ using System.Threading;
 using Enyim.Caching.Configuration;
 using Couchbase.Results;
 using Enyim.Caching.Memcached;
-using System.Threading.Tasks;
 using Couchbase.Operations.Constants;
 using Enyim.Caching.Memcached.Results.Extensions;
 using System.Net;
@@ -44,8 +43,8 @@ namespace Couchbase
 			try
 			{
 				var commandConfig = setupObserveOperation(pool);
-				var node = commandConfig.Item2[0] as CouchbaseNode;
-				var result = node.ExecuteObserveOperation(commandConfig.Item3);
+				var node = commandConfig.CouchbaseNodes[0] as CouchbaseNode;
+				var result = node.ExecuteObserveOperation(commandConfig.Operation);
 				if (log.IsDebugEnabled) log.Debug("Node: " + node.EndPoint + ", Result: " + result.KeyState + ", Cas: " + result.Cas + ", Key: " + _settings.Key);
 
 				if ((_settings.Cas == 0 || result.Cas == _settings.Cas) &&
@@ -75,7 +74,7 @@ namespace Couchbase
 			try
 			{
 				var commandConfig = setupObserveOperation(pool);
-				var node = commandConfig.Item2[0] as CouchbaseNode;
+				var node = commandConfig.CouchbaseNodes[0] as CouchbaseNode;
 				IObserveOperationResult result = new ObserveOperationResult();
 
 				do
@@ -83,7 +82,7 @@ namespace Couchbase
 					var are = new AutoResetEvent(false);
 					var timer = new Timer(state =>
 					{
-						result = node.ExecuteObserveOperation(commandConfig.Item3);
+						result = node.ExecuteObserveOperation(commandConfig.Operation);
 						if (log.IsDebugEnabled) log.Debug("Node: " + node.EndPoint + ", Result: " + result.KeyState + ", Cas: " + result.Cas + ", Key: " + _settings.Key);
 
 						if (result.Success && result.Cas != _settings.Cas && result.Cas > 0 && passingState == ObserveKeyState.FoundPersisted) //don't check CAS for deleted items
@@ -145,10 +144,10 @@ namespace Couchbase
 		private IObserveOperationResult performParallelObserve(ICouchbaseServerPool pool, ObserveKeyState persistedKeyState, ObserveKeyState replicatedKeyState)
 		{
 			var commandConfig = setupObserveOperation(pool);
-			var observedNodes = commandConfig.Item2.Select(n => new ObservedNode
+			var observedNodes = commandConfig.CouchbaseNodes.Select(n => new ObservedNode
 			{
 				Node = n as CouchbaseNode,
-				IsMaster = n == commandConfig.Item2[0]
+				IsMaster = n == commandConfig.CouchbaseNodes[0]
 			}).ToArray();
 
 			var replicaFoundCount = 0;
@@ -162,7 +161,7 @@ namespace Couchbase
 				var are = new AutoResetEvent(false);
 				var timer = new Timer(state =>
 				{
-					result = checkNodesForKey(observedNodes, commandConfig.Item3, ref isKeyPersistedToMaster, ref replicaFoundCount, ref replicaPersistedCount, persistedKeyState, replicatedKeyState);
+					result = checkNodesForKey(observedNodes, commandConfig.Operation, ref isKeyPersistedToMaster, ref replicaFoundCount, ref replicaPersistedCount, persistedKeyState, replicatedKeyState);
 
 					if (result.Message == ObserveOperationConstants.MESSAGE_MODIFIED)
 					{
@@ -267,7 +266,7 @@ namespace Couchbase
 			return isExpectedReplication && isExpectedReplicationPersistence && isExpectedMasterPersistence;
 		}
 
-		private Tuple<VBucket, CouchbaseNode[], IObserveOperation> setupObserveOperation(ICouchbaseServerPool pool)
+		private ObserveOperationSetup setupObserveOperation(ICouchbaseServerPool pool)
 		{
 			var vbucket = pool.GetVBucket(_settings.Key);
 
@@ -303,7 +302,21 @@ namespace Couchbase
 					"online");
 			}
 
-			return Tuple.Create(vbucket, masterAndReplicaNodes.ToArray(), command);
+			return new ObserveOperationSetup
+			{
+				VBucket = vbucket,
+				CouchbaseNodes = masterAndReplicaNodes.ToArray(),
+				Operation = command
+			};
+		}
+
+		private class ObserveOperationSetup
+		{
+			public VBucket VBucket { get; set; }
+
+			public CouchbaseNode[] CouchbaseNodes { get; set; }
+
+			public IObserveOperation Operation { get; set; }
 		}
 	}
 }

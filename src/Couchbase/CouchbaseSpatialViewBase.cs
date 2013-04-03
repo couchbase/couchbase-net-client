@@ -55,7 +55,7 @@ namespace Couchbase
 					throw new ArgumentException("4 coordinates must be supplied for bounding box");
 				}
 
-				viewParamsBuilder.AddParam("bbox", string.Join(",", _boundingBox));
+				viewParamsBuilder.AddParam("bbox", string.Join(",", _boundingBox.Select(b => b.ToString()).ToArray()));
 			}
 
 			viewParamsBuilder.AddGreaterThanOneParam("limit", _limit);

@@ -13,7 +13,6 @@ using Enyim.Caching.Memcached.Results;
 using Couchbase.Operations;
 using Couchbase.Results;
 using Enyim.Caching.Memcached.Protocol.Binary;
-using System.Threading.Tasks;
 using Couchbase.Settings;
 using Couchbase.Constants;
 
