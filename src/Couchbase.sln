@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CouchbaseSample", "Couchbas
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Enyim.Caching.NLogAdapter", "..\lib\EnyimMemcached\Enyim.Caching.NLogAdapter\Enyim.Caching.NLogAdapter.csproj", "{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Net35", "Couchbase.Net35\Couchbase.Net35.csproj", "{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,16 @@ Global
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{C96760B1-7CAD-4983-9FAD-EB00CD7A9FC6}.Release|x86.ActiveCfg = Release|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
