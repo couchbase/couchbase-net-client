@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using Newtonsoft.Json;
-using Hammock;
-using Hammock.Serialization;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using Enyim.Caching;

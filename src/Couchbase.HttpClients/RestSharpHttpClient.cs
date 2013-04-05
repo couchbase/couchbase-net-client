@@ -6,7 +6,7 @@ using RestSharp;
 using System.IO;
 using System.Net;
 
-namespace Couchbase
+namespace Couchbase.HttpClients
 {
 	public class RestSharpHttpClient : IHttpClient
 	{
@@ -42,7 +42,7 @@ namespace Couchbase
 			return new RestSharpRequestWrapper(this.client, path);
 		}
 
-		#region [ HammockRequestWrapper        ]
+		#region [ RestSharpRequestWrapper        ]
 
 		private class RestSharpRequestWrapper : IHttpRequest
 		{
@@ -93,7 +93,7 @@ namespace Couchbase
 
 		#endregion
 
-		#region [ HammockResponseWrapper       ]
+		#region [ RestSharpResponseWrapper       ]
 
 		private class RestSharpResponseWrapper : IHttpResponse
 		{

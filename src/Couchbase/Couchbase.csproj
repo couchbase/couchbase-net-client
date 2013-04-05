@@ -43,17 +43,8 @@
     <DocumentationFile>bin\Release\Couchbase.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Hammock">
-      <HintPath>..\packages\Hammock.1.3.1\lib\4.0\Hammock.dll</HintPath>
-    </Reference>
-    <Reference Include="Hammock.ClientProfile">
-      <HintPath>..\packages\Hammock.1.3.1\lib\4.0\Hammock.ClientProfile.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="RestSharp">
-      <HintPath>..\packages\RestSharp.104.1\lib\net4\RestSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -88,6 +79,7 @@
     <Compile Include="GenericViewRowTransformer.cs" />
     <Compile Include="Helpers\DocHelper.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />
+    <Compile Include="DefaultHttpClient.cs" />
     <Compile Include="ISpatialView`1.cs" />
     <Compile Include="ISpatialViewRow.cs" />
     <Compile Include="Management\Bucket.cs" />
@@ -115,7 +107,6 @@
     <Compile Include="CouchbaseView`1.cs" />
     <Compile Include="CouchbaseView.cs" />
     <Compile Include="DictionaryEx.cs" />
-    <Compile Include="HammockHttpClient.cs" />
     <Compile Include="ICouchbaseView.cs" />
     <Compile Include="ICouchbaseViewRow.cs" />
     <Compile Include="IHttpClient.cs" />
@@ -166,7 +157,6 @@
     <Compile Include="Protocol\CouchbaseStatusCodeEnums.cs" />
     <Compile Include="Protocol\ObserveResponse.cs" />
     <Compile Include="Protocol\ObserveRequest.cs" />
-    <Compile Include="RestSharpHttpClient.cs" />
     <Compile Include="Results\IObserveOperationResult.cs" />
     <Compile Include="Results\ObserveOperationResult.cs" />
     <Compile Include="Settings\ObserveSettings.cs" />

@@ -7,7 +7,7 @@ using Hammock;
 using Hammock.Retries;
 using System.Net;
 
-namespace Couchbase
+namespace Couchbase.HttpClients
 {
 	/// <summary>
 	/// Default implementation of the <see cref="IHttpClient"/> using the Hammock REST library.

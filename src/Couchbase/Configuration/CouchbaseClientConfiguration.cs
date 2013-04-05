@@ -25,7 +25,7 @@ namespace Couchbase.Configuration
 		/// </summary>
 		public CouchbaseClientConfiguration()
 		{
-			this.HttpClientFactory = RestSharpHttpClientFactory.Instance;
+			this.HttpClientFactory = DefaultHttpClientFactory.Instance;
 
 			this.Urls = new List<Uri>();
 

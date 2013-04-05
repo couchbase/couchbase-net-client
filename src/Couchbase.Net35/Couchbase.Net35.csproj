@@ -160,6 +160,9 @@
     <Compile Include="..\Couchbase\CouchbaseView`1.cs">
       <Link>CouchbaseView`1.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\DefaultHttpClient.cs">
+      <Link>DefaultHttpClient.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Deserialization.cs">
       <Link>Deserialization.cs</Link>
     </Compile>
@@ -177,9 +180,6 @@
     </Compile>
     <Compile Include="..\Couchbase\GenericViewRowTransformer.cs">
       <Link>GenericViewRowTransformer.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase\HammockHttpClient.cs">
-      <Link>HammockHttpClient.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\HeartbeatSettings.cs">
       <Link>HeartbeatSettings.cs</Link>
@@ -333,9 +333,6 @@
     </Compile>
     <Compile Include="..\Couchbase\Protocol\ObserveResponse.cs">
       <Link>Protocol\ObserveResponse.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase\RestSharpHttpClient.cs">
-      <Link>RestSharpHttpClient.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Results\IObserveOperationResult.cs">
       <Link>Results\IObserveOperationResult.cs</Link>

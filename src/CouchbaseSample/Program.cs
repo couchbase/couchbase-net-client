@@ -30,8 +30,6 @@ namespace CouchbaseSample
             config.Bucket = "default";
             config.BucketPassword = "";
             config.Urls.Add(new Uri("http://localhost:8091/pools"));
-            config.DesignDocumentNameTransformer = new ProductionModeNameTransformer();
-            config.HttpClientFactory = new HammockHttpClientFactory();
 
             //Quick test of Store/Get operations
             var client = new CouchbaseClient(config);

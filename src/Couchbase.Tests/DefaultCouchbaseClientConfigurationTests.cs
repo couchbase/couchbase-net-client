@@ -18,46 +18,46 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create couchbase client using configuration and http client is not set, 
-        /// then it creates instance of RestSharp http client
+        /// then it creates instance of Default http client
         /// @pre: Default configuration to initialize client in app.config
-        /// @post: Test passes if result is of type RestSharp http client
+        /// @post: Test passes if result is of type Default http client
         /// </summary>
 		[Test]
-		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_RestSharp_Factory_Is_Default()
+		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Default_Factory_Is_Default()
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<DefaultHttpClientFactory>());
 
-			//RestSharpHttpClient is an internal class to the Couchbase assembly,
+			//DefaultHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
 			var typeName = (config.HttpClientFactory.Create(config.Urls[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
-			Assert.That(typeName, Is.StringContaining("RestSharpHttpClient"));
+			Assert.That(typeName, Is.StringContaining("DefaultHttpClient"));
 		}
 
         /// <summary>
         /// @test: create couchbase client using configuration from app.config and http client is not set, 
-        /// then it creates instance of RestSharp http client
+        /// then it creates instance of Default http client
         /// @pre: Default configuration to initialize client in app.config
-        /// @post: Test passes if result is of type RestSharp http client
+        /// @post: Test passes if result is of type Default http client
         /// </summary>
 		[Test]
-		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_RestSharp_Factory_Is_Default()
+		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Default_Factory_Is_Default()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 
 			Assert.That(config, Is.Not.Null, "min-config section missing from app.config");
 			Assert.That(config.HttpClientFactory, Is.InstanceOf<ProviderElement<IHttpClientFactory>>());
 
-			//RestSharpHttpClient is an internal class to the Couchbase assembly,
+			//DefaultHttpClient is an internal class to the Couchbase assembly,
 			//therefore the explicit type can't be checked for using Is.InstanceOf<T>
 			var typeName = (config.HttpClientFactory.CreateInstance().Create(config.Servers.Urls.ToUriCollection()[0], "", "", TimeSpan.FromMinutes(1), true).GetType().Name);
-			Assert.That(typeName, Is.StringContaining("RestSharpHttpClient"));
+			Assert.That(typeName, Is.StringContaining("DefaultHttpClient"));
 		}
 
         /// <summary>
         /// @test: create couchbase client using configuration and http client is not set, 
-        /// then it creates instance of RestSharp http client. perform operations like storing key value, 
+        /// then it creates instance of Default http client. perform operations like storing key value, 
         /// the operations should all succeed
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if all operations succeed
@@ -82,7 +82,7 @@ namespace Couchbase.Tests
 
         /// <summary>
         /// @test: create couchbase client using configuration from code and http client is not set, 
-        /// then it creates instance of RestSharp http client. perform operations like
+        /// then it creates instance of Default http client. perform operations like
         /// get and store and they should all pass
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if all operations should happen successfully
@@ -92,10 +92,10 @@ namespace Couchbase.Tests
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<DefaultHttpClientFactory>());
 
 			Assert.That(config, Is.Not.Null, "min-config section missing from app.config");
-			Assert.That(config.HttpClientFactory, Is.InstanceOf<RestSharpHttpClientFactory>());
+			Assert.That(config.HttpClientFactory, Is.InstanceOf<DefaultHttpClientFactory>());
 
 			var client = new CouchbaseClient(config);
 			var kv = KeyValueUtils.GenerateKeyAndValue("default_config");
