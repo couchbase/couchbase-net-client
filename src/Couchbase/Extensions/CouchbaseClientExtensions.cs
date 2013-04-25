@@ -8,6 +8,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Extensions;
+using System.Reflection;
+using Couchbase.Helpers;
+using Couchbase.Operations;
 
 namespace Couchbase.Extensions
 {
@@ -24,6 +27,12 @@ namespace Couchbase.Extensions
 		{
 			var json = serializeObject(value);
 			return client.ExecuteStore(mode, key, json).Success;
+		}
+
+		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replicateTo = ReplicateTo.Zero)
+		{
+			var json = serializeObject(value);
+			return client.ExecuteStore(mode, key, json, persistTo, replicateTo);
 		}
 
 		public static IStoreOperationResult ExecuteCasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, ulong cas)
@@ -94,6 +103,7 @@ namespace Couchbase.Extensions
 		public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
 		{
 			var json = client.Get<string>(key);
+			json = DocHelper.InsertId(json, key);
 			return json == null ? null : JsonConvert.DeserializeObject<T>(json);
 		}
 
@@ -109,7 +119,8 @@ namespace Couchbase.Extensions
 				return retVal;
 			}
 
-			var obj = JsonConvert.DeserializeObject<T>(result.Value);
+			var json = DocHelper.InsertId(result.Value, key);
+			var obj = JsonConvert.DeserializeObject<T>(json);
 			retVal.Value = obj;
 			return retVal;
 		}
@@ -120,9 +131,17 @@ namespace Couchbase.Extensions
 									Formatting.None,
 									new JsonSerializerSettings
 									{
-										ContractResolver = new CamelCasePropertyNamesContractResolver()
+										ContractResolver = new DocumentIdContractResolver()
 									});
 			return json;
+		}
+
+		private class DocumentIdContractResolver : CamelCasePropertyNamesContractResolver
+		{
+			protected override List<MemberInfo> GetSerializableMembers(Type objectType)
+			{
+				return base.GetSerializableMembers(objectType).Where(o => o.Name != "Id").ToList();
+			}
 		}
 	}
 }

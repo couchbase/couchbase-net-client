@@ -5,6 +5,8 @@ using System.Text;
 using NUnit.Framework;
 using Couchbase.Extensions;
 using Enyim.Caching.Memcached;
+using Couchbase.Tests.Utils;
+using Couchbase.Operations;
 
 namespace Couchbase.Tests
 {
@@ -50,10 +52,72 @@ namespace Couchbase.Tests
 			Assert.That(savedThing.SomeOtherProperty, Is.EqualTo(1));
 
 		}
+
+		[Test]
+		public void When_StoringJson_For_A_Class_With_Id_Property_Id_Is_Not_Stored_In_Json()
+		{
+			var key = KeyValueUtils.GenerateKey("json");
+
+			var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
+			var result = _Client.StoreJson(StoreMode.Set, key, thing);
+			Assert.That(result, Is.True);
+
+			var obj = _Client.Get<string>(key);
+			Assert.That(obj, Is.Not.StringContaining("\"id\""));
+
+			var savedThing = _Client.GetJson<Thing>(key);
+			Assert.That(savedThing.Id, Is.StringContaining(key));
+		}
+
+		[Test]
+		public void When_ExecuteStoringJson_For_A_Class_With_Id_Property_Id_Is_Not_Stored_In_Json()
+		{
+			var key = KeyValueUtils.GenerateKey("json");
+
+			var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
+			var result = _Client.ExecuteStoreJson(StoreMode.Set, key, thing);
+			Assert.That(result.Success, Is.True);
+
+			var obj = _Client.ExecuteGet<string>(key);
+			Assert.That(obj.Value, Is.Not.StringContaining("\"id\""));
+
+			var savedThing = _Client.ExecuteGetJson<Thing>(key);
+			Assert.That(savedThing.Value.Id, Is.StringContaining(key));
+		}
+
+		[Test]
+		public void When_Persisting_Json_Id_Is_Not_Serializd_But_Is_Returned_In_View()
+		{
+		    var key = KeyValueUtils.GenerateKey("json");
+
+		    var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
+		    var result = _Client.ExecuteStoreJson(StoreMode.Set, key, thing, PersistTo.One);
+		    Assert.That(result.Success, Is.True);
+
+		    var obj = _Client.ExecuteGet<string>(key);
+		    Assert.That(obj.Value, Is.Not.StringContaining("\"id\""));
+
+		    var savedThing = _Client.ExecuteGetJson<Thing>(key);
+		    Assert.That(savedThing.Value.Id, Is.StringContaining(key));
+
+			var view = _Client.GetView<Thing>("things", "all", true);
+			foreach (var item in view)
+			{
+				if (item.Id == key)
+				{
+					Assert.Pass();
+					return;
+				}
+			}
+
+			Assert.Fail("Id was not returned in view");
+		}
 	}
 
 	internal class Thing
 	{
+		public string Id { get; set; }
+
 		public string SomeProperty { get; set; }
 
 		public int SomeOtherProperty { get; set; }
