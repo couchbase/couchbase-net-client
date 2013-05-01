@@ -135,6 +135,7 @@
     <Compile Include="ObserveHandler.cs" />
     <Compile Include="Operations\Constants\ObserveOperationConstants.cs" />
     <Compile Include="Management\ICouchbaseCluster.cs" />
+    <Compile Include="Operations\UnlockOperation.cs" />
     <Compile Include="Operations\GetAndTouchOperation.cs" />
     <Compile Include="BasicCouchbaseOperationFactory.cs" />
     <Compile Include="OperationInterfaces.cs" />
@@ -158,7 +159,9 @@
     <Compile Include="Protocol\ObserveResponse.cs" />
     <Compile Include="Protocol\ObserveRequest.cs" />
     <Compile Include="Results\IObserveOperationResult.cs" />
+    <Compile Include="Results\IUnlockOperationResult.cs" />
     <Compile Include="Results\ObserveOperationResult.cs" />
+    <Compile Include="Results\UnlockOperationResult.cs" />
     <Compile Include="Settings\ObserveSettings.cs" />
     <Compile Include="SpatialViewGeometry.cs" />
     <Compile Include="SpatialViewRow.cs" />

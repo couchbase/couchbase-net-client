@@ -189,6 +189,58 @@ namespace Couchbase.Tests
 		}
 
 		[Test]
+		public void When_Execute_Unlocking_A_Key_With_Valid_Cas_Key_Is_Unlocked()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
+
+			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertPass(storeResult);
+
+			var getlResult1 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult1.Value, Is.EqualTo(kv.Item2));
+			Assert.That(getlResult1.Success, Is.True);
+
+			var getlResult2 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult2.Success, Is.False);
+
+			var unlockResult = _Client.ExecuteUnlock(kv.Item1, getlResult1.Cas);
+			Assert.That(unlockResult.Success, Is.True);
+
+			storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertPass(storeResult);
+
+			var getlResult3 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult3.Success, Is.True);
+
+		}
+
+		[Test]
+		public void When_Execute_Unlocking_A_Key_With_Invalid_Cas_Key_Is_Unlocked()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
+
+			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertPass(storeResult);
+
+			var getlResult1 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult1.Value, Is.EqualTo(kv.Item2));
+			Assert.That(getlResult1.Success, Is.True);
+
+			var getlResult2 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult2.Success, Is.False);
+
+			var unlockResult = _Client.ExecuteUnlock(kv.Item1, getlResult1.Cas-1);
+			Assert.That(unlockResult.Success, Is.False);
+
+			storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertFail(storeResult);
+
+			var getlResult3 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			Assert.That(getlResult3.Success, Is.False);
+
+		}
+
+		[Test]
 		public void When_Execute_Getting_Key_With_Lock_And_Expiry_Second_Lock_Attempt_Does_Not_Change_Expiry()
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");

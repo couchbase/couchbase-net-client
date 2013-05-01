@@ -319,6 +319,9 @@
     <Compile Include="..\Couchbase\Operations\TouchOperation.cs">
       <Link>Operations\TouchOperation.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Operations\UnlockOperation.cs">
+      <Link>Operations\UnlockOperation.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\PagedView.cs">
       <Link>PagedView.cs</Link>
     </Compile>
@@ -337,8 +340,14 @@
     <Compile Include="..\Couchbase\Results\IObserveOperationResult.cs">
       <Link>Results\IObserveOperationResult.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Results\IUnlockOperationResult.cs">
+      <Link>Results\IUnlockOperationResult.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Results\ObserveOperationResult.cs">
       <Link>Results\ObserveOperationResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Results\UnlockOperationResult.cs">
+      <Link>Results\UnlockOperationResult.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Settings\ObserveSettings.cs">
       <Link>Settings\ObserveSettings.cs</Link>

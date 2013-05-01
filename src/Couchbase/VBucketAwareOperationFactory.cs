@@ -101,6 +101,11 @@ namespace Couchbase
 			return new GetWithLockOperation(locator, key, lockExpiration);
 		}
 
+		IUnlockOperation ICouchbaseOperationFactory.Unlock(string key, ulong cas)
+		{
+			return new UnlockOperation(locator, key, cas);
+		}
+
 		#region [ Custom operations            ]
 
 		private class VBStore : StoreOperation, IOperationWithState

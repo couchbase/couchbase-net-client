@@ -446,6 +446,16 @@ namespace Couchbase
 			return retVal;
 		}
 
+		public bool Unlock(string key, ulong cas)
+		{
+			return ExecuteUnlock(key, cas).Success;
+		}
+
+		public IUnlockOperationResult ExecuteUnlock(string key, ulong cas)
+		{
+			return PerformUnlock(key, cas);
+		}
+
 		public CasResult<object> GetWithLock(string key)
 		{
 			return this.GetWithLock<object>(key);
@@ -568,6 +578,33 @@ namespace Couchbase
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
+		}
+
+		protected IUnlockOperationResult PerformUnlock(string key, ulong cas)
+		{
+			var hashedKey = this.KeyTransformer.Transform(key);
+			var node = this.Pool.Locate(hashedKey);
+			var result = new UnlockOperationResult();
+
+			if (node != null)
+			{
+				var command = this.poolInstance.OperationFactory.Unlock(hashedKey, cas);
+				var commandResult = this.ExecuteWithRedirect(node, command);
+
+				if (commandResult.Success)
+				{
+					result.Pass();
+					return result;
+				}
+				else
+				{
+					commandResult.Combine(result);
+					return result;
+				}
+			}
+			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			return result;
+
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)

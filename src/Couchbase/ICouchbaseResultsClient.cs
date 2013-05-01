@@ -20,6 +20,7 @@ namespace Couchbase
         IGetOperationResult<T> ExecuteGetWithLock<T>(string key);
         IGetOperationResult ExecuteGetWithLock(string key, TimeSpan lockExpiration);
         IGetOperationResult<T> ExecuteGetWithLock<T>(string key, TimeSpan lockExpiration);
+        IUnlockOperationResult ExecuteUnlock(string key, ulong cas);
 
         IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replicateTo);
         IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo);
