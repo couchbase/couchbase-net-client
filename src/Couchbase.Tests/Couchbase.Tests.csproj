@@ -55,7 +55,9 @@
     <Compile Include="CouchbaseClientGetWithLockTests.cs" />
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="CouchbaseClientViewTests.cs" />
-    <None Include="Data\ThingViews.json" />
+    <None Include="Data\ThingViews.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="HelperTests\DocHelperTests.cs" />
     <Compile Include="HttpClientConfigTests.cs" />
     <Compile Include="CouchbaseAuthenticatedViewTests.cs" />
