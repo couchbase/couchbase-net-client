@@ -270,6 +270,32 @@ namespace Couchbase.Tests
 			var getResult = _Client.ExecuteGet(kv.Item1);
 			GetAssertPass(getResult, newValue);
 		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentOutOfRangeException))]
+		public void When_Timeout_Is_Set_To_Greater_Than_30_Seconds_Exception_Is_Thrown()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
+
+			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertPass(storeResult);
+
+			var getlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(31));
+		}
+
+		[Test]
+		[ExpectedException(typeof(ArgumentOutOfRangeException))]
+		public void When_Timeout_Is_Less_Than_Or_Equal_To_30_Seconds_Exception_Is_Not_Thrown()
+		{
+			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
+
+			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
+			StoreAssertPass(storeResult);
+
+			_Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(30));
+			_Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(29));
+			Assert.Pass();
+		}
 	}
 }
 

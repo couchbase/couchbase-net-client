@@ -548,10 +548,13 @@ namespace Couchbase
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = GetOperationResultFactory.Create();
+			var exp = (uint)lockExpiration.Seconds;
+
+			if (exp > 30) throw new ArgumentOutOfRangeException("Timeout cannot be greater than 30 seconds");
 
 			if (node != null)
 			{
-				var command = this.poolInstance.OperationFactory.GetWithLock(hashedKey, (uint)lockExpiration.Seconds);
+				var command = this.poolInstance.OperationFactory.GetWithLock(hashedKey, exp);
 				var commandResult = this.ExecuteWithRedirect(node, command);
 
 				if (commandResult.Success)
