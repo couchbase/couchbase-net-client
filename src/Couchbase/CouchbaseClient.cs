@@ -988,6 +988,16 @@ namespace Couchbase
 		}
 
 		#endregion
+
+		#region MemcachedClient overrides
+		public new void FlushAll()
+		{
+			var couchbaseNodes = poolInstance.GetWorkingNodes().Where(n => n is CouchbaseNode);
+			if (couchbaseNodes.Count() > 0)
+				throw new NotImplementedException("To flush a Couchbase bucket, use the Couchbase.Management API.");
+			base.FlushAll();
+		}
+		#endregion
 	}
 }
 

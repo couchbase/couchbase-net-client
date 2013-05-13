@@ -53,6 +53,7 @@
     <Compile Include="ConfigHelperTests.cs" />
     <Compile Include="CouchbaseClientExtensionsTests.cs" />
     <Compile Include="CouchbaseClientGetWithLockTests.cs" />
+    <Compile Include="CouchbaseClientMemcachedTests.cs" />
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="CouchbaseClientViewTests.cs" />
     <None Include="Data\ThingViews.json">
