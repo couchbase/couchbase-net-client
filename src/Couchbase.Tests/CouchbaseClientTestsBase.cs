@@ -25,7 +25,8 @@ namespace Couchbase.Tests
 		{
 			_Client = CouchbaseClientFactory.CreateCouchbaseClient();
 
-			log4net.Config.XmlConfigurator.Configure();
+			//TODO: uncomment this line when next NuGet (1.2.7) is pushed
+			//log4net.Config.XmlConfigurator.Configure();
 
 			var cluster = new CouchbaseCluster("couchbase");
 

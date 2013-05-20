@@ -1,19 +1,23 @@
 ﻿<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-	<metadata>
-		<id>Couchbase</id>
-		<version>$version$</version>
-		<authors>Attila Kiskó</authors>
-		<owners>Attila Kiskó</owners>
-		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-		<projectUrl>https://github.com/enyim/EnyimMemcached</projectUrl>
-		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<description>Couchbase client library for .NET based languages.</description>
-		<tags>Couchbase enyim cache caching nosql</tags>
-	</metadata>
-	<files>
-		<file src="bin\Release\Enyim.Caching.*" target="lib\net35" />
-		<file src="bin\Release\Couchbase.*" target="lib\net35" />
-		<file src="config.transform" target="content\app.config.transform" />
-	</files>
+  <metadata>
+    <id>CouchbaseNetClient</id>
+    <version>1.2.3</version>
+    <authors>Couchbase, Inc.</authors>
+    <owners>Couchbase, Inc.</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Couchbase client library for .NET based languages.</description>
+    <tags>Couchbase nosql</tags>
+  </metadata>
+  <files>
+    <file src="bin\Release\Enyim.Caching.dll" target="lib\net40" />
+    <file src="bin\Release\Enyim.Caching.xml" target="lib\net40" />
+
+    <file src="lib\Enyim.Caching.dll" target="lib\net35" />
+    <file src="lib\Enyim.Caching.xml" target="lib\net35" />
+    <file src="lib\Couchbase.dll" target="lib\net35" />
+    <file src="lib\Couchbase.xml" target="lib\net35" />
+  </files>
 </package>

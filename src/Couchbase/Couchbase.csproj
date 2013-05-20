@@ -12,6 +12,8 @@
     <AssemblyName>Couchbase</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -181,17 +183,18 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\EnyimMemcached\Enyim.Caching\Enyim.Caching.csproj">
-      <Project>{D438C0B3-A168-40B8-BDDD-61F0939DFF35}</Project>
-      <Name>Enyim.Caching</Name>
-    </ProjectReference>
+    <Folder Include="Geo\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Geo\" />
+    <ProjectReference Include="..\Enyim.Caching\Enyim.Caching.csproj">
+      <Project>{EB42E369-1ADF-4E08-8DB7-6FA792ABDCC7}</Project>
+      <Name>Enyim.Caching</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <GitTagMatch>mb*</GitTagMatch>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!--<Import Project="..\build\VersionInfo.targets" />-->
 </Project>

@@ -1,3 +1,1 @@
-[submodule "lib/EnyimMemcached"]
-	path = lib/EnyimMemcached
-	url = git://github.com/couchbase/EnyimMemcached.git
+

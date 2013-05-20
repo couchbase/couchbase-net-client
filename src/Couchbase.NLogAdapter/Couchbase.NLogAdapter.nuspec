@@ -1,0 +1,24 @@
+﻿<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>CouchbaseNLogAdapter</id>
+    <version>1.0.1</version>
+    <authors>Couchbase, Inc.</authors>
+    <owners>Couchbase, Inc.</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Couchbase NLog logging adapter for the Couchbase .NET Client Library.</description>
+    <tags>Couchbase nosql</tags>
+    <dependencies>
+      <group>
+        <dependency id="CouchbaseNetClient" />
+        <dependency id="NLog"  />
+        <dependency id="Newtonsoft.Json"  />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="lib\Enyim.Caching.NLogAdapter.dll" target="lib\net35" />
+  </files>
+</package>
