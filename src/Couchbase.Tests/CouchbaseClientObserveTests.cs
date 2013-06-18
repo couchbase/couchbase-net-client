@@ -54,9 +54,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Persistence()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two);
-			StoreAssertPass(storeResult);
+			var availableNodesCount = getWorkingNodes().Count();
+			if (availableNodesCount > 1)
+			{
+				var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+				var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two);
+				StoreAssertPass(storeResult);
+			}
+			else
+				Assert.Ignore("This test requires more than one node in the cluster");
 		}
 
 		/// <summary>
@@ -68,9 +74,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Persistence_And_Single_Node_Replication()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two, ReplicateTo.One);
-			StoreAssertPass(storeResult);
+			var availableNodesCount = getWorkingNodes().Count();
+			if (availableNodesCount > 1)
+			{
+				var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+				var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two, ReplicateTo.One);
+				StoreAssertPass(storeResult);
+			}
+			else
+				Assert.Ignore("This test requires more than one node in the cluster");
 		}
 
 		/// <summary>
@@ -107,9 +119,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_A_New_Key_Observe_Will_Succeed_With_Multi_Node_Replication()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Two);
-			StoreAssertPass(storeResult);
+			var availableNodesCount = getWorkingNodes().Count();
+			if (availableNodesCount > 1)
+			{
+				var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+				var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Two);
+				StoreAssertPass(storeResult);
+			}
+			else
+				Assert.Ignore("This test requires more than one node in the cluster");
 		}
 
 		/// <summary>
@@ -197,9 +215,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_A_New_Key_Observe_Will_Fail_When_Cluster_Has_Too_Few_Nodes_For_Replication()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Three);
-			Assert.That(storeResult.Success, Is.False);
+			var availableNodesCount = getWorkingNodes().Count();
+			if (availableNodesCount > 1)
+			{
+				var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+				var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Three);
+				Assert.That(storeResult.Success, Is.False);
+			}
+			else
+				Assert.Ignore("This test requires more than one node in the cluster");
 		}
 
 		/// <summary>
@@ -318,17 +342,23 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Observing_A_Removed_Key_Operation_Is_Successful_With_Multi_Node_Persistence()
 		{
-			var key = GetUniqueKey("observe");
-			var value = GetRandomString();
+			var availableNodesCount = getWorkingNodes().Count();
+			if (availableNodesCount > 1)
+			{
+				var key = GetUniqueKey("observe");
+				var value = GetRandomString();
 
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, PersistTo.One, ReplicateTo.Two);
-			StoreAssertPass(storeResult);
+				var storeResult = _Client.ExecuteStore(StoreMode.Set, key, PersistTo.One, ReplicateTo.Two);
+				StoreAssertPass(storeResult);
 
-			var removeResult = _Client.ExecuteRemove(key, PersistTo.Two);
-			Assert.That(removeResult.Success, Is.True);
+				var removeResult = _Client.ExecuteRemove(key, PersistTo.Two);
+				Assert.That(removeResult.Success, Is.True);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+				var getResult = _Client.ExecuteGet(key);
+				GetAssertFail(getResult);
+			}
+			else
+				Assert.Ignore("This test requires more than one node in the cluster");
 		}
 
 		[Test]

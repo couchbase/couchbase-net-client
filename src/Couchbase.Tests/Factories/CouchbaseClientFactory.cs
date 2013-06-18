@@ -13,7 +13,7 @@ namespace Couchbase.Tests.Factories
 		{
 			if (_client == null)
 			{
-				_client = new CouchbaseClient();
+				_client = new CouchbaseClient("couchbase");
 			}
 
 			return _client;
