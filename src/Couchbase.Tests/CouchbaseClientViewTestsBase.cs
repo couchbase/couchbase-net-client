@@ -27,7 +27,7 @@ namespace Couchbase.Tests
 		{
 			var config = new CouchbaseClientConfiguration();
             config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
-		    config.Bucket = ConfigurationManager.AppSettings["CouchbaseServerUrl"];
+			config.Bucket = ConfigurationManager.AppSettings["DefaultBucketName"];
 			config.DesignDocumentNameTransformer = nameTransformer ?? new DevelopmentModeNameTransformer();
 			config.HttpClientFactory = new MockHttpClientFactory();
 
