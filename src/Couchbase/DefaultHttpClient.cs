@@ -121,6 +121,12 @@ namespace Couchbase
 
 			Stream IHttpResponse.GetResponseStream()
 			{
+				if (response == null)
+				{
+					throw new InvalidOperationException(
+						"This object does not have a response " +
+						"(perhaps the request failed without an HTTP response)");
+				}
 				return this.response.GetResponseStream();
 			}
 		}
