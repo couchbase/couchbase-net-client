@@ -161,11 +161,14 @@ namespace Couchbase
 #else
 				queryString += string.Join("&", select);
 #endif
-				var uri = new Uri(client.BaseAddress + "/" + path + queryString);
-				var request = client.GetWebRequest(uri, client.BaseAddress.GetHashCode().ToString()) as HttpWebRequest;
-				request.Accept = "application/json";
-				request.ContentType = "application/json; charset=utf-8";
-				return request;
+				lock (client)
+				{
+					var uri = new Uri(client.BaseAddress + "/" + path + queryString);
+					var request = client.GetWebRequest(uri, client.BaseAddress.GetHashCode().ToString()) as HttpWebRequest;
+					request.Accept = "application/json";
+					request.ContentType = "application/json; charset=utf-8";
+					return request;
+				}
 			}
 
 			internal static HttpWebRequestWrapper Create(WebClientWithTimeout client, string path)
