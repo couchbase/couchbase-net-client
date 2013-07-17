@@ -575,7 +575,6 @@ namespace Enyim.Caching.Memcached
 			}
 			else
 			{
-				readResult.Combine(result);
 				return result;
 			}
 
