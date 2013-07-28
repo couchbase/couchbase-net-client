@@ -131,79 +131,79 @@ namespace Couchbase.Tests
 		}
 
 		/// <summary>
-		/// @test: Generate a new key-value tuple, store the key value with replication set to one more
-		/// than the total number of available nodes in the cluster
-		/// @pre: Default configuration to initialize client in App.config, add NumberOfNodesInTheCluster in app settings
-		/// @post: Test passes if store operation returns false
+		/// @test: Generate a new key-value tuple, store the key value, observe replication to one more than the total number of nodes
+		/// @pre: Default configuration to initialize client in App.config, number of nodes in cluster for this case should be either one or two
+		/// Keep PersistTo as zero as this test will only verify the replication
+		/// @post: Test passes if the observe operation returns false
 		/// </summary>
 		[Test]
-		public void When_Storing_A_New_Key_Observe_Will_Pass_With_Replication_More_Than_Available_Nodes()
+		public void When_Storing_A_New_Key_Observe_Will_Fail_With_Replication_More_Than_Available_Nodes()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			IStoreOperationResult storeResult = null;
-
 			var availableNodesCount = getWorkingNodes().Count();
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
 
 			switch (availableNodesCount)
 			{
 				case 1:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Two);
+						var observeResult = _Client.Observe(kv.Item2, storeResult.Cas, PersistTo.Zero, ReplicateTo.Two);
+						Assert.That(observeResult.Success, Is.False);
 						break;
 					}
 				case 2:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Three);
+						var observeResult = _Client.Observe(kv.Item2, storeResult.Cas, PersistTo.Zero, ReplicateTo.Three);
+						Assert.That(observeResult.Success, Is.False);
 						break;
 					}
 				default:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, ReplicateTo.Three);
+						Assert.Fail("The test is applicable only when the number of nodes in cluster is either one or two.");
 						break;
 					}
 			}
-
-			StoreAssertPass(storeResult);
 		}
 
 		/// <summary>
-		/// @test: Generate a new key-value tuple, store the key value with persistence set to one more
-		/// than the total number of available nodes in the cluster
-		/// @pre: Default configuration to initialize client in App.config
-		/// @post: Test passes if store operation returns false
+		/// @test: Generate a new key-value tuple, store the key value, observe persistance to one more than the total number of nodes
+		/// @pre: Default configuration to initialize client in App.config, number of nodes in cluster for this case should be either one, two or three
+		/// Keep Replicate as zero as this test will only verify the persistence
+		/// @post: Test passes if the observe operation returns false
 		/// </summary>
 		[Test]
 		public void When_Storing_A_New_Key_Observe_Will_Fail_With_Persistence_More_Than_Available_Nodes()
 		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
-			IStoreOperationResult storeResult = null;
 			var availableNodesCount = getWorkingNodes().Count();
+			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
+			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
 
 			switch (availableNodesCount)
 			{
 				case 1:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Two);
+						var observeResult = _Client.Observe(kv.Item2, storeResult.Cas, PersistTo.Two, ReplicateTo.Zero);
+						Assert.That(observeResult.Success, Is.False);
 						break;
 					}
 				case 2:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Three);
+						var observeResult = _Client.Observe(kv.Item2, storeResult.Cas, PersistTo.Three, ReplicateTo.Zero);
+						Assert.That(observeResult.Success, Is.False);
 						break;
 					}
 				case 3:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Four);
+						var observeResult = _Client.Observe(kv.Item2, storeResult.Cas, PersistTo.Four, ReplicateTo.Zero);
+						Assert.That(observeResult.Success, Is.False);
 						break;
 					}
 				default:
 					{
-						storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2, PersistTo.Four);
+						Assert.Fail("The test is applicable only when the number of nodes in cluster is either one, two or three.");
 						break;
 					}
 			}
-
-			Assert.That(storeResult.Success, Is.False);
 		}
 
 		/// <summary>
@@ -239,11 +239,11 @@ namespace Couchbase.Tests
 			var kv = KeyValueUtils.GenerateKeyAndValue("observe");
 			var storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, kv.Item2);
 
-			var observeResult1 = _Client.Observe(kv.Item2, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Zero);
+			var observeResult1 = _Client.Observe(kv.Item1, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Zero);
 			Assert.That(observeResult1.Success, Is.False);
 			Assert.That(observeResult1.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
 
-			var observeResult2 = _Client.Observe(kv.Item2, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Two);
+			var observeResult2 = _Client.Observe(kv.Item1, storeResult.Cas - 1, PersistTo.One, ReplicateTo.Two);
 			Assert.That(observeResult2.Success, Is.False);
 			Assert.That(observeResult2.Message, Is.StringMatching(ObserveOperationConstants.MESSAGE_MODIFIED));
 		}
