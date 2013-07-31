@@ -1,10 +1,10 @@
 # Couchbase .NET Client Library
 
-This is a .NET client library for [Couchbase Server](http://couchbase.com).
+This is the offical .NET client library for [Couchbase Server](http://couchbase.com).
 
 ## Features:
 
-The client currently provides support for Couchbase Server 1.8.  
+The client currently provides support for Couchbase Server 1.8+.
 
 * Understands both the binary and text protocols
 * Highly configurable and extendable (custom configuration, serialization)
@@ -13,34 +13,37 @@ The client currently provides support for Couchbase Server 1.8.
 * Persistent connections for more speed
 * SASL Authentication
 
-## Requirements
+## Documentation
+Documentation is maintained over at [the Couchbase site](http://www.couchbase.com/documentation). A good starting point for docs about the .Net client SDK is ["Getting started with the Couchbase .Net client"](http://www.couchbase.com/communities/net/getting-started)
 
-You'll need .NET Framework 3.5 or later to use the precompiled binaries. To build client, you'll need Visual Studio 2010.
+## Requirements
+You'll need .NET Framework 3.5 or later to use the precompiled binaries.
+
+## Distributed via NuGet
+The client is [distributed via NuGet](https://nuget.org/packages/CouchbaseNetClient/), and to install it, just type:
+
+    PM> Install-Package CouchbaseNetClient
+
+To get help started, read this introduction: ["Getting started with the Couchbase .Net client"](http://www.couchbase.com/communities/net/getting-started)
 
 ## Building the Client
 
-The client has a dependency on [Enyim.Memcached](https://github.com/enyim/EnyimMemcached), which is included via a git submodule.
+Just clone your fork or the main repository:
 
     git clone https://<your-user-name>@github.com/couchbase/couchbase-net-client
-    cd couchbase-net-client    
-	git submodule init
-    git submodule update	
-	
-Note also that Enyim.Memcached is delay signed, which means you'll receive exceptions when trying to run your projects from Visual Studio.  To work around this security measure locally, you could either disable assembly verification for Enyim.Memcached or modify the project files locally.
 
-To disable assembly verification open the Visual Studio Command Prompt (2010) and run the command below.  Note you must run this command as an administrator because it will modify a setting in the registry.
+then locate and build the `Couchbase.sln` solution, using Visual Studio 2010 or later. The client uses [NuGet package restore](http://docs.nuget.org/docs/workflows/using-nuget-without-committing-packages), hence any missing packages will be restored during the build, but you must ensure that your machine allows package restores.
 
-	sn -Vr *,cec98615db04012e
-	
-To modify the project files:
+## Tests
+By default the test project expects a local installation (`localhost`) of a Couchbase server. It should be configured to have a cluster user name: `"Administrator"` with password: `"password"`.
 
-* In Visual Studio 2010, open the property pages for Enyim.Caching (Right Click on the project -> Properties or Alt + Enter when the project is highlighted)
-* Select "Signing" from the left hand menu and uncheck "Sign the Assembly"
-* Open the "CommonProperties.targets" which is located in the "build" directory, which is a sibling to the "Enyim.Caching" directory
-* Comment out or remove the last three "PropertyGroup" blocks
+Expected buckets are:
+
+- `"default"`
+- and a `SASL` enabled bucket, named: `"authenticated"` with the password: `"secret"`.
+
+To get the tests to run if you have a different setup then the above, just update values in the `App.config` file located in the test project `Couchbase.Tests`. E.g, lets say you have an installation running on a server alias `cb1`, then replace all `http://localhost` for `http://cb1`.
 
 ## Getting Help
 
 For help with the Couchbase .NET Client Library see the [Couchbase SDK Forums](http://www.couchbase.com/forums/sdks/sdks).
-
-    
