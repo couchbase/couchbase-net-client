@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Text;
+using Couchbase.Management;
 using NUnit.Framework;
 using System.Net;
 using Couchbase.Configuration;
@@ -10,27 +12,51 @@ using Couchbase.Configuration;
 namespace Couchbase.Tests
 {
     [TestFixture]
-    public class CouchbaseAuthenticatedViewTests : CouchbaseClientViewTestsBase
+    public class CouchbaseAuthenticatedViewTests
     {
+        private CouchbaseClient _client;
+        private readonly string _bucketName;
+        private readonly string _bucketPassword;
+        private readonly Uri _couchBasePools;
+
+        public CouchbaseAuthenticatedViewTests()
+        {
+            _bucketName = ConfigurationManager.AppSettings["SaslBucketName"];
+            _bucketPassword = ConfigurationManager.AppSettings["SaslBucketPassword"];
+            _couchBasePools = new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            //clean up clients to avoid leakage
+            if (_client != null)
+            {
+                _client.Dispose();
+            }
+        }
+
         /// <summary>
         /// @test: Verifies that for the bucket which is authenticated with password, it is able to connect successfully
         /// if correct cedentials are provided and then returns the object representing the view in specfied design document
-        /// @pre: Provide the bucket name and password in method getClient(),
+        /// @pre: Provide the bucket name and password in method GetClient(),
         /// provide correct design name and view name to method GetView()
         /// @post: Test passes if connects to client successfully and get the details of View with given data, fails otherwise
         /// </summary>
         [Test]
         public void When_Bucket_Is_Authenticated_View_Returns_Results()
         {
-            var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], ConfigurationManager.AppSettings["SaslBucketPassword"]);
-            var view = client.GetView("cities", "by_name");
-            Assert.That(view.Count(), Is.GreaterThanOrEqualTo(1), "Row count was not 1");
+            _client = GetClient(_bucketName, _bucketPassword);
+            var view = _client.GetView("cities", "by_name");
+
+            //Whether or view has data is regardless, what matters is that a authenticated call returned succesfully
+            Assert.IsNotNull(view); 
         }
 
         /// <summary>
         /// @test: Verifies that for the bucket which is authenticated with password, it throws an error
         /// if no credentials are provided and hence cannot return the object representing the view in specfied design document
-        /// @pre: Provide the bucket name but no password in method getClient(),
+        /// @pre: Provide the bucket name but no password in method GetClient(),
         /// provide design name and view name to method GetView()
         /// @post: Test passes if the web exception (401) is thrown
         /// </summary>
@@ -38,15 +64,19 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_No_Credentials_Are_Provided_Exception_Is_Thrown()
 		{
-			var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], "");
-            var view = client.GetView("cities", "by_name");
-			foreach (var item in view) { Console.WriteLine(item); }
+			_client = GetClient(_bucketName, "");
+            var view = _client.GetView("cities", "by_name");
+
+            var row = view.First();
+
+            //Test will end on previous line
+            Assert.IsNotNull(row);
 		}
 
 		/// <summary>
 		/// @test: Verifies that for the bucket which is authenticated with password, it throws an error
 		/// if bad credentials are provided and hence cannot return the object representing the view in specfied design document
-		/// @pre: Provide the bucket name but no password in method getClient(),
+		/// @pre: Provide the bucket name but no password in method GetClient(),
 		/// provide design name and view name to method GetView()
 		/// @post: Test passes if the web exception (401) is thrown
 		/// </summary>
@@ -54,9 +84,11 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_Bad_Credentials_Are_Provided_Exception_Is_Thrown()
 		{
-			var client = getClient(ConfigurationManager.AppSettings["SaslBucketName"], "bad_credentials");
-			var view = client.GetView("cities", "by_name");
-			foreach (var item in view) { Console.WriteLine(item); }
+			_client = GetClient(_bucketName, "bad_credentials");
+			var view = _client.GetView("cities", "by_name");
+
+		    var row = view.First();
+            Assert.IsNotNull(row);
 		}
 
         /// <summary>
@@ -65,13 +97,12 @@ namespace Couchbase.Tests
         /// <param name="bucketName">Name of bucket to be used</param>
         /// <param name="bucketPassword">Password used to connect to bucket</param>
         /// <returns>Couchbase client object</returns>
-		private CouchbaseClient getClient(string bucketName, string bucketPassword)
+		private CouchbaseClient GetClient(string bucketName, string bucketPassword)
 		{
 			var config = new CouchbaseClientConfiguration();
-			config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
+            config.Urls.Add(_couchBasePools);
 			config.Bucket = bucketName;
 			config.BucketPassword = bucketPassword;
-
 			return new CouchbaseClient(config);
 		}
 	}
