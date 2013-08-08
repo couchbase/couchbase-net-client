@@ -11,6 +11,10 @@ using Couchbase.Configuration;
 
 namespace Couchbase.Tests
 {
+    /// <summary>
+    /// Assumes that a SASL enabled bucket called "authenticated" exists with a password of "secret". Also
+    /// note that a design document called "cities" must exist (with data from Data\CityDocs.json and views from Data\CityViews.json) 
+    /// </summary>
     [TestFixture]
     public class CouchbaseAuthenticatedViewTests
     {
@@ -50,7 +54,7 @@ namespace Couchbase.Tests
             var view = _client.GetView("cities", "by_name");
 
             //Whether or view has data is regardless, what matters is that a authenticated call returned succesfully
-            Assert.IsNotNull(view); 
+            Assert.IsNotNull(view.FirstOrDefault()); 
         }
 
         /// <summary>
@@ -67,7 +71,7 @@ namespace Couchbase.Tests
 			_client = GetClient(_bucketName, "");
             var view = _client.GetView("cities", "by_name");
 
-            var row = view.First();
+            var row = view.FirstOrDefault();
             Assert.IsNotNull(row);
 		}
 
@@ -85,7 +89,7 @@ namespace Couchbase.Tests
 			_client = GetClient(_bucketName, "bad_credentials");
 			var view = _client.GetView("cities", "by_name");
 
-		    var row = view.First();
+		    var row = view.FirstOrDefault();
             Assert.IsNotNull(row);
 		}
 
@@ -101,6 +105,7 @@ namespace Couchbase.Tests
             config.Urls.Add(_couchBasePools);
 			config.Bucket = bucketName;
 			config.BucketPassword = bucketPassword;
+            config.DesignDocumentNameTransformer = new ProductionModeNameTransformer();
 			return new CouchbaseClient(config);
 		}
 	}
