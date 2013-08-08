@@ -68,8 +68,6 @@ namespace Couchbase.Tests
             var view = _client.GetView("cities", "by_name");
 
             var row = view.First();
-
-            //Test will end on previous line
             Assert.IsNotNull(row);
 		}
 
