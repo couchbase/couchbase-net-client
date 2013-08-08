@@ -34,10 +34,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Couchbase">
-      <HintPath>..\packages\CouchbaseNetClient.1.2.6\lib\net40\Couchbase.dll</HintPath>
+      <HintPath>..\packages\CouchbaseNetClient.1.2.7\lib\net40\Couchbase.dll</HintPath>
     </Reference>
     <Reference Include="Enyim.Caching">
-      <HintPath>..\packages\CouchbaseNetClient.1.2.6\lib\net40\Enyim.Caching.dll</HintPath>
+      <HintPath>..\packages\CouchbaseNetClient.1.2.7\lib\net40\Enyim.Caching.dll</HintPath>
     </Reference>
     <Reference Include="log4net">
       <HintPath>..\packages\log4net.2.0.0\lib\net40-full\log4net.dll</HintPath>
