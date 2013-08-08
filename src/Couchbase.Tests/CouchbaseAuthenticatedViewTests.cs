@@ -53,8 +53,9 @@ namespace Couchbase.Tests
             _client = GetClient(_bucketName, _bucketPassword);
             var view = _client.GetView("cities", "by_name");
 
-            //Whether or view has data is regardless, what matters is that a authenticated call returned succesfully
-            Assert.IsNotNull(view.FirstOrDefault()); 
+            //Whether or view has data is regardless, what matters is that an authenticated call returned succesfully
+            var row = view.FirstOrDefault();
+            //Assert.IsNotNull(row);
         }
 
         /// <summary>
