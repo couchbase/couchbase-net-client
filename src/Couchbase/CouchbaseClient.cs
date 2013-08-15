@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Configuration;
+using Couchbase.Diagnostics;
 using Enyim.Caching;
 using Enyim.Caching.Memcached;
 using Couchbase.Configuration;
@@ -25,6 +27,7 @@ namespace Couchbase
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
+        private static readonly TraceSource TraceSource = new TraceSource("couchbase");
 
 		private INameTransformer documentNameTransformer;
 
@@ -102,6 +105,8 @@ namespace Couchbase
 
 		protected override IGetOperationResult PerformTryGet(string key, out ulong cas, out object value)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = GetOperationResultFactory.Create();
@@ -140,6 +145,8 @@ namespace Couchbase
 
 		protected override IMutateOperationResult PerformMutate(MutationMode mode, string key, ulong defaultValue, ulong delta, uint expires, ref ulong cas)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = MutateOperationResultFactory.Create();
@@ -176,6 +183,8 @@ namespace Couchbase
 
 		protected override IConcatOperationResult PerformConcatenate(ConcatenationMode mode, string key, ref ulong cas, ArraySegment<byte> data)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = ConcatOperationResultFactory.Create();
@@ -209,6 +218,8 @@ namespace Couchbase
 
 		protected override IStoreOperationResult PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out int statusCode)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = StoreOperationResultFactory.Create();
@@ -320,6 +331,8 @@ namespace Couchbase
 
 		protected void PerformTouch(string key, uint nextExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 
@@ -332,6 +345,8 @@ namespace Couchbase
 
 		public object Get(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 
 			return this.TryGet(key, newExpiration, out tmp) ? tmp : null;
@@ -339,6 +354,8 @@ namespace Couchbase
 
 		public T Get<T>(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 
 			return TryGet(key, newExpiration, out tmp) ? (T)tmp : default(T);
@@ -346,6 +363,8 @@ namespace Couchbase
 
 		public IGetOperationResult ExecuteGet(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 
 			return this.ExecuteTryGet(key, newExpiration, out tmp);
@@ -353,6 +372,8 @@ namespace Couchbase
 
 		public IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 			var result = new DefaultGetOperationResultFactory<T>().Create();
 
@@ -381,6 +402,8 @@ namespace Couchbase
 
 		public bool TryGet(string key, DateTime newExpiration, out object value)
 		{
+            TraceSource.TraceKey(key);
+
 			ulong cas = 0;
 
 			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value).Success;
@@ -388,6 +411,8 @@ namespace Couchbase
 
 		public IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value)
 		{
+            TraceSource.TraceKey(key);
+
 			ulong cas = 0;
 
 			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value);
@@ -395,6 +420,8 @@ namespace Couchbase
 
 		public IGetOperationResult TryGetWithLock(string key, TimeSpan lockExpiration, out CasResult<object> value)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 			ulong cas;
 
@@ -406,22 +433,30 @@ namespace Couchbase
 
 		public IGetOperationResult ExecuteGetWithLock(string key)
 		{
+            TraceSource.TraceKey(key);
+
 			return this.ExecuteGetWithLock(key, TimeSpan.Zero);
 		}
 
 		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteGetWithLock<T>(key, TimeSpan.Zero);
 		}
 
 		public IGetOperationResult ExecuteGetWithLock(string key, TimeSpan lockExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			CasResult<object> tmp;
 			return this.TryGetWithLock(key, lockExpiration, out tmp);
 		}
 
 		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key, TimeSpan lockExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			CasResult<object> tmp;
 			var retVal = new DefaultGetOperationResultFactory<T>().Create();
 
@@ -448,31 +483,43 @@ namespace Couchbase
 
 		public bool Unlock(string key, ulong cas)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteUnlock(key, cas).Success;
 		}
 
 		public IUnlockOperationResult ExecuteUnlock(string key, ulong cas)
 		{
+            TraceSource.TraceKey(key);
+
 			return PerformUnlock(key, cas);
 		}
 
 		public CasResult<object> GetWithLock(string key)
 		{
+            TraceSource.TraceKey(key);
+
 			return this.GetWithLock<object>(key);
 		}
 
 		public CasResult<T> GetWithLock<T>(string key)
 		{
+            TraceSource.TraceKey(key);
+
 			return GetWithLock<T>(key, TimeSpan.Zero);
 		}
 
 		public CasResult<object> GetWithLock(string key, TimeSpan lockExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			return this.GetWithLock<object>(key, lockExpiration);
 		}
 
 		public CasResult<T> GetWithLock<T>(string key, TimeSpan lockExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			CasResult<object> tmp;
 
 			return this.TryGetWithLock(key, lockExpiration, out tmp).Success
@@ -482,11 +529,15 @@ namespace Couchbase
 
 		public CasResult<object> GetWithCas(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			return this.GetWithCas<object>(key, newExpiration);
 		}
 
 		public CasResult<T> GetWithCas<T>(string key, DateTime newExpiration)
 		{
+            TraceSource.TraceKey(key);
+
 			CasResult<object> tmp;
 
 			return this.TryGetWithCas(key, newExpiration, out tmp)
@@ -496,6 +547,8 @@ namespace Couchbase
 
 		public bool TryGetWithCas(string key, DateTime newExpiration, out CasResult<object> value)
 		{
+            TraceSource.TraceKey(key);
+
 			object tmp;
 			ulong cas;
 
@@ -508,6 +561,8 @@ namespace Couchbase
 
 		protected IGetOperationResult PerformTryGetAndTouch(string key, uint nextExpiration, out ulong cas, out object value)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = GetOperationResultFactory.Create();
@@ -545,6 +600,8 @@ namespace Couchbase
 
 		protected IGetOperationResult PerformTryGetWithLock(string key, TimeSpan lockExpiration, out ulong cas, out object value)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = GetOperationResultFactory.Create();
@@ -585,6 +642,8 @@ namespace Couchbase
 
 		protected IUnlockOperationResult PerformUnlock(string key, ulong cas)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 			var result = new UnlockOperationResult();
@@ -612,6 +671,8 @@ namespace Couchbase
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			var storeResult = base.ExecuteStore(mode, key, value);
 			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
 			{
@@ -634,26 +695,36 @@ namespace Couchbase
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, persistTo, ReplicateTo.Zero);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, PersistTo.Zero, replicateTo);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, expiresAt, persistTo, ReplicateTo.Zero);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, ReplicateTo replicateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, expiresAt, PersistTo.Zero, replicateTo);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo, ReplicateTo replicateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			var storeResult = base.ExecuteStore(mode, key, value, expiresAt);
 
 			if (persistTo == PersistTo.Zero && replicateTo == ReplicateTo.Zero)
@@ -677,16 +748,22 @@ namespace Couchbase
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, ReplicateTo replicateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, validFor, PersistTo.Zero, replicateTo);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteStore(mode, key, value, validFor, persistTo, ReplicateTo.Zero);
 		}
 
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replciateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			var storeResult = base.ExecuteStore(mode, key, value, validFor);
 
 			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
@@ -710,6 +787,8 @@ namespace Couchbase
 
 		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo, ReplicateTo replciateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			var removeResult = base.ExecuteRemove(key);
 
 			if (persistTo == PersistTo.Zero && replciateTo == ReplicateTo.Zero)
@@ -733,21 +812,29 @@ namespace Couchbase
 
 		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteRemove(key, persistTo, ReplicateTo.Zero);
 		}
 
 		public IRemoveOperationResult ExecuteRemove(string key, ReplicateTo replicateTo)
 		{
+            TraceSource.TraceKey(key);
+
 			return ExecuteRemove(key, PersistTo.Zero, replicateTo);
 		}
 
 		public bool KeyExists(string key)
 		{
+            TraceSource.TraceKey(key);
+
 			return KeyExists(key, 0);
 		}
 
 		public bool KeyExists(string key, ulong cas)
 		{
+            TraceSource.TraceKey(key);
+
 			var result = Observe(key, cas, PersistTo.Zero, ReplicateTo.Zero);
 			return result.Success;
 		}
@@ -756,6 +843,8 @@ namespace Couchbase
 											   ObserveKeyState persistedKeyState = ObserveKeyState.FoundPersisted,
 											   ObserveKeyState replicatedState = ObserveKeyState.FoundNotPersisted)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var vbucket = this.poolInstance.GetVBucket(key);
 			var nodes = this.poolInstance.GetWorkingNodes().ToArray();
@@ -787,11 +876,15 @@ namespace Couchbase
 
 		public SyncResult Sync(string key, ulong cas, SyncMode mode)
 		{
+            TraceSource.TraceKey(key);
+
 			return this.Sync(key, cas, mode, 0);
 		}
 
 		public SyncResult Sync(string key, ulong cas, SyncMode mode, int replicationCount)
 		{
+            TraceSource.TraceKey(key);
+
 			var hashedKey = this.KeyTransformer.Transform(key);
 			var node = this.Pool.Locate(hashedKey);
 
