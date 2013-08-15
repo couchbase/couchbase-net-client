@@ -75,6 +75,8 @@
     <Compile Include="CouchbaseSpatialView.cs" />
     <Compile Include="CouchbaseSpatialViewBase.cs" />
     <Compile Include="CouchbaseViewHandler.cs" />
+    <Compile Include="Diagnostics\KeyFilter.cs" />
+    <Compile Include="Diagnostics\TraceSourceExtensions.cs" />
     <Compile Include="Exceptions\ViewExceptions.cs" />
     <Compile Include="Exceptions\ViewNotFoundException.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />

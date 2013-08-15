@@ -361,6 +361,8 @@
       <Link>WebClientWithTimeout.cs</Link>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Diagnostics\KeyFilter.cs" />
+    <Compile Include="Diagnostics\TraceSourceExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
