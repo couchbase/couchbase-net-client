@@ -37,81 +37,85 @@ namespace Couchbase
 
 		public IDictionary<string, object> DebugInfo { get; set; }
 
+	    internal IEnumerator<T> ReadResponse<T>(Stream stream, Func<JsonReader, T> rowTransformer)
+	    {
+	        using (var streamReader = new StreamReader(stream, Encoding.UTF8, true))
+	        using (var jsonReader = new JsonTextReader(streamReader))
+	        {
+	            while (jsonReader.Read())
+	            {
+	                if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Depth == 1)
+	                {
+	                    if (jsonReader.TokenType == JsonToken.PropertyName
+	                        && jsonReader.Depth == 1
+	                        && ((string) jsonReader.Value) == "debug_info")
+	                    {
+	                        JToken debugInfoJson = (JToken.ReadFrom(jsonReader) as JProperty).Value;
+	                        DebugInfo = JsonHelper.Deserialize<Dictionary<string, object>>(debugInfoJson.ToString());
+	                    }
+	                    else if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
+	                    {
+	                        TotalRows = Convert.ToInt32(jsonReader.Value);
+	                    }
+	                    else if (jsonReader.Value as string == "error" && jsonReader.Read())
+	                    {
+	                        var error = jsonReader.Value as string;
+	                        string reason = "";
+	                        while (jsonReader.Read())
+	                        {
+	                            if (jsonReader.TokenType == JsonToken.PropertyName &&
+	                                jsonReader.Value as string == "reason" && jsonReader.Read())
+	                            {
+	                                reason = jsonReader.Value.ToString();
+	                            }
+	                        }
+
+	                        //When requesting a bad design document, the response will be a 404 with the error == "not_found"
+	                        //When requesting a bad view name and a valid design doc, response will be a 500 with a reason containing "not_found"
+	                        if (error == ERROR_VIEW_NOT_FOUND || reason.Contains(ERROR_VIEW_NOT_FOUND))
+	                        {
+	                            throw new ViewNotFoundException(DesignDocument, IndexName, error, reason);
+	                        }
+	                        throw new ViewException(DesignDocument, IndexName, error, reason);
+	                    }
+	                    else if (jsonReader.Value as string == "rows" && jsonReader.Read())
+	                    {
+	                        // position the reader on the first "rows" field which contains the actual resultset
+	                        // this way we do not have to deserialize the whole response twice
+	                        // read until the end of the rows array
+	                        while (jsonReader.Read() && jsonReader.TokenType != JsonToken.EndArray)
+	                        {
+	                            T row = rowTransformer(jsonReader);
+	                            yield return row;
+	                        }
+
+	                        while (jsonReader.Read())
+	                        {
+	                            if (jsonReader.TokenType == JsonToken.PropertyName
+	                                && jsonReader.Depth == 1
+	                                && ((string) jsonReader.Value) == "errors")
+	                            {
+	                                // we skip the deserialization if the array is null
+                                    if (jsonReader.Read() && jsonReader.TokenType == JsonToken.StartArray)
+	                                {
+	                                    object errors = Json.Parse(jsonReader);
+	                                    string formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
+	                                    if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
+	                                    throw new ViewException("Cannot read view: " + formatted);
+	                                }
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
+
 		public IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer, IDictionary<string, string> viewParams)
 		{
 			var response = GetResponse(viewParams);
-
-			using (var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8, true))
-			using (var jsonReader = new JsonTextReader(sr))
-			{
-
-				while (jsonReader.Read())
-				{
-					if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Depth == 1)
-					{
-						if (jsonReader.TokenType == JsonToken.PropertyName
-										 && jsonReader.Depth == 1
-										 && ((string)jsonReader.Value) == "debug_info")
-						{
-							var debugInfoJson = (JObject.ReadFrom(jsonReader) as JProperty).Value;
-							DebugInfo = JsonHelper.Deserialize<Dictionary<string, object>>(debugInfoJson.ToString());
-						}
-						else if (jsonReader.Value as string == "total_rows" && jsonReader.Read())
-						{
-							TotalRows = Convert.ToInt32(jsonReader.Value);
-						}
-						else if (jsonReader.Value as string == "error" && jsonReader.Read())
-						{
-							var error = jsonReader.Value as string;
-							var reason = "";
-							while (jsonReader.Read())
-							{
-								if (jsonReader.TokenType == JsonToken.PropertyName && jsonReader.Value as string == "reason" && jsonReader.Read())
-								{
-									reason = jsonReader.Value.ToString();
-								}
-							}
-
-							//When requesting a bad design document, the response will be a 404 with the error == "not_found"
-							//When requesting a bad view name and a valid design doc, response will be a 500 with a reason containing "not_found"
-							if (error == ERROR_VIEW_NOT_FOUND || reason.Contains(ERROR_VIEW_NOT_FOUND))
-							{
-								throw new ViewNotFoundException(DesignDocument, IndexName, error, reason);
-							}
-							throw new ViewException(DesignDocument, IndexName, error, reason);
-						}
-						else if (jsonReader.Value as string == "rows" && jsonReader.Read())
-						{
-							// position the reader on the first "rows" field which contains the actual resultset
-							// this way we do not have to deserialize the whole response twice
-							// read until the end of the rows array
-							while (jsonReader.Read() && jsonReader.TokenType != Newtonsoft.Json.JsonToken.EndArray)
-							{
-								var row = rowTransformer(jsonReader);
-								yield return row;
-							}
-
-							while (jsonReader.Read())
-							{
-								if (jsonReader.TokenType == JsonToken.PropertyName
-									&& jsonReader.Depth == 1
-									&& ((string)jsonReader.Value) == "errors")
-								{
-									// we skip the deserialization if the array is null
-									if (jsonReader.TokenType == Newtonsoft.Json.JsonToken.StartArray)
-									{
-										var errors = Json.Parse(jsonReader);
-										var formatted = String.Join("\n", FormatErrors(errors as object[]).ToArray());
-										if (String.IsNullOrEmpty(formatted)) formatted = "<unknown>";
-
-										throw new InvalidOperationException("Cannot read view: " + formatted);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+		    var stream = response.GetResponseStream();
+		    return ReadResponse(stream, rowTransformer);
 		}
 
 		public bool CheckViewExists()

@@ -1,0 +1,1 @@
+﻿{"error":"badrpc","reason":"{'EXIT',{{case_clause,134},\n         [{capi_crud,get_inner,4},\n          {rpc,local_call,3},\n          {capi_frontend,attempt,6},\n          {capi_frontend,open_doc,3},\n          {capi_frontend,couch_doc_open,3},\n          {couch_httpd_db,db_doc_req,3},\n          {request_throttler,do_request,3},\n          {couch_httpd,handle_request,6}]}}"}

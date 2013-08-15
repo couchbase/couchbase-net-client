@@ -67,9 +67,16 @@
     <Compile Include="CouchbaseClientViewTests.cs" />
     <Compile Include="CouchbaseNodeTests.cs" />
     <Compile Include="Utils\TestUtils.cs" />
+    <None Include="Data\view-response-error-not_found.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\view-response-error-case_clause.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\ThingViews.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Compile Include="CouchbaseViewHandlerTests.cs" />
     <Compile Include="HelperTests\DocHelperTests.cs" />
     <Compile Include="HttpClientConfigTests.cs" />
     <Compile Include="CouchbaseAuthenticatedViewTests.cs" />
@@ -98,6 +105,8 @@
     <Compile Include="CouchbaseClientRemoveTests.cs" />
     <Compile Include="CouchbaseClientStoreTests.cs" />
     <Compile Include="CouchbaseClientTestsBase.cs" />
+    <Compile Include="Mocks\FakeView.cs" />
+    <Compile Include="Mocks\FakeViewRow.cs" />
     <Compile Include="Mocks\MockHttpClient.cs" />
     <Compile Include="Mocks\MockHttpClientFactory.cs" />
     <Compile Include="Mocks\MockHttpRequest.cs" />
@@ -116,8 +125,15 @@
     <None Include="Data\CityViews.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
+    <None Include="App.config" />
+    <None Include="Data\view-response-error-ehostunreach.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\view-response-error-badrpc.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\view-response-good.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config">
       <SubType>Designer</SubType>

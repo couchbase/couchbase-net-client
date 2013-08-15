@@ -1,0 +1,25 @@
+﻿{"total_rows":22,"rows":[
+{"id":"city_ME_Bangor","key":"Bangor","value":null},
+{"id":"city_MA_Boston","key":"Boston","value":null},
+{"id":"city_CT_Bridgeport","key":"Bridgeport","value":null},
+{"id":"city_VT_Burlington","key":"Burlington","value":null},
+{"id":"city_MA_Cambridge","key":"Cambridge","value":null},
+{"id":"city_NH_Concord","key":"Concord","value":null},
+{"id":"city_CT_Hartford","key":"Hartford","value":null},
+{"id":"city_NH_Manchester","key":"Manchester","value":null},
+{"id":"city_VT_Montpelier","key":"Montpelier","value":null},
+{"id":"city_CT_New_Haven","key":"New Haven","value":null},
+{"id":"city_CT_New_London","key":"New London","value":null},
+{"id":"city_RI_Newport","key":"Newport","value":null},
+{"id":"city_VT_Newport","key":"Newport","value":null},
+{"id":"city_CT_Norwalk","key":"Norwalk","value":null},
+{"id":"city_ME_Portland","key":"Portland","value":null},
+{"id":"city_NH_Portsmouth","key":"Portsmouth","value":null},
+{"id":"city_RI_Providence","key":"Providence","value":null},
+{"id":"city_MA_Somerville","key":"Somerville","value":null},
+{"id":"city_MA_Springfield","key":"Springfield","value":null},
+{"id":"city_CT_Stamford","key":"Stamford","value":null},
+{"id":"city_RI_Warwick","key":"Warwick","value":null},
+{"id":"city_MA_Worcester","key":"Worcester","value":null}
+]
+}
