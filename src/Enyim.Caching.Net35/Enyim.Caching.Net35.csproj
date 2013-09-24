@@ -48,6 +48,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+   <Compile Include="..\Enyim.Caching\StatusCode.cs">
+      <Link>StatusCode.cs</Link>
+    </Compile>
     <Compile Include="..\Enyim.Caching\Configuration\AuthenticationConfiguration.cs">
       <Link>Configuration\AuthenticationConfiguration.cs</Link>
     </Compile>
