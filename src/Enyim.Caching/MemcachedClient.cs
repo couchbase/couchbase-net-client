@@ -978,7 +978,7 @@ namespace Enyim.Caching
 		~MemcachedClient()
 		{
 			try { ((IDisposable)this).Dispose(); }
-			catch { }
+			catch(Exception e){log.Error(e);}
 		}
 
 		void IDisposable.Dispose()

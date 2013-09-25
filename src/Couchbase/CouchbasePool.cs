@@ -86,7 +86,7 @@ namespace Couchbase
 		~CouchbasePool()
 		{
 			try { ((IDisposable)this).Dispose(); }
-			catch { }
+			catch(Exception e){log.Error(e);}
 		}
 
 		protected ICouchbaseClientConfiguration Configuration
@@ -164,7 +164,7 @@ namespace Couchbase
 						oldNodes[i].Failed -= this.NodeFail;
 						oldNodes[i].Dispose();
 					}
-					catch { }
+					catch(Exception e){log.Error(e);}
 		}
 
 		private InternalState InitVBucket(ClusterConfig config, ISaslAuthenticationProvider auth)

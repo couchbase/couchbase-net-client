@@ -167,7 +167,7 @@ namespace Couchbase
 					listeners.Remove(info.HashKey);
 
 					try { using (listener) listener.Stop(); }
-					catch { }
+					catch(Exception e){log.Error(e);}
 				}
 				else
 				{

@@ -22,6 +22,7 @@ namespace Enyim.Caching.Memcached
 
 		private BufferedStream inputStream;
 		private AsyncSocketHelper helper;
+	    private bool _isDisposed = false;
 
 		public PooledSocket(IPEndPoint endpoint, TimeSpan connectionTimeout, TimeSpan receiveTimeout)
 		{
@@ -58,7 +59,7 @@ namespace Enyim.Caching.Memcached
 			socket.BeginConnect(endpoint, iar =>
 			{
 				try { using (iar.AsyncWaitHandle) socket.EndConnect(iar); }
-				catch { }
+				catch(Exception e){log.Error(e);}
 
 				mre.Set();
 			}, null);
@@ -111,58 +112,63 @@ namespace Enyim.Caching.Memcached
 			get { return this.isAlive; }
 		}
 
-		/// <summary>
-		/// Releases all resources used by this instance and shuts down the inner <see cref="T:Socket"/>. This instance will not be usable anymore.
-		/// </summary>
-		/// <remarks>Use the IDisposable.Dispose method if you want to release this instance back into the pool.</remarks>
-		public void Destroy()
-		{
-			this.Dispose(true);
-		}
+        /// <summary>
+        /// replaces call to Dispose to release instance back into pool
+        /// </summary>
+	    public void Release()
+	    {
+            Action<PooledSocket> releaseSocket = this.CleanupCallback;
+            if (releaseSocket != null)
+            {
+                releaseSocket(this);
+            }
+	    }
 
-		~PooledSocket()
-		{
-			try { this.Dispose(true); }
-			catch { }
-		}
+	    public void Dispose()
+	    {
+	        Dispose(true);
+	    }
 
-		protected void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				GC.SuppressFinalize(this);
+	    ~PooledSocket()
+	    {
+	        Dispose(false);
+	    }
 
-				try
-				{
-					if (socket != null)
-						try { this.socket.Close(); }
-						catch { }
+	    void Dispose(bool disposing)
+	    {
+	        if (!_isDisposed)
+	        {
+	            try
+	            {
+	                if (socket != null)
+	                    try
+	                    {
+	                        this.socket.Close();
+	                    }
+	                    catch (Exception e)
+	                    {
+	                        log.Error(e);
+	                    }
 
-					if (this.inputStream != null)
-						this.inputStream.Dispose();
+	                if (this.inputStream != null)
+	                    this.inputStream.Dispose();
 
-					this.inputStream = null;
-					this.socket = null;
-					this.CleanupCallback = null;
-				}
-				catch (Exception e)
-				{
-					log.Error(e);
-				}
-			}
-			else
-			{
-				Action<PooledSocket> cc = this.CleanupCallback;
+	                this.inputStream = null;
+	                this.socket = null;
+	                this.CleanupCallback = null;
 
-				if (cc != null)
-					cc(this);
-			}
-		}
-
-		void IDisposable.Dispose()
-		{
-			this.Dispose(false);
-		}
+                    if (disposing)
+                    {
+                        GC.SuppressFinalize(this);
+                    }
+	                _isDisposed = true;
+	            }
+	            catch (Exception e)
+	            {
+	                log.Error(e);
+	            }
+	        }
+	    }
 
 		private void CheckDisposed()
 		{

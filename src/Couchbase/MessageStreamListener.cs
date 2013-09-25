@@ -88,7 +88,7 @@ namespace Couchbase
 		~MessageStreamListener()
 		{
 			try { this.Dispose(); }
-			catch { }
+			catch(Exception e){log.Error(e);}
 		}
 
 		protected event Action<string, MessageStreamListener> MessageReceived;
@@ -346,19 +346,19 @@ namespace Couchbase
 			if (this.request != null)
 			{
 				try { this.request.Abort(); }
-				catch { }
+				catch(Exception e){log.Error(e);}
 			}
 
 			if (this.response != null)
 			{
 				try { ((IDisposable)this.response).Dispose(); }
-				catch { }
+				catch(Exception e){log.Error(e);}
 			}
 
 			if (this.heartbeat != null)
 			{
 				try { ((IDisposable)this.heartbeat).Dispose(); }
-				catch { }
+				catch(Exception e){log.Error(e);}
 			}
 
 			this.request = null;
@@ -517,7 +517,7 @@ namespace Couchbase
 				if (this.request != null)
 				{
 					try { this.request.Abort(); }
-					catch { }
+					catch(Exception e){log.Error(e);}
 
 					this.request = null;
 				}

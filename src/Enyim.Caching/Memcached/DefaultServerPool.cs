@@ -39,7 +39,7 @@ namespace Enyim.Caching.Memcached
 		~DefaultServerPool()
 		{
 			try { ((IDisposable)this).Dispose(); }
-			catch { }
+			catch(Exception e){log.Error(e);}
 		}
 
 		protected virtual IMemcachedNode CreateNode(IPEndPoint endpoint)

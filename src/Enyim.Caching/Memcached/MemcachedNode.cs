@@ -33,6 +33,7 @@ namespace Enyim.Caching.Memcached
 
 		public MemcachedNode(IPEndPoint endpoint, ISocketPoolConfiguration socketPoolConfig)
 		{
+            log.DebugFormat("Creating a MemcachedNode for {0}", endpoint);
 			this.endPoint = endpoint;
 			this.config = socketPoolConfig;
 
@@ -104,7 +105,7 @@ namespace Enyim.Caching.Memcached
 					Interlocked.Exchange(ref this.internalPoolImpl, newPool);
 
 					try { oldPool.Dispose(); }
-					catch { }
+					catch(Exception e){log.Error(e);}
 				}
 
 				return true;
@@ -168,38 +169,31 @@ namespace Enyim.Caching.Memcached
 			return true;
         }
 
-		~MemcachedNode()
-		{
-			try { ((IDisposable)this).Dispose(); }
-			catch { }
-		}
-
-		/// <summary>
-		/// Releases all resources allocated by this instance
-		/// </summary>
-		public void Dispose()
-		{
-			if (this.isDisposed) return;
-
-			GC.SuppressFinalize(this);
-
-			// this is not a graceful shutdown
-			// if someone uses a pooled item then it's 99% that an exception will be thrown
-			// somewhere. But since the dispose is mostly used when everyone else is finished
-			// this should not kill any kittens
-			lock (SyncRoot)
-			{
-				if (this.isDisposed) return;
-
-				this.isDisposed = true;
-				this.internalPoolImpl.Dispose();
-			}
-		}
+	    ~MemcachedNode()
+	    {
+	        Dispose(false);
+	    }
 
 		void IDisposable.Dispose()
-		{
-			this.Dispose();
+		{     
+			Dispose(true);
 		}
+
+	    void Dispose(bool disposing)
+	    {
+	        if (!isDisposed)
+	        {
+	            lock (SyncRoot)
+	            {
+                    internalPoolImpl.Dispose();
+	            }
+	        }
+            if (disposing && !isDisposed)
+            {
+                GC.SuppressFinalize(this);
+                isDisposed = true;
+            }
+	    }
 
 		#region [ InternalPoolImpl             ]
 
@@ -372,7 +366,6 @@ namespace Enyim.Caching.Memcached
 				message = "Could not get a socket from the pool, Creating a new item. " + this.endPoint;
 				if (hasDebug) log.Debug(message);
 				
-
 				try
 				{
 					// okay, create the new item
@@ -438,7 +431,8 @@ namespace Enyim.Caching.Memcached
 					else
 					{
 						// kill this item
-						socket.Destroy();
+						//socket.Destroy();
+                        socket.Dispose();
 
 						// mark ourselves as not working for a while
 						this.MarkAsDead();
@@ -448,7 +442,8 @@ namespace Enyim.Caching.Memcached
 				{
 					// one of our previous sockets has died, so probably all of them 
 					// are dead. so, kill the socket (this will eventually clear the pool as well)
-					socket.Destroy();
+					//socket.Destroy();
+                    socket.Dispose();
 				}
 
 				// In any event, we want to let any waiters know that we can create a new
@@ -459,54 +454,62 @@ namespace Enyim.Caching.Memcached
 					{
 						semaphore.Release();
 					}
-					catch (ObjectDisposedException)
+					catch (ObjectDisposedException e)
 					{
+                        log.Error(e);
 					}
 				}
 			}
 
+		    void Dispose(bool disposing)
+		    {
+                if (disposing && !isDisposed)
+                {
+                    GC.SuppressFinalize(this);
+                }
+		        if (!isDisposed)
+		        {
+		            new Timer((s) =>
+		            {
+		                if (!this.isDisposed)
+		                {
+		                    log.Debug("Disposing InternalPoolImpl");
 
-			~InternalPoolImpl()
-			{
-				try { ((IDisposable)this).Dispose(); }
-				catch { }
-			}
+		                    PooledSocket ps;
+		                    while (this.freeItems.TryPop(out ps))
+		                    {
+		                        try
+		                        {
+                                    ps.Dispose();
+		                        }
+		                        catch (Exception e)
+		                        {
+		                            log.Error(e);
+		                        }
+		                    }
 
-			/// <summary>
-			/// Releases all resources allocated by this instance
-			/// </summary>
-			public void Dispose()
-			{
-				// this is not a graceful shutdown
-				// if someone uses a pooled item then 99% that an exception will be thrown
-				// somewhere. But since the dispose is mostly used when everyone else is finished
-				// this should not kill any kittens
-				new Timer((s) => {
-					if (!this.isDisposed)
-					{
-						this.isAlive = false;
-						this.isDisposed = true;
+		                    this.ownerNode = null;
+		                    this.semaphore.Close();
+		                    this.semaphore = null;
+		                    this.freeItems = null;
+                            this.isAlive = false;
+                            this.isDisposed = true;
+		                }
+		            }, null, 1000, Timeout.Infinite);
+		        }
+		    }
 
-						PooledSocket ps;
+		    public void Dispose()
+		    {
+		        Dispose(true);
+		    }
 
-						while (this.freeItems.TryPop(out ps))
-						{
-							try { ps.Destroy(); }
-							catch { }
-						}
-
-						this.ownerNode = null;
-						this.semaphore.Close();
-						this.semaphore = null;
-						this.freeItems = null;
-					}
-				}, null, 1000, Timeout.Infinite);
-			}
-
-			void IDisposable.Dispose()
-			{
-				this.Dispose();
-			}
+            ~InternalPoolImpl()
+            {
+                log.Debug("Finalizing ~InternalPoolImpl");
+                try { Dispose(false); }
+                catch (Exception e) { log.Error(e); }
+            }
 		}
 
 		#endregion
@@ -531,13 +534,6 @@ namespace Enyim.Caching.Memcached
 		{
 			return new PooledSocket(this.endPoint, this.config.ConnectionTimeout, this.config.ReceiveTimeout);
 		}
-
-		//protected internal virtual PooledSocket CreateSocket(IPEndPoint endpoint, TimeSpan connectionTimeout, TimeSpan receiveTimeout)
-		//{
-		//    PooledSocket retval = new PooledSocket(endPoint, connectionTimeout, receiveTimeout);
-
-		//    return retval;dis
-		//}
 
 		protected virtual IPooledSocketResult ExecuteOperation(IOperation op)
 		{
@@ -572,7 +568,7 @@ namespace Enyim.Caching.Memcached
 				}
 				finally
 				{
-					((IDisposable)result.Value).Dispose();
+                    result.Value.Release();
 				}
 			}
 			else
