@@ -813,7 +813,18 @@ namespace Enyim.Caching
 			});
 		}
 
-		protected virtual IDictionary<string, T> PerformMultiGet<T>(IEnumerable<string> keys, Func<IMultiGetOperation, KeyValuePair<string, CacheItem>, T> collector)
+		/// <summary>
+		/// Performs the retrieval of multiple items from the cache.
+		/// </summary>
+		/// <param name="keys">The list of identifiers for the items to retrieve.</param>
+		/// <param name="collector">The collector of found items.</param>
+		/// <param name="failureCollector">The collector of failed items. If <c>null</c>, failed items are ignored.</param>
+		/// <remarks>If item is not retrieved because key does not exist, it will be omitted from the returned dictionary even if <paramref name="failureCollector"/> is specified.</remarks>
+		/// <returns>a Dictionary holding items indexed by their key.</returns>
+		protected virtual IDictionary<string, T> PerformMultiGet<T>(
+			IEnumerable<string> keys, 
+			Func<IMultiGetOperation, KeyValuePair<string, CacheItem>, T> collector, 
+			Func<IOperationResult, T> failureCollector = null)
 		{
 			// transform the keys and index them by hashed => original
 			// the mget results will be mapped using this index
@@ -844,7 +855,9 @@ namespace Enyim.Caching
 					try
 					{
 						using (iar.AsyncWaitHandle)
-							if (action.EndInvoke(iar).Success)
+						{
+							var invokeResult = action.EndInvoke(iar);
+							if (invokeResult.Success)
 							{
 								#region perfmon
 								if (this.performanceMonitor != null)
@@ -879,6 +892,23 @@ namespace Enyim.Caching
 									}
 								}
 							}
+							else if (failureCollector != null)
+							{
+								// if failure collector is not specified, ignore failed items
+								foreach (var hashedKey in nodeKeys)
+								{
+									string original;
+									if (hashed.TryGetValue(hashedKey, out original))
+									{
+										var result = failureCollector(invokeResult);
+
+										// the lock will serialize the merge,
+										// but at least the commands were not waiting on each other
+										lock (retval) retval[original] = result;
+									}
+								}
+							}
+						}
 					}
 					catch (Exception e)
 					{
@@ -896,6 +926,33 @@ namespace Enyim.Caching
 			if (handles.Count > 0)
 			{
 				SafeWaitAllAndDispose(handles.ToArray());
+			}
+
+			if (failureCollector != null)
+			{
+				if (byServer.Sum(s => s.Value.Count) != hashed.Count)
+				{
+					// if nodes are not available, keys are not processed at all. Add them to failure result list.
+					var opResult = GetOperationResultFactory.Create();
+					opResult.Fail("Unable to locate node");
+					var hashedFailureKeys = hashed.Keys.Except(byServer.SelectMany(s => s.Value));
+					foreach (var hashedKey in hashedFailureKeys)
+					{
+						var original = hashed[hashedKey];
+						hashed.Remove(hashedKey);
+						retval[original] = failureCollector(opResult);
+					}
+				}
+
+				var remainingKeys = hashed.Where(h => !retval.ContainsKey(h.Value)).Select(h => h.Value).ToList();
+				if (remainingKeys.Count > 0)
+				{
+					// return remaining items as Not Found
+					var opResult = GetOperationResultFactory.Create();
+					opResult.Success = false;
+					opResult.StatusCode = (int)Memcached.Results.StatusCodes.StatusCodeEnums.NotFound;
+					remainingKeys.ForEach(key => retval[key] = failureCollector(opResult));
+				}
 			}
 
 			return retval;
