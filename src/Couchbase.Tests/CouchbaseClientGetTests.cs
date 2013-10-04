@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Couchbase.Tests.Factories;
 using Couchbase.Tests.Utils;
+using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
 using NUnit.Framework;
 using Enyim.Caching.Memcached.Results.StatusCodes;
@@ -222,6 +223,27 @@ namespace Couchbase.Tests
 			Assert.IsFalse(res2.Success);
             Assert.AreEqual(res2.StatusCode, 1);
 	    }
+
+        [Test]
+        public void When_ExecuteGet_Is_Called_With_List_Of_Keys_All_Are_Returned()
+        {
+            var keys = new List<string>(10);
+            for (int i = 0; i < 10; i++)
+            {
+                var key = string.Format("executegetkey{0}", i);
+                var value = string.Format("executegetvalue{0}", i);
+
+                if (Client.Store(StoreMode.Set, key, value))
+                {
+                    keys.Add(key);
+                }
+            }
+            var results = Client.ExecuteGet(keys);
+            foreach (var result in results)
+            {
+                Assert.IsTrue(result.Value.Success);
+            }
+        }
 	}
 }
 

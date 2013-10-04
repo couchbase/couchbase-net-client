@@ -185,14 +185,25 @@ namespace Enyim.Caching
 		/// <returns>a Dictionary holding all items indexed by their key.</returns>
 		public IDictionary<string, IGetOperationResult> ExecuteGet(IEnumerable<string> keys)
 		{
-			return PerformMultiGet<IGetOperationResult>(keys, (mget, kvp) =>
-			{
-				var result = GetOperationResultFactory.Create();
-				result.Value = this.transcoder.Deserialize(kvp.Value);
-				result.Cas = mget.Cas[kvp.Key];
-				result.Success = true;
-				return result;
-			});
+			return PerformMultiGet<IGetOperationResult>(
+				keys,
+				(mget, kvp) =>
+				{
+					var result = GetOperationResultFactory.Create();
+					result.Value = this.transcoder.Deserialize(kvp.Value);
+					result.Cas = mget.Cas[kvp.Key];
+					result.Success = true;
+					return result;
+				},
+				opResult =>
+				{
+					var result = GetOperationResultFactory.Create();
+					result.Success = false;
+					result.StatusCode = opResult.StatusCode;
+					result.Message = opResult.Message;
+					result.Exception = opResult.Exception;
+					return result;
+				});
 		}
 
 		#endregion
