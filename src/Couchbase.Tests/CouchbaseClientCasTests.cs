@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
@@ -22,13 +24,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_Valid_Cas_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("cas");
-			var value = GetRandomString();
-			var storeResult = Store(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("cas");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, StoreMode.Add, key, value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.ExecuteCas(StoreMode.Set, key, value, storeResult.Cas);
-			StoreAssertPass(casResult);
+            var casResult = Client.ExecuteCas(StoreMode.Set, key, value, storeResult.Cas);
+            TestUtils.StoreAssertPass(casResult);
 		}
 
         /// <summary>
@@ -41,13 +43,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_Invalid_Cas_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("cas");
-			var value = GetRandomString();
-			var storeResult = Store(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("cas");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, StoreMode.Add, key, value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.ExecuteCas(StoreMode.Set, key, value, storeResult.Cas - 1);
-			StoreAssertFail(casResult);
+            var casResult = Client.ExecuteCas(StoreMode.Set, key, value, storeResult.Cas - 1);
+            TestUtils.StoreAssertFail(casResult);
 		}
 
 		/// <summary>
@@ -60,13 +62,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Replacing_Item_With_Valid_Cas_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("cas");
-			var value = GetRandomString();
-			var storeResult = Store(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("cas");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, StoreMode.Add, key, value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.ExecuteCas(StoreMode.Replace, key, value, storeResult.Cas);
-			StoreAssertPass(casResult);
+            var casResult = Client.ExecuteCas(StoreMode.Replace, key, value, storeResult.Cas);
+            TestUtils.StoreAssertPass(casResult);
 		}
 	}
 }

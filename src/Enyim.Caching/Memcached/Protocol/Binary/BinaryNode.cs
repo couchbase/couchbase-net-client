@@ -24,6 +24,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 			this.authenticationProvider = authenticationProvider;
 		}
 
+        //TODO remove
 		/// <summary>
 		/// Authenticates the new socket before it is put into the pool.
 		/// </summary>
@@ -46,7 +47,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 		/// </summary>
 		/// <param name="socket"></param>
 		/// <returns></returns>
-		private bool Auth(PooledSocket socket)
+		private bool Auth(IPooledSocket socket)
 		{
 			SaslStep currentStep = new SaslStart(this.authenticationProvider);
 

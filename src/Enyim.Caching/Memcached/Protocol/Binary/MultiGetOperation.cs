@@ -69,12 +69,12 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 		}
 
 
-		private PooledSocket currentSocket;
+		private IPooledSocket currentSocket;
 		private BinaryResponse asyncReader;
 		private bool? asyncLoopState;
 		private Action<bool> afterAsyncRead;
 
-		protected internal override bool ReadResponseAsync(PooledSocket socket, Action<bool> next)
+		protected internal override bool ReadResponseAsync(IPooledSocket socket, Action<bool> next)
 		{
 			this.result = new Dictionary<string, CacheItem>();
 			this.Cas = new Dictionary<string, ulong>();
@@ -147,7 +147,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 			}
 		}
 
-		protected internal override IOperationResult ReadResponse(PooledSocket socket)
+		protected internal override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			this.result = new Dictionary<string, CacheItem>();
 			this.Cas = new Dictionary<string, ulong>();

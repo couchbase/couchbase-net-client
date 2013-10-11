@@ -14,20 +14,20 @@ namespace Enyim.Caching.Memcached.Protocol
 		protected Operation() { }
 
 		internal protected abstract IList<ArraySegment<byte>> GetBuffer();
-		internal protected abstract IOperationResult ReadResponse(PooledSocket socket);
-		internal protected abstract bool ReadResponseAsync(PooledSocket socket, Action<bool> next);
+		internal protected abstract IOperationResult ReadResponse(IPooledSocket socket);
+		internal protected abstract bool ReadResponseAsync(IPooledSocket socket, Action<bool> next);
 
 		IList<ArraySegment<byte>> IOperation.GetBuffer()
 		{
 			return this.GetBuffer();
 		}
 
-		IOperationResult IOperation.ReadResponse(PooledSocket socket)
+		IOperationResult IOperation.ReadResponse(IPooledSocket socket)
 		{
 			return this.ReadResponse(socket);
 		}
 
-		bool IOperation.ReadResponseAsync(PooledSocket socket, Action<bool> next)
+		bool IOperation.ReadResponseAsync(IPooledSocket socket, Action<bool> next)
 		{
 			return this.ReadResponseAsync(socket, next);
 		}

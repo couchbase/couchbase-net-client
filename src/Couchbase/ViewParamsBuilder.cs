@@ -98,9 +98,6 @@ namespace Couchbase {
         {
             return _viewParams.Count == 0 ? null : _viewParams;
         }
-
-
-
     }
 }
 

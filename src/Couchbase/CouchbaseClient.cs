@@ -23,14 +23,12 @@ namespace Couchbase
 	/// </summary>
 	public class CouchbaseClient : MemcachedClient, IHttpClientLocator, ICouchbaseClient
 	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
+		private static readonly Enyim.Caching.ILog Log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
 
-		private INameTransformer documentNameTransformer;
-
-		private ICouchbaseServerPool poolInstance;
-
-		private TimeSpan observeTimeout;
+		private readonly INameTransformer _documentNameTransformer;
+		private readonly ICouchbaseServerPool _poolInstance;
+		private readonly TimeSpan _observeTimeout;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the default configuration and bucket.
@@ -80,9 +78,9 @@ namespace Couchbase
 					configuration.CreateTranscoder(),
 					configuration.CreatePerformanceMonitor())
 		{
-			this.documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
-			this.poolInstance = (ICouchbaseServerPool)this.Pool;
-			observeTimeout = configuration.ObserveTimeout;
+			this._documentNameTransformer = configuration.CreateDesignDocumentNameTransformer();
+			this._poolInstance = (ICouchbaseServerPool)this.Pool;
+			_observeTimeout = configuration.ObserveTimeout;
 
 			StoreOperationResultFactory = new DefaultStoreOperationResultFactory();
 			GetOperationResultFactory = new DefaultGetOperationResultFactory();
@@ -221,7 +219,7 @@ namespace Couchbase
 				try { item = this.Transcoder.Serialize(value); }
 				catch (Exception e)
 				{
-					log.Error(e);
+					Log.Error(e);
 
 					if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
 
@@ -325,7 +323,7 @@ namespace Couchbase
 
 			if (node != null)
 			{
-				var command = this.poolInstance.OperationFactory.Touch(key, nextExpiration);
+				var command = this._poolInstance.OperationFactory.Touch(key, nextExpiration);
 				var retval = ExecuteWithRedirect(node, command);
 			}
 		}
@@ -514,7 +512,7 @@ namespace Couchbase
 
 			if (node != null)
 			{
-				var command = this.poolInstance.OperationFactory.GetAndTouch(hashedKey, nextExpiration);
+				var command = this._poolInstance.OperationFactory.GetAndTouch(hashedKey, nextExpiration);
 				var commandResult = this.ExecuteWithRedirect(node, command);
 
 				if (commandResult.Success)
@@ -554,7 +552,7 @@ namespace Couchbase
 
 			if (node != null)
 			{
-				var command = this.poolInstance.OperationFactory.GetWithLock(hashedKey, exp);
+				var command = this._poolInstance.OperationFactory.GetWithLock(hashedKey, exp);
 				var commandResult = this.ExecuteWithRedirect(node, command);
 
 				if (commandResult.Success)
@@ -591,7 +589,7 @@ namespace Couchbase
 
 			if (node != null)
 			{
-				var command = this.poolInstance.OperationFactory.Unlock(hashedKey, cas);
+				var command = this._poolInstance.OperationFactory.Unlock(hashedKey, cas);
 				var commandResult = this.ExecuteWithRedirect(node, command);
 
 				if (commandResult.Success)
@@ -757,30 +755,30 @@ namespace Couchbase
 											   ObserveKeyState replicatedState = ObserveKeyState.FoundNotPersisted)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
-			var vbucket = this.poolInstance.GetVBucket(key);
-			var nodes = this.poolInstance.GetWorkingNodes().ToArray();
-			var command = this.poolInstance.OperationFactory.Observe(hashedKey, vbucket.Index, cas);
+			var vbucket = this._poolInstance.GetVBucket(key);
+			var nodes = this._poolInstance.GetWorkingNodes().ToArray();
+			var command = this._poolInstance.OperationFactory.Observe(hashedKey, vbucket.Index, cas);
 			var runner = new ObserveHandler(new ObserveSettings
 			{
 				PersistTo = persistTo,
 				ReplicateTo = replicateTo,
 				Key = hashedKey,
 				Cas = cas,
-				Timeout = observeTimeout
+				Timeout = _observeTimeout
 			});
 
 			//Master only persistence
 			if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.One)
 			{
-				return runner.HandleMasterPersistence(poolInstance, persistedKeyState);
+				return runner.HandleMasterPersistence(_poolInstance, persistedKeyState);
 			}
 			else if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.Zero) //used for key exists checks
 			{
-				return runner.HandleMasterOnlyInCache(poolInstance);
+				return runner.HandleMasterOnlyInCache(_poolInstance);
 			}
 			else
 			{
-				return runner.HandleMasterPersistenceWithReplication(poolInstance, persistedKeyState, replicatedState);
+				return runner.HandleMasterPersistenceWithReplication(_poolInstance, persistedKeyState, replicatedState);
 			}
 
 		}
@@ -843,7 +841,7 @@ namespace Couchbase
 					var node = slice.Key;
 					var nodeKeys = slice.Value;
 
-					var sync = this.poolInstance.OperationFactory.Sync(mode, slice.Value, replicationCount);
+					var sync = this._poolInstance.OperationFactory.Sync(mode, slice.Value, replicationCount);
 
 					#region result gathering
 					// ExecuteAsync will not call the delegate if the
@@ -872,7 +870,7 @@ namespace Couchbase
 							}
 							catch (Exception e)
 							{
-								log.Error(e);
+								Log.Error(e);
 							}
 
 						latch.Signal();
@@ -943,8 +941,8 @@ namespace Couchbase
 			if (String.IsNullOrEmpty(designName)) throw new ArgumentNullException("designName");
 			if (String.IsNullOrEmpty(viewName)) throw new ArgumentNullException("viewName");
 
-			if (this.documentNameTransformer != null)
-				designName = this.documentNameTransformer.Transform(designName);
+			if (this._documentNameTransformer != null)
+				designName = this._documentNameTransformer.Transform(designName);
 		}
 
 		#region [ IHttpClientLocator		   ]
@@ -959,7 +957,7 @@ namespace Couchbase
 
 			if (nodes.Count == 0)
 			{
-				if (log.IsDebugEnabled) log.Debug("No working nodes found. Unable to execute view query");
+				if (Log.IsDebugEnabled) Log.Debug("No working nodes found. Unable to execute view query");
 				return null;
 			}
 
@@ -991,12 +989,14 @@ namespace Couchbase
 
 		#region MemcachedClient overrides
 		public new void FlushAll()
-		{
-			var couchbaseNodes = poolInstance.GetWorkingNodes().Where(n => n is CouchbaseNode);
-			if (couchbaseNodes.Count() > 0)
-				throw new NotImplementedException("To flush a Couchbase bucket, use the Couchbase.Management API.");
-			base.FlushAll();
-		}
+        {
+            var couchbaseNodes = _poolInstance.GetWorkingNodes().Where(n => n is CouchbaseNode);
+            if (couchbaseNodes.Any())
+            {
+                throw new NotImplementedException("To flush a Couchbase bucket, use the Couchbase.Management API.");
+            }
+            base.FlushAll();
+        }
 		#endregion
 	}
 }

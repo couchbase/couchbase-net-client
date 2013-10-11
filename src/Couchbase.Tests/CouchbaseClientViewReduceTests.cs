@@ -17,7 +17,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_View_Is_Reduced_Without_Group_Row_Count_Is_One()
 		{
-			var view = _Client.GetView("cities", "by_state");
+			var view = Client.GetView("cities", "by_state");
 			foreach (var item in view) { }
 
 			Assert.That(view.Count(), Is.EqualTo(1), "Row count was not 1");
@@ -31,7 +31,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_View_Is_Reduced_With_Group_Row_Count_Is_Greater_Than_One()
 		{
-			var view = _Client.GetView("cities", "by_state").Group(true);
+			var view = Client.GetView("cities", "by_state").Group(true);
 			foreach (var item in view) { }
 
 			Assert.That(view.Count(), Is.GreaterThan(1), "Row count was not 1");

@@ -977,6 +977,7 @@ namespace Enyim.Caching
 
 		~MemcachedClient()
 		{
+            log.DebugFormat("Finalizing {0}", this);
 			try { ((IDisposable)this).Dispose(); }
 			catch(Exception e){log.Error(e);}
 		}
@@ -992,6 +993,7 @@ namespace Enyim.Caching
 		/// <remarks>You should only call this when you are not using static instances of the client, so it can close all conections and release the sockets.</remarks>
 		public void Dispose()
 		{
+            log.DebugFormat("Disposing {0}", this);
 			GC.SuppressFinalize(this);
 
 			if (this.pool != null)

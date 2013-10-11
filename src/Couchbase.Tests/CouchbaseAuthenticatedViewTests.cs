@@ -14,7 +14,7 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseAuthenticatedViewTests
 	{
-		private CouchbaseClient _client;
+		private CouchbaseClient Client;
 		private readonly string _bucketName;
 		private readonly string _bucketPassword;
 		private readonly Uri _couchBasePools;
@@ -30,9 +30,9 @@ namespace Couchbase.Tests
 		public void TearDown()
 		{
 			//clean up clients to avoid leakage
-			if (_client != null)
+			if (Client != null)
 			{
-				_client.Dispose();
+				Client.Dispose();
 			}
 		}
 
@@ -46,8 +46,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_View_Returns_Results()
 		{
-			_client = GetClient(_bucketName, _bucketPassword);
-			var view = _client.GetView("cities", "by_name");
+			Client = GetClient(_bucketName, _bucketPassword);
+			var view = Client.GetView("cities", "by_name");
 
 			//Whether or view has data is regardless, what matters is that a authenticated call returned succesfully
 			Assert.IsNotNull(view);
@@ -64,8 +64,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_No_Credentials_Are_Provided_Exception_Is_Thrown()
 		{
-			_client = GetClient(_bucketName, "");
-			var view = _client.GetView("cities", "by_name");
+			Client = GetClient(_bucketName, "");
+			var view = Client.GetView("cities", "by_name");
 
 			var row = view.First();
 
@@ -84,8 +84,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Bucket_Is_Authenticated_And_Bad_Credentials_Are_Provided_Exception_Is_Thrown()
 		{
-			_client = GetClient(_bucketName, "bad_credentials");
-			var view = _client.GetView("cities", "by_name");
+			Client = GetClient(_bucketName, "bad_credentials");
+			var view = Client.GetView("cities", "by_name");
 
 			var row = view.First();
 			Assert.IsNotNull(row);

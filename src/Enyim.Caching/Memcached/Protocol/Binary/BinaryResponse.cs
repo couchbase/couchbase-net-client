@@ -46,7 +46,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 						?? (this.responseMessage = Encoding.ASCII.GetString(this.Data.Array, this.Data.Offset, this.Data.Count)));
 		}
 
-		public unsafe bool Read(PooledSocket socket)
+		public unsafe bool Read(IPooledSocket socket)
 		{
 			this.StatusCode = -1;
 
@@ -83,7 +83,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 		/// If the read completes synchronously (e.g. data is received from the buffer), it returns true/false depending on the StatusCode, and ioPending is set to true, 'next' will not be called.
 		/// It returns true if it has to read from the socket, so the operation will complate asynchronously at a later time. ioPending will be true, and 'next' will be called to handle the data
 		/// </returns>
-		public bool ReadAsync(PooledSocket socket, Action<bool> next, out bool ioPending)
+		public bool ReadAsync(IPooledSocket socket, Action<bool> next, out bool ioPending)
 		{
 			this.StatusCode = -1;
 			this.currentSocket = socket;
@@ -110,7 +110,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 					: this.DoDecodeHeader(asyncEvent, out ioPending);
 		}
 
-		private PooledSocket currentSocket;
+		private IPooledSocket currentSocket;
 		private int dataLength;
 		private int extraLength;
 		private bool shouldCallNext;

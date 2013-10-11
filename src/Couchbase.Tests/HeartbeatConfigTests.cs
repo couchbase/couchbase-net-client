@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
@@ -17,7 +18,7 @@ namespace Couchbase.Tests
          * <heartbeatMonitor uri="http://127.0.0.1:8091/pools/heartbeat" interval="60000" enabled="true" />
     */
 	[TestFixture]
-	public class HeartbeatConfigTests : CouchbaseClientTestsBase
+	public class HeartbeatConfigTests
 	{
         /// <summary>
         /// @test: Reads the configuration from App.config which enables the heartbeat and then perform
@@ -29,15 +30,16 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Heartbeat_Is_Configured()
 		{
-			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-on");
-			var client = new CouchbaseClient(config);
+            var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-on");
+            using (var client = new CouchbaseClient(config))
+            {
+                string key = TestUtils.GetUniqueKey(), value = TestUtils.GetRandomString();
+                var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
+                TestUtils.StoreAssertPass(storeResult);
 
-			string key = GetUniqueKey(), value = GetRandomString();
-			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
-
-			var getResult = client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
+                var getResult = client.ExecuteGet(key);
+                TestUtils.GetAssertPass(getResult, value);
+            }
 		}
 
         /// <summary>
@@ -50,16 +52,17 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Heartbeat_Is_Disabled()
 		{
-			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-off");
-			var client = new CouchbaseClient(config);
+            var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("heartbeat-config-off");
+            using (var client = new CouchbaseClient(config))
+            {
+                string key = TestUtils.GetUniqueKey(), value = TestUtils.GetRandomString();
+                var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
+                TestUtils.StoreAssertPass(storeResult);
 
-			string key = GetUniqueKey(), value = GetRandomString();
-			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
-
-			var getResult = client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
-		}
+                var getResult = client.ExecuteGet(key);
+                TestUtils.GetAssertPass(getResult, value);
+            }
+        }
     }
 }
 

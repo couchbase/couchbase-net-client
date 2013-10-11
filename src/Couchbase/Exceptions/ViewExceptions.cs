@@ -20,6 +20,16 @@ namespace Couchbase.Exceptions
 			Error = error;
 			Reason = reason;
 		}
+
+	    public ViewException(string message, Exception innerException)
+            : base(message, innerException)
+	    {
+	    }
+
+        public ViewException(string message)
+            : base(message)
+	    {
+	    }
 	}
 }
 

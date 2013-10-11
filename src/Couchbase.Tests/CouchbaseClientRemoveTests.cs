@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
@@ -23,16 +25,16 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Removing_A_Valid_Key_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("remove");
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("remove");
+            var storeResult = TestUtils.Store(Client,key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var removeResult = _Client.ExecuteRemove(key);
+            var removeResult = Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.True, "Success was false");
 			Assert.That(removeResult.StatusCode, Is.Null.Or.EqualTo(0), "StatusCode was neither null nor 0");
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertFail(getResult);
 		}
 
         /// <summary>
@@ -43,9 +45,9 @@ namespace Couchbase.Tests
         [Test]
 		public void When_Removing_An_Invalid_Key_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("remove");
+            var key = TestUtils.GetUniqueKey("remove");
 
-			var removeResult = _Client.ExecuteRemove(key);
+			var removeResult = Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.False, "Success was true");
 			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound), "Status code was not NotFound");
 		}
@@ -57,36 +59,37 @@ namespace Couchbase.Tests
 			config.Urls.Add(new Uri("http://doesnotexist:8091/pools/"));
 			config.Bucket = "default";
 
-			var client = new CouchbaseClient(config);
-			var removeResult = client.ExecuteRemove("foo");
-
-			Assert.That(removeResult.Success, Is.False);
-			Assert.That(removeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+		    using (var client = new CouchbaseClient(config))
+		    {
+		        var removeResult = client.ExecuteRemove("foo");
+		        Assert.That(removeResult.Success, Is.False);
+		        Assert.That(removeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+		    }
 		}
 
 		[Test]
 		public void When_ExecuteRemoving_A_Key_With_A_Valid_Cas_Result_Success_Is_True()
 		{
-			var key = GetUniqueKey("remove");
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("remove");
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var removeResult = _Client.ExecuteRemove(key, storeResult.Cas);
+			var removeResult = Client.ExecuteRemove(key, storeResult.Cas);
 			Assert.That(removeResult.Success, Is.True, "Success was false");
 			Assert.That(removeResult.StatusCode, Is.Null.Or.EqualTo(0), "StatusCode was neither null nor 0");
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertFail(getResult);
 		}
 
 		[Test]
 		public void When_ExecuteRemoving_A_Key_With_An_Invalid_Cas_Result_Success_Is_False()
 		{
-			var key = GetUniqueKey("remove");
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("remove");
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var removeResult = _Client.ExecuteRemove(key, storeResult.Cas-1);
+			var removeResult = Client.ExecuteRemove(key, storeResult.Cas-1);
 			Assert.That(removeResult.Success, Is.False, "Success was false");
 			Assert.That(removeResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey), "StatusCode was not 2");
 		}
@@ -94,25 +97,25 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Removing_A_Key_With_A_Valid_Cas_Success_Is_True()
 		{
-			var key = GetUniqueKey("remove");
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("remove");
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var removeResult = _Client.Remove(key, storeResult.Cas);
+			var removeResult = Client.Remove(key, storeResult.Cas);
 			Assert.That(removeResult, Is.True, "Success was false");
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertFail(getResult);
 		}
 
 		[Test]
 		public void When_Removing_A_Key_With_An_Invalid_Cas_Success_Is_False()
 		{
-			var key = GetUniqueKey("remove");
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("remove");
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var removeResult = _Client.Remove(key, storeResult.Cas - 1);
+			var removeResult = Client.Remove(key, storeResult.Cas - 1);
 			Assert.That(removeResult, Is.False, "Success was false");
 		}
 	}

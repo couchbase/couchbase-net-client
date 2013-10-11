@@ -57,6 +57,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\ICouchbaseNode.cs">
+      <Link>ICouchbaseNode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseNode.cs">
+      <Link>CouchbaseNode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ConnectionPool.cs">
+      <Link>ConnectionPool.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbasePooledSocket.cs">
+      <Link>CouchbasePooledSocket.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\AsyncSocketHelper2.cs">
+      <Link>AsyncSocketHelper2.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\BasicCouchbaseOperationFactory.cs">
       <Link>BasicCouchbaseOperationFactory.cs</Link>
     </Compile>
@@ -125,9 +140,6 @@
     </Compile>
     <Compile Include="..\Couchbase\CouchbaseClient.cs">
       <Link>CouchbaseClient.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase\CouchbaseNode.cs">
-      <Link>CouchbaseNode.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\CouchbasePool.cs">
       <Link>CouchbasePool.cs</Link>

@@ -12,7 +12,7 @@ using System.Threading;
 namespace Enyim.Caching.Memcached
 {
 	[DebuggerDisplay("[ Address: {endpoint}, IsAlive = {IsAlive} ]")]
-	public partial class PooledSocket : IDisposable
+    public partial class PooledSocket : IPooledSocket
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(PooledSocket));
 
@@ -69,7 +69,7 @@ namespace Enyim.Caching.Memcached
 					throw new TimeoutException("Could not connect to " + endpoint);
 		}
 
-		public Action<PooledSocket> CleanupCallback { get; set; }
+		public Action<IPooledSocket> CleanupCallback { get; set; }
 
 		public int Available
 		{
@@ -105,7 +105,8 @@ namespace Enyim.Caching.Memcached
 		/// <summary>
 		/// The ID of this instance. Used by the <see cref="T:MemcachedServer"/> to identify the instance in its inner lists.
 		/// </summary>
-		public readonly Guid InstanceId = Guid.NewGuid();
+		private readonly Guid _instanceId = Guid.NewGuid();
+        public Guid InstanceId { get { return _instanceId; }}
 
 		public bool IsAlive
 		{
@@ -117,7 +118,7 @@ namespace Enyim.Caching.Memcached
         /// </summary>
 	    public void Release()
 	    {
-            Action<PooledSocket> releaseSocket = this.CleanupCallback;
+            Action<IPooledSocket> releaseSocket = this.CleanupCallback;
             if (releaseSocket != null)
             {
                 releaseSocket(this);
@@ -292,7 +293,24 @@ namespace Enyim.Caching.Memcached
 
 			return this.helper.Read(p);
 		}
-	}
+
+        Action<IPooledSocket> IPooledSocket.CleanupCallback
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        Guid IPooledSocket.InstanceId
+        {
+            get { throw new NotImplementedException(); }
+        }
+    }
 }
 
 #region [ License information          ]

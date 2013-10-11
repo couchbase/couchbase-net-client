@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Authentication;
 using System.Text;
 using Newtonsoft.Json;
 using System.Diagnostics;
@@ -176,10 +177,11 @@ namespace Couchbase
 			var client = this.ClientLocator.Locate(this.DesignDocument);
 			if (client == null)
 			{
+			    var message = String.Format("View {0} was mapped to a dead node, failing.", IndexName);
 				if (log.IsErrorEnabled)
-					log.WarnFormat("View {0} was mapped to a dead node, failing.", this);
+					log.Warn(message);
 
-				throw new InvalidOperationException();
+			    throw new InvalidOperationException(message);
 			}
 
 			var request = CreateRequest(client);

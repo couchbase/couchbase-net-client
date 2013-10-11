@@ -7,7 +7,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(GetHelper));
 
-		public static void FinishCurrent(PooledSocket socket)
+		public static void FinishCurrent(IPooledSocket socket)
 		{
 			string response = TextSocketHelper.ReadResponse(socket);
 
@@ -15,7 +15,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 				throw new MemcachedClientException("No END was received.");
 		}
 
-		public static GetResponse ReadItem(PooledSocket socket)
+		public static GetResponse ReadItem(IPooledSocket socket)
 		{
 			string description = TextSocketHelper.ReadResponse(socket);
 

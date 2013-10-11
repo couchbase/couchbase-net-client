@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
 using NUnit.Framework;
 using Newtonsoft.Json;
 using Couchbase.Extensions;
@@ -24,10 +25,10 @@ namespace Couchbase.Tests
 		public void When_Saving_City_With_JsonStore_City_Is_Stored_As_String()
 		{
 			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
-			var result = _Client.StoreJson(StoreMode.Set, "city_Hartford_CT", city);
+			var result = Client.StoreJson(StoreMode.Set, "city_Hartford_CT", city);
 			Assert.That(result, Is.True);
 
-			var savedCity = _Client.Get("city_Hartford_CT");
+			var savedCity = Client.Get("city_Hartford_CT");
 			Assert.That(savedCity, Is.InstanceOf<string>());
 		}
 
@@ -42,10 +43,10 @@ namespace Couchbase.Tests
 		public void When_Saving_City_With_JsonStore_And_DateTime_Expiry_Item_Expires()
 		{
 			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, DateTime.Now.AddSeconds(2));
+			var result = Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, DateTime.Now.AddSeconds(2));
 			Assert.That(result.Success, Is.True, result.Message);
 			Thread.Sleep(3000);
-			var savedCity = _Client.Get("city_Hartford_CT_Exp");
+			var savedCity = Client.Get("city_Hartford_CT_Exp");
 			Assert.That(savedCity, Is.Null);
 		}
 
@@ -61,10 +62,10 @@ namespace Couchbase.Tests
 		public void When_Saving_City_With_JsonStore_City_And_TimeSpan_Expiry_Item_Expires()
 		{
 			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, TimeSpan.FromSeconds(2));
+			var result = Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT_Exp", city, TimeSpan.FromSeconds(2));
 			Assert.That(result.Success, Is.True);
 			Thread.Sleep(3000);
-			var savedCity = _Client.Get("city_Hartford_CT_Exp");
+			var savedCity = Client.Get("city_Hartford_CT_Exp");
 			Assert.That(savedCity, Is.Null);
 		}
 
@@ -79,11 +80,11 @@ namespace Couchbase.Tests
 		public void When_Saving_City_With_JsonStore_And_Valid_Cas_Store_Is_Successful()
 		{
 			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
+			var result = Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
 			Assert.That(result.Success, Is.True);
 
 			city.Name = "New Haven";
-			var casResult = _Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas);
+			var casResult = Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas);
 			Assert.That(casResult.Success, Is.True);
 		}
 
@@ -98,11 +99,11 @@ namespace Couchbase.Tests
 		public void When_Saving_City_With_JsonStore_And_Invalid_Cas_Store_Is_Successful()
 		{
 			var city = new City { Name = "Hartford", State = "CT", Type = "city" };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
+			var result = Client.ExecuteStoreJson(StoreMode.Set, "city_Hartford_CT", city, TimeSpan.FromSeconds(2));
 			Assert.That(result.Success, Is.True);
 
 			city.Name = "New Haven";
-			var casResult = _Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas-1);
+			var casResult = Client.ExecuteCasJson(StoreMode.Set, "city_Hartford_CT", city, result.Cas-1);
 			Assert.That(casResult.Success, Is.False);
 
 		}
@@ -120,10 +121,10 @@ namespace Couchbase.Tests
 		public void When_Execute_Getting_City_With_Json_Get_Result_Value_Is_Returned_As_City()
 		{
 			var city = new City { Name = "Boston", State = "MA", Type = "city" };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, "city_Boston_MA", city);
+			var result = Client.ExecuteStoreJson(StoreMode.Set, "city_Boston_MA", city);
 			Assert.That(result.Success, Is.True);
 
-			var getResult = _Client.ExecuteGetJson<City>("city_Boston_MA");
+			var getResult = Client.ExecuteGetJson<City>("city_Boston_MA");
 			Assert.That(getResult.Success, Is.True);
 			Assert.That(getResult.Cas, Is.GreaterThan(0).And.EqualTo(result.Cas));
 
@@ -144,10 +145,10 @@ namespace Couchbase.Tests
 		public void When_Getting_City_With_JsonGet_City_Is_Returned_As_City()
 		{
 			var city = new City { Name = "Cambridge", State = "MA", Type = "city" };
-			var result = _Client.StoreJson(StoreMode.Set, "city_Cambridge_MA", city);
+			var result = Client.StoreJson(StoreMode.Set, "city_Cambridge_MA", city);
 			Assert.That(result, Is.True);
 
-			var savedCity = _Client.GetJson<City>("city_Cambridge_MA");
+			var savedCity = Client.GetJson<City>("city_Cambridge_MA");
 			Assert.That(savedCity, Is.InstanceOf<City>());
 			Assert.That(savedCity.Name, Is.StringMatching("Cambridge"));
 			Assert.That(savedCity.Type, Is.StringMatching("city"));
@@ -155,21 +156,21 @@ namespace Couchbase.Tests
 		}
 		#endregion
 
-		private class City
-		{
-			[JsonProperty("name")]
-			public string Name { get; set; }
+        private class City
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
 
-			[JsonProperty("state")]
-			public string State { get; set; }
+            [JsonProperty("state")]
+            public string State { get; set; }
 
-			[JsonProperty("type")]
-			public string Type { get; set; }
+            [JsonProperty("type")]
+            public string Type { get; set; }
 
-			[JsonProperty("lastUpdated")]
-			public DateTime LastUpdated { get; set; }
-		}
-	}
+            [JsonProperty("lastUpdated")]
+            public DateTime LastUpdated { get; set; }
+        }
+    }
 }
 
 #region [ License information          ]

@@ -1,7 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using Couchbase.Tests.Factories;
+using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using Couchbase.Extensions;
 using Enyim.Caching.Memcached;
@@ -23,12 +29,12 @@ namespace Couchbase.Tests
 		public void When_Serializing_Class_Without_Json_Property_Attributes_Properties_Are_Camel_Cased()
 		{
 			var thing = new Thing();
-			var key = GetUniqueKey();
-			var result = _Client.StoreJson(StoreMode.Set, key, thing);
+			var key = TestUtils.GetUniqueKey();
+			var result = Client.StoreJson(StoreMode.Set, key, thing);
 
 			Assert.That(result, Is.True, "Store failed");
 
-			var savedThing = _Client.Get<string>(key);
+			var savedThing = Client.Get<string>(key);
 			Assert.That(savedThing, Is.StringContaining("someProperty").And.StringContaining("someOtherProperty"));
 		}
 
@@ -42,12 +48,12 @@ namespace Couchbase.Tests
 		public void When_Deserializing_Class_Without_Json_Property_Attributes_Camel_Cased_Properties_Are_Mapped()
 		{
 			var thing = new Thing { SomeProperty = "foo", SomeOtherProperty = 1 };
-			var key = GetUniqueKey();
-			var result = _Client.StoreJson(StoreMode.Set, key, thing);
+            var key = TestUtils.GetUniqueKey();
+			var result = Client.StoreJson(StoreMode.Set, key, thing);
 
 			Assert.That(result, Is.True, "Store failed");
 
-			var savedThing = _Client.GetJson<Thing>(key);
+			var savedThing = Client.GetJson<Thing>(key);
 			Assert.That(savedThing.SomeProperty, Is.StringMatching("foo"));
 			Assert.That(savedThing.SomeOtherProperty, Is.EqualTo(1));
 
@@ -59,13 +65,13 @@ namespace Couchbase.Tests
 			var key = KeyValueUtils.GenerateKey("json");
 
 			var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
-			var result = _Client.StoreJson(StoreMode.Set, key, thing);
+			var result = Client.StoreJson(StoreMode.Set, key, thing);
 			Assert.That(result, Is.True);
 
-			var obj = _Client.Get<string>(key);
+			var obj = Client.Get<string>(key);
 			Assert.That(obj, Is.Not.StringContaining("\"id\""));
 
-			var savedThing = _Client.GetJson<Thing>(key);
+			var savedThing = Client.GetJson<Thing>(key);
 			Assert.That(savedThing.Id, Is.StringContaining(key));
 		}
 
@@ -75,42 +81,41 @@ namespace Couchbase.Tests
 			var key = KeyValueUtils.GenerateKey("json");
 
 			var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
-			var result = _Client.ExecuteStoreJson(StoreMode.Set, key, thing);
+			var result = Client.ExecuteStoreJson(StoreMode.Set, key, thing);
 			Assert.That(result.Success, Is.True);
 
-			var obj = _Client.ExecuteGet<string>(key);
+			var obj = Client.ExecuteGet<string>(key);
 			Assert.That(obj.Value, Is.Not.StringContaining("\"id\""));
 
-			var savedThing = _Client.ExecuteGetJson<Thing>(key);
+			var savedThing = Client.ExecuteGetJson<Thing>(key);
 			Assert.That(savedThing.Value.Id, Is.StringContaining(key));
 		}
 
-		[Test]
-		public void When_Persisting_Json_Id_Is_Not_Serializd_But_Is_Returned_In_View()
+        [Test]
+		public void When_Persisting_Json_Id_Is_Not_Serialized_But_Is_Returned_In_View()
 		{
 		    var key = KeyValueUtils.GenerateKey("json");
 
-		    var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17 };
-		    var result = _Client.ExecuteStoreJson(StoreMode.Set, key, thing, PersistTo.One);
+		    var thing = new Thing { Id = key, SomeProperty = "Foo", SomeOtherProperty = 17};
+		    var result = Client.ExecuteStoreJson(StoreMode.Set, key, thing, PersistTo.One);
 		    Assert.That(result.Success, Is.True);
 
-		    var obj = _Client.ExecuteGet<string>(key);
+		    var obj = Client.ExecuteGet<string>(key);
 		    Assert.That(obj.Value, Is.Not.StringContaining("\"id\""));
 
-		    var savedThing = _Client.ExecuteGetJson<Thing>(key);
+		    var savedThing = Client.ExecuteGetJson<Thing>(key);
 		    Assert.That(savedThing.Value.Id, Is.StringContaining(key));
 
-			var view = _Client.GetView<Thing>("things", "all", true);
-			foreach (var item in view)
-			{
-				if (item.Id == key)
-				{
-					Assert.Pass();
-					return;
-				}
-			}
+			var view = Client.GetView<Thing>("things", "all", true);
+		    foreach (var item in view)
+		    {
+		        if (item.Id == key)
+		        {
+		            return;
+		        }
+		    }
 
-			Assert.Fail("Id was not returned in view");
+		    Assert.Fail("Id was not returned in view");
 		}
 	}
 
@@ -121,6 +126,8 @@ namespace Couchbase.Tests
 		public string SomeProperty { get; set; }
 
 		public int SomeOtherProperty { get; set; }
+
+	    public string Type = "thing";
 	}
 }
 

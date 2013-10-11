@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using NUnit.Framework;
+ using Couchbase.Tests.Utils;
+ using NUnit.Framework;
 using System.IO;
 using Enyim.Caching.Memcached;
 using System.Net;
@@ -24,7 +25,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Should_Lookup_By_Id_Is_True_Document_Is_Retrieved_By_Id()
 		{
-			var view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+			var view = Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
 			foreach (var item in view)
 			{
 				Assert.That(item.Id, Is.Not.Null, "Item Id was null");
@@ -47,7 +48,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Should_Lookup_By_Id_Is_False_Document_Is_Deserialized_By_Property_Mapping()
 		{
-			var view = _Client.GetView<CityProjection>("cities", "by_city_and_state", false).Stale(StaleMode.False);
+			var view = Client.GetView<CityProjection>("cities", "by_city_and_state", false).Stale(StaleMode.False);
 			foreach (var item in view)
 			{
 				Assert.That(item.CityState, Is.Not.Null, "CityState was null");
@@ -67,11 +68,11 @@ namespace Couchbase.Tests
 			var json = "{ \"name\" : \"New Britain\", \"state\" : \"CT\", \"type\" : \"city\", \"loc\" : [-72.4714, 41.4030] }";
 			var key = "city_CT_New_Britain";
 
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, json, PersistTo.One);
-			StoreAssertPass(storeResult);
+			var storeResult = Client.ExecuteStore(StoreMode.Set, key, json, PersistTo.One);
+			TestUtils.StoreAssertPass(storeResult);
 
 			//force view to have new doc indexed
-			var view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+			var view = Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
 
 			var viewContainsNewDoc = false;
 			foreach (var item in view)
@@ -85,13 +86,13 @@ namespace Couchbase.Tests
 
 			Assert.That(viewContainsNewDoc, Is.True, "View did not contain new doc");
 
-			var removeResult = _Client.ExecuteRemove(key);
+			var removeResult = Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.True, "Remove failed");
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+			TestUtils.GetAssertFail(getResult);
 
-			view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.AllowStale);
+			view = Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.AllowStale);
 			var nullItemCount = 0;
 			foreach (var item in view)
 			{

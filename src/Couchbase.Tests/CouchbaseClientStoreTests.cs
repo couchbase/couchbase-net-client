@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
@@ -22,8 +23,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Add_Result_Is_Successful()
 		{
-			var result = Store(StoreMode.Add);
-			StoreAssertPass(result);
+            var result = TestUtils.Store(Client, StoreMode.Add);
+            TestUtils.StoreAssertPass(result);
 		}
 
         /// <summary>
@@ -35,12 +36,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Add_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("store");
-			var result = Store(StoreMode.Add, key);
-			StoreAssertPass(result);
+            var key = TestUtils.GetUniqueKey("store");
+            var result = TestUtils.Store(Client, StoreMode.Add, key);
+            TestUtils.StoreAssertPass(result);
 
-			result = Store(StoreMode.Add, key);
-			StoreAssertFail(result);
+            result = TestUtils.Store(Client, StoreMode.Add, key);
+            TestUtils.StoreAssertFail(result);
 		}
 
         /// <summary>
@@ -51,9 +52,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Replace_Result_Is_Not_Successful()
 		{
-			var result = Store(StoreMode.Replace);
-			StoreAssertFail(result);
-
+            var result = TestUtils.Store(Client, StoreMode.Replace);
+            TestUtils.StoreAssertFail(result);
 		}
 
         /// <summary>
@@ -65,12 +65,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Replace_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("store");
-			var result = Store(StoreMode.Add, key);
-			StoreAssertPass(result);
+            var key = TestUtils.GetUniqueKey("store");
+            var result = TestUtils.Store(Client, StoreMode.Add, key);
+            TestUtils.StoreAssertPass(result);
 
-			result = Store(StoreMode.Replace, key);
-			StoreAssertPass(result);
+            result = TestUtils.Store(Client, StoreMode.Replace, key);
+            TestUtils.StoreAssertPass(result);
 		}
 
         /// <summary>
@@ -82,8 +82,8 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_New_Key_And_StoreMode_Set_Result_Is_Successful()
 		{
-			var result = Store(StoreMode.Set);
-			StoreAssertPass(result);
+            var result = TestUtils.Store(Client, StoreMode.Set);
+            TestUtils.StoreAssertPass(result);
 
 		}
 
@@ -96,12 +96,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Storing_Item_With_Existing_Key_And_StoreMode_Set_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("store");
-			var result = Store(StoreMode.Add, key);
-			StoreAssertPass(result);
+            var key = TestUtils.GetUniqueKey("store");
+            var result = TestUtils.Store(Client, StoreMode.Add, key);
+            TestUtils.StoreAssertPass(result);
 
-			result = Store(StoreMode.Set, key);
-			StoreAssertPass(result);
+            result = TestUtils.Store(Client, StoreMode.Set, key);
+            TestUtils.StoreAssertPass(result);
 		}
 
 		[Test]
@@ -111,11 +111,12 @@ namespace Couchbase.Tests
 			config.Urls.Add(new Uri("http://doesnotexist:8091/pools/"));
 			config.Bucket = "default";
 
-			var client = new CouchbaseClient(config);
-			var storeResult = client.ExecuteStore(StoreMode.Set, "foo", "bar");
-
-			Assert.That(storeResult.Success, Is.False);
-			Assert.That(storeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+		    using (var client = new CouchbaseClient(config))
+		    {
+		        var storeResult = client.ExecuteStore(StoreMode.Set, "foo", "bar");
+		        Assert.That(storeResult.Success, Is.False);
+		        Assert.That(storeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+		    }
 		}
 	}
 }

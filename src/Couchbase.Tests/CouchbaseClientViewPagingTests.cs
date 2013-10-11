@@ -17,7 +17,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Paging_Non_Generic_View_Page_Sizes_Are_Correct()
 		{
-			var view = _Client.GetView("cities", "by_name").GetPagedView(5);
+			var view = Client.GetView("cities", "by_name").GetPagedView(5);
 
 			testPageSizes(view);
 		}
@@ -31,7 +31,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(InvalidOperationException))]
 		public void Paging_Generic_View_Throws_Exception_When_Key_And_Id_Are_Not_Set()
 		{
-			var view = _Client.GetView<City>("cities", "by_name", true).GetPagedView(5);
+			var view = Client.GetView<City>("cities", "by_name", true).GetPagedView(5);
 
 			while (view.MoveNext()) { foreach (var item in view) { } }
 
@@ -46,7 +46,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Paging_Generic_View_Page_Sizes_Are_Correct()
 		{
-			var view = _Client.GetView<City>("cities", "by_name", true).GetPagedView(5, "Id", "Name");
+			var view = Client.GetView<City>("cities", "by_name", true).GetPagedView(5, "Id", "Name");
 
 			testPageSizes(view);
 
@@ -60,7 +60,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Paging_View_Count_Is_Greater_Than_Zero()
 		{
-			var view = _Client.GetView<City>("cities", "by_name", true).GetPagedView(5, "Id", "Name");
+			var view = Client.GetView<City>("cities", "by_name", true).GetPagedView(5, "Id", "Name");
 			while (view.MoveNext()) { foreach (var item in view) { } }
 			
 			Assert.That(view.TotalRows, Is.GreaterThan(0));

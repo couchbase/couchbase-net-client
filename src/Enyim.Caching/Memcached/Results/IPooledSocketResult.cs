@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Enyim.Caching.Memcached.Results
 {
-	public interface IPooledSocketResult : INullableOperationResult<PooledSocket>
+	public interface IPooledSocketResult : INullableOperationResult<IPooledSocket>
 	{
 	}
 }

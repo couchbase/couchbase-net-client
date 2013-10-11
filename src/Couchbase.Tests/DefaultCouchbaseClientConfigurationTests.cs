@@ -23,7 +23,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if result is of type Default http client
         /// </summary>
 		[Test]
-		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Default_Factory_Is_Default()
+		public void When_Using_Code_Config_And_HttpClient_Factory_Is_Not_Set_Default_Factory_Is_Default()
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
@@ -42,7 +42,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if result is of type Default http client
         /// </summary>
 		[Test]
-		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Default_Factory_Is_Default()
+		public void When_Using_App_Config_And_HttpClient_Factory_Is_Not_Set_Default_Factory_Is_Default()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 
@@ -63,7 +63,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if all operations succeed
         /// </summary>
 		[Test]
-		public void When_Using_App_Config_And_Http_Client_Factory_Is_Not_Set_Operations_Succeed()
+		public void When_Using_App_Config_And_HttpClient_Factory_Is_Not_Set_Operations_Succeed()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 
@@ -88,7 +88,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if all operations should happen successfully
         /// </summary>
 		[Test]
-		public void When_Using_Code_Config_And_Http_Client_Factory_Is_Not_Set_Operations_Succeed()
+		public void When_Using_Code_Config_And_HttpClient_Factory_Is_Not_Set_Operations_Succeed()
 		{
 			var config = new CouchbaseClientConfiguration();
 			config.Urls.Add(new Uri("http://localhost:8091/pools"));
@@ -276,7 +276,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if HttpClient.timeout is 00:01:15
         /// </summary>
         [Test]
-		public void When_Http_Client_Timeout_Is_Not_Set_In_App_Config_Default_Is_True()
+		public void When_HttpClient_Timeout_Is_Not_Set_In_App_Config_Default_Is_True()
 		{
 			var config = ConfigurationManager.GetSection("min-config") as CouchbaseClientSection;
 			Assert.That(config, Is.Not.Null, "Config was null");
@@ -290,7 +290,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if HttpClient.timeout isas per mentioned in app.config
         /// </summary>
 		[Test]
-		public void When_Http_Client_Timeout_Is_Set_In_App_Config_Property_Changes_From_Default()
+		public void When_HttpClient_Timeout_Is_Set_In_App_Config_Property_Changes_From_Default()
 		{
 			var config = ConfigurationManager.GetSection("httpclient-config-noinitconn") as CouchbaseClientSection;
 			Assert.That(config, Is.Not.Null, "Config was null");
@@ -303,7 +303,7 @@ namespace Couchbase.Tests
         /// @post: Test passes if HttpClient.timeout is 00:01:15
         /// </summary>
 		[Test]
-		public void When_Http_Client_Timeout_Is_Not_Set_In_Code_Default_Is_75_Seconds()
+		public void When_HttpClient_Timeout_Is_Not_Set_In_Code_Default_Is_75_Seconds()
 		{
 			var config = new CouchbaseClientConfiguration();
 			Assert.That(config, Is.Not.Null, "Config was null");

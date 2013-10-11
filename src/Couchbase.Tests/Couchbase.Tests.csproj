@@ -36,6 +36,9 @@
     <Reference Include="log4net">
       <HintPath>..\packages\log4net.2.0.0\lib\net40-full\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.1.1309.1617\lib\net40\Moq.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.5.0.5\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -53,11 +56,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
+    <Compile Include="ConnectionPoolTests.cs" />
     <Compile Include="CouchbaseClientExtensionsTests.cs" />
     <Compile Include="CouchbaseClientGetWithLockTests.cs" />
     <Compile Include="CouchbaseClientMemcachedTests.cs" />
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="CouchbaseClientViewTests.cs" />
+    <Compile Include="CouchbaseClusterBucketAdminTests.cs" />
+    <Compile Include="CouchbaseNodeTests.cs" />
+    <Compile Include="Utils\TestUtils.cs" />
     <None Include="Data\ThingViews.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -76,9 +83,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CouchbaseClientConfigTests.cs" />
-    <Compile Include="CouchbaseClusterBucketAdminTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="CouchbaseClusterTestsBase.cs" />
     <Compile Include="CouchbaseJsonExtensionTests.cs" />
     <Compile Include="DefaultCouchbaseClientConfigurationTests.cs" />
@@ -110,7 +114,9 @@
     <None Include="Data\CityViews.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>

@@ -9,7 +9,19 @@ namespace Couchbase.Tests.Mocks
 	{
 		public Uri BaseUri { get; set; }
 
-		public IHttpRequest Request { get; set; }
+        public IHttpRequest Request
+        {
+            get
+            {
+                return _request;
+            }
+            set
+            {
+                _request = value;
+            }
+        }
+
+        private IHttpRequest _request;
 
 		public IHttpRequest CreateRequest(string path)
 		{

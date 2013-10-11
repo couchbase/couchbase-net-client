@@ -36,7 +36,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 			return TextSocketHelper.GetCommandBuffer(command);
 		}
 
-		protected internal override IOperationResult ReadResponse(PooledSocket socket)
+		protected internal override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			string response = TextSocketHelper.ReadResponse(socket);
 			var result = new TextOperationResult();
@@ -60,7 +60,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 			get { return this.result; }
 		}
 
-		protected internal override bool ReadResponseAsync(PooledSocket socket, System.Action<bool> next)
+		protected internal override bool ReadResponseAsync(IPooledSocket socket, System.Action<bool> next)
 		{
 			throw new System.NotSupportedException();
 		}

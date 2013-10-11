@@ -19,31 +19,31 @@ namespace Couchbase.Extensions
 		#region No expiry
 		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json);
 		}
 
 		public static bool StoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json).Success;
 		}
 
 		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replicateTo = ReplicateTo.Zero)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json, persistTo, replicateTo);
 		}
 
 		public static IStoreOperationResult ExecuteCasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, ulong cas)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, cas);
 		}
 
 		public static bool CasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, ulong cas)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, cas).Success;
 		}
 		#endregion
@@ -51,25 +51,25 @@ namespace Couchbase.Extensions
 		#region DateTime expiry
 		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, DateTime expiresAt)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json, expiresAt);
 		}
 
 		public static bool StoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, DateTime expiresAt)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json, expiresAt).Success;
 		}
 
 		public static IStoreOperationResult ExecuteCasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, DateTime expiresAt, ulong cas)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, expiresAt, cas);
 		}
 
 		public static bool CasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, ulong cas, DateTime expiresAt)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, expiresAt, cas).Success;
 		}
 		#endregion
@@ -77,25 +77,25 @@ namespace Couchbase.Extensions
 		#region TimeSpan expiry
 		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, TimeSpan validFor)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json, validFor);
 		}
 
 		public static bool StoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value, TimeSpan validFor)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteStore(mode, key, json, validFor).Success;
 		}
 
 		public static IStoreOperationResult ExecuteCasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, TimeSpan validFor, ulong cas)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, validFor, cas);
 		}
 
 		public static bool CasJson(this ICouchbaseClient client, StoreMode mode, string key, object value, ulong cas, TimeSpan validFor)
 		{
-			var json = serializeObject(value);
+			var json = SerializeObject(value);
 			return client.ExecuteCas(mode, key, json, validFor, cas).Success;
 		}
 		#endregion
@@ -125,7 +125,7 @@ namespace Couchbase.Extensions
 			return retVal;
 		}
 
-		private static string serializeObject(object value)
+		private static string SerializeObject(object value)
 		{
 			var json = JsonConvert.SerializeObject(value,
 									Formatting.None,

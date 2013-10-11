@@ -1,17 +1,23 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Enyim.Caching.Memcached
 {
-	internal static class ThrowHelper
+	public static class ThrowHelper
 	{
 		public static void ThrowSocketWriteError(IPEndPoint endpoint, SocketError error)
 		{
 			// move the string into resource file
-			throw new System.IO.IOException(String.Format("Failed to write to the socket '{0}'. Error: {1}", endpoint, error));
+			throw new IOException(String.Format("Failed to write to the socket '{0}'. Error: {1}", endpoint, error));
 		}
-	}
+
+        public static void ThrowSocketWriteError(EndPoint endPoint, SocketError error)
+        {
+            throw new IOException(String.Format("Failed to write to the socket '{0}'. Error: {1}", endPoint, error));
+        }
+    }
 }
 
 #region [ License information          ]

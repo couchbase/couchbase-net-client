@@ -11,7 +11,7 @@ namespace Couchbase.Exceptions
 	public class ViewNotFoundException : ViewException
 	{
 		public ViewNotFoundException(string designDoc, string viewName, string error, string reason) :
-			base(viewName, designDoc, error, reason) {}
+			base(designDoc, viewName, error, reason) {}
 	}
 }
 

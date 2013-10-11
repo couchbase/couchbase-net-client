@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using Couchbase.Extensions;
 using Enyim.Caching.Memcached;
@@ -22,7 +23,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_Spatial_View_Results_Are_Returned()
 		{
-			var view = _Client.GetSpatialView("cities", "by_location");
+			var view = Client.GetSpatialView("cities", "by_location");
 			foreach (var item in view)
 			{
 				Assert.That(item.Id, Is.Not.Null, "Item Id was null");
@@ -45,7 +46,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_Spatial_View_With_Generics_And_Should_Lookup_Doc_By_Id_Is_True_Results_Are_Returned()
 		{
-			var view = _Client.GetSpatialView<City>("cities", "by_location", true);
+			var view = Client.GetSpatialView<City>("cities", "by_location", true);
 			foreach (var item in view)
 			{
 				Assert.That(item.Id, Is.Not.Null, "Id was null");
@@ -67,7 +68,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_Spatial_View_With_Generics_And_Should_Lookup_Doc_By_Id_Is_False_Results_Are_Returned()
 		{
-			var view = _Client.GetSpatialView<CityProjection>("cities", "by_location_with_city_name", false);
+			var view = Client.GetSpatialView<CityProjection>("cities", "by_location_with_city_name", false);
 			foreach (var item in view)
 			{
 				Assert.That(item.CityState, Is.Not.Null);
@@ -86,7 +87,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_Spatial_View_With_Limit_Rows_Are_Limited()
 		{
-			var view = _Client.GetSpatialView("cities", "by_location").Limit(2);
+			var view = Client.GetSpatialView("cities", "by_location").Limit(2);
 			Assert.That(view.Count(), Is.EqualTo(2), "View count was not 2");
 		}
 
@@ -101,11 +102,11 @@ namespace Couchbase.Tests
 		public void When_Querying_Spatial_View_With_Bounding_Box_Rows_Are_Limited()
 		{
 			var hasAtLeastOneRecord = false;
-			var view = _Client.GetSpatialView("cities", "by_location").BoundingBox(-73.789673f, 41.093704f, -71.592407f, 42.079742f); //box around Connecticut
+			var view = Client.GetSpatialView("cities", "by_location").BoundingBox(-73.789673f, 41.093704f, -71.592407f, 42.079742f); //box around Connecticut
 			foreach (var item in view)
 			{
 				hasAtLeastOneRecord = true;
-				var doc = _Client.GetJson<City>(item.Id);
+				var doc = Client.GetJson<City>(item.Id);
 				Assert.That(doc.State, Is.StringMatching("CT"), "State was " + doc.State + " not CT");
 			}
 
@@ -124,11 +125,11 @@ namespace Couchbase.Tests
 			var json = "{ \"name\" : \"New Britain\", \"state\" : \"CT\", \"type\" : \"city\", \"loc\" : [-72.4714, 41.4030] }";
 			var key = "city_CT_New_Britain";
 
-			var storeResult = _Client.ExecuteStore(StoreMode.Set, key, json, PersistTo.One);
-			StoreAssertPass(storeResult);
+			var storeResult = Client.ExecuteStore(StoreMode.Set, key, json, PersistTo.One);
+            TestUtils.StoreAssertPass(storeResult);
 
 			//force view to have new doc indexed
-			var view = _Client.GetSpatialView<City>("cities", "by_location", true).Stale(StaleMode.False);
+			var view = Client.GetSpatialView<City>("cities", "by_location", true).Stale(StaleMode.False);
 
 			var viewContainsNewDoc = false;
 			foreach (var item in view)
@@ -142,13 +143,13 @@ namespace Couchbase.Tests
 
 			Assert.That(viewContainsNewDoc, Is.True, "View did not contain new doc");
 
-			var removeResult = _Client.ExecuteRemove(key);
+			var removeResult = Client.ExecuteRemove(key);
 			Assert.That(removeResult.Success, Is.True, "Remove failed");
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+			TestUtils.GetAssertFail(getResult);
 
-			view = _Client.GetSpatialView<City>("cities", "by_location", true).Stale(StaleMode.AllowStale);
+			view = Client.GetSpatialView<City>("cities", "by_location", true).Stale(StaleMode.AllowStale);
 			var nullItemCount = 0;
 			foreach (var item in view)
 			{

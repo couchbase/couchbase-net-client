@@ -23,7 +23,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 		/// <exception cref="T:System.InvalidOperationException">The server did not sent a response or an empty line was returned.</exception>
 		/// <exception cref="T:Enyim.Caching.Memcached.MemcachedException">The server did not specified any reason just returned the string ERROR. - or - The server returned a SERVER_ERROR, in this case the Message of the exception is the message returned by the server.</exception>
 		/// <exception cref="T:Enyim.Caching.Memcached.MemcachedClientException">The server did not recognize the request sent by the client. The Message of the exception is the message returned by the server.</exception>
-		public static string ReadResponse(PooledSocket socket)
+		public static string ReadResponse(IPooledSocket socket)
 		{
 			string response = TextSocketHelper.ReadLine(socket);
 
@@ -56,7 +56,7 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 		/// Reads a line from the socket. A line is terninated by \r\n.
 		/// </summary>
 		/// <returns></returns>
-		private static string ReadLine(PooledSocket socket)
+		private static string ReadLine(IPooledSocket socket)
 		{
 			MemoryStream ms = new MemoryStream(50);
 

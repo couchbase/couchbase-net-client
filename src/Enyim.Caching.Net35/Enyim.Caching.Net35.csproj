@@ -48,8 +48,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-   <Compile Include="..\Enyim.Caching\StatusCode.cs">
+    <Compile Include="..\Enyim.Caching\StatusCode.cs">
       <Link>StatusCode.cs</Link>
+    </Compile>
+	<Compile Include="..\Enyim.Caching\Memcached\Protocol\Binary\SaslStepExtensions.cs">
+      <Link>Memcached\Protocol\Binary\SaslStepExtensions.cs</Link>
     </Compile>
     <Compile Include="..\Enyim.Caching\Configuration\AuthenticationConfiguration.cs">
       <Link>Configuration\AuthenticationConfiguration.cs</Link>
@@ -174,7 +177,7 @@
     <Compile Include="..\Enyim.Caching\Memcached\AsyncIOArgs.cs">
       <Link>Memcached\AsyncIOArgs.cs</Link>
     </Compile>
-    <Compile Include="..\Enyim.Caching\Memcached\AsyncSocketHelper.cs">
+	<Compile Include="..\Enyim.Caching\Memcached\AsyncSocketHelper.cs">
       <Link>Memcached\AsyncSocketHelper.cs</Link>
     </Compile>
     <Compile Include="..\Enyim.Caching\Memcached\Authentication\PlainTextAuthenticator.cs">
@@ -185,6 +188,12 @@
     </Compile>
     <Compile Include="..\Enyim.Caching\Memcached\CommandNotSupportedException.cs">
       <Link>Memcached\CommandNotSupportedException.cs</Link>
+    </Compile>
+    <Compile Include="..\Enyim.Caching\Memcached\IPooledSocket.cs">
+      <Link>Memcached\IPooledSocket.cs</Link>
+    </Compile>
+    <Compile Include="..\Enyim.Caching\Memcached\IResourcePool.cs">
+      <Link>Memcached\IResourcePool.cs</Link>
     </Compile>
     <Compile Include="..\Enyim.Caching\Memcached\DefaultServerPool.cs">
       <Link>Memcached\DefaultServerPool.cs</Link>

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
+using Couchbase.Tests.Utils;
+using Enyim.Caching.Memcached.Results;
 using NUnit.Framework;
 using Enyim.Caching.Memcached.Results.StatusCodes;
 using Couchbase.Configuration;
@@ -20,13 +23,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+			var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
+            var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertPass(getResult, value);
 		}
 
         /// <summary>
@@ -37,11 +40,11 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Item_For_Invalid_Key_HasValue_Is_False_And_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("get");
+            var key = TestUtils.GetUniqueKey("get");
 
-			var getResult = _Client.ExecuteGet(key);
-			Assert.That(getResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound));
-			GetAssertFail(getResult);
+            var getResult = Client.ExecuteGet(key);
+            Assert.That(getResult.StatusCode, Is.EqualTo((int)StatusCodeEnums.NotFound));
+            TestUtils.GetAssertFail(getResult);
 		}
 
         /// <summary>
@@ -52,14 +55,14 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_TryGetting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			object temp;
-			var getResult = _Client.ExecuteTryGet(key, out temp);
-			GetAssertPass(getResult, temp);
+            object temp;
+            var getResult = Client.ExecuteTryGet(key, out temp);
+            TestUtils.GetAssertPass(getResult, temp);
 		}
 
         /// <summary>
@@ -71,17 +74,17 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Generic_Getting_Existing_Item_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getResult = _Client.ExecuteGet<string>(key);
-			Assert.That(getResult.Success, Is.True, "Success was false");
-			Assert.That(getResult.Cas, Is.GreaterThan(0), "Cas value was 0");
-			Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
-			Assert.That(getResult.Value, Is.EqualTo(value), "Actual value was not expected value: " + getResult.Value);
-			Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
+            var getResult = Client.ExecuteGet<string>(key);
+            Assert.That(getResult.Success, Is.True, "Success was false");
+            Assert.That(getResult.Cas, Is.GreaterThan(0), "Cas value was 0");
+            Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
+            Assert.That(getResult.Value, Is.EqualTo(value), "Actual value was not expected value: " + getResult.Value);
+            Assert.That(getResult.Value, Is.InstanceOf<string>(), "Value was not a string");
 		}
 
         /// <summary>
@@ -92,13 +95,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Multiple_Existing_Keys_Result_Is_Successful()
 		{
-			var keys = GetUniqueKeys().Distinct();
+            var keys = TestUtils.GetUniqueKeys().Distinct();
 			foreach (var key in keys)
 			{
-				Store(key: key, value: "Value for" + key);
+                TestUtils.Store(Client, key: key, value: "Value for" + key);
 			}
 
-			var dict = _Client.ExecuteGet(keys);
+			var dict = Client.ExecuteGet(keys);
 			Assert.That(dict.Keys.Count, Is.EqualTo(keys.Count()), "Keys count did not match results count");
 
 			foreach (var key in dict.Keys)
@@ -116,9 +119,9 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Multiple_Non_Existent_Keys_Result_Is_Not_Successful()
 		{
-			var keys = GetUniqueKeys().Distinct();
+            var keys = TestUtils.GetUniqueKeys().Distinct();
 
-			var dict = _Client.ExecuteGet(keys);
+			var dict = Client.ExecuteGet(keys);
 			Assert.That(dict.Keys.Count, Is.EqualTo(0), "Keys count expected is zero as none of the keys exist, but it is {0} which is incorrect.", dict.Keys.Count);
 		}
 
@@ -131,13 +134,13 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Existing_Item_Value_With_Expiration_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getResult = _Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
-			GetAssertPass(getResult, value);
+            var getResult = Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
+            TestUtils.GetAssertPass(getResult, value);
 		}
 
         /// <summary>
@@ -148,10 +151,10 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Getting_Item_For_With_Expiration_And_Invalid_Key_HasValue_Is_False_And_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("get");
+            var key = TestUtils.GetUniqueKey("get");
 
-			var getResult = _Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key, DateTime.Now.AddSeconds(10));
+            TestUtils.GetAssertFail(getResult);
 		}
 
         /// <summary>
@@ -162,14 +165,14 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_TryGetting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
 			object temp;
-			var getResult = _Client.ExecuteTryGet(key, DateTime.Now.AddSeconds(10), out temp);
-			GetAssertPass(getResult, temp);
+			var getResult = Client.ExecuteTryGet(key, DateTime.Now.AddSeconds(10), out temp);
+            TestUtils.GetAssertPass(getResult, temp);
 		}
 
         /// <summary>
@@ -180,12 +183,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Generic_Getting_Existing_Item_With_Expiration_Value_Is_Not_Null_And_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("get");
-			var value = GetRandomString();
-			var storeResult = Store(key: key, value: value);
-			StoreAssertPass(storeResult);
+            var key = TestUtils.GetUniqueKey("get");
+            var value = TestUtils.GetRandomString();
+            var storeResult = TestUtils.Store(Client, key: key, value: value);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getResult = _Client.ExecuteGet<string>(key, DateTime.Now.AddSeconds(10));
+			var getResult = Client.ExecuteGet<string>(key, DateTime.Now.AddSeconds(10));
 			Assert.That(getResult.Success, Is.True, "Success was false");
 			Assert.That(getResult.Cas, Is.GreaterThan(0), "Cas value was 0");
 			Assert.That(getResult.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
@@ -200,11 +203,12 @@ namespace Couchbase.Tests
 			config.Urls.Add(new Uri("http://doesnotexist:8091/pools/"));
 			config.Bucket = "default";
 
-			var client = new CouchbaseClient(config);
-			var getResult = client.ExecuteGet("foo");
-
-			Assert.That(getResult.Success, Is.False);
-			Assert.That(getResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+            using (var client = new CouchbaseClient(config))
+            {
+                var getResult = client.ExecuteGet("foo");
+                Assert.That(getResult.Success, Is.False);
+                Assert.That(getResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
+            }
 		}
 	}
 }

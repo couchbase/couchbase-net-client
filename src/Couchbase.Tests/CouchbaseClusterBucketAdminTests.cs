@@ -21,6 +21,8 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClusterBucketAdminTests : CouchbaseClusterTestsBase
 	{
+	    private Bucket _bucket;
+
         /// <summary>
         /// @test: List buckets in cluster should return default bucket
         /// @pre: Default configuration to initialize client in app.config to initialize client in app.config and cluster should have a default bucket
@@ -29,7 +31,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Listing_Buckets_Default_Bucket_Is_Returned()
 		{
-			var buckets = _Cluster.ListBuckets();
+			var buckets = Cluster.ListBuckets();
 			Assert.That(buckets.FirstOrDefault(b => b.Name == "default"), Is.Not.Null, "default bucket was not found");
 		}
 
@@ -59,7 +61,7 @@ namespace Couchbase.Tests
 		public void When_Try_Listing_Buckets_Default_Bucket_Is_Returned()
 		{
 			Bucket[] buckets;
-			var result = _Cluster.TryListBuckets(out buckets);
+			var result = Cluster.TryListBuckets(out buckets);
 			Assert.That(buckets.FirstOrDefault(b => b.Name == "default"), Is.Not.Null, "default bucket was not found");
 			Assert.That(result, Is.True);
 		}
@@ -93,22 +95,18 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
-			{
+            Cluster.CreateBucket(new Bucket
+            {
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
 				Quota = new Quota { RAM = 100 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			}
-			);
+                ReplicaNumber = ReplicaNumbers.Zero
+            });
 
-			var bucket = waitForBucket(bucketName);
-
-			Assert.That(bucket, Is.Not.Null);
-
-			_Cluster.DeleteBucket(bucketName);
-		}
+            _bucket = waitForBucket(bucketName);
+            Assert.That(_bucket, Is.Not.Null);
+        }
 
         /// <summary>
         /// @test: create invalid bucket, while retrieving bucket, web exception is thrown
@@ -121,11 +119,9 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			var bucket = waitForBucket(bucketName);
-			Assert.That(bucket, Is.Not.Null);
+			_bucket = waitForBucket(bucketName);
 
-			_Cluster.DeleteBucket(bucketName);
-
+            Assert.That(_bucket, Is.Not.Null);
 		}
 
         /// <summary>
@@ -138,7 +134,7 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
+			Cluster.CreateBucket(new Bucket
 			{
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
@@ -148,11 +144,8 @@ namespace Couchbase.Tests
 			}
 			);
 
-			var bucket = tryWaitForBucket(bucketName);
-
-			Assert.That(bucket, Is.Not.Null);
-
-			_Cluster.DeleteBucket(bucketName);
+			_bucket = tryWaitForBucket(bucketName);
+			Assert.That(_bucket, Is.Not.Null);
 		}
 
         /// <summary>
@@ -165,7 +158,7 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
+			Cluster.CreateBucket(new Bucket
 			{
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
@@ -175,13 +168,10 @@ namespace Couchbase.Tests
 			}
 			);
 
-			var bucket = waitForBucket(bucketName);
-			Assert.That(bucket, Is.Not.Null);
-			long count = _Cluster.GetItemCount(bucketName);
-
-			Assert.That(count, Is.EqualTo(bucket.BasicStats.ItemCount));
-
-			_Cluster.DeleteBucket(bucketName);
+			_bucket = waitForBucket(bucketName);
+			Assert.That(_bucket, Is.Not.Null);
+			long count = Cluster.GetItemCount(bucketName);
+			Assert.That(count, Is.EqualTo(_bucket.BasicStats.ItemCount));
 		}
 
         /// <summary>
@@ -194,7 +184,7 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
+			Cluster.CreateBucket(new Bucket
 			{
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
@@ -204,13 +194,10 @@ namespace Couchbase.Tests
 			}
 			);
 
-			var bucket = waitForBucket(bucketName);
-			Assert.That(bucket, Is.Not.Null);
-			long count = _Cluster.GetItemCount();
-
-			Assert.That(count, Is.EqualTo(bucket.Nodes.FirstOrDefault().InterestingStats.Curr_Items_Tot));
-
-			_Cluster.DeleteBucket(bucketName);
+			_bucket = waitForBucket(bucketName);
+			Assert.That(_bucket, Is.Not.Null);
+			long count = Cluster.GetItemCount();
+			Assert.That(count, Is.EqualTo(_bucket.Nodes.FirstOrDefault().InterestingStats.Curr_Items_Tot));
 		}
 
         /// <summary>
@@ -224,7 +211,6 @@ namespace Couchbase.Tests
 
 			var bucket = tryWaitForBucket("ShouldNotExist");
 			Assert.That(bucket, Is.Null);
-
 		}
 
 		[Test]
@@ -250,33 +236,30 @@ namespace Couchbase.Tests
 				}
 			);
 
-			Bucket bucket = null;
 			for (int i = 0; i < 10; i++) //wait for bucket to be ready to accept ops
 			{
-				bucket = waitForBucket(config.Bucket);
-				if (bucket.Nodes.First().Status == "healthy") break;
+				_bucket = waitForBucket(config.Bucket);
+				if (_bucket.Nodes.First().Status == "healthy") break;
 				Thread.Sleep(1000);
 			}
 
-			Assert.That(bucket, Is.Not.Null);
+			Assert.That(_bucket, Is.Not.Null);
 
-			var client = new CouchbaseClient(config);
+            using (var client = new CouchbaseClient(config))
+            {
+                var storeResult = client.ExecuteStore(StoreMode.Set, "SomeKey", "SomeValue");
+                Assert.That(storeResult.Success, Is.True, "Message: " + storeResult.Message);
 
-			var storeResult = client.ExecuteStore(StoreMode.Set, "SomeKey", "SomeValue");
-			Assert.That(storeResult.Success, Is.True, "Message: " + storeResult.Message);
+                var getResult = client.ExecuteGet<string>("SomeKey");
+                Assert.That(getResult.Success, Is.True);
+                Assert.That(getResult.Value, Is.StringMatching("SomeValue"));
 
-			var getResult = client.ExecuteGet<string>("SomeKey");
-			Assert.That(getResult.Success, Is.True);
-			Assert.That(getResult.Value, Is.StringMatching("SomeValue"));
+                cluster.FlushBucket(config.Bucket);
 
-			cluster.FlushBucket(config.Bucket);
-
-			getResult = client.ExecuteGet<string>("SomeKey");
-			Assert.That(getResult.Success, Is.False);
-			Assert.That(getResult.Value, Is.Null);
-
-			_Cluster.DeleteBucket(config.Bucket);
-
+                getResult = client.ExecuteGet<string>("SomeKey");
+                Assert.That(getResult.Success, Is.False);
+                Assert.That(getResult.Value, Is.Null);
+		    }
 		}
 
         /// <summary>
@@ -289,22 +272,17 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = bucketName,
+			Cluster.CreateBucket(new Bucket
+            {
+                Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
 				Quota = new Quota { RAM = 100 },
 				ReplicaNumber = ReplicaNumbers.Zero
-			}
-			);
+            });
 
-			var bucket = waitForListedBucket(bucketName);
-
-			Assert.That(bucket, Is.Not.Null);
-
-			_Cluster.DeleteBucket(bucketName);
-
+            _bucket = waitForListedBucket(bucketName);
+			Assert.That(_bucket, Is.Not.Null);
 		}
 
         /// <summary>
@@ -317,67 +295,60 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
+			Cluster.CreateBucket(new Bucket
 			{
 				Name = bucketName,
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
 				Quota = new Quota { RAM = 100 },
 				ReplicaNumber = ReplicaNumbers.Zero
-			}
-			);
+			});
 
-			var bucket = waitForListedBucket(bucketName);
-			Assert.That(bucket, Is.Not.Null);
 
-			_Cluster.UpdateBucket(new Bucket
-				{
-					Name = bucketName,
-					Quota = new Quota { RAM = 105 },
-					AuthType = AuthTypes.None,
-					ProxyPort = 8675
-				}
-			);
+            _bucket = waitForListedBucket(bucketName);
+            Assert.That(_bucket, Is.Not.Null);
 
-			bucket = waitForListedBucket(bucketName);
-			Assert.That(bucket.Quota.RAM / 1024 / 1024, Is.EqualTo(105));
-			Assert.That(bucket.ProxyPort, Is.EqualTo(8675));
-			Assert.That(bucket.AuthType, Is.EqualTo(AuthTypes.None));
+            Cluster.UpdateBucket(new Bucket
+            {
+                Name = bucketName,
+                Quota = new Quota { RAM = 105 },
+                AuthType = AuthTypes.None,
+                ProxyPort = 8675
+            });
 
-			_Cluster.DeleteBucket(bucketName);
+            _bucket = waitForListedBucket(bucketName);
 
+            Assert.That(_bucket.Quota.RAM / 1024 / 1024, Is.EqualTo(105));
+            Assert.That(_bucket.ProxyPort, Is.EqualTo(8675));
+            Assert.That(_bucket.AuthType, Is.EqualTo(AuthTypes.None));
 		}
 
-        /// <summary>
-        /// @test: create new memcached bucket and verify that the bucket gets listed
-        /// @pre: Default configuration to initialize client in app.config
-        /// @post: Test passes if bucket is listed correctly
-        /// </summary>
-		[Test]
-		public void When_Creating_New_Memcached_Bucket_That_Bucket_Is_Listed()
-		{
-			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+	    /// <summary>
+	    /// @test: create new memcached bucket and verify that the bucket gets listed
+	    /// @pre: Default configuration to initialize client in app.config
+	    /// @post: Test passes if bucket is listed correctly
+	    /// </summary>
+	    [Test]
+	    public void When_Creating_New_Memcached_Bucket_That_Bucket_Is_Listed()
+	    {
+	        var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = bucketName,
-				AuthType = AuthTypes.None,
-				BucketType = BucketTypes.Memcached,
-				Quota = new Quota { RAM = 100 },
-				ProxyPort = 9090,
-				ReplicaNumber = ReplicaNumbers.Zero
-			}
-			);
+	        Cluster.CreateBucket(new Bucket
+            {
+                Name = bucketName,
+	            AuthType = AuthTypes.None,
+	            BucketType = BucketTypes.Memcached,
+	            Quota = new Quota {RAM = 100},
+	            ProxyPort = 9090,
+	            ReplicaNumber = ReplicaNumbers.Zero
+	        });
 
-			var bucket = waitForListedBucket(bucketName);
+            _bucket = waitForListedBucket(bucketName);
+            Assert.That(_bucket, Is.Not.Null);
+	    }
 
-			Assert.That(bucket, Is.Not.Null);
 
-			_Cluster.DeleteBucket(bucketName);
-
-		}
-
-        /// <summary>
+	    /// <summary>
         /// @test: create new bucket with existing name and verify that the exception is thrown
         /// @pre: Default configuration to initialize client in app.config
         /// @post: Test passes if error is thrown
@@ -385,15 +356,16 @@ namespace Couchbase.Tests
 		[Test]
 		[ExpectedException(typeof(WebException))]
 		public void When_Creating_New_Bucket_With_Existing_Name_Web_Exception_Is_Thrown()
-		{
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = "default",
-				AuthType = AuthTypes.Sasl,
-				BucketType = BucketTypes.Membase,
-				Quota = new Quota { RAM = 128 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+	    {
+            var bucket = new Bucket
+            {
+                Name = "default",
+                AuthType = AuthTypes.Sasl,
+                BucketType = BucketTypes.Membase,
+                Quota = new Quota {RAM = 128},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+			Cluster.CreateBucket(bucket);
 		}
 
         /// <summary>
@@ -404,15 +376,16 @@ namespace Couchbase.Tests
         [Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "ProxyPort", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Auth_Type_None_And_No_Port_Argument_Exception_Is_Thrown()
-		{
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = "default",
-				AuthType = AuthTypes.None,
-				BucketType = BucketTypes.Memcached,
-				Quota = new Quota { RAM = 128 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+        {
+            var bucket = new Bucket
+            {
+                Name = "default",
+                AuthType = AuthTypes.None,
+                BucketType = BucketTypes.Memcached,
+                Quota = new Quota {RAM = 128},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+            Cluster.CreateBucket(bucket);
 		}
 
         /// <summary>
@@ -423,15 +396,16 @@ namespace Couchbase.Tests
 		[Test]
 		[ExpectedException(typeof(ArgumentException), ExpectedMessage = "ProxyPort", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Auth_Type_Sasl_And_Port_Argument_Exception_Is_Thrown()
-		{
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = "default",
-				AuthType = AuthTypes.None,
-				BucketType = BucketTypes.Memcached,
-				Quota = new Quota { RAM = 128 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+        {
+            var bucket = new Bucket
+            {
+                Name = "default",
+                AuthType = AuthTypes.None,
+                BucketType = BucketTypes.Memcached,
+                Quota = new Quota {RAM = 128},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+            Cluster.CreateBucket(bucket);
 		}
 
         /// <summary>
@@ -442,15 +416,16 @@ namespace Couchbase.Tests
 		[Test]
         [ExpectedException(typeof(ArgumentException), ExpectedMessage = "RamQuotaMB must be at least 100", MatchType = MessageMatch.Contains)]
 		public void When_Creating_New_Bucket_With_Ram_Quota_Less_Than_100_Argument_Exception_Is_Thrown()
-		{
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = "default",
-				AuthType = AuthTypes.Sasl,
-				BucketType = BucketTypes.Memcached,
-				Quota = new Quota { RAM = 99 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+        {
+            var bucket = new Bucket
+            {
+                Name = "default",
+                AuthType = AuthTypes.Sasl,
+                BucketType = BucketTypes.Memcached,
+                Quota = new Quota {RAM = 99},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+            Cluster.CreateBucket(bucket);
 		}
 
         /// <summary>
@@ -461,26 +436,22 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Deleting_Bucket_Bucket_Is_No_Longer_Listed()
 		{
-			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+            var bucketName = "Bucket-" + DateTime.Now.Ticks;
+            _bucket = new Bucket
+            {
+                Name = bucketName,
+                AuthType = AuthTypes.Sasl,
+                BucketType = BucketTypes.Membase,
+                Quota = new Quota {RAM = 100},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+            Cluster.CreateBucket(_bucket);
 
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = bucketName,
-				AuthType = AuthTypes.Sasl,
-				BucketType = BucketTypes.Membase,
-				Quota = new Quota { RAM = 100 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+            _bucket = waitForListedBucket(bucketName);
+            Assert.That(_bucket, Is.Not.Null, "New bucket was null");
 
-			var bucket = waitForListedBucket(bucketName);
-
-			Assert.That(bucket, Is.Not.Null, "New bucket was null");
-
-			_Cluster.DeleteBucket(bucketName);
-
-			bucket = waitForListedBucket(bucketName);
-
-			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
+            _bucket = waitForListedBucket(bucketName);
+            Assert.That(_bucket, Is.Null, "Deleted bucket still exists");
 		}
 
         /// <summary>
@@ -497,7 +468,7 @@ namespace Couchbase.Tests
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
 
-			_Cluster.DeleteBucket(bucketName);
+			Cluster.DeleteBucket(bucketName);
 		}
 
         /// <summary>
@@ -508,21 +479,21 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Creating_New_Bucket_Item_Counts_Are_Set_On_Basic_Stats()
 		{
-			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+            var bucketName = "Bucket-" + DateTime.Now.Ticks;
+            _bucket = new Bucket
+            {
+                Name = bucketName,
+                AuthType = AuthTypes.Sasl,
+                BucketType = BucketTypes.Membase,
+                Quota = new Quota {RAM = 100},
+                ReplicaNumber = ReplicaNumbers.Zero
+            };
+            Cluster.CreateBucket(_bucket);
 
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = bucketName,
-				AuthType = AuthTypes.Sasl,
-				BucketType = BucketTypes.Membase,
-				Quota = new Quota { RAM = 100 },
-				ReplicaNumber = ReplicaNumbers.Zero
-			});
+            _bucket = waitForListedBucket(bucketName);
+            Assert.That(_bucket, Is.Not.Null, "New bucket was null");
 
-			var bucket = waitForListedBucket(bucketName);
-			Assert.That(bucket, Is.Not.Null, "New bucket was null");
-
-			var count = bucket.BasicStats.ItemCount;
+			var count = _bucket.BasicStats.ItemCount;
 			Assert.That(count, Is.EqualTo(0), "Item count was not 0");
 
 			var client = new CouchbaseClient(bucketName, "");
@@ -541,16 +512,16 @@ namespace Couchbase.Tests
 
 			for (var i = 0; i < 10; i++)
 			{
-				bucket = _Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
-				count = bucket.BasicStats.ItemCount;
+				_bucket = Cluster.ListBuckets().Where(b => b.Name == bucketName).FirstOrDefault();
+				count = _bucket.BasicStats.ItemCount;
 				if (count == 3) break;
 				Thread.Sleep(2000); //wait for the bucket to compute writes into basic stats
 			}
 			Assert.That(count, Is.EqualTo(3), "Item count was not 3");
 
-			_Cluster.DeleteBucket(bucketName);
-			bucket = waitForListedBucket(bucketName);
-			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
+			Cluster.DeleteBucket(bucketName);
+			_bucket = waitForListedBucket(bucketName);
+			Assert.That(_bucket, Is.Null, "Deleted bucket still exists");
 		}
 
         /// <summary>
@@ -561,14 +532,15 @@ namespace Couchbase.Tests
 		public void When_Listing_Bucket_Object_Graph_Is_Populated()
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
+            _bucket = new Bucket
+            {
+                Name = bucketName,
+                AuthType = AuthTypes.Sasl,
+                BucketType = BucketTypes.Membase,
+                Quota = new Quota {RAM = 100},
+            };
 
-			_Cluster.CreateBucket(new Bucket
-			{
-				Name = bucketName,
-				AuthType = AuthTypes.Sasl,
-				BucketType = BucketTypes.Membase,
-				Quota = new Quota { RAM = 100 },
-			});
+			Cluster.CreateBucket(_bucket);
 
 			var bucket = waitForListedBucket(bucketName);
 			Assert.That(bucket, Is.Not.Null, "New bucket was null");
@@ -590,9 +562,9 @@ namespace Couchbase.Tests
 			Assert.That(node.OS, Is.Not.Null);
 			Assert.That(node.Version, Is.Not.Null);
 
-			_Cluster.DeleteBucket(bucketName);
+			Cluster.DeleteBucket(bucketName);
 
-			bucket = waitForListedBucket(bucketName);
+			_bucket = waitForListedBucket(bucketName);
 
 			Assert.That(bucket, Is.Null, "Deleted bucket still exists");
 		}
@@ -614,7 +586,7 @@ namespace Couchbase.Tests
         }
     }
 }";
-			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			var result = Cluster.CreateDesignDocument("default", "cities", json);
 			Assert.That(result, Is.True);
 		}
 
@@ -628,7 +600,7 @@ namespace Couchbase.Tests
 		{
 			var stream = new FileStream("Data\\CityViews.json", FileMode.Open);
 			Assert.That(stream.CanRead, Is.True);
-			var result = _Cluster.CreateDesignDocument("default", "cities", stream);
+			var result = Cluster.CreateDesignDocument("default", "cities", stream);
 			Assert.That(result, Is.True);
 		}
 
@@ -641,7 +613,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(ArgumentException))]
 		public void When_Creating_Design_Document_With_Invalid_Json_Argument_Exception_Is_Thrown()
 		{
-			_Cluster.CreateDesignDocument("default", "cities", "foo");
+			Cluster.CreateDesignDocument("default", "cities", "foo");
 		}
 
         /// <summary>
@@ -654,7 +626,7 @@ namespace Couchbase.Tests
 		public void When_Creating_Design_Document_With_Missing_Name_Argument_Exception_Is_Thrown()
 		{
 			var json = "{ \"id\" : \"foo\" }";
-			_Cluster.CreateDesignDocument("default", "", json);
+			Cluster.CreateDesignDocument("default", "", json);
 		}
 
         /// <summary>
@@ -667,7 +639,7 @@ namespace Couchbase.Tests
 		public void When_Creating_Design_Document_With_Missing_Views_Argument_Exception_Is_Thrown()
 		{
 			var json = "{ \"notviews\" : \"foo\" }";
-			_Cluster.CreateDesignDocument("default", "", json);
+			Cluster.CreateDesignDocument("default", "", json);
 		}
 
         /// <summary>
@@ -686,10 +658,10 @@ namespace Couchbase.Tests
         }
     }
 }";
-			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			var result = Cluster.CreateDesignDocument("default", "cities", json);
 			Assert.That(result, Is.True);
 
-			var clusterJson = _Cluster.RetrieveDesignDocument("default", "cities");
+			var clusterJson = Cluster.RetrieveDesignDocument("default", "cities");
 			Assert.That(Regex.Replace(json, @"\s", ""), Is.StringContaining(Regex.Replace(clusterJson, @"\s", "")));
 		}
 
@@ -702,7 +674,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(WebException), ExpectedMessage="404", MatchType=MessageMatch.Contains)]
 		public void When_Retrieving_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
 		{
-			var result = _Cluster.RetrieveDesignDocument("foo", "bar");
+			var result = Cluster.RetrieveDesignDocument("foo", "bar");
 		}
 
         /// <summary>
@@ -721,13 +693,13 @@ namespace Couchbase.Tests
         }
     }
 }";
-			var result = _Cluster.CreateDesignDocument("default", "cities", json);
+			var result = Cluster.CreateDesignDocument("default", "cities", json);
 			Assert.That(result, Is.True);
 
-			var clusterJson = _Cluster.RetrieveDesignDocument("default", "cities");
+			var clusterJson = Cluster.RetrieveDesignDocument("default", "cities");
 			Assert.That(Regex.Replace(json, @"\s", ""), Is.StringContaining(Regex.Replace(clusterJson, @"\s", "")));
 
-			var deleteResult = _Cluster.DeleteDesignDocument("default", "cities");
+			var deleteResult = Cluster.DeleteDesignDocument("default", "cities");
 			Assert.That(deleteResult, Is.True);
 
 		}
@@ -741,7 +713,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(WebException), ExpectedMessage = "404", MatchType = MessageMatch.Contains)]
 		public void When_Deleting_Invalid_Design_Document_Operation_Web_Exception_Is_Thrown()
 		{
-			var result = _Cluster.DeleteDesignDocument("foo", "bar");
+			var result = Cluster.DeleteDesignDocument("foo", "bar");
 		}
 
         /// <summary>
@@ -754,7 +726,7 @@ namespace Couchbase.Tests
 		public void When_Managing_Design_Document_On_Non_Default_Bucket_Operation_Is_Successful()
 		{
 			var bucketName = "Bucket-" + DateTime.Now.Ticks;
-			var bucket = new Bucket
+			_bucket = new Bucket
 			{
 				AuthType = AuthTypes.Sasl,
 				BucketType = BucketTypes.Membase,
@@ -763,21 +735,21 @@ namespace Couchbase.Tests
 				Quota = new Quota { RAM = 100 },
 			};
 
-			_Cluster.CreateBucket(bucket);
-			var createdBucket = waitForListedBucket(bucket.Name);
+			Cluster.CreateBucket(_bucket);
+			var createdBucket = waitForListedBucket(_bucket.Name);
 			Assert.That(createdBucket, Is.Not.Null);
 
-			var createResult = _Cluster.CreateDesignDocument(bucket.Name, "cities", new FileStream("Data\\CityViews.json", FileMode.Open));
+			var createResult = Cluster.CreateDesignDocument(_bucket.Name, "cities", new FileStream("Data\\CityViews.json", FileMode.Open));
 			Assert.That(createResult, Is.True);
 
-			var retrieveResult = _Cluster.RetrieveDesignDocument(bucket.Name, "cities");
+			var retrieveResult = Cluster.RetrieveDesignDocument(_bucket.Name, "cities");
 			Assert.That(retrieveResult, Is.Not.Null);
 
-			var deleteResult = _Cluster.DeleteDesignDocument(bucket.Name, "cities");
+			var deleteResult = Cluster.DeleteDesignDocument(_bucket.Name, "cities");
 			Assert.That(deleteResult, Is.True);
 
-			_Cluster.DeleteBucket(bucket.Name);
-			var deletedBucket = waitForListedBucket(bucket.Name);
+			Cluster.DeleteBucket(_bucket.Name);
+			var deletedBucket = waitForListedBucket(_bucket.Name);
 			Assert.That(deletedBucket, Is.Null);
 		}
 
@@ -785,13 +757,13 @@ namespace Couchbase.Tests
 
 		private Bucket waitForListedBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
 		{
-			Func<string, Bucket> func = (s) => _Cluster.ListBuckets().Where(b => b.Name == s).FirstOrDefault();
+			Func<string, Bucket> func = (s) => Cluster.ListBuckets().Where(b => b.Name == s).FirstOrDefault();
 			return wait(bucketName, ubound, milliseconds, func);
 		}
 
 		private Bucket waitForBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
 		{
-			return wait(bucketName, ubound, milliseconds, _Cluster.GetBucket);
+			return wait(bucketName, ubound, milliseconds, Cluster.GetBucket);
 		}
 
 		private Bucket tryWaitForBucket(string bucketName, int ubound = 10, int milliseconds = 1000)
@@ -799,7 +771,7 @@ namespace Couchbase.Tests
 			Func<string, Bucket> func = (s) =>
 			{
 				Bucket bucket = null;
-				_Cluster.TryGetBucket(s, out bucket);
+				Cluster.TryGetBucket(s, out bucket);
 				return bucket;
 			};
 			return wait(bucketName, ubound, milliseconds, func);
@@ -818,6 +790,15 @@ namespace Couchbase.Tests
 
 			return bucket;
 		}
+
+        [TearDown]
+	    public void TearDown()
+	    {
+            if (_bucket != null && _bucket.Name != "default" && Cluster != null)
+            {
+                Cluster.DeleteBucket(_bucket.Name);
+            }
+        }
 	}
 }
 

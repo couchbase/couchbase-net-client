@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using Couchbase.Configuration;
@@ -9,7 +10,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests
 {
 	[TestFixture]
-	public class CouchbaseClientViewNameTransformerTests : CouchbaseClientViewTestsBase
+	public class CouchbaseClientViewNameTransformerTests
 	{
         /// <summary>
         /// @test: Design document name is prefixed with "dev_" in development mode
@@ -19,7 +20,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Setting_Design_Document_Name_Transformer_To_Dev_Views_Are_Prefixed_With_Dev()
 		{
-			testTransformedDesignDocName(new DevelopmentModeNameTransformer(), "foo", "dev_foo");
+            TestTransformedDesignDocName(new DevelopmentModeNameTransformer(), "foo", "dev_foo");
 		}
 
         /// <summary>
@@ -30,10 +31,10 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Setting_Design_Document_Name_Transformer_To_Prod_Views_Are_Not_Prefixed()
 		{
-			testTransformedDesignDocName(new ProductionModeNameTransformer(), "foo", "foo");
+            TestTransformedDesignDocName(new ProductionModeNameTransformer(), "foo", "foo");
 		}
 
-		private void testTransformedDesignDocName(INameTransformer transformer, string designDoc, string expected)
+		private void TestTransformedDesignDocName(INameTransformer transformer, string designDoc, string expected)
 		{
 			var clientWithConfig = GetClientWithConfig(transformer);
 			var view = clientWithConfig.Item1.GetView(designDoc, "by_bar");
@@ -41,9 +42,27 @@ namespace Couchbase.Tests
 			var request = GetHttpRequest(clientWithConfig);
 
 			Assert.That(request.Path, Is.StringStarting(expected), "Path did not contain " + expected);
-
 		}
-	}
+
+        protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
+        {
+            var config = new CouchbaseClientConfiguration();
+            config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
+            config.Bucket = ConfigurationManager.AppSettings["DefaultBucketName"];
+            config.DesignDocumentNameTransformer = nameTransformer ?? new DevelopmentModeNameTransformer();
+            config.HttpClientFactory = new MockHttpClientFactory();
+
+            var client = new CouchbaseClient(config);
+            return Tuple.Create(client, config);
+        }
+
+        protected MockHttpRequest GetHttpRequest(Tuple<CouchbaseClient, CouchbaseClientConfiguration> clientWithConfig)
+        {
+            var httpClientFactory = clientWithConfig.Item2.HttpClientFactory as MockHttpClientFactory;
+            var httpClient = httpClientFactory.Client as MockHttpClient;
+            return httpClient.Request as MockHttpRequest;
+        }
+    }
 }
 
 #region [ License information          ]

@@ -57,7 +57,7 @@ namespace Couchbase.Operations
 						?? (this.responseMessage = Encoding.ASCII.GetString(this.Data.Array, this.Data.Offset, this.Data.Count)));
 		}
 
-		public unsafe bool Read(PooledSocket socket)
+		public unsafe bool Read(IPooledSocket socket)
 		{
 			this.StatusCode = -1;
 

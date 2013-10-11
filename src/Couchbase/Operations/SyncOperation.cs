@@ -21,7 +21,7 @@ namespace Couchbase
 		private IList<KeyValuePair<string, ulong>> keys;
 		private uint flags;
 
-		public SyncOperation(VBucketNodeLocator locator, IList<KeyValuePair<string, ulong>> keys, SyncMode mode, int replicationCount)
+        public SyncOperation(VBucketNodeLocator locator, IList<KeyValuePair<string, ulong>> keys, SyncMode mode, int replicationCount)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 			if (keys.Count > 0xffff) throw new ArgumentException("Maximum 0xFFFF items are supported.");
@@ -126,7 +126,7 @@ namespace Couchbase
 			return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
 		}
 
-		protected override IOperationResult ReadResponse(PooledSocket socket)
+        protected override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			var response = new BinaryResponse();
 			var result = new BinaryOperationResult();
@@ -143,7 +143,7 @@ namespace Couchbase
 			return result;
 		}
 
-		protected override bool ReadResponseAsync(PooledSocket socket, Action<bool> next)
+        protected override bool ReadResponseAsync(IPooledSocket socket, Action<bool> next)
 		{
 			var response = new BinaryResponse();
 

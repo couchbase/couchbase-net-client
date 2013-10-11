@@ -15,7 +15,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 
 		protected ISaslAuthenticationProvider Provider { get; private set; }
 
-		protected internal override IOperationResult ReadResponse(PooledSocket socket)
+		protected internal override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			var response = new BinaryResponse();
 

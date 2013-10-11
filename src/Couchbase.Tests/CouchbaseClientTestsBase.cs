@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using NUnit.Framework;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached.Results;
@@ -17,120 +19,23 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public abstract class CouchbaseClientTestsBase
 	{
+		protected ICouchbaseClient Client;
+	    private static int _numberOfTimesCalled = 0;
 
-		protected ICouchbaseClient _Client;
-
-		[SetUp]
+		[TestFixtureSetUp]
 		public void SetUp()
 		{
-			_Client = CouchbaseClientFactory.CreateCouchbaseClient();
+            Client = CouchbaseClientFactory.CreateCouchbaseClient();
 
-			//TODO: uncomment this line when next NuGet (1.2.7) is pushed
-			//log4net.Config.XmlConfigurator.Configure();
-
-			var cluster = new CouchbaseCluster("couchbase");
-
-			var stream = File.Open(@"Data\\ThingViews.json", FileMode.Open);
-			cluster.CreateDesignDocument("default", "things", stream);
-		}
-
-		protected string GetUniqueKey(string prefix = null)
-		{
-			return (!string.IsNullOrEmpty(prefix) ? prefix + "_" : "") +
-				"unit_test_" + DateTime.Now.Ticks;
-		}
-
-		protected IEnumerable<string> GetUniqueKeys(string prefix = null, int max = 5)
-		{
-
-			var keys = new List<string>(max);
-			for (int i = 0; i < max; i++)
-			{
-				keys.Add(GetUniqueKey(prefix));
-			}
-
-			return keys;
-		}
-
-		protected string GetRandomString()
-		{
-			var rand = new Random((int)DateTime.Now.Ticks).Next();
-			return "unit_test_value_" + rand;
-		}
-
-		protected IStoreOperationResult Store(StoreMode mode = StoreMode.Set, string key = null, string value = null)
-		{
-			if (string.IsNullOrEmpty(key))
-			{
-				key = GetUniqueKey("store");
-			}
-
-			if (value == null)
-			{
-				value = GetRandomString();
-			}
-			return _Client.ExecuteStore(mode, key, value);
-		}
-
-		protected void StoreAssertPass(IStoreOperationResult result)
-		{
-			Assert.That(result.Success, Is.True, "Success was false");
-			Assert.That(result.Cas, Is.GreaterThan(0), "Cas value was 0");
-			Assert.That(result.StatusCode, Is.EqualTo(0), "StatusCode was not 0");
-		}
-
-		protected void StoreAssertFail(IStoreOperationResult result)
-		{
-			Assert.That(result.Success, Is.False, "Success was true");
-			Assert.That(result.Cas, Is.EqualTo(0), "Cas value was not 0");
-			Assert.That(result.StatusCode, Is.GreaterThan(0), "StatusCode not greater than 0");
-			Assert.That(result.InnerResult, Is.Not.Null, "InnerResult was null");
-		}
-
-		protected void GetAssertPass(IGetOperationResult result, object expectedValue)
-		{
-			Assert.That(result.Success, Is.True, "Success was false");
-			Assert.That(result.Cas, Is.GreaterThan(0), "Cas value was 0");
-			Assert.That(result.StatusCode, Is.EqualTo(0).Or.Null, "StatusCode was neither 0 nor null");
-			Assert.That(result.Value, Is.EqualTo(expectedValue), "Actual value was not expected value: " + result.Value);
-		}
-
-		protected void GetAssertFail(IGetOperationResult result)
-		{
-			Assert.That(result.Success, Is.False, "Success was true");
-			Assert.That(result.Cas, Is.EqualTo(0), "Cas value was not 0");
-			Assert.That(result.StatusCode, Is.Null.Or.GreaterThan(0), "StatusCode not greater than 0");
-			Assert.That(result.HasValue, Is.False, "HasValue was true");
-			Assert.That(result.Value, Is.Null, "Value was not null");
-		}
-
-		protected void MutateAssertPass(IMutateOperationResult result, ulong expectedValue)
-		{
-			Assert.That(result.Success, Is.True, "Success was false");
-			Assert.That(result.Value, Is.EqualTo(expectedValue), "Value was not expected value: " + expectedValue);
-			Assert.That(result.Cas, Is.GreaterThan(0), "Cas was not greater than 0");
-			Assert.That(result.StatusCode, Is.Null.Or.EqualTo(0), "StatusCode was not null or 0");
-		}
-
-		protected void MutateAssertFail(IMutateOperationResult result)
-		{
-			Assert.That(result.Success, Is.False, "Success was true");
-			Assert.That(result.Cas, Is.EqualTo(0), "Cas 0");
-			Assert.That(result.StatusCode, Is.Null.Or.Not.EqualTo(0), "StatusCode was 0");
-		}
-
-		protected void ConcatAssertPass(IConcatOperationResult result)
-		{
-			Assert.That(result.Success, Is.True, "Success was false");
-			Assert.That(result.Cas, Is.GreaterThan(0), "Cas value was 0");
-			Assert.That(result.StatusCode, Is.EqualTo(0), "StatusCode was not 0");
-		}
-
-		protected void ConcatAssertFail(IConcatOperationResult result)
-		{
-			Assert.That(result.Success, Is.False, "Success was true");
-			Assert.That(result.Cas, Is.EqualTo(0), "Cas value was not 0");
-			Assert.That(result.StatusCode, Is.Null.Or.GreaterThan(0), "StatusCode not greater than 0");
+		    if (_numberOfTimesCalled < 1)
+		    {
+                var cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
+		        using (var stream = File.Open(@"Data\\ThingViews.json", FileMode.Open))
+		        {
+		            cluster.CreateDesignDocument("default", "things", stream);
+		        }
+		        Interlocked.Increment(ref _numberOfTimesCalled);
+		    }
 		}
 	}
 }

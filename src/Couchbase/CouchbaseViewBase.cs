@@ -71,30 +71,24 @@ namespace Couchbase {
 			this.debug = original.debug;
         }
 
-        protected IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer) {
-
-			var viewParams = new Dictionary<string, string>();
+        protected IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer)
+        {
 			var viewParamsBuilder = new ViewParamsBuilder();
-
 			viewParamsBuilder.AddOptionalParam("key", this.key);
 			viewParamsBuilder.AddOptionalParam("keys", this.keys);
 			viewParamsBuilder.AddOptionalParam("startkey", this.startKey);
 			viewParamsBuilder.AddOptionalParam("endkey", this.endKey);
 			viewParamsBuilder.AddOptionalParam("startkey_docid", this.startId);
 			viewParamsBuilder.AddOptionalParam("endkey_docid", this.endId);
-
 			viewParamsBuilder.AddOptionalParam("inclusive_end", this.inclusive);
 			viewParamsBuilder.AddOptionalParam("descending", this.descending);
 			viewParamsBuilder.AddOptionalParam("reduce", this.reduce);
 			viewParamsBuilder.AddOptionalParam("group", this.group);
 			viewParamsBuilder.AddOptionalParam("group_level", this.groupAt);
 			viewParamsBuilder.AddOptionalParam("skip", this.skip);
-
 			viewParamsBuilder.AddGreaterThanOneParam("limit", this.limit);
-
 			viewParamsBuilder.AddStaleParam(this.stale);
 			viewParamsBuilder.AddOnErrorParam(this.onError);
-
 			viewParamsBuilder.AddOptionalParam("debug", this.debug);
 
 			return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());

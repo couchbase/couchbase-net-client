@@ -204,7 +204,7 @@ namespace Enyim.Caching.Memcached
 			/// <summary>
 			/// A list of already connected but free to use sockets
 			/// </summary>
-			private InterlockedStack<PooledSocket> freeItems;
+			private InterlockedStack<IPooledSocket> freeItems;
 
 			private bool isDisposed;
 			private bool isAlive;
@@ -238,7 +238,7 @@ namespace Enyim.Caching.Memcached
 				this.maxItems = config.MaxPoolSize;
 
 				this.semaphore = new Semaphore(maxItems, maxItems);
-				this.freeItems = new InterlockedStack<PooledSocket>();
+				this.freeItems = new InterlockedStack<IPooledSocket>();
 			}
 
 			internal void InitPool()
@@ -310,7 +310,7 @@ namespace Enyim.Caching.Memcached
 					return result;
 				}
 
-				PooledSocket retval = null;
+				IPooledSocket retval = null;
 
 				if (!this.semaphore.WaitOne(this.queueTimeout))
 				{
@@ -412,7 +412,7 @@ namespace Enyim.Caching.Memcached
 			/// Releases an item back into the pool
 			/// </summary>
 			/// <param name="socket"></param>
-			private void ReleaseSocket(PooledSocket socket)
+			private void ReleaseSocket(IPooledSocket socket)
 			{
 				if (log.IsDebugEnabled)
 				{
@@ -475,7 +475,7 @@ namespace Enyim.Caching.Memcached
 		                {
 		                    log.Debug("Disposing InternalPoolImpl");
 
-		                    PooledSocket ps;
+		                    IPooledSocket ps;
 		                    while (this.freeItems.TryPop(out ps))
 		                    {
 		                        try

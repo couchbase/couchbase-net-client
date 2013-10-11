@@ -99,6 +99,7 @@ namespace Couchbase
 			// everything failed
 			if (String.IsNullOrEmpty(message))
 			{
+                log.DebugFormat("Everything failed in {0}", this);
 				this.lastHash = null;
 				this.RaiseConfigChanged(null);
 				return;

@@ -7,7 +7,7 @@ namespace Couchbase
 {
 	internal class ObservedNode
 	{
-		public CouchbaseNode Node { get; set; }
+		public ICouchbaseNode Node { get; set; }
 
 		public bool IsMaster { get; set; }
 

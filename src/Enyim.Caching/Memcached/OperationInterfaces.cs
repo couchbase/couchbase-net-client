@@ -9,7 +9,7 @@ namespace Enyim.Caching.Memcached
 	public interface IOperation
 	{
 		IList<ArraySegment<byte>> GetBuffer();
-		IOperationResult ReadResponse(PooledSocket socket);
+		IOperationResult ReadResponse(IPooledSocket socket);
 
 		int StatusCode { get; }
 
@@ -19,7 +19,7 @@ namespace Enyim.Caching.Memcached
 		/// <param name="socket"></param>
 		/// <param name="next"></param>
 		/// <returns></returns>
-		bool ReadResponseAsync(PooledSocket socket, Action<bool> next);
+		bool ReadResponseAsync(IPooledSocket socket, Action<bool> next);
 	}
 
 	public interface ISingleItemOperation : IOperation

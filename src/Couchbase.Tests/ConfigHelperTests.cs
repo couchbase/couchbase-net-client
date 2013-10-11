@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Enyim.Caching.Memcached.Results;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
@@ -10,7 +11,7 @@ using Couchbase.Tests.Utils;
 namespace Couchbase.Tests
 {
 	[TestFixture]
-	public class ConfigHelperTests : CouchbaseClientTestsBase
+	public class ConfigHelperTests
 	{
 		/// <summary>
 		/// @test: Reads the information about available data buckets from pools,
@@ -25,13 +26,14 @@ namespace Couchbase.Tests
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Root_Uri()
 		{
 			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("pools-config");
-			var client = new CouchbaseClient(config);
-
-			string key = GetUniqueKey(), value = GetRandomString();
-			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			StoreAssertPass(storeResult);
-			var getResult = client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
+		    using (var client = new CouchbaseClient(config))
+		    {
+		        string key = TestUtils.GetUniqueKey(), value = TestUtils.GetRandomString();
+		        var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
+		        TestUtils.StoreAssertPass(storeResult);
+		        var getResult = client.ExecuteGet(key);
+		        TestUtils.GetAssertPass(getResult, value);
+		    }
 		}
 
 		/// <summary>
@@ -46,17 +48,17 @@ namespace Couchbase.Tests
 		[Test]
 		public void Client_Operations_Succeed_When_Bootstrapping_To_Pools_Default_Root_Uri()
 		{
-			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("pools-default-config");
-			var client = new CouchbaseClient(config);
+		    var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("pools-default-config");
+		    using (var client = new CouchbaseClient(config))
+		    {
+		        string key = TestUtils.GetUniqueKey(), value = TestUtils.GetRandomString();
+		        var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
+		        Assert.That(storeResult.Success, Is.True, "Success was false");
+		        Assert.That(storeResult.Message, Is.Null.Or.Empty, "Message was not empty");
 
-			string key = GetUniqueKey(), value = GetRandomString();
-			var storeResult = client.ExecuteStore(StoreMode.Add, key, value);
-			Assert.That(storeResult.Success, Is.True, "Success was false");
-			Assert.That(storeResult.Message, Is.Null.Or.Empty, "Message was not empty");
-
-			var getResult = client.ExecuteGet(key);
-			GetAssertPass(getResult, value);
-
+		        var getResult = client.ExecuteGet(key);
+		        TestUtils.GetAssertPass(getResult, value);
+		    }
 		}
 	}
 }

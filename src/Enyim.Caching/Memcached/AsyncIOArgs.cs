@@ -15,8 +15,8 @@ namespace Enyim.Caching.Memcached
 		public Action<AsyncIOArgs> Next { get; set; }
 		public int Count { get; set; }
 
-		public byte[] Result { get; internal set; }
-		public bool Fail { get; internal set; }
+		public byte[] Result { get; set; }
+		public bool Fail { get; set; }
 	}
 }
 

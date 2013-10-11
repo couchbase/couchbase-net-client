@@ -30,7 +30,7 @@ namespace Couchbase.Operations
 			_cas = cas;
 		}
 
-		protected override IOperationResult ReadResponse(PooledSocket socket)
+        protected override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			var response = new ObserveResponse();
 			var result = new ObserveOperationResult();
@@ -53,12 +53,12 @@ namespace Couchbase.Operations
 			return result;
 		}
 
-		protected override bool ReadResponseAsync(PooledSocket socket, Action<bool> next)
-		{
-			throw new NotImplementedException();
-		}
+	    protected override bool ReadResponseAsync(IPooledSocket socket, Action<bool> next)
+	    {
+	        throw new NotImplementedException();
+	    }
 
-		protected override IList<ArraySegment<byte>> GetBuffer()
+	    protected override IList<ArraySegment<byte>> GetBuffer()
 		{
 			var request = new ObserveRequest();
 			request.Key = _key;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -12,7 +13,6 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientViewParameterTests : CouchbaseClientViewTestsBase
 	{
-
 		#region Key tests
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace Couchbase.Tests
         [Test]
 		public void When_Requesting_View_String_Keys_Are_Json_Serialized()
 		{
-			testJsonKeySerialization("foo", "\"foo\"");
+			TestJsonKeySerialization("foo", "\"foo\"");
 		}
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Array_Keys_Are_Json_Serialized()
 		{
-			testJsonKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
+			TestJsonKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
 		}
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Int_Keys_Are_Json_Serialized()
 		{
-			testJsonKeySerialization(10, "10");
+			TestJsonKeySerialization(10, "10");
 		}
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Float_Keys_Are_Json_Serialized()
 		{
-			testJsonKeySerialization(3.14, "3.14");
+			TestJsonKeySerialization(3.14, "3.14");
 		}
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Nested_Array_Keys_Are_Json_Serialized()
 		{
-			testJsonKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
+			TestJsonKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
 		}
 
 		#endregion
@@ -82,7 +82,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_String_StartKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization("foo", "\"foo\"");
+			TestJsonStartKeySerialization("foo", "\"foo\"");
 		}
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Array_StartKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
+			TestJsonStartKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
 		}
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Int_StartKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization(10, "10");
+			TestJsonStartKeySerialization(10, "10");
 		}
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Float_StartKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization(3.14, "3.14");
+			TestJsonStartKeySerialization(3.14, "3.14");
 		}
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Nested_Array_StartKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
+			TestJsonStartKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
 		}
 
 		#endregion
@@ -141,7 +141,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_String_EndKeys_Are_Json_Serialized()
 		{
-			testJsonEndKeySerialization("foo", "\"foo\"");
+			TestJsonEndKeySerialization("foo", "\"foo\"");
 		}
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Array_EndKeys_Are_Json_Serialized()
 		{
-			testJsonEndKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
+			TestJsonEndKeySerialization(new object[] { "foo", 3.14 }, "[\"foo\",3.14]");
 		}
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Int_EndKeys_Are_Json_Serialized()
 		{
-			testJsonEndKeySerialization(10, "10");
+			TestJsonEndKeySerialization(10, "10");
 		}
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Float_EndKeys_Are_Json_Serialized()
 		{
-			testJsonStartKeySerialization(3.14, "3.14");
+			TestJsonStartKeySerialization(3.14, "3.14");
 		}
 
         /// <summary>
@@ -185,30 +185,29 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Requesting_View_Nested_Array_EndKeys_Are_Json_Serialized()
 		{
-			testJsonEndKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
+			TestJsonEndKeySerialization(new object[] { "foo", 3.14, new object[] { "foo" } }, "[\"foo\",3.14,[\"foo\"]]");
 		}
 
 		#endregion
 
-		private void testJsonStartKeySerialization(object value, string serializedValue)
+		private void TestJsonStartKeySerialization(object value, string serializedValue)
 		{
-			testJsonSerialization(value, serializedValue, "startKey");
+			TestJsonSerialization(value, serializedValue, "startKey");
 		}
 
-		private void testJsonEndKeySerialization(object value, string serializedValue)
+		private void TestJsonEndKeySerialization(object value, string serializedValue)
 		{
-			testJsonSerialization(value, serializedValue, "endKey");
+			TestJsonSerialization(value, serializedValue, "endKey");
 		}
 
-		private void testJsonKeySerialization(object value, string serializedValue)
+		private void TestJsonKeySerialization(object value, string serializedValue)
 		{
-			testJsonSerialization(value, serializedValue, "key");
+			TestJsonSerialization(value, serializedValue, "key");
 		}
 
-		private void testJsonSerialization(object value, string serializedValue, string paramName)
+		private void TestJsonSerialization(object value, string serializedValue, string paramName)
 		{
-			var clientWithConfig = GetClientWithConfig();
-			var view = clientWithConfig.Item1.GetView("mock", "someview");
+			var view = Client.GetView("mock", "someview");
 
 			switch (paramName)
 			{
@@ -232,7 +231,6 @@ namespace Couchbase.Tests
 
 			Assert.That(val, Is.EqualTo(serializedValue), "Key was not " + serializedValue);
 		}
-		
 	}
 }
 

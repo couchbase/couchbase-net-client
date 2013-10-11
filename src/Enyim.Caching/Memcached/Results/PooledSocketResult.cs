@@ -9,7 +9,7 @@ namespace Enyim.Caching.Memcached.Results
 	{
 		public bool HasValue { get { return Value != null; } }
 
-		public PooledSocket Value { get; set; }
+		public IPooledSocket Value { get; set; }
 	}
 }
 

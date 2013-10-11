@@ -19,7 +19,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_Grouped_View_With_Debug_True_Debug_Info_Dictionary_Is_Returned()
 		{
-			var view = _Client.GetView("cities", "by_state").Group(true).Debug(true);
+			var view = Client.GetView("cities", "by_state").Group(true).Debug(true);
 			foreach (var item in view) { }
 
 			Assert.That(view.DebugInfo, Is.InstanceOf(typeof(Dictionary<string, object>)));
@@ -35,7 +35,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_View_With_Debug_True_Debug_Info_Dictionary_Is_Returned()
 		{
-			var view = _Client.GetView("cities", "by_name").Limit(1).Debug(true);
+			var view = Client.GetView("cities", "by_name").Limit(1).Debug(true);
 			foreach (var item in view) { }
 
 			Assert.That(view.DebugInfo, Is.InstanceOf(typeof(Dictionary<string, object>)));
@@ -50,7 +50,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Querying_View_With_Debug_False_Debug_Info_Dictionary_Is_Null()
 		{
-			var view = _Client.GetView("cities", "by_name").Limit(1).Debug(false);
+			var view = Client.GetView("cities", "by_name").Limit(1).Debug(false);
 			foreach (var item in view) { }
 
 			Assert.That(view.DebugInfo, Is.Null);
@@ -64,7 +64,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Checking_For_View_That_Does_Not_Exist_Check_Exists_Returns_False()
 		{
-			var view = _Client.GetView("cities", "by_postal_code");
+			var view = Client.GetView("cities", "by_postal_code");
 			var exists = view.CheckExists();
 			Assert.That(exists, Is.False);
 		}
@@ -77,7 +77,7 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Checking_For_View_That_Exists_Check_Exists_Returns_True()
 		{
-			var view = _Client.GetView("cities", "by_name");
+			var view = Client.GetView("cities", "by_name");
 			var exists = view.CheckExists();
 			Assert.That(exists, Is.True);
 		}
@@ -91,7 +91,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(ViewNotFoundException))]
 		public void When_Querying_A_View_That_Does_Not_Exist_In_A_Design_Doc_That_Does_Exist_View_Not_Found_Exception_Is_Thrown()
 		{
-			var view = _Client.GetView("cities", "by_postal_code");
+			var view = Client.GetView("cities", "by_postal_code");
 			view.Count();
 		}
 
@@ -105,7 +105,7 @@ namespace Couchbase.Tests
 		{
 			try
 			{
-				var view = _Client.GetView("cities", "by_postal_code");
+				var view = Client.GetView("cities", "by_postal_code");
 				view.Count();
 			}
 			catch (ViewNotFoundException e)
@@ -126,7 +126,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(ViewNotFoundException))]
 		public void When_Querying_A_View_In_A_Design_Doc_That_Does_Not_Exist_View_Not_Found_Exception_Is_Thrown()
 		{
-			var view = _Client.GetView("states", "by_name");
+			var view = Client.GetView("states", "by_name");
 			view.Count();
 		}
 
@@ -140,7 +140,7 @@ namespace Couchbase.Tests
 		{
 			try
 			{
-				var view = _Client.GetView("states", "by_postal_code");
+				var view = Client.GetView("states", "by_postal_code");
 				view.Count();
 			}
 			catch (ViewNotFoundException e)
@@ -162,7 +162,7 @@ namespace Couchbase.Tests
 		[ExpectedException(typeof(ViewException))]
 		public void When_Providing_Invalid_Parameters_To_An_Existing_View_A_View_Exception_Is_Thrown()
 		{
-			var view = _Client.GetView("cities", "by_name").Group(true);
+			var view = Client.GetView("cities", "by_name").Group(true);
 			view.Count();
 		}
 
@@ -177,7 +177,7 @@ namespace Couchbase.Tests
 		{
 			try
 			{
-				var view = _Client.GetView("cities", "by_name").Group(true);
+				var view = Client.GetView("cities", "by_name").Group(true);
 			view.Count();
 			}
 			catch (ViewException e)

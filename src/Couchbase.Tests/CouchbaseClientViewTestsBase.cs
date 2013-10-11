@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Couchbase.Configuration;
+using Couchbase.Tests.Factories;
 using Couchbase.Tests.Mocks;
 using System.IO;
 using System.Net;
@@ -14,16 +16,25 @@ using NUnit.Framework;
 
 namespace Couchbase.Tests
 {
-	public abstract class CouchbaseClientViewTestsBase : CouchbaseClientTestsBase
+	public abstract class CouchbaseClientViewTestsBase
 	{
-		[SetUp]
-		public void Setup()
-		{
-			CreateDocsFromFile("Data\\CityDocs.json", "city_", "state", "name");
-			CreateViewFromFile("Data\\CityViews.json", "cities");
-		}
+        protected ICouchbaseClient Client;
+        private static int _numberOfTimesCalled = 0;
 
-		protected Tuple<CouchbaseClient, CouchbaseClientConfiguration> GetClientWithConfig(INameTransformer nameTransformer = null)
+        [TestFixtureSetUp]
+        public void SetUp()
+        {
+            Client = CouchbaseClientFactory.CreateCouchbaseClient();
+            if (_numberOfTimesCalled < 1)
+            {
+                CreateDocsFromFile("Data\\CityDocs.json", "city_", "state", "name");
+                CreateViewFromFile("Data\\CityViews.json", "cities");
+                Interlocked.Increment(ref _numberOfTimesCalled);
+            }
+        }
+
+        [Obsolete]
+        protected CouchbaseClient GetClientWithConfig(INameTransformer nameTransformer = null)
 		{
 			var config = new CouchbaseClientConfiguration();
             config.Urls.Add(new Uri(ConfigurationManager.AppSettings["CouchbaseServerUrl"] + "/pools"));
@@ -31,9 +42,11 @@ namespace Couchbase.Tests
 			config.DesignDocumentNameTransformer = nameTransformer ?? new DevelopmentModeNameTransformer();
 			config.HttpClientFactory = new MockHttpClientFactory();
 
-			return Tuple.Create(new CouchbaseClient(config), config);
+		    var client = new CouchbaseClient(config);
+			return client;
 		}
 
+        [Obsolete]
 		protected MockHttpRequest GetHttpRequest(Tuple<CouchbaseClient, CouchbaseClientConfiguration> clientWithConfig)
 		{
 			var httpClientFactory = clientWithConfig.Item2.HttpClientFactory as MockHttpClientFactory;
@@ -49,9 +62,13 @@ namespace Couchbase.Tests
 			request.Method = "PUT";
 			request.ContentType = "application/json";
             request.ContentLength = arr.Length;
-			var dataStream = request.GetRequestStream();
-			dataStream.Write(arr, 0, arr.Length);
-			dataStream.Close();
+
+            using (var dataStream = request.GetRequestStream())
+		    {
+                dataStream.Write(arr, 0, arr.Length);
+                dataStream.Close();
+		    }
+
 			var response = (HttpWebResponse)request.GetResponse();
 			string returnString = response.StatusCode.ToString();
 		}
@@ -73,7 +90,7 @@ namespace Couchbase.Tests
 
 					var key = keyPrefix + keys.TrimEnd('_');
 
-					var result = _Client.ExecuteStore(StoreMode.Set, key, line);
+					var result = Client.ExecuteStore(StoreMode.Set, key, line);
 					Assert.That(result.Success, Is.True, string.Format("Store failed for {0} with message {1}", key, result.Message));
 				}
 			}

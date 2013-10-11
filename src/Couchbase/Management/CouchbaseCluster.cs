@@ -17,7 +17,7 @@ namespace Couchbase.Management
 	{
 		public event Action<Exception> BootstrapFailed;
 
-		private static readonly Enyim.Caching.ILog _logger = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
+		private static readonly Enyim.Caching.ILog Log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseCluster));
 
 		private readonly Uri _bucketUri;
 		private readonly string _username;
@@ -30,11 +30,11 @@ namespace Couchbase.Management
 
 			try
 			{
-				_bucketUri = getBucketUri(config.Urls);
+				_bucketUri = GetBucketUri(config.Urls);
 			}
 			catch (Exception ex)
 			{
-				if (_logger.IsErrorEnabled) _logger.Error("Error bootstrapping to cluster", ex);
+				if (Log.IsErrorEnabled) Log.Error("Error bootstrapping to cluster", ex);
 				if (BootstrapFailed != null) BootstrapFailed(ex);
 				_bucketUri = null;
 			}
@@ -98,7 +98,7 @@ namespace Couchbase.Management
 				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
 				throw new ArgumentException(message);
 			}
-			var query = getCreateBucketQueryString(bucket);
+			var query = GetCreateBucketQueryString(bucket);
 			HttpHelper.Post(_bucketUri, _username, _password, query, HttpHelper.CONTENT_TYPE_FORM);
 		}
 
@@ -122,7 +122,7 @@ namespace Couchbase.Management
 				var message = string.Join(Environment.NewLine, bucket.ValidationErrors.Values.ToArray());
 				throw new ArgumentException(message);
 			}
-			var query = getCreateBucketQueryString(existingBucket, false);
+			var query = GetCreateBucketQueryString(existingBucket, false);
 			HttpHelper.Post(UriHelper.Combine(_bucketUri, bucket.Name), _username, _password, query, HttpHelper.CONTENT_TYPE_FORM);
 		}
 
@@ -155,7 +155,7 @@ namespace Couchbase.Management
 			return ListBuckets().First().Nodes.First().InterestingStats.Curr_Items_Tot;
 		}
 
-		private string getCreateBucketQueryString(Bucket bucket, bool includeName = true)
+		private string GetCreateBucketQueryString(Bucket bucket, bool includeName = true)
 		{
 			var sb = new StringBuilder();
 			if (includeName) sb.AppendFormat("name={0}&", bucket.Name);
@@ -183,8 +183,8 @@ namespace Couchbase.Management
 			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Document name must be specified");
 
 			JObject jObj;
-			validateDesignDocument(document, out jObj);
-			var uri = getDesignDocumentUri(bucket, name);
+			ValidateDesignDocument(document, out jObj);
+			var uri = GetDesignDocumentUri(bucket, name);
 
 			var response = HttpHelper.Put(uri, _username, _password, document, HttpHelper.CONTENT_TYPE_JSON);
 
@@ -205,13 +205,13 @@ namespace Couchbase.Management
 
 		public string RetrieveDesignDocument(string bucket, string name)
 		{
-			var uri = getDesignDocumentUri(bucket, name);
+			var uri = GetDesignDocumentUri(bucket, name);
 			return HttpHelper.Get(uri, _username, _password);
 		}
 
 		public bool DeleteDesignDocument(string bucket, string name)
 		{
-			var uri = getDesignDocumentUri(bucket, name);
+			var uri = GetDesignDocumentUri(bucket, name);
 			var response = HttpHelper.Delete(uri, _username, _password);
 			var jsonResponse = JObject.Parse(response);
 			return jsonResponse["ok"].Value<string>().Equals("true", StringComparison.CurrentCultureIgnoreCase);
@@ -219,10 +219,10 @@ namespace Couchbase.Management
 		#endregion
 
 		#region Bootstrapping methods
-		private Uri getBucketUri(IList<Uri> uris)
+		private Uri GetBucketUri(IList<Uri> uris)
 		{
 			var bootstrapUri = uris.First();
-			var poolsUri = getPoolsUri(bootstrapUri);
+			var poolsUri = GetPoolsUri(bootstrapUri);
 
 			//GET /pools/default
 			var json = HttpHelper.Get(poolsUri);
@@ -238,7 +238,7 @@ namespace Couchbase.Management
 			return UriHelper.Combine(getAuthority(bootstrapUri), path);
 		}
 
-		private Uri getPoolsUri(Uri bootstrapUri)
+		private Uri GetPoolsUri(Uri bootstrapUri)
 		{
 			var bucketUri = ConfigHelper.CleanBootstrapUri(bootstrapUri);
 
@@ -250,7 +250,7 @@ namespace Couchbase.Management
 			return UriHelper.Combine(getAuthority(bootstrapUri), path);
 		}
 
-		private Uri getDesignDocumentUri(string bucket, string name)
+		private Uri GetDesignDocumentUri(string bucket, string name)
 		{
 			var rootUri = getAuthority(new UriBuilder(_bucketUri.Scheme, _bucketUri.Host, 8092).Uri);
 			return UriHelper.Combine(rootUri, bucket, "_design/", name);
@@ -262,7 +262,7 @@ namespace Couchbase.Management
 		}
 		#endregion
 
-		private void validateDesignDocument(string document, out JObject jObj)
+		private void ValidateDesignDocument(string document, out JObject jObj)
 		{
 			try
 			{

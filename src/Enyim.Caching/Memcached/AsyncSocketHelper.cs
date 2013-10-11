@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Enyim.Caching.Memcached
 {
-	public partial class PooledSocket
+    public partial class PooledSocket
 	{
 		/// <summary>
 		/// Supports exactly one reader and writer, but they can do IO concurrently
@@ -185,7 +185,18 @@ namespace Enyim.Caching.Memcached
 					pendingArgs.Next(pendingArgs);
 			}
 		}
-	}
+
+
+        public void Close()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsConnected
+        {
+            get { throw new NotImplementedException(); }
+        }
+    }
 }
 
 #region [ License information          ]

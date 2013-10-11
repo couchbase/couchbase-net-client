@@ -16,16 +16,12 @@ namespace Couchbase
 	public class CouchbasePool : ICouchbaseServerPool
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbasePool));
-
 		private ICouchbaseClientConfiguration configuration;
-
 		private Uri[] poolUrls;
 		private BucketConfigListener configListener;
-
 		private InternalState state;
-
-		private object DeadSync = new Object();
-		private System.Threading.Timer resurrectTimer;
+		private readonly object _syncObj = new Object();
+		private Timer resurrectTimer;
 		private bool isTimerActive;
 		private long deadTimeoutMsec;
 		private event Action<IMemcachedNode> nodeFailed;
@@ -64,6 +60,7 @@ namespace Couchbase
 
 		private void Initialize(ICouchbaseClientConfiguration configuration, string bucketName, string bucketPassword)
 		{
+            log.DebugFormat("Initializing {0}", this);
 			var roc = new ReadOnlyConfig(configuration);
 
 			// make null both if we use the default bucket since we do not need to be authenticated
@@ -85,6 +82,7 @@ namespace Couchbase
 
 		~CouchbasePool()
 		{
+            log.DebugFormat("Finalizing {0}", this);
 			try { ((IDisposable)this).Dispose(); }
 			catch(Exception e){log.Error(e);}
 		}
@@ -99,8 +97,10 @@ namespace Couchbase
 			if (log.IsInfoEnabled) log.Info("Received new configuration.");
 
 			// we cannot overwrite the config while the timer is is running
-			lock (this.DeadSync)
-				this.ReconfigurePool(config);
+            lock (_syncObj)
+            {
+                this.ReconfigurePool(config);
+            }
 		}
 
 		private void ReconfigurePool(ClusterConfig config)
@@ -145,9 +145,12 @@ namespace Couchbase
 				// so we can periodically check the dead 
 				// nodes, since we do not get a config 
 				// update every time a node dies
-				for (var i = 0; i < nodes.Length; i++) nodes[i].Failed += this.NodeFail;
+			    foreach (IMemcachedNode node in nodes)
+			    {
+			        node.Failed += this.NodeFail;
+			    }
 
-				Interlocked.Exchange(ref this.state, state);
+			    Interlocked.Exchange(ref this.state, state);
 			}
 			catch (Exception e)
 			{
@@ -157,14 +160,21 @@ namespace Couchbase
 			}
 
 			// kill the old nodes
-			if (oldNodes != null)
-				for (var i = 0; i < oldNodes.Length; i++)
-					try
-					{
-						oldNodes[i].Failed -= this.NodeFail;
-						oldNodes[i].Dispose();
-					}
-					catch(Exception e){log.Error(e);}
+            if (oldNodes != null)
+            {
+                foreach (IMemcachedNode node in oldNodes)
+                {
+                    try
+                    {
+                        node.Failed -= this.NodeFail;
+                        node.Dispose();
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e);
+                    }
+                }
+		    }
 		}
 
 		private InternalState InitVBucket(ClusterConfig config, ISaslAuthenticationProvider auth)
@@ -277,21 +287,25 @@ namespace Couchbase
 			throw new MemcachedClientException("Could not resolve " + hostname);
 		}
 
-        protected IMemcachedNode CreateNode(IPEndPoint endpoint, ISaslAuthenticationProvider auth, Dictionary<string, object> nodeInfo) {
+        protected IMemcachedNode CreateNode(IPEndPoint endpoint, ISaslAuthenticationProvider auth, Dictionary<string, object> nodeInfo)
+        {
+            log.DebugFormat("Creating node {0}", this);
             string couchApiBase;
-            if (!nodeInfo.TryGetValue("couchApiBase", out couchApiBase) || String.IsNullOrEmpty(couchApiBase)) {
-                return new BinaryNode(endpoint, this.configuration.SocketPool, auth);
+            if (!nodeInfo.TryGetValue("couchApiBase", out couchApiBase) || String.IsNullOrEmpty(couchApiBase))
+            {
+                return new CouchbaseNode(endpoint, configuration.SocketPool, auth);
             }
-            
+
             return new CouchbaseNode(endpoint, new Uri(couchApiBase), this.configuration, auth);                                            
         }
 
 		void IDisposable.Dispose()
 		{
-			GC.SuppressFinalize(this);
+            log.DebugFormat("Disposing {0}", this);
+            GC.SuppressFinalize(this);
 
 			if (this.state != null && this.state != InternalState.Empty)
-				lock (this.DeadSync)
+				lock (_syncObj)
 				{
 					if (this.state != null && this.state != InternalState.Empty)
 					{
@@ -308,11 +322,15 @@ namespace Couchbase
 						this.resurrectTimer = null;
 
 						// close the pools
-						if (currentNodes != null)
-							for (var i = 0; i < currentNodes.Length; i++)
-								currentNodes[i].Dispose();
+                        if (currentNodes != null)
+                        {
+                            foreach (var node in currentNodes)
+                            {
+                                node.Dispose();
+                            }
+                        }
 					}
-				}
+                }
 		}
 
 		private void rezCallback(object o)
@@ -337,7 +355,7 @@ namespace Couchbase
 			// 6. if at least one server is still down (Ping() == false), we restart the timer
 			// 7. if all servers are up, we set isRunning to false, so the timer is suspended
 			// 8. GOTO 2
-			lock (this.DeadSync)
+			lock (_syncObj)
 			{
 				if (this.state == null || this.state == InternalState.Empty) return;
 
@@ -403,7 +421,7 @@ namespace Couchbase
 			if (isDebug) log.DebugFormat("Node {0} is dead.", node.EndPoint);
 
 			// block the rest api listener until we're finished here
-			lock (this.DeadSync)
+			lock (_syncObj)
 			{
 				var currentState = this.state;
 
@@ -504,7 +522,7 @@ namespace Couchbase
 			if (this.state == null)
 			{
 				if (log.IsDebugEnabled) log.Debug("this.state was null, returning empty array for working nodes");
-				return new CouchbaseNode[] { };
+				return new ICouchbaseNode[] { };
 			}
 
 			return this.state.Locator.GetWorkingNodes();
@@ -512,6 +530,7 @@ namespace Couchbase
 
 		void IServerPool.Start()
 		{
+            log.DebugFormat("Starting {0}", this);
 			// get the pool urls
 			this.poolUrls = this.configuration.Urls.ToArray();
 			if (this.poolUrls.Length == 0)
@@ -550,7 +569,11 @@ namespace Couchbase
 
 		private class InternalState
 		{
-			public static readonly InternalState Empty = new InternalState { CurrentNodes = new IMemcachedNode[0], Locator = new NotFoundLocator() };
+			public static readonly InternalState Empty = new InternalState
+            {
+                CurrentNodes = new IMemcachedNode[0],
+                Locator = new NotFoundLocator()
+            };
 
 			public IMemcachedNodeLocator Locator;
 			//public VBucketNodeLocator ForwardLocator;

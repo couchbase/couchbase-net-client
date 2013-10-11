@@ -8,7 +8,7 @@ namespace Enyim.Caching.Memcached
 	/// <summary>
 	/// Supports exactly one reader and writer, but they can access the buffer concurrently.
 	/// </summary>
-	internal class SlidingBuffer
+	public class SlidingBuffer
 	{
 		private readonly InterlockedQueue<Segment> buffers;
 		private readonly int chunkSize;

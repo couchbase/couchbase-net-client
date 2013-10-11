@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests
@@ -18,12 +20,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Incrementing_Value_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("mutate");
-			var mutateResult = _Client.ExecuteIncrement(key, 100, 10);
-			MutateAssertPass(mutateResult, 100);
+            var key = TestUtils.GetUniqueKey("mutate");
+			var mutateResult = Client.ExecuteIncrement(key, 100, 10);
+            TestUtils.MutateAssertPass(mutateResult, 100);
 
-			mutateResult = _Client.ExecuteIncrement(key, 100, 10);
-			MutateAssertPass(mutateResult, 110);
+			mutateResult = Client.ExecuteIncrement(key, 100, 10);
+            TestUtils.MutateAssertPass(mutateResult, 110);
 		}
 
         /// <summary>
@@ -35,12 +37,12 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Decrementing_Value_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("mutate");
-			var mutateResult = _Client.ExecuteDecrement(key, 100, 10);
-			MutateAssertPass(mutateResult, 100);
+            var key = TestUtils.GetUniqueKey("mutate");
+			var mutateResult = Client.ExecuteDecrement(key, 100, 10);
+            TestUtils.MutateAssertPass(mutateResult, 100);
 
-			mutateResult = _Client.ExecuteDecrement(key, 100, 10);
-			MutateAssertPass(mutateResult, 90);
+			mutateResult = Client.ExecuteDecrement(key, 100, 10);
+            TestUtils.MutateAssertPass(mutateResult, 90);
 		}
 	}
 }

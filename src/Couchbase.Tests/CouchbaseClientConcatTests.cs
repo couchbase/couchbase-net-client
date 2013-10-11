@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests
@@ -18,19 +20,19 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+			var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var toAppend = "The End";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toAppend));
-			var concatResult = _Client.ExecuteAppend(key, data);
-			ConcatAssertPass(concatResult);
+			var concatResult = Client.ExecuteAppend(key, data);
+            TestUtils.ConcatAssertPass(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertPass(getResult, value + toAppend);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertPass(getResult, value + toAppend);
 		}
 
 
@@ -44,15 +46,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Appending_To_Invalid_Key_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("concat");
+            var key = TestUtils.GetUniqueKey("concat");
 
 			var toAppend = "The End";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toAppend));
-			var concatResult = _Client.ExecuteAppend(key, data);
-			ConcatAssertFail(concatResult);
+			var concatResult = Client.ExecuteAppend(key, data);
+            TestUtils.ConcatAssertFail(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertFail(getResult);
 
 		}
 
@@ -65,19 +67,19 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Successful()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+            var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var toPrepend = "The Beginning";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toPrepend));
-			var concatResult = _Client.ExecutePrepend(key, data);
-			ConcatAssertPass(concatResult);
+			var concatResult = Client.ExecutePrepend(key, data);
+            TestUtils.ConcatAssertPass(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertPass(getResult, toPrepend + value);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertPass(getResult, toPrepend + value);
 
 		}
 
@@ -90,15 +92,15 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Prepending_To_Invalid_Key_Result_Is_Not_Successful()
 		{
-			var key = GetUniqueKey("concat");
+            var key = TestUtils.GetUniqueKey("concat");
 
 			var toPrepend = "The End";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toPrepend));
-			var concatResult = _Client.ExecutePrepend(key, data);
-			ConcatAssertFail(concatResult);
+			var concatResult = Client.ExecutePrepend(key, data);
+            TestUtils.ConcatAssertFail(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertFail(getResult);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertFail(getResult);
 
 		}
 
@@ -112,19 +114,19 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Successful_With_Valid_Cas()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+            var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var toAppend = "The End";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toAppend));
-			var concatResult = _Client.ExecuteAppend(key, storeResult.Cas, data);
-			ConcatAssertPass(concatResult);
+			var concatResult = Client.ExecuteAppend(key, storeResult.Cas, data);
+            TestUtils.ConcatAssertPass(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertPass(getResult, value + toAppend);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertPass(getResult, value + toAppend);
 
 		}
 
@@ -137,16 +139,16 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Appending_To_Existing_Value_Result_Is_Not_Successful_With_Invalid_Cas()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+            var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var toAppend = "The End";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(toAppend));
-			var concatResult = _Client.ExecuteAppend(key, storeResult.Cas - 1, data);
-			ConcatAssertFail(concatResult);
+			var concatResult = Client.ExecuteAppend(key, storeResult.Cas - 1, data);
+            TestUtils.ConcatAssertFail(concatResult);
 		}
 
         /// <summary>
@@ -158,19 +160,19 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Successful_With_Valid_Cas()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+            var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var tpPrepend = "The Beginning";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(tpPrepend));
-			var concatResult = _Client.ExecuteAppend(key, storeResult.Cas, data);
-			ConcatAssertPass(concatResult);
+			var concatResult = Client.ExecuteAppend(key, storeResult.Cas, data);
+            TestUtils.ConcatAssertPass(concatResult);
 
-			var getResult = _Client.ExecuteGet(key);
-			GetAssertPass(getResult, value + tpPrepend);
+			var getResult = Client.ExecuteGet(key);
+            TestUtils.GetAssertPass(getResult, value + tpPrepend);
 		}
 
         /// <summary>
@@ -182,19 +184,17 @@ namespace Couchbase.Tests
 		[Test]
 		public void When_Prepending_To_Existing_Value_Result_Is_Not_Successful_With_Invalid_Cas()
 		{
-			var key = GetUniqueKey("concat");
-			var value = GetRandomString();
+            var key = TestUtils.GetUniqueKey("concat");
+            var value = TestUtils.GetRandomString();
 
-			var storeResult = Store(key: key);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, key: key);
+            TestUtils.StoreAssertPass(storeResult);
 
 			var tpPrepend = "The Beginning";
 			var data = new ArraySegment<byte>(Encoding.ASCII.GetBytes(tpPrepend));
-			var concatResult = _Client.ExecuteAppend(key, storeResult.Cas - 1, data);
-			ConcatAssertFail(concatResult);
-
+			var concatResult = Client.ExecuteAppend(key, storeResult.Cas - 1, data);
+            TestUtils.ConcatAssertFail(concatResult);
 		}
-
 	}
 }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Tests.Factories;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Couchbase.Tests.Utils;
@@ -19,13 +20,13 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.GetWithLock(kv.Item1);
+			var casResult = Client.GetWithLock(kv.Item1);
 			Assert.That(casResult.Result, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
 		}
@@ -35,23 +36,23 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.GetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
+			var casResult = Client.GetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
 			Assert.That(casResult.Result, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
 			Thread.Sleep(3000);
 
 			var newValue = KeyValueUtils.GenerateValue();
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
 			Assert.That(storeResult.Success, Is.True);
 
-			var getResult = _Client.ExecuteGet(kv.Item1);
-			GetAssertPass(getResult, newValue);
+			var getResult = Client.ExecuteGet(kv.Item1);
+            TestUtils.GetAssertPass(getResult, newValue);
 		}
 
 		[Test]
@@ -59,16 +60,16 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var casResult = _Client.GetWithLock(kv.Item1, TimeSpan.FromSeconds(15));
+			var casResult = Client.GetWithLock(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(casResult.Result, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
-			storeResult = _Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), casResult.Cas);
+			storeResult = Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), casResult.Cas);
 			Assert.That(storeResult.Success, Is.True);
 		}
 
@@ -77,13 +78,13 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock(kv.Item1);
+			var getlResult = Client.ExecuteGetWithLock(kv.Item1);
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
 		}
@@ -93,23 +94,23 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
+			var getlResult = Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
 			Thread.Sleep(3000);
 
 			var newValue = KeyValueUtils.GenerateValue();
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
 			Assert.That(storeResult.Success, Is.True);
 
-			var getResult = _Client.ExecuteGet(kv.Item1);
-			GetAssertPass(getResult, newValue);
+			var getResult = Client.ExecuteGet(kv.Item1);
+            TestUtils.GetAssertPass(getResult, newValue);
 		}
 
 		[Test]
@@ -117,16 +118,16 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult = Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
-			storeResult = _Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), getlResult.Cas);
+			storeResult = Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), getlResult.Cas);
 			Assert.That(storeResult.Success, Is.True);
 		}
 
@@ -135,13 +136,13 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock<string>(kv.Item1);
+			var getlResult = Client.ExecuteGetWithLock<string>(kv.Item1);
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
 		}
@@ -151,23 +152,23 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(2));
+			var getlResult = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(2));
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
 			Thread.Sleep(3000);
 
 			var newValue = KeyValueUtils.GenerateValue();
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
 			Assert.That(storeResult.Success, Is.True);
 
-			var getResult = _Client.ExecuteGet(kv.Item1);
-			GetAssertPass(getResult, newValue);
+			var getResult = Client.ExecuteGet(kv.Item1);
+            TestUtils.GetAssertPass(getResult, newValue);
 		}
 
 		[Test]
@@ -175,16 +176,16 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 
-			storeResult = _Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), getlResult.Cas);
+			storeResult = Client.ExecuteCas(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue(), getlResult.Cas);
 			Assert.That(storeResult.Success, Is.True);
 		}
 
@@ -193,23 +194,23 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult1 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult1 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult1.Value, Is.EqualTo(kv.Item2));
 			Assert.That(getlResult1.Success, Is.True);
 
-			var getlResult2 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult2 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult2.Success, Is.False);
 
-			var unlockResult = _Client.ExecuteUnlock(kv.Item1, getlResult1.Cas);
+			var unlockResult = Client.ExecuteUnlock(kv.Item1, getlResult1.Cas);
 			Assert.That(unlockResult.Success, Is.True);
 
-			storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult3 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult3 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult3.Success, Is.True);
 
 		}
@@ -219,23 +220,23 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult1 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult1 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult1.Value, Is.EqualTo(kv.Item2));
 			Assert.That(getlResult1.Success, Is.True);
 
-			var getlResult2 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult2 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult2.Success, Is.False);
 
-			var unlockResult = _Client.ExecuteUnlock(kv.Item1, getlResult1.Cas-1);
+			var unlockResult = Client.ExecuteUnlock(kv.Item1, getlResult1.Cas-1);
 			Assert.That(unlockResult.Success, Is.False);
 
-			storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertFail(storeResult);
+            storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertFail(storeResult);
 
-			var getlResult3 = _Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
+			var getlResult3 = Client.ExecuteGetWithLock<string>(kv.Item1, TimeSpan.FromSeconds(15));
 			Assert.That(getlResult3.Success, Is.False);
 
 		}
@@ -245,30 +246,30 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(6));
+			var getlResult = Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(6));
 			Assert.That(getlResult.Value, Is.EqualTo(kv.Item2));
 
-			var otherGetlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
+			var otherGetlResult = Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(2));
 			Assert.That(otherGetlResult.Cas, Is.Not.EqualTo(getlResult.Cas));
 			Assert.That(otherGetlResult.StatusCode, Is.EqualTo((int)CouchbaseStatusCodeEnums.LockError));
 
 			Thread.Sleep(3000);
 
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
 			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
 
 			Thread.Sleep(4000);
 
 			var newValue = KeyValueUtils.GenerateValue();
-			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
+			storeResult = Client.ExecuteStore(StoreMode.Set, kv.Item1, newValue);
 			Assert.That(storeResult.Success, Is.True, "Failed to update item");
 
-			var getResult = _Client.ExecuteGet(kv.Item1);
-			GetAssertPass(getResult, newValue);
+			var getResult = Client.ExecuteGet(kv.Item1);
+            TestUtils.GetAssertPass(getResult, newValue);
 		}
 
 		[Test]
@@ -277,25 +278,25 @@ namespace Couchbase.Tests
 		{
 			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			var getlResult = _Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(31));
+			var getlResult = Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(31));
 		}
 
-		[Test]
-		[ExpectedException(typeof(ArgumentOutOfRangeException))]
-		public void When_Timeout_Is_Less_Than_Or_Equal_To_30_Seconds_Exception_Is_Not_Thrown()
-		{
-			var kv = KeyValueUtils.GenerateKeyAndValue("getl");
+	    [Test]
+	    [ExpectedException(typeof (ArgumentOutOfRangeException))]
+	    public void When_Timeout_Is_Less_Than_Or_Equal_To_30_Seconds_Exception_Is_Not_Thrown()
+	    {
+	        var kv = KeyValueUtils.GenerateKeyAndValue("getl");
 
-			var storeResult = Store(StoreMode.Set, kv.Item1, kv.Item2);
-			StoreAssertPass(storeResult);
+            var storeResult = TestUtils.Store(Client, StoreMode.Set, kv.Item1, kv.Item2);
+            TestUtils.StoreAssertPass(storeResult);
 
-			_Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(30));
-			_Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(29));
-			Assert.Pass();
-		}
+	        Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(30));
+	        Client.ExecuteGetWithLock(kv.Item1, TimeSpan.FromSeconds(29));
+	        Assert.Pass();
+	    }
 	}
 }
 

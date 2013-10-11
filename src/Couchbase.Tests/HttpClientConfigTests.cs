@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Enyim.Caching;
 using NUnit.Framework;
 using Couchbase.Configuration;
 using Enyim.Caching.Memcached;
@@ -12,6 +13,7 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class HttpClientConfigTests : CouchbaseClientViewTestsBase
 	{
+        private static readonly ILog Log = LogManager.GetLogger(typeof(HttpClientConfigTests));
         /// <summary>
         /// @test: Reads the configuration of Http client from App.config and gets the view in specified design document
         /// @pre: Add section named "httpclient-config-initconn" in App.config file,
@@ -20,12 +22,14 @@ namespace Couchbase.Tests
         /// @post: Test passes if successfully gets the view, fails otherwise
         /// </summary>
 		[Test]
-		public void View_Operations_Succeed_When_Initialize_Connection_Is_True()
+        public void View_Operations_Succeed_When_Initialize_Connection_Is_True()
 		{
 			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("httpclient-config-initconn");
-			var client = new CouchbaseClient(config);
-			var view = client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
-			viewPass(view);
+            using (var client = new CouchbaseClient(config))
+            {
+                var view = client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+                ViewPass(view);
+            }
 		}
 
         /// <summary>
@@ -39,10 +43,11 @@ namespace Couchbase.Tests
 		public void View_Operations_Succeed_When_Initialize_Connection_Is_False()
 		{
 			var config = ConfigSectionUtils.GetConfigSection<CouchbaseClientSection>("httpclient-config-noinitconn");
-			var client = new CouchbaseClient(config);
-
-			var view = client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
-			viewPass(view);
+            using (var client = new CouchbaseClient(config))
+            {
+                var view = client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+                ViewPass(view);
+            }
 		}
 
         /// <summary>
@@ -52,17 +57,17 @@ namespace Couchbase.Tests
         /// @post: Test passes if successfully gets the view, fails otherwise
         /// </summary>
 		[Test]
-		public void View_Operations_Succeed_When_HTTP_Client_Is_Not_Configured_In_App_Config()
+		public void View_Operations_Succeed_When_HTTPClient_Is_Not_Configured_In_App_Config()
 		{
-			var view = _Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
-			viewPass(view);
+			var view = Client.GetView<City>("cities", "by_name", true).Stale(StaleMode.False);
+			ViewPass(view);
 		}
 
         /// <summary>
         /// Verifies all the properties of view and asserts true if it is not null, false otherwise
         /// </summary>
         /// <param name="view">Name of design view</param>
-		private void viewPass(IView<City> view)
+		private static void ViewPass(IView<City> view)
 		{			
 			foreach (var item in view)
 			{

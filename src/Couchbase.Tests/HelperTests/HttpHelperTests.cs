@@ -11,7 +11,7 @@ namespace Couchbase.Tests.HelperTests
 	[TestFixture(Category="HelperTests")]
 	public class HttpHelperTests
 	{
-		private string _url = "http://localhost:8888/";
+		private string _url = "http://localhost:8889/";
 		private string _output = "OK";
 		private HttpListener _listener = null;
 
@@ -30,8 +30,6 @@ namespace Couchbase.Tests.HelperTests
 				ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
 				ctx.Response.OutputStream.Close();
 			}, _listener);
-
-			
 		}
 
 		[TearDown]

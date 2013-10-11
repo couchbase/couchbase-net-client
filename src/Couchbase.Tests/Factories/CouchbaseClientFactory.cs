@@ -7,16 +7,17 @@ namespace Couchbase.Tests.Factories
 {
 	public static class CouchbaseClientFactory
 	{
-		private static ICouchbaseClient _client;
+		private static ICouchbaseClient Client;
 
 		public static ICouchbaseClient CreateCouchbaseClient()
 		{
-			if (_client == null)
+			if (Client == null)
 			{
-				_client = new CouchbaseClient("couchbase");
+                log4net.Config.XmlConfigurator.Configure();
+				Client = new CouchbaseClient("couchbase");
 			}
 
-			return _client;
+			return Client;
 		}
 	}
 }

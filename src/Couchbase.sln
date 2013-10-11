@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase", "Couchbase\Couchbase.csproj", "{708A2350-A26C-444D-B975-8164263951A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Tests", "Couchbase.Tests\Couchbase.Tests.csproj", "{B286E960-FC97-4ED5-97C1-BDB44DECD3A3}"

@@ -11,14 +11,13 @@ namespace Couchbase.Tests
 {
 	public abstract class CouchbaseClusterTestsBase
 	{
-		protected CouchbaseCluster _Cluster;
+		protected CouchbaseCluster Cluster;
 
-		[SetUp]
-		public void SetUp()
+		[TestFixtureSetUp]
+		public void TestFixtureSetUp()
 		{
-			_Cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
+			Cluster = CouchbaseClusterFactory.CreateCouchbaseCluster();
 		}
-
 	}
 }
 

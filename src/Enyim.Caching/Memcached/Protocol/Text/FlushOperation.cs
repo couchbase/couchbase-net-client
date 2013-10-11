@@ -13,13 +13,13 @@ namespace Enyim.Caching.Memcached.Protocol.Text
 			return TextSocketHelper.GetCommandBuffer("flush_all" + TextSocketHelper.CommandTerminator);
 		}
 
-		protected internal override IOperationResult ReadResponse(PooledSocket socket)
+		protected internal override IOperationResult ReadResponse(IPooledSocket socket)
 		{
 			TextSocketHelper.ReadResponse(socket);
 			return new TextOperationResult().Pass();
 		}
 
-		protected internal override bool ReadResponseAsync(PooledSocket socket, System.Action<bool> next)
+		protected internal override bool ReadResponseAsync(IPooledSocket socket, System.Action<bool> next)
 		{
 			throw new System.NotSupportedException();
 		}
