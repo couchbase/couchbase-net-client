@@ -1,8 +1,7 @@
 using System;
-using System.Net;
 using System.Collections.Generic;
-using Enyim.Caching.Memcached.Protocol;
 using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached
 {
@@ -11,7 +10,7 @@ namespace Enyim.Caching.Memcached
 		IList<ArraySegment<byte>> GetBuffer();
 		IOperationResult ReadResponse(PooledSocket socket);
 
-		int StatusCode { get; }
+		StatusCode StatusCode { get; }
 
 		/// <summary>
 		/// 'next' is called when the operation completes. The bool parameter indicates the success of the operation.
@@ -81,7 +80,7 @@ namespace Enyim.Caching.Memcached
 	{
 		public T Result { get; set; }
 		public ulong Cas { get; set; }
-		public int StatusCode { get; set; }
+		public StatusCode StatusCode { get; set; }
 	}
 }
 

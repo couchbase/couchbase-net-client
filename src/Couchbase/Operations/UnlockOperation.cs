@@ -8,6 +8,7 @@ using Couchbase.Protocol;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Helpers;
 using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Couchbase.Operations
 {
@@ -48,7 +49,7 @@ namespace Couchbase.Operations
 			var status = response.StatusCode;
 			var result = new BinaryOperationResult();
 
-			this.StatusCode = status;
+			this.StatusCode = (StatusCode)status;
 
 			if (status == 0)
 			{

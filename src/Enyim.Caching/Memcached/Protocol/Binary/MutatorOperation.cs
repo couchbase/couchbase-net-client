@@ -2,6 +2,7 @@ using System;
 using Enyim.Caching.Memcached.Results.Extensions;
 using Enyim.Caching.Memcached.Results.Helpers;
 using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Protocol.Binary
 {
@@ -56,7 +57,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 		{
 			var result = new BinaryOperationResult();
 			var status = response.StatusCode;
-			this.StatusCode = status;
+            this.StatusCode = status.ToStatusCode();
 
 			if (status == 0)
 			{

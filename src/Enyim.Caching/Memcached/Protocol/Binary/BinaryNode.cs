@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using Enyim.Caching.Configuration;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 using Enyim.Collections;
 using System.Security;
 
@@ -55,7 +56,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 			while (!currentStep.ReadResponse(socket).Success)
 			{
 				// challenge-response authentication
-				if (currentStep.StatusCode == 0x21)
+				if (currentStep.StatusCode == StatusCode.ContinueAuthentication)
 				{
 					currentStep = new SaslContinue(this.authenticationProvider, currentStep.Data);
 					socket.Write(currentStep.GetBuffer());
@@ -63,7 +64,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 				else
 				{
 					if (log.IsWarnEnabled)
-						log.WarnFormat("Authentication failed, return code: 0x{0:x}", currentStep.StatusCode);
+						log.WarnFormat("Authentication failed, return code: ", currentStep.StatusCode);
 
 					// invalid credentials or other error
 					return false;

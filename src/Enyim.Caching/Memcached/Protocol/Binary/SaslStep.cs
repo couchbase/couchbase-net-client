@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Protocol.Binary
 {
@@ -21,7 +22,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 
 			var retval = response.Read(socket);
 
-			this.StatusCode = response.StatusCode;
+			this.StatusCode = response.StatusCode.ToStatusCode();
 			this.Data = response.Data.Array;
 
 			var result = new BinaryOperationResult

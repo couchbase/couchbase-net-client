@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Results
 {
@@ -13,7 +11,7 @@ namespace Enyim.Caching.Memcached.Results
 
 		public Exception Exception { get; set; }
 
-		public int? StatusCode { get; set; }
+		public StatusCode? StatusCode { get; set; }
 
 		public IOperationResult InnerResult { get; set; }
 

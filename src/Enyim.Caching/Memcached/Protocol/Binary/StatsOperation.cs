@@ -4,6 +4,7 @@ using System.Text;
 using System.Net;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Protocol.Binary
 {
@@ -46,7 +47,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 			}
 
 			this.result = serverData;
-			this.StatusCode = response.StatusCode;
+            this.StatusCode = response.StatusCode.ToStatusCode();
 
 			var result = new BinaryOperationResult()
 			{
