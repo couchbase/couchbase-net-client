@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Protocol.Binary;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 using Newtonsoft.Json;
 using Couchbase.Configuration;
 using Couchbase.Results;
 using Enyim.Caching.Memcached.Results.Extensions;
-using Enyim.Caching.Memcached.Protocol;
 using System.IO;
 
 namespace Couchbase
@@ -58,7 +55,7 @@ namespace Couchbase
 				catch (IOException e)
 				{
 					log.Error(e);
-
+				    readResult.StatusCode = StatusCode.UnspecifiedError;
 					readResult.Fail("Exception reading response", e);
 					return readResult;
 				}

@@ -58,14 +58,6 @@
     <Reference Include="System.Web.Extensions">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\HttpClientElement.cs" />
@@ -187,7 +179,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Enyim.Caching\Enyim.Caching.csproj">
-      <Project>{EB42E369-1ADF-4E08-8DB7-6FA792ABDCC7}</Project>
+      <Project>{eb42e369-1adf-4e08-8db7-6fa792abdcc7}</Project>
       <Name>Enyim.Caching</Name>
     </ProjectReference>
   </ItemGroup>

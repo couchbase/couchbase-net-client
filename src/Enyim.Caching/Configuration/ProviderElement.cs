@@ -4,7 +4,6 @@ using System.Configuration;
 using System.Collections.Generic;
 using Enyim.Caching.Memcached;
 using Enyim.Reflection;
-using System.Xml.Linq;
 
 namespace Enyim.Caching.Configuration
 {

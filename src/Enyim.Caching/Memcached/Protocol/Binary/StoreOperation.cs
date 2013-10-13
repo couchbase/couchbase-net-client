@@ -3,6 +3,7 @@ using System.Text;
 using Enyim.Caching.Memcached.Results;
 using Enyim.Caching.Memcached.Results.Helpers;
 using Enyim.Caching.Memcached.Results.Extensions;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Protocol.Binary
 {
@@ -62,7 +63,7 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
 					log.DebugFormat("Store failed for key '{0}'. Reason: {1}", this.Key, Encoding.ASCII.GetString(response.Data.Array, response.Data.Offset, response.Data.Count));
 				}
 #endif
-			this.StatusCode = response.StatusCode;
+            this.StatusCode = response.StatusCode.ToStatusCode();
 			if (response.StatusCode == 0)
 			{
 				return result.Pass();

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
 using Couchbase.Tests.Utils;
@@ -27,7 +24,7 @@ namespace Couchbase.Tests
 
 			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
-			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
+			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCode.KeyExists));
 		}
 
 		[Test]
@@ -85,7 +82,7 @@ namespace Couchbase.Tests
 
 			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
-			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
+			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCode.KeyExists));
 		}
 
 		[Test]
@@ -143,7 +140,7 @@ namespace Couchbase.Tests
 
 			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
-			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
+            Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCode.KeyExists));
 		}
 
 		[Test]
@@ -259,7 +256,7 @@ namespace Couchbase.Tests
 
 			storeResult = _Client.ExecuteStore(StoreMode.Set, kv.Item1, KeyValueUtils.GenerateValue());
 			Assert.That(storeResult.Success, Is.False);
-			Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCodeEnums.DataExistsForKey));
+            Assert.That(storeResult.StatusCode.Value, Is.EqualTo((int)StatusCode.KeyExists));
 
 			Thread.Sleep(4000);
 

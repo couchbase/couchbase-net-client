@@ -48,9 +48,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-   <Compile Include="..\Enyim.Caching\StatusCode.cs">
-      <Link>StatusCode.cs</Link>
-    </Compile>
     <Compile Include="..\Enyim.Caching\Configuration\AuthenticationConfiguration.cs">
       <Link>Configuration\AuthenticationConfiguration.cs</Link>
     </Compile>
@@ -496,8 +493,8 @@
     <Compile Include="..\Enyim.Caching\Memcached\Results\RemoveOperationResult.cs">
       <Link>Memcached\Results\RemoveOperationResult.cs</Link>
     </Compile>
-    <Compile Include="..\Enyim.Caching\Memcached\Results\StatusCodes\StatusCodeEnums.cs">
-      <Link>Memcached\Results\StatusCodes\StatusCodeEnums.cs</Link>
+    <Compile Include="..\Enyim.Caching\Memcached\Results\StatusCodes\StatusCodeEnum.cs">
+      <Link>Memcached\Results\StatusCodes\StatusCodeEnum.cs</Link>
     </Compile>
     <Compile Include="..\Enyim.Caching\Memcached\Results\StatusCodes\StatusCodeMessages.cs">
       <Link>Memcached\Results\StatusCodes\StatusCodeMessages.cs</Link>

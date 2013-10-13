@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Enyim.Caching.Memcached.Results;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Protocol
 {
@@ -32,12 +33,12 @@ namespace Enyim.Caching.Memcached.Protocol
 			return this.ReadResponseAsync(socket, next);
 		}
 
-		int IOperation.StatusCode
+		StatusCode IOperation.StatusCode
 		{
 			get { return this.StatusCode; }
 		}
 
-		public int StatusCode { get; protected set; }
+		public StatusCode StatusCode { get; protected set; }
 	}
 }
 

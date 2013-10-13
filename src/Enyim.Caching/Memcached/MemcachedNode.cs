@@ -317,7 +317,7 @@ namespace Enyim.Caching.Memcached
 					message = "Pool is full, timeouting. " + this.endPoint;
 					if (hasDebug) log.Debug(message);
 					result.Fail(message, new TimeoutException());
-				    result.StatusCode = (int)StatusCode.SocketPoolTimeout;
+				    result.StatusCode = StatusCode.SocketPoolTimeout;
 
 					// everyone is so busy
 					return result;

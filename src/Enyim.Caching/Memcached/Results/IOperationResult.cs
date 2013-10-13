@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Enyim.Caching.Memcached.Results.StatusCodes;
 
 namespace Enyim.Caching.Memcached.Results
 {
@@ -27,7 +28,7 @@ namespace Enyim.Caching.Memcached.Results
 		/// <summary>
 		/// The StatusCode returned from the server
 		/// </summary>
-		int? StatusCode { get; set; }
+		StatusCode? StatusCode { get; set; }
 
 		/// <summary>
 		/// A result that influenced the current result
