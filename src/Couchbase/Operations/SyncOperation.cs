@@ -15,6 +15,7 @@ namespace Couchbase
 	[Flags]
 	public enum SyncMode { Mutation = 1, Persistence = 2, Replication = 4 };
 
+    [Obsolete("Functionality replaced by PersistTo and ReplicateTo parameters.")]
 	internal class SyncOperation : BinaryOperation, ISyncOperation
 	{
 		private VBucketNodeLocator locator;

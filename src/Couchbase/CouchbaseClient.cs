@@ -1110,6 +1110,7 @@ namespace Couchbase
         /// <param name="cas">The cas.</param>
         /// <param name="mode">The mode.</param>
         /// <returns></returns>
+        [Obsolete("Functionality replaced by PersistTo and ReplicateTo parameters.")]
 		public SyncResult Sync(string key, ulong cas, SyncMode mode)
 		{
 			return this.Sync(key, cas, mode, 0);
@@ -1123,6 +1124,7 @@ namespace Couchbase
         /// <param name="mode">The mode.</param>
         /// <param name="replicationCount">The replication count.</param>
         /// <returns></returns>
+        [Obsolete("Functionality replaced by PersistTo and ReplicateTo parameters.")]
 		public SyncResult Sync(string key, ulong cas, SyncMode mode, int replicationCount)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -1142,6 +1144,7 @@ namespace Couchbase
         /// <param name="mode">The mode.</param>
         /// <param name="items">The items.</param>
         /// <returns></returns>
+        [Obsolete("Functionality replaced by PersistTo and ReplicateTo parameters.")]
 		public IDictionary<string, SyncResult> Sync(SyncMode mode, IEnumerable<KeyValuePair<string, ulong>> items)
 		{
 			return this.PerformMultiSync(mode, 0, items);
@@ -1154,6 +1157,7 @@ namespace Couchbase
         /// <param name="replicationCount">The replication count.</param>
         /// <param name="items">The items.</param>
         /// <returns></returns>
+        [Obsolete("Functionality replaced by PersistTo and ReplicateTo parameters.")]
 		protected IDictionary<string, SyncResult> PerformMultiSync(SyncMode mode, int replicationCount, IEnumerable<KeyValuePair<string, ulong>> items)
 		{
 			// transform the keys and index them by hashed => original
