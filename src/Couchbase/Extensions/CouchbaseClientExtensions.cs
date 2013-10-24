@@ -100,11 +100,15 @@ namespace Couchbase.Extensions
 		}
 		#endregion
 
+	    private static bool IsArrayOrCollection(Type type)
+	    {
+	        return type.GetInterface(typeof (IEnumerable<>).FullName) != null;
+	    }
+
 		public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
 		{
 			var json = client.Get<string>(key);
-			json = DocHelper.InsertId(json, key);
-			return json == null ? null : JsonConvert.DeserializeObject<T>(json);
+		    return json == null ? null : DeserializeObject<T>(key, json);
 		}
 
 		public static IGetOperationResult<T> ExecuteGetJson<T>(this ICouchbaseClient client, string key) where T : class
@@ -118,12 +122,18 @@ namespace Couchbase.Extensions
 			{
 				return retVal;
 			}
-
-			var json = DocHelper.InsertId(result.Value, key);
-			var obj = JsonConvert.DeserializeObject<T>(json);
-			retVal.Value = obj;
+            retVal.Value = DeserializeObject<T>(key, result.Value);
 			return retVal;
 		}
+
+	    private static T DeserializeObject<T>(string key, string value)
+	    {
+            if (!IsArrayOrCollection(typeof(T)))
+            {
+                value = DocHelper.InsertId(value, key);
+            }
+            return JsonConvert.DeserializeObject<T>(value);
+	    }
 
 		private static string SerializeObject(object value)
 		{

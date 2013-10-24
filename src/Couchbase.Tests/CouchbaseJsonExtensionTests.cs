@@ -154,6 +154,30 @@ namespace Couchbase.Tests
 			Assert.That(savedCity.Type, Is.StringMatching("city"));
 			Assert.That(savedCity.State, Is.StringMatching("MA"));
 		}
+
+        [Test]
+	    public void Test_That_StoreJson_Can_Store_Lists_As_Json()
+        {
+            var key = "Test_That_GetJson_Can_Retrieve_Lists_As_Json";
+            var list = new List<int> {1, 2, 3, 4};
+            var result = Client.StoreJson(StoreMode.Set, key, list);
+            Assert.IsTrue(result);
+
+            var output = Client.GetJson<List<int>>(key);
+            Assert.AreEqual(list.Count, output.Count);
+        }
+
+        [Test]
+        public void Test_That_StoreJson_Can_Store_Arrays_As_Json()
+        {
+            var key = "Test_That_GetJson_Can_Retrieve_Arrays_As_Json";
+            var list = new []{ 1, 2, 3, 4 };
+            var result = Client.StoreJson(StoreMode.Set, key, list);
+            Assert.IsTrue(result);
+
+            var output = Client.GetJson<int[]>(key);
+            Assert.AreEqual(list.Count(), output.Count());
+        }
 		#endregion
 
         private class City
