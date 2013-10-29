@@ -98,6 +98,13 @@ namespace Couchbase
 			this(If((ICouchbaseClientConfiguration)ConfigurationManager.GetSection(sectionName),
 					(o) => { if (o == null) throw new ArgumentException("Missing section: " + sectionName); })) { }
 
+        /// <summary>
+        /// Performs the try get.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		protected override IGetOperationResult PerformTryGet(string key, out ulong cas, out object value)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -136,6 +143,16 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Performs the mutate.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="defaultValue">The default value.</param>
+        /// <param name="delta">The delta.</param>
+        /// <param name="expires">The expires.</param>
+        /// <param name="cas">The cas.</param>
+        /// <returns></returns>
 		protected override IMutateOperationResult PerformMutate(MutationMode mode, string key, ulong defaultValue, ulong delta, uint expires, ref ulong cas)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -172,6 +189,14 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Performs the concatenate.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="data">The data.</param>
+        /// <returns></returns>
 		protected override IConcatOperationResult PerformConcatenate(ConcatenationMode mode, string key, ref ulong cas, ArraySegment<byte> data)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -205,6 +230,16 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Performs the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="expires">The expires.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="statusCode">The status code.</param>
+        /// <returns></returns>
 		protected override IStoreOperationResult PerformStore(StoreMode mode, string key, object value, uint expires, ref ulong cas, out int statusCode)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -306,16 +341,31 @@ namespace Couchbase
 			return opResult;
 		}
 
+        /// <summary>
+        /// Touches the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="nextExpiration">The next expiration.</param>
 		public void Touch(string key, DateTime nextExpiration)
 		{
 			PerformTouch(key, GetExpiration(null, nextExpiration));
 		}
 
+        /// <summary>
+        /// Touches the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="nextExpiration">The next expiration.</param>
 		public void Touch(string key, TimeSpan nextExpiration)
 		{
 			PerformTouch(key, GetExpiration(nextExpiration, null));
 		}
 
+        /// <summary>
+        /// Performs the touch.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="nextExpiration">The next expiration.</param>
 		protected void PerformTouch(string key, uint nextExpiration)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -328,6 +378,12 @@ namespace Couchbase
 			}
 		}
 
+        /// <summary>
+        /// Gets the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public object Get(string key, DateTime newExpiration)
 		{
 			object tmp;
@@ -335,6 +391,13 @@ namespace Couchbase
 			return this.TryGet(key, newExpiration, out tmp) ? tmp : null;
 		}
 
+        /// <summary>
+        /// Gets the specified key.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public T Get<T>(string key, DateTime newExpiration)
 		{
 			object tmp;
@@ -342,6 +405,12 @@ namespace Couchbase
 			return TryGet(key, newExpiration, out tmp) ? (T)tmp : default(T);
 		}
 
+        /// <summary>
+        /// Executes the get.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public IGetOperationResult ExecuteGet(string key, DateTime newExpiration)
 		{
 			object tmp;
@@ -349,6 +418,13 @@ namespace Couchbase
 			return this.ExecuteTryGet(key, newExpiration, out tmp);
 		}
 
+        /// <summary>
+        /// Executes the get.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public IGetOperationResult<T> ExecuteGet<T>(string key, DateTime newExpiration)
 		{
 			object tmp;
@@ -377,6 +453,13 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Tries the get.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		public bool TryGet(string key, DateTime newExpiration, out object value)
 		{
 			ulong cas = 0;
@@ -384,6 +467,13 @@ namespace Couchbase
 			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value).Success;
 		}
 
+        /// <summary>
+        /// Executes the try get.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		public IGetOperationResult ExecuteTryGet(string key, DateTime newExpiration, out object value)
 		{
 			ulong cas = 0;
@@ -391,6 +481,13 @@ namespace Couchbase
 			return this.PerformTryGetAndTouch(key, MemcachedClient.GetExpiration(null, newExpiration), out cas, out value);
 		}
 
+        /// <summary>
+        /// Tries the get with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		public IGetOperationResult TryGetWithLock(string key, TimeSpan lockExpiration, out CasResult<object> value)
 		{
 			object tmp;
@@ -402,22 +499,46 @@ namespace Couchbase
 			return retval;
 		}
 
+        /// <summary>
+        /// Executes the get with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
 		public IGetOperationResult ExecuteGetWithLock(string key)
 		{
 			return this.ExecuteGetWithLock(key, TimeSpan.Zero);
 		}
 
+        /// <summary>
+        /// Executes the get with lock.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
 		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key)
 		{
 			return ExecuteGetWithLock<T>(key, TimeSpan.Zero);
 		}
 
+        /// <summary>
+        /// Executes the get with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <returns></returns>
 		public IGetOperationResult ExecuteGetWithLock(string key, TimeSpan lockExpiration)
 		{
 			CasResult<object> tmp;
 			return this.TryGetWithLock(key, lockExpiration, out tmp);
 		}
 
+        /// <summary>
+        /// Executes the get with lock.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <returns></returns>
 		public IGetOperationResult<T> ExecuteGetWithLock<T>(string key, TimeSpan lockExpiration)
 		{
 			CasResult<object> tmp;
@@ -444,31 +565,67 @@ namespace Couchbase
 			return retVal;
 		}
 
+        /// <summary>
+        /// Unlocks the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <returns></returns>
 		public bool Unlock(string key, ulong cas)
 		{
 			return ExecuteUnlock(key, cas).Success;
 		}
 
+        /// <summary>
+        /// Executes the unlock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <returns></returns>
 		public IUnlockOperationResult ExecuteUnlock(string key, ulong cas)
 		{
 			return PerformUnlock(key, cas);
 		}
 
+        /// <summary>
+        /// Gets the with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
 		public CasResult<object> GetWithLock(string key)
 		{
 			return this.GetWithLock<object>(key);
 		}
 
+        /// <summary>
+        /// Gets the with lock.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
 		public CasResult<T> GetWithLock<T>(string key)
 		{
 			return GetWithLock<T>(key, TimeSpan.Zero);
 		}
 
+        /// <summary>
+        /// Gets the with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <returns></returns>
 		public CasResult<object> GetWithLock(string key, TimeSpan lockExpiration)
 		{
 			return this.GetWithLock<object>(key, lockExpiration);
 		}
 
+        /// <summary>
+        /// Gets the with lock.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <returns></returns>
 		public CasResult<T> GetWithLock<T>(string key, TimeSpan lockExpiration)
 		{
 			CasResult<object> tmp;
@@ -478,11 +635,24 @@ namespace Couchbase
 					: new CasResult<T> { Cas = tmp.Cas, Result = default(T) };
 		}
 
+        /// <summary>
+        /// Gets the with cas.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public CasResult<object> GetWithCas(string key, DateTime newExpiration)
 		{
 			return this.GetWithCas<object>(key, newExpiration);
 		}
 
+        /// <summary>
+        /// Gets the with cas.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <returns></returns>
 		public CasResult<T> GetWithCas<T>(string key, DateTime newExpiration)
 		{
 			CasResult<object> tmp;
@@ -492,6 +662,13 @@ namespace Couchbase
 					: new CasResult<T> { Cas = tmp.Cas, Result = default(T) };
 		}
 
+        /// <summary>
+        /// Tries the get with cas.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="newExpiration">The new expiration.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		public bool TryGetWithCas(string key, DateTime newExpiration, out CasResult<object> value)
 		{
 			object tmp;
@@ -504,6 +681,14 @@ namespace Couchbase
 			return retval;
 		}
 
+        /// <summary>
+        /// Performs the try get and touch.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="nextExpiration">The next expiration.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
 		protected IGetOperationResult PerformTryGetAndTouch(string key, uint nextExpiration, out ulong cas, out object value)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -541,6 +726,15 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Performs the try get with lock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="lockExpiration">The lock expiration.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">Timeout cannot be greater than 30 seconds</exception>
 		protected IGetOperationResult PerformTryGetWithLock(string key, TimeSpan lockExpiration, out ulong cas, out object value)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -581,6 +775,12 @@ namespace Couchbase
 			return result;
 		}
 
+        /// <summary>
+        /// Performs the unlock.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <returns></returns>
 		protected IUnlockOperationResult PerformUnlock(string key, ulong cas)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -605,9 +805,17 @@ namespace Couchbase
 			}
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
 			return result;
-
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="replciateTo">The replciate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value);
@@ -630,26 +838,70 @@ namespace Couchbase
 		}
 
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, PersistTo persistTo)
 		{
 			return ExecuteStore(mode, key, value, persistTo, ReplicateTo.Zero);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, ReplicateTo replicateTo)
 		{
 			return ExecuteStore(mode, key, value, PersistTo.Zero, replicateTo);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="expiresAt">The expires at.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo)
 		{
 			return ExecuteStore(mode, key, value, expiresAt, persistTo, ReplicateTo.Zero);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="expiresAt">The expires at.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, ReplicateTo replicateTo)
 		{
 			return ExecuteStore(mode, key, value, expiresAt, PersistTo.Zero, replicateTo);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="expiresAt">The expires at.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, DateTime expiresAt, PersistTo persistTo, ReplicateTo replicateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value, expiresAt);
@@ -673,16 +925,44 @@ namespace Couchbase
 			return storeResult;
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="validFor">The valid for.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, ReplicateTo replicateTo)
 		{
 			return ExecuteStore(mode, key, value, validFor, PersistTo.Zero, replicateTo);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="validFor">The valid for.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo)
 		{
 			return ExecuteStore(mode, key, value, validFor, persistTo, ReplicateTo.Zero);
 		}
 
+        /// <summary>
+        /// Executes the store.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="validFor">The valid for.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="replciateTo">The replciate to.</param>
+        /// <returns></returns>
 		public IStoreOperationResult ExecuteStore(StoreMode mode, string key, object value, TimeSpan validFor, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var storeResult = base.ExecuteStore(mode, key, value, validFor);
@@ -706,6 +986,13 @@ namespace Couchbase
 			return storeResult;
 		}
 
+        /// <summary>
+        /// Executes the remove.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="replciateTo">The replciate to.</param>
+        /// <returns></returns>
 		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo, ReplicateTo replciateTo)
 		{
 			var removeResult = base.ExecuteRemove(key);
@@ -729,27 +1016,60 @@ namespace Couchbase
 			return removeResult;
 		}
 
+        /// <summary>
+        /// Executes the remove.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <returns></returns>
 		public IRemoveOperationResult ExecuteRemove(string key, PersistTo persistTo)
 		{
 			return ExecuteRemove(key, persistTo, ReplicateTo.Zero);
 		}
 
+        /// <summary>
+        /// Executes the remove.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <returns></returns>
 		public IRemoveOperationResult ExecuteRemove(string key, ReplicateTo replicateTo)
 		{
 			return ExecuteRemove(key, PersistTo.Zero, replicateTo);
 		}
 
+        /// <summary>
+        /// Keys the exists.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns></returns>
 		public bool KeyExists(string key)
 		{
 			return KeyExists(key, 0);
 		}
 
+        /// <summary>
+        /// Keys the exists.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <returns></returns>
 		public bool KeyExists(string key, ulong cas)
 		{
 			var result = Observe(key, cas, PersistTo.Zero, ReplicateTo.Zero);
 			return result.Success;
 		}
 
+        /// <summary>
+        /// Observes the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <param name="persistedKeyState">State of the persisted key.</param>
+        /// <param name="replicatedState">State of the replicated.</param>
+        /// <returns></returns>
 		public IObserveOperationResult Observe(string key, ulong cas, PersistTo persistTo, ReplicateTo replicateTo,
 											   ObserveKeyState persistedKeyState = ObserveKeyState.FoundPersisted,
 											   ObserveKeyState replicatedState = ObserveKeyState.FoundNotPersisted)
@@ -783,11 +1103,26 @@ namespace Couchbase
 
 		}
 
+        /// <summary>
+        /// Synchronizes the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="mode">The mode.</param>
+        /// <returns></returns>
 		public SyncResult Sync(string key, ulong cas, SyncMode mode)
 		{
 			return this.Sync(key, cas, mode, 0);
 		}
 
+        /// <summary>
+        /// Synchronizes the specified key.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="mode">The mode.</param>
+        /// <param name="replicationCount">The replication count.</param>
+        /// <returns></returns>
 		public SyncResult Sync(string key, ulong cas, SyncMode mode, int replicationCount)
 		{
 			var hashedKey = this.KeyTransformer.Transform(key);
@@ -801,11 +1136,24 @@ namespace Couchbase
 				: null;
 		}
 
+        /// <summary>
+        /// Synchronizes the specified mode.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="items">The items.</param>
+        /// <returns></returns>
 		public IDictionary<string, SyncResult> Sync(SyncMode mode, IEnumerable<KeyValuePair<string, ulong>> items)
 		{
 			return this.PerformMultiSync(mode, 0, items);
 		}
 
+        /// <summary>
+        /// Performs the multi synchronize.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <param name="replicationCount">The replication count.</param>
+        /// <param name="items">The items.</param>
+        /// <returns></returns>
 		protected IDictionary<string, SyncResult> PerformMultiSync(SyncMode mode, int replicationCount, IEnumerable<KeyValuePair<string, ulong>> items)
 		{
 			// transform the keys and index them by hashed => original
@@ -887,12 +1235,12 @@ namespace Couchbase
 			return retval;
 		}
 
-		/// <summary>
-		/// Returns an object representing the specified view in the specified design document.
-		/// </summary>
-		/// <param name="designName">The name of the design document.</param>
-		/// <param name="viewName">The name of the view.</param>
-		/// <returns></returns>
+        /// <summary>
+        /// Returns an object representing the specified view in the specified design document.
+        /// </summary>
+        /// <param name="designName">The name of the design document.</param>
+        /// <param name="viewName">The name of the view.</param>
+        /// <returns></returns>
 		public IView<IViewRow> GetView(string designName, string viewName)
 		{
 			getViewSetup(ref designName, ref viewName);
@@ -917,18 +1265,37 @@ namespace Couchbase
 			return new CouchbaseView<T>(this, this, designName, viewName, shouldLookupDocById);
 		}
 
+        /// <summary>
+        /// Gets the spatial view.
+        /// </summary>
+        /// <param name="designName">Name of the design.</param>
+        /// <param name="viewName">Name of the view.</param>
+        /// <returns></returns>
 		public ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName)
 		{
 			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseSpatialView(this, this, designName, viewName);
 		}
 
+        /// <summary>
+        /// Gets the spatial view.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="designName">Name of the design.</param>
+        /// <param name="viewName">Name of the view.</param>
+        /// <param name="shouldLookupDocById">if set to <c>true</c> [should lookup document by identifier].</param>
+        /// <returns></returns>
 		public ISpatialView<T> GetSpatialView<T>(string designName, string viewName, bool shouldLookupDocById = false)
 		{
 			getViewSetup(ref designName, ref viewName);
 			return new CouchbaseSpatialView<T>(this, this, designName, viewName, shouldLookupDocById);
 		}
 
+        /// <summary>
+        /// Gets the specified view.
+        /// </summary>
+        /// <param name="view">The view.</param>
+        /// <returns></returns>
 		public IDictionary<string, object> Get(IView view)
 		{
 			var keys = view.Select(row => row.ItemId);
@@ -988,15 +1355,20 @@ namespace Couchbase
 		#endregion
 
 		#region MemcachedClient overrides
+
+        /// <summary>
+        /// Removes all data from the cache. Note: this will invalidate all data on all servers in the pool.
+        /// </summary>
+        /// <exception cref="System.NotImplementedException">To flush a Couchbase bucket, use the Couchbase.Management API.</exception>
 		public new void FlushAll()
-        {
-            var couchbaseNodes = _poolInstance.GetWorkingNodes().Where(n => n is CouchbaseNode);
-            if (couchbaseNodes.Any())
-            {
-                throw new NotImplementedException("To flush a Couchbase bucket, use the Couchbase.Management API.");
-            }
-            base.FlushAll();
-        }
+		{
+			var couchbaseNodes = _poolInstance.GetWorkingNodes().Where(n => n is CouchbaseNode);
+		    if (couchbaseNodes.Any())
+		    {
+		        throw new NotImplementedException("To flush a Couchbase bucket, use the Couchbase.Management API.");
+		    }
+		    base.FlushAll();
+		}
 		#endregion
 	}
 }
