@@ -16,6 +16,8 @@ namespace Couchbase.Extensions
 {
 	public static class CouchbaseClientExtensions
 	{
+	    private const string Null = "null";
+
 		#region No expiry
 		public static IStoreOperationResult ExecuteStoreJson(this ICouchbaseClient client, StoreMode mode, string key, object value)
 		{
@@ -108,7 +110,7 @@ namespace Couchbase.Extensions
 		public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
 		{
 			var json = client.Get<string>(key);
-		    return json == null ? null : DeserializeObject<T>(key, json);
+		    return json == Null ? null : DeserializeObject<T>(key, json);
 		}
 
 		public static IGetOperationResult<T> ExecuteGetJson<T>(this ICouchbaseClient client, string key) where T : class

@@ -19,6 +19,17 @@ namespace Couchbase.Tests
 	[TestFixture]
 	public class CouchbaseClientExtensionsTests : CouchbaseClientTestsBase
 	{
+        [Test]
+        public void Test_That_GetJson_Supports_Null_Values()
+        {
+            var key = "A_NULL_THING";
+            var result = Client.StoreJson(StoreMode.Set, key, null);
+            Assert.AreEqual(true, result);
+
+            var nullResult = Client.GetJson<Thing>(key);
+            Assert.AreEqual(null, nullResult);
+        }
+
         /// <summary>
         /// @test: Generate a unique key and store key using StoreJson(), without converting into json
         /// the store operation would fail
