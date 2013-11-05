@@ -57,7 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase\Couchbase.csproj">
-      <Project>{708A2350-A26C-444D-B975-8164263951A7}</Project>
+      <Project>{708a2350-a26c-444d-b975-8164263951a7}</Project>
       <Name>Couchbase</Name>
     </ProjectReference>
     <ProjectReference Include="..\Enyim.Caching\Enyim.Caching.csproj">

@@ -53,8 +53,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj">
+      <Project>{708a2350-a26c-444d-b975-8164263951a7}</Project>
+      <Name>Couchbase</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Enyim.Caching\Enyim.Caching.csproj">
-      <Project>{EB42E369-1ADF-4E08-8DB7-6FA792ABDCC7}</Project>
+      <Project>{eb42e369-1adf-4e08-8db7-6fa792abdcc7}</Project>
       <Name>Enyim.Caching</Name>
     </ProjectReference>
   </ItemGroup>
