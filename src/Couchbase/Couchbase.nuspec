@@ -11,7 +11,14 @@
     <description>Couchbase client library for .NET based languages.</description>
     <tags>Couchbase nosql</tags>
   </metadata>
+  <dependencies>
+    <group>
+      <dependency id="Newtonsoft.Json"  />
+    </group>
+  </dependencies>
   <files>
+    <file src="bin\Release\Couchbase.dll" target="lib\net40" />
+    <file src="bin\Release\Couchbase.xml" target="lib\net40" />
     <file src="bin\Release\Enyim.Caching.dll" target="lib\net40" />
     <file src="bin\Release\Enyim.Caching.xml" target="lib\net40" />
 

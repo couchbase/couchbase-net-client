@@ -13,12 +13,13 @@
     <dependencies>
       <group>
         <dependency id="CouchbaseNetClient" />
-        <dependency id="log4net"  />
-        <dependency id="Newtonsoft.Json"  />
+        <dependency id="log4net" />
+        <dependency id="Newtonsoft.Json" />
       </group>
     </dependencies>
   </metadata>
   <files>
+    <file src="bin\Release\Enyim.Caching.Log4NetAdapter.dll" target="lib\net40" />
     <file src="lib\Enyim.Caching.Log4NetAdapter.dll" target="lib\net35" />
   </files>
 </package>
