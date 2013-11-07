@@ -63,8 +63,8 @@
     <Compile Include="..\Couchbase\CouchbaseNode.cs">
       <Link>CouchbaseNode.cs</Link>
     </Compile>
-    <Compile Include="..\Couchbase\ConnectionPool.cs">
-      <Link>ConnectionPool.cs</Link>
+    <Compile Include="..\Couchbase\SocketPool.cs">
+      <Link>SocketPool.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\CouchbasePooledSocket.cs">
       <Link>CouchbasePooledSocket.cs</Link>

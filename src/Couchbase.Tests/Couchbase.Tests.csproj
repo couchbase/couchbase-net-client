@@ -56,13 +56,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
-    <Compile Include="ConnectionPoolTests.cs" />
+    <Compile Include="CouchbaseClusterBucketAdminTests.cs" />
+    <Compile Include="SocketPoolTests.cs" />
     <Compile Include="CouchbaseClientExtensionsTests.cs" />
     <Compile Include="CouchbaseClientGetWithLockTests.cs" />
     <Compile Include="CouchbaseClientMemcachedTests.cs" />
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="CouchbaseClientViewTests.cs" />
-    <Compile Include="CouchbaseClusterBucketAdminTests.cs" />
     <Compile Include="CouchbaseNodeTests.cs" />
     <Compile Include="Utils\TestUtils.cs" />
     <None Include="Data\ThingViews.json">

@@ -9,7 +9,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests
 {
     [TestFixture]
-    public class ConnectionPoolTests
+    public class SocketPoolTests
     {
         private IResourcePool _pool;
 
@@ -29,7 +29,7 @@ namespace Couchbase.Tests
             var endpoint = new IPEndPoint(ipAddress, port);
             var config = new SocketPoolConfiguration();
             var node = new CouchbaseNode(endpoint, config);
-            _pool = new ConnectionPool(node, config);
+            _pool = new SocketPool(node, config);
         }
 
         [Test]

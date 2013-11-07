@@ -71,7 +71,6 @@
     <Compile Include="AsyncSocketHelper2.cs" />
     <Compile Include="Configuration\HttpClientElement.cs" />
     <Compile Include="Configuration\IHttpClientConfiguration.cs" />
-    <Compile Include="ConnectionPool.cs" />
     <Compile Include="Constants\ClientErrors.cs" />
     <Compile Include="CouchbaseNode.cs" />
     <Compile Include="CouchbaseSpatialView`1.cs" />
@@ -170,6 +169,7 @@
     <Compile Include="Results\ObserveOperationResult.cs" />
     <Compile Include="Results\UnlockOperationResult.cs" />
     <Compile Include="Settings\ObserveSettings.cs" />
+    <Compile Include="SocketPool.cs" />
     <Compile Include="SpatialViewGeometry.cs" />
     <Compile Include="SpatialViewRow.cs" />
     <Compile Include="VBucketAwareOperationFactory.cs" />
