@@ -210,6 +210,17 @@ namespace Couchbase.Tests
                 Assert.That(getResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
             }
 		}
+
+        [Test]
+	    public void When_ExecuteGet_Fails_The_Correct_KeyDoesNotExist_Is_Returned()
+	    {
+            var res1 = Client.ExecuteGet("DoesNotExist");
+            Assert.IsFalse(res1.Success);
+            Assert.AreEqual(res1.StatusCode, 1);
+
+            var res2 = Client.ExecuteGet("DoesNotExist", DateTime.UtcNow.AddMinutes(10));
+            Assert.AreEqual(res2.StatusCode, 1);
+	    }
 	}
 }
 

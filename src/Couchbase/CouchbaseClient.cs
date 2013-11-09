@@ -714,6 +714,7 @@ namespace Couchbase
 					cas = 0;
 					value = null;
 					result.InnerResult = commandResult;
+					result.StatusCode = commandResult.StatusCode;
 					result.Fail("Failed to execute Get and Touch operation, see InnerException or StatusCode for details");
 				}
 			}
