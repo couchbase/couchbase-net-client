@@ -57,6 +57,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+		<Compile Include="..\Couchbase\Exceptions\QueueTimeoutException.cs">
+			<Link>Exceptions\QueueTimeoutException.cs</Link>
+		</Compile>
     <Compile Include="..\Couchbase\ICouchbaseNode.cs">
       <Link>ICouchbaseNode.cs</Link>
     </Compile>

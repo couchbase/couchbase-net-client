@@ -22,7 +22,8 @@
         TemporaryFailure = 0x0086,
 
         /*Client Side StatusCodes*/
-        SocketPoolTimeout = 0x091
+        SocketPoolTimeout = 0x091,
+		UnableToLocateNode = 0x092
     }
 
     public static class StatusCodeExtension

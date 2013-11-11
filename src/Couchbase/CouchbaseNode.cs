@@ -6,7 +6,9 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Couchbase.Configuration;
+using Couchbase.Exceptions;
 using Couchbase.Results;
+using Enyim;
 using Enyim.Caching;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
@@ -95,23 +97,32 @@ namespace Couchbase
 					result.Pass();
 				}
 			}
+			catch (QueueTimeoutException e)
+			{
+				const string msg = "Queue Timeout.";
+				Log.Warn(msg, e);
+				result.Fail(msg, e);
+				result.StatusCode = StatusCode.SocketPoolTimeout.ToInt();
+			}
 			catch (IOException e)
 			{
 				const string msg = "Exception reading response";
 				Log.Error(msg, e);
 				result.Fail(msg, e);
-			}
-			catch (ObjectDisposedException e)
-			{
-				const string msg = "Could not acquire socket, likely a failover or rebalance scenario.";
-				Log.Warn(msg, e);
-				result.Fail(msg, e);
+				if (result.StatusCode == null)
+				{
+					result.StatusCode = StatusCode.InternalError.ToInt();
+				}
 			}
 			catch (Exception e)
 			{
-				const string msg = "Operation failed!";
+				const string msg = "Operation failed.";
 				Log.Error(msg, e);
 				result.Fail(msg, e);
+				if (result.StatusCode == null)
+				{
+					result.StatusCode = StatusCode.InternalError.ToInt();
+				}
 			}
 			finally
 			{

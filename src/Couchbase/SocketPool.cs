@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security;
 using System.Text;
 using System.Threading;
+using Couchbase.Exceptions;
 using Enyim.Caching;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
@@ -104,13 +105,45 @@ namespace Couchbase
 		public IPooledSocket Acquire()
 		{
 			Log.DebugFormat("Acquiring socket on {0}", _node.EndPoint);
+
+			IPooledSocket socket = null;
 			lock (_syncObj)
 			{
 				while (_queue.Count == 0)
 				{
-					Monitor.Wait(_syncObj, _config.QueueTimeout);
+					if (!Monitor.Wait(_syncObj, _config.QueueTimeout))
+					{
+						break;
+					}
 				}
-				var socket = _queue.Dequeue();
+
+				try
+				{
+					socket = _queue.Dequeue();
+				}
+				catch (InvalidOperationException e)
+				{
+					var sb = new StringBuilder();
+					sb.AppendLine("Timeout occured while waiting for a socket.");
+					sb.AppendFormat("Your current configuration for queueTmeout is {0}{1}",  _config.QueueTimeout, Environment.NewLine);
+					sb.AppendFormat("Your current configuration for maxPoolSize is {0}{1}", _config.MaxPoolSize, Environment.NewLine);
+					sb.AppendLine("Try increasing queueTimeout or increasing using maxPoolSize in your configuration.");
+					throw new QueueTimeoutException(sb.ToString(), e);
+				}
+
+				try
+				{
+					if (!socket.IsAlive)
+					{
+						socket.Close();
+						socket = Create();
+					}
+				}
+				catch (Exception)
+				{
+					Release(socket);
+					throw;
+				}
 				Log.DebugFormat("Acquired socket Id={0} on {1}", _node.EndPoint, socket.InstanceId);
 				return socket;
 			}
@@ -121,11 +154,6 @@ namespace Couchbase
 			Log.DebugFormat("Releasing socket Id={0} on {1}", socket.InstanceId, _node.EndPoint);
 			lock (_syncObj)
 			{
-				if (!socket.IsAlive)
-				{
-					socket.Close();
-					socket = Create();
-				}
 				_queue.Enqueue(socket);
 				Monitor.PulseAll(_syncObj);
 			}
