@@ -128,7 +128,7 @@ namespace Couchbase
 			{
 				if (socket != null)
 				{
-					socket.Dispose();
+					_pool.Release(socket);
 				}
 			}
 			return result;
@@ -158,7 +158,7 @@ namespace Couchbase
 			{
 				if (socket != null)
 				{
-					socket.Dispose();
+					_pool.Release(socket);
 				}
 			}
 			return result;
@@ -175,7 +175,7 @@ namespace Couchbase
 
 		void Dispose(bool disposing)
 		{
-			if (!_disposed)
+			if (!_disposed && _pool != null)
 			{
 				_pool.Dispose();
 			}
