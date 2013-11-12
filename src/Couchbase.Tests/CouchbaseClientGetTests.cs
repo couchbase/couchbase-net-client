@@ -219,6 +219,7 @@ namespace Couchbase.Tests
             Assert.AreEqual(res1.StatusCode, 1);
 
             var res2 = Client.ExecuteGet("DoesNotExist", DateTime.UtcNow.AddMinutes(10));
+			Assert.IsFalse(res2.Success);
             Assert.AreEqual(res2.StatusCode, 1);
 	    }
 	}

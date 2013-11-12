@@ -189,6 +189,7 @@ namespace Enyim.Caching
 			{
 				var command = this.pool.OperationFactory.Get(hashedKey);
 				var commandResult = node.Execute(command);
+				result.StatusCode = commandResult.StatusCode;
 
 				if (commandResult.Success)
 				{
@@ -213,6 +214,7 @@ namespace Enyim.Caching
 			if (this.performanceMonitor != null) this.performanceMonitor.Get(1, false);
 
 			result.Fail("Unable to locate node");
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -383,6 +385,7 @@ namespace Enyim.Caching
 			if (this.performanceMonitor != null) this.performanceMonitor.Store(mode, 1, false);
 
 			result.Fail("Unable to locate node");
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -620,6 +623,7 @@ namespace Enyim.Caching
 
 			// TODO not sure about the return value when the command fails
 			result.Fail("Unable to locate node");
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -711,6 +715,7 @@ namespace Enyim.Caching
 			if (this.performanceMonitor != null) this.performanceMonitor.Concatenate(mode, 1, false);
 
 			result.Fail("Unable to locate node");
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 

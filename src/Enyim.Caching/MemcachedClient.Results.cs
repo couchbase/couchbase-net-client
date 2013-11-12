@@ -475,6 +475,7 @@ namespace Enyim.Caching
 			}
 
 			result.Fail("Unable to locate node");
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 

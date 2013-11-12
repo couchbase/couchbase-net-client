@@ -16,17 +16,17 @@ namespace Couchbase.Exceptions
 	/// </summary>
 	public class QueueTimeoutException : TimeoutException
 	{
-		public QueueTimeoutException(string message) 
+		public QueueTimeoutException(string message)
 			: base(message)
 		{
 		}
 
-		public QueueTimeoutException(string message, Exception innerException) 
+		public QueueTimeoutException(string message, Exception innerException)
 			: base(message, innerException)
 		{
 		}
 
-		public QueueTimeoutException(SerializationInfo info, StreamingContext context) 
+		public QueueTimeoutException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
 		}

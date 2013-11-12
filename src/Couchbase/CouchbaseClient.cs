@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Configuration;
+using Enyim;
 using Enyim.Caching;
 using Enyim.Caching.Memcached;
 using Couchbase.Configuration;
@@ -114,8 +115,9 @@ namespace Couchbase
 			if (node != null)
 			{
 				var command = this.Pool.OperationFactory.Get(hashedKey);
-
 				var executeResult = ExecuteWithRedirect(node, command);
+				result.StatusCode = executeResult.StatusCode;
+
 				if (executeResult.Success)
 				{
 					result.Value = value = this.Transcoder.Deserialize(command.Result);
@@ -140,6 +142,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+	        result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -167,6 +170,7 @@ namespace Couchbase
 				if (this.PerformanceMonitor != null) this.PerformanceMonitor.Mutate(mode, 1, commandResult.Success);
 
 				result.Cas = cas = command.CasValue;
+				result.StatusCode = commandResult.StatusCode;
 
 				if (commandResult.Success)
 				{
@@ -186,6 +190,7 @@ namespace Couchbase
 
 			result.Value = defaultValue;
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -227,6 +232,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Concatenate(mode, 1, false);
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -283,6 +289,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Store(mode, 1, false);
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -716,6 +723,7 @@ namespace Couchbase
 					result.InnerResult = commandResult;
 					result.StatusCode = commandResult.StatusCode;
 					result.Fail("Failed to execute Get and Touch operation, see InnerException or StatusCode for details");
+					return result;
 				}
 			}
 
@@ -724,6 +732,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -773,6 +782,7 @@ namespace Couchbase
 			if (this.PerformanceMonitor != null) this.PerformanceMonitor.Get(1, false);
 
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
@@ -805,6 +815,7 @@ namespace Couchbase
 				}
 			}
 			result.Fail(ClientErrors.FAILURE_NODE_NOT_FOUND);
+			result.StatusCode = StatusCode.UnableToLocateNode.ToInt();
 			return result;
 		}
 
