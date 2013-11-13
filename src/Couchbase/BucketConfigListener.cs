@@ -43,7 +43,7 @@ namespace Couchbase
 								: new NetworkCredential(bucketName, bucketPassword);
 
 			this.Timeout = 10000;
-			this.DeadTimeout = 10000;
+			this.DeadTimeout = 2000;
 
 			this.RetryCount = 0;
 			this.RetryTimeout = new TimeSpan(0, 0, 0, 0, 500);

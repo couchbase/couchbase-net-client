@@ -22,7 +22,7 @@
 			<add uri="http://192.168.2.200:8091/pools/default" />
 		</servers>
 		<!-- the client waits deadTmimeout time to reconnect to the pool when all the specified urls are down -->
-		<socketPool connectionTimeout="00:00:10" deadTimeout="00:00:10" />
+		<socketPool connectionTimeout="00:00:10" deadTimeout="00:00:02" />
 	</Couchbase>
 
 </configuration>

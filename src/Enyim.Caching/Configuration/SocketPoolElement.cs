@@ -70,7 +70,7 @@ namespace Enyim.Caching.Configuration
 		/// Gets or sets a value that specifies the amount of time after which an unresponsive (dead) server will be checked if it is working.
 		/// </summary>
 		/// <returns>The value of the dead timeout. The default is 10 secs.</returns>
-		[ConfigurationProperty("deadTimeout", IsRequired = false, DefaultValue = "00:00:10"), PositiveTimeSpanValidator, TypeConverter(typeof(InfiniteTimeSpanConverter))]
+		[ConfigurationProperty("deadTimeout", IsRequired = false, DefaultValue = "00:00:02"), PositiveTimeSpanValidator, TypeConverter(typeof(InfiniteTimeSpanConverter))]
 		public TimeSpan DeadTimeout
 		{
 			get { return (TimeSpan)base["deadTimeout"]; }
