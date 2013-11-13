@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
 using Couchbase.Configuration;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
@@ -12,6 +15,12 @@ namespace Couchbase.Tests
     public class SocketPoolTests
     {
         private IResourcePool _pool;
+
+		Socket GetSocket(CouchbasePooledSocket socket)
+		{
+			var info = typeof(CouchbasePooledSocket).GetField("_socket", BindingFlags.NonPublic | BindingFlags.Instance);
+			return info.GetValue(socket) as Socket;
+		}
 
         [SetUp]
         public void SetUp()
@@ -64,6 +73,63 @@ namespace Couchbase.Tests
         {
             _pool.Resurrect();
         }
+
+		[Test]
+	    public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Are_Ignored()
+		{
+			var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
+
+			var socket = GetSocket(pooledSocket);
+			socket.Shutdown(SocketShutdown.Both);
+
+			_pool.Release(pooledSocket);
+			_pool.Dispose();
+
+			Assert.IsFalse(pooledSocket.IsAlive);
+			Assert.IsFalse(pooledSocket.IsConnected);
+		}
+
+		[Test]
+		[ExpectedException(typeof(ObjectDisposedException))]
+		public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Throw_ODE_When_Used()
+		{
+			var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
+
+			var socket = GetSocket(pooledSocket);
+			socket.Shutdown(SocketShutdown.Both);
+
+			_pool.Release(pooledSocket);
+			_pool.Dispose();
+
+			pooledSocket.Read(new[] { new byte() }, 0, 1);
+		}
+
+		[Test]
+	    public void When_Disposed_Called_All_Sockets_Are_Disposed()
+	    {
+			_pool.Dispose();
+
+			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+			Assert.IsNotNull(info);
+
+			var refs = info.GetValue(_pool) as List<IPooledSocket>;
+			
+			Assert.IsNotNull(refs);
+			refs.ForEach(x =>
+				{
+					Assert.IsFalse(x.IsAlive);
+					Assert.IsFalse(x.IsConnected);
+					try
+					{
+						x.ReadByte();
+						Assert.Fail();
+					}
+					catch (ObjectDisposedException e)
+					{
+						Assert.Pass();
+					}
+				});
+	    }
 
         [TearDown]
         public void TearDown()

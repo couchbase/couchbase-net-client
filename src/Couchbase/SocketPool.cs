@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security;
 using System.Text;
 using System.Threading;
+using System.Collections;
 using Couchbase.Exceptions;
 using Enyim.Caching;
 using Enyim.Caching.Configuration;
@@ -20,6 +21,7 @@ namespace Couchbase
 		private readonly ISocketPoolConfiguration _config;
 		private readonly object _syncObj = new object();
 		private readonly Queue<IPooledSocket> _queue;
+		private readonly List<IPooledSocket> _refs = new List<IPooledSocket>();
 		private readonly ISaslAuthenticationProvider _provider;
 		private bool _disposed;
 		private bool _isAlive;
@@ -53,8 +55,8 @@ namespace Couchbase
 			Log.DebugFormat("Creating a socket on {0}", _node.EndPoint);
 			var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
 			{
-				ReceiveTimeout = _config.ReceiveTimeout.Milliseconds,
-				SendTimeout = _config.ReceiveTimeout.Milliseconds,
+				ReceiveTimeout = (int)_config.ReceiveTimeout.TotalMilliseconds,
+				SendTimeout = (int)_config.ReceiveTimeout.TotalMilliseconds,
 				NoDelay = true
 			};
 
@@ -67,6 +69,7 @@ namespace Couchbase
 				throw new SecurityException(String.Format("Authentication failed on {0}", _node.EndPoint));
 			}
 			Log.DebugFormat("Created socket Id={0} on {1}", _node.EndPoint, pooledSocket.InstanceId);
+			_refs.Add(pooledSocket);
 			return pooledSocket;
 		}
 
@@ -104,11 +107,14 @@ namespace Couchbase
 
 		public IPooledSocket Acquire()
 		{
-			Log.DebugFormat("Acquiring socket on {0}", _node.EndPoint);
-
 			IPooledSocket socket = null;
 			lock (_syncObj)
 			{
+				if (Log.IsDebugEnabled)
+				{
+					Log.DebugFormat("Acquiring socket on {0}", _node.EndPoint);
+				}
+
 				while (_queue.Count == 0)
 				{
 					if (!Monitor.Wait(_syncObj, _config.QueueTimeout))
@@ -212,15 +218,19 @@ namespace Couchbase
 					while (_queue.Count > 0)
 					{
 						var socket = _queue.Dequeue();
-						socket.Close();
+						if (socket.IsAlive)
+						{
+							socket.Close();
+						}
 					}
+					_refs.ForEach(x=>{ if(x.IsAlive || x.IsConnected) x.Close();});
 				}
 				if (disposing && !_disposed)
 				{
 					GC.SuppressFinalize(this);
-					_disposed = true;
-					_isAlive = false;
 				}
+				_disposed = true;
+				_isAlive = false;
 			}
 		}
 
