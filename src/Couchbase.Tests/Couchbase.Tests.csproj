@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="ConfigHelperTests.cs" />
     <Compile Include="CouchbaseClusterBucketAdminTests.cs" />
+    <Compile Include="CouchbaseClientConfigurationTests.cs" />
     <Compile Include="SocketPoolTests.cs" />
     <Compile Include="CouchbaseClientExtensionsTests.cs" />
     <Compile Include="CouchbaseClientGetWithLockTests.cs" />

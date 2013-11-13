@@ -48,7 +48,7 @@ namespace Enyim.Caching.Configuration
 		/// Gets or sets a value that specifies the amount of time after which the getting a connection from the pool will fail. The default is 100 msec.
 		/// </summary>
 		/// <returns>The value of the queue timeout.</returns>
-		[ConfigurationProperty("queueTimeout", IsRequired = false, DefaultValue = "00:00:00.100"), PositiveTimeSpanValidator, TypeConverter(typeof(InfiniteTimeSpanConverter))]
+		[ConfigurationProperty("queueTimeout", IsRequired = false, DefaultValue = "00:00:02.500"), PositiveTimeSpanValidator, TypeConverter(typeof(InfiniteTimeSpanConverter))]
 		public TimeSpan QueueTimeout
 		{
 			get { return (TimeSpan)base["queueTimeout"]; }

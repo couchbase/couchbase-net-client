@@ -13,7 +13,7 @@ namespace Enyim.Caching.Configuration
 		private TimeSpan connectionTimeout = new TimeSpan(0, 0, 10);
 		private TimeSpan receiveTimeout = new TimeSpan(0, 0, 10);
 		private TimeSpan deadTimeout = new TimeSpan(0, 0, 10);
-		private TimeSpan queueTimeout = new TimeSpan(0, 0, 0, 0, 100);
+		private TimeSpan queueTimeout = new TimeSpan(0, 0, 0, 2, 500);
 		private INodeFailurePolicyFactory policyFactory = new FailImmediatelyPolicyFactory();
 
 		int ISocketPoolConfiguration.MinPoolSize
