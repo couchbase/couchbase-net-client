@@ -15,6 +15,7 @@ namespace Couchbase
 		private readonly Guid _instanceId;
 		private volatile bool _disposed;
 		private volatile bool _isAlive;
+	    private volatile bool _isInUse;
 
 		/// <summary>
 		/// Will be removed in later versions
@@ -22,15 +23,16 @@ namespace Couchbase
 		[Obsolete("Will be removed in later versions")]
 		private AsyncSocketHelper2 _helper2;
 
-
 		public CouchbasePooledSocket(IResourcePool pool, Socket socket)
 		{
 			_isAlive = true;
 			_pool = pool;
 			_socket = socket;
 			_instanceId = Guid.NewGuid();
-			_stream = new NetworkStream(socket);
+			_stream = new NetworkStream(socket, true);
 		}
+
+		public Guid InstanceId { get { return _instanceId; } }
 
 		public bool IsConnected { get { return _socket.Connected; } }
 
@@ -38,15 +40,19 @@ namespace Couchbase
 
 		public bool IsAlive { get { return _isAlive; } }
 
+        public bool IsInUse { get { return _isInUse; } set { _isInUse = value; } }
+
 		public int ReadByte()
 		{
+            CheckDisposed();
+
 			try
 			{
 				return _stream.ReadByte();
 			}
 			catch (Exception)
 			{
-				Close();
+			    _isAlive = false;
 				throw;
 			}
 		}
@@ -54,40 +60,42 @@ namespace Couchbase
 		public void Read(byte[] buffer, int offset, int count)
 		{
 			CheckDisposed();
+
 			var read = 0;
 			var shouldRead = count;
 
-			try
-			{
-				while (read < count)
-				{
-					var current = _stream.Read(buffer, offset, shouldRead);
-					if (current < 1)
-						continue;
+		    try
+		    {
+		        while (read < count)
+		        {
+		            var current = _stream.Read(buffer, offset, shouldRead);
+		            if (current < 1)
+		                continue;
 
-					read += current;
-					offset += current;
-					shouldRead -= current;
-				}
-			}
-			catch (Exception)
-			{
-				Close();
-				throw;
-			}
+		            read += current;
+		            offset += current;
+		            shouldRead -= current;
+		        }
+		    }
+		    catch (Exception)
+		    {
+                _isAlive = false;
+		        throw;
+		    }
 		}
 
 		public void Write(byte[] data, int offset, int length)
 		{
 			CheckDisposed();
-			SocketError status;
-			_socket.Send(data, offset, length, SocketFlags.None, out status);
 
-			if (status != SocketError.Success)
-			{
-				Close();
-				ThrowHelper.ThrowSocketWriteError(_socket.RemoteEndPoint, status);
-			}
+		    SocketError status;
+		    _socket.Send(data, offset, length, SocketFlags.None, out status);
+
+		    if (status != SocketError.Success)
+		    {
+                _isAlive = false;
+		        ThrowHelper.ThrowSocketWriteError(_socket.RemoteEndPoint, status);
+		    }
 		}
 
 		public void Write(IList<ArraySegment<byte>> buffers)
@@ -99,7 +107,7 @@ namespace Couchbase
 
 			if (status != SocketError.Success)
 			{
-				Close();
+                _isAlive = false;
 				ThrowHelper.ThrowSocketWriteError(_socket.RemoteEndPoint, status);
 			}
 		}
@@ -108,6 +116,7 @@ namespace Couchbase
 	   public bool ReceiveAsync(AsyncIOArgs p)
 	   {
 		   CheckDisposed();
+
 		   if (!IsAlive)
 		   {
 			   p.Fail = true;
@@ -127,24 +136,13 @@ namespace Couchbase
 		[Obsolete("Will be removed in later versions")]
 		public Action<IPooledSocket> CleanupCallback
 		{
-			get
-			{
-				throw new NotImplementedException();
-			}
-			set
-			{
-				throw new NotImplementedException();
-			}
+			get { throw new NotImplementedException(); }
+			set { throw new NotImplementedException(); }
 		}
 
 		public void Reset()
 		{
 			throw new NotImplementedException();
-		}
-
-		public Guid InstanceId
-		{
-			get { return _instanceId; }
 		}
 
 		[Obsolete("Will be removed in later versions")]
@@ -158,6 +156,10 @@ namespace Couchbase
 		/// </summary>
 		public void Dispose()
 		{
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("Closing socket {0}", _instanceId);
+			}
 			_pool.Release(this);
 		}
 
@@ -168,22 +170,27 @@ namespace Couchbase
 
 		void Close(bool disposing)
 		{
-			Log.DebugFormat("Closing socket Id={0}", _instanceId);
-
 			lock (_syncObj)
 			{
+				_isInUse = false;
 				if (disposing && !_disposed)
 				{
 					GC.SuppressFinalize(this);
 				}
 				if (!_disposed && _isAlive)
 				{
-					_socket.Shutdown(SocketShutdown.Both);
-					_socket.Close();
-					_stream.Close();
-					_stream.Dispose();
+					if (_socket != null)
+					{
+						_socket.Shutdown(SocketShutdown.Both);
+						_socket.Close(_socket.ReceiveTimeout);
+					}
+					if (_stream != null)
+					{
+						_stream.Close();
+						_stream.Dispose();
+					}
 					_disposed = true;
-					_isAlive = false;
+                    _isAlive = false;
 				}
 			}
 		}
@@ -200,7 +207,7 @@ namespace Couchbase
 		{
 			if (_disposed)
 			{
-				throw new ObjectDisposedException("connection");
+				throw new ObjectDisposedException(GetType().FullName);
 			}
 		}
 	}

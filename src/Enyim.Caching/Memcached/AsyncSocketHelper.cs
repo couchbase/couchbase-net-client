@@ -196,7 +196,12 @@ namespace Enyim.Caching.Memcached
         {
             get { throw new NotImplementedException(); }
         }
-    }
+
+	    public bool IsInUse {
+			get { throw new NotImplementedException(); }
+			set { throw new NotImplementedException(); }
+	    }
+	}
 }
 
 #region [ License information          ]

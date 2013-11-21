@@ -109,6 +109,14 @@ namespace Couchbase.Configuration
 			get { return (TimeSpan)base["httpRequestTimeout"]; }
 			set { base["httpRequestTimeout"] = value; }
 		}
+
+        [ConfigurationProperty("vBucketRetryCount", IsRequired = false, DefaultValue = 2)]
+        public int VBucketRetryCount
+        {
+            get { return (int)base["vBucketRetryCount"]; }
+            set { base["vBucketRetryCount"] = value; }
+        }
+
 	}
 }
 

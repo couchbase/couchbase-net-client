@@ -23,7 +23,9 @@
 
         /*Client Side StatusCodes*/
         SocketPoolTimeout = 0x091,
-		UnableToLocateNode = 0x092
+		UnableToLocateNode = 0x092,
+		NodeShutdown = 0x093,
+		OperationTimeout = 0x094
     }
 
     public static class StatusCodeExtension

@@ -7,6 +7,6 @@ namespace Couchbase
 {
 	internal interface IHttpClientLocator
 	{
-		IHttpClient Locate(string designDocument);
+		IHttpClient Locate();
 	}
 }

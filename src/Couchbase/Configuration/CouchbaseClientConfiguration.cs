@@ -19,6 +19,13 @@ namespace Couchbase.Configuration
 		private TimeSpan defaultHttpRequestTimeout = TimeSpan.FromMinutes(1);
 		private TimeSpan defaultObserveTimeout = TimeSpan.FromMinutes(1);
 
+        /// <summary>
+        /// The number of loops to try over a set of nodes when cluster has changed
+        /// (i.e. rebalance, failover, etc) and NotMyVBucket response is returned from
+        /// the cluster. Most of the times this is resolved in the first iteration.
+        /// </summary>
+	    private int _vBucketRetryCount = 2;
+
         #region
         /// <summary>
 		/// Initializes a new instance of the <see cref="T:MemcachedClientConfiguration"/> class.
@@ -229,7 +236,10 @@ namespace Couchbase.Configuration
 		}
 
 		#endregion
-	}
+
+
+        public int VBucketRetryCount { get { return _vBucketRetryCount; }}
+    }
 
 	internal class ReadOnlyConfig : ICouchbaseClientConfiguration
 	{
@@ -245,6 +255,7 @@ namespace Couchbase.Configuration
 		private ISocketPoolConfiguration spc;
 		private IHeartbeatMonitorConfiguration hbm;
 		private IHttpClientConfiguration hcc;
+        private int _vBucketRetryCount = 2;
 
 		private ICouchbaseClientConfiguration original;
 
@@ -266,6 +277,7 @@ namespace Couchbase.Configuration
 			this.hcc = new HCC(original.HttpClient);
 
 			this.original = original;
+		    _vBucketRetryCount = original.VBucketRetryCount;
 		}
 
 		public void OverrideBucket(string bucketName, string bucketPassword)
@@ -431,7 +443,11 @@ namespace Couchbase.Configuration
 			TimeSpan IHttpClientConfiguration.Timeout { get { return this.timeout; } set { } }
 		}
 
-	}
+	    public int VBucketRetryCount
+	    {
+	        get { return _vBucketRetryCount; }
+	    }
+    }
 }
 
 #region [ License information          ]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Enyim.Caching.Memcached.Results;
 
 namespace Enyim.Caching.Memcached.Protocol
@@ -11,11 +12,13 @@ namespace Enyim.Caching.Memcached.Protocol
 	{
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(Operation));
 
-		protected Operation() { }
+	    protected Operation(){}
 
 		internal protected abstract IList<ArraySegment<byte>> GetBuffer();
 		internal protected abstract IOperationResult ReadResponse(IPooledSocket socket);
 		internal protected abstract bool ReadResponseAsync(IPooledSocket socket, Action<bool> next);
+
+		public int RetryAttempts { get;  set; }
 
 		IList<ArraySegment<byte>> IOperation.GetBuffer()
 		{
@@ -38,7 +41,9 @@ namespace Enyim.Caching.Memcached.Protocol
 		}
 
 		public int StatusCode { get; protected set; }
-	}
+
+	    public string Key { get; protected set; }
+    }
 }
 
 #region [ License information          ]

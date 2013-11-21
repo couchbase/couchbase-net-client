@@ -257,7 +257,10 @@ namespace Couchbase.Configuration
 		}
 
 		#endregion
-	}
+
+
+        public int VBucketRetryCount { get { return Servers.VBucketRetryCount; } }
+    }
 }
 
 #region [ License information          ]

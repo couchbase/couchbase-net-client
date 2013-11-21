@@ -37,6 +37,12 @@ namespace Couchbase.Tests
 			_pool = new SocketPool(node, config);
 		}
 
+		[TearDown]
+		public void TearDown()
+		{
+			_pool.Dispose();
+		}
+
 		IPooledSocket CreateSocket()
 		{
 			var info = typeof (SocketPool).GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -52,183 +58,215 @@ namespace Couchbase.Tests
 		[Test]
 		public void TestCreate()
 		{
-			var socket = CreateSocket();
-			Assert.IsNotNull(socket);
+			using(var socket = CreateSocket())
+			{
+				Assert.IsNotNull(socket);
+			}
 		}
 
 		[Test]
 		public void Test_That_IsAlive_Is_True_After_Create()
 		{
-			var socket = CreateSocket();
-			Assert.IsTrue(socket.IsAlive);
+			using (var socket = CreateSocket())
+			{
+				Assert.IsTrue(socket.IsAlive);
+			}
 		}
 
 		[Test]
 		public void Test_That_IsConnected_Is_True_After_Create()
 		{
-			var socket = CreateSocket();
-			Assert.IsTrue(socket.IsConnected);
+			using (var socket = CreateSocket())
+			{
+				Assert.IsTrue(socket.IsConnected);
+			}
 		}
 
 		[Test]
 		public void Test_That_IsAlive_Is_False_After_Close()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			Assert.IsFalse(socket.IsAlive);
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				Assert.IsFalse(socket.IsAlive);
+			}
 		}
 
 		[Test]
 		public void Test_That_IsConnected_Is_False_After_Close()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			Assert.IsFalse(socket.IsConnected);
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				Assert.IsFalse(socket.IsConnected);
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(ObjectDisposedException))]
 		public void When_Disposed_ObjectDisposedException_Is_Thrown_When_Read_Is_Called()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			socket.Read(new []{new byte()}, 0, 1);
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				socket.Read(new[] {new byte()}, 0, 1);
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(ObjectDisposedException))]
 		public void When_Disposed_ObjectDisposedException_Is_Thrown_When_ReadByte_Is_Called()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			socket.ReadByte();
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				socket.ReadByte();
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(ObjectDisposedException))]
 		public void When_Disposed_ObjectDisposedException_Is_Thrown_When_Write_Is_Called()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			socket.Write(new List<ArraySegment<byte>>());
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				socket.Write(new List<ArraySegment<byte>>());
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(ObjectDisposedException))]
 		public void When_Disposed_ObjectDisposedException_Is_Thrown_When_Write_Is_Called2()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			socket.Write(new[] { new byte() }, 0, 1);
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				socket.Write(new[] {new byte()}, 0, 1);
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(NotImplementedException))]
 		public void When_Disposed_NotImplementedException_Is_Thrown_When_Reset_Is_Called2()
 		{
-			var socket = CreateSocket();
-			socket.Reset();
+			using (var socket = CreateSocket())
+			{
+				socket.Reset();
+			}
 		}
 
 		[Test]
 		[ExpectedException(typeof(NotImplementedException))]
 		public void When_Disposed_NotImplementedException_Is_Thrown_When_Release_Is_Called2()
 		{
-			var socket = CreateSocket();
-			socket.Release();
+			using (var socket = CreateSocket())
+			{
+				socket.Release();
+			}
 		}
 
 		[Test]
 		public void When_Close_Called_IsAlive_And_IsConnected_Are_False()
 		{
-			var socket = CreateSocket();
-			socket.Close();
-			Assert.IsFalse(socket.IsConnected);
-			Assert.IsFalse(socket.IsAlive);
+			using (var socket = CreateSocket())
+			{
+				socket.Close();
+				Assert.IsFalse(socket.IsConnected);
+				Assert.IsFalse(socket.IsAlive);
+			}
 		}
 
 		[Test]
 		public void When_Exception_Thrown_While_Calling_Read_IsAlive_And_IsConnected_Are_False()
 		{
-			var pooledSocket = CreateSocket();
-			var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
-
-			try
+			using (var pooledSocket = CreateSocket())
 			{
-				socket.Shutdown(SocketShutdown.Receive);
-				pooledSocket.Read(new[] {new byte()}, 0, 1);
-			}
-			catch (Exception e){Console.WriteLine(e.Message);}
-			finally
-			{
-				Assert.IsFalse(pooledSocket.IsConnected);
-				Assert.IsFalse(pooledSocket.IsAlive);
+				var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
+				try
+				{
+					socket.Shutdown(SocketShutdown.Receive);
+					pooledSocket.Read(new[] {new byte()}, 0, 1);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.Message);
+				}
+				finally
+				{
+					Assert.IsFalse(pooledSocket.IsConnected);
+					Assert.IsFalse(pooledSocket.IsAlive);
+				}
 			}
 		}
 
 		[Test]
 		public void When_Exception_Thrown_While_Calling_ReadByte_IsAlive_And_IsConnected_Are_False()
 		{
-			var pooledSocket = CreateSocket();
-			var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
+			using (var pooledSocket = CreateSocket())
+			{
+				var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
 
-			try
-			{
-				socket.Shutdown(SocketShutdown.Receive);
-				pooledSocket.ReadByte();
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-			}
-			finally
-			{
-				Assert.IsFalse(pooledSocket.IsConnected);
-				Assert.IsFalse(pooledSocket.IsAlive);
+				try
+				{
+					socket.Shutdown(SocketShutdown.Receive);
+					pooledSocket.ReadByte();
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.Message);
+				}
+				finally
+				{
+					Assert.IsFalse(pooledSocket.IsConnected);
+					Assert.IsFalse(pooledSocket.IsAlive);
+				}
 			}
 		}
 
 		[Test]
 		public void When_Exception_Thrown_While_Calling_Write_IsAlive_And_IsConnected_Are_False()
 		{
-			var pooledSocket = CreateSocket();
-			var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
-
-			try
+			using (var pooledSocket = CreateSocket())
 			{
-				socket.Shutdown(SocketShutdown.Send);
-				pooledSocket.Write(new[] {new byte()}, 0, 1);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-			}
-			finally
-			{
-				Assert.IsFalse(pooledSocket.IsConnected);
-				Assert.IsFalse(pooledSocket.IsAlive);
+				var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
+				try
+				{
+					socket.Shutdown(SocketShutdown.Send);
+					pooledSocket.Write(new[] {new byte()}, 0, 1);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.Message);
+				}
+				finally
+				{
+					Assert.IsFalse(pooledSocket.IsConnected);
+					Assert.IsFalse(pooledSocket.IsAlive);
+				}
 			}
 		}
 
 		[Test]
 		public void When_Exception_Thrown_While_Calling_Write_IsAlive_And_IsConnected_Are_False2()
 		{
-			var pooledSocket = CreateSocket();
-			var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
-
-			try
+			using (var pooledSocket = CreateSocket())
 			{
-				socket.Shutdown(SocketShutdown.Send);
-				pooledSocket.Write(new List<ArraySegment<byte>>{new ArraySegment<byte>(new []{new byte()})});
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-			}
-			finally
-			{
-				Assert.IsFalse(pooledSocket.IsConnected);
-				Assert.IsFalse(pooledSocket.IsAlive);
+				var socket = GetSocket(pooledSocket as CouchbasePooledSocket);
+				try
+				{
+					socket.Shutdown(SocketShutdown.Send);
+					pooledSocket.Write(new List<ArraySegment<byte>> {new ArraySegment<byte>(new[] {new byte()})});
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine(e.Message);
+				}
+				finally
+				{
+					Assert.IsFalse(pooledSocket.IsConnected);
+					Assert.IsFalse(pooledSocket.IsAlive);
+				}
 			}
 		}
 	}

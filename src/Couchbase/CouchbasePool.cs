@@ -105,6 +105,14 @@ namespace Couchbase
 
 		private void ReconfigurePool(ClusterConfig config)
 		{
+			if (log.IsDebugEnabled)
+			{
+				if (Thread.CurrentThread.Name == null)
+				{
+					Thread.CurrentThread.Name = "cbp_thread";
+				}
+			}
+
 			// kill the timer first
 			this.isTimerActive = false;
 			if (this.resurrectTimer != null)

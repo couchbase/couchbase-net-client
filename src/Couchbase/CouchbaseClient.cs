@@ -26,10 +26,14 @@ namespace Couchbase
 	{
 		private static readonly Enyim.Caching.ILog Log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseClient));
 		private static readonly ICouchbaseClientConfiguration DefaultConfig = (ICouchbaseClientConfiguration)ConfigurationManager.GetSection("couchbase");
-
+		private readonly ICouchbaseClientConfiguration Config;
 		private readonly INameTransformer _documentNameTransformer;
 		private readonly ICouchbaseServerPool _poolInstance;
 		private readonly TimeSpan _observeTimeout;
+
+		private static int threadCount;
+		private static int _attempts ;
+		private static int _successes;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the default configuration and bucket.
@@ -88,6 +92,7 @@ namespace Couchbase
 			MutateOperationResultFactory = new DefaultMutateOperationResultFactory();
 			ConcatOperationResultFactory = new DefaultConcatOperationResultFactory();
 			RemoveOperationResultFactory = new DefaultRemoveOperationResultFactory();
+			Config = configuration;
 		}
 
 		/// <summary>
@@ -293,17 +298,29 @@ namespace Couchbase
 			return result;
 		}
 
+
 		private IOperationResult ExecuteWithRedirect(IMemcachedNode startNode, ISingleItemOperation op)
 		{
-			var opResult = startNode.Execute(op);
-			if (opResult.Success) return opResult;
+			if (Log.IsDebugEnabled)
+			{
+				var thread = Thread.CurrentThread;
+				if (thread.Name == null)
+				{
+					thread.Name = string.Format("cbc_thread-{0}", Interlocked.Increment(ref threadCount));
+				}
+			}
 
-			var iows = op as IOperationWithState;
+			var result = startNode.Execute(op);
+			if (result.Success)
+			{
+				return result;
+			}
 
 			// different op factory, we do not know how to retry
+			var iows = op as IOperationWithState;
 			if (iows == null)
 			{
-				return opResult;
+				return result;
 			}
 
 #if HAS_FORWARD_MAP
@@ -325,27 +342,55 @@ namespace Couchbase
 				}
 			}
 #endif
-			// still invalid vbucket, try all nodes in sequence
-			if (iows.State == OperationState.InvalidVBucket)
-			{
-				var nodes = this.Pool.GetWorkingNodes();
+		    if (iows.State == OperationState.InvalidVBucket ||
+                op.StatusCode == StatusCode.NodeShutdown.ToInt())
+		    {
+		        result = RetryOperation(op, Config.VBucketRetryCount);
+		    }
 
+		    if (Log.IsDebugEnabled)
+			{
+                const string msg = "Operation {0} :i {1} n: {2} t: {3} m: {4} sc: {5} r: {6}";
+				Log.DebugFormat(msg, result.Success ?
+					op.RetryAttempts > 0 ? "succeeded*" : "succeeded" :
+					op.RetryAttempts > 0 ? "failed*" : "failed",
+					op.Key,
+					null, Thread.CurrentThread.Name,
+					result.Message,
+					Enum.GetName(typeof(StatusCode), result.StatusCode ??
+					StatusCode.InternalError.ToInt()),
+					op.RetryAttempts);
+			}
+			return result;
+		}
+
+		IOperationResult RetryOperation(ISingleItemOperation op, int retryCount)
+		{
+            var canceled = false;
+			IOperationResult result = null;
+
+			for (var i = 0; i < retryCount; i++)
+			{
+				var nodes = Pool.GetWorkingNodes();
 				foreach (var node in nodes)
 				{
-					opResult = node.Execute(op);
-					if (opResult.Success)
+					op.RetryAttempts++;
+					result = node.Execute(op);
+					if (result.Success)
 					{
-						return opResult;
+						return result;
 					}
 
-					// the node accepted our request so quit
-					if (iows.State != OperationState.InvalidVBucket)
+				    var opWithState = op as IOperationWithState;
+                    if (opWithState != null && opWithState.State != OperationState.InvalidVBucket)
+                    {
+                        canceled = true;
 						break;
+					}
 				}
+			    if (canceled) break;
 			}
-
-			//TODO: why would this happen?
-			return opResult;
+			return result;
 		}
 
         /// <summary>
@@ -1330,13 +1375,11 @@ namespace Couchbase
 
 		#region [ IHttpClientLocator		   ]
 
-		IHttpClient IHttpClientLocator.Locate(string designDocument)
+		IHttpClient IHttpClientLocator.Locate()
 		{
-			//pick a node at random to avoid overloading a single node with view requests
-			var nodes = Pool.GetWorkingNodes()
-				.Where(n => n is CouchbaseNode && n.IsAlive)
-				.Select(n => n as CouchbaseNode)
-				.ToList();
+            var nodes = Pool.GetWorkingNodes().
+                OfType<CouchbaseNode>().
+                ToList();
 
 			if (nodes.Count == 0)
 			{
@@ -1345,7 +1388,7 @@ namespace Couchbase
 			}
 
 			var idx = new Random(Environment.TickCount).Next(nodes.Count);
-			var node = nodes[idx] as CouchbaseNode;
+			var node = nodes[idx];
 			return node.Client;
 		}
 

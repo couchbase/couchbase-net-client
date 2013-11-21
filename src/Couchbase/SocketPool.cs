@@ -23,8 +23,10 @@ namespace Couchbase
 		private readonly Queue<IPooledSocket> _queue;
 		private readonly List<IPooledSocket> _refs = new List<IPooledSocket>();
 		private readonly ISaslAuthenticationProvider _provider;
-		private bool _disposed;
-		private bool _isAlive;
+		private volatile bool _disposed;
+		private volatile bool _isAlive;
+	    private volatile bool _shutDownMode;
+	    private volatile int _outCount;
 
 		public SocketPool(IMemcachedNode node, ISocketPoolConfiguration config)
 			: this(node, config, null)
@@ -52,7 +54,10 @@ namespace Couchbase
 
 		IPooledSocket Create()
 		{
-			Log.DebugFormat("Creating a socket on {0}", _node.EndPoint);
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("Creating a socket on {0}", _node.EndPoint);
+			}
 			var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
 			{
 				ReceiveTimeout = (int)_config.ReceiveTimeout.TotalMilliseconds,
@@ -60,7 +65,8 @@ namespace Couchbase
 				NoDelay = true
 			};
 
-			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (int)_config.ReceiveTimeout.TotalMilliseconds);
+			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, true);
 			socket.Connect(_node.EndPoint);
 
 			var pooledSocket = new CouchbasePooledSocket(this, socket);
@@ -68,7 +74,10 @@ namespace Couchbase
 			{
 				throw new SecurityException(String.Format("Authentication failed on {0}", _node.EndPoint));
 			}
-			Log.DebugFormat("Created socket Id={0} on {1}", _node.EndPoint, pooledSocket.InstanceId);
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("Created socket Id={0} on {1}", _node.EndPoint, pooledSocket.InstanceId);
+			}
 			_refs.Add(pooledSocket);
 			return pooledSocket;
 		}
@@ -98,7 +107,10 @@ namespace Couchbase
 
 		void PreAllocate(int capacity)
 		{
-			Log.DebugFormat("PreAllocating {0} sockets on {1}", capacity, _node.EndPoint);
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("PreAllocating {0} sockets on {1}", capacity, _node.EndPoint);
+			}
 			for (var i = 0; i < capacity; i++)
 			{
 				_queue.Enqueue(Create());
@@ -108,16 +120,16 @@ namespace Couchbase
 		public IPooledSocket Acquire()
 		{
 			IPooledSocket socket = null;
-			lock (_syncObj)
+            lock (_syncObj)
 			{
-				if (Log.IsDebugEnabled)
-				{
-					Log.DebugFormat("Acquiring socket on {0}", _node.EndPoint);
-				}
-
 				while (_queue.Count == 0)
 				{
-					if (!Monitor.Wait(_syncObj, _config.QueueTimeout))
+				    if (_refs.Count() < _config.MaxPoolSize)
+				    {
+				        _queue.Enqueue(Create());
+				        break;
+				    }
+                    if (!Monitor.Wait(_syncObj, _config.QueueTimeout))
 					{
 						break;
 					}
@@ -126,6 +138,7 @@ namespace Couchbase
 				try
 				{
 					socket = _queue.Dequeue();
+                    socket.IsInUse = true;
 				}
 				catch (InvalidOperationException e)
 				{
@@ -139,10 +152,11 @@ namespace Couchbase
 
 				try
 				{
-					if (!socket.IsAlive)
+					if (!socket.IsAlive && (!_shutDownMode || _disposed))
 					{
 						socket.Close();
 						socket = Create();
+					    socket.IsInUse = true;
 					}
 				}
 				catch (Exception)
@@ -150,27 +164,38 @@ namespace Couchbase
 					Release(socket);
 					throw;
 				}
-				Log.DebugFormat("Acquired socket Id={0} on {1}", _node.EndPoint, socket.InstanceId);
+                if (_shutDownMode)
+                {
+                    throw new NodeShutdownException("Node has shutdown.");
+                }
+			    Interlocked.Increment(ref _outCount);
 				return socket;
 			}
 		}
 
 		public void Release(IPooledSocket socket)
 		{
-			Log.DebugFormat("Releasing socket Id={0} on {1}", socket.InstanceId, _node.EndPoint);
-			lock (_syncObj)
+            lock (_syncObj)
 			{
-				_queue.Enqueue(socket);
-				Monitor.PulseAll(_syncObj);
+                Interlocked.Decrement(ref _outCount);
+				socket.IsInUse = false;
+                if ((_disposed || _shutDownMode) && socket.IsAlive)
+				{
+					socket.Close();
+				}
+                _queue.Enqueue(socket);
+                Monitor.PulseAll(_syncObj);
 			}
-			Log.DebugFormat("Released socket Id={0} on {1}", socket.InstanceId, _node.EndPoint);
 		}
 
 		public void Close(IPooledSocket socket)
 		{
-			Log.DebugFormat("Closing socket Id={0} on {1}",
-			  socket.InstanceId,
-			   _node.EndPoint);
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("Closing socket Id={0} on {1}",
+					socket.InstanceId,
+					_node.EndPoint);
+			}
 
 			socket.Close();
 		}
@@ -179,9 +204,12 @@ namespace Couchbase
 		{
 			using (var socket = Create())
 			{
-				Log.DebugFormat("Pinging {0} on {1} ",
-					socket.IsConnected ? "succeeded" : "failed",
-					_node.EndPoint);
+				if (Log.IsDebugEnabled)
+				{
+					Log.DebugFormat("Pinging {0} on {1} ",
+						socket.IsConnected ? "succeeded" : "failed",
+						_node.EndPoint);
+				}
 
 				return socket.IsConnected;
 			}
@@ -190,9 +218,7 @@ namespace Couchbase
 		public void Resurrect()
 		{
 			CheckDisposed();
-			Log.DebugFormat("Resurrecting node on {0}", _node.EndPoint);
-
-			lock (_syncObj)
+            lock (_syncObj)
 			{
 				while (_queue.Count > 0)
 				{
@@ -205,25 +231,47 @@ namespace Couchbase
 
 		public void Dispose()
 		{
-			Log.DebugFormat("Disposing {0} on {1}", this, _node.EndPoint);
+			if (Log.IsDebugEnabled)
+			{
+				Log.DebugFormat("Disposing {0} on {1} using thread: {2}",
+					this, _node.EndPoint, Thread.CurrentThread.Name);
+			}
 			Dispose(true);
 		}
 
 		void Dispose(bool disposing)
 		{
-			lock (_syncObj)
-			{
+            lock (_syncObj)
+            {
+                const int maxAttempts = 13;
+			    _shutDownMode = true;
 				if (!_disposed)
 				{
-					while (_queue.Count > 0)
-					{
-						var socket = _queue.Dequeue();
-						if (socket.IsAlive)
-						{
-							socket.Close();
-						}
-					}
-					_refs.ForEach(x=>{ if(x.IsAlive || x.IsConnected) x.Close();});
+                    var itemsDisposed = 0;
+				    var i = 2;
+				    do
+				    {
+					    var timeout = (int)Math.Pow(2, i);
+					    Thread.Sleep(timeout);
+
+				        foreach (var socket in _refs.Where(x=>x.IsAlive && !x.IsInUse))
+				        {
+				            socket.Close();
+				            itemsDisposed++;
+				        }
+
+                        if (i != maxAttempts) continue;
+				        foreach (var socket in _refs.Where(x=>x.IsAlive))
+				        {
+						    socket.Close();
+							itemsDisposed++;
+				        }
+                    } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
+
+				    if (Log.IsDebugEnabled)
+				    {
+				        Log.DebugFormat("Disposed {0} of {1} items.", itemsDisposed, _refs.Count);
+				    }
 				}
 				if (disposing && !_disposed)
 				{
@@ -236,7 +284,10 @@ namespace Couchbase
 
 		~SocketPool()
 		{
-			Log.DebugFormat("Finalizing {0} on {1}", this, _node.EndPoint);
+            if(Log.IsDebugEnabled)
+		    {
+		        Log.DebugFormat("Finalizing {0}", GetType().Name);
+		    }
 			Dispose(false);
 		}
 

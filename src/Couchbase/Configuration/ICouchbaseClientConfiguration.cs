@@ -83,6 +83,13 @@ namespace Couchbase.Configuration
 		TimeSpan ObserveTimeout { get; }
 		int RetryCount { get; }
 
+        /// <summary>
+        /// The number of loops to try over a set of nodes when cluster has changed
+        /// (i.e. rebalance, failover, etc) and NotMyVBucket response is returned from
+        /// the cluster. Most of the times this is resolved in the first iteration.
+        /// </summary>
+        int VBucketRetryCount { get; }
+
 		/// <summary>
 		/// Timeout used for timing out HTTP requests to RESTful API calls
 		/// </summary>

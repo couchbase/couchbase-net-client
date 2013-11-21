@@ -20,6 +20,10 @@ namespace Enyim.Caching.Memcached
 		/// <param name="next"></param>
 		/// <returns></returns>
 		bool ReadResponseAsync(IPooledSocket socket, Action<bool> next);
+
+		int RetryAttempts { get; set; }
+
+        string Key { get; }
 	}
 
 	public interface ISingleItemOperation : IOperation

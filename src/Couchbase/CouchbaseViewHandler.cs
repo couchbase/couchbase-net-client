@@ -116,7 +116,7 @@ namespace Couchbase
 
 		public bool CheckViewExists()
 		{
-			var client = ClientLocator.Locate(DesignDocument);
+			var client = ClientLocator.Locate();
 			var request = client.CreateRequest(this.DesignDocument + "/");
 			var response = request.GetResponse();
 
@@ -174,7 +174,7 @@ namespace Couchbase
 		{
 			Debug.Assert(this.ClientLocator != null);
 
-			var client = this.ClientLocator.Locate(this.DesignDocument);
+			var client = this.ClientLocator.Locate();
 			if (client == null)
 			{
 			    var message = String.Format("View {0} was mapped to a dead node, failing.", IndexName);

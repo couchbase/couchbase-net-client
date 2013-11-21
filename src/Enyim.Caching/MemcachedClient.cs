@@ -25,7 +25,7 @@ namespace Enyim.Caching
 		internal static readonly MemcachedClientSection DefaultSettings = ConfigurationManager.GetSection("enyim.com/memcached") as MemcachedClientSection;
 		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(MemcachedClient));
 
-		private IServerPool pool;
+        private volatile IServerPool pool;
 		private IMemcachedKeyTransformer keyTransformer;
 		private ITranscoder transcoder;
 		private IPerformanceMonitor performanceMonitor;
@@ -1048,6 +1048,7 @@ namespace Enyim.Caching
 
 		void IDisposable.Dispose()
 		{
+			log.DebugFormat("Disposing {0}", this);
 			this.Dispose();
 		}
 

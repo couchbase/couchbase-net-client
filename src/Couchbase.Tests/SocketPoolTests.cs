@@ -131,6 +131,70 @@ namespace Couchbase.Tests
 				});
 	    }
 
+		[Test]
+	    public void When_Disposed_And_Items_Are_In_Use_ExponentialBackoff_Is_Used()
+		{
+			var itemsInUse = new List<IPooledSocket>();
+			for (int i = 0; i < 10; i++)
+			{
+				itemsInUse.Add(_pool.Acquire());
+			}
+			_pool.Dispose();
+
+			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+			Assert.IsNotNull(info);
+
+			var refs = info.GetValue(_pool) as List<IPooledSocket>;
+
+			Assert.IsNotNull(refs);
+			refs.ForEach(x =>
+			{
+				Assert.IsFalse(x.IsAlive);
+				Assert.IsFalse(x.IsConnected);
+				try
+				{
+					x.ReadByte();
+					Assert.Fail();
+				}
+				catch (ObjectDisposedException e)
+				{
+					Assert.Pass();
+				}
+			});
+		}
+
+		[Test]
+		public void When_Disposed_And_Some_Items_Are_In_Use_ExponentialBackoff_Is_Used()
+		{
+			var itemsInUse = new List<IPooledSocket>();
+			for (int i = 0; i < 5; i++)
+			{
+				itemsInUse.Add(_pool.Acquire());
+			}
+			_pool.Dispose();
+
+			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+			Assert.IsNotNull(info);
+
+			var refs = info.GetValue(_pool) as List<IPooledSocket>;
+
+			Assert.IsNotNull(refs);
+			refs.ForEach(x =>
+			{
+				Assert.IsFalse(x.IsAlive);
+				Assert.IsFalse(x.IsConnected);
+				try
+				{
+					x.ReadByte();
+					Assert.Fail();
+				}
+				catch (ObjectDisposedException e)
+				{
+					Assert.Pass();
+				}
+			});
+		}
+
         [TearDown]
         public void TearDown()
         {

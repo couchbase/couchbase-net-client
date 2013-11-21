@@ -13,6 +13,7 @@ namespace Enyim.Caching.Memcached
         Guid InstanceId { get; }
         void Close();
         bool IsConnected { get; }
+        bool IsInUse { get; set; }
 
         /// <summary>
         /// replaces call to Dispose to release instance back into pool

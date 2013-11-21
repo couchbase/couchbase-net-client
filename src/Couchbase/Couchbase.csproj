@@ -78,6 +78,8 @@
     <Compile Include="CouchbaseSpatialViewBase.cs" />
     <Compile Include="CouchbaseViewHandler.cs" />
     <Compile Include="Exceptions\DeadNodeException.cs" />
+    <Compile Include="Exceptions\NodeShutdownException.cs" />
+    <Compile Include="Exceptions\OperationTimeoutException.cs" />
     <Compile Include="Exceptions\QueueTimeoutException.cs" />
     <Compile Include="Exceptions\ViewExceptions.cs" />
     <Compile Include="Exceptions\ViewNotFoundException.cs" />

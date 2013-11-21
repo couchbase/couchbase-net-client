@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using Couchbase.Configuration;
 using Couchbase.Exceptions;
@@ -97,19 +94,28 @@ namespace Couchbase
 					result.Pass();
 				}
 			}
+			catch (NodeShutdownException e)
+			{
+				const string msg = "Node Shutdown.";
+				Log.ErrorFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
+				result.Fail(msg, e);
+				result.StatusCode = StatusCode.NodeShutdown.ToInt();
+			}
 			catch (QueueTimeoutException e)
 			{
 				const string msg = "Queue Timeout.";
-				Log.Warn(msg, e);
+				Log.ErrorFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
 				result.Fail(msg, e);
 				result.StatusCode = StatusCode.SocketPoolTimeout.ToInt();
 			}
 			catch (IOException e)
 			{
 				const string msg = "Exception reading response";
-				Log.Error(msg, e);
+                Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key, e,
+                    socket == null ? Guid.Empty : socket.InstanceId);
 				result.Fail(msg, e);
-				if (result.StatusCode == null)
+				if (result.StatusCode == null ||
+					result.StatusCode == StatusCode.Success.ToInt())
 				{
 					result.StatusCode = StatusCode.InternalError.ToInt();
 				}
@@ -117,9 +123,11 @@ namespace Couchbase
 			catch (Exception e)
 			{
 				const string msg = "Operation failed.";
-				Log.Error(msg, e);
+				Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key, e,
+                    socket == null ? Guid.Empty : socket.InstanceId);
 				result.Fail(msg, e);
-				if (result.StatusCode == null)
+				if (result.StatusCode == null ||
+					result.StatusCode == StatusCode.Success.ToInt())
 				{
 					result.StatusCode = StatusCode.InternalError.ToInt();
 				}
@@ -130,6 +138,18 @@ namespace Couchbase
 				{
 					_pool.Release(socket);
 				}
+			}
+			if (Log.IsDebugEnabled)
+			{
+				const string msg = "Operation {0} :i {1} n: {2} t: {3} m: {4} sc: {5} r: {6}";
+				Log.DebugFormat(msg, result.Success ?
+                    op.RetryAttempts > 0 ? "succeeded*" : "succeeded" :
+                    op.RetryAttempts > 0 ? "failed*" : "failed",
+					op.Key,
+					_endpoint, Thread.CurrentThread.Name,
+					result.Message,
+					Enum.GetName(typeof (StatusCode), result.StatusCode ?? 0),
+					op.RetryAttempts);
 			}
 			return result;
 		}
@@ -188,7 +208,6 @@ namespace Couchbase
 
 		~CouchbaseNode()
 		{
-			Log.DebugFormat("Finalizing {0}", this);
 			Dispose(false);
 		}
 
