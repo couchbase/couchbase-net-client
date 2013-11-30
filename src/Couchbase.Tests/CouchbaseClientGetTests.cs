@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Couchbase.Tests.Factories;
 using Couchbase.Tests.Utils;
+using Enyim;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
 using NUnit.Framework;
@@ -122,8 +123,11 @@ namespace Couchbase.Tests
 		{
             var keys = TestUtils.GetUniqueKeys().Distinct();
 
-			var dict = Client.ExecuteGet(keys);
-			Assert.That(dict.Keys.Count, Is.EqualTo(0), "Keys count expected is zero as none of the keys exist, but it is {0} which is incorrect.", dict.Keys.Count);
+			var results = Client.ExecuteGet(keys);
+		    foreach (var result in results)
+		    {
+		        Assert.AreEqual(result.Value.StatusCode, StatusCode.KeyNotFound.ToInt());
+		    }
 		}
 
         /// <summary>
@@ -242,6 +246,59 @@ namespace Couchbase.Tests
             foreach (var result in results)
             {
                 Assert.IsTrue(result.Value.Success);
+            }
+        }
+
+        [Test]
+        public void When_ExecuteGet_Is_Called_With_Invalid_Keys_Errors_Are_Returned()
+        {
+            var keysThatDoNotExist = new[] { "not-exist1", "not-exist2" };
+            var results = Client.ExecuteGet(keysThatDoNotExist);
+            Assert.AreEqual(keysThatDoNotExist.Count(), results.Count);
+
+            foreach (var result in results)
+            {
+                Assert.IsFalse(result.Value.HasValue);
+                Assert.IsFalse(result.Value.Success);
+                Assert.AreEqual(StatusCode.KeyNotFound.ToInt(), result.Value.StatusCode);
+            }
+        }
+
+        [Test]
+        public void When_ExecuteGet_Is_Called_With_Valid_Keys_No_Errors_Are_Returned()
+        {
+            var keysThatExist = new[] { "exist1", "exist2" };
+            foreach (var key in keysThatExist)
+            {
+                var result = Client.Store(StoreMode.Set, key, key);
+                Assert.IsTrue(result);
+            }
+            var results = Client.ExecuteGet(keysThatExist);
+            Assert.AreEqual(keysThatExist.Count(), results.Count);
+
+            foreach (var result in results)
+            {
+                Assert.IsTrue(result.Value.HasValue);
+                Assert.IsTrue(result.Value.Success);
+                Assert.AreEqual(StatusCode.Success.ToInt(), result.Value.StatusCode);
+            }
+        }
+
+        [Test]
+        public void When_ExecuteGet_Is_Called_With_Invalid_Configuration_Errors_Are_Returned()
+        {
+            using (var client = new CouchbaseClient("bad-config"))
+            {
+                var keys = new[] { "exist1", "exist2" };
+                var results = client.ExecuteGet(keys);
+                Assert.AreEqual(keys.Count(), results.Count);
+
+                foreach (var result in results)
+                {
+                    Assert.IsFalse(result.Value.HasValue);
+                    Assert.IsFalse(result.Value.Success);
+                    Assert.AreEqual(StatusCode.UnableToLocateNode.ToInt(), result.Value.StatusCode);
+                }
             }
         }
 	}

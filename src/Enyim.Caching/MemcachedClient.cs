@@ -940,7 +940,9 @@ namespace Enyim.Caching
 					// if nodes are not available, keys are not processed at all. Add them to failure result list.
 					var opResult = GetOperationResultFactory.Create();
 					opResult.Fail("Unable to locate node");
-					var hashedFailureKeys = hashed.Keys.Except(byServer.SelectMany(s => s.Value));
+                    opResult.StatusCode = StatusCode.UnableToLocateNode.ToInt();
+
+                    var hashedFailureKeys = hashed.Keys.Except(byServer.SelectMany(s => s.Value)).ToList();
 					foreach (var hashedKey in hashedFailureKeys)
 					{
 						var original = hashed[hashedKey];

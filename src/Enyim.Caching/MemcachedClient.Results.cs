@@ -193,6 +193,7 @@ namespace Enyim.Caching
 					result.Value = this.transcoder.Deserialize(kvp.Value);
 					result.Cas = mget.Cas[kvp.Key];
 					result.Success = true;
+                    result.StatusCode = StatusCode.Success.ToInt();
 					return result;
 				},
 				opResult =>
