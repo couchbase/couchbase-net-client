@@ -85,6 +85,10 @@ namespace Couchbase
 			try
 			{
 				socket = _pool.Acquire();
+			    if (Log.IsDebugEnabled)
+			    {
+			        Log.DebugFormat("Start execute {0} with {1}", op.Key, socket.InstanceId);
+			    }
 				var buffers = op.GetBuffer();
 				socket.Write(buffers);
 
@@ -97,7 +101,7 @@ namespace Couchbase
 			catch (NodeShutdownException e)
 			{
 				const string msg = "Node Shutdown.";
-				Log.ErrorFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
+				Log.DebugFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
 				result.Fail(msg, e);
 				result.StatusCode = StatusCode.NodeShutdown.ToInt();
 			}
@@ -111,8 +115,8 @@ namespace Couchbase
 			catch (IOException e)
 			{
 				const string msg = "Exception reading response";
-                Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key, e,
-                    socket == null ? Guid.Empty : socket.InstanceId);
+                Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key,
+                    socket == null ? Guid.Empty : socket.InstanceId, e);
 				result.Fail(msg, e);
 				if (result.StatusCode == null ||
 					result.StatusCode == StatusCode.Success.ToInt())
@@ -123,8 +127,8 @@ namespace Couchbase
 			catch (Exception e)
 			{
 				const string msg = "Operation failed.";
-				Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key, e,
-                    socket == null ? Guid.Empty : socket.InstanceId);
+				Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key,
+                    socket == null ? Guid.Empty : socket.InstanceId, e);
 				result.Fail(msg, e);
 				if (result.StatusCode == null ||
 					result.StatusCode == StatusCode.Success.ToInt())
@@ -136,6 +140,10 @@ namespace Couchbase
 			{
 				if (socket != null)
 				{
+                    if (Log.IsDebugEnabled)
+                    {
+                        Log.DebugFormat("End execute {0} with {1}", op.Key, socket.InstanceId);
+                    }
 					_pool.Release(socket);
 				}
 			}
@@ -188,7 +196,7 @@ namespace Couchbase
 
 		public void Dispose()
 		{
-			Log.DebugFormat("Disposing {0}", this);
+			Log.DebugFormat("Disposing {0} - {1}", this, EndPoint);
 			CheckDiposed();
 			Dispose(true);
 		}

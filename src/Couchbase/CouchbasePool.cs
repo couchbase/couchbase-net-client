@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using Couchbase.Management;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Protocol.Binary;
@@ -167,23 +168,40 @@ namespace Couchbase
 				Interlocked.Exchange(ref this.state, InternalState.Empty);
 			}
 
-			// kill the old nodes
-            if (oldNodes != null)
-            {
-                foreach (IMemcachedNode node in oldNodes)
-                {
-                    try
-                    {
-                        node.Failed -= this.NodeFail;
-                        node.Dispose();
-                    }
-                    catch (Exception e)
-                    {
-                        log.Error(e);
-                    }
-                }
-		    }
+            //Clean up the old nodes
+		    CloseNodes(oldNodes);
 		}
+
+	    private void CloseNodes(IEnumerable<IMemcachedNode> oldNodes)
+	    {
+	        if (oldNodes != null)
+		    {
+		        foreach (var node in oldNodes)
+		        {
+		            node.Failed -= NodeFail;
+		        }
+		        ThreadPool.QueueUserWorkItem(DisposeNodes, oldNodes);
+		    }
+	    }
+
+	    private static void DisposeNodes(object state)
+	    {
+            var nodes = state as IEnumerable<IMemcachedNode>;
+	        if (nodes != null)
+	        {
+	            foreach (var node in nodes)
+	            {
+	                try
+	                {
+	                    node.Dispose();
+	                }
+	                catch (Exception e)
+	                {
+	                    log.Error(e);
+	                }
+	            }
+	        }
+	    }
 
 		private InternalState InitVBucket(ClusterConfig config, ISaslAuthenticationProvider auth)
 		{

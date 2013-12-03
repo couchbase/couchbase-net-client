@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Threading;
 using Enyim.Caching.Memcached;
 
 namespace Couchbase
@@ -42,6 +43,19 @@ namespace Couchbase
 
         public bool IsInUse { get { return _isInUse; } set { _isInUse = value; } }
 
+	    void OperationTimeout(object state)
+	    {
+	        var socket = state as IPooledSocket;
+	        if (socket != null)
+	        {
+	            if (Log.IsDebugEnabled)
+	            {
+	                Log.DebugFormat("Operation timeout.");
+	            }
+                socket.Close();
+	        }
+	    }
+
 		public int ReadByte()
 		{
             CheckDisposed();
@@ -62,19 +76,22 @@ namespace Couchbase
 			CheckDisposed();
 
 			var read = 0;
-			var shouldRead = count;
+		    var shouldRead = count;
 
 		    try
 		    {
-		        while (read < count)
+		        using (new Timer(OperationTimeout, this, _socket.ReceiveTimeout, 0))
 		        {
-		            var current = _stream.Read(buffer, offset, shouldRead);
-		            if (current < 1)
-		                continue;
+                    while (read < count)
+                    {
+                        var current = _stream.Read(buffer, offset, shouldRead);
+                        if (current < 1)
+                            continue;
 
-		            read += current;
-		            offset += current;
-		            shouldRead -= current;
+                        read += current;
+                        offset += current;
+                        shouldRead -= current;
+                    }
 		        }
 		    }
 		    catch (Exception)
@@ -177,13 +194,8 @@ namespace Couchbase
 				{
 					GC.SuppressFinalize(this);
 				}
-				if (!_disposed && _isAlive)
+				if (!_disposed)
 				{
-					if (_socket != null)
-					{
-						_socket.Shutdown(SocketShutdown.Both);
-						_socket.Close(_socket.ReceiveTimeout);
-					}
 					if (_stream != null)
 					{
 						_stream.Close();

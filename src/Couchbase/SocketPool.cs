@@ -76,7 +76,7 @@ namespace Couchbase
 			}
 			if (Log.IsDebugEnabled)
 			{
-				Log.DebugFormat("Created socket Id={0} on {1}", _node.EndPoint, pooledSocket.InstanceId);
+				Log.DebugFormat("Created socket Id={0} on {1}", pooledSocket.InstanceId, _node.EndPoint);
 			}
 			_refs.Add(pooledSocket);
 			return pooledSocket;
@@ -166,7 +166,8 @@ namespace Couchbase
 				}
                 if (_shutDownMode)
                 {
-                    throw new NodeShutdownException("Node has shutdown.");
+                    var msg = String.Format("SocketPool for node {0} has shutdown.", _node.EndPoint);
+                    throw new NodeShutdownException(msg);
                 }
 			    Interlocked.Increment(ref _outCount);
 				return socket;
@@ -256,6 +257,10 @@ namespace Couchbase
 
 				        foreach (var socket in _refs.Where(x=>x.IsAlive && !x.IsInUse))
 				        {
+                            if (Log.IsDebugEnabled)
+                            {
+                                Log.DebugFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                            }
 				            socket.Close();
 				            itemsDisposed++;
 				        }
@@ -263,7 +268,15 @@ namespace Couchbase
                         if (i != maxAttempts) continue;
 				        foreach (var socket in _refs.Where(x=>x.IsAlive))
 				        {
+				            if (Log.IsDebugEnabled)
+				            {
+				                Log.DebugFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+				            }
 						    socket.Close();
+                            if (Log.IsDebugEnabled)
+                            {
+                                Log.DebugFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                            }
 							itemsDisposed++;
 				        }
                     } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
