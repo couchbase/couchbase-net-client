@@ -57,6 +57,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Exceptions\BootstrapConfigurationException.cs">
+      <Link>Exceptions\BootstrapConfigurationException.cs</Link>
+    </Compile>
 		<Compile Include="..\Couchbase\Exceptions\NodeShutdownException.cs">
 			<Link>Exceptions\NodeShutdownException.cs</Link>
 		</Compile>

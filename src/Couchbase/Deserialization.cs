@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Collections;
+using Couchbase.Exceptions;
 
 namespace Couchbase.Configuration
 {
@@ -205,22 +206,30 @@ namespace Couchbase.Configuration
 		{
 			public override object Deserialize(IDictionary<string, object> dictionary, Type type, System.Web.Script.Serialization.JavaScriptSerializer serializer)
 			{
-				var retval = new BootstrapInfo();
+				var info = new BootstrapInfo();
 
 				object poolsConfig;
 				if (dictionary.TryGetValue("pools", out poolsConfig))
 				{
-					var dict = (poolsConfig as ArrayList)[0] as Dictionary<string, object>;
-					retval.Name = dict["name"] as string;
-					retval.StreamingUri = dict["streamingUri"] as string;
-					retval.Uri = dict["uri"] as string;
+				    var pools = poolsConfig as ArrayList;
+				    if (pools != null && pools.Count > 0)
+				    {
+				        var dict = pools[0] as Dictionary<string, object>;
+				        info.Name = dict["name"] as string;
+				        info.StreamingUri = dict["streamingUri"] as string;
+				        info.Uri = dict["uri"] as string;
+				    }
+				    else
+				    {
+                        throw new BootstrapConfigurationException("Pools element was empty in the bootstrap response.");
+				    }
 				}
 				else
 				{
-					throw new InvalidOperationException("Pools element was not found in the bootstrap response.");
+                    throw new BootstrapConfigurationException("Pools element was not found in the bootstrap response.");
 				}
 
-				return retval;
+				return info;
 			}
 
 
