@@ -1377,8 +1377,12 @@ namespace Couchbase
 
 		IHttpClient IHttpClientLocator.Locate()
 		{
+            //Find any candidate nodes for executing the HTTP request. A node with a
+            //null IHttpClient is a node likely in a warmup state, not a healthy node
+            //and can't be used to make the view request
             var nodes = Pool.GetWorkingNodes().
                 OfType<CouchbaseNode>().
+                Where(x=>x.Client != null).
                 ToList();
 
 			if (nodes.Count == 0)
