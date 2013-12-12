@@ -47,3 +47,10 @@ To get the tests to run if you have a different setup then the above, just updat
 ## Getting Help
 
 For help with the Couchbase .NET Client Library see the [Couchbase SDK Forums](http://www.couchbase.com/forums/sdks/sdks).
+
+## Versioning Notes
+
+We use the "Semantic Versioning 2.0" model described here for our versioning model: http://http://semver.org/
+*All officially released binary's use the following convention: <MAJOR>.<MINOR>.<PATCH> for example 1.2.9 or 1.3.0.
+*We occasionally provide snapshots of mid-iteration bug fixes for validation purposes. In which case we add another number <MAJOR>.<MINOR>.<PATCH>.<SNAPSHOT> where <SNAPSHOT> is a number starting at 5000 (e.g. 1.3.0.5000) and incremented with each build.
+*All snapshot builds are neither tested thoroughly nor supported in any way - user beware!
