@@ -293,23 +293,6 @@ namespace Enyim.Caching.Memcached
 
 			return this.helper.Read(p);
 		}
-
-        Action<IPooledSocket> IPooledSocket.CleanupCallback
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        Guid IPooledSocket.InstanceId
-        {
-            get { throw new NotImplementedException(); }
-        }
     }
 }
 
