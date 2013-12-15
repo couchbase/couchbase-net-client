@@ -16,6 +16,16 @@ namespace Couchbase.Extensions
 {
 	public static class CouchbaseClientExtensions
 	{
+	    public static JsonSerializerSettings JsonSerializerSettings;
+
+	    static CouchbaseClientExtensions()
+	    {
+	        JsonSerializerSettings = new JsonSerializerSettings
+	            {
+	                ContractResolver = new DocumentIdContractResolver()
+	            };
+	    }
+
 	    private const string Null = "null";
 
 		#region No expiry
@@ -139,12 +149,9 @@ namespace Couchbase.Extensions
 
 		private static string SerializeObject(object value)
 		{
-			var json = JsonConvert.SerializeObject(value,
+		    var json = JsonConvert.SerializeObject(value,
 									Formatting.None,
-									new JsonSerializerSettings
-									{
-										ContractResolver = new DocumentIdContractResolver()
-									});
+									JsonSerializerSettings);
 			return json;
 		}
 
