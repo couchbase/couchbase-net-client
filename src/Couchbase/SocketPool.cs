@@ -143,7 +143,7 @@ namespace Couchbase
 				catch (InvalidOperationException e)
 				{
 					var sb = new StringBuilder();
-					sb.AppendLine("Timeout occured while waiting for a socket.");
+                    sb.AppendFormat("Timeout occured while waiting for a socket on {0}.", _node.EndPoint);
 					sb.AppendFormat("Your current configuration for queueTmeout is {0}{1}",  _config.QueueTimeout, Environment.NewLine);
 					sb.AppendFormat("Your current configuration for maxPoolSize is {0}{1}", _config.MaxPoolSize, Environment.NewLine);
 					sb.AppendLine("Try increasing queueTimeout or increasing using maxPoolSize in your configuration.");

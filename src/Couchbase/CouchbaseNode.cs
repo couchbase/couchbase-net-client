@@ -100,21 +100,21 @@ namespace Couchbase
 			}
 			catch (NodeShutdownException e)
 			{
-				const string msg = "Node Shutdown.";
+			    string msg = String.Format("Node Shutdown - {0}.", EndPoint);
 				Log.DebugFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
 				result.Fail(msg, e);
 				result.StatusCode = StatusCode.NodeShutdown.ToInt();
 			}
 			catch (QueueTimeoutException e)
 			{
-				const string msg = "Queue Timeout.";
+                string msg = String.Format("Queue Timeout - {0}.", EndPoint);
 				Log.ErrorFormat("m:{0} i:{1}\n{2}", msg, op.Key, e);
 				result.Fail(msg, e);
 				result.StatusCode = StatusCode.SocketPoolTimeout.ToInt();
 			}
 			catch (IOException e)
 			{
-				const string msg = "Exception reading response";
+                string msg = String.Format("Exception reading response - {0}", EndPoint);
                 Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key,
                     socket == null ? Guid.Empty : socket.InstanceId, e);
 				result.Fail(msg, e);
@@ -126,7 +126,7 @@ namespace Couchbase
 			}
 			catch (Exception e)
 			{
-				const string msg = "Operation failed.";
+                string msg = String.Format("Operation failed - {0}", EndPoint);
 				Log.ErrorFormat("m:{0} s:{1} i:{2}\n{3}", msg, op.Key,
                     socket == null ? Guid.Empty : socket.InstanceId, e);
 				result.Fail(msg, e);
