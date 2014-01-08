@@ -200,9 +200,6 @@
       <Name>Enyim.Caching</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Version.txt" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <GitTagMatch>mb*</GitTagMatch>
