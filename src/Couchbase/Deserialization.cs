@@ -49,9 +49,10 @@ namespace Couchbase.Configuration
 		public override int GetHashCode()
 		{
 			var cnehc = new Enyim.HashCodeCombiner();
-
-			for (var i = 0; i < nodes.Length; i++)
-				cnehc.Add(nodes[i].GetHashCode());
+            foreach (var node in nodes.OrderBy(x => x.HostName))
+		    {
+		        cnehc.Add(node.GetHashCode());
+		    }
 
 			if (vBucketForwardServerMap != null)
 				cnehc.Add(vBucketForwardServerMap.GetHashCode());
