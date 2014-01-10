@@ -65,6 +65,7 @@ namespace Couchbase
 				NoDelay = true
 			};
 
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (int)_config.ReceiveTimeout.TotalMilliseconds);
 			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, true);
 			socket.Connect(_node.EndPoint);
