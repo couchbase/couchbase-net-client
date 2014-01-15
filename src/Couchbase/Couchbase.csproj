@@ -84,6 +84,7 @@
     <Compile Include="Exceptions\QueueTimeoutException.cs" />
     <Compile Include="Exceptions\ViewExceptions.cs" />
     <Compile Include="Exceptions\ViewNotFoundException.cs" />
+    <Compile Include="Extensions\ArrayExtensions.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
     <Compile Include="GenericViewRowTransformer.cs" />
     <Compile Include="Helpers\DocHelper.cs" />

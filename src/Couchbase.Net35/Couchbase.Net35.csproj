@@ -57,6 +57,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Extensions\ArrayExtensions.cs">
+      <Link>Extensions\ArrayExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Exceptions\BootstrapConfigurationException.cs">
       <Link>Exceptions\BootstrapConfigurationException.cs</Link>
     </Compile>

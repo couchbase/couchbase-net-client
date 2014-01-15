@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Couchbase.Configuration;
+using Couchbase.Extensions;
 
 namespace Couchbase
 {
@@ -240,7 +241,7 @@ namespace Couchbase
 
 				// key is the original url (used for the status dictionary)
 				// value is the resolved url (used for receiving messages)
-				var current = GetNextPoolUri();
+			    var current = GetNextPoolUriRandomized();
 
 				if (current.Key == null)
 				{
@@ -302,44 +303,40 @@ namespace Couchbase
 			}
 		}
 
-		private KeyValuePair<Uri, Uri> GetNextPoolUri()
-		{
-			var i = this.urlIndex;
+	    private KeyValuePair<Uri, Uri> GetNextPoolUriRandomized()
+	    {
+	        var urlPair = new KeyValuePair<Uri, Uri>();
+            urls.Shuffle();
 
-			while (i < this.urls.Length)
-			{
-				var key = this.urls[i];
-
-				// check if the url is alive
-				if (this.statusPool[key])
-				{
-					try
-					{
-						// resolve the url
-						var resolved = realUrls[key] ?? this.uriConverter(this.requestFactory, key);
-
-						if (resolved != null)
-						{
-							if (log.IsDebugEnabled) log.Debug("Resolved pool url " + key + " to " + resolved);
-
-							return new KeyValuePair<Uri, Uri>(key, resolved);
-						}
-					}
-					catch (Exception e)
-					{
-						log.Error(e);
-					}
-
-					// ResolveUri threw an exception or returned null so mark this url as invalid
-					statusPool[key] = false;
-					log.Warn("Could not resolve url " + key + "; trying the next in the list");
-				}
-
-				i++;
-			}
-
-			return new KeyValuePair<Uri, Uri>();
-		}
+	        foreach (var key in urls)
+	        {
+	            var alive = statusPool[key];
+	            if (alive)
+	            {
+	                try
+	                {
+	                    var resolved = realUrls[key] ?? uriConverter(requestFactory, key);
+	                    if (resolved != null)
+	                    {
+	                        if (log.IsDebugEnabled)
+	                        {
+	                            log.Debug("Resolved pool url " + key + " to " + resolved);
+	                        }
+	                        urlPair = new KeyValuePair<Uri, Uri>(key, resolved);
+	                        break;
+	                    }
+                        statusPool[key] = false;
+	                }
+	                catch (Exception e)
+	                {
+                        statusPool[key] = false;
+                        log.Error(e);
+	                }
+	            }
+                log.Warn("Could not resolve url " + key + "; trying the next in the list");
+	        }
+	        return urlPair;
+	    }
 
 		private void AbortRequests()
 		{
