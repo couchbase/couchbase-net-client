@@ -921,8 +921,15 @@ namespace Enyim.Caching
 					}
 					finally
 					{
-						// indicate that we finished processing
-						mre.Set();
+					    try
+					    {
+					        // indicate that we finished processing
+					        mre.Set();
+					    }
+					    catch (Exception e)
+					    {
+					        log.Error(e);
+					    }
 					}
 				}, nodeKeys);
 			}
