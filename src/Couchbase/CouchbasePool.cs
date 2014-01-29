@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using Couchbase.Management;
 using Enyim.Caching.Configuration;
@@ -296,11 +297,10 @@ namespace Couchbase
 			if (items.Length > 0)
 			{
 				if (log.IsDebugEnabled)
-					foreach (IPAddress item in items)
-						log.DebugFormat("Found address {0} for {1}", item, hostname);
+				    foreach (IPAddress item in items)
+				        log.DebugFormat("Found address {0} for {1}", item, hostname);
 
-				var retval = items[0];
-
+			    var retval = items.FirstOrDefault(item => item.AddressFamily == AddressFamily.InterNetwork) ?? items[0];
 				if (log.IsDebugEnabled)
 					log.DebugFormat("Using address {0} for {1}", retval, hostname);
 
