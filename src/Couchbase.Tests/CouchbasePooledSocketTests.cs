@@ -18,7 +18,7 @@ namespace Couchbase.Tests
 	{
 		private IResourcePool _pool;
 
-		[SetUp]
+		[TestFixtureSetUp]
 		public void SetUp()
 		{
 			var port = int.Parse(ConfigurationManager.AppSettings["port"]);
@@ -37,7 +37,7 @@ namespace Couchbase.Tests
 			_pool = new SocketPool(node, config);
 		}
 
-		[TearDown]
+        [TestFixtureTearDown]
 		public void TearDown()
 		{
 			_pool.Dispose();

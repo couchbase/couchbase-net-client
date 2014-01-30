@@ -37,5 +37,12 @@ namespace Couchbase
             }
             Assert.IsTrue(foundDifference);
         }
+
+        [Test]
+        public void When_Array_IsEmpty_Shuffle_Does_Not_Throw_Exception()
+        {
+            var uris = new Uri[0];
+            uris.Shuffle();
+        }
     }
 }

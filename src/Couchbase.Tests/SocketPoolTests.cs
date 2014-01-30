@@ -22,7 +22,7 @@ namespace Couchbase.Tests
 			return info.GetValue(socket) as Socket;
 		}
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetUp()
         {
             var port = int.Parse(ConfigurationManager.AppSettings["port"]);
@@ -195,7 +195,7 @@ namespace Couchbase.Tests
 			});
 		}
 
-        [TearDown]
+        [TestFixtureTearDown]
         public void TearDown()
         {
             _pool.Dispose();
