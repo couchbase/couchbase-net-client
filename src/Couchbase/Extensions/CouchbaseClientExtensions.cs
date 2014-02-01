@@ -120,7 +120,7 @@ namespace Couchbase.Extensions
 		public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
 		{
 			var json = client.Get<string>(key);
-		    return json == Null ? null : DeserializeObject<T>(key, json);
+		    return json == null || json == Null ? null : DeserializeObject<T>(key, json);
 		}
 
 		public static IGetOperationResult<T> ExecuteGetJson<T>(this ICouchbaseClient client, string key) where T : class

@@ -30,6 +30,15 @@ namespace Couchbase.Tests
             Assert.AreEqual(null, nullResult);
         }
 
+        [Test]
+        public void Test_That_GetJson_Supports_Returns_Null_When_KeyDoesNotExist()
+        {
+            var key = "A_KEY_THAT_DOESNT_EXIST";
+
+            var nullResult = Client.GetJson<Thing>(key);
+            Assert.AreEqual(null, nullResult);
+        }
+
         /// <summary>
         /// @test: Generate a unique key and store key using StoreJson(), without converting into json
         /// the store operation would fail
