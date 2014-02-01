@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
+using System.Security.Policy;
 using System.Text;
+using System.Web;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.IO;
@@ -32,6 +34,8 @@ namespace Couchbase
             this.IndexName = indexName;
 			this.ViewPath = viewPath;
         }
+
+        internal virtual bool UrlEncode { get; set; }
 
 		public int TotalRows { get; set; }
 
@@ -194,7 +198,14 @@ namespace Couchbase
 			{
 				foreach (var param in viewParams)
 				{
-					request.AddParameter(param.Key, param.Value.ToString());
+				    var key = param.Key;
+				    var value = param.Value;
+				    if (UrlEncode)
+				    {
+				        key = HttpUtility.UrlEncode(key);
+				        value = HttpUtility.UrlEncode(value);
+				    }
+					request.AddParameter(key, value);
 				}
 			}
 

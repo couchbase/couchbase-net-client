@@ -36,8 +36,9 @@ namespace Couchbase {
         protected int? groupAt;
 
 		protected bool? debug;
+        private bool _urlEncode;
 
-		public int TotalRows {
+        public int TotalRows {
 			get { return ViewHandler.TotalRows; }
 		}
 
@@ -45,12 +46,17 @@ namespace Couchbase {
 			get { return ViewHandler.DebugInfo; }
 		}
 
-        internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName) {
-			this.ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName);
+        internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
+        {
+            _urlEncode = false;
+            this.ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName);
+            ViewHandler.UrlEncode = _urlEncode;
         }
 
         protected CouchbaseViewBase(CouchbaseViewBase<T> original) {
-			this.ViewHandler = original.ViewHandler;
+            _urlEncode = false;
+            this.ViewHandler = original.ViewHandler;
+            ViewHandler.UrlEncode = _urlEncode;
 
             this.startKey = original.startKey;
             this.endKey = original.endKey;
@@ -90,11 +96,18 @@ namespace Couchbase {
 			viewParamsBuilder.AddStaleParam(this.stale);
 			viewParamsBuilder.AddOnErrorParam(this.onError);
 			viewParamsBuilder.AddOptionalParam("debug", this.debug);
+            ViewHandler.UrlEncode = _urlEncode;
 
 			return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());
         }
 
         #region [ IView                        ]
+
+        public IView<T> UrlEncode(bool value)
+        {
+            _urlEncode = value;
+            return this;
+        }
 
         public IView<T> Limit(int value) {
 

@@ -23,6 +23,7 @@ namespace Couchbase
 		bool TryGet(string key, DateTime newExpiration, out object value);
 		bool TryGetWithCas(string key, DateTime newExpiration, out Enyim.Caching.Memcached.CasResult<object> value);
 		IView<IViewRow> GetView(string designName, string viewName);
+        IView<IViewRow> GetView(string designName, string viewName, bool urlEncode);
 		IView<T> GetView<T>(string designName, string viewName, bool shouldLookupDocById = false);
 		IDictionary<string, object> Get(IView view);
 		ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName);

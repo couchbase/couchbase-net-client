@@ -60,7 +60,9 @@
     <Compile Include="BootstrapConfigTests.cs" />
     <Compile Include="ConfigHelperTests.cs" />
     <Compile Include="CouchbaseClientConfigurationTests.cs" />
-    <Compile Include="CouchbaseClusterBucketAdminTests.cs" />
+    <Compile Include="CouchbaseClusterBucketAdminTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CouchbasePooledSocketTests.cs" />
     <Compile Include="SocketPoolTests.cs" />
     <Compile Include="CouchbaseClientExtensionsTests.cs" />
@@ -142,6 +144,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\view-response-good.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\ViewWithCompoundKey.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config">

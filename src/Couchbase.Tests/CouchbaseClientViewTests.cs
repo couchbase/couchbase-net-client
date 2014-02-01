@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
+using Couchbase.Configuration;
+using Moq;
 using NUnit.Framework;
 using Couchbase.Exceptions;
 
@@ -189,5 +192,59 @@ namespace Couchbase.Tests
 
 			Assert.Fail();
 		}
+
+        [Test]
+	    public void When_UrlEncodeKeys_Is_True_Keys_With_Special_Chars_Are_Succesful()
+	    {
+            CreateViewFromFile(@"Data\\ViewWithCompoundKey.json", "test");
+            var view = Client.GetView("test", "all").UrlEncode(true);
+	        IViewRow item = view.Key(new object[]
+	        {
+	            123,
+	            "a+b"
+	        }).Stale(StaleMode.False).FirstOrDefault();
+
+            Assert.IsNotNull(item);
+        }
+
+        [Test]
+        public void When_UrlEncodeKeys_Is_True_In_Ctor_Keys_With_Special_Chars_Are_Succesful()
+        {
+            CreateViewFromFile(@"Data\\ViewWithCompoundKey.json", "test");
+            IViewRow item = Client.GetView("test", "all", true).Key(new object[]
+	        {
+	            123,
+	            "a+b"
+	        }).Stale(StaleMode.False).FirstOrDefault();
+
+            Assert.IsNotNull(item);
+        }
+
+        [Test]
+        public void When_UrlEncodeKeys_Is_False_In_Ctor_Keys_With_Special_Chars_Fails()
+        {
+            CreateViewFromFile(@"Data\\ViewWithCompoundKey.json", "test");
+            IViewRow item = Client.GetView("test", "all", false).Key(new object[]
+	        {
+	            123,
+	            "a+b"
+	        }).Stale(StaleMode.False).FirstOrDefault();
+
+            Assert.IsNull(item);
+        }
+
+        [Test]
+        public void When_UrlEncodeKeys_Is_False_Keys_With_Special_Chars_Fails()
+        {
+            CreateViewFromFile(@"Data\\ViewWithCompoundKey.json", "test");
+            var view = Client.GetView("test", "all");
+            IViewRow item = view.Key(new object[]
+	        {
+	            123,
+	            "a+b"
+	        }).Stale(StaleMode.False).FirstOrDefault();
+
+            Assert.IsNull(item);
+        }
 	}
 }

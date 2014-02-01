@@ -1303,10 +1303,18 @@ namespace Couchbase
         /// <param name="viewName">The name of the view.</param>
         /// <returns></returns>
 		public IView<IViewRow> GetView(string designName, string viewName)
-		{
-			getViewSetup(ref designName, ref viewName);
-			return new CouchbaseView(this, this, designName, viewName);
-		}
+        {
+            return GetView<IViewRow>(designName, viewName, false);
+        }
+
+
+        public IView<IViewRow> GetView(string designName, string viewName, bool urlEncode)
+        {
+            getViewSetup(ref designName, ref viewName);
+            var view = new CouchbaseView(this, this, designName, viewName);
+            view.UrlEncode(urlEncode);
+            return view;
+        }
 
 		/// <summary>
 		/// Returns an object representing the specified view in the specified design document.
@@ -1433,7 +1441,7 @@ namespace Couchbase
 		    base.FlushAll();
 		}
 		#endregion
-	}
+    }
 }
 
 #region [ License information		  ]

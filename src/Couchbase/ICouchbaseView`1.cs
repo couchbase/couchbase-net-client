@@ -18,7 +18,14 @@ namespace Couchbase
 		/// </summary>
 		IDictionary<string, object> DebugInfo { get; }
 
-		/// <summary>
+        /// <summary>
+        /// View when to true, all parameters will be url-encoded prior to being sent to the server
+        /// </summary>
+        /// <param name="value">True to url-encode parameters</param>
+        /// <returns>A new <see cref="T:Couchbase.IView"/> instance that url-encodes parameters if set to true.</returns>
+	    IView<T> UrlEncode(bool value);
+
+	    /// <summary>
 		/// The view will return only the specified number of items.
 		/// </summary>
 		/// <param name="value">The number of items to return.</param>
