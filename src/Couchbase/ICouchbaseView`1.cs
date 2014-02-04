@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Newtonsoft.Json.Linq;
+﻿using System.Collections.Generic;
 
 namespace Couchbase
 {
@@ -43,7 +39,7 @@ namespace Couchbase
 		/// <summary>
 		/// Couchbase will not update the view before returning the data even if it contains stale values. Use this mode if you favor improved query latency over data constistency.
 		/// </summary>
-		/// <param name="value"></param>
+		/// <param name="mode"></param>
 		/// <returns>A new <see cref="T:Couchbase.IView"/> instance that includes the stale items from the view.</returns>
 		IView<T>Stale(StaleMode mode);
 
@@ -65,28 +61,28 @@ namespace Couchbase
 		/// </summary>
 		/// <param name="from"></param>
         /// <returns>A new <see cref="T:Couchbase.IView"/> with the row for the given key.</returns>
-		IView<T>StartKey<KeyType>(KeyType from);
+		IView<T>StartKey<TKeyType>(TKeyType from);
 
 		/// <summary>
 		/// Key of document
 		/// </summary>
 		/// <param name="key"></param>
         /// <returns>A new <see cref="T:Couchbase.IView"/> for the row of the given key.</returns>
-		IView<T> Key<KeyType>(KeyType key);
+		IView<T> Key<TKeyType>(TKeyType key);
 
         /// <summary>
         /// Keys of document set
         /// </summary>
         /// <param name="keys"></param>
         /// <returns>A new <see cref="T:Couchbase.IView"/> for the rows for the given keys.</returns>
-        IView<T> Keys<KeyType>(KeyType keys);
+        IView<T> Keys<TKeyType>(TKeyType keys);
 
 		/// <summary>
 		/// End of key range
 		/// </summary>
 		/// <param name="to"></param>
 		/// <returns>TBD</returns>
-		IView<T>EndKey<KeyType>(KeyType to);
+		IView<T>EndKey<TKeyType>(TKeyType to);
 
 		/// <summary>
 		/// Start of document id range
