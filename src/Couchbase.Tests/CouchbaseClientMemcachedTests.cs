@@ -38,14 +38,17 @@ namespace Couchbase.Tests
             var client = new CouchbaseClient("memcached-config");
             var result = client.Store(StoreMode.Set, Key, "value");
             Assert.AreEqual(result, true);
+            client.Remove(Key);
         }
 
         [Test]
         public void Test_Store_StoreMode_Add_Will_Fail_If_Key_Exists()
         {
             var client = new CouchbaseClient("memcached-config");
-            var result = client.Store(StoreMode.Add, Key, "value");
-            Assert.AreEqual(result, false);
+            var result = client.Store(StoreMode.Set, Key, "value");
+            var resultWhenKeyExists = client.Store(StoreMode.Add, Key, "value");
+            Assert.AreEqual(resultWhenKeyExists, false);
+            client.Remove(Key);
         }
     }
 }
