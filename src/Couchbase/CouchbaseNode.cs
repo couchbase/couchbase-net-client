@@ -196,7 +196,7 @@ namespace Couchbase
 
 		public void Dispose()
 		{
-			Log.DebugFormat("Disposing {0} - {1}", this, EndPoint);
+			Log.WarnFormat("Disposing {0} - {1}", this, EndPoint);
 			CheckDiposed();
 			Dispose(true);
 		}

@@ -99,7 +99,7 @@ namespace Couchbase
 			// everything failed
 			if (String.IsNullOrEmpty(message))
 			{
-                log.DebugFormat("Everything failed in {0}", this);
+                log.WarnFormat("Everything failed in {0}", this);
 				this.lastHash = null;
 				this.RaiseConfigChanged(null);
 				return;
@@ -121,8 +121,8 @@ namespace Couchbase
 				this.RaiseConfigChanged(config);
 				listener.UpdateNodes(config);
 			}
-			else if (log.IsDebugEnabled)
-				log.Debug("Last message was the same as current, ignoring.");
+			else if (log.IsWarnEnabled)
+				log.Warn("Last message was the same as current, ignoring.");
 		}
 
 		private void RaiseConfigChanged(ClusterConfig config)

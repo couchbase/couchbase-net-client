@@ -134,7 +134,7 @@ namespace Couchbase
 
 			var success = ThreadPool.QueueUserWorkItem(this.Worker);
 
-			if (log.IsDebugEnabled) log.Debug("Starting the listener. Queue=" + success);
+			if (log.IsWarnEnabled) log.Warn("Starting the listener. Queue=" + success);
 		}
 
 		/// <summary>
@@ -142,14 +142,14 @@ namespace Couchbase
 		/// </summary>
 		public void Stop()
 		{
-			if (log.IsDebugEnabled) log.Debug("Stopping the listener.");
+			if (log.IsWarnEnabled) log.Warn("Stopping the listener.");
 
 			this.stopEvent.Set();
 			this.AbortRequests();
 
 			this.IsStarted = false;
 
-			if (log.IsDebugEnabled) log.Debug("Stopped.");
+			if (log.IsWarnEnabled) log.Warn("Stopped.");
 		}
 
 		public void Subscribe(Action<string, MessageStreamListener> callback)
@@ -187,7 +187,7 @@ namespace Couchbase
 
 		private void Worker(object state)
 		{
-			if (log.IsDebugEnabled) log.Debug("Started working.");
+			if (log.IsWarnEnabled) log.Warn("Started working.");
 
 			while (!this.stopEvent.WaitOne(0))
 			{
@@ -237,7 +237,7 @@ namespace Couchbase
 		{
 			while (!this.stopEvent.WaitOne(0))
 			{
-				if (log.IsDebugEnabled) log.Debug("Looking for the first working node.");
+				if (log.IsWarnEnabled) log.Warn("Looking for the first working node.");
 
 				// key is the original url (used for the status dictionary)
 				// value is the resolved url (used for receiving messages)
@@ -252,7 +252,7 @@ namespace Couchbase
 
 				try
 				{
-					if (log.IsDebugEnabled) log.Debug("Start receiving messages.");
+					if (log.IsWarnEnabled) log.Warn("Start receiving messages.");
 					this.currentRetryCount = 0;
 
 					while (!this.stopEvent.WaitOne(0))
@@ -264,21 +264,21 @@ namespace Couchbase
 							this.ReadMessages(current.Key, current.Value);
 
 							// we can only get here properly if the listener is stopped, so just quit the whole loop
-							if (log.IsDebugEnabled) log.Debug("Processing is aborted.");
+							if (log.IsWarnEnabled) log.Warn("Processing is aborted.");
 							return;
 						}
 						catch (Exception x)
 						{
-							if (log.IsDebugEnabled) log.Debug("ReadMessage failed with exception:", x);
+							if (log.IsWarnEnabled) log.Warn("ReadMessage failed with exception:", x);
 
 							if (this.currentRetryCount == this.RetryCount)
 							{
-								if (log.IsDebugEnabled) log.Debug("Reached the retry limit, rethrowing.", x);
+								if (log.IsWarnEnabled) log.Warn("Reached the retry limit, rethrowing.", x);
 								throw;
 							}
 						}
 
-						if (log.IsDebugEnabled) log.DebugFormat("Counter is {0}, sleeping for {1} then retrying.", this.currentRetryCount, this.RetryTimeout);
+						if (log.IsWarnEnabled) log.WarnFormat("Counter is {0}, sleeping for {1} then retrying.", this.currentRetryCount, this.RetryTimeout);
 
 						SleepUntil((int)this.RetryTimeout.TotalMilliseconds);
 						this.currentRetryCount++;
@@ -318,9 +318,9 @@ namespace Couchbase
 	                    var resolved = realUrls[key] ?? uriConverter(requestFactory, key);
 	                    if (resolved != null)
 	                    {
-	                        if (log.IsDebugEnabled)
+	                        if (log.IsWarnEnabled)
 	                        {
-	                            log.Debug("Resolved pool url " + key + " to " + resolved);
+	                            log.Warn("Resolved pool url " + key + " to " + resolved);
 	                        }
 	                        urlPair = new KeyValuePair<Uri, Uri>(key, resolved);
 	                        break;
@@ -369,8 +369,8 @@ namespace Couchbase
 			if (mr != null)
 				mr(message, this);
 
-			if (log.IsDebugEnabled)
-				log.Debug("Processing message: " + message);
+			if (log.IsWarnEnabled)
+				log.Warn("Processing message: " + message);
 
 			this.lastMessage = message;
 			this.hasMessage = true;
@@ -534,11 +534,11 @@ namespace Couchbase
 
 			private void Worker(object state)
 			{
-				if (log.IsDebugEnabled) log.DebugFormat("HB: Pinging current node '{0}' to check if it's still alive.", this.uri);
+				if (log.IsWarnEnabled) log.WarnFormat("HB: Pinging current node '{0}' to check if it's still alive.", this.uri);
 
 				if (this.shouldAbort > 0)
 				{
-					if (log.IsDebugEnabled) log.DebugFormat("HB: Already aborted {0}, returning.", this.uri);
+					if (log.IsWarnEnabled) log.WarnFormat("HB: Already aborted {0}, returning.", this.uri);
 
 					return;
 				}
@@ -558,7 +558,7 @@ namespace Couchbase
 
 				try
 				{
-					log.DebugFormat("HB: Trying '{0}'", this.uri);
+					log.WarnFormat("HB: Trying '{0}'", this.uri);
 
 					this.response = request.GetResponse();
 
@@ -567,7 +567,7 @@ namespace Couchbase
 					{
 						sr.ReadToEnd();
 
-						log.DebugFormat("HB: Node '{0}' is OK", this.uri);
+						log.WarnFormat("HB: Node '{0}' is OK", this.uri);
 					}
 
 					if (this.shouldAbort == 0)

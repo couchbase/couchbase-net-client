@@ -315,7 +315,7 @@ namespace Couchbase
 
         protected IMemcachedNode CreateNode(IPEndPoint endpoint, ISaslAuthenticationProvider auth, Dictionary<string, object> nodeInfo)
         {
-            log.DebugFormat("Creating node {0}", this);
+            log.WarnFormat("Creating node {0}", this);
             string couchApiBase;
             if (!nodeInfo.TryGetValue("couchApiBase", out couchApiBase) || String.IsNullOrEmpty(couchApiBase))
             {
@@ -327,7 +327,7 @@ namespace Couchbase
 
 		void IDisposable.Dispose()
 		{
-            log.DebugFormat("Disposing {0}", this);
+            log.WarnFormat("Disposing {0}", this);
             GC.SuppressFinalize(this);
 
 			if (this.state != null && this.state != InternalState.Empty)
@@ -363,9 +363,9 @@ namespace Couchbase
 		{
 			if (this.state == null || this.state == InternalState.Empty) return;
 
-			var isDebug = log.IsDebugEnabled;
+			var warnEnabled = log.IsWarnEnabled;
 
-			if (isDebug) log.Debug("Checking the dead servers.");
+			if (warnEnabled) log.Warn("Checking the dead servers.");
 
 			// how this works:
 			// 1. timer is created but suspended
@@ -397,20 +397,20 @@ namespace Couchbase
 					var n = nodes[i];
 					if (n.IsAlive)
 					{
-						if (isDebug) log.DebugFormat("Alive: {0}", n.EndPoint);
+						if (warnEnabled) log.DebugFormat("Alive: {0}", n.EndPoint);
 					}
 					else
 					{
-						if (isDebug) log.DebugFormat("Dead: {0}", n.EndPoint);
+						if (warnEnabled) log.DebugFormat("Dead: {0}", n.EndPoint);
 
 						if (n.Ping())
 						{
 							changed = true;
-							if (isDebug) log.Debug("Ping ok.");
+							if (warnEnabled) log.Debug("Ping ok.");
 						}
 						else
 						{
-							if (isDebug) log.Debug("Still dead.");
+							if (warnEnabled) log.Debug("Still dead.");
 
 							deadCount++;
 						}
@@ -420,7 +420,7 @@ namespace Couchbase
 
 				if (changed && !currentState.IsVbucket)
 				{
-					if (isDebug) log.Debug("We have a standard config, so we'll recreate the node locator.");
+					if (warnEnabled) log.Warn("We have a standard config, so we'll recreate the node locator.");
 
 					ReinitializeLocator(currentState);
 				}
@@ -428,13 +428,13 @@ namespace Couchbase
 				// stop or restart the timer
 				if (deadCount == 0)
 				{
-					if (isDebug) log.Debug("deadCount == 0, stopping the timer.");
+					if (warnEnabled) log.Warn("deadCount == 0, stopping the timer.");
 
 					this.isTimerActive = false;
 				}
 				else
 				{
-					if (isDebug) log.DebugFormat("deadCount == {0}, starting the timer.", deadCount);
+					if (warnEnabled) log.WarnFormat("deadCount == {0}, starting the timer.", deadCount);
 
 					this.resurrectTimer.Change(this.deadTimeoutMsec, Timeout.Infinite);
 				}
@@ -443,8 +443,8 @@ namespace Couchbase
 
 		private void NodeFail(IMemcachedNode node)
 		{
-			var isDebug = log.IsDebugEnabled;
-			if (isDebug) log.DebugFormat("Node {0} is dead.", node.EndPoint);
+			var warnEnabled = log.IsWarnEnabled;
+			if (warnEnabled) log.WarnFormat("Node {0} is dead.", node.EndPoint);
 
 			// block the rest api listener until we're finished here
 			lock (_syncObj)
@@ -465,7 +465,7 @@ namespace Couchbase
 				// so the items will be rehashed to the working servers
 				if (!currentState.IsVbucket)
 				{
-					if (isDebug) log.Debug("We have a standard config, so we'll recreate the node locator.");
+					if (warnEnabled) log.Warn("We have a standard config, so we'll recreate the node locator.");
 
 					ReinitializeLocator(currentState);
 				}
@@ -474,7 +474,7 @@ namespace Couchbase
 				// when we have one, we trigger it and it will run after DeadTimeout has elapsed
 				if (!this.isTimerActive)
 				{
-					if (isDebug) log.Debug("Starting the recovery timer.");
+					if (warnEnabled) log.Warn("Starting the recovery timer.");
 
 					if (this.resurrectTimer == null)
 						this.resurrectTimer = new Timer(this.rezCallback, null, this.deadTimeoutMsec, Timeout.Infinite);
@@ -483,11 +483,11 @@ namespace Couchbase
 
 					this.isTimerActive = true;
 
-					if (isDebug) log.Debug("Timer started.");
+					if (warnEnabled) log.Warn("Timer started.");
 				}
 			}
 
-			if (isDebug) log.Debug("Fail handler is finished.");
+			if (warnEnabled) log.Warn("Fail handler is finished.");
 		}
 
 		private void ReinitializeLocator(InternalState previousState)
@@ -500,13 +500,13 @@ namespace Couchbase
 				Locator = this.configuration.CreateNodeLocator()
 			};
 
-			if (log.IsDebugEnabled) log.Debug("Initializing the locator with the list of working nodes.");
+			if (log.IsWarnEnabled) log.Warn("Initializing the locator with the list of working nodes.");
 
 			newState.Locator.Initialize(newState.CurrentNodes.Where(n => n.IsAlive).ToArray());
 
 			Interlocked.Exchange(ref this.state, newState);
 
-			if (log.IsDebugEnabled) log.Debug("Replaced the internal state.");
+			if (log.IsWarnEnabled) log.Warn("Replaced the internal state.");
 		}
 
 		#region [ IServerPool                  ]
@@ -556,7 +556,7 @@ namespace Couchbase
 
 		void IServerPool.Start()
 		{
-            log.DebugFormat("Starting {0}", this);
+            log.WarnFormat("Starting {0}", this);
 			// get the pool urls
 			this.poolUrls = this.configuration.Urls.ToArray();
 			if (this.poolUrls.Length == 0)

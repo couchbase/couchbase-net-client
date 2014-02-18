@@ -233,9 +233,9 @@ namespace Couchbase
 
 		public void Dispose()
 		{
-			if (Log.IsDebugEnabled)
+			if (Log.IsWarnEnabled)
 			{
-				Log.DebugFormat("Disposing {0} on {1} using thread: {2}",
+				Log.WarnFormat("Disposing {0} on {1} using thread: {2}",
 					this, _node.EndPoint, Thread.CurrentThread.Name);
 			}
 			Dispose(true);
@@ -258,9 +258,9 @@ namespace Couchbase
 
 				        foreach (var socket in _refs.Where(x=>x.IsAlive && !x.IsInUse))
 				        {
-                            if (Log.IsDebugEnabled)
+                            if (Log.IsInfoEnabled)
                             {
-                                Log.DebugFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                Log.InfoFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
                             }
 				            socket.Close();
 				            itemsDisposed++;
@@ -269,14 +269,14 @@ namespace Couchbase
                         if (i != maxAttempts) continue;
 				        foreach (var socket in _refs.Where(x=>x.IsAlive))
 				        {
-				            if (Log.IsDebugEnabled)
+				            if (Log.IsInfoEnabled)
 				            {
-				                Log.DebugFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+				                Log.InfoFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
 				            }
 						    socket.Close();
-                            if (Log.IsDebugEnabled)
+                            if (Log.IsInfoEnabled)
                             {
-                                Log.DebugFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                Log.InfoFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
                             }
 							itemsDisposed++;
 				        }
@@ -300,7 +300,7 @@ namespace Couchbase
 		{
             if(Log.IsDebugEnabled)
 		    {
-		        Log.DebugFormat("Finalizing {0}", GetType().Name);
+		        Log.InfoFormat("Finalizing {0}", GetType().Name);
 		    }
 			Dispose(false);
 		}
