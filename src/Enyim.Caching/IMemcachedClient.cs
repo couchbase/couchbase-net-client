@@ -57,5 +57,6 @@ namespace Enyim.Caching
 		ServerStats Stats(string type);
 
 		event Action<IMemcachedNode> NodeFailed;
+        Guid Identity { get; }
 	}
 }

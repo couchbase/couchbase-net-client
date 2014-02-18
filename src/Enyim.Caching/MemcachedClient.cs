@@ -88,6 +88,9 @@ namespace Enyim.Caching
 			if (keyTransformer == null) throw new ArgumentNullException("keyTransformer");
 			if (transcoder == null) throw new ArgumentNullException("transcoder");
 
+		    Identity = Guid.NewGuid();
+            log.WarnFormat("Creating new client. CID: {0} {1}", Identity, GetType().Name);
+
 			this.performanceMonitor = performanceMonitor;
 			this.keyTransformer = keyTransformer;
 			this.transcoder = transcoder;
@@ -1082,7 +1085,10 @@ namespace Enyim.Caching
 		}
 
 		#endregion
-	}
+
+
+        public Guid Identity { get; protected set; }
+    }
 }
 
 #region [ License information          ]
