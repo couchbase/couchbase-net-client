@@ -86,6 +86,8 @@
     <Compile Include="Exceptions\ViewNotFoundException.cs" />
     <Compile Include="Extensions\ArrayExtensions.cs" />
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
+    <Compile Include="Extensions\CouchbaseClientConfigurationExtensions.cs" />
+    <Compile Include="Extensions\InterfaceContractResolver.cs" />
     <Compile Include="GenericViewRowTransformer.cs" />
     <Compile Include="Helpers\DocHelper.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />

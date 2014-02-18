@@ -59,6 +59,7 @@
     <Compile Include="ArrayExtensionTests.cs" />
     <Compile Include="BootstrapConfigTests.cs" />
     <Compile Include="ConfigHelperTests.cs" />
+    <Compile Include="CouchbaseClientConfigurationExtensionTests.cs" />
     <Compile Include="CouchbaseClientConfigurationTests.cs" />
     <Compile Include="CouchbaseClusterBucketAdminTests.cs">
       <SubType>Code</SubType>

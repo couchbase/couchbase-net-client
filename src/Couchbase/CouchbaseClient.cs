@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Configuration;
+using Couchbase.Extensions;
 using Enyim;
 using Enyim.Caching;
 using Enyim.Caching.Memcached;
@@ -93,6 +94,9 @@ namespace Couchbase
 			ConcatOperationResultFactory = new DefaultConcatOperationResultFactory();
 			RemoveOperationResultFactory = new DefaultRemoveOperationResultFactory();
 			Config = configuration;
+
+            //log the creation of the client
+            configuration.LogConfig(Log, Identity);
 		}
 
 		/// <summary>

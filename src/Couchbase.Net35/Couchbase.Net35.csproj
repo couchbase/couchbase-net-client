@@ -57,6 +57,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Extensions\InterfaceContractResolver.cs">
+      <Link>Extensions\InterfaceContractResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Extensions\CouchbaseClientConfigurationExtensions.cs">
+      <Link>Extensions\CouchbaseClientConfigurationExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Extensions\ArrayExtensions.cs">
       <Link>Extensions\ArrayExtensions.cs</Link>
     </Compile>
