@@ -149,10 +149,11 @@ namespace Couchbase.Extensions
 
 		private static string SerializeObject(object value)
 		{
-		    var json = JsonConvert.SerializeObject(value,
-									Formatting.None,
-									JsonSerializerSettings);
-			return json;
+		    return JsonConvert.SerializeObject(value); // TODO: temp not using camelCase in JSON output
+		 //   var json = JsonConvert.SerializeObject(value,
+			// 						Formatting.None,
+			// 						JsonSerializerSettings);
+			// return json;
 		}
 
 		private class DocumentIdContractResolver : CamelCasePropertyNamesContractResolver
