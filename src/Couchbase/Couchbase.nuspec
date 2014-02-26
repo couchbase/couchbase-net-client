@@ -12,7 +12,7 @@
     <tags>Couchbase nosql</tags>
     <dependencies>
       <group>
-        <dependency id="Newtonsoft.Json" version="(,5.0.8]" />
+        <dependency id="Newtonsoft.Json" />
       </group>
     </dependencies>
   </metadata>
