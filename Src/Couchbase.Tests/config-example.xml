@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <couchbase>
+    <servers provider="httpStreaming">
+      <server uri="http://192.168.56.101:8091/pools"/>
+      <server uri="http://192.168.56.102:8091/pools"/>
+    </servers>
+    <buckets>
+      <bucket name="default" username="" password=""></bucket>
+    </buckets>
+    <connectionPool minPoolSize="" maxPoolSize="">
+    </connectionPool>
+  </couchbase>
+</configuration>
+
