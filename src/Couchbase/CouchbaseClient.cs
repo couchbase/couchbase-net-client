@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Configuration;
 using Couchbase.Extensions;
+using Couchbase.Management;
 using Enyim;
 using Enyim.Caching;
 using Enyim.Caching.Memcached;
@@ -1315,7 +1316,7 @@ namespace Couchbase
         public IView<IViewRow> GetView(string designName, string viewName, bool urlEncode)
         {
             getViewSetup(ref designName, ref viewName);
-            var view = new CouchbaseView(this, this, designName, viewName);
+            var view = new CouchbaseView(this, this, designName, viewName, Config.ViewRetryCount);
             view.UrlEncode(urlEncode);
             return view;
         }
@@ -1335,7 +1336,7 @@ namespace Couchbase
 		{
 
 			getViewSetup(ref designName, ref viewName);
-			return new CouchbaseView<T>(this, this, designName, viewName, shouldLookupDocById);
+			return new CouchbaseView<T>(this, this, designName, viewName, Config.ViewRetryCount, shouldLookupDocById);
 		}
 
         /// <summary>
@@ -1347,7 +1348,7 @@ namespace Couchbase
 		public ISpatialView<ISpatialViewRow> GetSpatialView(string designName, string viewName)
 		{
 			getViewSetup(ref designName, ref viewName);
-			return new CouchbaseSpatialView(this, this, designName, viewName);
+			return new CouchbaseSpatialView(this, this, designName, viewName, Config.ViewRetryCount);
 		}
 
         /// <summary>
@@ -1361,7 +1362,7 @@ namespace Couchbase
 		public ISpatialView<T> GetSpatialView<T>(string designName, string viewName, bool shouldLookupDocById = false)
 		{
 			getViewSetup(ref designName, ref viewName);
-			return new CouchbaseSpatialView<T>(this, this, designName, viewName, shouldLookupDocById);
+			return new CouchbaseSpatialView<T>(this, this, designName, viewName, Config.ViewRetryCount ,shouldLookupDocById);
 		}
 
         /// <summary>
@@ -1387,7 +1388,7 @@ namespace Couchbase
 
 		#region [ IHttpClientLocator		   ]
 
-		IHttpClient IHttpClientLocator.Locate()
+        IHttpClient IHttpClientLocator.Locate()
 		{
             //Find any candidate nodes for executing the HTTP request. A node with a
             //null IHttpClient is a node likely in a warmup state, not a healthy node

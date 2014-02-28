@@ -26,6 +26,8 @@ namespace Couchbase.Configuration
         /// </summary>
 	    private int _vBucketRetryCount = 2;
 
+	    private int _viewRetryCount = 2;
+
         #region
         /// <summary>
 		/// Initializes a new instance of the <see cref="T:MemcachedClientConfiguration"/> class.
@@ -237,8 +239,21 @@ namespace Couchbase.Configuration
 
 		#endregion
 
-
         public int VBucketRetryCount { get { return _vBucketRetryCount; }}
+
+	    public int ViewRetryCount
+	    {
+	        get { return _viewRetryCount; }
+	        set
+	        {
+	            if (value < 0 || value > 10)
+	            {
+	                const string msg = "Must be greater than 0 and less than or equal to 10.";
+	                throw new ArgumentOutOfRangeException("value", msg);
+	            }
+	            _viewRetryCount = value;
+	        }
+	    }
     }
 
 	internal class ReadOnlyConfig : ICouchbaseClientConfiguration
@@ -256,6 +271,7 @@ namespace Couchbase.Configuration
 		private IHeartbeatMonitorConfiguration hbm;
 		private IHttpClientConfiguration hcc;
         private int _vBucketRetryCount = 2;
+        private int _viewRetryCount = 2;
 
 		private ICouchbaseClientConfiguration original;
 
@@ -388,7 +404,7 @@ namespace Couchbase.Configuration
 			private int minPoolSize;
 			private TimeSpan queueTimeout;
 			private TimeSpan receiveTimeout;
-			private INodeFailurePolicyFactory fpf;
+            private INodeFailurePolicyFactory fpf;
 
 			public SPC(ISocketPoolConfiguration original)
 			{
@@ -447,6 +463,20 @@ namespace Couchbase.Configuration
 	    {
 	        get { return _vBucketRetryCount; }
 	    }
+
+        public int ViewRetryCount
+        {
+            get { return _viewRetryCount; }
+            set
+            {
+                if (value < 0 || value > 10)
+                {
+                    const string msg = "Must be greater than 0 and less than or equal to 10.";
+                    throw new ArgumentOutOfRangeException("value", msg);
+                }
+                _viewRetryCount = value;
+            }
+        }
     }
 }
 

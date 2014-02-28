@@ -137,7 +137,7 @@ namespace Couchbase.HttpClients
 			public void ExecuteWith(RestClient client)
 			{
 				this.response = client.Request(this.request);
-
+			    StatusCode = response.StatusCode;
 				if (response.InnerException != null) throw response.InnerException;
 				if (response.StatusCode != System.Net.HttpStatusCode.OK)
 					throw new InvalidOperationException(String.Format("Server returned {0}: {1}, {2}", response.StatusCode, response.StatusDescription, response.Content));
@@ -147,7 +147,10 @@ namespace Couchbase.HttpClients
 			{
 				return this.response.ContentStream;
 			}
-		}
+
+
+            public HttpStatusCode StatusCode { get; private set; }
+        }
 
 		#endregion
 	}

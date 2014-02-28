@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Net;
 using System.Security.Authentication;
 using System.Security.Policy;
 using System.Text;
+using System.Threading;
 using System.Web;
 using Newtonsoft.Json;
 using System.Diagnostics;
@@ -25,15 +28,23 @@ namespace Couchbase
 		public string DesignDocument { get; private set; }
 		public string ViewPath { get; private set; }
 		public string IndexName { get; private set; }
+        public int RetryCount { get; private set; }
 
-		internal CouchbaseViewHandler(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, string viewPath = "_view")
+		internal CouchbaseViewHandler(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount, string viewPath = "_view")
 		{
             this.Client = client;
             this.ClientLocator = clientLocator;
             this.DesignDocument = designDocument;
             this.IndexName = indexName;
 			this.ViewPath = viewPath;
-        }
+
+            if (retryCount < 0 || retryCount > 10)
+            {
+                const string msg = "Must be greater than 0 and less than or equal to 10.";
+                throw new ArgumentOutOfRangeException("retryCount", msg);
+            }
+		    RetryCount = retryCount;
+		}
 
         internal virtual bool UrlEncode { get; set; }
 
@@ -117,10 +128,166 @@ namespace Couchbase
 
 		public IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer, IDictionary<string, string> viewParams)
 		{
-			var response = GetResponse(viewParams);
-		    var stream = response.GetResponseStream();
+		    IHttpResponse response = null;
+		    Stream stream = null;
+
+		    try
+		    {
+                response = GetResponse(viewParams);
+		        stream = response.GetResponseStream();
+
+		        if (ShouldRetry(response.StatusCode, stream))
+		        {
+                    var attempts = 0;
+                    var retry = false;
+
+		            do
+		            {
+		                var timeout = (int) Math.Pow(2, attempts);
+		                Thread.Sleep(timeout);
+
+		                response = GetResponse(viewParams);
+		                stream = response.GetResponseStream();
+		                retry = ShouldRetry(response.StatusCode, stream);
+
+		            } while (retry && attempts++ < RetryCount);
+		        }
+		    }
+		    catch (Exception e)
+		    {
+                log.Error(e);
+		        throw;
+		    }
+
 		    return ReadResponse(stream, rowTransformer);
 		}
+
+	    bool ShouldRetry(HttpStatusCode statusCode, Stream stream)
+	    {
+	        bool retry;
+            switch (statusCode)
+            {
+                case HttpStatusCode.OK:
+                    retry = false;
+                    break;
+                //300's
+                case HttpStatusCode.MultipleChoices:
+                case HttpStatusCode.MovedPermanently:
+                case HttpStatusCode.Found:
+                case HttpStatusCode.SeeOther:
+                case HttpStatusCode.NotModified:
+                case HttpStatusCode.TemporaryRedirect:
+                    log.DebugFormat("Document request returned {0}, retrying", statusCode);
+                    retry = true;
+                    break;
+                //400's
+                case HttpStatusCode.NotFound:
+                    retry = Check404ForRetry(stream);
+                    break;
+                case HttpStatusCode.RequestTimeout:
+                case HttpStatusCode.Conflict:
+                case HttpStatusCode.PreconditionFailed:
+                case HttpStatusCode.RequestedRangeNotSatisfiable:
+                case HttpStatusCode.ExpectationFailed:
+                    log.WarnFormat("Document request returned {0}, retrying", statusCode);
+                    retry = true;
+                    break;
+                //500's
+                case HttpStatusCode.InternalServerError:
+                    retry = Check500ForRetry(stream);
+                    if (retry)
+                    {
+                        log.WarnFormat("Document request returned {0}, retrying", statusCode);
+                    }
+                    break;
+                case HttpStatusCode.NotImplemented:
+                case HttpStatusCode.BadGateway:
+                case HttpStatusCode.ServiceUnavailable:
+                case HttpStatusCode.GatewayTimeout:
+                    log.WarnFormat("Document request returned {0}, retrying", statusCode);
+                    retry = true;
+                    break;
+                default:
+                    retry = false;
+                    break;
+            }
+	        return retry;
+	    }
+
+        static Stream CopyStream(Stream stream)
+        {
+            const int chunkSize = 256;
+            var buffer = new byte[chunkSize];
+            var ms = new MemoryStream();
+
+            var count = stream.Read(buffer, 0, chunkSize);
+            while (count > 0)
+            {
+                ms.Write(buffer, 0, count);
+                count = stream.Read(buffer, 0, chunkSize);
+            }
+            ms.Position = 0;
+            return ms;
+        }
+
+	    bool Check404ForRetry(Stream stream)
+	    {
+	        var retry = true;
+
+	        try
+	        {
+	            using (var reader = new StreamReader(CopyStream(stream)))
+	            {
+	                var body = reader.ReadToEnd();
+	                if (body.Contains("not_found") &&
+	                    body.Contains("missing") ||
+	                    body.Contains("deleted"))
+	                {
+	                    log.WarnFormat("Design document not found, body: {0}", body);
+	                    retry = false;
+	                }
+	            }
+	        }
+	        catch (Exception e)
+	        {
+	            retry = false;
+	            log.Warn(e);
+	        }
+	        finally
+	        {
+	            stream.Position = 0;
+	        }
+	        return retry;
+	    }
+
+        bool Check500ForRetry(Stream stream)
+        {
+            var retry = true;
+
+            try
+            {
+                using (var reader = new StreamReader(CopyStream(stream)))
+                {
+                    var body = reader.ReadToEnd();
+                    if (body.Contains("error") &&
+                        body.Contains("{not_found, missing_named_view}"))
+                    {
+                        log.WarnFormat("Design document not found, body: {0}", body);
+                        retry = false;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                retry = false;
+                log.Warn(e);
+            }
+            finally
+            {
+                stream.Position = 0;
+            }
+            return retry;
+        }
 
 		public bool CheckViewExists()
 		{

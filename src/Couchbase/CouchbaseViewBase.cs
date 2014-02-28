@@ -46,10 +46,10 @@ namespace Couchbase {
 			get { return ViewHandler.DebugInfo; }
 		}
 
-        internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
+        internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount)
         {
             _urlEncode = false;
-            this.ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName);
+            this.ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName, retryCount);
             ViewHandler.UrlEncode = _urlEncode;
         }
 

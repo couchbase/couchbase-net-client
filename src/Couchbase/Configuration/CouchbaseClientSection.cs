@@ -258,8 +258,13 @@ namespace Couchbase.Configuration
 
 		#endregion
 
-
         public int VBucketRetryCount { get { return Servers.VBucketRetryCount; } }
+
+        public int ViewRetryCount
+        {
+            get { return Servers.ViewRetryCount; }
+            set { Servers.ViewRetryCount = value; }
+        }
     }
 }
 

@@ -19,7 +19,7 @@ namespace Couchbase.Tests
         {
             using (var stream = File.Open(@"Data\\view-response-error-badrpc.json", FileMode.Open))
             {
-                var handler = new CouchbaseViewHandler(null, null, null, null, null);
+                var handler = new CouchbaseViewHandler(null, null, null, null, 1, null);
                 var fakeView = new FakeView(handler, stream);
                 foreach (var row in fakeView)
                 {
@@ -34,7 +34,7 @@ namespace Couchbase.Tests
         {
             using (var stream = File.Open(@"Data\\view-response-error-case_clause.json", FileMode.Open))
             {
-                var handler = new CouchbaseViewHandler(null, null, null, null, null);
+                var handler = new CouchbaseViewHandler(null, null, null, null, 1, null);
                 var fakeView = new FakeView(handler, stream);
                 foreach (var row in fakeView)
                 {
@@ -49,7 +49,7 @@ namespace Couchbase.Tests
         {
             using (var stream = File.Open(@"Data\\view-response-error-not_found.json", FileMode.Open))
             {
-                var handler = new CouchbaseViewHandler(null, null, null, null, null);
+                var handler = new CouchbaseViewHandler(null, null, null, null, 1, null);
                 var fakeView = new FakeView(handler, stream);
                 foreach (var row in fakeView)
                 {
@@ -59,12 +59,12 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [ExpectedException(typeof(ViewException))]
         public void When_View_Returns_ehostunreach_ReadResponse_Throws_ViewNotFoundException()
         {
             using (var stream = File.Open(@"Data\\view-response-error-ehostunreach.json", FileMode.Open))
             {
-                var handler = new CouchbaseViewHandler(null, null, null, null, null);
+                var handler = new CouchbaseViewHandler(null, null, null, null, 1, null);
                 var fakeView = new FakeView(handler, stream);
                 foreach (var row in fakeView)
                 {
@@ -78,7 +78,7 @@ namespace Couchbase.Tests
         {
             using (var stream = File.Open(@"Data\\view-response-good.json", FileMode.Open))
             {
-                var handler = new CouchbaseViewHandler(null, null, null, null, null);
+                var handler = new CouchbaseViewHandler(null, null, null, null, 1, null);
                 var fakeView = new FakeView(handler, stream);
                 const int expectedRowCountIsTwentyTwo = 22;
                 Assert.AreEqual(expectedRowCountIsTwentyTwo, fakeView.Count());

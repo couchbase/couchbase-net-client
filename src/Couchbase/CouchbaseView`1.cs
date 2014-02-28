@@ -16,9 +16,9 @@ namespace Couchbase {
 		private bool _shouldLookupDocById = false;
 
         internal CouchbaseView(ICouchbaseClient client, IHttpClientLocator clientLocator,
-								string designDocument, string indexName, bool shouldLookupDocById = false,
+								string designDocument, string indexName, int retryCount, bool shouldLookupDocById = false,
 								string pagedViewIdProperty = null, string pagedViewKeyProperty = null)
-            : base(client, clientLocator, designDocument, indexName)
+            : base(client, clientLocator, designDocument, indexName, retryCount)
 		{
 			_shouldLookupDocById = shouldLookupDocById;
 		}

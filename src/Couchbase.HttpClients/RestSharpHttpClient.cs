@@ -108,7 +108,7 @@ namespace Couchbase.HttpClients
 			public void ExecuteWith(RestClient client)
 			{
 				this.response = client.Execute(request);
-
+			    StatusCode = response.StatusCode;
 				if (response.ErrorException != null) throw response.ErrorException;
 			}
 
@@ -116,7 +116,9 @@ namespace Couchbase.HttpClients
 			{
 				return new MemoryStream(this.response.RawBytes);
 			}
-		}
+
+		    public HttpStatusCode StatusCode { get; private set; }
+        }
 
 		#endregion
 

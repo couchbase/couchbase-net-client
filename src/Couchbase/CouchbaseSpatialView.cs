@@ -8,8 +8,8 @@ namespace Couchbase
 {
 	internal class CouchbaseSpatialView : CouchbaseSpatialViewBase<ISpatialViewRow>
 	{
-		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
-			:base(client, clientLocator, designDocument, indexName) {}
+		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount)
+			:base(client, clientLocator, designDocument, indexName, retryCount) {}
 
 		public override IEnumerator<ISpatialViewRow> GetEnumerator()
 		{

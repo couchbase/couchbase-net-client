@@ -16,8 +16,8 @@ namespace Couchbase
 	/// </summary>
 	internal class CouchbaseView : CouchbaseViewBase<IViewRow>
 	{
-        internal CouchbaseView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
-            : base(client, clientLocator, designDocument, indexName) { }
+        internal CouchbaseView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount)
+            : base(client, clientLocator, designDocument, indexName, retryCount) { }
 
         protected CouchbaseView(CouchbaseViewBase<IViewRow> original)
             : base(original) { }

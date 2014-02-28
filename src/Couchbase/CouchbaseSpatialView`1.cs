@@ -11,8 +11,8 @@ namespace Couchbase
 	{
 		private readonly bool _shouldLookupDocById;
 
-		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, bool shouldLookUpDocById = false)
-			: base(client, clientLocator, designDocument, indexName)
+		internal CouchbaseSpatialView(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount, bool shouldLookUpDocById = false)
+			: base(client, clientLocator, designDocument, indexName, retryCount)
 		{
 			_shouldLookupDocById = shouldLookUpDocById;
 		}

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Configuration;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Net;
 using System.IO;
+using System.Threading;
 
 namespace Couchbase
 {
@@ -104,20 +107,43 @@ namespace Couchbase
 				this.request = request;
 			}
 
-			public void Execute()
-			{
-				try
-				{
-					this.response = request.GetResponse() as HttpWebResponse;
-				}
-				catch (WebException ex) 
-				{
-					//if the view isn't found for example, we still want 
-					//to read the JSON response from the server
-					//{"error":"not_found","reason":"Design document _design/breweries not found"}
-					this.response = ex.Response as HttpWebResponse;
-				}
-			}
+		    public void Execute()
+		    {
+                const int maxRetries = 2;
+		        var retries = 0;
+
+		        if (TryExecute())
+		        {
+		            var retry = false;
+		            do
+		            {
+                        var timeout = (int)Math.Pow(2, retries);
+                        Thread.Sleep(timeout);
+		                retry = TryExecute();
+		            } while (retry && retries++ < maxRetries);
+		        }
+		        if (response != null)
+                {
+                    StatusCode = response.StatusCode;
+                }
+		    }
+
+            bool TryExecute()
+            {
+                var retry = false;
+                try
+                {
+                    response = request.GetResponse() as HttpWebResponse;
+                }
+                catch (WebException ex)
+                {
+                    log.Warn(ex);
+
+                    response = ex.Response as HttpWebResponse;
+                    retry = response == null; //if response exists, let the retry happen later
+                }
+                return retry;
+            }
 
 			Stream IHttpResponse.GetResponseStream()
 			{
@@ -129,7 +155,9 @@ namespace Couchbase
 				}
 				return this.response.GetResponseStream();
 			}
-		}
+
+            public HttpStatusCode StatusCode { get;private set; }
+        }
 
 		#endregion
 

@@ -16,9 +16,9 @@ namespace Couchbase
 		private int _limit;
 		private int _skip;
 
-		internal CouchbaseSpatialViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName)
+		internal CouchbaseSpatialViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount)
 		{
-			ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName, "_spatial");
+			ViewHandler = new CouchbaseViewHandler(client, clientLocator, designDocument, indexName, retryCount, "_spatial");
         }
 
 		public ISpatialView<T> BoundingBox(float lowerLeftLong, float lowerLeftLat, float upperRightLong, float upperRightLat)

@@ -94,6 +94,8 @@ namespace Couchbase.Configuration
 		/// Timeout used for timing out HTTP requests to RESTful API calls
 		/// </summary>
 		TimeSpan HttpRequestTimeout { get; }
+
+	    int ViewRetryCount { get; set; }
 	}
 }
 
