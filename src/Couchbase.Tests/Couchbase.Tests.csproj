@@ -72,6 +72,7 @@
     <Compile Include="CouchbaseClientSpatialViewTests.cs" />
     <Compile Include="CouchbaseClientViewTests.cs" />
     <Compile Include="CouchbaseNodeTests.cs" />
+    <Compile Include="StatusCodeExtensionTests.cs" />
     <Compile Include="Utils\TestUtils.cs" />
     <None Include="Data\view-response-error-not_found.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

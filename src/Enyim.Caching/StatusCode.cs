@@ -1,4 +1,6 @@
-﻿namespace Enyim
+﻿using System;
+
+namespace Enyim
 {
     public enum StatusCode
     {
@@ -33,6 +35,15 @@
         public static int ToInt(this StatusCode statusCode)
         {
             return (int)statusCode;
+        }
+
+        public static StatusCode ToEnum(this int? statusCodeInt)
+        {
+            if (statusCodeInt != null)
+            {
+                return (StatusCode) statusCodeInt.Value;
+            }
+            return StatusCode.Success;
         }
     }
 }
