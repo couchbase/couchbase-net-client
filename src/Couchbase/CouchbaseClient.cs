@@ -1389,25 +1389,49 @@ namespace Couchbase
 		#region [ IHttpClientLocator		   ]
 
         IHttpClient IHttpClientLocator.Locate()
-		{
+        {
+            var retries = 0;
+            List<CouchbaseNode> nodes;
+
+            if (!TryGetNodes(out nodes))
+            {
+                var retry = false;
+                do
+                {
+                    var timeout = (int)Math.Pow(2, retries);
+                    Thread.Sleep(timeout);
+
+                    retry = TryGetNodes(out nodes);
+                } while (retry && retries++ < Config.ViewRetryCount);
+            }
+
+            IHttpClient client = null;
+            if (nodes.Count == 0)
+            {
+                if (Log.IsDebugEnabled)
+                {
+                    Log.Debug("No working nodes found. Unable to execute view query");
+                }
+            }
+            else
+            {
+                client = nodes.Shuffle().First().Client;
+            }
+            return client;
+        }
+
+        bool TryGetNodes(out List<CouchbaseNode> nodes)
+        {
             //Find any candidate nodes for executing the HTTP request. A node with a
             //null IHttpClient is a node likely in a warmup state, not a healthy node
             //and can't be used to make the view request
-            var nodes = Pool.GetWorkingNodes().
-                OfType<CouchbaseNode>().
-                Where(x=>x.Client != null).
-                ToList();
+            nodes = Pool.GetWorkingNodes().
+                   OfType<CouchbaseNode>().
+                   Where(x => x.Client != null).
+                   ToList();
 
-			if (nodes.Count == 0)
-			{
-				if (Log.IsDebugEnabled) Log.Debug("No working nodes found. Unable to execute view query");
-				return null;
-			}
-
-			var idx = new Random(Environment.TickCount).Next(nodes.Count);
-			var node = nodes[idx];
-			return node.Client;
-		}
+            return nodes.Count > 0;
+        }
 
 		#endregion
 

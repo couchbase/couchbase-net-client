@@ -117,6 +117,21 @@ namespace Couchbase.Configuration
             set { base["vBucketRetryCount"] = value; }
         }
 
+        [ConfigurationProperty("ViewRetryCount", IsRequired = false, DefaultValue = 2)]
+        public int ViewRetryCount
+        {
+            get { return (int)base["ViewRetryCount"]; }
+            set
+            {
+                if (value < 0 || value > 10)
+                {
+                    const string msg = "Must be greater than 0 and less than or equal to 10.";
+                    throw new ArgumentOutOfRangeException("value", msg);
+                }
+                base["ViewRetryCount"] = value;
+            }
+        }
+
 	}
 }
 

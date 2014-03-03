@@ -21,5 +21,19 @@ namespace Couchbase.Extensions
                 array.SetValue(item, length);
             }
         }
+
+        public static List<T> Shuffle<T>(this List<T> list)
+        {
+            var length = list.Count;
+            while (length > 1)
+            {
+                length--;
+                var index = Random.Next(length + 1);
+                var item = list[index];
+                list[index] = list[length];
+                list[length] = item;
+            }
+            return list.ToList();
+        }
     }
 }
