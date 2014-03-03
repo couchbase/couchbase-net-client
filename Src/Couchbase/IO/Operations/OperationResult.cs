@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.IO.Operations
 {
@@ -12,7 +13,7 @@ namespace Couchbase.IO.Operations
             _operation = operation;
         }
 
-        public bool Success
+        public virtual bool Success
         {
             get
             {
@@ -21,7 +22,7 @@ namespace Couchbase.IO.Operations
             }
         }
 
-        public T Value
+        public virtual T Value
         {
             get
             {
@@ -30,24 +31,31 @@ namespace Couchbase.IO.Operations
             }
         }
 
-        public string Message
+        public virtual string Message
         {
             get
             {
                 var message = string.Empty;
-                var data = _operation.Body;
                 if (!Success)
                 {
-                    try
+                    if (Status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
-                        message = Encoding.ASCII.GetString(
-                            data.Data.Array,
-                            data.Data.Offset,
-                            data.Data.Array.Length);
+                        message = ResponseStatus.VBucketBelongsToAnotherServer.ToString();
                     }
-                    catch (Exception e)
+                    else
                     {
-                        message = e.Message;
+                        try
+                        {
+                            var data = _operation.Body;
+                            message = Encoding.ASCII.GetString(
+                                data.Data.Array,
+                                data.Data.Offset,
+                                data.Data.Array.Length - data.Data.Offset);
+                        }
+                        catch (Exception e)
+                        {
+                            message = e.Message;
+                        }
                     }
                 }
                 return message;
@@ -55,14 +63,28 @@ namespace Couchbase.IO.Operations
         }
 
 
-        public ResponseStatus Status
+        public virtual ResponseStatus Status
         {
             get { return _operation.Header.Status; }
         }
 
-        public ulong Cas
+        public virtual ulong Cas
         {
             get { return _operation.Header.Cas; }
+        }
+
+        public virtual IBucketConfig GetConfig()
+        {
+            IBucketConfig config = null;
+            if (Status == ResponseStatus.VBucketBelongsToAnotherServer)
+            {
+                var offset = OperationBase<T>.HeaderLength + _operation.Header.ExtrasLength;
+                var length = _operation.Header.BodyLength - _operation.Header.ExtrasLength;
+
+                var serializer = _operation.Serializer;
+                config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
+            }
+            return config;
         }
     }
 }

@@ -25,12 +25,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _clientConfig = clientConfig;
         }
 
-        public IConfigInfo GetCached()
+        public IConfigInfo GetCached(string bucketName)
         {
             throw new NotImplementedException();
         }
 
-        public IConfigInfo GetConfig()
+        public IConfigInfo GetConfig(string bucketName)
         {
             throw new NotImplementedException();
         }
@@ -149,6 +149,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     Log.Info(m=>m("Removing config for {0}", listener.Name));
                 }
             }
+        }
+
+
+        public bool ListenerExists(IConfigListener listener)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -199,7 +199,7 @@ namespace Couchbase.IO.Operations
             get { return _sequenceId + GetHashCode(); }
         }
 
-        public IBucketConfig GetConfig()
+        public virtual IBucketConfig GetConfig()
         {
             IBucketConfig config = null;
             if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)

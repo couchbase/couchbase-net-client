@@ -95,7 +95,5 @@ namespace Couchbase.Utils
                 return 31*hash + count.GetHashCode();
             }
         }
-
-
     }
 }

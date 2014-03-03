@@ -83,6 +83,9 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("terseStreamingBucketsBase")]
         string TerseStreamingUri { get; set; }
 
+        [JsonProperty("rev")]
+        int Rev { get; set; }
+
         string SurrogateHost { get; set; }
     }
 }

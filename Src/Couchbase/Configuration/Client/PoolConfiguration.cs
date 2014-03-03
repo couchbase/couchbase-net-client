@@ -6,12 +6,12 @@ namespace Couchbase.Configuration.Client
 {
     public sealed class PoolConfiguration : ConfigurationElement
     {
-        private readonly int _maxSize;
-        private readonly int _minSize;
-        private readonly int _receiveTimeout;
-        private readonly int _sendTimeout;
-        private readonly int _shutdownTimeout;
-        private readonly int _waitTimeout;
+        private int _maxSize;
+        private int _minSize;
+        private int _receiveTimeout;
+        private int _sendTimeout;
+        private int _shutdownTimeout;
+        private int _waitTimeout;
 
         public PoolConfiguration()
         {
@@ -23,7 +23,7 @@ namespace Couchbase.Configuration.Client
             _sendTimeout = 2500;
         }
 
-        public PoolConfiguration(int maxSize, int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
+        public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
             int sendTimeout)
         {
             //todo enable app.configuration
@@ -38,31 +38,37 @@ namespace Couchbase.Configuration.Client
         public int MaxSize
         {
             get { return _maxSize; }
+            set { _maxSize = value; }
         }
 
         public int MinSize
         {
             get { return _minSize; }
+            set { _minSize = value; }
         }
 
         public int WaitTimeout
         {
             get { return _waitTimeout; }
+            set { _waitTimeout = value; }
         }
 
         public int RecieveTimeout
         {
             get { return _receiveTimeout; }
+            set { _receiveTimeout = value; }
         }
 
         public int ShutdownTimeout
         {
             get { return _shutdownTimeout; }
+            set { _shutdownTimeout = value; }
         }
 
         public int SendTimeout
         {
             get { return _sendTimeout; }
+            set { _shutdownTimeout = value; }
         }
     }
 }

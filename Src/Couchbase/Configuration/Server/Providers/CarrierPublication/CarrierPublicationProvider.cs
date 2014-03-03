@@ -17,7 +17,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
     internal class CarrierPublicationProvider : IConfigProvider, IDisposable
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
-        private IServerConfig _serverConfig;
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigListener> _listeners = new ConcurrentDictionary<string, IConfigListener>();
@@ -27,14 +26,41 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             _clientConfig = clientConfig;
         }
 
-        public IConfigInfo GetCached()
+        public IConfigInfo GetCached(string bucketName)
         {
-            throw new NotImplementedException();
+            IConfigInfo configInfo;
+            if (!_configs.TryGetValue(bucketName, out configInfo))
+            {
+                throw new ConfigNotFoundException(bucketName);
+            }
+            return configInfo;
         }
 
-        public IConfigInfo GetConfig()
+        public IConfigInfo GetConfig(string bucketName)
         {
-            throw new NotImplementedException();
+            var bootstrap = _clientConfig.BucketConfigs.FirstOrDefault(x => x.BucketName == bucketName);
+            if (bootstrap == null)
+            {
+                throw new BucketNotFoundException(bucketName);
+            }
+
+            var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
+            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
+            var task = ioStrategy.ExecuteAsync(new ConfigOperation());
+
+            IConfigInfo configInfo = null;
+            var operationResult = task.Result;
+            if (operationResult.Success)
+            {
+                var bucketConfig = operationResult.Value;
+                bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
+                configInfo = new DefaultConfig(_clientConfig)
+                {
+                    BucketConfig = bucketConfig
+                };
+                _configs[bucketName] = configInfo;
+            }
+            return configInfo;
         }
 
         public void Start()
@@ -59,8 +85,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
             var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
             var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
-
             var task = ioStrategy.ExecuteAsync(new ConfigOperation());
+
             var operationResult = task.Result;
             if (operationResult.Success)
             {
@@ -71,20 +97,34 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     BucketConfig = bucketConfig
                 };
                 _configs[listener.Name] = configInfo;
+                _listeners[listener.Name] = listener;
                 listener.NotifyConfigChanged(configInfo, connectionPool);
             }
         }
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
-            //missing lots of validation here
-            var listener = _listeners[bucketConfig.Name];
+            IConfigListener listener;
+            if (!_listeners.TryGetValue(bucketConfig.Name, out listener))
+            {
+                throw new ConfigListenerNotFoundException(bucketConfig.Name);
+            }
+
+            IConfigInfo oldConfigInfo;
+            if (!_configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
+            {
+                throw new ConfigNotFoundException(bucketConfig.Name);
+            }
+
             var configInfo = new DefaultConfig(_clientConfig)
             {
                 BucketConfig = bucketConfig
             };
-            _configs[bucketConfig.Name] = configInfo;
-            listener.NotifyConfigChanged(configInfo);
+
+            if(_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+            {
+                listener.NotifyConfigChanged(configInfo);
+            }
         }
 
         public void UnRegisterListener(IConfigListener listener)
@@ -113,6 +153,11 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public void Dispose()
         {
             throw new NotImplementedException();
+        }
+
+        public bool ListenerExists(IConfigListener listener)
+        {
+           return _listeners.ContainsKey(listener.Name);
         }
     }
 }

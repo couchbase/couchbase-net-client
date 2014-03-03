@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,18 +18,38 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
     [TestFixture]
     internal class CarrierPublicationProviderTests : IConfigListener
     {
+        private CarrierPublicationProvider _provider;
+        private const string BucketName = "default";
+
+        [TestFixtureSetUp]
+        public void SetUp()
+        {
+            var configuration = new ClientConfiguration();
+            _provider = new CarrierPublicationProvider(configuration);
+        }
+
         [Test]
         public void Test_RegisterListener()
         {
-            var configuration = new ClientConfiguration();
-            var provider = new CarrierPublicationProvider(configuration);
+            _provider.RegisterListener(this);
 
-            provider.RegisterListener(this);
+            var exists = _provider.ListenerExists(this);
+            Assert.IsTrue(exists);
+        }
+
+        [Test]
+        public void Test_UnRegisterListener()
+        {
+            _provider.RegisterListener(this);
+            _provider.UnRegisterListener(this);
+
+            var exists = _provider.ListenerExists(this);
+            Assert.IsFalse(exists);
         }
 
         public string Name
         {
-            get { return "default"; }
+            get { return BucketName; }
         }
 
         public void NotifyConfigChanged(IConfigInfo configInfo)
@@ -40,6 +61,26 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         {
             Assert.IsNotNull(configInfo);
             Assert.IsNotNull(connectionPool);
+        }
+
+        [Test]
+        public void Test_That_GetConfig_Returns_ConfigInfo()
+        {
+            var configInfo = _provider.GetConfig(BucketName);
+
+            Assert.IsNotNull(configInfo);
+            Assert.AreEqual(BucketName, configInfo.BucketConfig.Name);
+        }
+
+        [Test]
+        public void Test_That_GetCached_Returns_CachedConfig()
+        {
+            var configInfo = _provider.GetConfig(BucketName);
+            var cachedConfig = _provider.GetCached(BucketName);
+
+            Assert.Greater(configInfo.BucketConfig.Rev, 0);
+            Assert.Greater(cachedConfig.BucketConfig.Rev, 0);
+            Assert.AreEqual(configInfo.BucketConfig.Rev, cachedConfig.BucketConfig.Rev);
         }
     }
 }

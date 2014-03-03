@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Couchbase.Configuration.Server.Providers;
 
 namespace Couchbase.Core
 {
-    internal interface IClusterManager : IConfigPublisher 
+    internal interface IClusterManager : IConfigPublisher, IDisposable 
     {
         List<IConfigProvider> ConfigProviders { get; }
 

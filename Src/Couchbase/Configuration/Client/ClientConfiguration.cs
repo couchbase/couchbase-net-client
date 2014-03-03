@@ -28,6 +28,23 @@ namespace Couchbase.Configuration.Client
             PoolConfiguration = new PoolConfiguration();
         }
 
+        public ClientConfiguration(PoolConfiguration poolConfiguration) :
+            this(new Uri("http://localhost:8091/pools"))
+        {
+            ProviderConfigs = new List<ProviderConfiguration>
+            {
+                new ProviderConfiguration()
+            };
+            BucketConfigs = new List<BucketConfiguration> 
+            { 
+                new BucketConfiguration
+                {
+                    PoolConfiguration = poolConfiguration
+                } 
+            };
+            PoolConfiguration = poolConfiguration;
+        }
+
         public string BootstrapPath { get; set; }
 
         public List<Uri> Servers { get; set; }

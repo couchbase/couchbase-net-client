@@ -8,6 +8,8 @@ namespace Couchbase.Configuration.Server.Serialization
     [JsonObject("bucket")]
     internal sealed class BucketConfig : IBucketConfig
     {
+        private string _surrogateHost = "127.0.0.1";
+
         public BucketConfig()
         {
             VBucketServerMap = new VBucketServerMap();
@@ -91,7 +93,14 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("bucketCapabilities")]
         public string[] BucketCapabilities { get; set; }
 
-        public string SurrogateHost { get; set; }
+        [JsonProperty("rev")]
+        public int Rev { get; set; }
+
+        public string SurrogateHost
+        {
+            get { return _surrogateHost; }
+            set { _surrogateHost = value; }
+        }
 
         public bool Equals(BucketConfig other)
         {

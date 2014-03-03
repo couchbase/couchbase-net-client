@@ -33,6 +33,9 @@
     <Reference Include="Common.Logging">
       <HintPath>..\packages\Common.Logging.2.1.2\lib\net40\Common.Logging.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -56,6 +59,8 @@
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
+    <Compile Include="Fakes\FakeOperation.cs" />
+    <Compile Include="Fakes\FakeOperationResult.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
@@ -94,7 +99,9 @@
     <None Include="Data\Configuration\buckets.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Data\Configuration\carrier-publication-config.json" />
+    <None Include="Data\Configuration\carrier-publication-config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Configuration\pools.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

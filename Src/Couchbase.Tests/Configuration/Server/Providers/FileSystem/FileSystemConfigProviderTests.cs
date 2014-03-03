@@ -22,7 +22,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.FileSystem
         [Test]
         public void Test_Get()
         {
-            IConfigInfo configInfo = _provider.GetConfig();
+            const string bucketName = "default";
+            IConfigInfo configInfo = _provider.GetConfig(bucketName);
             Assert.IsNotNull(configInfo);
         }
     }

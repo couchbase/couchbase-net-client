@@ -28,11 +28,19 @@ namespace Couchbase.Core.Buckets
         private static int _configChangedCount;
         private static int _serversChangedCount;
         private static int _bucketsChangedCount;
+        private Func<IConnectionPool, IOStrategy> _ioStrategyFactory; 
 
         internal CouchbaseBucket(IClusterManager clusterManager, PoolConfiguration poolConfiguration)
         { 
             _clusterManager = clusterManager;
             _poolConfiguration = poolConfiguration;
+        }
+
+        internal CouchbaseBucket(IClusterManager clusterManager, PoolConfiguration poolConfiguration, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
+        {
+            _clusterManager = clusterManager;
+            _poolConfiguration = poolConfiguration;
+            _ioStrategyFactory = ioStrategyFactory;
         }
 
         public string Name { get; set; }
@@ -121,11 +129,9 @@ namespace Couchbase.Core.Buckets
             return ioStrategy;
         }
 
-        static IOStrategy CreateIOStrategy(IConnectionPool connectionPool)
+        IOStrategy CreateIOStrategy(IConnectionPool connectionPool)
         {
-            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
-
-            return ioStrategy;
+            return _ioStrategyFactory(connectionPool);
         }
 
         IServer CreateServer(IBucketConfig bucketConfig, string host)
@@ -137,7 +143,7 @@ namespace Couchbase.Core.Buckets
             return server;
         }
 
-        static IServer CreateServer(IConnectionPool connectionPool)
+        IServer CreateServer(IConnectionPool connectionPool)
         {
             var ioStrategy = CreateIOStrategy(connectionPool);
             var server = new Server(ioStrategy);
@@ -187,7 +193,7 @@ namespace Couchbase.Core.Buckets
             var operation = new SetOperation<T>(key, value, vBucket);
             var operationResult = server.Send(operation);
 
-            if (CheckForConfigUpdates(operation, operationResult))
+            if (CheckForConfigUpdates(operationResult))
             {
                 Log.Debug(m => m("Requires retry {0}", key));
             }
@@ -204,7 +210,7 @@ namespace Couchbase.Core.Buckets
             var operation = new GetOperation<T>(key, vBucket);
             var operationResult = server.Send(operation);
 
-            if (CheckForConfigUpdates(operation, operationResult))
+            if (CheckForConfigUpdates(operationResult))
             {
                 Log.Debug(m=>m("Requires retry {0}", key));
             }
@@ -212,12 +218,12 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
-        bool CheckForConfigUpdates<T>(IOperation<T> operation,  IOperationResult<T> operationResult)
+        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)
         {
             var requiresRetry = false;
             if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
             {
-                var bucketConfig = operation.GetConfig();
+                var bucketConfig = ((OperationResult<T>)operationResult).GetConfig();
                 if (bucketConfig != null)
                 {
                     _clusterManager.NotifyConfigPublished(bucketConfig);

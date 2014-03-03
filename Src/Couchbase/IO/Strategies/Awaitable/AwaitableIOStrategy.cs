@@ -64,6 +64,7 @@ namespace Couchbase.IO.Strategies.Awaitable
             var awaitable = new SocketAwaitable(receiveEventArgs);
             await state.Connection.Handle.SendAsync(awaitable);
             await Receive(operation, state);
+            _connectionPool.Release(connection);
         }
 
         async Task Receive<T>(IOperation<T> operation, OperationAsyncState state)

@@ -9,6 +9,8 @@ namespace Couchbase.Core
 
         IBucket OpenBucket(string bucketName);
 
+        void CloseBucket(IBucket bucket);
+
         IClusterInfo Info { get; }
     }
 }

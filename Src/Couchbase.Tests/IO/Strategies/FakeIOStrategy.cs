@@ -10,11 +10,11 @@ using Couchbase.IO.Operations;
 
 namespace Couchbase.Tests.IO.Strategies
 {
-    internal class FakeIOStrategy<T> : IOStrategy
+    internal class FakeIOStrategy<K>: IOStrategy where K : class
     {
-        private Func<Task<IOperationResult<T>>> _operation;
+        private K _operation;
 
-        void LoadFakeOperation(Func<Task<IOperationResult<T>>> operation)
+        public FakeIOStrategy(K operation)
         {
             _operation = operation;
         }
@@ -29,10 +29,10 @@ namespace Couchbase.Tests.IO.Strategies
             throw new NotImplementedException();
         }
 
-        public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
+        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
         {
-            var result = (IOperationResult<T>) await _operation();
-            return result;
+            operation = (IOperation<T>)_operation;
+            return Task.Run(() => operation.GetResult());
         }
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation)

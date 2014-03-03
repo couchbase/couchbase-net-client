@@ -20,12 +20,12 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             _clientConfig = clientConfig;
         }
 
-        public IConfigInfo GetCached()
+        public IConfigInfo GetCached(string bucketName)
         {
             return _configInfo;
         }
 
-        public IConfigInfo GetConfig()
+        public IConfigInfo GetConfig(string bucketName)
         {
             if (_serverConfig == null)
             {
@@ -40,7 +40,6 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             throw new NotImplementedException();
         }
 
-
         public void RegisterListener(IConfigListener listener)
         {
             throw new NotImplementedException();
@@ -48,6 +47,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
 
 
         public void UnRegisterListener(IConfigListener listener)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ListenerExists(IConfigListener listener)
         {
             throw new NotImplementedException();
         }
