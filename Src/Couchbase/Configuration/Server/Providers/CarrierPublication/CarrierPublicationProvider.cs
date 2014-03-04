@@ -14,7 +14,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
-    internal class CarrierPublicationProvider : IConfigProvider, IDisposable
+    internal sealed class CarrierPublicationProvider : IConfigProvider, IDisposable
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
