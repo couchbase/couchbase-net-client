@@ -1307,7 +1307,7 @@ namespace Couchbase
         /// <returns></returns>
         public IView<IViewRow> GetView(string designName, string viewName)
         {
-            return GetView<IViewRow>(designName, viewName, false);
+            return GetView(designName, viewName, false);
         }
 
         public IView<IViewRow> GetView(string designName, string viewName, bool urlEncode)
