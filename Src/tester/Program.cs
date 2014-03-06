@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Wintellect;
 
 namespace tester
 {
@@ -26,7 +27,11 @@ namespace tester
             
 
             int n = 100000;
-            SyncronousInsert(bucket, n);
+
+            using (var timer = new OperationTimer())
+            {
+                SyncronousInsert(bucket, n);
+            }
             //ParallerInsert(bucket, n);
             _cluster.CloseBucket(bucket);
 

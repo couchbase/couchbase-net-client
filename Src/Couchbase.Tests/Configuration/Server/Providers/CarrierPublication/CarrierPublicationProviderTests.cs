@@ -11,6 +11,7 @@ using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
@@ -25,7 +26,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         public void SetUp()
         {
             var configuration = new ClientConfiguration();
-            _provider = new CarrierPublicationProvider(configuration);
+            _provider = new CarrierPublicationProvider(
+                configuration, 
+                pool => new AwaitableIOStrategy(pool, null),
+                (config, endpoint) => new DefaultConnectionPool(config, endpoint));
         }
 
         [Test]
@@ -54,13 +58,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
 
         public void NotifyConfigChanged(IConfigInfo configInfo)
         {
-            throw new NotImplementedException();
-        }
-
-        public void NotifyConfigChanged(IConfigInfo configInfo, IConnectionPool connectionPool)
-        {
             Assert.IsNotNull(configInfo);
-            Assert.IsNotNull(connectionPool);
         }
 
         [Test]

@@ -18,12 +18,23 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
+        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigListener> _listeners = new ConcurrentDictionary<string, IConfigListener>();
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig) 
         {
             _clientConfig = clientConfig;
+        }
+
+        public CarrierPublicationProvider(ClientConfiguration clientConfig,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+        {
+            _clientConfig = clientConfig;
+            _ioStrategyFactory = ioStrategyFactory;
+            _connectionPoolFactory = connectionPoolFactory;
         }
 
         public IConfigInfo GetCached(string bucketName)
@@ -54,10 +65,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             {
                 var bucketConfig = operationResult.Value;
                 bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
-                configInfo = new DefaultConfig(_clientConfig)
-                {
-                    BucketConfig = bucketConfig
-                };
+
+                configInfo = new ConfigContext(bucketConfig, 
+                    _clientConfig, 
+                    _ioStrategyFactory, 
+                    _connectionPoolFactory);
+
                 _configs[bucketName] = configInfo;
             }
             return configInfo;
@@ -68,15 +81,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             //throw new NotImplementedException();
         }
 
+        //pick a URI from the client configuration
+        //create a connection to the node
+        //use the bucket name to get the client configuration
+        //provider needs to register as an observer of buckets, since a NMV
+        //will generate a configuration which needs to be forwarded back up to the provider
+        //which will raise the ConfigHandlerChanged event - the client will then re-configuration
+
         public void RegisterListener(IConfigListener listener)
         {
-            //pick a URI from the client configuration
-            //create a connection to the node
-            //use the bucket name to get the client configuration
-            //provider needs to register as an observer of buckets, since a NMV
-            //will generate a configuration which needs to be forwarded back up to the provider
-            //which will raise the ConfigHandlerChanged event - the client will then re-configuration
-
             var bootstrap = _clientConfig.BucketConfigs.FirstOrDefault(x => x.BucketName == listener.Name);
             if (bootstrap == null)
             {
@@ -92,13 +105,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             {
                 var bucketConfig = operationResult.Value;
                 bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();//for $HOST blah-ness
-                var configInfo = new DefaultConfig(_clientConfig)
-                {
-                    BucketConfig = bucketConfig
-                };
+
+                var configInfo = new ConfigContext(bucketConfig,
+                    _clientConfig,
+                    _ioStrategyFactory,
+                    _connectionPoolFactory);
+
                 _configs[listener.Name] = configInfo;
                 _listeners[listener.Name] = listener;
-                listener.NotifyConfigChanged(configInfo, connectionPool);
+                listener.NotifyConfigChanged(configInfo);
             }
         }
 

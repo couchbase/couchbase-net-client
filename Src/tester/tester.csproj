@@ -68,6 +68,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Tests\Couchbase.Tests.csproj">
+      <Project>{de41e3c6-1a34-4c23-8422-9df09ccc924c}</Project>
+      <Name>Couchbase.Tests</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Couchbase\Couchbase.csproj">
       <Project>{244eb9c8-8bcb-421d-a6dc-d54dceb206e8}</Project>
       <Name>Couchbase</Name>

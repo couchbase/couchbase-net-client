@@ -65,6 +65,7 @@
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
+    <Compile Include="Helpers\OperationTimer.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />

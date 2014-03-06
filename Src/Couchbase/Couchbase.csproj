@@ -57,6 +57,7 @@
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
     <Compile Include="Configuration\Client\ProviderConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />
+    <Compile Include="Configuration\ConfigContext.cs" />
     <Compile Include="Configuration\ConfigInfo.cs" />
     <Compile Include="Configuration\ConfigListenerNotFoundException.cs" />
     <Compile Include="Configuration\ConfigNotFoundException.cs" />
@@ -129,6 +130,7 @@
     <Compile Include="IO\Operations\ConfigOperation.cs" />
     <Compile Include="IO\Operations\GetOperation.cs" />
     <Compile Include="IO\Operations\SetOperation.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncEventArgsStrategy.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAsyncEventArgsPool.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategy.cs" />

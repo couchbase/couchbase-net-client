@@ -27,7 +27,5 @@ namespace Couchbase.Configuration.Server.Providers
         string Name { get; }
 
         void NotifyConfigChanged(IConfigInfo configInfo);
-
-        void NotifyConfigChanged(IConfigInfo configInfo, IConnectionPool connectionPool);
     }
 }

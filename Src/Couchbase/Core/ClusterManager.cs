@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
+using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
@@ -20,18 +21,15 @@ namespace Couchbase.Core
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
-        private Func<IBucketConfig> BucketConfigListener;
-        private Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly bool _disposed;
+        private bool _disposed;
 
-        public ClusterManager(ClientConfiguration clientConfig)
+        public ClusterManager(ClientConfiguration clientConfig) 
             : this(clientConfig, 
             pool => new AwaitableIOStrategy(pool, null), 
             (config, endpoint) =>new DefaultConnectionPool(config, endpoint))
         {
-            _clientConfig = clientConfig;
-            Initialize();
         }
 
         public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory) 
@@ -39,8 +37,6 @@ namespace Couchbase.Core
             ioStrategyFactory, 
             (config, enpoint)=>new DefaultConnectionPool(config, enpoint))
         {
-            _ioStrategyFactory = ioStrategyFactory;
-            Initialize();
         }
 
         public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
@@ -53,20 +49,11 @@ namespace Couchbase.Core
 
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 
+        //TODO possibly make providers instantiation configurable...maybe. perhaps.
         void Initialize()
         {
-            foreach (var providerConfig in _clientConfig.ProviderConfigs )
-            {
-                var configProvider = CreateProvider(providerConfig);
-                ConfigProviders.Add(configProvider);
-                configProvider.Start();
-            }
-        }
-
-        IConfigProvider CreateProvider(ProviderConfiguration providerConfiguration)
-        {
-            var type = Type.GetType(providerConfiguration.TypeName);
-            return (IConfigProvider) Activator.CreateInstance(type, new object[] {_clientConfig});
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig));
         }
 
         public IConfigProvider GetProvider(string name)
@@ -78,7 +65,7 @@ namespace Couchbase.Core
         {
             var configProvider = ConfigProviders.First();
 
-            var bucket = new CouchbaseBucket(this, _clientConfig.PoolConfiguration, _ioStrategyFactory)
+            var bucket = new CouchbaseBucket(this)
             {
                 Name = bucketName
             };
@@ -111,7 +98,7 @@ namespace Couchbase.Core
 
         public void NotifyConfigPublished(IBucketConfig bucketConfig)
         {
-            var provider = _configProviders.FirstOrDefault(x => x.GetType() == typeof (CarrierPublicationProvider));
+            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
             if (provider != null)
             {
                 var carrierPublicationProvider = provider as CarrierPublicationProvider;
@@ -156,6 +143,7 @@ namespace Couchbase.Core
                 {
                    DestroyBucket(pair.Value);
                 }
+                _disposed = true;
             }
         }
 

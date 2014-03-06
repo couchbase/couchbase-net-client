@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core;
 using Couchbase.Tests.Configuration.Client;
@@ -20,17 +21,7 @@ namespace Couchbase.Tests.Core
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var clientConfig = new ClientConfiguration()
-            {
-                ProviderConfigs = new List<ProviderConfiguration>
-                {
-                    new ProviderConfiguration
-                    {
-                        Name = "HttpStreaming",
-                        TypeName = "Couchbase.Configuration.Server.Providers.Streaming.HttpStreamingProvider, Couchbase"
-                    }
-                }
-            };
+            var clientConfig = new ClientConfiguration();
             _clusterManager = new ClusterManager(clientConfig);
         }
 
@@ -43,8 +34,10 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_ConfigProviders_Contains_One_HettpStreamingProvider()
         {
-            Assert.AreEqual(_clusterManager.ConfigProviders.Count, 1);
-            Assert.AreEqual(_clusterManager.ConfigProviders[0].GetType(), typeof(HttpStreamingProvider));
+            const int providerCount = 2;
+            Assert.AreEqual(providerCount, _clusterManager.ConfigProviders.Count);
+            Assert.AreEqual(_clusterManager.ConfigProviders[0].GetType(), typeof(CarrierPublicationProvider));
+            Assert.AreEqual(_clusterManager.ConfigProviders[1].GetType(), typeof(HttpStreamingProvider));
         }
     }
 }

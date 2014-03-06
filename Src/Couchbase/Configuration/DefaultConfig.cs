@@ -39,5 +39,16 @@ namespace Couchbase.Configuration
         {
             throw new NotImplementedException();
         }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public string BucketName
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

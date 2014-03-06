@@ -10,16 +10,16 @@ using Couchbase.Core;
 
 namespace Couchbase.Configuration
 {
-    internal interface IConfigInfo
+    internal interface IConfigInfo : IDisposable
     {
         DateTime CreationTime { get; }
 
         IKeyMapper GetKeyMapper(string bucketName);
 
-        IServerConfig ServerConfig { get; }
-
         ClientConfiguration ClientConfig { get; }
 
         IBucketConfig BucketConfig { get; }
+
+        string BucketName { get; }
     }
 }
