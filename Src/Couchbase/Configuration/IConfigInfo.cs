@@ -24,5 +24,6 @@ namespace Couchbase.Configuration
         string BucketName { get; }
 
         BucketTypeEnum BucketType { get; }
+        NodeLocatorEnum NodeLocator { get; }
     }
 }

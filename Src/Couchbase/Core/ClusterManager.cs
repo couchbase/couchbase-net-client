@@ -73,12 +73,12 @@ namespace Couchbase.Core
                 try
                 {
                     var config = provider.GetConfig(bucketName);
-                    switch (config.BucketType)
+                    switch (config.NodeLocator)
                     {
-                        case BucketTypeEnum.Couchbase:
+                        case NodeLocatorEnum.VBucket:
                             bucket = new CouchbaseBucket(this, bucketName);
                             break;
-                        case BucketTypeEnum.Memcached:
+                        case NodeLocatorEnum.Ketama:
                             throw new NotSupportedException("No implementations for MemcachedBuckets exist ATM.");
                         default:
                             throw new ArgumentOutOfRangeException();

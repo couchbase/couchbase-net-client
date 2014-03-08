@@ -117,6 +117,7 @@
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
+    <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\ClusterManager.cs" />
     <Compile Include="Core\IClusterManager.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
@@ -166,6 +167,7 @@
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
+    <Compile Include="Utils\IPEndPointExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

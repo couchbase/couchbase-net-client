@@ -56,5 +56,11 @@ namespace Couchbase.Configuration
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public Core.Buckets.NodeLocatorEnum NodeLocator
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

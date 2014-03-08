@@ -66,13 +66,19 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 var bucketConfig = operationResult.Value;
                 bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
 
-                configInfo = new ConfigContext(bucketConfig, 
-                    _clientConfig, 
-                    _ioStrategyFactory, 
-                    _connectionPoolFactory);
-
+                configInfo = GetConfig(bucketConfig);
                 _configs[bucketName] = configInfo;
             }
+            return configInfo;
+        }
+
+        IConfigInfo GetConfig(IBucketConfig bucketConfig)
+        {
+            IConfigInfo configInfo = new ConfigContext(bucketConfig, 
+                _clientConfig, 
+                _ioStrategyFactory, 
+                _connectionPoolFactory);
+
             return configInfo;
         }
 
@@ -100,11 +106,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 throw new ConfigNotFoundException(bucketConfig.Name);
             }
 
-            var configInfo = new DefaultConfig(_clientConfig)
-            {
-                BucketConfig = bucketConfig
-            };
-
+            var configInfo = GetConfig(bucketConfig);
             if(_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
             {
                 listener.NotifyConfigChanged(configInfo);

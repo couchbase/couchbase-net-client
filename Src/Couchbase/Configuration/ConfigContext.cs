@@ -120,7 +120,7 @@ namespace Couchbase.Configuration
             get
             {
                 BucketTypeEnum bucketType;
-                if (!Enum.TryParse(_bucketConfig.BucketType, out bucketType))
+                if (!Enum.TryParse(_bucketConfig.BucketType, true, out bucketType))
                 {
                     throw new NullConfigException("BucketType is not defined");
                 }
@@ -128,7 +128,18 @@ namespace Couchbase.Configuration
             }
         }
 
-
+        public NodeLocatorEnum NodeLocator
+        {
+            get
+            {
+                NodeLocatorEnum nodeLocator;
+                if (!Enum.TryParse(_bucketConfig.NodeLocator, true, out nodeLocator))
+                {
+                    throw new NullConfigException("NodeLocator is not defined");
+                }
+                return nodeLocator;
+            }
+        }
 
         public void Dispose()
         {

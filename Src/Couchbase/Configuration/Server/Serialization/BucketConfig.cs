@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -100,6 +101,12 @@ namespace Couchbase.Configuration.Server.Serialization
         {
             get { return _surrogateHost; }
             set { _surrogateHost = value; }
+        }
+
+        public Node GetRandomNode()
+        {
+            Nodes.Shuffle();
+            return Nodes.First();
         }
 
         public bool Equals(BucketConfig other)

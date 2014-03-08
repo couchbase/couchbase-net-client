@@ -87,5 +87,6 @@ namespace Couchbase.Configuration.Server.Serialization
         int Rev { get; set; }
 
         string SurrogateHost { get; set; }
+        Node GetRandomNode();
     }
 }
