@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 
 namespace Couchbase.Configuration
 {
@@ -21,5 +22,7 @@ namespace Couchbase.Configuration
         IBucketConfig BucketConfig { get; }
 
         string BucketName { get; }
+
+        BucketTypeEnum BucketType { get; }
     }
 }

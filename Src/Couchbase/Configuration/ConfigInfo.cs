@@ -89,7 +89,6 @@ namespace Couchbase.Configuration
             get { throw new NotImplementedException(); }
         }
 
-
         public string BucketName
         {
             get { throw new NotImplementedException(); }
@@ -98,6 +97,12 @@ namespace Couchbase.Configuration
         public void Dispose()
         {
             throw new NotImplementedException();
+        }
+
+
+        public Core.Buckets.BucketTypeEnum BucketType
+        {
+            get { throw new NotImplementedException(); }
         }
     }
 }

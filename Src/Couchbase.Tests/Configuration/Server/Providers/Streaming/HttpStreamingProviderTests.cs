@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         [TestFixtureTearDown]
         public void TearDown()
         {
-            Thread.Sleep(10000);
+            //Thread.Sleep(10000);
         }
     }
 }

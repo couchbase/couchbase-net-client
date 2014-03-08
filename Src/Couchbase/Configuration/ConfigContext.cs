@@ -10,6 +10,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Utils;
@@ -113,6 +114,21 @@ namespace Couchbase.Configuration
         {
             get { return _clientConfig; }
         }
+
+        public Core.Buckets.BucketTypeEnum BucketType
+        {
+            get
+            {
+                BucketTypeEnum bucketType;
+                if (!Enum.TryParse(_bucketConfig.BucketType, out bucketType))
+                {
+                    throw new NullConfigException("BucketType is not defined");
+                }
+                return bucketType;
+            }
+        }
+
+
 
         public void Dispose()
         {

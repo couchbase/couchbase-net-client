@@ -55,5 +55,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             throw new NotImplementedException();
         }
+
+
+        bool IConfigProvider.RegisterListener(IConfigListener listener)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

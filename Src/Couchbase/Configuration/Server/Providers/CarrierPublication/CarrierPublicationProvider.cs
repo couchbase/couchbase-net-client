@@ -78,43 +78,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void Start()
         {
-            //throw new NotImplementedException();
+            //noop since cccp is demand based
         }
 
-        //pick a URI from the client configuration
-        //create a connection to the node
-        //use the bucket name to get the client configuration
-        //provider needs to register as an observer of buckets, since a NMV
-        //will generate a configuration which needs to be forwarded back up to the provider
-        //which will raise the ConfigHandlerChanged event - the client will then re-configuration
-
-        public void RegisterListener(IConfigListener listener)
+        public bool RegisterListener(IConfigListener listener)
         {
-            var bootstrap = _clientConfig.BucketConfigs.FirstOrDefault(x => x.BucketName == listener.Name);
-            if (bootstrap == null)
-            {
-                throw new BucketNotFoundException(listener.Name);
-            }
-
-            var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
-            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
-            var task = ioStrategy.ExecuteAsync(new ConfigOperation());
-
-            var operationResult = task.Result;
-            if (operationResult.Success)
-            {
-                var bucketConfig = operationResult.Value;
-                bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();//for $HOST blah-ness
-
-                var configInfo = new ConfigContext(bucketConfig,
-                    _clientConfig,
-                    _ioStrategyFactory,
-                    _connectionPoolFactory);
-
-                _configs[listener.Name] = configInfo;
-                _listeners[listener.Name] = listener;
-                listener.NotifyConfigChanged(configInfo);
-            }
+            return _listeners.TryAdd(listener.Name, listener);
         }
 
         public void UpdateConfig(IBucketConfig bucketConfig)

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Common.Logging;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
@@ -18,6 +20,7 @@ namespace Couchbase.Core
 {
     internal sealed class ClusterManager : IClusterManager
     {
+        private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
@@ -63,20 +66,41 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName)
         {
-            var configProvider = ConfigProviders.First();
-
-            var bucket = new CouchbaseBucket(this)
+            var success = false;
+            IBucket bucket = null;
+            foreach (var provider in _configProviders)
             {
-                Name = bucketName
-            };
-
-            if (_buckets.TryAdd(bucketName, bucket))
-            {
-                configProvider.RegisterListener(bucket);
+                try
+                {
+                    var config = provider.GetConfig(bucketName);
+                    switch (config.BucketType)
+                    {
+                        case BucketTypeEnum.Couchbase:
+                            bucket = new CouchbaseBucket(this, bucketName);
+                            break;
+                        case BucketTypeEnum.Memcached:
+                            throw new NotSupportedException("No implementations for MemcachedBuckets exist ATM.");
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                    var listener = bucket as IConfigListener;
+                    if (provider.RegisterListener(listener) && 
+                        _buckets.TryAdd(bucket.Name, bucket))
+                    {
+                        listener.NotifyConfigChanged(config);
+                        success = true;
+                        break;
+                    }
+                }
+                catch (ConfigException e)
+                {
+                    Log.Warn(e);
+                }
             }
-            else
+
+            if (!success)
             {
-                throw new BucketAlreadyOpenException(bucketName);
+                throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
             }
             return bucket;
         }

@@ -50,5 +50,11 @@ namespace Couchbase.Configuration
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public Core.Buckets.BucketTypeEnum BucketType
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

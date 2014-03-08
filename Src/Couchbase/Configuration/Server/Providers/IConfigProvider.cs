@@ -15,7 +15,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         void Start();
 
-        void RegisterListener(IConfigListener listener);
+        bool RegisterListener(IConfigListener listener);
 
         void UnRegisterListener(IConfigListener listener);
 

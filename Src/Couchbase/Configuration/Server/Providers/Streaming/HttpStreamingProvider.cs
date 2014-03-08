@@ -46,7 +46,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
-        public void RegisterListener(IConfigListener listener)
+        public bool RegisterListener(IConfigListener listener)
         {
             var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == listener.Name);
             if (bucketConfig == null)
@@ -71,6 +71,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                 CountdownEvent.Wait();
             }
+            return true;//todo fix
         }
 
         private void ConfigChangedHandler(IBucketConfig bucketConfig)

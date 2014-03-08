@@ -24,6 +24,12 @@ namespace Couchbase.Core.Buckets
             _clusterManager = clusterManager;
         }
 
+        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName)
+        {
+            _clusterManager = clusterManager;
+            Name = bucketName;
+        }
+
         public string Name { get; set; }
 
         void IConfigListener.NotifyConfigChanged(IConfigInfo configInfo)

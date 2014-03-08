@@ -58,6 +58,7 @@
     <Compile Include="Configuration\Client\ProviderConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />
     <Compile Include="Configuration\ConfigContext.cs" />
+    <Compile Include="Configuration\ConfigException.cs" />
     <Compile Include="Configuration\ConfigInfo.cs" />
     <Compile Include="Configuration\ConfigListenerNotFoundException.cs" />
     <Compile Include="Configuration\ConfigNotFoundException.cs" />
@@ -113,6 +114,7 @@
     <Compile Include="Configuration\Server\Serialization\ViewFragmentationThreshold.cs" />
     <Compile Include="Core\BucketAlreadyOpenException.cs" />
     <Compile Include="Core\BucketNotFoundException.cs" />
+    <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
     <Compile Include="Core\ClusterManager.cs" />
@@ -159,6 +161,7 @@
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
     <Compile Include="IO\Utils\HeaderIndexFor.cs" />
+    <Compile Include="NullConfigException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
