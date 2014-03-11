@@ -33,23 +33,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _cancellationToken = cancellationToken;
         }
 
-        private Uri GetStreamingUri(Node node, IBucketConfig bucketConfig)
-        {
-            const string protocol = "http://";
-            string hostName = node.Hostname;
-            string streamingUri = string.Empty;
-
-            if (!string.IsNullOrEmpty(bucketConfig.TerseStreamingUri))
-            {
-                streamingUri = bucketConfig.TerseStreamingUri;
-            }
-            else
-            {
-                streamingUri = bucketConfig.StreamingUri;
-            }
-            return new Uri(string.Concat(protocol, hostName, streamingUri));
-        }
-
         /// <summary>
         ///     This is to support $HOST variable in the URI in _some_ cases
         /// </summary>
@@ -76,7 +59,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     var node = nodes[0];
                     nodes.Remove(node);
 
-                    var streamingUri = GetStreamingUri(node, _bucketConfig);
+                    var streamingUri = _bucketConfig.GetTerseStreamingUri(node);
                     Log.Info(m=>m("Listening to {0}", streamingUri));
 
                     using (var webClient = new WebClient())

@@ -88,5 +88,9 @@ namespace Couchbase.Configuration.Server.Serialization
 
         string SurrogateHost { get; set; }
         Node GetRandomNode();
+
+        Uri GetTerseStreamingUri(Node node);
+
+        Uri GetTerseUri(Node node);
     }
 }

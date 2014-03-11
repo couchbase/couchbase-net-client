@@ -58,7 +58,7 @@ namespace Couchbase
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _clusterManager.Dispose();
         }
 
 

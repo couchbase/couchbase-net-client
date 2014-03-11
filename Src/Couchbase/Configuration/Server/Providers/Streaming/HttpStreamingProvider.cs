@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.IO;
+using Couchbase.Utils;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
@@ -14,6 +20,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private IServerConfig _serverConfig;
         private readonly ClientConfiguration _clientConfig;
 
+        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
@@ -25,14 +33,71 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _clientConfig = clientConfig;
         }
 
+        public HttpStreamingProvider(ClientConfiguration clientConfig,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+        {
+            _clientConfig = clientConfig;
+            _ioStrategyFactory = ioStrategyFactory;
+            _connectionPoolFactory = connectionPoolFactory;
+        }
+
         public IConfigInfo GetCached(string bucketName)
         {
-            throw new NotImplementedException();
+            IConfigInfo configInfo;
+            if (!_configs.TryGetValue(bucketName, out configInfo))
+            {
+                throw new ConfigNotFoundException(bucketName);
+            }
+            return configInfo;
         }
 
         public IConfigInfo GetConfig(string bucketName)
         {
-            throw new NotImplementedException();
+            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
+            if (bucketConfig == null)
+            {
+                throw new BucketNotFoundException(bucketName);
+            }
+
+            IConfigInfo configInfo = null;
+            var nodes = bucketConfig.Nodes.ToList();
+            while (nodes.Any())
+            {
+                try
+                {
+                    nodes.Shuffle();
+                    var node = nodes.First();
+                    nodes.Remove(node);
+
+                    IBucketConfig newConfig;
+                    var uri = bucketConfig.GetTerseUri(node);
+                    using (var webClient = new WebClient())
+                    {
+                        var body = webClient.DownloadString(uri);
+                        newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
+                    }
+
+                    configInfo = CreateConfigInfo(newConfig);
+                   _configs[bucketName] = configInfo;
+                    break;
+
+                } 
+                catch (WebException e)
+                {
+                    Log.Error(e);
+                }
+                catch (IOException e)
+                {
+                    Log.Error(e);
+                }
+            }
+
+            if (configInfo == null)
+            {
+                throw new BucketNotFoundException();
+            }
+            return configInfo;
         }
 
         public void Start()
@@ -63,7 +128,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             if (_threads.TryAdd(listener.Name, thread) && _listeners.TryAdd(listener.Name, listener))
             {
                 _threads[listener.Name].Start();
-               
+                
                 if (CountdownEvent.CurrentCount == 0)
                 {
                     CountdownEvent.Reset(1);
@@ -87,18 +152,16 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             if (_configs.ContainsKey(bucketConfig.Name))
             {
                 configInfo = _configs[bucketConfig.Name];
-                if (configInfo.BucketConfig.Equals(bucketConfig)) return;
-                configInfo = new DefaultConfig(_clientConfig, _serverConfig)
+                if (configInfo.BucketConfig.Equals(bucketConfig))
                 {
-                    BucketConfig = bucketConfig
-                };
+                    SignalCountdownEvent();
+                    return;
+                }
+                configInfo = CreateConfigInfo(bucketConfig);
             }
             else
             {
-                configInfo = new DefaultConfig(_clientConfig, _serverConfig)
-                {
-                    BucketConfig = bucketConfig
-                };
+                configInfo = CreateConfigInfo(bucketConfig);
                 _configs.TryAdd(bucketConfig.Name, configInfo);
             }
             try
@@ -109,10 +172,25 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 Log.Error(e);
             }
+            SignalCountdownEvent();
+        }
+
+        void SignalCountdownEvent()
+        {
             if (CountdownEvent.CurrentCount > 0)
             {
                 CountdownEvent.Signal();
             }
+        }
+
+        IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
+        {
+            IConfigInfo configInfo = new ConfigContext(bucketConfig,
+                    _clientConfig,
+                    _ioStrategyFactory,
+                    _connectionPoolFactory);
+
+            return configInfo;
         }
 
         static void ErrorOccurredHandler(IBucketConfig bucketConfig)

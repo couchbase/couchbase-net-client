@@ -20,7 +20,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         public void SetUp()
         {
             _clientConfig = new ClientConfiguration();
-            _clientConfig.Servers.Add(new Uri("http://192.168.56.101:8091/pools/"));
+            _clientConfig.Servers.Add(new Uri("http://127.0.0.1:8091/pools/"));
 
             _serverConfig = new HttpServerConfig(_clientConfig);
             _serverConfig.Initialize();

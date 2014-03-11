@@ -21,11 +21,11 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
     public class CarrierPublicationTests
     {
         private ICluster _cluster;
+        private IBucket _bucket;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
-            
             _cluster = new Cluster(new ClientConfiguration(), (p) =>
             {
                 var operation = new FakeOperation();
@@ -44,9 +44,18 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [Test]
         public void Test_That_A_NMV_Response_Will_Force_A_Config_Update()
         {
-            var bucket = _cluster.OpenBucket("default");
-            var operationResult = bucket.Insert("test", "value");
+            _bucket = _cluster.OpenBucket("default");
+            var operationResult = _bucket.Insert("test", "value");
 
+            //note that the client should be retrying the operation. Once that is in place, this 
+            //test will need to be refactored.
+            Assert.AreEqual(ResponseStatus.VBucketBelongsToAnotherServer, operationResult.Status);
+        }
+
+        [TestFixtureTearDown]
+        public void TearDown()
+        {
+            _cluster.CloseBucket(_bucket);
         }
     }
 }

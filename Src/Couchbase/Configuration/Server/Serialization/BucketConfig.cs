@@ -150,5 +150,32 @@ namespace Couchbase.Configuration.Server.Serialization
             sb.AppendFormat("Name={0}", Name);
             return sb.ToString();
         }
+
+
+        public Uri GetTerseStreamingUri(Node node)
+        {
+            const string protocol = "http://";
+            var hostName = node.Hostname;
+            var streamingUri = string.Empty;
+
+            if (!string.IsNullOrEmpty(TerseStreamingUri))
+            {
+                streamingUri = TerseStreamingUri;
+            }
+            else
+            {
+                streamingUri = StreamingUri;
+            }
+            return new Uri(string.Concat(protocol, hostName, streamingUri));
+        }
+
+        public Uri GetTerseUri(Node node)
+        {
+            const string protocol = "http://";
+            var hostName = node.Hostname;
+            var streamingUri = TerseUri;
+
+            return new Uri(string.Concat(protocol, hostName, streamingUri));
+        }
     }
 }

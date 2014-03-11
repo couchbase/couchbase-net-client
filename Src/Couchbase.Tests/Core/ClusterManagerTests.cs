@@ -32,7 +32,7 @@ namespace Couchbase.Tests.Core
         }
 
         [Test]
-        public void Test_ConfigProviders_Contains_One_HettpStreamingProvider()
+        public void Test_ConfigProviders_Contains_Two_Providers()
         {
             const int providerCount = 2;
             Assert.AreEqual(providerCount, _clusterManager.ConfigProviders.Count);

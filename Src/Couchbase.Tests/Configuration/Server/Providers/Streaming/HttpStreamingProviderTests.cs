@@ -9,6 +9,8 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.FileSystem;
 using Couchbase.Configuration.Server.Providers.Streaming;
+using Couchbase.IO;
+using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
@@ -21,29 +23,35 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var clientConfig = new ClientConfiguration();
-            clientConfig.Servers.Add(new Uri("http://192.168.56.101:8091/pools/"));
-            _provider = new HttpStreamingProvider(clientConfig);
+            var configuration = new ClientConfiguration();
+            _provider = new HttpStreamingProvider(
+                configuration,
+                pool => new AwaitableIOStrategy(pool, null),
+                (config, endpoint) => new DefaultConnectionPool(config, endpoint));
+
+            _provider.Start();
         }
 
         [Test]
-        public void Test_Start()
-        {
-            //_provider.Start();
-        }
-
-      /*  [Test]
         public void Test_GetConfig()
         {
-            _provider.Start();
-            var configInfo = _provider.GetConfig();
+            var configInfo = _provider.GetConfig("default");
             Assert.IsNotNull(configInfo);
-        }*/
+        }
+
+        [Test]
+        public void Test_GetCached()
+        {
+            var configInfo = _provider.GetConfig("default");
+            var cachedConfig = _provider.GetCached("default");
+
+            Assert.AreEqual(cachedConfig, configInfo);
+        }
 
         [TestFixtureTearDown]
         public void TearDown()
         {
-            //Thread.Sleep(10000);
+            
         }
     }
 }

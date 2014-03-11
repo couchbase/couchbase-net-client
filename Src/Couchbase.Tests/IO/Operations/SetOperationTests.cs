@@ -37,5 +37,11 @@ namespace Couchbase.Tests.IO.Operations
                 Assert.IsTrue(response.Success);
             }
         }
+
+        [TestFixtureTearDown]
+        public void TearDown()
+        {
+            _cluster.Dispose();
+        }
     }
 }

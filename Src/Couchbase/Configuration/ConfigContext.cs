@@ -46,19 +46,6 @@ namespace Couchbase.Configuration
             LoadConfig(bucketConfig);
         }
 
-        Dictionary<int, IVBucket> CreateVBuckets(VBucketServerMap vBucketServerMap)
-        {
-            var vBuckets = new Dictionary<int, IVBucket>();
-            var vBucketMap = vBucketServerMap.VBucketMap;
-            for (var i = 0; i < vBucketMap.Length; i++)
-            {
-                var primary = vBucketMap[i][0];
-                var replica = vBucketMap[i][1];
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
-            }
-            return vBuckets;
-        }
-
         IPEndPoint GetEndPoint(string node, IBucketConfig bucketConfig)
         {
             const string blah = "$HOST";
@@ -83,8 +70,16 @@ namespace Couchbase.Configuration
             }
             if (_bucketConfig == null || !_bucketConfig.VBucketServerMap.Equals(bucketConfig.VBucketServerMap))
             {
-                var vBucketMap = CreateVBuckets(bucketConfig.VBucketServerMap);
-                _keyMapper = new KeyMapper(vBucketMap);
+                switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
+                {
+                    case NodeLocatorEnum.VBucket:
+                        _keyMapper = new VBucketKeyMapper(_servers, bucketConfig.VBucketServerMap);
+                        break;
+                    case NodeLocatorEnum.Ketama:
+                        throw new NotImplementedException();
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
 
             _bucketConfig = bucketConfig;
@@ -115,7 +110,7 @@ namespace Couchbase.Configuration
             get { return _clientConfig; }
         }
 
-        public Core.Buckets.BucketTypeEnum BucketType
+        public BucketTypeEnum BucketType
         {
             get
             {

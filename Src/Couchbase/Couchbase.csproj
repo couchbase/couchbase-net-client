@@ -118,6 +118,7 @@
     <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
+    <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
     <Compile Include="Core\ClusterManager.cs" />
     <Compile Include="Core\IClusterManager.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
@@ -149,7 +150,6 @@
     <Compile Include="IO\Operations\IOperationResult.cs" />
     <Compile Include="Core\IServer.cs" />
     <Compile Include="Core\IVBucket.cs" />
-    <Compile Include="Core\KeyMapper.cs" />
     <Compile Include="IO\Operations\Magic.cs" />
     <Compile Include="IO\Operations\OperationCode.cs" />
     <Compile Include="IO\Operations\OperationBase.cs" />
@@ -168,6 +168,7 @@
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
     <Compile Include="Utils\IPEndPointExtensions.cs" />
+    <Compile Include="Utils\StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

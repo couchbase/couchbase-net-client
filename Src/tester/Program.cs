@@ -30,7 +30,7 @@ namespace tester
 
             using (var timer = new OperationTimer())
             {
-                SyncronousInsert(bucket, n);
+                SynchronousInsert(bucket, n);
             }
             //ParallerInsert(bucket, n);
             _cluster.CloseBucket(bucket);
@@ -38,7 +38,7 @@ namespace tester
             Console.Read();
         }
 
-        static void SyncronousInsert(IBucket bucket, int n)
+        static void SynchronousInsert(IBucket bucket, int n)
         {
             for (int i = 0; i < n; i++)
             {

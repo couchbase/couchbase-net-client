@@ -55,7 +55,7 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            //_cluster.Dispose();
+            _cluster.Dispose();
         }
     }
 }

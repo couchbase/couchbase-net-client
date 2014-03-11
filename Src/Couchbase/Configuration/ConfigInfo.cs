@@ -71,7 +71,7 @@ namespace Couchbase.Configuration
                     //create a ketamamapper
                     break;
                 case "membase":
-                    keyMapper = new KeyMapper(new Crc32(), _buckets[bucket]);
+                   // keyMapper = new KeyMapper(new Crc32(), _buckets[bucket]);
                     break;
                 default:
                     throw new InvalidBucketTypeException();
