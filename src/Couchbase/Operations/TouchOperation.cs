@@ -9,62 +9,62 @@ using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
-	internal class TouchOperation : BinarySingleItemOperation, IOperationWithState, ITouchOperation
-	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(TouchOperation));
+    internal class TouchOperation : BinarySingleItemOperation, IOperationWithState, ITouchOperation
+    {
+        private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(TouchOperation));
 
-		private uint expires;
-		private OperationState state;
-		private VBucketNodeLocator locator;
+        private uint expires;
+        private OperationState state;
+        private VBucketNodeLocator locator;
 
-		public TouchOperation(VBucketNodeLocator locator, string key, uint expires)
-			: base(key)
-		{
-			this.locator = locator;
-			this.expires = expires;
-		}
+        public TouchOperation(VBucketNodeLocator locator, string key, uint expires)
+            : base(key)
+        {
+            this.locator = locator;
+            this.expires = expires;
+        }
 
-		protected override BinaryRequest Build()
-		{
-			var retval = new BinaryRequest(0x1c);
+        protected override BinaryRequest Build()
+        {
+            var retval = new BinaryRequest(0x1c);
 
-			retval.Key = this.Key;
+            retval.Key = this.Key;
 
-			if (this.locator != null)
-			{
-				retval.Reserved = (ushort)locator.GetIndex(this.Key);
-				if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, retval.Reserved);
-			}
+            if (this.locator != null)
+            {
+                retval.Reserved = (ushort)locator.GetIndex(this.Key);
+                if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, retval.Reserved);
+            }
 
-			var extra = new byte[4];
+            var extra = new byte[4];
 
-			BinaryConverter.EncodeUInt32(this.expires, extra, 0);
-			retval.Extra = new ArraySegment<byte>(extra);
+            BinaryConverter.EncodeUInt32(this.expires, extra, 0);
+            retval.Extra = new ArraySegment<byte>(extra);
 
-			return retval;
-		}
+            return retval;
+        }
 
-		protected override IOperationResult ProcessResponse(BinaryResponse response)
-		{
-			var r = response.StatusCode == 0;
-			var result = new BinaryOperationResult();
+        protected override IOperationResult ProcessResponse(BinaryResponse response)
+        {
+            var r = response.StatusCode == 0;
+            var result = new BinaryOperationResult();
 
-			if (this.locator != null &&
-				!VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
-			{
-				return result.Fail("Process response failed");
-			}
+            if (this.locator != null &&
+                !VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
+            {
+                return result.Fail("Process response failed");
+            }
 
-			return result.PassOrFail(r, "Processing response failed");
-		}
+            return result.PassOrFail(r, "Processing response failed");
+        }
 
-		#region [ IOperationWithState          ]
+        #region [ IOperationWithState          ]
 
-		OperationState IOperationWithState.State
-		{
-			get { return this.state; }
-		}
+        OperationState IOperationWithState.State
+        {
+            get { return this.state; }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

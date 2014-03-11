@@ -11,10 +11,9 @@ using System.Collections;
 namespace Couchbase {
 
     internal abstract class CouchbaseViewBase<T> : IView<T> {
-
         protected static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(CouchbaseView));
 
-		protected readonly CouchbaseViewHandler ViewHandler;
+        protected readonly CouchbaseViewHandler ViewHandler;
 
         protected string endKey;
         protected string startKey;
@@ -22,7 +21,7 @@ namespace Couchbase {
         protected string startId;
         protected string key;
         protected string keys;
-        
+
         protected StaleMode? stale;
         protected OnErrorMode? onError;
         protected bool? descending;
@@ -35,16 +34,16 @@ namespace Couchbase {
         protected bool? group;
         protected int? groupAt;
 
-		protected bool? debug;
+        protected bool? debug;
         private bool _urlEncode;
 
         public int TotalRows {
-			get { return ViewHandler.TotalRows; }
-		}
+            get { return ViewHandler.TotalRows; }
+        }
 
-		public IDictionary<string, object> DebugInfo {
-			get { return ViewHandler.DebugInfo; }
-		}
+        public IDictionary<string, object> DebugInfo {
+            get { return ViewHandler.DebugInfo; }
+        }
 
         internal CouchbaseViewBase(ICouchbaseClient client, IHttpClientLocator clientLocator, string designDocument, string indexName, int retryCount)
         {
@@ -74,31 +73,31 @@ namespace Couchbase {
             this.reduce = original.reduce;
             this.groupAt = original.groupAt;
 
-			this.debug = original.debug;
+            this.debug = original.debug;
         }
 
         protected IEnumerator<T> TransformResults<T>(Func<JsonReader, T> rowTransformer)
         {
-			var viewParamsBuilder = new ViewParamsBuilder();
-			viewParamsBuilder.AddOptionalParam("key", this.key);
-			viewParamsBuilder.AddOptionalParam("keys", this.keys);
-			viewParamsBuilder.AddOptionalParam("startkey", this.startKey);
-			viewParamsBuilder.AddOptionalParam("endkey", this.endKey);
-			viewParamsBuilder.AddOptionalParam("startkey_docid", this.startId);
-			viewParamsBuilder.AddOptionalParam("endkey_docid", this.endId);
-			viewParamsBuilder.AddOptionalParam("inclusive_end", this.inclusive);
-			viewParamsBuilder.AddOptionalParam("descending", this.descending);
-			viewParamsBuilder.AddOptionalParam("reduce", this.reduce);
-			viewParamsBuilder.AddOptionalParam("group", this.group);
-			viewParamsBuilder.AddOptionalParam("group_level", this.groupAt);
-			viewParamsBuilder.AddOptionalParam("skip", this.skip);
-			viewParamsBuilder.AddGreaterThanOneParam("limit", this.limit);
-			viewParamsBuilder.AddStaleParam(this.stale);
-			viewParamsBuilder.AddOnErrorParam(this.onError);
-			viewParamsBuilder.AddOptionalParam("debug", this.debug);
+            var viewParamsBuilder = new ViewParamsBuilder();
+            viewParamsBuilder.AddOptionalParam("key", this.key);
+            viewParamsBuilder.AddOptionalParam("keys", this.keys);
+            viewParamsBuilder.AddOptionalParam("startkey", this.startKey);
+            viewParamsBuilder.AddOptionalParam("endkey", this.endKey);
+            viewParamsBuilder.AddOptionalParam("startkey_docid", this.startId);
+            viewParamsBuilder.AddOptionalParam("endkey_docid", this.endId);
+            viewParamsBuilder.AddOptionalParam("inclusive_end", this.inclusive);
+            viewParamsBuilder.AddOptionalParam("descending", this.descending);
+            viewParamsBuilder.AddOptionalParam("reduce", this.reduce);
+            viewParamsBuilder.AddOptionalParam("group", this.group);
+            viewParamsBuilder.AddOptionalParam("group_level", this.groupAt);
+            viewParamsBuilder.AddOptionalParam("skip", this.skip);
+            viewParamsBuilder.AddGreaterThanOneParam("limit", this.limit);
+            viewParamsBuilder.AddStaleParam(this.stale);
+            viewParamsBuilder.AddOnErrorParam(this.onError);
+            viewParamsBuilder.AddOptionalParam("debug", this.debug);
             ViewHandler.UrlEncode = _urlEncode;
 
-			return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());
+            return this.ViewHandler.TransformResults<T>(rowTransformer, viewParamsBuilder.Build());
         }
 
         #region [ IView                        ]
@@ -110,7 +109,6 @@ namespace Couchbase {
         }
 
         public IView<T> Limit(int value) {
-
             this.limit = value;
             return this;
         }
@@ -153,7 +151,7 @@ namespace Couchbase {
         public IView<T> EndKey<KeyType>(KeyType to) {
             this.endKey = formatKey<KeyType>(to);
             return this;
-        }        
+        }
 
         public IView<T> StartDocumentId(string from) {
             this.startId = from;
@@ -185,22 +183,22 @@ namespace Couchbase {
             return this;
         }
 
-		public IView<T> Debug(bool debug)
-		{
-			this.debug = debug;
-			return this;
-		}
+        public IView<T> Debug(bool debug)
+        {
+            this.debug = debug;
+            return this;
+        }
 
         public IPagedView<T> GetPagedView(int pageSize, string pagedViewIdProperty = null, string pagedViewKeyProperty = null) {
             return new PagedView<T>(this, pageSize, pagedViewIdProperty, pagedViewKeyProperty);
         }
 
-		public bool CheckExists()
-		{
-			return ViewHandler.CheckViewExists();
-		}
+        public bool CheckExists()
+        {
+            return ViewHandler.CheckViewExists();
+        }
 
-        #endregion     
+        #endregion
 
         #region IEnumerable<IViewRow> Members
 
@@ -217,8 +215,7 @@ namespace Couchbase {
         #endregion
 
         private string formatKey<KeyType>(KeyType key) {
-
-			return JsonConvert.SerializeObject(key);
+            return JsonConvert.SerializeObject(key);
         }
     }
 }

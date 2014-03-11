@@ -7,11 +7,10 @@ using Enyim.Caching.Configuration;
 
 namespace Couchbase
 {
-	public interface ICouchbaseServerPool : IServerPool
-	{
-		new ICouchbaseOperationFactory OperationFactory { get; }
+    public interface ICouchbaseServerPool : IServerPool
+    {
+        new ICouchbaseOperationFactory OperationFactory { get; }
 
-		VBucket GetVBucket(string key);
-
-	}
+        VBucket GetVBucket(string key);
+    }
 }

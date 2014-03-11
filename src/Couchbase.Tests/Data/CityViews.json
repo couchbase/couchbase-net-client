@@ -1,6 +1,6 @@
 ﻿{
     "views": {
-		"by_id": {
+        "by_id": {
             "map": "function (doc, meta) { if (doc.type == \"city\") { emit(meta.id, null); } }"
         },
         "by_name": {
@@ -14,8 +14,8 @@
             "reduce": "_count"
         }
     },
-	"spatial" : {
-		"by_location" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, null); } }",
-		"by_location_with_city_name" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, { \"cityState\" : doc.name + \",\" + doc.state }); } }"
-	}
+    "spatial" : {
+        "by_location" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, null); } }",
+        "by_location_with_city_name" : "function (doc, meta) { if (doc.type == \"city\") { emit({ \"type\": \"Point\", \"coordinates\": doc.loc}, { \"cityState\" : doc.name + \",\" + doc.state }); } }"
+    }
 }

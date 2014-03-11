@@ -5,21 +5,22 @@ using System.Text;
 
 namespace Couchbase.Configuration
 {
-	/// <summary>
-	/// Name transformer for Couchbase's development views. Prefixes all design document names with 'dev_'.
-	/// </summary>
-	public sealed class DevelopmentModeNameTransformer : INameTransformer
-	{
-		public const string NamePrefix = "dev_";
+    /// <summary>
+    /// Name transformer for Couchbase's development views. Prefixes all design document names with 'dev_'.
+    /// </summary>
+    public sealed class DevelopmentModeNameTransformer : INameTransformer
+    {
+        public const string NamePrefix = "dev_";
 
-		string INameTransformer.Transform(string name)
-		{
-			return NamePrefix + name;
-		}
-	}
+        string INameTransformer.Transform(string name)
+        {
+            return NamePrefix + name;
+        }
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
@@ -38,4 +39,5 @@ namespace Couchbase.Configuration
  *    limitations under the License.
  *
  * ************************************************************/
+
 #endregion

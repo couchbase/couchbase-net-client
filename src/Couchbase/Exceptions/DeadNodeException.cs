@@ -9,7 +9,7 @@ namespace Couchbase.Exceptions
     public class DeadNodeException : ViewException
     {
         public DeadNodeException(string designDoc, string viewName, string error, string reason):
-			base(designDoc, viewName, error, reason) {}
+            base(designDoc, viewName, error, reason) {}
 
         public DeadNodeException(string message) : base(message)
         {

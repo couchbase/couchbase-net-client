@@ -3,21 +3,22 @@ using System.Text;
 
 namespace Enyim.Caching.Memcached
 {
-	/// <summary>
-	/// A transformer that simply returns the original key.
-	/// A valid UTF-8 key is recommended.
-	/// </summary>
-	public class DefaultKeyTransformer : KeyTransformerBase
-	{
-		public override string Transform(string key)
-		{
-			//default behavior is to allow all valid strings
-			return key;
-		}
-	}
+    /// <summary>
+    /// A transformer that simply returns the original key.
+    /// A valid UTF-8 key is recommended.
+    /// </summary>
+    public class DefaultKeyTransformer : KeyTransformerBase
+    {
+        public override string Transform(string key)
+        {
+            //default behavior is to allow all valid strings
+            return key;
+        }
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
@@ -37,4 +38,5 @@ namespace Enyim.Caching.Memcached
  *    limitations under the License.
  *
  * ************************************************************/
+
 #endregion

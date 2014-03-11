@@ -9,18 +9,18 @@ namespace Couchbase.Exceptions
     public class BootstrapConfigurationException : Exception
     {
         public BootstrapConfigurationException(string message)
-			: base(message)
-		{
-		}
+            : base(message)
+        {
+        }
 
-		public BootstrapConfigurationException(string message, Exception innerException)
-			: base(message, innerException)
-		{
-		}
+        public BootstrapConfigurationException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
 
         public BootstrapConfigurationException(SerializationInfo info, StreamingContext context)
-			: base(info, context)
-		{
-		}
+            : base(info, context)
+        {
+        }
     }
 }

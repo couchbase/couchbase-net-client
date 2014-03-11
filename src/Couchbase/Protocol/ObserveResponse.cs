@@ -7,135 +7,140 @@ using Couchbase.Protocol;
 
 namespace Couchbase.Operations
 {
-	public class ObserveResponse
-	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(ObserveResponse));
+    public class ObserveResponse
+    {
+        private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(ObserveResponse));
 
-		private const byte MAGIC_VALUE = 0x81;
-		private const int HeaderLength = 24;
+        private const byte MAGIC_VALUE = 0x81;
+        private const int HeaderLength = 24;
 
-		private const int HEADER_OPCODE = 1;
-		private const int HEADER_KEY = 2; // 2-3
-		private const int HEADER_EXTRA = 4;
-		private const int HEADER_DATATYPE = 5;
-		private const int HEADER_STATUS = 6; // 6-7
-		private const int HEADER_BODY = 8; // 8-11
-		private const int HEADER_OPAQUE = 12; // 12-15
-		private const int HEADER_PERSISTENCE_STATS = 16; // 16-19
-		private const int HEADER_REPLICATION_STATS = 20; // 20-23
+        private const int HEADER_OPCODE = 1;
+        private const int HEADER_KEY = 2; // 2-3
+        private const int HEADER_EXTRA = 4;
+        private const int HEADER_DATATYPE = 5;
+        private const int HEADER_STATUS = 6; // 6-7
+        private const int HEADER_BODY = 8; // 8-11
+        private const int HEADER_OPAQUE = 12; // 12-15
+        private const int HEADER_PERSISTENCE_STATS = 16; // 16-19
+        private const int HEADER_REPLICATION_STATS = 20; // 20-23
 
-		private const int KEY_0_START = 24;
+        private const int KEY_0_START = 24;
 
-		public byte OpCode;
-		public int KeyLength;
-		public byte DataType;
-		public int StatusCode;
-		public ulong Cas { get; set; }
+        public byte OpCode;
+        public int KeyLength;
+        public byte DataType;
+        public int StatusCode;
 
-		public int PersistenceStats { get; set; }
-		public int ReplicationStats { get; set; }
-		public string Key { get; set; }
-		public ObserveKeyState KeyState { get; set; }
+        public ulong Cas { get; set; }
 
-		public int CorrelationId;
+        public int PersistenceStats { get; set; }
 
-		public ArraySegment<byte> Extra;
-		public ArraySegment<byte> Data;
+        public int ReplicationStats { get; set; }
 
-		private string responseMessage;
+        public string Key { get; set; }
 
-		public ObserveResponse()
-		{
-			this.StatusCode = -1;
-		}
+        public ObserveKeyState KeyState { get; set; }
 
-		public string GetStatusMessage()
-		{
-			return this.Data.Array == null
-					? null
-					: (this.responseMessage
-						?? (this.responseMessage = Encoding.ASCII.GetString(this.Data.Array, this.Data.Offset, this.Data.Count)));
-		}
+        public int CorrelationId;
 
-		public unsafe bool Read(IPooledSocket socket)
-		{
-			this.StatusCode = -1;
+        public ArraySegment<byte> Extra;
+        public ArraySegment<byte> Data;
 
-			if (!socket.IsAlive)
-				return false;
+        private string responseMessage;
 
-			var header = new byte[HeaderLength];
-			socket.Read(header, 0, header.Length);
+        public ObserveResponse()
+        {
+            this.StatusCode = -1;
+        }
 
-			int dataLength, extraLength;
+        public string GetStatusMessage()
+        {
+            return this.Data.Array == null
+                    ? null
+                    : (this.responseMessage
+                        ?? (this.responseMessage = Encoding.ASCII.GetString(this.Data.Array, this.Data.Offset, this.Data.Count)));
+        }
 
-			DeserializeHeader(header, out dataLength, out extraLength);
+        public unsafe bool Read(IPooledSocket socket)
+        {
+            this.StatusCode = -1;
 
-			var keyHeader = new byte[4];
-			socket.Read(keyHeader, 0, 4);
-			var vbucket = BinaryConverter.DecodeUInt16(keyHeader, 0);
-			var keylen = BinaryConverter.DecodeUInt16(keyHeader, 2);
+            if (!socket.IsAlive)
+                return false;
 
-			var keyData = new byte[keylen];
-			socket.Read(keyData, 0, keylen);
-			Key = BinaryConverter.DecodeKey(keyData);
+            var header = new byte[HeaderLength];
+            socket.Read(header, 0, header.Length);
 
-			var keyStateData = new byte[1];
-			socket.Read(keyStateData, 0, keyStateData.Length);
-			KeyState = (ObserveKeyState)keyStateData[0];
+            int dataLength, extraLength;
 
-			var casData = new byte[8];
-			socket.Read(casData, 0, casData.Length);
-			Cas = BinaryConverter.DecodeUInt64(casData, 0);
+            DeserializeHeader(header, out dataLength, out extraLength);
 
-			return this.StatusCode == 0;
-		}
+            var keyHeader = new byte[4];
+            socket.Read(keyHeader, 0, 4);
+            var vbucket = BinaryConverter.DecodeUInt16(keyHeader, 0);
+            var keylen = BinaryConverter.DecodeUInt16(keyHeader, 2);
 
-		private unsafe void DeserializeHeader(byte[] header, out int dataLength, out int extraLength)
-		{
-			fixed (byte* buffer = header)
-			{
-				if (buffer[0] != MAGIC_VALUE)
-					throw new InvalidOperationException("Expected magic value " + MAGIC_VALUE + ", received: " + buffer[0]);
+            var keyData = new byte[keylen];
+            socket.Read(keyData, 0, keylen);
+            Key = BinaryConverter.DecodeKey(keyData);
 
-				if (buffer[1] != (byte)CouchbaseOpCode.Observe)
-					throw new InvalidOperationException("Expected Observe op code " + CouchbaseOpCode.Observe + ", received: " + buffer[1]);
+            var keyStateData = new byte[1];
+            socket.Read(keyStateData, 0, keyStateData.Length);
+            KeyState = (ObserveKeyState)keyStateData[0];
 
-				this.DataType = buffer[HEADER_DATATYPE];
-				this.OpCode = buffer[HEADER_OPCODE];
-				this.StatusCode = BinaryConverter.DecodeUInt16(buffer, HEADER_STATUS);
+            var casData = new byte[8];
+            socket.Read(casData, 0, casData.Length);
+            Cas = BinaryConverter.DecodeUInt64(casData, 0);
 
-				this.KeyLength = BinaryConverter.DecodeUInt16(buffer, HEADER_KEY);
-				this.CorrelationId = BinaryConverter.DecodeInt32(buffer, HEADER_OPAQUE);
-				//this.CAS = BinaryConverter.DecodeUInt64(buffer, HEADER_CAS);
+            return this.StatusCode == 0;
+        }
 
-				dataLength = BinaryConverter.DecodeInt32(buffer, HEADER_BODY);
-				extraLength = buffer[HEADER_EXTRA];
+        private unsafe void DeserializeHeader(byte[] header, out int dataLength, out int extraLength)
+        {
+            fixed (byte* buffer = header)
+            {
+                if (buffer[0] != MAGIC_VALUE)
+                    throw new InvalidOperationException("Expected magic value " + MAGIC_VALUE + ", received: " + buffer[0]);
 
-				this.PersistenceStats = BinaryConverter.DecodeInt32(buffer, HEADER_PERSISTENCE_STATS);
-				this.ReplicationStats = BinaryConverter.DecodeInt32(buffer, HEADER_REPLICATION_STATS);
+                if (buffer[1] != (byte)CouchbaseOpCode.Observe)
+                    throw new InvalidOperationException("Expected Observe op code " + CouchbaseOpCode.Observe + ", received: " + buffer[1]);
 
-			}
-		}
-	}
+                this.DataType = buffer[HEADER_DATATYPE];
+                this.OpCode = buffer[HEADER_OPCODE];
+                this.StatusCode = BinaryConverter.DecodeUInt16(buffer, HEADER_STATUS);
+
+                this.KeyLength = BinaryConverter.DecodeUInt16(buffer, HEADER_KEY);
+                this.CorrelationId = BinaryConverter.DecodeInt32(buffer, HEADER_OPAQUE);
+                //this.CAS = BinaryConverter.DecodeUInt64(buffer, HEADER_CAS);
+
+                dataLength = BinaryConverter.DecodeInt32(buffer, HEADER_BODY);
+                extraLength = buffer[HEADER_EXTRA];
+
+                this.PersistenceStats = BinaryConverter.DecodeInt32(buffer, HEADER_PERSISTENCE_STATS);
+                this.ReplicationStats = BinaryConverter.DecodeInt32(buffer, HEADER_REPLICATION_STATS);
+            }
+        }
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
- * 
+ *
  *    Copyright (c) 2010 Attila Kiskó, enyim.com
- *    
+ *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
- *    
+ *
  *        http://www.apache.org/licenses/LICENSE-2.0
- *    
+ *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- *    
+ *
  * ************************************************************/
+
 #endregion

@@ -22,7 +22,7 @@ namespace Couchbase
 
         private SocketAsyncEventArgs readEvent;
 #if DEBUG_IO
-			private int doingIO;
+            private int doingIO;
 #endif
         private int remainingRead;
         private int expectedToRead;
@@ -53,8 +53,8 @@ namespace Couchbase
             var count = p.Count;
             if (count < 1) throw new ArgumentOutOfRangeException("count", "count must be > 0");
 #if DEBUG_IO
-				if (Interlocked.CompareExchange(ref this.doingIO, 1, 0) != 0)
-					throw new InvalidOperationException("Receive is already in progress");
+                if (Interlocked.CompareExchange(ref this.doingIO, 1, 0) != 0)
+                    throw new InvalidOperationException("Receive is already in progress");
 #endif
             this.expectedToRead = p.Count;
             this.pendingArgs = p;
@@ -105,7 +105,7 @@ namespace Couchbase
             }
         }
 
-        void AsyncReadCompleted(object sender, SocketAsyncEventArgs e)
+        private void AsyncReadCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (this.EndReceive())
                 this.BeginReceive();
@@ -125,9 +125,9 @@ namespace Couchbase
             this.remainingRead = 0;
             var p = this.pendingArgs;
 #if DEBUG_IO
-				Thread.MemoryBarrier();
+                Thread.MemoryBarrier();
 
-				this.doingIO = 0;
+                this.doingIO = 0;
 #endif
 
             p.Fail = true;
@@ -174,8 +174,8 @@ namespace Couchbase
             this.asyncBuffer.Read(data, 0, retval.Count);
             pendingArgs.Result = data;
 #if DEBUG_IO
-				Thread.MemoryBarrier();
-				this.doingIO = 0;
+                Thread.MemoryBarrier();
+                this.doingIO = 0;
 #endif
 
             if (isAsync)

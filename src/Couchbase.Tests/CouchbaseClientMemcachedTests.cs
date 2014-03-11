@@ -11,27 +11,28 @@ using Enyim.Caching;
 
 namespace Couchbase.Tests
 {
-	[TestFixture]
-	public class CouchbaseClientMemcachedTests : CouchbaseClientTestsBase
-	{
-		[ExpectedException(typeof(NotImplementedException))]
-		[Test]
-		public void When_FlushAll_Is_Called_On_CouchbaseNode_Not_Implemented_Exception_Is_Raised()
-		{
-			Client.FlushAll();
-		}
+    [TestFixture]
+    public class CouchbaseClientMemcachedTests : CouchbaseClientTestsBase
+    {
+        [ExpectedException(typeof(NotImplementedException))]
+        [Test]
+        public void When_FlushAll_Is_Called_On_CouchbaseNode_Not_Implemented_Exception_Is_Raised()
+        {
+            Client.FlushAll();
+        }
 
-		[Test]
-		public void When_FlushAll_Is_Called_On_BinaryNode_No_Exception_Is_Raised()
-		{
-			var config = ConfigurationManager.GetSection("memcached-config") as CouchbaseClientSection;
-		    using (var client = new CouchbaseClient(config))
-		    {
-		        client.FlushAll();
-		    }
-		}
+        [Test]
+        public void When_FlushAll_Is_Called_On_BinaryNode_No_Exception_Is_Raised()
+        {
+            var config = ConfigurationManager.GetSection("memcached-config") as CouchbaseClientSection;
+            using (var client = new CouchbaseClient(config))
+            {
+                client.FlushAll();
+            }
+        }
 
         const string Key = "1235key";
+
         [Test]
         public void Test_Store_StoreMode_Set()
         {

@@ -6,18 +6,20 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {
-	public interface IPagedView<T> : IEnumerable<T>
-	{
-		bool MoveNext();
+    public interface IPagedView<T> : IEnumerable<T>
+    {
+        bool MoveNext();
 
-		int PageSize { get; }
-		int PageIndex { get; }
+        int PageSize { get; }
 
-		int TotalRows { get; }
-	}
+        int PageIndex { get; }
+
+        int TotalRows { get; }
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
@@ -36,4 +38,5 @@ namespace Couchbase
  *    limitations under the License.
  *
  * ************************************************************/
+
 #endregion

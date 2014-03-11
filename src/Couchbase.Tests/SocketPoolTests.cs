@@ -16,11 +16,11 @@ namespace Couchbase.Tests
     {
         private IResourcePool _pool;
 
-		Socket GetSocket(CouchbasePooledSocket socket)
-		{
-			var info = typeof(CouchbasePooledSocket).GetField("_socket", BindingFlags.NonPublic | BindingFlags.Instance);
-			return info.GetValue(socket) as Socket;
-		}
+        private Socket GetSocket(CouchbasePooledSocket socket)
+        {
+            var info = typeof(CouchbasePooledSocket).GetField("_socket", BindingFlags.NonPublic | BindingFlags.Instance);
+            return info.GetValue(socket) as Socket;
+        }
 
         [TestFixtureSetUp]
         public void SetUp()
@@ -74,126 +74,126 @@ namespace Couchbase.Tests
             _pool.Resurrect();
         }
 
-		[Test]
-	    public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Are_Ignored()
-		{
-			var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
+        [Test]
+        public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Are_Ignored()
+        {
+            var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
 
-			var socket = GetSocket(pooledSocket);
-			socket.Shutdown(SocketShutdown.Both);
+            var socket = GetSocket(pooledSocket);
+            socket.Shutdown(SocketShutdown.Both);
 
-			_pool.Release(pooledSocket);
-			_pool.Dispose();
+            _pool.Release(pooledSocket);
+            _pool.Dispose();
 
-			Assert.IsFalse(pooledSocket.IsAlive);
-			Assert.IsFalse(pooledSocket.IsConnected);
-		}
+            Assert.IsFalse(pooledSocket.IsAlive);
+            Assert.IsFalse(pooledSocket.IsConnected);
+        }
 
-		[Test]
-		[ExpectedException(typeof(ObjectDisposedException))]
-		public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Throw_ODE_When_Used()
-		{
-			var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
+        [Test]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void When_Disposed_Called_Sockets_That_Have_Already_Been_Disposed_Throw_ODE_When_Used()
+        {
+            var pooledSocket = _pool.Acquire() as CouchbasePooledSocket;
 
-			var socket = GetSocket(pooledSocket);
-			socket.Shutdown(SocketShutdown.Both);
+            var socket = GetSocket(pooledSocket);
+            socket.Shutdown(SocketShutdown.Both);
 
-			_pool.Release(pooledSocket);
-			_pool.Dispose();
+            _pool.Release(pooledSocket);
+            _pool.Dispose();
 
-			pooledSocket.Read(new[] { new byte() }, 0, 1);
-		}
+            pooledSocket.Read(new[] { new byte() }, 0, 1);
+        }
 
-		[Test]
-	    public void When_Disposed_Called_All_Sockets_Are_Disposed()
-	    {
-			_pool.Dispose();
+        [Test]
+        public void When_Disposed_Called_All_Sockets_Are_Disposed()
+        {
+            _pool.Dispose();
 
-			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
-			Assert.IsNotNull(info);
+            var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(info);
 
-			var refs = info.GetValue(_pool) as List<IPooledSocket>;
-			
-			Assert.IsNotNull(refs);
-			refs.ForEach(x =>
-				{
-					Assert.IsFalse(x.IsAlive);
-					Assert.IsFalse(x.IsConnected);
-					try
-					{
-						x.ReadByte();
-						Assert.Fail();
-					}
-					catch (ObjectDisposedException e)
-					{
-						Assert.Pass();
-					}
-				});
-	    }
+            var refs = info.GetValue(_pool) as List<IPooledSocket>;
 
-		[Test]
-	    public void When_Disposed_And_Items_Are_In_Use_ExponentialBackoff_Is_Used()
-		{
-			var itemsInUse = new List<IPooledSocket>();
-			for (int i = 0; i < 10; i++)
-			{
-				itemsInUse.Add(_pool.Acquire());
-			}
-			_pool.Dispose();
+            Assert.IsNotNull(refs);
+            refs.ForEach(x =>
+                {
+                    Assert.IsFalse(x.IsAlive);
+                    Assert.IsFalse(x.IsConnected);
+                    try
+                    {
+                        x.ReadByte();
+                        Assert.Fail();
+                    }
+                    catch (ObjectDisposedException e)
+                    {
+                        Assert.Pass();
+                    }
+                });
+        }
 
-			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
-			Assert.IsNotNull(info);
+        [Test]
+        public void When_Disposed_And_Items_Are_In_Use_ExponentialBackoff_Is_Used()
+        {
+            var itemsInUse = new List<IPooledSocket>();
+            for (int i = 0; i < 10; i++)
+            {
+                itemsInUse.Add(_pool.Acquire());
+            }
+            _pool.Dispose();
 
-			var refs = info.GetValue(_pool) as List<IPooledSocket>;
+            var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(info);
 
-			Assert.IsNotNull(refs);
-			refs.ForEach(x =>
-			{
-				Assert.IsFalse(x.IsAlive);
-				Assert.IsFalse(x.IsConnected);
-				try
-				{
-					x.ReadByte();
-					Assert.Fail();
-				}
-				catch (ObjectDisposedException e)
-				{
-					Assert.Pass();
-				}
-			});
-		}
+            var refs = info.GetValue(_pool) as List<IPooledSocket>;
 
-		[Test]
-		public void When_Disposed_And_Some_Items_Are_In_Use_ExponentialBackoff_Is_Used()
-		{
-			var itemsInUse = new List<IPooledSocket>();
-			for (int i = 0; i < 5; i++)
-			{
-				itemsInUse.Add(_pool.Acquire());
-			}
-			_pool.Dispose();
+            Assert.IsNotNull(refs);
+            refs.ForEach(x =>
+            {
+                Assert.IsFalse(x.IsAlive);
+                Assert.IsFalse(x.IsConnected);
+                try
+                {
+                    x.ReadByte();
+                    Assert.Fail();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    Assert.Pass();
+                }
+            });
+        }
 
-			var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
-			Assert.IsNotNull(info);
+        [Test]
+        public void When_Disposed_And_Some_Items_Are_In_Use_ExponentialBackoff_Is_Used()
+        {
+            var itemsInUse = new List<IPooledSocket>();
+            for (int i = 0; i < 5; i++)
+            {
+                itemsInUse.Add(_pool.Acquire());
+            }
+            _pool.Dispose();
 
-			var refs = info.GetValue(_pool) as List<IPooledSocket>;
+            var info = typeof(SocketPool).GetField("_refs", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(info);
 
-			Assert.IsNotNull(refs);
-			refs.ForEach(x =>
-			{
-				Assert.IsFalse(x.IsAlive);
-				Assert.IsFalse(x.IsConnected);
-				try
-				{
-					x.ReadByte();
-					Assert.Fail();
-				}
-				catch (ObjectDisposedException e)
-				{
-					Assert.Pass();
-				}
-			});
-		}
+            var refs = info.GetValue(_pool) as List<IPooledSocket>;
+
+            Assert.IsNotNull(refs);
+            refs.ForEach(x =>
+            {
+                Assert.IsFalse(x.IsAlive);
+                Assert.IsFalse(x.IsConnected);
+                try
+                {
+                    x.ReadByte();
+                    Assert.Fail();
+                }
+                catch (ObjectDisposedException e)
+                {
+                    Assert.Pass();
+                }
+            });
+        }
 
         [TestFixtureTearDown]
         public void TearDown()

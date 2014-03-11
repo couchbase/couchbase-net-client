@@ -11,65 +11,65 @@ using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase.Operations
 {
-	internal class UnlockOperation : BinarySingleItemOperation, IUnlockOperation, IOperationWithState
-	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(UnlockOperation));
+    internal class UnlockOperation : BinarySingleItemOperation, IUnlockOperation, IOperationWithState
+    {
+        private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(UnlockOperation));
 
-		private OperationState state;
-		private VBucketNodeLocator locator;
+        private OperationState state;
+        private VBucketNodeLocator locator;
 
-		public UnlockOperation(VBucketNodeLocator locator, string key, ulong cas)
-			: base(key)
-		{
-			this.locator = locator;
-			this.Cas = cas;
-		}
+        public UnlockOperation(VBucketNodeLocator locator, string key, ulong cas)
+            : base(key)
+        {
+            this.locator = locator;
+            this.Cas = cas;
+        }
 
-		protected override BinaryRequest Build()
-		{
-			var op = (byte)CouchbaseOpCode.Unlock;
-			var request = new BinaryRequest(op);
+        protected override BinaryRequest Build()
+        {
+            var op = (byte)CouchbaseOpCode.Unlock;
+            var request = new BinaryRequest(op);
 
-			if (this.locator != null)
-			{
-				request.Reserved = (ushort)locator.GetIndex(this.Key);
+            if (this.locator != null)
+            {
+                request.Reserved = (ushort)locator.GetIndex(this.Key);
 
-				if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, request.Reserved);
-			}
+                if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, request.Reserved);
+            }
 
-			request.Key = Key;
-			request.Cas = Cas;
+            request.Key = Key;
+            request.Cas = Cas;
 
-			return request;
-		}
+            return request;
+        }
 
-		protected override IOperationResult ProcessResponse(BinaryResponse response)
-		{
-			var status = response.StatusCode;
-			var result = new BinaryOperationResult();
+        protected override IOperationResult ProcessResponse(BinaryResponse response)
+        {
+            var status = response.StatusCode;
+            var result = new BinaryOperationResult();
 
-			this.StatusCode = status;
+            this.StatusCode = status;
 
-			if (status == 0)
-			{
-				this.Cas = response.CAS;
-				return result.Pass();
-			}
+            if (status == 0)
+            {
+                this.Cas = response.CAS;
+                return result.Pass();
+            }
 
-			this.Cas = 0;
-			var message = ResultHelper.ProcessResponseData(response.Data);
-			return result.Fail(message);
-		}
+            this.Cas = 0;
+            var message = ResultHelper.ProcessResponseData(response.Data);
+            return result.Fail(message);
+        }
 
-		#region [ IOperationWithState          ]
+        #region [ IOperationWithState          ]
 
-		OperationState IOperationWithState.State
-		{
-			get { return this.state; }
-		}
+        OperationState IOperationWithState.State
+        {
+            get { return this.state; }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }
 
 /**

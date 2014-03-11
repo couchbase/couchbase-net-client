@@ -5,8 +5,8 @@ using System.Text;
 
 namespace Couchbase
 {
-	internal interface IHttpClientLocator
-	{
-		IHttpClient Locate();
-	}
+    internal interface IHttpClientLocator
+    {
+        IHttpClient Locate();
+    }
 }

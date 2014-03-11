@@ -5,10 +5,10 @@ using System.Text;
 
 namespace Couchbase.Protocol
 {
-	public enum CouchbaseStatusCodeEnums
-	{
-		LockError = 134
-	}
+    public enum CouchbaseStatusCodeEnums
+    {
+        LockError = 134
+    }
 }
 
 /**

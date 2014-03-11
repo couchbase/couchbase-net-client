@@ -8,116 +8,116 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {
-	internal class Json
-	{
-		public static object Parse(JsonReader reader)
-		{
-			return CreateValue(reader);
-		}
+    internal class Json
+    {
+        public static object Parse(JsonReader reader)
+        {
+            return CreateValue(reader);
+        }
 
-		public static object Parse(TextReader reader)
-		{
-			var json = new JsonTextReader(reader);
+        public static object Parse(TextReader reader)
+        {
+            var json = new JsonTextReader(reader);
 
-			ReadChecked(json);
+            ReadChecked(json);
 
-			return CreateValue(json);
-		}
+            return CreateValue(json);
+        }
 
-        public static string ParseRaw(JsonReader reader) 
+        public static string ParseRaw(JsonReader reader)
         {
             return JObject.Load(reader).ToString();
         }
 
-        public static string ParseValue(JsonReader reader, string propertyName) 
+        public static string ParseValue(JsonReader reader, string propertyName)
         {
             return JObject.Load(reader).SelectToken(propertyName).ToString();
         }
 
-		static void ReadChecked(JsonReader reader)
-		{
-			if (!reader.Read())
-				throw NewInvalidOperationException("Unexpected EOS", reader);
-		}
+        private static void ReadChecked(JsonReader reader)
+        {
+            if (!reader.Read())
+                throw NewInvalidOperationException("Unexpected EOS", reader);
+        }
 
-		static Exception NewInvalidOperationException(string message, JsonReader reader)
-		{
-			var lineInfo = reader as IJsonLineInfo;
+        private static Exception NewInvalidOperationException(string message, JsonReader reader)
+        {
+            var lineInfo = reader as IJsonLineInfo;
 
-			if (lineInfo != null && lineInfo.HasLineInfo())
-				message += String.Format(" @ {0}:{1}", lineInfo.LineNumber, lineInfo.LinePosition);
+            if (lineInfo != null && lineInfo.HasLineInfo())
+                message += String.Format(" @ {0}:{1}", lineInfo.LineNumber, lineInfo.LinePosition);
 
-			return new InvalidOperationException(message);
-		}
+            return new InvalidOperationException(message);
+        }
 
-		static object CreateValue(JsonReader reader)
-		{
-		Restart:
-			switch (reader.TokenType)
-			{
-				case JsonToken.StartObject: return CreateObject(reader);
-				case JsonToken.StartArray: return CreateArray(reader);
+        private static object CreateValue(JsonReader reader)
+        {
+        Restart:
+            switch (reader.TokenType)
+            {
+                case JsonToken.StartObject: return CreateObject(reader);
+                case JsonToken.StartArray: return CreateArray(reader);
 
-				case JsonToken.StartConstructor:
-				case JsonToken.EndConstructor:
-					return reader.Value.ToString();
+                case JsonToken.StartConstructor:
+                case JsonToken.EndConstructor:
+                    return reader.Value.ToString();
 
-				case JsonToken.Comment:
-					ReadChecked(reader);
-					goto Restart;
+                case JsonToken.Comment:
+                    ReadChecked(reader);
+                    goto Restart;
 
-				case JsonToken.Raw:
-				case JsonToken.Integer:
-				case JsonToken.Float:
-				case JsonToken.Boolean:
-				case JsonToken.Date:
-				case JsonToken.String:
-				case JsonToken.Bytes:
-					return reader.Value;
+                case JsonToken.Raw:
+                case JsonToken.Integer:
+                case JsonToken.Float:
+                case JsonToken.Boolean:
+                case JsonToken.Date:
+                case JsonToken.String:
+                case JsonToken.Bytes:
+                    return reader.Value;
 
-				case JsonToken.Null:
-				case JsonToken.Undefined:
-					return null;
+                case JsonToken.Null:
+                case JsonToken.Undefined:
+                    return null;
 
-				default: throw NewInvalidOperationException("Unexpected token: " + reader.TokenType, reader);
-			}
-		}
+                default: throw NewInvalidOperationException("Unexpected token: " + reader.TokenType, reader);
+            }
+        }
 
-		private static object CreateArray(JsonReader reader)
-		{
-			var retval = new List<object>();
+        private static object CreateArray(JsonReader reader)
+        {
+            var retval = new List<object>();
 
-			while (reader.Read())
-			{
-				if (reader.TokenType == JsonToken.EndArray)
-					return retval.ToArray();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonToken.EndArray)
+                    return retval.ToArray();
 
-				retval.Add(CreateValue(reader));
-			}
+                retval.Add(CreateValue(reader));
+            }
 
-			throw NewInvalidOperationException("End of array missing", reader);
-		}
+            throw NewInvalidOperationException("End of array missing", reader);
+        }
 
-		private static object CreateObject(JsonReader reader)
-		{
-			var retval = new Dictionary<string, object>();
+        private static object CreateObject(JsonReader reader)
+        {
+            var retval = new Dictionary<string, object>();
 
-			while (reader.Read())
-			{
-				if (reader.TokenType == JsonToken.PropertyName)
-				{
-					var name = (string)reader.Value;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonToken.PropertyName)
+                {
+                    var name = (string)reader.Value;
 
-					ReadChecked(reader);
+                    ReadChecked(reader);
 
-					var value = CreateValue(reader);
-					retval[name] = value;
-				}
-				else if (reader.TokenType == JsonToken.EndObject)
-					return retval;
-			}
+                    var value = CreateValue(reader);
+                    retval[name] = value;
+                }
+                else if (reader.TokenType == JsonToken.EndObject)
+                    return retval;
+            }
 
-			throw NewInvalidOperationException("End of object missing", reader);
-		}
-	}
+            throw NewInvalidOperationException("End of object missing", reader);
+        }
+    }
 }

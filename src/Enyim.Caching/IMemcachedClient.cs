@@ -4,59 +4,82 @@ using System.Collections.Generic;
 
 namespace Enyim.Caching
 {
-	public interface IMemcachedClient : IDisposable
-	{
-		object Get(string key);
-		T Get<T>(string key);
-		IDictionary<string, object> Get(IEnumerable<string> keys);
+    public interface IMemcachedClient : IDisposable
+    {
+        object Get(string key);
 
-		bool TryGet(string key, out object value);
-		bool TryGetWithCas(string key, out CasResult<object> value);
+        T Get<T>(string key);
 
-		CasResult<object> GetWithCas(string key);
-		CasResult<T> GetWithCas<T>(string key);
-		IDictionary<string, CasResult<object>> GetWithCas(IEnumerable<string> keys);
+        IDictionary<string, object> Get(IEnumerable<string> keys);
 
-		bool Append(string key, ArraySegment<byte> data);
-		CasResult<bool> Append(string key, ulong cas, ArraySegment<byte> data);
+        bool TryGet(string key, out object value);
 
-		bool Prepend(string key, ArraySegment<byte> data);
-		CasResult<bool> Prepend(string key, ulong cas, ArraySegment<byte> data);
+        bool TryGetWithCas(string key, out CasResult<object> value);
 
-		bool Store(StoreMode mode, string key, object value);
-		bool Store(StoreMode mode, string key, object value, DateTime expiresAt);
-		bool Store(StoreMode mode, string key, object value, TimeSpan validFor);
+        CasResult<object> GetWithCas(string key);
 
-		CasResult<bool> Cas(StoreMode mode, string key, object value);
-		CasResult<bool> Cas(StoreMode mode, string key, object value, ulong cas);
-		CasResult<bool> Cas(StoreMode mode, string key, object value, DateTime expiresAt, ulong cas);
-		CasResult<bool> Cas(StoreMode mode, string key, object value, TimeSpan validFor, ulong cas);
+        CasResult<T> GetWithCas<T>(string key);
 
-		ulong Decrement(string key, ulong defaultValue, ulong delta);
-		ulong Decrement(string key, ulong defaultValue, ulong delta, DateTime expiresAt);
-		ulong Decrement(string key, ulong defaultValue, ulong delta, TimeSpan validFor);
+        IDictionary<string, CasResult<object>> GetWithCas(IEnumerable<string> keys);
 
-		CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, ulong cas);
-		CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, DateTime expiresAt, ulong cas);
-		CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, TimeSpan validFor, ulong cas);
+        bool Append(string key, ArraySegment<byte> data);
 
-		ulong Increment(string key, ulong defaultValue, ulong delta);
-		ulong Increment(string key, ulong defaultValue, ulong delta, DateTime expiresAt);
-		ulong Increment(string key, ulong defaultValue, ulong delta, TimeSpan validFor);
+        CasResult<bool> Append(string key, ulong cas, ArraySegment<byte> data);
 
-		CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, ulong cas);
-		CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, DateTime expiresAt, ulong cas);
-		CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, TimeSpan validFor, ulong cas);
+        bool Prepend(string key, ArraySegment<byte> data);
 
-		bool Remove(string key);
-		bool Remove(string key, ulong cas);
+        CasResult<bool> Prepend(string key, ulong cas, ArraySegment<byte> data);
 
-		void FlushAll();
+        bool Store(StoreMode mode, string key, object value);
 
-		ServerStats Stats();
-		ServerStats Stats(string type);
+        bool Store(StoreMode mode, string key, object value, DateTime expiresAt);
 
-		event Action<IMemcachedNode> NodeFailed;
+        bool Store(StoreMode mode, string key, object value, TimeSpan validFor);
+
+        CasResult<bool> Cas(StoreMode mode, string key, object value);
+
+        CasResult<bool> Cas(StoreMode mode, string key, object value, ulong cas);
+
+        CasResult<bool> Cas(StoreMode mode, string key, object value, DateTime expiresAt, ulong cas);
+
+        CasResult<bool> Cas(StoreMode mode, string key, object value, TimeSpan validFor, ulong cas);
+
+        ulong Decrement(string key, ulong defaultValue, ulong delta);
+
+        ulong Decrement(string key, ulong defaultValue, ulong delta, DateTime expiresAt);
+
+        ulong Decrement(string key, ulong defaultValue, ulong delta, TimeSpan validFor);
+
+        CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, ulong cas);
+
+        CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, DateTime expiresAt, ulong cas);
+
+        CasResult<ulong> Decrement(string key, ulong defaultValue, ulong delta, TimeSpan validFor, ulong cas);
+
+        ulong Increment(string key, ulong defaultValue, ulong delta);
+
+        ulong Increment(string key, ulong defaultValue, ulong delta, DateTime expiresAt);
+
+        ulong Increment(string key, ulong defaultValue, ulong delta, TimeSpan validFor);
+
+        CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, ulong cas);
+
+        CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, DateTime expiresAt, ulong cas);
+
+        CasResult<ulong> Increment(string key, ulong defaultValue, ulong delta, TimeSpan validFor, ulong cas);
+
+        bool Remove(string key);
+
+        bool Remove(string key, ulong cas);
+
+        void FlushAll();
+
+        ServerStats Stats();
+
+        ServerStats Stats(string type);
+
+        event Action<IMemcachedNode> NodeFailed;
+
         Guid Identity { get; }
-	}
+    }
 }

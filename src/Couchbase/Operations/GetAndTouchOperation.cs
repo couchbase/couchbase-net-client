@@ -12,84 +12,86 @@ using Enyim.Caching.Memcached.Results.Extensions;
 
 namespace Couchbase
 {
-	internal class GetAndTouchOperation : GetOperation, IGetAndTouchOperation, IOperationWithState
-	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(GetAndTouchOperation));
+    internal class GetAndTouchOperation : GetOperation, IGetAndTouchOperation, IOperationWithState
+    {
+        private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(GetAndTouchOperation));
 
-		private uint newExpiration;
-		private OperationState state;
-		private VBucketNodeLocator locator;
+        private uint newExpiration;
+        private OperationState state;
+        private VBucketNodeLocator locator;
 
-		public GetAndTouchOperation(VBucketNodeLocator locator, string key, uint newExpiration)
-			: base(key)
-		{
-			this.locator = locator;
-			this.newExpiration = newExpiration;
-		}
+        public GetAndTouchOperation(VBucketNodeLocator locator, string key, uint newExpiration)
+            : base(key)
+        {
+            this.locator = locator;
+            this.newExpiration = newExpiration;
+        }
 
-		protected override BinaryRequest Build()
-		{
-			var retval = base.Build();
-			retval.Operation = 0x1d;
+        protected override BinaryRequest Build()
+        {
+            var retval = base.Build();
+            retval.Operation = 0x1d;
 
-			if (this.locator != null)
-			{
-				retval.Reserved = (ushort)locator.GetIndex(this.Key);
+            if (this.locator != null)
+            {
+                retval.Reserved = (ushort)locator.GetIndex(this.Key);
 
-				if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, retval.Reserved);
-			}
+                if (log.IsDebugEnabled) log.DebugFormat("Key {0} was mapped to {1}", this.Key, retval.Reserved);
+            }
 
-			var extra = new byte[4];
+            var extra = new byte[4];
 
-			BinaryConverter.EncodeUInt32(this.newExpiration, extra, 0);
-			retval.Extra = new ArraySegment<byte>(extra);
+            BinaryConverter.EncodeUInt32(this.newExpiration, extra, 0);
+            retval.Extra = new ArraySegment<byte>(extra);
 
-			return retval;
-		}
+            return retval;
+        }
 
-		protected override IOperationResult ProcessResponse(BinaryResponse response)
-		{
-			var r = base.ProcessResponse(response);
-			var result = new BinaryOperationResult();
+        protected override IOperationResult ProcessResponse(BinaryResponse response)
+        {
+            var r = base.ProcessResponse(response);
+            var result = new BinaryOperationResult();
 
-			if (this.locator != null &&
-				!VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
-			{
-				return result.Fail("Failed to process response");
-			}
+            if (this.locator != null &&
+                !VBucketAwareOperationFactory.GuessResponseState(response, out this.state))
+            {
+                return result.Fail("Failed to process response");
+            }
 
-			return r;
-		}
+            return r;
+        }
 
-		#region [ IOperationWithState          ]
+        #region [ IOperationWithState          ]
 
-		OperationState IOperationWithState.State
-		{
-			get { return this.state; }
-		}
+        OperationState IOperationWithState.State
+        {
+            get { return this.state; }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
- * 
+ *
  *    @author Couchbase <info@couchbase.com>
  *    @copyright 2012 Couchbase, Inc.
  *    @copyright 2010 Attila Kiskó, enyim.com
- *    
+ *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
- *    
+ *
  *        http://www.apache.org/licenses/LICENSE-2.0
- *    
+ *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- *    
+ *
  * ************************************************************/
+
 #endregion

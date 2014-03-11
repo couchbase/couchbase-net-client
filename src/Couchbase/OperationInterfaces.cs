@@ -6,9 +6,13 @@ using Enyim.Caching.Memcached;
 
 namespace Couchbase
 {
-	public interface ITouchOperation : ISingleItemOperation { }
-	public interface IGetAndTouchOperation : IGetOperation { }
-	public interface IGetWithLockOperation : IGetOperation { }
-	public interface IUnlockOperation : ISingleItemOperation { }
-	public interface IObserveOperation : IOperation {}
+    public interface ITouchOperation : ISingleItemOperation { }
+
+    public interface IGetAndTouchOperation : IGetOperation { }
+
+    public interface IGetWithLockOperation : IGetOperation { }
+
+    public interface IUnlockOperation : ISingleItemOperation { }
+
+    public interface IObserveOperation : IOperation {}
 }

@@ -7,12 +7,19 @@ namespace Enyim.Caching.Memcached
     {
         [Obsolete]
         Action<IPooledSocket> CleanupCallback { get; set; }
+
         int Available { get; }
+
         bool IsAlive { get; }
+
         void Reset();
+
         Guid InstanceId { get; }
+
         void Close();
+
         bool IsConnected { get; }
+
         bool IsInUse { get; set; }
 
         /// <summary>
@@ -36,6 +43,7 @@ namespace Enyim.Caching.Memcached
         void Read(byte[] buffer, int offset, int count);
 
         void Write(byte[] data, int offset, int length);
+
         void Write(IList<ArraySegment<byte>> buffers);
 
         /// <summary>

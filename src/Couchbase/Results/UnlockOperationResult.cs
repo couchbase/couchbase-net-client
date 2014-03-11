@@ -6,9 +6,9 @@ using Enyim.Caching.Memcached.Results;
 
 namespace Couchbase.Results
 {
-	public class UnlockOperationResult : OperationResultBase, IUnlockOperationResult
-	{
-	}
+    public class UnlockOperationResult : OperationResultBase, IUnlockOperationResult
+    {
+    }
 }
 
 /**

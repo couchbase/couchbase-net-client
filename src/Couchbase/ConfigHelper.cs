@@ -10,127 +10,129 @@ using Couchbase.Configuration;
 
 namespace Couchbase
 {
-	internal static class ConfigHelper
-	{
-		private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(ConfigHelper));
+    internal static class ConfigHelper
+    {
+        private static readonly Enyim.Caching.ILog log = Enyim.Caching.LogManager.GetLogger(typeof(ConfigHelper));
 
-		/// <summary>
-		/// Deserializes the content of an url as a json object
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="uri"></param>
-		/// <returns></returns>
-		private static T DeserializeUri<T>(WebClient client, Uri uri, IEnumerable<JavaScriptConverter> converters)
-		{
-			var info = client.DownloadString(uri);
-			var jss = new JavaScriptSerializer();
+        /// <summary>
+        /// Deserializes the content of an url as a json object
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="uri"></param>
+        /// <returns></returns>
+        private static T DeserializeUri<T>(WebClient client, Uri uri, IEnumerable<JavaScriptConverter> converters)
+        {
+            var info = client.DownloadString(uri);
+            var jss = new JavaScriptSerializer();
 
-			if (converters != null)
-				jss.RegisterConverters(converters);
+            if (converters != null)
+                jss.RegisterConverters(converters);
 
-			return jss.Deserialize<T>(info);
-		}
+            return jss.Deserialize<T>(info);
+        }
 
-		private static readonly JavaScriptConverter[] PoolsJSC = { ClusterNode.PoolsConfigConverterInstance };
-		private static readonly JavaScriptConverter[] BootstrapJSC = { ClusterNode.BootstrapConfigConverterInstance };
+        private static readonly JavaScriptConverter[] PoolsJSC = { ClusterNode.PoolsConfigConverterInstance };
+        private static readonly JavaScriptConverter[] BootstrapJSC = { ClusterNode.BootstrapConfigConverterInstance };
 
-		private static ClusterInfo GetClusterInfo(WebClient client, Uri poolsUrl)
-		{
-			var info = DeserializeUri<ClusterInfo>(client, poolsUrl, PoolsJSC);
+        private static ClusterInfo GetClusterInfo(WebClient client, Uri poolsUrl)
+        {
+            var info = DeserializeUri<ClusterInfo>(client, poolsUrl, PoolsJSC);
 
-			if (info == null)
-				throw new ArgumentException("invalid pool url: " + poolsUrl);
+            if (info == null)
+                throw new ArgumentException("invalid pool url: " + poolsUrl);
 
-			if (info.buckets == null || String.IsNullOrEmpty(info.buckets.uri))
-				throw new ArgumentException("got an invalid response, missing { buckets : { uri : '' } }");
+            if (info.buckets == null || String.IsNullOrEmpty(info.buckets.uri))
+                throw new ArgumentException("got an invalid response, missing { buckets : { uri : '' } }");
 
-			return info;
-		}
+            return info;
+        }
 
-		private static BootstrapInfo GetPoolsConfigUri(WebClient client, Uri clusterUrl)
-		{
-			var info = DeserializeUri<BootstrapInfo>(client, clusterUrl, BootstrapJSC);
+        private static BootstrapInfo GetPoolsConfigUri(WebClient client, Uri clusterUrl)
+        {
+            var info = DeserializeUri<BootstrapInfo>(client, clusterUrl, BootstrapJSC);
 
-			if (info == null)
-				throw new ArgumentException("invalid bootstrap config: " + clusterUrl);
+            if (info == null)
+                throw new ArgumentException("invalid bootstrap config: " + clusterUrl);
 
-			return info;
-		}
+            return info;
+        }
 
-		/// <summary>
-		/// Asks the cluster for the specified bucket's configuration.
-		/// </summary>
-		/// <param name="bootstrapUri"></param>
-		/// <param name="name"></param>
-		/// <returns></returns>
-		public static ClusterConfig ResolveBucket(WebClient client, Uri bootstrapUri, string name)
-		{
-			var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, CleanBootstrapUri(bootstrapUri));
+        /// <summary>
+        /// Asks the cluster for the specified bucket's configuration.
+        /// </summary>
+        /// <param name="bootstrapUri"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static ClusterConfig ResolveBucket(WebClient client, Uri bootstrapUri, string name)
+        {
+            var bootstrapConfig = ConfigHelper.GetPoolsConfigUri(client, CleanBootstrapUri(bootstrapUri));
 
-			var basePoolsConfigUri = new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
-			var info = ConfigHelper.GetClusterInfo(client, new Uri(basePoolsConfigUri, bootstrapConfig.Uri));
-			var root = new Uri(bootstrapUri, info.buckets.uri);
+            var basePoolsConfigUri = new UriBuilder(bootstrapUri.Scheme, bootstrapUri.Host, bootstrapUri.Port).Uri;
+            var info = ConfigHelper.GetClusterInfo(client, new Uri(basePoolsConfigUri, bootstrapConfig.Uri));
+            var root = new Uri(bootstrapUri, info.buckets.uri);
 
-			var allBuckets = ConfigHelper.DeserializeUri<ClusterConfig[]>(client, root, PoolsJSC);
-			var retval = allBuckets.FirstOrDefault(b => b.name == name);
+            var allBuckets = ConfigHelper.DeserializeUri<ClusterConfig[]>(client, root, PoolsJSC);
+            var retval = allBuckets.FirstOrDefault(b => b.name == name);
 
-			if (retval == null)
-			{
-				if (log.IsWarnEnabled) log.WarnFormat("Could not find the pool '{0}' at {1}", name, bootstrapUri);
-			}
-			else if (log.IsDebugEnabled) log.DebugFormat("Found config for bucket {0}.", name);
+            if (retval == null)
+            {
+                if (log.IsWarnEnabled) log.WarnFormat("Could not find the pool '{0}' at {1}", name, bootstrapUri);
+            }
+            else if (log.IsDebugEnabled) log.DebugFormat("Found config for bucket {0}.", name);
 
-			return retval;
-		}
+            return retval;
+        }
 
-		public static Uri CleanBootstrapUri(Uri bootstrapUri)
-		{
-			var lastSegment = bootstrapUri.Segments[bootstrapUri.Segments.Length - 1];
+        public static Uri CleanBootstrapUri(Uri bootstrapUri)
+        {
+            var lastSegment = bootstrapUri.Segments[bootstrapUri.Segments.Length - 1];
 
-			if (lastSegment == "/" && log.IsErrorEnabled) log.ErrorFormat("Invalid pool uri. No path specified: {0}", bootstrapUri.AbsoluteUri);
+            if (lastSegment == "/" && log.IsErrorEnabled) log.ErrorFormat("Invalid pool uri. No path specified: {0}", bootstrapUri.AbsoluteUri);
 
-			if (lastSegment.StartsWith("default", StringComparison.CurrentCultureIgnoreCase))
-			{
-				if (log.IsWarnEnabled) log.WarnFormat("Client should bootstrap off of /pools, not {0}.", bootstrapUri.PathAndQuery);
+            if (lastSegment.StartsWith("default", StringComparison.CurrentCultureIgnoreCase))
+            {
+                if (log.IsWarnEnabled) log.WarnFormat("Client should bootstrap off of /pools, not {0}.", bootstrapUri.PathAndQuery);
 
-				//Previously the client expected to boostrap off of /pools/default,
-				//when it should be bootstrapping off of /pools.  This code
-				//hides the change by forcing /default to /pools, though after
-				//a grace period a future release will not clean the Uri
-				var cleanedBootstrapUri = new UriBuilder
-				{
-					Scheme = bootstrapUri.Scheme,
-					Host = bootstrapUri.Host,
-					Port = bootstrapUri.Port,
-					Path = bootstrapUri.PathAndQuery.Replace(lastSegment, "")
-				}.Uri;
+                //Previously the client expected to boostrap off of /pools/default,
+                //when it should be bootstrapping off of /pools.  This code
+                //hides the change by forcing /default to /pools, though after
+                //a grace period a future release will not clean the Uri
+                var cleanedBootstrapUri = new UriBuilder
+                {
+                    Scheme = bootstrapUri.Scheme,
+                    Host = bootstrapUri.Host,
+                    Port = bootstrapUri.Port,
+                    Path = bootstrapUri.PathAndQuery.Replace(lastSegment, "")
+                }.Uri;
 
-				return cleanedBootstrapUri;
-			}
+                return cleanedBootstrapUri;
+            }
 
-			return bootstrapUri;
-		}
-	}
+            return bootstrapUri;
+        }
+    }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
- * 
+ *
  *    @author Couchbase <info@couchbase.com>
  *    @copyright 2012 Couchbase, Inc.
  *    @copyright 2010 Attila KiskÃ³, enyim.com
- *    
+ *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
- *    
+ *
  *        http://www.apache.org/licenses/LICENSE-2.0
- *    
+ *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- *    
+ *
  * ************************************************************/
+
 #endregion
