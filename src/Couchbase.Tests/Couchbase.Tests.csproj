@@ -148,6 +148,9 @@
     <None Include="Data\view-response-good.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\ViewThatReturnsDocsWithAsyncInsertInKeys.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\ViewWithCompoundKey.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
