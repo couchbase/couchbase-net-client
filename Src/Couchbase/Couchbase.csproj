@@ -116,12 +116,15 @@
     <Compile Include="Core\BucketNotFoundException.cs" />
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
+    <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
+    <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
     <Compile Include="Core\ClusterManager.cs" />
     <Compile Include="Core\IClusterManager.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
+    <Compile Include="Core\IMappedNode.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
     <Compile Include="Core\Serializers\ITypeSerializer.cs" />
     <Compile Include="Core\Serializers\TypeSerializer.cs" />
@@ -168,6 +171,7 @@
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
     <Compile Include="Utils\IPEndPointExtensions.cs" />
+    <Compile Include="Utils\SortedDictionaryExtensions.cs" />
     <Compile Include="Utils\StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup />

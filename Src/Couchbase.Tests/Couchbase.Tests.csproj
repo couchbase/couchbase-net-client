@@ -63,6 +63,9 @@
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
+    <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
+    <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
@@ -90,12 +93,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
+    <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
     <Compile Include="VBucketTests.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="ClassDiagram1.cd" />
     <None Include="Data\Configuration\bootstrap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

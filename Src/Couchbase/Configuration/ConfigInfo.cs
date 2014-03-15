@@ -56,7 +56,7 @@ namespace Couchbase.Configuration
 
         public DateTime CreationTime { get; private set; }
 
-        public IKeyMapper GetKeyMapper(string bucketName)
+       /* public IKeyMapper<T> GetKeyMapper<T>(string bucketName)
         {
             var bucket = _buckets.Keys.FirstOrDefault(x => x.Name == bucketName);
             if (bucket == null)
@@ -77,7 +77,7 @@ namespace Couchbase.Configuration
                     throw new InvalidBucketTypeException();
             }
             return keyMapper;
-        }
+        }*/
 
         public IServerConfig ServerConfig { get; private set; }
 
@@ -109,6 +109,18 @@ namespace Couchbase.Configuration
         public Core.Buckets.NodeLocatorEnum NodeLocator
         {
             get { throw new NotImplementedException(); }
+        }
+
+
+        public IKeyMapper GetKeyMapper(string bucketName)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        IKeyMapper IConfigInfo.GetKeyMapper(string bucketName)
+        {
+            throw new NotImplementedException();
         }
     }
 }

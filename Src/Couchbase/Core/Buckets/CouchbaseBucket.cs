@@ -40,7 +40,7 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             var keyMapper = _configInfo.GetKeyMapper(Name);
-            var vBucket = keyMapper.MapKey(key);
+            var vBucket = (IVBucket)keyMapper.MapKey(key);
             var server = vBucket.LocatePrimary();
 
             var operation = new SetOperation<T>(key, value, vBucket);
@@ -57,7 +57,7 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Get<T>(string key)
         {
             var keyMapper = _configInfo.GetKeyMapper(Name);
-            var vBucket = keyMapper.MapKey(key);
+            var vBucket = (IVBucket)keyMapper.MapKey(key);
             var server = vBucket.LocatePrimary();
 
             var operation = new GetOperation<T>(key, vBucket);

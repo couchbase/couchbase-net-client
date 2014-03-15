@@ -76,7 +76,8 @@ namespace Couchbase.Configuration
                         _keyMapper = new VBucketKeyMapper(_servers, bucketConfig.VBucketServerMap);
                         break;
                     case NodeLocatorEnum.Ketama:
-                        throw new NotImplementedException();
+                        _keyMapper = new KetamaKeyMapper(_servers);
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }

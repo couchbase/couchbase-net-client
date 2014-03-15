@@ -55,7 +55,7 @@ namespace Couchbase.Core
         //TODO possibly make providers instantiation configurable...maybe. perhaps.
         void Initialize()
         {
-            //_configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
             _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
             _configProviders.ForEach(x=>x.Start());
         }
@@ -67,12 +67,16 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName)
         {
+            //note we probably want to treat this whole process as an aggregate and not log
+            //until the process has completed with success or failure then logged along with
+            //the sequence of events that occurred.
             var success = false;
             IBucket bucket = null;
             foreach (var provider in _configProviders)
             {
                 try
                 {
+                    Log.DebugFormat("Trying to boostrap with {0}.", provider);
                     var config = provider.GetConfig(bucketName);
                     switch (config.NodeLocator)
                     {
@@ -80,18 +84,25 @@ namespace Couchbase.Core
                             bucket = new CouchbaseBucket(this, bucketName);
                             break;
                         case NodeLocatorEnum.Ketama:
-                            throw new NotSupportedException("No implementations for MemcachedBuckets exist ATM.");
+                            //throw new NotSupportedException("No implementations for MemcachedBuckets exist ATM.");
+                            bucket = new MemcachedBucket(this, bucketName);
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
                     var listener = bucket as IConfigListener;
-                    if (provider.RegisterListener(listener) && 
+                    if (provider.RegisterListener(listener) &&
                         _buckets.TryAdd(bucket.Name, bucket))
                     {
+                        Log.DebugFormat("Successfully boostrap using {0}.", provider);
                         listener.NotifyConfigChanged(config);
                         success = true;
                         break;
                     }
+                }
+                catch (BucketNotFoundException e)
+                {
+                    Log.Warn(e);
                 }
                 catch (ConfigException e)
                 {

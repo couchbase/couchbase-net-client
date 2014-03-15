@@ -2,10 +2,8 @@
 
 namespace Couchbase.Core
 {
-    internal interface IVBucket
+    internal interface IVBucket : IMappedNode
     {
-        IServer LocatePrimary();
-
         IServer LocateReplica();
 
         List<IServer> Replicas { get; }

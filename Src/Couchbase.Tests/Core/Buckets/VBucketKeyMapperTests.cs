@@ -68,7 +68,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             const int actual = 389;
             IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap);
-            var vBucket = mapper.MapKey(Key);
+            var vBucket = (IVBucket)mapper.MapKey(Key);
             Assert.AreEqual(vBucket.Index, actual);
         }
 

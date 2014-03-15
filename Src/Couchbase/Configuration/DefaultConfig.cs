@@ -35,11 +35,6 @@ namespace Couchbase.Configuration
  
         public DateTime CreationTime { get { return _creationTime; } }
 
-        public IKeyMapper GetKeyMapper(string bucketName)
-        {
-            throw new NotImplementedException();
-        }
-
         public void Dispose()
         {
             throw new NotImplementedException();
@@ -61,6 +56,18 @@ namespace Couchbase.Configuration
         public Core.Buckets.NodeLocatorEnum NodeLocator
         {
             get { throw new NotImplementedException(); }
+        }
+
+
+        public IKeyMapper GetKeyMapper(string bucketName)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        IKeyMapper IConfigInfo.GetKeyMapper(string bucketName)
+        {
+            throw new NotImplementedException();
         }
     }
 }

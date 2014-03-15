@@ -4,7 +4,7 @@ namespace Couchbase.Core
 {
     internal interface IKeyMapper
     {
-        IVBucket MapKey(string key);
+        IMappedNode MapKey(string key);
 
         HashAlgorithm HashAlgorithm { get; set; }
     }

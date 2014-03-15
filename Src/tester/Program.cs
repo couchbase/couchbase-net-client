@@ -64,6 +64,7 @@ namespace tester
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
                 }
+                break;
             }
         }
 

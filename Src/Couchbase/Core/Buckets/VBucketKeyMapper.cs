@@ -40,7 +40,7 @@ namespace Couchbase.Core.Buckets
         {
         }
 
-        public IVBucket MapKey(string key)
+        public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
             return _vBuckets[index];
