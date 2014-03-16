@@ -58,10 +58,16 @@ namespace Couchbase
 
         public void Dispose()
         {
+            //There is a bug here somewhere - note that when called this should close and cleanup _everything_
+            //however, if you do not explicitly call Cluster.CloseBucket(bucket) in certain cases the HttpStreamingProvider
+            //listener thread will hang indefinitly if Cluster.Dispose() is called. This is a definite bug that needs to be
+            //resolved before developer preview.
             _clusterManager.Dispose();
         }
 
-
+        //TODO: not sure what to do here if bucket doesn't exist...the current impl is to throw a BucketNotFoundException. I am 
+        //not sure if this is the correct behavior, since it's causing me some grief with my unit tests and I can assume that 
+        //users will run into the same grief
         public void CloseBucket(IBucket bucket)
         {
             _clusterManager.DestroyBucket(bucket);

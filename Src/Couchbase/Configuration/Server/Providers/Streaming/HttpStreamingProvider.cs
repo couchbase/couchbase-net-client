@@ -8,6 +8,7 @@ using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -185,11 +186,24 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
         {
-            IConfigInfo configInfo = new ConfigContext(bucketConfig,
-                    _clientConfig,
-                    _ioStrategyFactory,
-                    _connectionPoolFactory);
-
+            IConfigInfo configInfo = null;
+            switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
+            {
+                case NodeLocatorEnum.VBucket:
+                    configInfo = new PersistentConfigContext(bucketConfig,
+                        _clientConfig,
+                        _ioStrategyFactory,
+                        _connectionPoolFactory);
+                    break;
+                case NodeLocatorEnum.Ketama:
+                    configInfo = new VolatileConfigContext(bucketConfig,
+                        _clientConfig,
+                        _ioStrategyFactory,
+                        _connectionPoolFactory);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
             return configInfo;
         }
 

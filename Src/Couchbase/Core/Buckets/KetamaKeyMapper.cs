@@ -34,13 +34,13 @@ namespace Couchbase.Core.Buckets
             var attempts = 0;
             var bucketSize = _buckets.Count();
             IServer server = null;
-            while (attempts++ < bucketSize)
-            {
-                var index = FindIndex(hash);
+           // while (attempts++ < bucketSize)
+           // {
+                    var index = FindIndex(hash);
                 server = _buckets[_buckets.Keys.ToList()[index]];
-                if (server == null) continue;
-                break;
-            }
+               // if (server == null) continue;
+                //break;
+            //}
             return new KetamaNode(server);
         }
 

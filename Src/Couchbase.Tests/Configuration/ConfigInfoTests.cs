@@ -49,7 +49,7 @@ namespace Couchbase.Tests.Configuration
         [ExpectedException(typeof(NullConfigException))]
         public void Test_BucketType_Throws_NullConfigException_When_Config_Is_Null()
         {
-            var configInfo = new ConfigContext(null, null);
+            var configInfo = new PersistentConfigContext(null, null);
             Assert.AreEqual(BucketTypeEnum.Couchbase, configInfo.BucketType);
         }
     }

@@ -12,7 +12,6 @@ namespace Couchbase.Core.Buckets
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
-        private IKeyMapper _keyMapper;
         private volatile bool _disposed;
 
          internal MemcachedBucket(IClusterManager clusterManager, string bucketName)
@@ -25,12 +24,24 @@ namespace Couchbase.Core.Buckets
 
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            throw new NotImplementedException();
-        }
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
 
+            var operation = new SetOperation<T>(key, value, null);
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+        
         public IOperationResult<T> Get<T>(string key)
         {
-            throw new NotImplementedException();
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new GetOperation<T>(key, null);
+            var operationResult = server.Send(operation);
+            return operationResult;
         }
 
         public void Dispose()

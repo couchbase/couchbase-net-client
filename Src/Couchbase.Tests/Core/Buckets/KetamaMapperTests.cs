@@ -47,7 +47,17 @@ namespace Couchbase.Tests.Core.Buckets
             const string key = "foo";
             var hash = _keyMapper.GetHash(key);
             const uint expected = 3675831724;
+            //3675831724
             Assert.AreEqual(hash, expected);
+        }
+
+        [Test]
+        public void Test_GetIndex()
+        {
+            const string key = "foo";
+            var hash = _keyMapper.GetHash(key);
+            var index = _keyMapper.FindIndex(hash);
+            Assert.AreEqual(276, index);
         }
 
         [TestFixtureTearDown]

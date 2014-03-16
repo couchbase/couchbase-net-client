@@ -84,7 +84,6 @@ namespace Couchbase.Core
                             bucket = new CouchbaseBucket(this, bucketName);
                             break;
                         case NodeLocatorEnum.Ketama:
-                            //throw new NotSupportedException("No implementations for MemcachedBuckets exist ATM.");
                             bucket = new MemcachedBucket(this, bucketName);
                             break;
                         default:

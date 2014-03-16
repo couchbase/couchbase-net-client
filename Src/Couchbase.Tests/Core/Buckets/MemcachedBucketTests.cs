@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Core;
+using Couchbase.IO;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -13,6 +14,7 @@ namespace Couchbase.Tests.Core.Buckets
     public class MemcachedBucketTests
     {
         private ICluster _cluster;
+        private IBucket _bucket;
 
         [TestFixtureSetUp]
         public void SetUp()
@@ -23,8 +25,8 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_OpenBucket()
         {
-            var bucket = _cluster.OpenBucket("memcached");
-            Assert.IsNotNull(bucket);
+            _bucket = _cluster.OpenBucket("memcached");
+            Assert.IsNotNull(_bucket);
         }
 
         [Test]
@@ -35,8 +37,57 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.IsNotNull(bucket);
         }
 
-        [TestFixtureTearDown]
+        [Test]
+        public void Test_Insert_With_String()
+        {
+            const int zero = 0;
+            const string key = "memkey1";
+            const string value = "somedata";
+
+            _bucket = _cluster.OpenBucket("memcached");
+            var result = _bucket.Insert(key, value);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(string.Empty, result.Message);
+            Assert.AreEqual(string.Empty, result.Value);
+            Assert.Greater(result.Cas, zero);
+            
+        }
+
+        [Test]
+        public void Test_Get_With_String()
+        {
+            const int zero = 0;
+            const string key = "memkey1";
+            const string value = "somedata";
+
+            _bucket = _cluster.OpenBucket("memcached");
+            var result = _bucket.Get<string>(key);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(string.Empty, result.Message);
+            Assert.AreEqual(value, result.Value);
+            Assert.Greater(result.Cas, zero);
+        }
+
+        [TearDown]
         public void TearDown()
+        {
+            if (_bucket == null)
+            {
+                //noop
+            }
+            else
+            {
+                _cluster.CloseBucket(_bucket);
+                _bucket = null;
+            }
+        }
+
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
         {
             _cluster.Dispose();
         }
