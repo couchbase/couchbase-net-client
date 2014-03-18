@@ -11,7 +11,7 @@ namespace Couchbase.Core.Buckets
 {
     internal class KetamaKeyMapper : IKeyMapper
     {
-        public List<IServer> _servers;
+        private readonly List<IServer> _servers;
         private readonly int _totalWeight;
         private readonly SortedDictionary<long, IServer> _buckets = new SortedDictionary<long, IServer>();
 
@@ -31,16 +31,9 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var hash = GetHash(key);
-            var attempts = 0;
-            var bucketSize = _buckets.Count();
-            IServer server = null;
-           // while (attempts++ < bucketSize)
-           // {
-                    var index = FindIndex(hash);
-                server = _buckets[_buckets.Keys.ToList()[index]];
-               // if (server == null) continue;
-                //break;
-            //}
+            var index = FindIndex(hash);
+            var server = _buckets[_buckets.Keys.ToList()[index]];
+
             return new KetamaNode(server);
         }
 
