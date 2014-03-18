@@ -74,7 +74,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         IConfigInfo GetConfig(IBucketConfig bucketConfig)
         {
-            IConfigInfo configInfo = new PersistentConfigContext(bucketConfig, 
+            IConfigInfo configInfo = new CouchbaseConfigContext(bucketConfig, 
                 _clientConfig, 
                 _ioStrategyFactory, 
                 _connectionPoolFactory);

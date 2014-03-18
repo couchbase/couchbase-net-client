@@ -57,7 +57,7 @@
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
     <Compile Include="Configuration\Client\ProviderConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />
-    <Compile Include="Configuration\PersistentConfigContext.cs" />
+    <Compile Include="Configuration\CouchbaseConfigContext.cs" />
     <Compile Include="Configuration\ConfigContextBase.cs" />
     <Compile Include="Configuration\ConfigException.cs" />
     <Compile Include="Configuration\ConfigInfo.cs" />
@@ -113,7 +113,7 @@
     <Compile Include="Configuration\Server\Serialization\Tasks.cs" />
     <Compile Include="Configuration\Server\Serialization\VBucketServerMap.cs" />
     <Compile Include="Configuration\Server\Serialization\ViewFragmentationThreshold.cs" />
-    <Compile Include="Configuration\VolatileConfigContext.cs" />
+    <Compile Include="Configuration\MemcachedConfigContext.cs" />
     <Compile Include="Core\BucketAlreadyOpenException.cs" />
     <Compile Include="Core\BucketNotFoundException.cs" />
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />

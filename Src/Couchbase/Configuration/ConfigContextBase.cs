@@ -16,7 +16,7 @@ namespace Couchbase.Configuration
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         protected IBucketConfig _bucketConfig;
         protected IKeyMapper _keyMapper;
-        private DateTime _creationTime;
+        private readonly DateTime _creationTime;
         protected ClientConfiguration _clientConfig;
         protected readonly List<IServer> _servers = new List<IServer>();
         protected Func<IConnectionPool, IOStrategy> _ioStrategyFactory;

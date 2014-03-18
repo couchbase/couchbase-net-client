@@ -23,7 +23,7 @@ namespace tester
             });
 
             _cluster = new Cluster(config);
-            var bucket = _cluster.OpenBucket("default");
+            var bucket = _cluster.OpenBucket("memcached");
             
 
             int n = 100000;
@@ -64,7 +64,6 @@ namespace tester
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
                 }
-                break;
             }
         }
 

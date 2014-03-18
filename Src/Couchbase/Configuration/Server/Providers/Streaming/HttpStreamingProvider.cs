@@ -190,13 +190,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
             {
                 case NodeLocatorEnum.VBucket:
-                    configInfo = new PersistentConfigContext(bucketConfig,
+                    configInfo = new CouchbaseConfigContext(bucketConfig,
                         _clientConfig,
                         _ioStrategyFactory,
                         _connectionPoolFactory);
                     break;
                 case NodeLocatorEnum.Ketama:
-                    configInfo = new VolatileConfigContext(bucketConfig,
+                    configInfo = new MemcachedConfigContext(bucketConfig,
                         _clientConfig,
                         _ioStrategyFactory,
                         _connectionPoolFactory);
