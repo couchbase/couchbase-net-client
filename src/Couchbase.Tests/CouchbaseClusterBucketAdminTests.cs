@@ -443,11 +443,12 @@ namespace Couchbase.Tests
                 Quota = new Quota {RAM = 100},
                 ReplicaNumber = ReplicaNumbers.Zero
             };
-            Cluster.CreateBucket(_bucket);
 
+            Cluster.CreateBucket(_bucket);
             _bucket = waitForListedBucket(bucketName);
             Assert.That(_bucket, Is.Not.Null, "New bucket was null");
 
+            Cluster.DeleteBucket(bucketName);
             _bucket = waitForListedBucket(bucketName);
             Assert.That(_bucket, Is.Null, "Deleted bucket still exists");
         }
