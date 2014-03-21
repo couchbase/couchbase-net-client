@@ -93,10 +93,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
+    <Compile Include="Utils\BoolExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
     <Compile Include="VBucketTests.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Views\ViewQueryTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -113,6 +115,7 @@
     <None Include="Data\Configuration\pools.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Configuration\vbucket-forwardmap.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -172,9 +172,15 @@
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
+    <Compile Include="Utils\BoolExtensions.cs" />
     <Compile Include="Utils\IPEndPointExtensions.cs" />
     <Compile Include="Utils\SortedDictionaryExtensions.cs" />
     <Compile Include="Utils\StringExtensions.cs" />
+    <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\IViewClient.cs" />
+    <Compile Include="Views\IVIewQuery.cs" />
+    <Compile Include="Views\StaleState.cs" />
+    <Compile Include="Views\ViewQuery.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
