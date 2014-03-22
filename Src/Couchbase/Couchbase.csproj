@@ -177,10 +177,15 @@
     <Compile Include="Utils\SortedDictionaryExtensions.cs" />
     <Compile Include="Utils\StringExtensions.cs" />
     <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\IDataMapper.cs" />
     <Compile Include="Views\IViewClient.cs" />
     <Compile Include="Views\IVIewQuery.cs" />
+    <Compile Include="Views\IViewResult.cs" />
+    <Compile Include="Views\JsonDataMapper.cs" />
     <Compile Include="Views\StaleState.cs" />
+    <Compile Include="Views\ViewClient.cs" />
     <Compile Include="Views\ViewQuery.cs" />
+    <Compile Include="Views\ViewResult.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

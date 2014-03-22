@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Common.Logging;
 using Couchbase.Utils;
 
 namespace Couchbase.Views
@@ -14,6 +15,7 @@ namespace Couchbase.Views
     ////http://192.168.56.101:8091/couchBase/Trades/_design/dev_test/_view/test?stale=false&connection_timeout=60000&limit=10&skip=0&_=1395208080725
     public class ViewQuery : IViewQuery
     {
+        private readonly ILog Log = LogManager.GetCurrentClassLogger();
         public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";
@@ -21,6 +23,7 @@ namespace Couchbase.Views
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         const string QueryArgPattern = "{0}={1}&";
+        private const string DefaultHost = "http://localhost:8091/";
 
         private string _baseUri;
         private string _bucketName;
@@ -64,6 +67,11 @@ namespace Couchbase.Views
             public const string StartKey = "startkey";
             public const string StartKeyDocId = "startkey_docid";
             public const string ConnectionTimeout = "connection_timeout";
+        }
+
+        public ViewQuery(bool development)
+            : this(DefaultHost, null, development)
+        {
         }
 
         public ViewQuery(string baseUri, bool development) 
@@ -312,8 +320,10 @@ namespace Couchbase.Views
             {
                 sb.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
             }
-            
-            return new Uri(sb.ToString().TrimEnd('&'));
+
+            var requestUri = sb.ToString().TrimEnd('&');
+            Log.Debug(m=>m(requestUri));
+            return new Uri(requestUri);
         }
     }
 }
