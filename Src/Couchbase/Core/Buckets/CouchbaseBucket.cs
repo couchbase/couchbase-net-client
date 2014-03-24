@@ -9,10 +9,11 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
 {
-    public class CouchbaseBucket : IBucket, IConfigListener
+    public class CouchbaseBucket : IBucket, IViewSupportable, IConfigListener
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
@@ -50,7 +51,6 @@ namespace Couchbase.Core.Buckets
             {
                 Log.Debug(m => m("Requires retry {0}", key));
             }
-
             return operationResult;
         }
 
@@ -67,8 +67,13 @@ namespace Couchbase.Core.Buckets
             {
                 Log.Debug(m => m("Requires retry {0}", key));
             }
-
             return operationResult;
+        }
+
+        public IViewResult<T> Get<T>(IViewQuery query)
+        {
+            var server = _configInfo.GetServer();
+            return server.Send<T>(query);
         }
 
         bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)

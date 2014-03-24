@@ -21,9 +21,23 @@ namespace Couchbase.Views
             Mapper = mapper;
         }
 
-        public Task<IViewResult<T>> ExecuteAsync<T>(IViewQuery query)
+        public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQuery query)
         {
-            throw new NotImplementedException();
+            IViewResult<T> viewResult = new ViewResult<T>();
+            try
+            {
+                var result = await HttpClient.GetStreamAsync(query.RawUri());
+                viewResult = Mapper.Map<ViewResult<T>>(result);
+            }
+            catch (AggregateException ae)
+            {
+                ae.Flatten().Handle(e =>
+                {
+                    Log.Error(e);
+                    return true;
+                });
+            }
+            return viewResult;
         }
 
         public IViewResult<T> Execute<T>(IViewQuery query)

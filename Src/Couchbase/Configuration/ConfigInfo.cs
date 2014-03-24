@@ -122,5 +122,11 @@ namespace Couchbase.Configuration
         {
             throw new NotImplementedException();
         }
+
+
+        public IServer GetServer()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

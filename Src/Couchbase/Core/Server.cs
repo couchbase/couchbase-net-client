@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Views;
 
 namespace Couchbase.Core
 {
@@ -14,9 +16,15 @@ namespace Couchbase.Core
         private readonly IOStrategy _ioStrategy;
         private bool _disposed;
 
-        public Server(IOStrategy ioStrategy)
+        public Server(IOStrategy ioStrategy) : 
+            this(ioStrategy, new ViewClient(new HttpClient(), new JsonDataMapper()))
+        {
+        }
+
+        public Server(IOStrategy ioStrategy, IViewClient viewClient)
         {
             _ioStrategy = ioStrategy;
+            ViewClient = viewClient;
         }
 
         public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }
@@ -55,6 +63,13 @@ namespace Couchbase.Core
             }
             return result;
         }
+
+        public IViewResult<T> Send<T>(IViewQuery query)
+        {
+            return ViewClient.Execute<T>(query);
+        }
+
+        public IViewClient ViewClient { get; private set; }
 
         public static IPEndPoint GetEndPoint(string server)
         {

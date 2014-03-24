@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Common.Logging;
 using Couchbase.Configuration.Client;
@@ -8,6 +9,7 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Awaitable;
+using Couchbase.Utils;
 
 namespace Couchbase.Configuration
 {
@@ -98,6 +100,11 @@ namespace Couchbase.Configuration
         public IKeyMapper GetKeyMapper(string bucketName)
         {
             return _keyMapper;
+        }
+
+        public IServer GetServer()
+        {
+            return _servers.Shuffle().First();
         }
 
         public void Dispose()

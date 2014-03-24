@@ -6,12 +6,8 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Views
 {
-    public interface IViewResult<T>
+    public interface IViewSupportable
     {
-        //{"total_rows": 0, "rows": []}
-
-        uint TotalRows { get; set; }
-
-        List<T> Rows { get; set; } 
+        IViewResult<T> Get<T>(IViewQuery query);
     }
 }

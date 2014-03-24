@@ -17,6 +17,8 @@ namespace Couchbase.Configuration
 
         IKeyMapper GetKeyMapper(string bucketName);
 
+        IServer GetServer();
+
         ClientConfiguration ClientConfig { get; }
 
         IBucketConfig BucketConfig { get; }
@@ -24,6 +26,7 @@ namespace Couchbase.Configuration
         string BucketName { get; }
 
         BucketTypeEnum BucketType { get; }
+
         NodeLocatorEnum NodeLocator { get; }
     }
 }

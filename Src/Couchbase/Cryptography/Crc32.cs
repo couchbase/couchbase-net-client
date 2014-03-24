@@ -8,7 +8,7 @@ namespace Couchbase.Cryptography
         private const uint Polynomial = 0xedb88320u;
         private const uint Seed = 0xffffffffu;
         private static readonly uint[] Table = new uint[256];
-        private uint hash = 0;
+        private uint _hash = 0;
 
         static Crc32()
         {
@@ -32,22 +32,22 @@ namespace Couchbase.Cryptography
 
         protected override void HashCore(byte[] array, int ibStart, int cbSize)
         {
-            hash = Seed;
-            for (int i = ibStart; i < cbSize - ibStart; i++)
+            _hash = Seed;
+            for (var i = ibStart; i < cbSize - ibStart; i++)
             {
-                hash = (hash >> 8) ^ Table[array[i] ^ hash & 0xff];
+                _hash = (_hash >> 8) ^ Table[array[i] ^ _hash & 0xff];
             }
         }
 
         protected override byte[] HashFinal()
         {
-            hash = ((~hash) >> 16) & 0x7fff;
-            return BitConverter.GetBytes(hash);
+            _hash = ((~_hash) >> 16) & 0x7fff;
+            return BitConverter.GetBytes(_hash);
         }
 
         public override void Initialize()
         {
-            hash = Seed;
+            _hash = Seed;
         }
     }
 }

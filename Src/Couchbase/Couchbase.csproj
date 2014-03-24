@@ -181,6 +181,7 @@
     <Compile Include="Views\IViewClient.cs" />
     <Compile Include="Views\IVIewQuery.cs" />
     <Compile Include="Views\IViewResult.cs" />
+    <Compile Include="Views\IViewSupportable.cs" />
     <Compile Include="Views\JsonDataMapper.cs" />
     <Compile Include="Views\StaleState.cs" />
     <Compile Include="Views\ViewClient.cs" />
