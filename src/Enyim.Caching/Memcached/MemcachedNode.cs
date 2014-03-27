@@ -220,6 +220,7 @@ namespace Enyim.Caching.Memcached
             private Semaphore semaphore;
 
             private object initLock = new Object();
+            private readonly object disposeLock = new Object();
 
             internal InternalPoolImpl(MemcachedNode ownerNode, ISocketPoolConfiguration config)
             {
@@ -463,40 +464,68 @@ namespace Enyim.Caching.Memcached
 
             private void Dispose(bool disposing)
             {
-                if (disposing && !isDisposed)
+                if (isDisposed)
+                {
+                    return;
+                }
+
+                if (disposing)
                 {
                     GC.SuppressFinalize(this);
                 }
-                if (!isDisposed)
-                {
-                    new Timer((s) =>
-                    {
-                        if (!this.isDisposed)
-                        {
-                            log.Debug("Disposing InternalPoolImpl");
 
-                            IPooledSocket ps;
-                            while (this.freeItems.TryPop(out ps))
+                new Timer((s) =>
+                {
+                    if (this.isDisposed)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        if (!Monitor.TryEnter(this.disposeLock))
+                        {
+                            return;
+                        }
+
+                        log.Debug("Disposing InternalPoolImpl");
+
+                        IPooledSocket ps;
+                        while (null != this.freeItems && this.freeItems.TryPop(out ps))
+                        {
+                            try
                             {
-                                try
+                                if (null != ps)
                                 {
                                     ps.Dispose();
                                 }
-                                catch (Exception e)
-                                {
-                                    log.Error(e);
-                                }
                             }
-
-                            this.ownerNode = null;
-                            this.semaphore.Close();
-                            this.semaphore = null;
-                            this.freeItems = null;
-                            this.isAlive = false;
-                            this.isDisposed = true;
+                            catch (Exception e)
+                            {
+                                log.Error(e);
+                            }
                         }
-                    }, null, 1000, Timeout.Infinite);
-                }
+
+                        this.ownerNode = null;
+                        if (null != this.semaphore)
+                        {
+                            this.semaphore.Close();
+                        }
+
+                        this.semaphore = null;
+                        this.freeItems = null;
+                        this.isAlive = false;
+                        this.isDisposed = true;
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error(e);
+                    }
+                    finally
+                    {
+                        Monitor.Exit(this.disposeLock);
+                    }
+                }, null, 1000, Timeout.Infinite);
             }
 
             public void Dispose()
