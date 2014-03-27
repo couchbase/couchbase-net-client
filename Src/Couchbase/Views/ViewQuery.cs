@@ -23,7 +23,7 @@ namespace Couchbase.Views
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         const string QueryArgPattern = "{0}={1}&";
-        private const string DefaultHost = "http://localhost:8091/";
+        private const string DefaultHost = "http://localhost:8092/";
 
         private string _baseUri;
         private string _bucketName;
@@ -233,8 +233,6 @@ namespace Couchbase.Views
                 sb.Append(ForwardSlash);
             }
 
-            sb.Append(CouchbaseApi);
-            sb.Append(ForwardSlash);
             sb.Append(_bucketName);
             sb.Append(ForwardSlash);
             sb.Append(Design);

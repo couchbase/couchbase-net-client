@@ -15,9 +15,10 @@ namespace Couchbase.Tests.Core.Buckets
     public class CouchbaseBucketTests
     {
         private ICluster _cluster;
+        private IBucket _bucket;
 
         [TestFixtureSetUp]
-        public void SetUp()
+        public void TestFixtureSetUp()
         {
             _cluster = new Cluster();
         }
@@ -27,6 +28,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = _cluster.OpenBucket("default");
             Assert.AreEqual("default", bucket.Name);
+            _cluster.CloseBucket(bucket);
         }
 
         [Test]
@@ -35,6 +37,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = _cluster.OpenBucket("doesnotexist");
             Assert.AreEqual("doesnotexist", bucket.Name);
+            _cluster.CloseBucket(bucket);
         }
 
         [Test]
@@ -47,6 +50,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
+            _cluster.CloseBucket((IBucket)bucket);
         }
 
         [Test]
@@ -65,10 +69,11 @@ namespace Couchbase.Tests.Core.Buckets
                     Assert.Greater(result.TotalRows, 0);
                 }
             }
+            _cluster.CloseBucket((IBucket)bucket);
         }
 
         [TestFixtureTearDown]
-        public void TearDown()
+        public void TestFixtureTearDown()
         {
             _cluster.Dispose();
         }
