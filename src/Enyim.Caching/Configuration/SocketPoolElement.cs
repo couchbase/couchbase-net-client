@@ -140,6 +140,20 @@ namespace Enyim.Caching.Configuration
         }
 
         #endregion
+
+        [ConfigurationProperty("lingerTime", IsRequired = false, DefaultValue = "00:00:10"), PositiveTimeSpanValidator, TypeConverter(typeof(InfiniteTimeSpanConverter))]
+        public TimeSpan LingerTime
+        {
+            get { return (TimeSpan)base["lingerTime"]; }
+            set { base["lingerTime"] = value; }
+        }
+
+        [ConfigurationProperty("lingerEnabled", IsRequired = false, DefaultValue =false)]
+        public bool LingerEnabled
+        {
+            get { return (bool)base["lingerEnabled"]; }
+            set { base["lingerEnabled"] = value; }
+        }
     }
 }
 

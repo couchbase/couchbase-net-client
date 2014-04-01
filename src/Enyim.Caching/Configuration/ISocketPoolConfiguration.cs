@@ -68,6 +68,16 @@ namespace Enyim.Caching.Configuration
             set;
         }
 
+        /// <summary>
+        /// Gets or sets the number of seconds that the socket will linger after Close is called if LingerEnabled is true
+        /// </summary>
+        TimeSpan LingerTime { get; set; }
+
+        /// <summary>
+        /// If true sets the LingerOptions on a socket to the value specified by the LingerTime property.
+        /// </summary>
+        bool LingerEnabled { get; set; }
+
         INodeFailurePolicyFactory FailurePolicyFactory { get; set; }
     }
 }

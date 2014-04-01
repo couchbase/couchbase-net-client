@@ -15,6 +15,8 @@ namespace Enyim.Caching.Configuration
         private TimeSpan deadTimeout = new TimeSpan(0, 0, 2);
         private TimeSpan queueTimeout = new TimeSpan(0, 0, 0, 2, 500);
         private INodeFailurePolicyFactory policyFactory = new FailImmediatelyPolicyFactory();
+        private bool _lingerEnabled = false;
+        private TimeSpan _lingerTime = new TimeSpan(0, 0, 10);
 
         int ISocketPoolConfiguration.MinPoolSize
         {
@@ -106,6 +108,25 @@ namespace Enyim.Caching.Configuration
 
                 this.policyFactory = value;
             }
+        }
+
+        public TimeSpan LingerTime
+        {
+            get { return _lingerTime; }
+            set
+            {
+                if (value < TimeSpan.Zero)
+                {
+                    throw new ArgumentOutOfRangeException("value", "value must be positive");
+                }
+                _lingerTime = value;
+            }
+        }
+
+        public bool LingerEnabled
+        {
+            get { return _lingerEnabled; }
+            set { _lingerEnabled = value; }
         }
     }
 }

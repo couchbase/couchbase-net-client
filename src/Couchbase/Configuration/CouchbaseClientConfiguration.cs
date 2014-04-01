@@ -409,6 +409,8 @@ namespace Couchbase.Configuration
             private TimeSpan queueTimeout;
             private TimeSpan receiveTimeout;
             private INodeFailurePolicyFactory fpf;
+            private TimeSpan _lingerTime;
+            private bool _lingerEnabled;
 
             public SPC(ISocketPoolConfiguration original)
             {
@@ -419,6 +421,8 @@ namespace Couchbase.Configuration
                 this.queueTimeout = original.QueueTimeout;
                 this.receiveTimeout = original.ReceiveTimeout;
                 this.fpf = original.FailurePolicyFactory;
+                _lingerTime = original.LingerTime;
+                _lingerEnabled = original.LingerEnabled;
             }
 
             int ISocketPoolConfiguration.MinPoolSize { get { return this.minPoolSize; } set { } }
@@ -434,6 +438,19 @@ namespace Couchbase.Configuration
             TimeSpan ISocketPoolConfiguration.DeadTimeout { get { return this.deadTimeout; } set { } }
 
             INodeFailurePolicyFactory ISocketPoolConfiguration.FailurePolicyFactory { get { return this.fpf; } set { } }
+
+
+            public TimeSpan LingerTime
+            {
+                get { return _lingerTime; }
+                set { _lingerTime = value; }
+            }
+
+            public bool LingerEnabled
+            {
+                get { return _lingerEnabled; }
+                set { _lingerEnabled = value; }
+            }
         }
 
         private class HBM : IHeartbeatMonitorConfiguration

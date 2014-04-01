@@ -67,7 +67,12 @@ namespace Couchbase
 
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (int)_config.ReceiveTimeout.TotalMilliseconds);
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, true);
+
+            if (_config.LingerEnabled)
+            {
+                var lingerOptions = new LingerOption(_config.LingerEnabled, _config.LingerTime.Seconds);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOptions);
+            }
             socket.Connect(_node.EndPoint);
 
             var pooledSocket = new CouchbasePooledSocket(this, socket);
