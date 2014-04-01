@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Views;
 using NUnit.Framework;
 using Wintellect;
@@ -44,9 +45,9 @@ namespace Couchbase.Tests.Core.Buckets
         public void Test_View_Query()
         {
             var bucket = (IViewSupportable)_cluster.OpenBucket("default");
-            var query = new ViewQuery(false).
-                From("default", "cities").
-                View("by_name");
+            var query = new ViewQuery(true).
+                From("default", "test").
+                View("foo");
 
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
@@ -61,15 +62,28 @@ namespace Couchbase.Tests.Core.Buckets
                 From("default", "cities").
                 View("by_name");
 
+            var result = bucket.Get<dynamic>(query);
             for (var i = 0; i < 10; i++)
             {
                 using (new OperationTimer())
-                {
-                    var result = bucket.Get<dynamic>(query);
+                {       
                     Assert.Greater(result.TotalRows, 0);
                 }
             }
             _cluster.CloseBucket((IBucket)bucket);
+        }
+
+        [Test]
+        public void Test_N1QL_Query()
+        {
+            var bucket = (ICouchbaseBucket) _cluster.OpenBucket("default");
+            var query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
+
+            var result = bucket.Query<dynamic>(query);
+            foreach (var row in result.Rows)
+            {
+                Console.WriteLine(row);
+            }
         }
 
         [TestFixtureTearDown]

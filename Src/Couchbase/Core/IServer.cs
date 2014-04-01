@@ -2,6 +2,7 @@
 using System.Net;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using Couchbase.Views;
 
 namespace Couchbase.Core
@@ -24,7 +25,11 @@ namespace Couchbase.Core
 
         IViewResult<T> Send<T>(IViewQuery query);
 
+        IQueryResult<T> Send<T>(string query);
+
         IViewClient ViewClient { get; }
+
+        IQueryClient QueryClient { get; }
         
         IPEndPoint EndPoint { get; }
     }

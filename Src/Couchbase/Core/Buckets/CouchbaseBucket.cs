@@ -9,11 +9,12 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
 {
-    public class CouchbaseBucket : IBucket, IViewSupportable, IConfigListener
+    public class CouchbaseBucket : ICouchbaseBucket, IConfigListener
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
@@ -71,6 +72,12 @@ namespace Couchbase.Core.Buckets
         }
 
         public IViewResult<T> Get<T>(IViewQuery query)
+        {
+            var server = _configInfo.GetServer();
+            return server.Send<T>(query);
+        }
+
+        public IQueryResult<T> Query<T>(string query)
         {
             var server = _configInfo.GetServer();
             return server.Send<T>(query);

@@ -5,6 +5,7 @@ using System.Net.Http;
 using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using Couchbase.Views;
 
 namespace Couchbase.Core
@@ -17,7 +18,9 @@ namespace Couchbase.Core
         private bool _disposed;
 
         public Server(IOStrategy ioStrategy) : 
-            this(ioStrategy, new ViewClient(new HttpClient(), new JsonDataMapper()))
+            this(ioStrategy, 
+            new ViewClient(new HttpClient(), new JsonDataMapper()), 
+            new QueryClient(new HttpClient(), new JsonDataMapper()))
         {
         }
 
@@ -25,6 +28,13 @@ namespace Couchbase.Core
         {
             _ioStrategy = ioStrategy;
             ViewClient = viewClient;
+        }
+
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient)
+        {
+            _ioStrategy = ioStrategy;
+            ViewClient = viewClient;
+            QueryClient = queryClient;
         }
 
         public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }
@@ -68,6 +78,15 @@ namespace Couchbase.Core
         {
             return ViewClient.Execute<T>(query);
         }
+
+        IQueryResult<T> IServer.Send<T>(string query)
+        {
+            //TODO make right - this isn't.
+            var uri = new Uri(string.Concat("http://", EndPoint.Address, ":", 8093, "/query"));
+            return QueryClient.Query<T>(uri, query);
+        }
+
+        public IQueryClient QueryClient { get; private set; }
 
         public IViewClient ViewClient { get; private set; }
 
