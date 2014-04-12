@@ -5,7 +5,7 @@ namespace Couchbase.IO
 {
     internal interface IConnection : IDisposable
     {
-        Socket Handle { get; }
+        Socket Socket { get; }
 
         Guid Identity { get; }
     }

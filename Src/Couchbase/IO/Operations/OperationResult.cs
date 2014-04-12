@@ -62,7 +62,6 @@ namespace Couchbase.IO.Operations
             }
         }
 
-
         public virtual ResponseStatus Status
         {
             get { return _operation.Header.Status; }

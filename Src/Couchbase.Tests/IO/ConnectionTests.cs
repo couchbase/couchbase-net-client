@@ -28,7 +28,7 @@ namespace Couchbase.Tests.IO
         public void When_Connection_Acquired_Handle_Is_Not_Null()
         {
             var connection = _connectionPool.Acquire();
-            Assert.IsNotNull(connection.Handle);
+            Assert.IsNotNull(connection.Socket);
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace Couchbase.Tests.IO
         public void When_Connection_Acquired_Handle_Is_Connected()
         {
             var connection = _connectionPool.Acquire();
-            Assert.IsTrue(connection.Handle.Connected);
+            Assert.IsTrue(connection.Socket.Connected);
         }
 
         [Test]
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.IO
         {
             var connection = _connectionPool.Acquire();
             connection.Dispose();
-            Assert.IsFalse(connection.Handle.Connected);
+            Assert.IsFalse(connection.Socket.Connected);
         }
 
         [TearDown]

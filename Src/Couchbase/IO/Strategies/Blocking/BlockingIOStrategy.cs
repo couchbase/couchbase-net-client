@@ -26,7 +26,7 @@ namespace Couchbase.IO.Strategies.Blocking
                 connection = _connectionPool.Acquire();
 
                 SocketError error;
-                connection.Handle.Send(buffer, SocketFlags.None, out error);
+                connection.Socket.Send(buffer, SocketFlags.None, out error);
 
                 operation.Header = ReadHeader(connection);
                 if (operation.Header.HasData())
@@ -45,7 +45,7 @@ namespace Couchbase.IO.Strategies.Blocking
         OperationHeader ReadHeader(IConnection connection)
         {
             var header = new ArraySegment<byte>(new byte[24]);
-            connection.Handle.Receive(header.Array, 0, header.Array.Length, SocketFlags.None);
+            connection.Socket.Receive(header.Array, 0, header.Array.Length, SocketFlags.None);
 
             byte[] buffer = header.Array;
             return new OperationHeader
@@ -64,7 +64,7 @@ namespace Couchbase.IO.Strategies.Blocking
         OperationBody ReadBody(IConnection connection, OperationHeader header)
         {
             var buffer = new byte[header.BodyLength];
-            connection.Handle.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+            connection.Socket.Receive(buffer, 0, buffer.Length, SocketFlags.None);
 
             return new OperationBody
             {
@@ -120,6 +120,12 @@ namespace Couchbase.IO.Strategies.Blocking
         ~BlockingIOStrategy()
         {
             Dispose(false);
+        }
+
+
+        public System.Threading.Tasks.Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        {
+            throw new NotImplementedException();
         }
     }
 }

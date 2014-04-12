@@ -24,7 +24,5 @@ namespace Couchbase.IO.Operations
         int SequenceId { get; }
 
         string Key { get; }
-
-        IBucketConfig GetConfig();
     }
 }

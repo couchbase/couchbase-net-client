@@ -10,11 +10,9 @@ namespace Couchbase.IO
 {
     internal interface IOStrategy : IDisposable
     {
-        void RegisterListener(IConfigListener listener);
-
-        void UnRegisterListener(IConfigListener listener);
-
         Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation);
+
+        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection);
 
         IOperationResult<T> Execute<T>(IOperation<T> operation);
 

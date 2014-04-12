@@ -6,14 +6,14 @@ namespace Couchbase.IO
     internal class DefaultConnection : IConnection
     {
         private readonly IConnectionPool _connectionPool;
-        private readonly Socket _handle;
+        private readonly Socket _socket;
         private readonly Guid _identity = Guid.NewGuid();
         private bool _disposed;
 
-        internal DefaultConnection(IConnectionPool connectionPool, Socket handle)
+        internal DefaultConnection(IConnectionPool connectionPool, Socket socket)
         {
             _connectionPool = connectionPool;
-            _handle = handle;
+            _socket = socket;
         }
 
         public Guid Identity
@@ -21,9 +21,9 @@ namespace Couchbase.IO
             get { return _identity; }
         }
 
-        public Socket Handle
+        public Socket Socket
         {
-            get { return _handle; }
+            get { return _socket; }
         }
 
         public void Dispose()
@@ -38,27 +38,27 @@ namespace Couchbase.IO
             {
                 if (!_disposed)
                 {
-                    if (_handle != null)
+                    if (_socket != null)
                     {
-                        if (_handle.Connected)
+                        if (_socket.Connected)
                         {
-                            _handle.Shutdown(SocketShutdown.Both);
-                            _handle.Close(_connectionPool.Configuration.ShutdownTimeout);
+                            _socket.Shutdown(SocketShutdown.Both);
+                            _socket.Close(_connectionPool.Configuration.ShutdownTimeout);
                         }
                         else
                         {
-                            _handle.Close();
-                            _handle.Dispose();
+                            _socket.Close();
+                            _socket.Dispose();
                         }
                     }
                 }
             }
             else
             {
-                if (_handle != null)
+                if (_socket != null)
                 {
-                    _handle.Close();
-                    _handle.Dispose();
+                    _socket.Close();
+                    _socket.Dispose();
                 }
             }
             _disposed = true;

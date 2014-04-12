@@ -88,6 +88,11 @@ namespace Couchbase.Configuration
             }
         }
 
+        public void Authenticate(string username, string password)
+        {
+            _servers.ForEach(x=>x.Authenticate(username, password));
+        }
+
         protected virtual IPEndPoint GetEndPoint(string hostName, IBucketConfig bucketConfig)
         {
             const string blah = "$HOST";

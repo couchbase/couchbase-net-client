@@ -54,6 +54,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
+    <Compile Include="Authentication\Sasl\PlainTextSaslMechanismTests.cs" />
     <Compile Include="BucketTests.cs" />
     <Compile Include="ClusterTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
@@ -70,6 +72,8 @@
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
@@ -95,6 +99,7 @@
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
     <Compile Include="Utils\BoolExtensionTests.cs" />
+    <Compile Include="Utils\BufferExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
     <Compile Include="VBucketTests.cs">
       <SubType>Code</SubType>

@@ -60,14 +60,27 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             var task = ioStrategy.ExecuteAsync(new ConfigOperation());
 
             IConfigInfo configInfo = null;
-            var operationResult = task.Result;
-            if (operationResult.Success)
-            {
-                var bucketConfig = operationResult.Value;
-                bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
 
-                configInfo = GetConfig(bucketConfig);
-                _configs[bucketName] = configInfo;
+            try
+            {
+                task.Wait();
+                var operationResult = task.Result;
+                if (operationResult.Success)
+                {
+                    var bucketConfig = operationResult.Value;
+                    bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
+
+                    configInfo = GetConfig(bucketConfig);
+                    _configs[bucketName] = configInfo;
+                }
+            } 
+            catch (AggregateException ae)
+            {
+                ae.Flatten().Handle(e =>
+                {
+                    Log.Error(e);
+                    return true;
+                });
             }
             return configInfo;
         }

@@ -32,5 +32,6 @@ namespace Couchbase.Core
         IQueryClient QueryClient { get; }
         
         IPEndPoint EndPoint { get; }
+        void Authenticate(string username, string password);
     }
 }

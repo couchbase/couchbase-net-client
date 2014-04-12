@@ -4,8 +4,10 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.Awaitable
@@ -39,31 +41,46 @@ namespace Couchbase.IO.Strategies.Awaitable
             return operation.GetResult();
         }
 
+        public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        {
+            await Send(operation, new OperationAsyncState
+            {
+                Connection = connection,
+                OperationId = operation.SequenceId
+            });
+            return operation.GetResult();
+        }
+
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             Send(operation);
             return operation.GetResult();
         }
 
+        async Task Send<T>(IOperation<T> operation, OperationAsyncState operationAsyncState)
+        {
+            var buffer = operation.GetBuffer();
+            var receiveEventArgs = new SocketAsyncEventArgs();
+            receiveEventArgs.UserToken = operationAsyncState;
+            receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
+
+            Log.Debug(m => m("Send Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, operationAsyncState.Connection.Socket.Handle));
+
+            var awaitable = new SocketAwaitable(receiveEventArgs);
+            await operationAsyncState.Connection.Socket.SendAsync(awaitable);
+            await Receive(operation, operationAsyncState);
+        }
+
         async Task Send<T>(IOperation<T> operation)
         {
             var connection = _connectionPool.Acquire();
-            var state = new OperationAsyncState
+
+            await Send(operation, new OperationAsyncState
             {
                 Connection = connection,
                 OperationId = operation.SequenceId
-            };
+            });
 
-            var buffer = operation.GetBuffer();
-            var receiveEventArgs = new SocketAsyncEventArgs();
-            receiveEventArgs.UserToken = state;
-            receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
-
-            Log.Debug(m => m("Send Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, state.Connection.Handle.Handle));
-
-            var awaitable = new SocketAwaitable(receiveEventArgs);
-            await state.Connection.Handle.SendAsync(awaitable);
-            await Receive(operation, state);
             _connectionPool.Release(connection);
         }
 
@@ -75,9 +92,9 @@ namespace Couchbase.IO.Strategies.Awaitable
 
             do
             {
-                Log.Debug(m => m("Receive Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, state.Connection.Handle.Handle));
+                Log.Debug(m => m("Receive Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, state.Connection.Socket.Handle));
                 
-                await state.Connection.Handle.ReceiveAsync(awaitable);
+                await state.Connection.Socket.ReceiveAsync(awaitable);
                 state.BytesSent += args.BytesTransferred;
                 state.Data.Write(state.Buff, 0,  args.BytesTransferred);
                 args.SetBuffer(state.Buff, 0, state.Buff.Length);
@@ -95,17 +112,20 @@ namespace Couchbase.IO.Strategies.Awaitable
         static void CreateHeader<T>(IOperation<T> operation, OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
-            operation.Header = new OperationHeader
+            if (buffer.Length > 0)
             {
-                Magic = buffer[HeaderIndexFor.Magic],
-                OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
-                Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
-            };
+                operation.Header = new OperationHeader
+                {
+                    Magic = buffer[HeaderIndexFor.Magic],
+                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
+                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
+                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
+                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
+                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
+                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
+                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
+                };
+            }
         }
 
         static void CreateBody<T>(IOperation<T> operation, OperationAsyncState state)
@@ -116,16 +136,6 @@ namespace Couchbase.IO.Strategies.Awaitable
                 Extras = new ArraySegment<byte>(buffer, OperationBase<T>.HeaderLength, operation.Header.ExtrasLength),
                 Data = new ArraySegment<byte>(buffer, 28, operation.Header.BodyLength),
             };
-        }
-
-        public void RegisterListener(IConfigListener listener)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void UnRegisterListener(IConfigListener listener)
-        {
-            throw new NotImplementedException();
         }
 
         public void Dispose()

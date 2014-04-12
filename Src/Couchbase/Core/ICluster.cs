@@ -5,9 +5,9 @@ namespace Couchbase.Core
 {
     internal interface ICluster : IDisposable
     {
-        IBucket OpenBucket(string bucketName, string passWord, string userName);
+        IBucket OpenBucket(string bucketname, string password);
 
-        IBucket OpenBucket(string bucketName);
+        IBucket OpenBucket(string bucketname);
 
         void CloseBucket(IBucket bucket);
 

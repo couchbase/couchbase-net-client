@@ -67,6 +67,11 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName)
         {
+            return CreateBucket(bucketName, string.Empty);
+        }
+
+        public IBucket CreateBucket(string bucketName, string password)
+        {
             //note we probably want to treat this whole process as an aggregate and not log
             //until the process has completed with success or failure then logged along with
             //the sequence of events that occurred.
@@ -89,6 +94,10 @@ namespace Couchbase.Core
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
+
+                    //Autenticate the connections
+                    config.Authenticate(bucketName, password);
+
                     var listener = bucket as IConfigListener;
                     if (provider.RegisterListener(listener) &&
                         _buckets.TryAdd(bucket.Name, bucket))
@@ -114,11 +123,6 @@ namespace Couchbase.Core
                 throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
             }
             return bucket;
-        }
-
-        public IBucket CreateBucket(string bucketName, string username, string password)
-        {
-            throw new NotImplementedException();
         }
 
         IServer CreateServer(Node node)
@@ -154,10 +158,6 @@ namespace Couchbase.Core
                 {
                     configProvider.UnRegisterListener(listener);
                 }
-            }
-            else
-            {
-                throw new BucketNotFoundException(bucket.Name);
             }
         }
 

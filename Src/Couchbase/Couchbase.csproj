@@ -52,6 +52,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\SASL\AuthAsyncState.cs" />
+    <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
+    <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
+    <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
     <Compile Include="Cluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
@@ -128,6 +132,9 @@
     <Compile Include="Core\IClusterManager.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
     <Compile Include="N1QL\Info.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="N1QL\IQuerySupportable.cs" />

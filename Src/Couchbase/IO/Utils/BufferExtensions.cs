@@ -49,5 +49,15 @@ namespace Couchbase.IO.Utils
         {
             return (short)GetUInt16(buffer, offset);
         }
+
+        public static int GetLengthSafe(this byte[] buffer)
+        {
+            int length = 0;
+            if (buffer != null)
+            {
+                length = buffer.Length;
+            }
+            return length;
+        }
     }
 }

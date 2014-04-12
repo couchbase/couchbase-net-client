@@ -54,5 +54,10 @@ namespace Couchbase.Tests.IO.Strategies
         {
             throw new NotImplementedException();
         }
+
+        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
