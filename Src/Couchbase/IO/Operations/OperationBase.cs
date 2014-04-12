@@ -51,10 +51,7 @@ namespace Couchbase.IO.Operations
 
         public T Value
         {
-            get
-            {
-                return Serializer.Deserialize(this);
-            }
+            get { return Serializer.Deserialize(this); }
         }
 
         internal T RawValue
@@ -113,21 +110,13 @@ namespace Couchbase.IO.Operations
                 };
         }
 
-        int GetLength(byte[] bytes)
-        {
-            int length = 0;
-            if (bytes != null)
-            {
-                length = bytes.Length;
-            }
-            return length;
-        }
-
         public virtual ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
             var header = new ArraySegment<byte>(new byte[24]);
             var buffer = header.Array;
-            var totalLength = GetLength(extras) + GetLength(key) + GetLength(body);
+            var totalLength = extras.GetLengthSafe() +
+                key.GetLengthSafe() +
+                body.GetLengthSafe();
 
             //0 magic and 1 opcode
             buffer[0x00] = (byte)Magic.Request;
@@ -138,7 +127,7 @@ namespace Couchbase.IO.Operations
             buffer[0x03] = (byte)(key.Length & 255);
 
             //4 extra length
-            buffer[0x04] = (byte)(GetLength(extras));
+            buffer[0x04] = (byte)extras.GetLengthSafe();
 
             //5 data type?
 
@@ -174,14 +163,14 @@ namespace Couchbase.IO.Operations
         }
 
         //refactor
-        public byte[] GetBuffer()
+        public virtual byte[] GetBuffer()
         {
             var buffer = CreateBuffer();
             var bytes = new byte[
-                GetLength(buffer[0].Array) +
-                GetLength(buffer[1].Array) +
-                GetLength(buffer[2].Array) +
-                GetLength(buffer[3].Array)];
+                buffer[0].Array.GetLengthSafe() +
+                buffer[1].Array.GetLengthSafe() +
+                buffer[2].Array.GetLengthSafe() +
+                buffer[3].Array.GetLengthSafe()];
 
             var count = 0;
             foreach (var segment in buffer)
@@ -197,18 +186,6 @@ namespace Couchbase.IO.Operations
         public int SequenceId
         {
             get { return _sequenceId + GetHashCode(); }
-        }
-
-        public virtual IBucketConfig GetConfig()
-        {
-            IBucketConfig config = null;
-            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                var offset = HeaderLength + Header.ExtrasLength;
-                var length = Header.BodyLength - Header.ExtrasLength;
-                config = Serializer.Deserialize<IBucketConfig>(Body.Data, offset, length);
-            }
-            return config;
         }
     }
 }

@@ -52,7 +52,7 @@ namespace Couchbase.Tests.IO
         public void When_Acquire_Called_Socket_Is_Connected()
         {
             var connection = _connectionPool.Acquire();
-            Assert.IsTrue(connection.Handle.Connected);
+            Assert.IsTrue(connection.Socket.Connected);
             Assert.IsNotNull(connection);
         }
 

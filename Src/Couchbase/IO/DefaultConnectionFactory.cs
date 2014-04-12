@@ -10,16 +10,16 @@ namespace Couchbase.IO
             Func<IConnectionPool, IConnection> factory = p =>
             {
                 var config = p.Configuration;
-                var handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
                 {
                     ReceiveTimeout = config.RecieveTimeout,
                     SendTimeout = config.SendTimeout,
                 };
-                handle.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, config.RecieveTimeout);
-                handle.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
-                handle.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                handle.Connect(p.EndPoint);
-                return new DefaultConnection(p, handle);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, config.RecieveTimeout);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                socket.Connect(p.EndPoint);
+                return new DefaultConnection(p, socket);
             };
             return factory;
         }

@@ -12,7 +12,7 @@ namespace Couchbase.Core
 
         IBucket CreateBucket(string bucketName);
 
-        IBucket CreateBucket(string bucketName, string username, string password);
+        IBucket CreateBucket(string bucketName, string password);
 
         void DestroyBucket(IBucket bucket);
     }

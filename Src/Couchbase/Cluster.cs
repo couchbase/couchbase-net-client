@@ -40,15 +40,14 @@ namespace Couchbase
             
         }
 
-        public IBucket OpenBucket(string bucketName, string passWord, string userName)
+        public IBucket OpenBucket(string bucketName, string password)
         {
-            throw new NotImplementedException();
+            return _clusterManager.CreateBucket(bucketName, password);
         }
         
         public IBucket OpenBucket(string bucketName)
         {
-            var bucket = _clusterManager.CreateBucket(bucketName);
-            return bucket;
+            return _clusterManager.CreateBucket(bucketName);
         }
 
         public IClusterInfo Info

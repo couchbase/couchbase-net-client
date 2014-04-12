@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using Common.Logging;
@@ -7,7 +8,7 @@ using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO
 {
-    internal class DefaultConnectionPool : IConnectionPool
+    internal class  DefaultConnectionPool : IConnectionPool
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentQueue<IConnection> _store = new ConcurrentQueue<IConnection>();
@@ -28,6 +29,23 @@ namespace Couchbase.IO
             _configuration = configuration;
             _factory = factory;
             EndPoint = endPoint;
+        }
+
+        public PoolConfiguration Configuration
+        {
+            get { return _configuration; }
+        }
+
+        public IPEndPoint EndPoint { get; set; }
+
+        public IEnumerable<IConnection> Connections
+        {
+            get { return _store.ToArray(); }
+        }
+
+        public int Count()
+        {
+            return _count;
         }
 
         public void Initialize()
@@ -64,7 +82,7 @@ namespace Couchbase.IO
 
             _autoResetEvent.WaitOne(_configuration.WaitTimeout);
 
-            Log.Debug(m=>m("Argh, trying again"));
+            Log.Debug(m=>m("No connections currently available. Trying again."));
             return Acquire();
         }
 
@@ -102,18 +120,5 @@ namespace Couchbase.IO
         {
             Dispose(false);
         }
-
-        public int Count()
-        {
-            return _count;
-        }
-
-        public PoolConfiguration Configuration
-        {
-            get { return _configuration; }
-        }
-
-
-        public IPEndPoint EndPoint { get; set; }
     }
 }

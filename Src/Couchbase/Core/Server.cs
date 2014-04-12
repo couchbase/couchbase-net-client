@@ -2,7 +2,9 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Authentication;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -15,12 +17,14 @@ namespace Couchbase.Core
         //todo review this as a best practice
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IOStrategy _ioStrategy;
+        private readonly ISaslMechanism _saslMechanism;
         private bool _disposed;
 
         public Server(IOStrategy ioStrategy) : 
             this(ioStrategy, 
             new ViewClient(new HttpClient(), new JsonDataMapper()), 
-            new QueryClient(new HttpClient(), new JsonDataMapper()))
+            new QueryClient(new HttpClient(), new JsonDataMapper()),
+            new PlainTextMechanism(ioStrategy))
         {
         }
 
@@ -35,6 +39,24 @@ namespace Couchbase.Core
             _ioStrategy = ioStrategy;
             ViewClient = viewClient;
             QueryClient = queryClient;
+        }
+
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, ISaslMechanism saslMechanism)
+        {
+            _ioStrategy = ioStrategy;
+            ViewClient = viewClient;
+            QueryClient = queryClient;
+            _saslMechanism = saslMechanism;
+        }
+
+        public void Authenticate(string username, string password)
+        {
+            ConnectionPool.Initialize();
+
+            var isAuthenticated = _saslMechanism.Authenticate(username, password);
+            if (isAuthenticated) return;
+            var message = string.Format("Could not authenticate: {0}. See logs for details.", username);
+            throw new AuthenticationException(message);
         }
 
         public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }

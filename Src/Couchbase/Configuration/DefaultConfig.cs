@@ -75,5 +75,11 @@ namespace Couchbase.Configuration
         {
             throw new NotImplementedException();
         }
+
+
+        public void Authenticate(string username, string password)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

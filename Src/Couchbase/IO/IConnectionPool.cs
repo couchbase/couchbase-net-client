@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using Couchbase.Configuration.Client;
 
@@ -17,5 +18,7 @@ namespace Couchbase.IO
         IPEndPoint EndPoint { get; set; }
 
         void Initialize();
+
+        IEnumerable<IConnection> Connections { get; }
     }
 }
