@@ -1,31 +1,40 @@
 ﻿using System.IO;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
     internal sealed class OperationAsyncState
     {
-        public const int HeaderLength = 24;
-
-        public int TotalLength { get { return HeaderLength + BodyLength; } }
-
         public int OperationId { get; set; }
 
         public IConnection Connection { get; set; }
 
-        public byte[] Buff = new byte[512];
-
-        public byte[] Buffer { get; set; }
-
-        public int BodyLength { get; set; }
-
-        public int ExtrasLength { get; set; }
-
-        public int KeyLength { get; set; }
+        public byte[] Buffer = new byte[512];
 
         public MemoryStream Data = new MemoryStream();
 
-        public int BytesSent { get; set; }
+        public OperationHeader Header;
 
-        public bool HasBegun { get; set; }
+        public OperationBody Body;
+
+        public int Offset;
+
+        public int Length;
+
+        public int BytesReceived { get; set; } 
+
+        public void Reset()
+        {
+            if(Data != null)
+            {
+                Data.Dispose();
+            }
+            Data = new MemoryStream();
+            BytesReceived = 0;
+            Header = new OperationHeader();
+            Body = new OperationBody();
+            Offset = 0;
+            Length = 0;
+        }
     }
 }

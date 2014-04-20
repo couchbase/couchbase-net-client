@@ -90,7 +90,9 @@
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
+    <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategyTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />

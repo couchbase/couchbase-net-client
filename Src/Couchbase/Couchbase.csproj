@@ -135,6 +135,13 @@
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
+    <Compile Include="IO\Strategies\Async\AsyncOperationToken.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
+    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
+    <Compile Include="IO\Strategies\Awaitable\AwaitableSocketFactory.cs" />
+    <Compile Include="IO\Strategies\Awaitable\AwaitableSocketPool.cs" />
+    <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
     <Compile Include="N1QL\Info.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="N1QL\IQuerySupportable.cs" />
@@ -150,7 +157,7 @@
     <Compile Include="IO\Operations\ConfigOperation.cs" />
     <Compile Include="IO\Operations\GetOperation.cs" />
     <Compile Include="IO\Operations\SetOperation.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncEventArgsStrategy.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAsyncEventArgsPool.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategy.cs" />
@@ -173,7 +180,6 @@
     <Compile Include="IO\Operations\OperationHeader.cs" />
     <Compile Include="IO\Operations\OperationResult.cs" />
     <Compile Include="IO\ResponseStatus.cs" />
-    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
     <Compile Include="IO\Utils\BinaryConverter.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />

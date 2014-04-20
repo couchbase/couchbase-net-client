@@ -54,5 +54,27 @@ namespace Couchbase.IO.Strategies.Awaitable
             }
             return awaitable;
         }
+
+        public static SocketAwaitable ReceiveAsync(this SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            var socket = awaitable.EventArgs.AcceptSocket;
+            if (!socket.ReceiveAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
+        }
+
+        public static SocketAwaitable SendAsync(this SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            var socket = awaitable.EventArgs.AcceptSocket;
+            if (!socket.SendAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
+        }
     }
 }

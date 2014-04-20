@@ -12,7 +12,7 @@ namespace Couchbase.IO.Strategies.Awaitable
         private static readonly Action Sentinal = () => { };
         private bool _completed;
         private Action _continuation;
-        private SocketAsyncEventArgs _eventArgs;
+        private readonly SocketAsyncEventArgs _eventArgs;
 
         public SocketAwaitable(SocketAsyncEventArgs eventArgs)
         {
@@ -68,8 +68,30 @@ namespace Couchbase.IO.Strategies.Awaitable
         {
             if (_eventArgs.SocketError != SocketError.Success)
             {
-                throw new SocketException((int)_eventArgs.SocketError);
+                throw new SocketException((int) _eventArgs.SocketError);
             }
+        }
+
+        public SocketAwaitable ReceiveAsync(SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            var socket = _eventArgs.AcceptSocket;
+            if (!socket.ReceiveAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
+        }
+
+        public SocketAwaitable SendAsync(SocketAwaitable awaitable)
+        {
+            awaitable.Reset();
+            var socket = _eventArgs.AcceptSocket;
+            if (!socket.SendAsync(awaitable.EventArgs))
+            {
+                awaitable.IsCompleted = true;
+            }
+            return awaitable;
         }
     }
 }

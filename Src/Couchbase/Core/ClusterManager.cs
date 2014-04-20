@@ -14,6 +14,7 @@ using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.Core
@@ -30,7 +31,7 @@ namespace Couchbase.Core
 
         public ClusterManager(ClientConfiguration clientConfig) 
             : this(clientConfig, 
-            pool => new AwaitableIOStrategy(pool, null), 
+            pool => new SocketAsyncStrategy(pool), 
             (config, endpoint) =>new DefaultConnectionPool(config, endpoint))
         {
         }

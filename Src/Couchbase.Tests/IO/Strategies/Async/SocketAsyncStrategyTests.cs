@@ -2,23 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Providers;
-using Couchbase.Configuration.Server.Providers.FileSystem;
-using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.IO.Strategies.Awaitable
+namespace Couchbase.Tests.IO.Strategies.Async
 {
     [TestFixture]
-    public class AwaitableIOStrategyTests
+    public class SocketAsyncStrategyTests
     {
-        private AwaitableIOStrategy _ioStrategy;
+        private SocketAsyncStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
 
@@ -29,31 +27,17 @@ namespace Couchbase.Tests.IO.Strategies.Awaitable
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
 
-            _ioStrategy = new AwaitableIOStrategy(_connectionPool);
+            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
         }
 
         [Test]
-        public void Test_ExecuteAsnyc()
+        public void Test_Execute()
         {
             var operation = new ConfigOperation();
-            var task = _ioStrategy.ExecuteAsync(operation);
-
-            try
-            {
-                task.Wait();
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    Console.WriteLine(e);
-                    return true;
-                });
-            }
-
-            var result = task.Result;
-            Assert.IsTrue(result.Success);
-            Console.WriteLine(result.Value);
+            var result = _ioStrategy.Execute(operation);
+            var result1 = _ioStrategy.Execute(operation);
+            Assert.IsNotNull(result.Value);
+            Assert.IsNotNull(result1.Value);
         }
 
         [TestFixtureTearDown]

@@ -53,7 +53,7 @@ namespace Couchbase.Core
         {
             ConnectionPool.Initialize();
 
-            var isAuthenticated = _saslMechanism.Authenticate(username, password);
+            var isAuthenticated = true;//_saslMechanism.Authenticate(username, password);
             if (isAuthenticated) return;
             var message = string.Format("Could not authenticate: {0}. See logs for details.", username);
             throw new AuthenticationException(message);
@@ -75,9 +75,14 @@ namespace Couchbase.Core
 
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            Log.Debug(m=>m("Starting operation for key {0}", operation.Key));
+            return _ioStrategy.Execute(operation);
+        }
 
-            var result = operation.GetResult();
+        public IOperationResult<T> Send2<T>(IOperation<T> operation)
+        {
+            Log.Debug(m=>m("Starting {0} operation for key {1}", operation.OperationCode, operation.Key));
+
+            IOperationResult<T> result = null;
             var task = _ioStrategy.ExecuteAsync(operation);
 
             try
@@ -93,7 +98,7 @@ namespace Couchbase.Core
                     return true;
                 });
             }
-            return result;
+            return result ?? (result = operation.GetResult());
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)

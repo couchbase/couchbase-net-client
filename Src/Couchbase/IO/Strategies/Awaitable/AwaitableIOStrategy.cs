@@ -1,28 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
-using Couchbase.Authentication.SASL;
-using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
-    internal class AwaitableIOStrategy : IOStrategy
+    internal sealed class AwaitableIOStrategy : IOStrategy
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
-        private readonly SocketAsyncEventArgsPool _asyncEventArgsPool;
+        private readonly AwaitableSocketPool _awaitableSocketPool;
         private volatile bool _disposed;
-                                        
-        public AwaitableIOStrategy(IConnectionPool connectionPool, SocketAsyncEventArgsPool asyncEventArgsPool)
+
+        public AwaitableIOStrategy(IConnectionPool connectionPool) 
+            : this(connectionPool, new AwaitableSocketPool(connectionPool, AwaitableSocketFactory.GetSocketAwaitable()))
+        {
+        }
+       
+        public AwaitableIOStrategy(IConnectionPool connectionPool, AwaitableSocketPool awaitableSocketPool)
         {
             _connectionPool = connectionPool;
-            _asyncEventArgsPool = asyncEventArgsPool;
+            _awaitableSocketPool = awaitableSocketPool;
         }
 
         public IPEndPoint EndPoint
@@ -35,78 +40,73 @@ namespace Couchbase.IO.Strategies.Awaitable
             get { return _connectionPool; }
         }
 
+        public IOperationResult<T> Execute<T>(IOperation<T> operation)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
         {
-            await Send(operation);
+            var socketAwaitable = _awaitableSocketPool.Acquire();
+            var socketAsync = socketAwaitable.EventArgs;
+
+            var buffer = operation.GetBuffer();
+            _log.Debug(m => m("writing buffer...{0} bytes", buffer.Length));
+
+             socketAsync.SetBuffer(buffer, 0, buffer.Length);
+
+            _log.Debug(m => m("sending buffer...{0} bytes", buffer.Length));
+ 
+            await socketAwaitable.SendAsync();
+            await Receive(operation, socketAwaitable);
+
+            _log.Debug(m => m("sent buffer...{0} bytes", buffer.Length));
+            _awaitableSocketPool.Release(socketAwaitable);
             return operation.GetResult();
-        }
+        }       
 
         public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
-            await Send(operation, new OperationAsyncState
+            var eventArgs = new SocketAsyncEventArgs
             {
-                Connection = connection,
-                OperationId = operation.SequenceId
-            });
-            return operation.GetResult();
-        }
-
-        public IOperationResult<T> Execute<T>(IOperation<T> operation)
-        {
-            Send(operation);
-            return operation.GetResult();
-        }
-
-        async Task Send<T>(IOperation<T> operation, OperationAsyncState operationAsyncState)
-        {
+                AcceptSocket = connection.Socket,
+                UserToken = new OperationAsyncState
+                {
+                    Connection = connection
+                }
+            };
+            var socketAwaitable = new SocketAwaitable(eventArgs);
+            
             var buffer = operation.GetBuffer();
-            var receiveEventArgs = new SocketAsyncEventArgs();
-            receiveEventArgs.UserToken = operationAsyncState;
-            receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
+            socketAwaitable.EventArgs.SetBuffer(buffer, 0, buffer.Length);
 
-            Log.Debug(m => m("Send Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, operationAsyncState.Connection.Socket.Handle));
-
-            var awaitable = new SocketAwaitable(receiveEventArgs);
-            await operationAsyncState.Connection.Socket.SendAsync(awaitable);
-            await Receive(operation, operationAsyncState);
+            await socketAwaitable.SendAsync();
+            await Receive(operation, socketAwaitable);
+            return operation.GetResult();
         }
 
-        async Task Send<T>(IOperation<T> operation)
+        private async Task Receive<T>(IOperation<T> operation, SocketAwaitable socketAwaitable)
         {
-            var connection = _connectionPool.Acquire();
-
-            await Send(operation, new OperationAsyncState
-            {
-                Connection = connection,
-                OperationId = operation.SequenceId
-            });
-
-            _connectionPool.Release(connection);
-        }
-
-        async Task Receive<T>(IOperation<T> operation, OperationAsyncState state)
-        {
-            var args = new SocketAsyncEventArgs();
-            args.SetBuffer(state.Buff, 0, state.Buff.Length);
-            var awaitable = new SocketAwaitable(args);
-
+            var eventArgs = socketAwaitable.EventArgs;
+            var state = (OperationAsyncState)eventArgs.UserToken;
+            socketAwaitable.EventArgs.SetBuffer(state.Buffer, 0, state.Buffer.Length);
+            
             do
             {
-                Log.Debug(m => m("Receive Thread: {0} socket: {1}", Thread.CurrentThread.ManagedThreadId, state.Connection.Socket.Handle));
-                
-                await state.Connection.Socket.ReceiveAsync(awaitable);
-                state.BytesSent += args.BytesTransferred;
-                state.Data.Write(state.Buff, 0,  args.BytesTransferred);
-                args.SetBuffer(state.Buff, 0, state.Buff.Length);
+                await socketAwaitable.ReceiveAsync();
+                state.BytesReceived += eventArgs.BytesTransferred;
+                state.Data.Write(eventArgs.Buffer, eventArgs.Offset, eventArgs.Count);
+                _log.Debug(m => m("receive...{0} bytes", state.BytesReceived));
 
-                if (operation.Header.BodyLength== 0)
+                if (operation.Header.BodyLength == 0)
                 {
                     CreateHeader(operation, state);
                 }
             } 
-            while (state.BytesSent < operation.Header.TotalLength);
+            while (state.BytesReceived < operation.Header.TotalLength);
 
             CreateBody(operation, state);
+            state.Reset();
         }
 
         static void CreateHeader<T>(IOperation<T> operation, OperationAsyncState state)

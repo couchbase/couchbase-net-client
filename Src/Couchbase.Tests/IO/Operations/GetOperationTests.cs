@@ -46,10 +46,20 @@ namespace Couchbase.Tests.IO.Operations
             }
         }
 
-        [TearDown]
-        public void TearDown()
+        [Test]
+        public void When_Get_Follows_Set_Operation_Is_Correct()
         {
-            
+            const string key = "getsetkey";
+            const string value = "the value";
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                var setResponse = bucket.Insert(key, value);
+                Assert.IsTrue(setResponse.Success);
+
+                var getResponse = bucket.Get<string>(key);
+                Assert.IsTrue(getResponse.Success);
+                Assert.AreEqual(value, getResponse.Value);
+            }
         }
 
         [TestFixtureTearDown]
