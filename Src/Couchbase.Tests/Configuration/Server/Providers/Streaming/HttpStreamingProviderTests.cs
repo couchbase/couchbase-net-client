@@ -10,6 +10,7 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.FileSystem;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             var configuration = new ClientConfiguration();
             _provider = new HttpStreamingProvider(
                 configuration,
-                pool => new AwaitableIOStrategy(pool, null),
+                pool => new SocketAsyncStrategy(pool), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint));
 
             _provider.Start();

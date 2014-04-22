@@ -136,6 +136,7 @@
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
     <Compile Include="IO\Strategies\Async\AsyncOperationToken.cs" />
+    <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />

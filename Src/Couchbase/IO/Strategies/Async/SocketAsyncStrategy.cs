@@ -34,15 +34,10 @@ namespace Couchbase.IO.Strategies.Async
             _socketAsyncPool = socketAsyncPool;
         }
 
-        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
-        {
-            throw new NotImplementedException();
-        }
-
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
-            WaitEvent.WaitOne();
             var socketAsync = _socketAsyncPool.Acquire();
+            WaitEvent.WaitOne();
             socketAsync.Completed -= OnCompleted;
             socketAsync.Completed += OnCompleted;
            
@@ -171,9 +166,37 @@ namespace Couchbase.IO.Strategies.Async
             };
         }
 
-        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
-            throw new NotImplementedException();
+            var socketAsync = new SocketAsyncEventArgs
+                {
+                    AcceptSocket = connection.Socket,
+                    UserToken = new OperationAsyncState
+                    {
+                        Connection = connection
+                    }
+                };
+            WaitEvent.WaitOne();
+            socketAsync.Completed -= OnCompleted;
+            socketAsync.Completed += OnCompleted;
+           
+            var state = (OperationAsyncState)socketAsync.UserToken;
+            state.Reset();
+
+            var socket = state.Connection.Socket;
+            _log.Debug(m=>m("sending key {0}", operation.Key));
+
+            var buffer = operation.GetBuffer();
+            socketAsync.SetBuffer(buffer, 0, buffer.Length);
+            socket.SendAsync(socketAsync);
+            WaitEvent.Reset();    
+            SendEvent.WaitOne();//needs cancellation token timeout
+            
+            operation.Header = state.Header;
+            operation.Body = state.Body;
+
+            WaitEvent.Set();
+            return operation.GetResult();
         }
 
         public IPEndPoint EndPoint

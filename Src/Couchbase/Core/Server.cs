@@ -7,6 +7,7 @@ using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.N1QL;
 using Couchbase.Views;
 
@@ -19,7 +20,7 @@ namespace Couchbase.Core
         private readonly IOStrategy _ioStrategy;
         private readonly ISaslMechanism _saslMechanism;
         private bool _disposed;
-
+        
         public Server(IOStrategy ioStrategy) : 
             this(ioStrategy, 
             new ViewClient(new HttpClient(), new JsonDataMapper()), 
@@ -53,7 +54,7 @@ namespace Couchbase.Core
         {
             ConnectionPool.Initialize();
 
-            var isAuthenticated = true;//_saslMechanism.Authenticate(username, password);
+            var isAuthenticated = _saslMechanism.Authenticate(username, password);
             if (isAuthenticated) return;
             var message = string.Format("Could not authenticate: {0}. See logs for details.", username);
             throw new AuthenticationException(message);
@@ -76,29 +77,6 @@ namespace Couchbase.Core
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             return _ioStrategy.Execute(operation);
-        }
-
-        public IOperationResult<T> Send2<T>(IOperation<T> operation)
-        {
-            Log.Debug(m=>m("Starting {0} operation for key {1}", operation.OperationCode, operation.Key));
-
-            IOperationResult<T> result = null;
-            var task = _ioStrategy.ExecuteAsync(operation);
-
-            try
-            {
-                task.Wait(); //TODO provide a timeout
-                result = task.Result;
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    Log.Error(e);
-                    return true;
-                });
-            }
-            return result ?? (result = operation.GetResult());
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)

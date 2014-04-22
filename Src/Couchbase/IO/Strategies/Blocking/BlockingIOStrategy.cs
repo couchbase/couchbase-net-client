@@ -74,7 +74,7 @@ namespace Couchbase.IO.Strategies.Blocking
         }
 
 
-        public System.Threading.Tasks.Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
+        public IOperationResult<T> ExecuteAsync<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
@@ -123,7 +123,7 @@ namespace Couchbase.IO.Strategies.Blocking
         }
 
 
-        public System.Threading.Tasks.Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
             throw new NotImplementedException();
         }

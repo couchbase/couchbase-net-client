@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.Tests.Helpers
@@ -16,7 +17,7 @@ namespace Couchbase.Tests.Helpers
         internal static IOStrategy CreateIOStrategy(string server)
         {
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(server));
-            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
+            var ioStrategy = new SocketAsyncStrategy(connectionPool, null);
             return ioStrategy;
         }
 
@@ -24,7 +25,7 @@ namespace Couchbase.Tests.Helpers
         {
             var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString());
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(server));
-            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
+            var ioStrategy = new SocketAsyncStrategy(connectionPool, null);
             return ioStrategy;
         }
     }

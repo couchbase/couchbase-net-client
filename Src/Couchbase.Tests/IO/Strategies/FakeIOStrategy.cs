@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Fakes;
 
 namespace Couchbase.Tests.IO.Strategies
 {
     internal class FakeIOStrategy<K>: IOStrategy where K : class
     {
         private K _operation;
+        private IConnectionPool _connectionPool = new FakeConnectionPool();
 
         public FakeIOStrategy(K operation)
         {
@@ -29,25 +31,20 @@ namespace Couchbase.Tests.IO.Strategies
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
-        {
-            operation = (IOperation<T>)_operation;
-            return Task.Run(() => operation.GetResult());
-        }
-
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
-            throw new NotImplementedException();
+            operation = (IOperation<T>)_operation;
+            return Task.Run(() => operation.GetResult()).Result;
         }
 
         public IPEndPoint EndPoint
         {
-            get { throw new NotImplementedException(); }
+            get { return _connectionPool.EndPoint; }
         }
 
         public IConnectionPool ConnectionPool
         {
-            get { throw new NotImplementedException(); }
+            get { return _connectionPool; }
         }
 
         public void Dispose()
@@ -55,7 +52,7 @@ namespace Couchbase.Tests.IO.Strategies
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
             throw new NotImplementedException();
         }

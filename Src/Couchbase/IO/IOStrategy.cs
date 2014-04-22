@@ -10,9 +10,7 @@ namespace Couchbase.IO
 {
     internal interface IOStrategy : IDisposable
     {
-        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation);
-
-        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection);
+        IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection);
 
         IOperationResult<T> Execute<T>(IOperation<T> operation);
 

@@ -20,7 +20,7 @@ namespace Couchbase.IO.Strategies.Async
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
         private readonly IConnectionPool _connectionPool;
         private readonly object _lock = new object();
-        private int _count;
+        private volatile int _count;
         private bool _disposed;
 
         public SocketAsyncPool(IConnectionPool connectionPool, Func<IConnectionPool, BufferAllocator, SocketAsyncEventArgs> socketAsyncFactory)
@@ -35,7 +35,7 @@ namespace Couchbase.IO.Strategies.Async
             SocketAsyncEventArgs socketAsync;
             if (_pool.TryDequeue(out socketAsync))
             {
-                _log.Debug(m => m("Acquire existing socketAwaitable: {0} [{1}, {2}]", socketAsync.GetHashCode(), _count, _pool.Count));
+                _log.Debug(m => m("Acquire existing SocketAsyncEventArgs: {0} [{1}, {2}]", socketAsync.GetHashCode(), _count, _pool.Count));
                 return socketAsync;
             }
 
@@ -44,7 +44,7 @@ namespace Couchbase.IO.Strategies.Async
                 if (_count < _connectionPool.Configuration.MaxSize)
                 {
                     socketAsync = _factory(_connectionPool, _bufferAllocator);
-                    _log.Debug(m => m("Acquire new socketAwaitable: {0}", socketAsync.GetHashCode()));
+                    _log.Debug(m => m("Acquire new SocketAsyncEventArgs: {0}", socketAsync.GetHashCode()));
                     Interlocked.Increment(ref _count);
                     return socketAsync;
                 }
@@ -52,13 +52,13 @@ namespace Couchbase.IO.Strategies.Async
 
             _autoResetEvent.WaitOne(_connectionPool.Configuration.WaitTimeout);
 
-            _log.Debug(m => m("No socketAwaitable currently available. Trying again."));
+            _log.Debug(m => m("No SocketAsyncEventArgs currently available. Trying again."));
             return Acquire();
         }
 
         public void Release(SocketAsyncEventArgs socketAsync)
         {
-            _log.Debug(m => m("Releasing socketAwaitable: {0} [{1}, {2}]", socketAsync.GetHashCode(), _count, _pool.Count));
+            _log.Debug(m => m("Releasing SocketAsyncEventArgs: {0} [{1}, {2}]", socketAsync.GetHashCode(), _count, _pool.Count));
 
             _pool.Enqueue(socketAsync);
             _autoResetEvent.Set();

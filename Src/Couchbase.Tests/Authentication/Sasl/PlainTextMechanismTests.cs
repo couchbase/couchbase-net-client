@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
@@ -14,7 +15,7 @@ namespace Couchbase.Tests.Authentication.Sasl
     [TestFixture]
     public class PlainTextMechanismTests
     {
-        private AwaitableIOStrategy _ioStrategy;
+        private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
 
@@ -25,7 +26,7 @@ namespace Couchbase.Tests.Authentication.Sasl
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new AwaitableIOStrategy(_connectionPool, null);
+            _ioStrategy = new SocketAsyncStrategy(_connectionPool, null);
         }
 
         [Test]

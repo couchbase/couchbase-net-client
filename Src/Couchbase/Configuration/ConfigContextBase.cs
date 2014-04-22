@@ -8,6 +8,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Utils;
 
@@ -26,7 +27,7 @@ namespace Couchbase.Configuration
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
-            : this(bucketConfig, clientConfig, pool => new AwaitableIOStrategy(pool, null),
+            : this(bucketConfig, clientConfig, pool => new SocketAsyncStrategy(pool), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint))
         {
         }

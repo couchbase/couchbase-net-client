@@ -18,8 +18,8 @@ namespace tester
         {
             var config = new ClientConfiguration(new PoolConfiguration()
             {
-                MaxSize = 1,
-                MinSize = 1
+                MaxSize = 10,
+                MinSize = 10
             });
 
             _cluster = new Cluster(config);
@@ -29,7 +29,7 @@ namespace tester
 
             using (var timer = new OperationTimer())
             {
-                //ThreadPoolInsert(bucket, n);
+                ThreadPoolInsert(bucket, n);
                //ThreadPoolInsert(bucket, n);
                 //SynchronousInsert(bucket, n);
               ParallerInsert(bucket, n);
@@ -104,7 +104,7 @@ namespace tester
 
         static void ParallerInsert(IBucket bucket, int n)
         {
-            var options = new ParallelOptions {MaxDegreeOfParallelism = 8};
+            var options = new ParallelOptions {/*MaxDegreeOfParallelism = 8*/};
             
             Parallel.For(0, n, options, i =>
             {

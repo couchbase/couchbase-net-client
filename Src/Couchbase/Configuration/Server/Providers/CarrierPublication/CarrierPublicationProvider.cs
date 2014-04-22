@@ -9,6 +9,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Utils;
 
@@ -56,15 +57,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
 
             var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
-            var ioStrategy = new AwaitableIOStrategy(connectionPool, null);
-            var task = ioStrategy.ExecuteAsync(new ConfigOperation());
-
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);//this needs to be configurable
             IConfigInfo configInfo = null;
 
             try
             {
-                task.Wait();
-                var operationResult = task.Result;
+                var operationResult = ioStrategy.Execute(new ConfigOperation());
                 if (operationResult.Success)
                 {
                     var bucketConfig = operationResult.Value;
@@ -74,13 +72,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     _configs[bucketName] = configInfo;
                 }
             } 
-            catch (AggregateException ae)
+            catch (Exception e)
             {
-                ae.Flatten().Handle(e =>
-                {
-                    Log.Error(e);
-                    return true;
-                });
+                Log.Error(e);
             }
             return configInfo;
         }

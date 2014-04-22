@@ -43,12 +43,11 @@ namespace Couchbase.Authentication.SASL
                 var temp = connection;
                 Log.Debug(m=>m("Authenticating socket {0}", temp.Identity));
 
-                var operation = new SaslAuthenticate(MechanismType, username, password);
-                var task = _strategy.ExecuteAsync(operation, connection);
                 try
                 {
-                    task.Wait();
-                    var result = task.Result;
+                    var operation = new SaslAuthenticate(MechanismType, username, password);
+                    var result = _strategy.Execute(operation, connection);
+
                     if (!result.Success &&
                         result.Status == ResponseStatus.AuthenticationError)
                     {
@@ -56,20 +55,12 @@ namespace Couchbase.Authentication.SASL
                         authenticated = false;
                         break;
                     }
-                    else
-                    {
-                        Log.Debug(m => m("Authenticated socket {0} succeeded: {1}", temp.Identity, result.Value));
-                    }
+                    Log.Debug(m => m("Authenticated socket {0} succeeded: {1}", temp.Identity, result.Value));
                 }
-                catch (AggregateException ae)
+                catch (Exception e)
                 {
-                    ae.Flatten().Handle(e =>
-                    {
-                        Log.Error(e);
-                        return true;
-                    });
                     authenticated = false;
-                    break;
+                    Log.Error(e);
                 }
             }
             return authenticated;

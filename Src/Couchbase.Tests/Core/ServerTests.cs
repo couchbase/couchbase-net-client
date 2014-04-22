@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
 using NUnit.Framework;
@@ -22,7 +23,9 @@ namespace Couchbase.Tests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            _server = new Server(ObjectFactory.CreateIOStrategy(Address));
+            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            _server = new Server(ioStrategy);
         }
 
         [Test]

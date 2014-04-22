@@ -36,10 +36,28 @@ namespace Couchbase.Core
         {
         }
 
+       /* private static Func<IConnectionPool, IOStrategy> GetStrategy()
+        {
+            return pool =>
+            {
+                var strategy = new CompositeIOStrategy(10, new TimeSpan(0, 0, 0, 5),
+                    p => new SocketAsyncStrategy(p),
+                    pool);
+                return strategy;
+            };
+        }
+
+        public ClusterManager(ClientConfiguration clientConfig)
+            : this(clientConfig,
+            GetStrategy(),
+            (config, endpoint) => new DefaultConnectionPool(config, endpoint))
+        {
+        }*/
+
         public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory) 
             : this(clientConfig, 
             ioStrategyFactory, 
-            (config, enpoint)=>new DefaultConnectionPool(config, enpoint))
+            (config, endpoint)=>new DefaultConnectionPool(config, endpoint))
         {
         }
 
