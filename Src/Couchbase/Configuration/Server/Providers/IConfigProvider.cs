@@ -13,6 +13,8 @@ namespace Couchbase.Configuration.Server.Providers
 
         IConfigInfo GetConfig(string name);
 
+        IConfigInfo GetConfig(string name, string password);
+
         void Start();
 
         bool RegisterListener(IConfigListener listener);

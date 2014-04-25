@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.IO.Strategies.Awaitable;
+﻿using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
+using System.Net.Sockets;
 
 namespace Couchbase.Tests.IO.Strategies.Awaitable
 {
@@ -18,7 +13,7 @@ namespace Couchbase.Tests.IO.Strategies.Awaitable
         public void SetUp()
         {
             //Create space for up to 1000 objects
-            _bufferAllocator = new BufferAllocator(1000*512, 512);
+            _bufferAllocator = new BufferAllocator(1000 * 512, 512);
         }
 
         [Test]

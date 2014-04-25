@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Common.Logging;
+﻿using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -15,7 +9,12 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Security.Authentication;
 
 namespace Couchbase.Core
 {
@@ -29,35 +28,17 @@ namespace Couchbase.Core
         private Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private bool _disposed;
 
-        public ClusterManager(ClientConfiguration clientConfig) 
-            : this(clientConfig, 
-            pool => new SocketAsyncStrategy(pool), 
-            (config, endpoint) =>new DefaultConnectionPool(config, endpoint))
-        {
-        }
-
-       /* private static Func<IConnectionPool, IOStrategy> GetStrategy()
-        {
-            return pool =>
-            {
-                var strategy = new CompositeIOStrategy(10, new TimeSpan(0, 0, 0, 5),
-                    p => new SocketAsyncStrategy(p),
-                    pool);
-                return strategy;
-            };
-        }
-
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            GetStrategy(),
+            pool => new SocketAsyncStrategy(pool, new PlainTextMechanism("default", string.Empty)),
             (config, endpoint) => new DefaultConnectionPool(config, endpoint))
         {
-        }*/
+        }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory) 
-            : this(clientConfig, 
-            ioStrategyFactory, 
-            (config, endpoint)=>new DefaultConnectionPool(config, endpoint))
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
+            : this(clientConfig,
+            ioStrategyFactory,
+            (config, endpoint) => new DefaultConnectionPool(config, endpoint))
         {
         }
 
@@ -72,11 +53,11 @@ namespace Couchbase.Core
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 
         //TODO possibly make providers instantiation configurable...maybe. perhaps.
-        void Initialize()
+        private void Initialize()
         {
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
+            //_configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
             _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
-            _configProviders.ForEach(x=>x.Start());
+            _configProviders.ForEach(x => x.Start());
         }
 
         public IConfigProvider GetProvider(string name)
@@ -101,21 +82,20 @@ namespace Couchbase.Core
                 try
                 {
                     Log.DebugFormat("Trying to boostrap with {0}.", provider);
-                    var config = provider.GetConfig(bucketName);
+                    var config = provider.GetConfig(bucketName, password);
                     switch (config.NodeLocator)
                     {
                         case NodeLocatorEnum.VBucket:
                             bucket = new CouchbaseBucket(this, bucketName);
                             break;
+
                         case NodeLocatorEnum.Ketama:
                             bucket = new MemcachedBucket(this, bucketName);
                             break;
+
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-
-                    //Autenticate the connections
-                    config.Authenticate(bucketName, password);
 
                     var listener = bucket as IConfigListener;
                     if (provider.RegisterListener(listener) &&
@@ -135,6 +115,10 @@ namespace Couchbase.Core
                 {
                     Log.Warn(e);
                 }
+                catch (AuthenticationException e)
+                {
+                    Log.Warn(e);
+                }
             }
 
             if (!success)
@@ -144,12 +128,12 @@ namespace Couchbase.Core
             return bucket;
         }
 
-        IServer CreateServer(Node node)
+        private IServer CreateServer(Node node)
         {
             throw new NotImplementedException();
         }
 
-        IKeyMapper CreateMapper()
+        private IKeyMapper CreateMapper()
         {
             throw new NotImplementedException();
         }
@@ -195,7 +179,7 @@ namespace Couchbase.Core
                 }
                 foreach (var pair in _buckets)
                 {
-                   DestroyBucket(pair.Value);
+                    DestroyBucket(pair.Value);
                 }
                 _disposed = true;
             }

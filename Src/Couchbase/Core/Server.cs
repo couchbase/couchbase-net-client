@@ -50,16 +50,6 @@ namespace Couchbase.Core
             _saslMechanism = saslMechanism;
         }
 
-        public void Authenticate(string username, string password)
-        {
-            ConnectionPool.Initialize();
-
-            var isAuthenticated = _saslMechanism.Authenticate(username, password);
-            if (isAuthenticated) return;
-            var message = string.Format("Could not authenticate: {0}. See logs for details.", username);
-            throw new AuthenticationException(message);
-        }
-
         public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }
 
         public IConnectionPool ConnectionPool { get { return _ioStrategy.ConnectionPool; } }

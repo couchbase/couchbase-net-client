@@ -1,24 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.IO;
-using NUnit.Framework;
+using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Tests.Fakes
 {
     internal class FakeConnectionPool : IConnectionPool
     {
         private IEnumerable<IConnection> _connections = new List<IConnection>();
+
         public FakeConnectionPool()
         {
             EndPoint = Server.GetEndPoint("127.0.01:8091");
-
-
         }
+
         public IConnection Acquire()
         {
             throw new NotImplementedException();
@@ -41,7 +36,9 @@ namespace Couchbase.Tests.Fakes
 
         public System.Net.IPEndPoint EndPoint
         {
-            get; set; }
+            get;
+            set;
+        }
 
         public void Initialize()
         {

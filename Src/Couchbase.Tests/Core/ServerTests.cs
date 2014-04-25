@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;

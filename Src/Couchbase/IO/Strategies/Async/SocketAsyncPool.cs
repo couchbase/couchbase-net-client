@@ -14,7 +14,7 @@ namespace Couchbase.IO.Strategies.Async
     internal class SocketAsyncPool
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
-        private readonly BufferAllocator _bufferAllocator = new BufferAllocator(50000 * 512, 512);
+        private readonly BufferAllocator _bufferAllocator = new BufferAllocator(500 * 512, 512);
         private readonly ConcurrentQueue<SocketAsyncEventArgs> _pool = new ConcurrentQueue<SocketAsyncEventArgs>();
         private readonly Func<IConnectionPool, BufferAllocator, SocketAsyncEventArgs> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
@@ -27,7 +27,6 @@ namespace Couchbase.IO.Strategies.Async
         {
             _connectionPool = connectionPool;
             _factory = socketAsyncFactory;
-            Initialize();
         }
 
         public SocketAsyncEventArgs Acquire()

@@ -1,8 +1,8 @@
-﻿using System;
-using System.Net;
-using Couchbase.Configuration.Client;
+﻿using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
+using System;
+using System.Net;
 
 namespace Couchbase
 {
@@ -30,21 +30,20 @@ namespace Couchbase
             _clusterManager = new ClusterManager(_config);
         }
 
-        public Cluster() 
+        public Cluster()
             : this(new ClientConfiguration())
         {
         }
 
-        void Initialize()
+        private void Initialize()
         {
-            
         }
 
         public IBucket OpenBucket(string bucketName, string password)
         {
             return _clusterManager.CreateBucket(bucketName, password);
         }
-        
+
         public IBucket OpenBucket(string bucketName)
         {
             return _clusterManager.CreateBucket(bucketName);
@@ -64,8 +63,8 @@ namespace Couchbase
             _clusterManager.Dispose();
         }
 
-        //TODO: not sure what to do here if bucket doesn't exist...the current impl is to throw a BucketNotFoundException. I am 
-        //not sure if this is the correct behavior, since it's causing me some grief with my unit tests and I can assume that 
+        //TODO: not sure what to do here if bucket doesn't exist...the current impl is to throw a BucketNotFoundException. I am
+        //not sure if this is the correct behavior, since it's causing me some grief with my unit tests and I can assume that
         //users will run into the same grief
         public void CloseBucket(IBucket bucket)
         {

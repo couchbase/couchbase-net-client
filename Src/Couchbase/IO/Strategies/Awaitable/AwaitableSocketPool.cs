@@ -1,12 +1,7 @@
-﻿using System;
+﻿using Common.Logging;
+using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Common.Logging;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
@@ -33,7 +28,7 @@ namespace Couchbase.IO.Strategies.Awaitable
             SocketAwaitable socketAwaitable;
             if (_pool.TryDequeue(out socketAwaitable))
             {
-                Log.Debug(m=>m("Acquire existing socketAwaitable: {0} [{1}, {2}]", socketAwaitable.GetHashCode(), _count, _pool.Count));
+                Log.Debug(m => m("Acquire existing socketAwaitable: {0} [{1}, {2}]", socketAwaitable.GetHashCode(), _count, _pool.Count));
                 return socketAwaitable;
             }
 

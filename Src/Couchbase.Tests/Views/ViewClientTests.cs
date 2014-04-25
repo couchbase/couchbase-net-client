@@ -16,8 +16,8 @@ namespace Couchbase.Tests.Views
         public void Test()
         {
             var query = new ViewQuery(false).
-                From("default", "cities").
-                View("by_name");
+                From("beer-sample", "beer").
+                View("brewery_beers");
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());
             var result = client.Execute<dynamic>(query);

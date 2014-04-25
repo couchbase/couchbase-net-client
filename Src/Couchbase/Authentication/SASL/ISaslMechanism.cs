@@ -15,6 +15,10 @@ namespace Couchbase.Authentication.SASL
 
         string MechanismType { get; }
 
-        bool Authenticate(string username, string password);
+        bool Authenticate(IConnection connectionstring, string username, string password);
+
+        bool Authenticate(IConnection connection);
+
+        IOStrategy IOStrategy { set; }
     }
 }

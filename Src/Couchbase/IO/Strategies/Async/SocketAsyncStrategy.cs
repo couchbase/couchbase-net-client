@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Common.Logging;
-using Couchbase.Configuration.Server.Providers;
+﻿using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Threading;
 
 namespace Couchbase.IO.Strategies.Async
 {
@@ -20,11 +17,19 @@ namespace Couchbase.IO.Strategies.Async
         private readonly IConnectionPool _connectionPool;
         private readonly SocketAsyncPool _socketAsyncPool;
         private volatile bool _disposed;
-        private static readonly AutoResetEvent WaitEvent= new AutoResetEvent(true);
+        private static readonly AutoResetEvent WaitEvent = new AutoResetEvent(true);
         private static readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
+        private ISaslMechanism _saslMechanism;
 
         public SocketAsyncStrategy(IConnectionPool connectionPool)
-            : this(connectionPool, new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()))
+            : this(connectionPool,
+            new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()),
+            new PlainTextMechanism("default", string.Empty))
+        {
+        }
+
+        public SocketAsyncStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
+            : this(connectionPool, new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()), saslMechanism)
         {
         }
 
@@ -34,50 +39,124 @@ namespace Couchbase.IO.Strategies.Async
             _socketAsyncPool = socketAsyncPool;
         }
 
+        public SocketAsyncStrategy(IConnectionPool connectionPool, SocketAsyncPool socketAsyncPool, ISaslMechanism saslMechanism)
+        {
+            _connectionPool = connectionPool;
+            _socketAsyncPool = socketAsyncPool;
+            _saslMechanism = saslMechanism;
+            _saslMechanism.IOStrategy = this;
+        }
+
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
+        {
+            var socketAsync = new SocketAsyncEventArgs
+            {
+                AcceptSocket = connection.Socket,
+                UserToken = new OperationAsyncState
+                {
+                    Connection = connection
+                }
+            };
+            socketAsync.Completed -= OnCompleted;
+            socketAsync.Completed += OnCompleted;
+
+            var state = (OperationAsyncState)socketAsync.UserToken;
+            state.Reset();
+
+            var socket = state.Connection.Socket;
+            _log.Debug(m => m("sending key {0}", operation.Key));
+
+            var buffer = operation.GetBuffer();
+            socketAsync.SetBuffer(buffer, 0, buffer.Length);
+            socket.SendAsync(socketAsync);
+            SendEvent.WaitOne();//needs cancellation token timeout
+
+            operation.Header = state.Header;
+            operation.Body = state.Body;
+
+            return operation.GetResult();
+        }
+
+        private void Authenticate(IConnection connection)
+        {
+            if (_saslMechanism != null)
+            {
+                var result = _saslMechanism.Authenticate(connection);
+                if (result)
+                {
+                    connection.IsAuthenticated = true;
+                }
+                else
+                {
+                    throw new AuthenticationException(_saslMechanism.Username);
+                }
+            }
+        }
+
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             var socketAsync = _socketAsyncPool.Acquire();
             WaitEvent.WaitOne();
             socketAsync.Completed -= OnCompleted;
             socketAsync.Completed += OnCompleted;
-           
+
             var state = (OperationAsyncState)socketAsync.UserToken;
             state.Reset();
 
-            var socket = state.Connection.Socket;
-            _log.Debug(m=>m("sending key {0}", operation.Key));
+            try
+            {
+                var connection = state.Connection;
+                if (!connection.IsAuthenticated)
+                {
+                    Authenticate(state.Connection);
+                }
 
-            var buffer = operation.GetBuffer();
-            socketAsync.SetBuffer(buffer, 0, buffer.Length);
-            socket.SendAsync(socketAsync);
-            WaitEvent.Reset();    
-            SendEvent.WaitOne();//needs cancellation token timeout
-            
-            operation.Header = state.Header;
-            operation.Body = state.Body;
+                var socket = state.Connection.Socket;
+                _log.Debug(m => m("sending key {0} using {1}", operation.Key, state.Connection.Identity));
 
-            _socketAsyncPool.Release(socketAsync);
+                var buffer = operation.GetBuffer();
+                socketAsync.SetBuffer(buffer, 0, buffer.Length);
+                socket.SendAsync(socketAsync);
+                WaitEvent.Reset();
+                SendEvent.WaitOne(); //needs cancellation token timeout
 
-            WaitEvent.Set();
+                operation.Header = state.Header;
+                operation.Body = state.Body;
+            }
+            catch (AuthenticationException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _log.Error(e);
+            }
+            finally
+            {
+                _socketAsyncPool.Release(socketAsync);
+                WaitEvent.Set();
+            }
             return operation.GetResult();
         }
 
-        void OnCompleted(object sender, SocketAsyncEventArgs e)
+        private void OnCompleted(object sender, SocketAsyncEventArgs e)
         {
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
                     Receive(e);
                     break;
+
                 case SocketAsyncOperation.Send:
                     Send(e);
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        static void Send(SocketAsyncEventArgs e)
+        private static void Send(SocketAsyncEventArgs e)
         {
             //_log.Debug(m=>m("send..."));
             if (e.SocketError == SocketError.Success)
@@ -103,10 +182,10 @@ namespace Couchbase.IO.Strategies.Async
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    var state = (OperationAsyncState) e.UserToken;
+                    var state = (OperationAsyncState)e.UserToken;
                     state.BytesReceived += e.BytesTransferred;
                     state.Data.Write(e.Buffer, e.Offset, e.Count);
-                   // _log.Debug(m => m("receive...{0} bytes of {1} offset {2}", state.BytesReceived, e.Count, e.Offset));
+                    // _log.Debug(m => m("receive...{0} bytes of {1} offset {2}", state.BytesReceived, e.Count, e.Offset));
 
                     if (state.Header.BodyLength == 0)
                     {
@@ -131,13 +210,13 @@ namespace Couchbase.IO.Strategies.Async
                 }
                 else
                 {
-                    throw new SocketException((int) e.SocketError);
+                    throw new SocketException((int)e.SocketError);
                 }
                 break;
             }
         }
 
-        static void CreateHeader(OperationAsyncState state)
+        private static void CreateHeader(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
             if (buffer.Length > 0)
@@ -156,7 +235,7 @@ namespace Couchbase.IO.Strategies.Async
             }
         }
 
-        static void CreateBody(OperationAsyncState state)
+        private static void CreateBody(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
             state.Body = new OperationBody
@@ -166,37 +245,9 @@ namespace Couchbase.IO.Strategies.Async
             };
         }
 
-        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
+        public ISaslMechanism SaslMechanism
         {
-            var socketAsync = new SocketAsyncEventArgs
-                {
-                    AcceptSocket = connection.Socket,
-                    UserToken = new OperationAsyncState
-                    {
-                        Connection = connection
-                    }
-                };
-            WaitEvent.WaitOne();
-            socketAsync.Completed -= OnCompleted;
-            socketAsync.Completed += OnCompleted;
-           
-            var state = (OperationAsyncState)socketAsync.UserToken;
-            state.Reset();
-
-            var socket = state.Connection.Socket;
-            _log.Debug(m=>m("sending key {0}", operation.Key));
-
-            var buffer = operation.GetBuffer();
-            socketAsync.SetBuffer(buffer, 0, buffer.Length);
-            socket.SendAsync(socketAsync);
-            WaitEvent.Reset();    
-            SendEvent.WaitOne();//needs cancellation token timeout
-            
-            operation.Header = state.Header;
-            operation.Body = state.Body;
-
-            WaitEvent.Set();
-            return operation.GetResult();
+            set { _saslMechanism = value; }
         }
 
         public IPEndPoint EndPoint

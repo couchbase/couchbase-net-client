@@ -1,16 +1,15 @@
-﻿using System;
+﻿using Couchbase.Core;
+using Couchbase.Core.Serializers;
+using Couchbase.IO.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
-using Couchbase.Core.Serializers;
-using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
-    abstract class OperationBase<T> : IOperation<T>
+    internal abstract class OperationBase<T> : IOperation<T>
     {
         public const int HeaderLength = 24;
         private static int _sequenceId;//needs to be resolved
@@ -19,11 +18,10 @@ namespace Couchbase.IO.Operations
         private readonly T _value;
         private readonly IVBucket _vBucket;
 
-        protected OperationBase() 
+        protected OperationBase()
             : this(string.Empty, null)
         {
-            
-        } 
+        }
 
         protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket)
         {
@@ -65,9 +63,13 @@ namespace Couchbase.IO.Operations
         }
 
         public abstract OperationCode OperationCode { get; }
+
         public string Key { get; private set; }
+
         public uint Expires { get; set; }
+
         public OperationHeader Header { get; set; }
+
         public OperationBody Body { get; set; }
 
         public virtual ArraySegment<byte> CreateExtras()
@@ -134,8 +136,8 @@ namespace Couchbase.IO.Operations
             //6 vbucket id
             if (VBucket != null)
             {
-                buffer[0x06] = (byte) (VBucket.Index >> 8);
-                buffer[0x07] = (byte) (VBucket.Index & 255);
+                buffer[0x06] = (byte)(VBucket.Index >> 8);
+                buffer[0x07] = (byte)(VBucket.Index & 255);
             }
 
             //8-11 total body length

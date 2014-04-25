@@ -61,5 +61,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             throw new NotImplementedException();
         }
+
+
+        public IConfigInfo GetConfig(string name,  string password)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

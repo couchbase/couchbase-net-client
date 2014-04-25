@@ -8,5 +8,7 @@ namespace Couchbase.IO
         Socket Socket { get; }
 
         Guid Identity { get; }
+
+        bool IsAuthenticated { get; set; }
     }
 }

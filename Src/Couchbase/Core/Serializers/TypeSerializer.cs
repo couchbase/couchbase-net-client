@@ -1,9 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using Common.Logging;
+﻿using Common.Logging;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json;
+using System;
+using System.Text;
 
 namespace Couchbase.Core.Serializers
 {
@@ -26,9 +25,11 @@ namespace Couchbase.Core.Serializers
                 case TypeCode.String:
                     bytes = GetBytes(value as string);
                     break;
+
                 case TypeCode.Int32:
                     bytes = GetBytes(Convert.ToInt32(value));
                     break;
+
                 case TypeCode.DBNull:
                     bytes = GetBytes();
                     break;
@@ -52,9 +53,11 @@ namespace Couchbase.Core.Serializers
                 case TypeCode.String:
                     value = GetString(data, headerLength + extrasLength, bodyLength - extrasLength);
                     break;
+
                 case TypeCode.Int32:
                     value = GetInt32(data);
                     break;
+
                 default:
                     value = Deserialize<T>(data, headerLength + extrasLength, bodyLength - extrasLength);
                     break;
@@ -71,17 +74,17 @@ namespace Couchbase.Core.Serializers
             return JsonConvert.DeserializeObject<T>(value);
         }
 
-        static byte[] GetBytes()
+        private static byte[] GetBytes()
         {
             return NullArray;
         }
 
-        static byte[] GetBytes(string value)
+        private static byte[] GetBytes(string value)
         {
             return Encoding.UTF8.GetBytes(value);
         }
 
-        static byte[] GetBytes(int value)
+        private static byte[] GetBytes(int value)
         {
             return BitConverter.GetBytes(value);
         }
@@ -96,7 +99,7 @@ namespace Couchbase.Core.Serializers
             return result;
         }
 
-        static string GetString(ArraySegment<byte> bytes)
+        private static string GetString(ArraySegment<byte> bytes)
         {
             var result = string.Empty;
             if (bytes.Array != null)
@@ -108,7 +111,7 @@ namespace Couchbase.Core.Serializers
             return result;
         }
 
-        static int GetInt32(ArraySegment<byte> bytes)
+        private static int GetInt32(ArraySegment<byte> bytes)
         {
             var result = 0;
             if (bytes.Array != null)

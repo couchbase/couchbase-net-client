@@ -106,5 +106,11 @@ namespace Couchbase.IO.Strategies.Async
         {
             throw new NotImplementedException();
         }
+
+
+        public Authentication.SASL.ISaslMechanism SaslMechanism
+        {
+            set { throw new NotImplementedException(); }
+        }
     }
 }

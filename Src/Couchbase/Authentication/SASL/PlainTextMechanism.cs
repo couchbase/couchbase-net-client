@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Common.Logging;
+﻿using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
+using System;
 
 namespace Couchbase.Authentication.SASL
 {
@@ -20,60 +15,65 @@ namespace Couchbase.Authentication.SASL
             _strategy = strategy;
         }
 
-        public string Username
+        public PlainTextMechanism(string username, string password)
         {
-            get { throw new NotImplementedException(); }
+            Username = username;
+            Password = password;
         }
 
-        public string Password
+        public PlainTextMechanism(IOStrategy strategy, string username, string password)
         {
-            get { throw new NotImplementedException(); }
+            _strategy = strategy;
+            Username = username;
+            Password = password;
         }
+
+        public IOStrategy IOStrategy
+        {
+            set { _strategy = value; }
+        }
+
+        public string Username { get; private set; }
+
+        public string Password { get; private set; }
 
         public string MechanismType
         {
             get { return "PLAIN"; }
         }
 
-        public bool Authenticate(string username, string password)
+        public bool Authenticate(IConnection connection)
         {
-            var authenticated = true;
-            foreach (var connection in _strategy.ConnectionPool.Connections)
+            return Authenticate(connection, Username, Password);
+        }
+
+        public bool Authenticate(IConnection connection, string username, string password)
+        {
+            var authenticated = false;
+            var temp = connection;
+            Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
+
+            try
             {
-                var temp = connection;
-                Log.Debug(m=>m("Authenticating socket {0}", temp.Identity));
+                var operation = new SaslAuthenticate(MechanismType, username, password);
+                var result = _strategy.Execute(operation, connection);
 
-                try
+                if (!result.Success &&
+                    result.Status == ResponseStatus.AuthenticationError)
                 {
-                    var operation = new SaslAuthenticate(MechanismType, username, password);
-                    var result = _strategy.Execute(operation, connection);
-
-                    if (!result.Success &&
-                        result.Status == ResponseStatus.AuthenticationError)
-                    {
-                        Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, result.Value));
-                        authenticated = false;
-                        break;
-                    }
+                    Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, result.Value));
+                }
+                else
+                {
+                    authenticated = true;
                     Log.Debug(m => m("Authenticated socket {0} succeeded: {1}", temp.Identity, result.Value));
                 }
-                catch (Exception e)
-                {
-                    authenticated = false;
-                    Log.Error(e);
-                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
             return authenticated;
-        }
-
-        public byte[] Authenticate(IO.IConnection connection)
-        {
-            throw new NotImplementedException();
-        }
-
-        public byte[] Continue(byte[] data)
-        {
-            throw new NotImplementedException();
         }
     }
 }

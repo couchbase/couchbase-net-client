@@ -26,31 +26,46 @@ namespace Couchbase.Tests.Authentication.Sasl
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool, null);
+            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
         }
 
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True()
         {
             var authenticator = new PlainTextMechanism(_ioStrategy);
-            var isAuthenticated = authenticator.Authenticate("authenticated", "secret");
-            Assert.IsTrue(isAuthenticated);
+            _ioStrategy.ConnectionPool.Initialize();
+
+            foreach (var connection in _ioStrategy.ConnectionPool.Connections)
+            {
+                var isAuthenticated = authenticator.Authenticate(connection, "authenticated", "secret");
+                Assert.IsTrue(isAuthenticated);
+            }
         }
 
         [Test]
         public void When_Valid_Invalid_Credentials_Provided_Authenticate_Returns_False()
         {
             var authenticator = new PlainTextMechanism(_ioStrategy);
-            var isAuthenticated = authenticator.Authenticate("authenticated", "badpass");
-            Assert.IsFalse(isAuthenticated);
+            _ioStrategy.ConnectionPool.Initialize();
+
+            foreach (var connection in _ioStrategy.ConnectionPool.Connections)
+            {
+                var isAuthenticated = authenticator.Authenticate(connection, "authenticated", "badpass");
+                Assert.IsFalse(isAuthenticated);
+            }
         }
 
         [Test]
         public void When_Non_Sasl_Bucket_And_Empty_Password_Authenticate_Returns_true()
         {
             var authenticator = new PlainTextMechanism(_ioStrategy);
-            var isAuthenticated = authenticator.Authenticate("default", "");
-            Assert.IsTrue(isAuthenticated);
+            _ioStrategy.ConnectionPool.Initialize();
+
+            foreach (var connection in _ioStrategy.ConnectionPool.Connections)
+            {
+                var isAuthenticated = authenticator.Authenticate(connection, "default", "");
+                Assert.IsTrue(isAuthenticated);
+            }
         }
 
         [TestFixtureTearDown]

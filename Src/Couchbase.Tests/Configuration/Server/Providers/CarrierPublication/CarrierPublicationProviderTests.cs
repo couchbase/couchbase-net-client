@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             var configuration = new ClientConfiguration();
             _provider = new CarrierPublicationProvider(
                 configuration, 
-                pool => new SocketAsyncStrategy(pool), 
+                pool => new SocketAsyncStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint));
         }
 

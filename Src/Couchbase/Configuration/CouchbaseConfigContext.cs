@@ -42,7 +42,7 @@ namespace Couchbase.Configuration
                     var endpoint = GetEndPoint(node, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
                     var ioStrategy = _ioStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy);
+                    var server = new Core.Server(ioStrategy);///this should be a Func factory...a functory
                     _servers.Add(server);
                 }
             }

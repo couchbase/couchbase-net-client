@@ -16,6 +16,8 @@ namespace Couchbase.IO
             _socket = socket;
         }
 
+        public bool IsAuthenticated { get; set; }
+
         public Guid Identity
         {
             get { return _identity; }

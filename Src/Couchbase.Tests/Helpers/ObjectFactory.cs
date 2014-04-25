@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -17,7 +18,7 @@ namespace Couchbase.Tests.Helpers
         internal static IOStrategy CreateIOStrategy(string server)
         {
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(server));
-            var ioStrategy = new SocketAsyncStrategy(connectionPool, null);
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);
             return ioStrategy;
         }
 
@@ -25,7 +26,7 @@ namespace Couchbase.Tests.Helpers
         {
             var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString());
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(server));
-            var ioStrategy = new SocketAsyncStrategy(connectionPool, null);
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);
             return ioStrategy;
         }
     }

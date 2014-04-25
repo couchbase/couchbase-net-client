@@ -127,5 +127,11 @@ namespace Couchbase.IO.Strategies.Blocking
         {
             throw new NotImplementedException();
         }
+
+
+        public Authentication.SASL.ISaslMechanism SaslMechanism
+        {
+            set { throw new NotImplementedException(); }
+        }
     }
 }

@@ -28,6 +28,5 @@ namespace Couchbase.Configuration
         BucketTypeEnum BucketType { get; }
 
         NodeLocatorEnum NodeLocator { get; }
-        void Authenticate(string username, string password);
     }
 }

@@ -44,12 +44,29 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_That_Bucket_Can_Be_Opened_When_Not_Configured()
+        {
+            var bucket = _cluster.OpenBucket("authenticated", "secret");
+            Assert.IsNotNull(bucket);
+            _cluster.CloseBucket(bucket);
+        }
+
+        [Test]
+        [ExpectedException(typeof(ConfigException))]
+        public void Test_That_Bucket_That_Doesnt_Exist_Throws_ConfigException()
+        {
+            var bucket = _cluster.OpenBucket("authenicated", "secret");
+            Assert.IsNotNull(bucket);
+            _cluster.CloseBucket(bucket);
+        }
+
+        [Test]
         public void Test_View_Query()
         {
             var bucket = (IViewSupportable)_cluster.OpenBucket("beer-sample");
             var query = new ViewQuery(true).
-                From("beer-sample", "beers").
-                View("by_name");
+                From("beer-sample", "beer").
+                View("brewery_beers");
 
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
@@ -87,41 +104,6 @@ namespace Couchbase.Tests.Core.Buckets
                 Console.WriteLine(row);
             }
             _cluster.CloseBucket(bucket);
-        }
-
-        [Test]
-        public void When_Valid_Credentials_Provided_Bucket_Created_Succesfully()
-        {
-            var cluster = new Cluster(new ClientConfiguration
-            {
-                BucketConfigs = new List<BucketConfiguration>
-                {
-                    new BucketConfiguration
-                    {
-                        BucketName = "authenticated"
-                    }
-                }
-            });
-            var bucket = cluster.OpenBucket("authenticated", "secret");
-            Assert.IsNotNull(bucket);
-        }
-
-        [Test]
-        [ExpectedException(typeof(AuthenticationException))]
-        public void When_InValid_Credentials_Provided_Bucket_Created_UnSuccesfully()
-        {
-            var cluster = new Cluster(new ClientConfiguration
-            {
-                BucketConfigs = new List<BucketConfiguration>
-                {
-                    new BucketConfiguration
-                    {
-                        BucketName = "authenticated"
-                    }
-                }
-            });
-            var bucket = cluster.OpenBucket("authenticated", "secretw");
-            Assert.IsNotNull(bucket);
         }
 
         [TestFixtureTearDown]

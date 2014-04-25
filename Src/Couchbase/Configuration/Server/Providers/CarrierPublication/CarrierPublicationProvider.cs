@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Linq;
-using System.Net;
-using Common.Logging;
+﻿using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
-using Couchbase.Utils;
+using System;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Net;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
@@ -24,7 +21,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigListener> _listeners = new ConcurrentDictionary<string, IConfigListener>();
 
-        public CarrierPublicationProvider(ClientConfiguration clientConfig) 
+        public CarrierPublicationProvider(ClientConfiguration clientConfig)
         {
             _clientConfig = clientConfig;
         }
@@ -48,42 +45,69 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return configInfo;
         }
 
-        public IConfigInfo GetConfig(string bucketName)
+        public IConfigInfo GetConfig(string bucketName, string password)
         {
             var bootstrap = _clientConfig.BucketConfigs.FirstOrDefault(x => x.BucketName == bucketName);
             if (bootstrap == null)
             {
-                throw new BucketNotFoundException(bucketName);
-            }
-
-            var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
-            var ioStrategy = new SocketAsyncStrategy(connectionPool);//this needs to be configurable
-            IConfigInfo configInfo = null;
-
-            try
-            {
-                var operationResult = ioStrategy.Execute(new ConfigOperation());
-                if (operationResult.Success)
+                var defaultBucket = _clientConfig.BucketConfigs.FirstOrDefault();
+                if (defaultBucket == null)
                 {
-                    var bucketConfig = operationResult.Value;
-                    bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
-
-                    configInfo = GetConfig(bucketConfig);
-                    _configs[bucketName] = configInfo;
+                    bootstrap = new BucketConfiguration
+                    {
+                        BucketName = bucketName
+                    };
                 }
-            } 
-            catch (Exception e)
-            {
-                Log.Error(e);
+                else
+                {
+                    bootstrap = new BucketConfiguration
+                    {
+                        BucketName = bucketName,
+                        PoolConfiguration = defaultBucket.PoolConfiguration,
+                        Servers = defaultBucket.Servers,
+                        Port = defaultBucket.Port,
+                        Username = defaultBucket.Username,
+                        Password = defaultBucket.Password
+                    };
+                }
+                _clientConfig.BucketConfigs.Add(bootstrap);
             }
+
+            var saslMechanism = new PlainTextMechanism(bucketName, password);
+            var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
+            var ioStrategy = new SocketAsyncStrategy(connectionPool, saslMechanism);//this needs to be configurable
+
+            IConfigInfo configInfo = null;
+            var operationResult = ioStrategy.Execute(new ConfigOperation());
+            if (operationResult.Success)
+            {
+                var bucketConfig = operationResult.Value;
+                bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
+
+                configInfo = GetConfig(bucketConfig);
+                _configs[bucketName] = configInfo;
+            }
+            else
+            {
+                if (operationResult.Status == ResponseStatus.UnknownCommand)
+                {
+                    throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                }
+            }
+
             return configInfo;
         }
 
-        IConfigInfo GetConfig(IBucketConfig bucketConfig)
+        public IConfigInfo GetConfig(string bucketName)
         {
-            IConfigInfo configInfo = new CouchbaseConfigContext(bucketConfig, 
-                _clientConfig, 
-                _ioStrategyFactory, 
+            return GetConfig(bucketName, string.Empty);
+        }
+
+        private IConfigInfo GetConfig(IBucketConfig bucketConfig)
+        {
+            IConfigInfo configInfo = new CouchbaseConfigContext(bucketConfig,
+                _clientConfig,
+                _ioStrategyFactory,
                 _connectionPoolFactory);
 
             return configInfo;
@@ -114,7 +138,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
 
             var configInfo = GetConfig(bucketConfig);
-            if(_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+            if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
             {
                 listener.NotifyConfigChanged(configInfo);
             }
@@ -125,21 +149,21 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             IConfigListener listenerToRemove;
             if (_listeners.TryRemove(listener.Name, out listenerToRemove))
             {
-                Log.Info(m=>m("Unregistering listener {0}", listenerToRemove.Name));
+                Log.Info(m => m("Unregistering listener {0}", listenerToRemove.Name));
 
                 IConfigInfo configInfo;
-                if(_configs.TryRemove(listener.Name, out configInfo))
+                if (_configs.TryRemove(listener.Name, out configInfo))
                 {
-                    Log.Info(m=>m("Removing config for listener {0}", listener.Name));
+                    Log.Info(m => m("Removing config for listener {0}", listener.Name));
                 }
                 else
                 {
-                    Log.Warn(m=>m("Could not remove config for {0}", listener.Name));
+                    Log.Warn(m => m("Could not remove config for {0}", listener.Name));
                 }
             }
             else
             {
-                Log.Warn(m=>m("Could not unregister listener {0}", listener.Name));
+                Log.Warn(m => m("Could not unregister listener {0}", listener.Name));
             }
         }
 
@@ -150,7 +174,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public bool ListenerExists(IConfigListener listener)
         {
-           return _listeners.ContainsKey(listener.Name);
+            return _listeners.ContainsKey(listener.Name);
         }
     }
 }

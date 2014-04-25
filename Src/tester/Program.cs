@@ -29,7 +29,7 @@ namespace tester
 
             using (var timer = new OperationTimer())
             {
-                ThreadPoolInsert(bucket, n);
+                //ThreadPoolInsert(bucket, n);
                //ThreadPoolInsert(bucket, n);
                 //SynchronousInsert(bucket, n);
               ParallerInsert(bucket, n);

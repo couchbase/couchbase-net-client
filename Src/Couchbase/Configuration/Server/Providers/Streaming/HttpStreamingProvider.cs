@@ -53,16 +53,24 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return configInfo;
         }
 
-        public IConfigInfo GetConfig(string bucketName)
+        public IConfigInfo GetConfig(string bucketName, string password)
         {
-            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
-            if (bucketConfig == null)
+            var bootstrap = _serverConfig.Buckets.Find(x => x.Name == bucketName);
+            if (bootstrap == null)
             {
-                throw new BucketNotFoundException(bucketName);
+                //In this case the bucket probaby doesn't exist
+                if (String.IsNullOrWhiteSpace(password))
+                {
+                    throw new BucketNotFoundException(bucketName);
+                }
+                else
+                {
+                    //start bootstrap process but use bucketName and password
+                }
             }
 
             IConfigInfo configInfo = null;
-            var nodes = bucketConfig.Nodes.ToList();
+            var nodes = bootstrap.Nodes.ToList();
             while (nodes.Any())
             {
                 try
@@ -72,7 +80,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     IBucketConfig newConfig;
-                    var uri = bucketConfig.GetTerseUri(node);
+                    var uri = bootstrap.GetTerseUri(node);
                     using (var webClient = new WebClient())
                     {
                         var body = webClient.DownloadString(uri);
@@ -80,10 +88,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     }
 
                     configInfo = CreateConfigInfo(newConfig);
-                   _configs[bucketName] = configInfo;
+                    _configs[bucketName] = configInfo;
                     break;
 
-                } 
+                }
                 catch (WebException e)
                 {
                     Log.Error(e);
@@ -99,6 +107,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 throw new BucketNotFoundException();
             }
             return configInfo;
+        }
+
+        public IConfigInfo GetConfig(string bucketName)
+        {
+            return GetConfig(bucketName, string.Empty);
         }
 
         public void Start()
@@ -243,7 +256,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
             }
         }
-
 
         public bool ListenerExists(IConfigListener listener)
         {

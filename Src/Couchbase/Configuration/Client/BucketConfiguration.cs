@@ -12,7 +12,7 @@ namespace Couchbase.Configuration.Client
     {
         public BucketConfiguration()
         {
-            Servers = new List<string> {/*"192.168.56.101"*/ "127.0.0.1" };
+            Servers = new List<string> {"127.0.0.1" };
             Port = 11210;
             Password = string.Empty;
             Username = string.Empty;

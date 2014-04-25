@@ -1,16 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 
 namespace Couchbase.Configuration
 {
@@ -27,12 +27,12 @@ namespace Couchbase.Configuration
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
-            : this(bucketConfig, clientConfig, pool => new SocketAsyncStrategy(pool), 
+            : this(bucketConfig, clientConfig, pool => new SocketAsyncStrategy(pool, new PlainTextMechanism(bucketConfig.Name, string.Empty)),
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint))
         {
         }
 
-        protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig, 
+        protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
         {
@@ -89,11 +89,6 @@ namespace Couchbase.Configuration
             }
         }
 
-        public void Authenticate(string username, string password)
-        {
-            _servers.ForEach(x=>x.Authenticate(username, password));
-        }
-
         protected virtual IPEndPoint GetEndPoint(string hostName, IBucketConfig bucketConfig)
         {
             const string blah = "$HOST";
@@ -125,7 +120,7 @@ namespace Couchbase.Configuration
             {
                 GC.SuppressFinalize(this);
             }
-            _servers.ForEach(x=>x.Dispose());
+            _servers.ForEach(x => x.Dispose());
             _disposed = false;
         }
 
