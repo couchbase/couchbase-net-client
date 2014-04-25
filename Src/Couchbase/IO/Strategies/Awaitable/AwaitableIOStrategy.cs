@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.Awaitable

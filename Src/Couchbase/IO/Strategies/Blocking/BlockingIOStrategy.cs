@@ -122,7 +122,6 @@ namespace Couchbase.IO.Strategies.Blocking
             Dispose(false);
         }
 
-
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
             throw new NotImplementedException();

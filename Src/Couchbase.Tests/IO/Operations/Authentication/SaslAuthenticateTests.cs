@@ -28,7 +28,6 @@ namespace Couchbase.Tests.IO.Operations.Authentication
                 var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
                 var connectionPoolConfig = new PoolConfiguration();
                 _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
-
                 _ioStrategy = new SocketAsyncStrategy(_connectionPool);
             }
 

@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
 using System;

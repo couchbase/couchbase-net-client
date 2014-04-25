@@ -57,7 +57,6 @@ namespace Couchbase.Tests.IO.Strategies
             throw new NotImplementedException();
         }
 
-
         public Couchbase.Authentication.SASL.ISaslMechanism SaslMechanism
         {
             set { throw new NotImplementedException(); }

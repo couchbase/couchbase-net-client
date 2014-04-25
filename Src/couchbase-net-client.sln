@@ -18,8 +18,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{050256
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tester-1.3.x", "tester-1.3.x\tester-1.3.x.csproj", "{F0B0C2AF-4BFB-4B6A-8DA0-3A512A9B9AFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SprintShow-n-Tell", "SprintShow-n-Tell\SprintShow-n-Tell.csproj", "{BA85FDED-6F34-4CD3-852C-7775AE431D9C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,10 +40,6 @@ Global
 		{F0B0C2AF-4BFB-4B6A-8DA0-3A512A9B9AFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0B0C2AF-4BFB-4B6A-8DA0-3A512A9B9AFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0B0C2AF-4BFB-4B6A-8DA0-3A512A9B9AFA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BA85FDED-6F34-4CD3-852C-7775AE431D9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BA85FDED-6F34-4CD3-852C-7775AE431D9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BA85FDED-6F34-4CD3-852C-7775AE431D9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BA85FDED-6F34-4CD3-852C-7775AE431D9C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
