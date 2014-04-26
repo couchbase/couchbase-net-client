@@ -22,7 +22,9 @@ namespace Couchbase.Tests.Authentication
                 }
             });
             var bucket = cluster.OpenBucket("authenticated", "secret");
+            cluster.CloseBucket(bucket);
             Assert.IsNotNull(bucket);
+            cluster.CloseBucket(bucket);
         }
 
         [Test]
@@ -39,7 +41,8 @@ namespace Couchbase.Tests.Authentication
                     }
                 }
             });
-            var bucket = cluster.OpenBucket("authenticated", "secretw");
+            var bucket = cluster.OpenBucket("authenticated", "secretw"); 
+            cluster.CloseBucket(bucket);
             Assert.IsNotNull(bucket);
         }
     }
