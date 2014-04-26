@@ -73,6 +73,9 @@
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProvider.cs" />
     <Compile Include="Configuration\Server\Providers\IConfigProvider.cs" />
     <Compile Include="Configuration\Server\IServerConfig.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\AuthenticatingWebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Configuration\Server\Providers\Streaming\ConfigThreadState.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfig.cs">
       <SubType>Component</SubType>

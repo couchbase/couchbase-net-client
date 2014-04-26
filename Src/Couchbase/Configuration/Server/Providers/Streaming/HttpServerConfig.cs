@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Authentication;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -10,12 +11,19 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
-    internal class HttpServerConfig : WebClient, IServerConfig
+    internal class HttpServerConfig : AuthenticatingWebClient, IServerConfig
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
 
-        public HttpServerConfig(ClientConfiguration clientConfig)
+        public HttpServerConfig(ClientConfiguration clientConfig) 
+            : base("default", string.Empty)
+        {
+            _clientConfig = clientConfig;
+        }
+
+        public HttpServerConfig(ClientConfiguration clientConfig, string username, string password) 
+            : base(username, password)
         {
             _clientConfig = clientConfig;
         }
@@ -47,23 +55,32 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var success = false;
             try
             {
-                Log.Info(m=>m("Bootstrapping from {0}", server));
+                _log.Info(m=>m("Bootstrapping from {0}", server));
                 Bootstrap = DownLoadConfig<Bootstrap>(server);
                 Pools = DownLoadConfig<Pools>(Bootstrap.GetPoolsUri(server));
                 Buckets = DownLoadConfig<List<BucketConfig>>(Pools.GetBucketUri(server));
                 WriteTerseUris(Buckets, Pools);
                 BootstrapServer = server;
                 success = true;
-                Log.Info(m=>m("Bootstrapped from {0}", server));
+                _log.Info(m=>m("Bootstrapped from {0}", server));
             }
             catch (BootstrapException e)
             {
-                Log.Error(e);
+                _log.Error(e);
                 throw;
             }
             catch (WebException e)
             {
-                Log.Error(m=>m("Bootstrapping failed from {0}: {1}", server, e));
+                _log.Error(m=>m("Bootstrapping failed from {0}: {1}", server, e));
+                if (e.Status != WebExceptionStatus.ProtocolError) return success;
+                var response = e.Response as HttpWebResponse;
+                if (response != null)
+                {
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        throw new AuthenticationException(BucketName, e);
+                    }
+                }
             }
             return success;
         }

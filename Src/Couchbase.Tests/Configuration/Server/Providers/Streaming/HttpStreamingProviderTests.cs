@@ -29,8 +29,6 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 configuration,
                 pool => new SocketAsyncStrategy(pool), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint));
-
-            _provider.Start();
         }
 
         [Test]

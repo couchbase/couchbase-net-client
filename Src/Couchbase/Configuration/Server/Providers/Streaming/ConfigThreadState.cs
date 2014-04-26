@@ -18,7 +18,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
     internal class ConfigThreadState 
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly BucketConfig _bucketConfig;
         private readonly ConfigChanged _configChangedDelegate;
         private readonly ErrorOccurred _errorOccurredDelegate;
@@ -60,9 +60,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     var streamingUri = _bucketConfig.GetTerseStreamingUri(node);
-                    Log.Info(m=>m("Listening to {0}", streamingUri));
+                    _log.Info(m=>m("Listening to {0}", streamingUri));
 
-                    using (var webClient = new WebClient())
+                    using (var webClient = new AuthenticatingWebClient(_bucketConfig.Name, _bucketConfig.Password))
                     using (var stream = webClient.OpenRead(streamingUri))
                     {
                         //this will cancel the infinite wait below - the temp variable removes chance of deadlock when dispose is called on the closure
@@ -78,9 +78,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             {
                                 if (config != String.Empty)
                                 {
-                                    Log.Info(m=>m("configuration changed count: {0}", count++));
-                                    Log.Info(m=>m("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId));
-                                    Log.Debug(m=>m("{0}", config));
+                                    _log.Info(m=>m("configuration changed count: {0}", count++));
+                                    _log.Info(m=>m("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId));
+                                    _log.Debug(m=>m("{0}", config));
 
                                     var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
                                     bucketConfig.SurrogateHost = GetSurrogateHost(streamingUri);
@@ -95,11 +95,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
                 catch (WebException e)
                 {
-                    Log.Error(e);
+                    _log.Error(e);
                 }
                 catch (IOException e)
                 {
-                    Log.Error(e);
+                    _log.Error(e);
                 }
             }
 

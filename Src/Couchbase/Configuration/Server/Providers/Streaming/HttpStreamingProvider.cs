@@ -55,22 +55,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public IConfigInfo GetConfig(string bucketName, string password)
         {
-            var bootstrap = _serverConfig.Buckets.Find(x => x.Name == bucketName);
-            if (bootstrap == null)
-            {
-                //In this case the bucket probaby doesn't exist
-                if (String.IsNullOrWhiteSpace(password))
-                {
-                    throw new BucketNotFoundException(bucketName);
-                }
-                else
-                {
-                    //start bootstrap process but use bucketName and password
-                }
-            }
+            StartProvider(bucketName, password);
+            var bucketConfig = GetBucketConfig(bucketName, password);
 
             IConfigInfo configInfo = null;
-            var nodes = bootstrap.Nodes.ToList();
+            var nodes = bucketConfig.Nodes.ToList();
             while (nodes.Any())
             {
                 try
@@ -80,8 +69,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     IBucketConfig newConfig;
-                    var uri = bootstrap.GetTerseUri(node);
-                    using (var webClient = new WebClient())
+                    var uri = bucketConfig.GetTerseUri(node);
+                    using (var webClient = new AuthenticatingWebClient(bucketName, password))
                     {
                         var body = webClient.DownloadString(uri);
                         newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
@@ -112,17 +101,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public IConfigInfo GetConfig(string bucketName)
         {
             return GetConfig(bucketName, string.Empty);
-        }
-
-        public void Start()
-        {
-            if (_serverConfig == null)
-            {
-                _serverConfig = new HttpServerConfig(_clientConfig);
-                _serverConfig.Initialize();
-
-                Log.Debug(m=>m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
-            }
         }
 
         public bool RegisterListener(IConfigListener listener)
@@ -220,7 +198,25 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return configInfo;
         }
 
-        static void ErrorOccurredHandler(IBucketConfig bucketConfig)
+        void StartProvider(string username, string password)
+        {
+            _serverConfig = new HttpServerConfig(_clientConfig, username, password);
+            _serverConfig.Initialize();
+            Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
+        }
+
+        IBucketConfig GetBucketConfig(string bucketName, string password)
+        {
+            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
+            if (bucketConfig == null)
+            {
+                throw new BucketNotFoundException(bucketName);
+            }
+            bucketConfig.Password = password;
+            return bucketConfig;
+        }
+
+        void ErrorOccurredHandler(IBucketConfig bucketConfig)
         {
             //TODO provide implementation to begin the bootstrapping procss from the beginning
         }

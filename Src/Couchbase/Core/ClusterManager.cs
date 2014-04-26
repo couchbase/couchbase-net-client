@@ -57,7 +57,6 @@ namespace Couchbase.Core
         {
             _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
             _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
-            _configProviders.ForEach(x => x.Start());
         }
 
         public IConfigProvider GetProvider(string name)

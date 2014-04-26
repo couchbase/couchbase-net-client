@@ -66,7 +66,8 @@ namespace Couchbase.Tests.Core.Buckets
             var bucket = (IViewSupportable)_cluster.OpenBucket("beer-sample");
             var query = new ViewQuery(true).
                 From("beer-sample", "beer").
-                View("brewery_beers");
+                View("brewery_beers").
+                Limit(10);
 
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);

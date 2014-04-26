@@ -113,11 +113,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return configInfo;
         }
 
-        public void Start()
-        {
-            //noop since cccp is demand based
-        }
-
         public bool RegisterListener(IConfigListener listener)
         {
             return _listeners.TryAdd(listener.Name, listener);

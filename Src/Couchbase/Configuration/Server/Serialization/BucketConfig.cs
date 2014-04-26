@@ -103,6 +103,8 @@ namespace Couchbase.Configuration.Server.Serialization
             set { _surrogateHost = value; }
         }
 
+        public string Password { get; set; }
+
         public Node GetRandomNode()
         {
             Nodes.Shuffle();
