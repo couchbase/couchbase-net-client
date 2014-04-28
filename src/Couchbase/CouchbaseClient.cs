@@ -43,6 +43,12 @@ namespace Couchbase
         /// <remarks>The configuration is taken from the /configuration/Couchbase section.</remarks>
         public CouchbaseClient() : this(DefaultConfig) { }
 
+        ~CouchbaseClient()
+        {
+            // On destruction explictly request a Dispose of the Pool, all associated sockets are now cleaned up.
+            this.Pool.Dispose();
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Couchbase.CouchbaseClient" /> class using the default configuration and the specified bucket.
         /// </summary>
