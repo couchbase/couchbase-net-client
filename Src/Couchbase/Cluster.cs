@@ -1,74 +1,215 @@
-﻿using Couchbase.Configuration.Client;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
-using System;
-using System.Net;
 
 namespace Couchbase
 {
-    public class Cluster : ICluster
+    /// <summary>
+    /// The client interface to a Couchbase Server Cluster.
+    /// </summary>
+    public sealed class Cluster : ICluster 
     {
+        private static Lazy<Cluster> _instance;
+        private ClientConfiguration _configuration;
         private readonly IClusterManager _clusterManager;
-        private readonly ClientConfiguration _config;
+        private static readonly object SyncObj = new object();
 
-        internal Cluster(ClientConfiguration config, Func<IConnectionPool, IOStrategy> ioStrategyFactory,
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
-        {
-            _config = config;
-            _clusterManager = new ClusterManager(_config, ioStrategyFactory, connectionPoolFactory);
-        }
-
-        internal Cluster(ClientConfiguration config, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
-        {
-            _config = config;
-            _clusterManager = new ClusterManager(_config, ioStrategyFactory);
-        }
-
-        public Cluster(ClientConfiguration config)
-        {
-            _config = config;
-            _clusterManager = new ClusterManager(_config);
-        }
-
-        public Cluster()
+        /// <summary>
+        /// Ctor for creating Cluster instance. 
+        /// </summary>
+        /// <remarks>This is the default configuration and will attempt to boostrap off of localhost.</remarks>
+        private Cluster() 
             : this(new ClientConfiguration())
         {
         }
 
-        private void Initialize()
+        /// <summary>
+        /// Ctor for creating Cluster instance. 
+        /// </summary>
+        /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
+        private Cluster(ClientConfiguration configuration) 
+            : this(configuration, new ClusterManager(configuration))
         {
         }
 
-        public IBucket OpenBucket(string bucketName, string password)
+        /// <summary>
+        /// Ctor for creating Cluster instance. 
+        /// </summary>
+        /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
+        /// <param name="clusterManager">The ClusterManager instance use.</param>
+        /// <remarks>This overload is primarly added for testing.</remarks>
+        private Cluster(ClientConfiguration configuration, IClusterManager clusterManager)
         {
-            return _clusterManager.CreateBucket(bucketName, password);
+            _configuration = configuration;
+            _clusterManager = clusterManager;
         }
 
-        public IBucket OpenBucket(string bucketName)
+        /// <summary>
+        /// Returns a Singleton instance of the Cluster class. 
+        /// </summary>
+        /// <remarks>Call one of the Initialize() overloads to create or recreate the Singleton instance. 
+        /// However, Initialize() should only be called when the process starts up.</remarks>
+        /// <returns>A Singleton instance of the Cluster class.</returns>
+        ///<exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
+        public static Cluster Get()
         {
-            return _clusterManager.CreateBucket(bucketName);
+            if (_instance == null)
+            {
+                throw new InitializationException("Call Cluster.Initialize() before calling this method.");
+            }
+            return _instance.Value;
         }
 
+        /// <summary>
+        /// Initializes the Cluster instance using a given factory Func.
+        /// </summary>
+        /// <remarks>Call this on the Cluster object before calling Get() to return an instance.
+        /// Note that this method should only be called during application or process startup or 
+        /// in certain scenarios where you explicitly want to reinitialize the current cluster instance.</remarks>
+        /// <param name="factory">The factory Func that creates the instance.</param>
+        private static void Initialize(Func<Cluster> factory)
+        {
+            lock (SyncObj)
+            {
+                if (_instance != null && _instance.IsValueCreated)
+                {
+                    var cluster = _instance.Value;
+                    if (cluster != null)
+                    {
+                        cluster.Dispose();
+                        _instance = null;
+                    }
+                }
+                _instance = new Lazy<Cluster>(factory);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new Cluster instance with a given ClientConfiguration and ClusterManager.
+        /// This overload is primarily provided for testing given that it allows you to set the major
+        /// dependencies of the Cluster class and it's scope is internal.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="clusterManager"></param>
+        internal static void Initialize(ClientConfiguration configuration, IClusterManager clusterManager)
+        {
+            if (configuration == null || clusterManager == null)
+            {
+                throw new ArgumentNullException(configuration == null ? "configuration" : "clusterManager");
+            }
+
+            var factory = new Func<Cluster>(() => new Cluster(configuration, clusterManager));
+            Initialize(factory);
+        }
+
+        /// <summary>
+        /// Creates a Cluster instance.
+        /// </summary>
+        /// <param name="configuration">The ClientConfiguration to use when initialize the internal ClusterManager</param>
+        ///<remarks>This is an heavy-weight object intended to be long-lived. Create one per process or App.Domain.</remarks>
+        public static void Initialize(ClientConfiguration configuration)
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException("configuration");
+            }
+
+            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterManager(configuration)));
+            Initialize(factory);
+        }
+
+        /// <summary>
+        /// Creates a Cluster instance using the default configuration. This is overload is suitable for development only 
+        /// as it will use localhost (127.0.0.1) and the default Couchbase REST and Memcached ports. 
+        /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-install/#network-ports"/>
+        /// </summary>
+        public static void Initialize()
+        {
+            var factory = new Func<Cluster>(() => new Cluster());
+            Initialize(factory);
+        }
+
+        /// <summary>
+        /// Creates a connection to a specific SASL authenticated Couchbase Bucket.
+        /// </summary>
+        /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
+        /// <param name="password">The SASL password to use.</param>
+        /// <returns>An instance which implements the IBucket interface.</returns>
+        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
+        public IBucket OpenBucket(string bucketname, string password)
+        {
+            return _clusterManager.CreateBucket(bucketname, password);
+        }
+
+        /// <summary>
+        /// Creates a connection to a non-SASL Couchbase bucket.
+        /// </summary>
+        /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
+        /// <returns>An instance which implements the IBucket interface.</returns>
+        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
+        public IBucket OpenBucket(string bucketname)
+        {
+            if (string.IsNullOrWhiteSpace(bucketname))
+            {
+                if (bucketname == null)
+                {
+                    throw new ArgumentNullException("bucketname");
+                }
+                throw new ArgumentException("bucketname cannot be null, empty or whitespace.");
+            }
+            return _clusterManager.CreateBucket(bucketname);
+        }
+
+        /// <summary>
+        /// Closes and releases all resources associated with a Couchbase bucket.
+        /// </summary>
+        /// <param name="bucket">The Bucket to close.</param>
+        public void CloseBucket(IBucket bucket)
+        {
+            if (bucket == null)
+            {
+                throw new ArgumentNullException("bucket");
+            }
+            _clusterManager.DestroyBucket(bucket);
+        }
+
+        /// <summary>
+        /// Returns an object representing cluster status information.
+        /// </summary>
         public IClusterInfo Info
         {
             get { throw new NotImplementedException(); }
         }
 
+        /// <summary>
+        /// Closes and releases all internal resources.
+        /// </summary>
         public void Dispose()
         {
             //There is a bug here somewhere - note that when called this should close and cleanup _everything_
             //however, if you do not explicitly call Cluster.CloseBucket(bucket) in certain cases the HttpStreamingProvider
             //listener thread will hang indefinitly if Cluster.Dispose() is called. This is a definite bug that needs to be
             //resolved before developer preview.
-            _clusterManager.Dispose();
+            if (_clusterManager != null)
+            {
+                _clusterManager.Dispose();
+            }
+            _instance = null;
         }
 
-        //TODO: not sure what to do here if bucket doesn't exist...the current impl is to throw a BucketNotFoundException. I am
-        //not sure if this is the correct behavior, since it's causing me some grief with my unit tests and I can assume that
-        //users will run into the same grief
-        public void CloseBucket(IBucket bucket)
+        ~Cluster()
         {
-            _clusterManager.DestroyBucket(bucket);
+            if (_clusterManager != null)
+            {
+                _clusterManager.Dispose();
+            }
         }
     }
 }

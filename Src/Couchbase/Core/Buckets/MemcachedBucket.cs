@@ -7,7 +7,7 @@
 
 namespace Couchbase.Core.Buckets
 {
-    public class MemcachedBucket : IBucket, IConfigListener
+    public class MemcachedBucket : IBucket, IConfigObserver
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
@@ -44,13 +44,22 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
+        public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public System.Threading.Tasks.Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Dispose()
         {
             throw new NotImplementedException();
         }
 
-
-        void IConfigListener.NotifyConfigChanged(IConfigInfo configInfo)
+        void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Interlocked.Exchange(ref _configInfo, configInfo);
         }

@@ -34,7 +34,8 @@ namespace Couchbase.Tests
                     }
                 }
             };
-            _cluster = new Cluster(clientConfig);
+            Cluster.Initialize(clientConfig);
+            _cluster = Cluster.Get();
 
             const string expected = "default";
             using (var bucket = _cluster.OpenBucket("default"))
@@ -59,7 +60,8 @@ namespace Couchbase.Tests
                 }
             };
 
-            _cluster = new Cluster(config);
+            Cluster.Initialize(config);
+            _cluster = Cluster.Get();
 
             const string expected = "default";
             using (var bucket = _cluster.OpenBucket("default"))

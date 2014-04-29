@@ -19,7 +19,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
 {
     [TestFixture]
-    internal class CarrierPublicationProviderTests : IConfigListener
+    internal class CarrierPublicationProviderTests : IConfigObserver
     {
         private CarrierPublicationProvider _provider;
         private const string BucketName = "default";
@@ -37,19 +37,19 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [Test]
         public void Test_RegisterListener()
         {
-            _provider.RegisterListener(this);
+            _provider.RegisterObserver(this);
 
-            var exists = _provider.ListenerExists(this);
+            var exists = _provider.ObserverExists(this);
             Assert.IsTrue(exists);
         }
 
         [Test]
         public void Test_UnRegisterListener()
         {
-            _provider.RegisterListener(this);
-            _provider.UnRegisterListener(this);
+            _provider.RegisterObserver(this);
+            _provider.UnRegisterObserver(this);
 
-            var exists = _provider.ListenerExists(this);
+            var exists = _provider.ObserverExists(this);
             Assert.IsFalse(exists);
         }
 

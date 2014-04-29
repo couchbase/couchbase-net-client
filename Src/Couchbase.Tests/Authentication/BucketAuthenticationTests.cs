@@ -11,7 +11,7 @@ namespace Couchbase.Tests.Authentication
         [Test]
         public void When_Valid_Credentials_Provided_Bucket_Created_Succesfully()
         {
-            var cluster = new Cluster(new ClientConfiguration
+            Cluster.Initialize(new ClientConfiguration
             {
                 BucketConfigs = new List<BucketConfiguration>
                 {
@@ -21,6 +21,8 @@ namespace Couchbase.Tests.Authentication
                     }
                 }
             });
+
+            var cluster = Cluster.Get();
             var bucket = cluster.OpenBucket("authenticated", "secret");
             cluster.CloseBucket(bucket);
             Assert.IsNotNull(bucket);
@@ -31,7 +33,7 @@ namespace Couchbase.Tests.Authentication
         [ExpectedException(typeof(ConfigException))]
         public void When_InValid_Credentials_Provided_Bucket_Created_UnSuccesfully()
         {
-            var cluster = new Cluster(new ClientConfiguration
+            Cluster.Initialize(new ClientConfiguration
             {
                 BucketConfigs = new List<BucketConfiguration>
                 {
@@ -41,6 +43,7 @@ namespace Couchbase.Tests.Authentication
                     }
                 }
             });
+            var cluster = Cluster.Get();
             var bucket = cluster.OpenBucket("authenticated", "secretw"); 
             cluster.CloseBucket(bucket);
             Assert.IsNotNull(bucket);

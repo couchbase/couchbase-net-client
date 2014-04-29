@@ -19,7 +19,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigListener> _listeners = new ConcurrentDictionary<string, IConfigListener>();
+        private readonly ConcurrentDictionary<string, IConfigObserver> _listeners = new ConcurrentDictionary<string, IConfigObserver>();
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig)
         {
@@ -113,15 +113,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return configInfo;
         }
 
-        public bool RegisterListener(IConfigListener listener)
+        public bool RegisterObserver(IConfigObserver observer)
         {
-            return _listeners.TryAdd(listener.Name, listener);
+            return _listeners.TryAdd(observer.Name, observer);
         }
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
-            IConfigListener listener;
-            if (!_listeners.TryGetValue(bucketConfig.Name, out listener))
+            IConfigObserver observer;
+            if (!_listeners.TryGetValue(bucketConfig.Name, out observer))
             {
                 throw new ConfigListenerNotFoundException(bucketConfig.Name);
             }
@@ -135,30 +135,30 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             var configInfo = GetConfig(bucketConfig);
             if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
             {
-                listener.NotifyConfigChanged(configInfo);
+                observer.NotifyConfigChanged(configInfo);
             }
         }
 
-        public void UnRegisterListener(IConfigListener listener)
+        public void UnRegisterObserver(IConfigObserver observer)
         {
-            IConfigListener listenerToRemove;
-            if (_listeners.TryRemove(listener.Name, out listenerToRemove))
+            IConfigObserver observerToRemove;
+            if (_listeners.TryRemove(observer.Name, out observerToRemove))
             {
-                Log.Info(m => m("Unregistering listener {0}", listenerToRemove.Name));
+                Log.Info(m => m("Unregistering observer {0}", observerToRemove.Name));
 
                 IConfigInfo configInfo;
-                if (_configs.TryRemove(listener.Name, out configInfo))
+                if (_configs.TryRemove(observer.Name, out configInfo))
                 {
-                    Log.Info(m => m("Removing config for listener {0}", listener.Name));
+                    Log.Info(m => m("Removing config for observer {0}", observer.Name));
                 }
                 else
                 {
-                    Log.Warn(m => m("Could not remove config for {0}", listener.Name));
+                    Log.Warn(m => m("Could not remove config for {0}", observer.Name));
                 }
             }
             else
             {
-                Log.Warn(m => m("Could not unregister listener {0}", listener.Name));
+                Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
             }
         }
 
@@ -167,9 +167,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             throw new NotImplementedException();
         }
 
-        public bool ListenerExists(IConfigListener listener)
+        public bool ObserverExists(IConfigObserver observer)
         {
-            return _listeners.ContainsKey(listener.Name);
+            return _listeners.ContainsKey(observer.Name);
         }
     }
 }

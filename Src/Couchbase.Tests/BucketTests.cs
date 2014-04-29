@@ -26,12 +26,15 @@ namespace Couchbase.Tests
                     }
                 }
             };
-            var cluster = new Cluster(config);
+            Cluster.Initialize(config);
+            var cluster = Cluster.Get();
+
             using (var bucket = cluster.OpenBucket("default"))
             {
                 var result = bucket.Insert("fookey", "fookeyvalue");
                 Assert.IsTrue(result.Success);
             }
+            cluster.Dispose();
         }
     }
 }

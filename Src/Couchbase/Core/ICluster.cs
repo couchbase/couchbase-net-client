@@ -1,5 +1,6 @@
 ﻿
 using System;
+using Couchbase.Core.Buckets;
 
 namespace Couchbase.Core
 {

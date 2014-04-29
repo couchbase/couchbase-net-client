@@ -9,6 +9,12 @@ namespace Couchbase.Views
 {
     public interface IViewQuery
     {
+        /// <summary>
+        /// Specifies the bucket and design document to target for a query.
+        /// </summary>
+        /// <param name="bucketName">The bucket to target</param>
+        /// <param name="designDoc">The design document to use</param>
+        /// <returns></returns>
         IViewQuery From(string bucketName, string designDoc);
 
         /// <summary>
@@ -149,12 +155,16 @@ namespace Couchbase.Views
         IViewQuery StartKeyDocId(object docId);
 
         /// <summary>
-        /// 
+        /// The number of seconds before the request will be terminated if it has not completed.
         /// </summary>
-        /// <param name="timeout"></param>
+        /// <param name="timeout">The period of time in seconds</param>
         /// <returns></returns>
         IViewQuery ConnectionTimeout(int timeout);
 
+        /// <summary>
+        /// Returns the raw REST URI which can be executed in a browser or using curl.
+        /// </summary>
+        /// <returns></returns>
         Uri RawUri();
     }
 }

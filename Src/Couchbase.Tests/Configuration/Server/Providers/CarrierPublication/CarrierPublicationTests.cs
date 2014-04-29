@@ -26,7 +26,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [TestFixtureSetUp]
         public void SetUp()
         {
-            _cluster = new Cluster(new ClientConfiguration(), (p) =>
+            var configuration = new ClientConfiguration();
+            var clusterManager = new ClusterManager(configuration, p =>
             {
                 var operation = new FakeOperation();
                 operation.SetOperationResult(new FakeOperationResult(operation)
@@ -39,6 +40,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 });
                 return new FakeIOStrategy<FakeOperation>(operation);
             });
+  
+
+            Cluster.Initialize(configuration, clusterManager);
+            _cluster = Cluster.Get();
         }
 
         [Test]

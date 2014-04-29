@@ -79,12 +79,12 @@ namespace Couchbase.IO.Strategies.Blocking
             throw new NotImplementedException();
         }
 
-        public void RegisterListener(Configuration.Server.Providers.IConfigListener listener)
+        public void RegisterListener(Configuration.Server.Providers.IConfigObserver observer)
         {
             throw new NotImplementedException();
         }
 
-        public void UnRegisterListener(Configuration.Server.Providers.IConfigListener listener)
+        public void UnRegisterListener(Configuration.Server.Providers.IConfigObserver observer)
         {
             throw new NotImplementedException();
         }

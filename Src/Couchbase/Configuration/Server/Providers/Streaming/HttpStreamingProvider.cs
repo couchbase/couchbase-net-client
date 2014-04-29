@@ -26,7 +26,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigListener> _listeners = new ConcurrentDictionary<string, IConfigListener>();
+        private readonly ConcurrentDictionary<string, IConfigObserver> _listeners = new ConcurrentDictionary<string, IConfigObserver>();
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
 
         public HttpStreamingProvider(ClientConfiguration clientConfig)
@@ -103,23 +103,23 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return GetConfig(bucketName, string.Empty);
         }
 
-        public bool RegisterListener(IConfigListener listener)
+        public bool RegisterObserver(IConfigObserver observer)
         {
-            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == listener.Name);
+            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
             if (bucketConfig == null)
             {
-                throw new BucketNotFoundException(listener.Name);
+                throw new BucketNotFoundException(observer.Name);
             }
 
             var cancellationTokenSource = new CancellationTokenSource();
-            _cancellationTokens[listener.Name] = cancellationTokenSource;
+            _cancellationTokens[observer.Name] = cancellationTokenSource;
 
             var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler, cancellationTokenSource.Token);
             var thread = new Thread(configThreadState.ListenForConfigChanges);
             
-            if (_threads.TryAdd(listener.Name, thread) && _listeners.TryAdd(listener.Name, listener))
+            if (_threads.TryAdd(observer.Name, thread) && _listeners.TryAdd(observer.Name, observer))
             {
-                _threads[listener.Name].Start();
+                _threads[observer.Name].Start();
                 
                 if (CountdownEvent.CurrentCount == 0)
                 {
@@ -136,7 +136,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //1-Compare previous with current
             //2-if no change, then continue
             //3-else update configuration references
-            //4-notify the listener that a new configuration is available
+            //4-notify the observer that a new configuration is available
 
             var listener = _listeners[bucketConfig.Name];
 
@@ -226,34 +226,34 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             throw new NotImplementedException();
         }
 
-        public void UnRegisterListener(IConfigListener listener)
+        public void UnRegisterObserver(IConfigObserver observer)
         {
             Thread thread;
-            if (_threads.TryRemove(listener.Name, out thread))
+            if (_threads.TryRemove(observer.Name, out thread))
             {
                 CancellationTokenSource cancellationTokenSource;
-                if (_cancellationTokens.TryRemove(listener.Name, out cancellationTokenSource))
+                if (_cancellationTokens.TryRemove(observer.Name, out cancellationTokenSource))
                 {
-                    Log.Info(m=>m("Cancelling {0}", listener.Name));
+                    Log.Info(m=>m("Cancelling {0}", observer.Name));
                     cancellationTokenSource.Cancel();
                     cancellationTokenSource.Dispose();
                 }
 
-                IConfigListener temp;
-                if (_listeners.TryRemove(listener.Name, out temp))
+                IConfigObserver temp;
+                if (_listeners.TryRemove(observer.Name, out temp))
                 {
-                    Log.Info(m=>m("Removing listener for {0}", listener.Name));
+                    Log.Info(m=>m("Removing observer for {0}", observer.Name));
                 }
 
                 IConfigInfo configInfo = null;
-                if (_configs.TryRemove(listener.Name, out configInfo))
+                if (_configs.TryRemove(observer.Name, out configInfo))
                 {
-                    Log.Info(m=>m("Removing config for {0}", listener.Name));
+                    Log.Info(m=>m("Removing config for {0}", observer.Name));
                 }
             }
         }
 
-        public bool ListenerExists(IConfigListener listener)
+        public bool ObserverExists(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }

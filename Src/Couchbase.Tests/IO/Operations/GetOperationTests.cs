@@ -10,7 +10,8 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster();
+            Cluster.Initialize();
+            _cluster = Cluster.Get();
         }
 
         [Test]

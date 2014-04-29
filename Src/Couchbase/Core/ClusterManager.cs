@@ -96,12 +96,12 @@ namespace Couchbase.Core
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    var listener = bucket as IConfigListener;
-                    if (provider.RegisterListener(listener) &&
+                    var configObserver = bucket as IConfigObserver;
+                    if (provider.RegisterObserver(configObserver) &&
                         _buckets.TryAdd(bucket.Name, bucket))
                     {
                         Log.DebugFormat("Successfully boostrap using {0}.", provider);
-                        listener.NotifyConfigChanged(config);
+                        configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
                     }
@@ -156,10 +156,10 @@ namespace Couchbase.Core
             IBucket temp;
             if (_buckets.TryRemove(bucket.Name, out temp))
             {
-                var listener = temp as IConfigListener;
+                var listener = temp as IConfigObserver;
                 foreach (var configProvider in ConfigProviders)
                 {
-                    configProvider.UnRegisterListener(listener);
+                    configProvider.UnRegisterObserver(listener);
                 }
             }
         }

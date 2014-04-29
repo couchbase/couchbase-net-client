@@ -40,24 +40,24 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             throw new NotImplementedException();
         }
 
-        public void RegisterListener(IConfigListener listener)
+        public void RegisterListener(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }
 
 
-        public void UnRegisterListener(IConfigListener listener)
+        public void UnRegisterObserver(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }
 
-        public bool ListenerExists(IConfigListener listener)
+        public bool ObserverExists(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }
 
 
-        bool IConfigProvider.RegisterListener(IConfigListener listener)
+        bool IConfigProvider.RegisterObserver(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }

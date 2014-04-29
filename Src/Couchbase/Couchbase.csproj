@@ -71,6 +71,7 @@
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProvider.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfig.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProvider.cs" />
+    <Compile Include="Configuration\Server\Providers\IConfigObserver.cs" />
     <Compile Include="Configuration\Server\Providers\IConfigProvider.cs" />
     <Compile Include="Configuration\Server\IServerConfig.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\AuthenticatingWebClient.cs">
@@ -135,6 +136,7 @@
     <Compile Include="Core\IClusterManager.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
+    <Compile Include="Core\InitializationException.cs" />
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />

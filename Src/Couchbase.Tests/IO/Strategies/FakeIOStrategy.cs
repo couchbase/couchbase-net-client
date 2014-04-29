@@ -21,12 +21,12 @@ namespace Couchbase.Tests.IO.Strategies
             _operation = operation;
         }
 
-        public void RegisterListener(IConfigListener listener)
+        public void RegisterListener(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }
 
-        public void UnRegisterListener(IConfigListener listener)
+        public void UnRegisterListener(IConfigObserver observer)
         {
             throw new NotImplementedException();
         }

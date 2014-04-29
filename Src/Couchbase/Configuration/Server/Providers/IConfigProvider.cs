@@ -15,17 +15,10 @@ namespace Couchbase.Configuration.Server.Providers
 
         IConfigInfo GetConfig(string name, string password);
 
-        bool RegisterListener(IConfigListener listener);
+        bool RegisterObserver(IConfigObserver observer);
 
-        void UnRegisterListener(IConfigListener listener);
+        void UnRegisterObserver(IConfigObserver observer);
 
-        bool ListenerExists(IConfigListener listener);
-    }
-
-    internal interface IConfigListener
-    {
-        string Name { get; }
-
-        void NotifyConfigChanged(IConfigInfo configInfo);
+        bool ObserverExists(IConfigObserver observer);
     }
 }

@@ -13,7 +13,7 @@ namespace Couchbase.Views
 {
     internal class ViewClient : IViewClient
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper)
         {
@@ -33,7 +33,7 @@ namespace Couchbase.Views
             {
                 ae.Flatten().Handle(e =>
                 {
-                    Log.Error(e);
+                    _log.Error(e);
                     return true;
                 });
             }
@@ -54,7 +54,7 @@ namespace Couchbase.Views
             {
                 ae.Flatten().Handle(e =>
                 {
-                    Log.Error(e);
+                    _log.Error(e);
                     return true;
                 });
             }

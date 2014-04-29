@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -18,12 +19,12 @@ namespace Couchbase.Tests.Core.Buckets
     public class CouchbaseBucketTests
     {
         private ICluster _cluster;
-        private IBucket _bucket;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster();
+            Cluster.Initialize();
+            _cluster = Cluster.Get();
         }
 
         [Test]
@@ -31,6 +32,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = _cluster.OpenBucket("default");
             Assert.AreEqual("default", bucket.Name);
+           // var bucket2 = _cluster.OpenBucket("default");
             _cluster.CloseBucket(bucket);
         }
 
@@ -97,6 +99,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void Test_N1QL_Query()
         {
             var bucket = (ICouchbaseBucket) _cluster.OpenBucket("default");
+
             const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
 
             var result = bucket.Query<dynamic>(query);
@@ -104,6 +107,22 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 Console.WriteLine(row);
             }
+            _cluster.CloseBucket(bucket);
+        }
+
+        [Test]
+        public void Test_GetAsync()
+        {
+            const string key = "asynckey";
+            const string value = "asyncvalue";
+
+            Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
+            var bucket = (ICouchbaseBucket)_cluster.OpenBucket("default");
+            var setResult= bucket.Insert(key, value);
+            Assert.IsTrue(setResult.Success);
+            var getResult = bucket.GetAsync<string>(key);
+            getResult.Wait();
+            Assert.AreEqual(value, getResult.Result.Value);
             _cluster.CloseBucket(bucket);
         }
 

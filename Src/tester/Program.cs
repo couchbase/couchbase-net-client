@@ -22,7 +22,8 @@ namespace tester
                 MinSize = 10
             });
 
-            _cluster = new Cluster(config);
+            Cluster.Initialize(config);
+            _cluster = Cluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
             int n = 100000;

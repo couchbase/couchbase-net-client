@@ -14,7 +14,7 @@ using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
 {
-    public class CouchbaseBucket : ICouchbaseBucket, IConfigListener
+    public class CouchbaseBucket : ICouchbaseBucket, IConfigObserver
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
@@ -34,7 +34,7 @@ namespace Couchbase.Core.Buckets
 
         public string Name { get; set; }
 
-        void IConfigListener.NotifyConfigChanged(IConfigInfo configInfo)
+        void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Interlocked.Exchange(ref _configInfo, configInfo);
         }
@@ -57,6 +57,7 @@ namespace Couchbase.Core.Buckets
 
         public IOperationResult<T> Get<T>(string key)
         {
+            Console.WriteLine("i ran");
             var keyMapper = _configInfo.GetKeyMapper(Name);
             var vBucket = (IVBucket)keyMapper.MapKey(key);
             var server = vBucket.LocatePrimary();
@@ -69,6 +70,20 @@ namespace Couchbase.Core.Buckets
                 Log.Debug(m => m("Requires retry {0}", key));
             }
             return operationResult;
+        }
+
+        public Task<IOperationResult<T>> GetAsync<T>(string key)
+        {
+            Console.WriteLine("using thread {0}", Thread.CurrentThread.ManagedThreadId);
+
+            var task = new Task<IOperationResult<T>>(() => Get<T>(key));
+            task.Start();
+            return task;
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
+        {
+            throw new NotImplementedException();
         }
 
         public IViewResult<T> Get<T>(IViewQuery query)
