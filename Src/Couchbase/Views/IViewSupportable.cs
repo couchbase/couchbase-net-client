@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Views
 {
+    /// <summary>
+    /// Adds support for querying Couchbase Views.
+    /// </summary>
+    /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-admin/#views-and-indexes"/>
     public interface IViewSupportable
     {
         IViewResult<T> Get<T>(IViewQuery query);

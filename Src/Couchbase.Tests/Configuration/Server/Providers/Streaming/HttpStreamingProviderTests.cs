@@ -23,7 +23,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         private IConfigProvider _provider;
         private const string BucketName = "default";
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void SetUp()
         {
             var configuration = new ClientConfiguration();
@@ -53,17 +53,25 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
        [Test]
         public void Test_RegisterListener()
         {
-            var configInfo = _provider.GetConfig("default");
-            _provider.RegisterObserver(this);
+           //we need to initialize the internal collections
+           var configInfo = _provider.GetConfig("default");
 
-            var exists = _provider.ObserverExists(this);
-            Assert.IsTrue(exists);
+           _provider.RegisterObserver(this);
+           var exists = _provider.ObserverExists(this);
+           
+           Assert.IsTrue(exists);
+
+           //if this isn't unregistered, the thread will continue forever
+           _provider.UnRegisterObserver(this);
+    
         }
 
         [Test] 
         public void Test_UnRegisterListener()
         {
+            //we need to initialize the internal collections
             var configInfo = _provider.GetConfig("default");
+
             _provider.RegisterObserver(this);
             _provider.UnRegisterObserver(this);
 
@@ -81,7 +89,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             Assert.IsNotNull(configInfo);
         }
 
-        [TearDown]
+        [TestFixtureTearDown]
         public void TearDown()
         {
             _provider.Dispose();

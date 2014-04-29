@@ -14,6 +14,11 @@ using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
 {
+    /// <summary>
+    /// Represents a persistent Couchbase Bucket which is logical grouping of physical resources
+    /// across a cluster.
+    /// </summary>
+    /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-admin/#data-storage"/>
     public class CouchbaseBucket : ICouchbaseBucket, IConfigObserver
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();

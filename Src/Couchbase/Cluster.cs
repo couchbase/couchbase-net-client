@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
-using Couchbase.IO;
 
 namespace Couchbase
 {
@@ -22,9 +15,11 @@ namespace Couchbase
         private static readonly object SyncObj = new object();
 
         /// <summary>
-        /// Ctor for creating Cluster instance. 
+        /// Ctor for creating Cluster instance.
         /// </summary>
-        /// <remarks>This is the default configuration and will attempt to boostrap off of localhost.</remarks>
+        /// <remarks>
+        /// This is the default configuration and will attempt to boostrap off of localhost.
+        /// </remarks>
         private Cluster() 
             : this(new ClientConfiguration())
         {
@@ -40,11 +35,13 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Ctor for creating Cluster instance. 
+        /// Ctor for creating Cluster instance.
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
         /// <param name="clusterManager">The ClusterManager instance use.</param>
-        /// <remarks>This overload is primarly added for testing.</remarks>
+        /// <remarks>
+        /// This overload is primarly added for testing.
+        /// </remarks>
         private Cluster(ClientConfiguration configuration, IClusterManager clusterManager)
         {
             _configuration = configuration;
@@ -52,12 +49,13 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Returns a Singleton instance of the Cluster class. 
+        /// Returns a Singleton instance of the Cluster class.
         /// </summary>
-        /// <remarks>Call one of the Initialize() overloads to create or recreate the Singleton instance. 
-        /// However, Initialize() should only be called when the process starts up.</remarks>
-        /// <returns>A Singleton instance of the Cluster class.</returns>
-        ///<exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
+        /// <remarks>
+        /// Call one of the Initialize() overloads to create or recreate the Singleton instance.
+        /// However, Initialize() should only be called when the process starts up.
+        /// </remarks>
+        /// <returns>A Singleton instance of the Cluster class.</returns><exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
         public static Cluster Get()
         {
             if (_instance == null)
@@ -70,9 +68,11 @@ namespace Couchbase
         /// <summary>
         /// Initializes the Cluster instance using a given factory Func.
         /// </summary>
-        /// <remarks>Call this on the Cluster object before calling Get() to return an instance.
-        /// Note that this method should only be called during application or process startup or 
-        /// in certain scenarios where you explicitly want to reinitialize the current cluster instance.</remarks>
+        /// <remarks>
+        /// Call this on the Cluster object before calling Get() to return an instance. Note that
+        /// this method should only be called during application or process startup or in certain
+        /// scenarios where you explicitly want to reinitialize the current cluster instance.
+        /// </remarks>
         /// <param name="factory">The factory Func that creates the instance.</param>
         private static void Initialize(Func<Cluster> factory)
         {
@@ -93,8 +93,8 @@ namespace Couchbase
 
         /// <summary>
         /// Initializes a new Cluster instance with a given ClientConfiguration and ClusterManager.
-        /// This overload is primarily provided for testing given that it allows you to set the major
-        /// dependencies of the Cluster class and it's scope is internal.
+        /// This overload is primarily provided for testing given that it allows you to set the
+        /// major dependencies of the Cluster class and it's scope is internal.
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="clusterManager"></param>
@@ -112,8 +112,12 @@ namespace Couchbase
         /// <summary>
         /// Creates a Cluster instance.
         /// </summary>
-        /// <param name="configuration">The ClientConfiguration to use when initialize the internal ClusterManager</param>
-        ///<remarks>This is an heavy-weight object intended to be long-lived. Create one per process or App.Domain.</remarks>
+        /// <param name="configuration">
+        /// The ClientConfiguration to use when initialize the internal ClusterManager
+        /// </param>
+        /// <remarks>
+        /// This is an heavy-weight object intended to be long-lived. Create one per process or App.Domain.
+        /// </remarks>
         public static void Initialize(ClientConfiguration configuration)
         {
             if (configuration == null)
@@ -126,9 +130,10 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Creates a Cluster instance using the default configuration. This is overload is suitable for development only 
-        /// as it will use localhost (127.0.0.1) and the default Couchbase REST and Memcached ports. 
-        /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-install/#network-ports"/>
+        /// Creates a Cluster instance using the default configuration. This is overload is suitable
+        /// for development only as it will use localhost (127.0.0.1) and the default Couchbase REST
+        /// and Memcached ports. 
+        /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-install/#network-ports" />
         /// </summary>
         public static void Initialize()
         {
@@ -153,7 +158,9 @@ namespace Couchbase
         /// </summary>
         /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
         /// <returns>An instance which implements the IBucket interface.</returns>
-        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
+        /// <remarks>
+        /// Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.
+        /// </remarks>
         public IBucket OpenBucket(string bucketname)
         {
             if (string.IsNullOrWhiteSpace(bucketname))
@@ -204,6 +211,10 @@ namespace Couchbase
             _instance = null;
         }
 
+        /// <summary>
+        /// Cleans up any non-reclaimed resources.
+        /// </summary>
+        /// <remarks>will run if Dispose is not called on a Cluster instance.</remarks>
         ~Cluster()
         {
             if (_clusterManager != null)
