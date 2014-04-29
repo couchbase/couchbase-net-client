@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -26,7 +27,7 @@ namespace Couchbase.Tests.Core
         {
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
             var ioStrategy = new SocketAsyncStrategy(connectionPool);
-            _server = new Server(ioStrategy);
+            _server = new Server(ioStrategy, new Node());
         }
 
         [Test]

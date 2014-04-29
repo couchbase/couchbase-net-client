@@ -31,18 +31,19 @@ namespace Couchbase.Configuration
         {
         }
 
-        //TODO need to make threadsafe, since multiple threads may(?) be calling...
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
             if (_bucketConfig == null || !_bucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
             {
-                foreach (var node in bucketConfig.VBucketServerMap.ServerList)
+                var nodes = bucketConfig.Nodes;
+                for (var i = 0; i < nodes.Length; i++)
                 {
-                    var endpoint = GetEndPoint(node, bucketConfig);
+                    var ip = bucketConfig.VBucketServerMap.ServerList[i];
+                    var endpoint = GetEndPoint(ip, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
                     var ioStrategy = _ioStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy);///this should be a Func factory...a functory
+                    var server = new Core.Server(ioStrategy, nodes[i]);//this should be a Func factory...a functory
                     _servers.Add(server);
                 }
             }

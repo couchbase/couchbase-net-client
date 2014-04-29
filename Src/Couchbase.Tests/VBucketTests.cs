@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Awaitable;
@@ -28,7 +29,7 @@ namespace Couchbase.Tests
 
             _servers = vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server))).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node())).
                 Cast<IServer>().
                 ToList();
 

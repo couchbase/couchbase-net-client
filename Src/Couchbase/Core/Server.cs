@@ -3,8 +3,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Authentication;
+using System.Text;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Async;
@@ -15,44 +17,46 @@ namespace Couchbase.Core
 {
     internal class Server : IServer
     {
-        //todo review this as a best practice
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly IOStrategy _ioStrategy;
-        private readonly ISaslMechanism _saslMechanism;
+        private uint _viewPort = 8092;
+        private uint _queryPort = 8093;
         private bool _disposed;
+        private Node _nodeInfo;
         
-        public Server(IOStrategy ioStrategy) : 
+        public Server(IOStrategy ioStrategy, Node node) : 
             this(ioStrategy, 
             new ViewClient(new HttpClient(), new JsonDataMapper()), 
             new QueryClient(new HttpClient(), new JsonDataMapper()),
-            new PlainTextMechanism(ioStrategy))
+            node)
         {
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient)
-        {
-            _ioStrategy = ioStrategy;
-            ViewClient = viewClient;
-        }
-
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient)
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo)
         {
             _ioStrategy = ioStrategy;
             ViewClient = viewClient;
             QueryClient = queryClient;
+            _nodeInfo = nodeInfo;
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, ISaslMechanism saslMechanism)
+        public uint ViewPort
         {
-            _ioStrategy = ioStrategy;
-            ViewClient = viewClient;
-            QueryClient = queryClient;
-            _saslMechanism = saslMechanism;
+            get { return _viewPort; }
+            set { _viewPort = value; }
+        }
+
+        public uint QueryPort
+        {
+            get { return _queryPort; }
+            set { _queryPort = value; }
         }
 
         public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }
 
         public IConnectionPool ConnectionPool { get { return _ioStrategy.ConnectionPool; } }
+
+        public string HostName { get; set; }
 
         public uint DirectPort { get; private set; }
 
@@ -63,6 +67,10 @@ namespace Couchbase.Core
         public bool Active { get; private set; }
 
         public bool Healthy { get; private set; }
+
+        public IQueryClient QueryClient { get; private set; }
+
+        public IViewClient ViewClient { get; private set; }
 
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
@@ -76,14 +84,28 @@ namespace Couchbase.Core
 
         IQueryResult<T> IServer.Send<T>(string query)
         {
-            //TODO make right - this isn't.
-            var uri = new Uri(string.Concat("http://", EndPoint.Address, ":", 8093, "/query"));
+            var uri = new Uri(GetBaseQueryUri());
             return QueryClient.Query<T>(uri, query);
         }
 
-        public IQueryClient QueryClient { get; private set; }
+        //note this should be cached
+        public string GetBaseViewUri()
+        {
+            var uri = _nodeInfo.CouchApiBase;
+            return uri.Replace("$HOST", "localhost");
+        }
 
-        public IViewClient ViewClient { get; private set; }
+        public string GetBaseQueryUri()
+        {
+            var sb = new StringBuilder();
+            sb.Append("http://");
+            sb.Append(EndPoint.Address);
+            sb.Append(":");
+            sb.Append(QueryPort);
+            sb.Append("/query");
+
+            return sb.ToString();
+        }
 
         public static IPEndPoint GetEndPoint(string server)
         {

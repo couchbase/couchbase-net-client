@@ -16,7 +16,7 @@ namespace Couchbase.Configuration
 {
     internal abstract class ConfigContextBase : IConfigInfo
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         protected IBucketConfig _bucketConfig;
         protected IKeyMapper _keyMapper;
         private readonly DateTime _creationTime;

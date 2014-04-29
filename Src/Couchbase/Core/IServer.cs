@@ -9,6 +9,12 @@ namespace Couchbase.Core
 {
     internal interface IServer : IDisposable
     {
+        string HostName { get; set; }
+
+        uint QueryPort { get; set; }
+
+        uint ViewPort { get; set; }
+
         uint DirectPort { get; }
         
         uint ProxyPort { get; }
@@ -21,16 +27,20 @@ namespace Couchbase.Core
 
         IConnectionPool ConnectionPool { get; }
 
+        IViewClient ViewClient { get; }
+
+        IQueryClient QueryClient { get; }
+
+        IPEndPoint EndPoint { get; }
+
         IOperationResult<T> Send<T>(IOperation<T> operation);
 
         IViewResult<T> Send<T>(IViewQuery query);
 
         IQueryResult<T> Send<T>(string query);
 
-        IViewClient ViewClient { get; }
+        string GetBaseViewUri();
 
-        IQueryClient QueryClient { get; }
-        
-        IPEndPoint EndPoint { get; }
+        string GetBaseQueryUri();
     }
 }

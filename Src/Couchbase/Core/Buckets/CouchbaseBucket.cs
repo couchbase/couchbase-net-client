@@ -23,7 +23,7 @@ namespace Couchbase.Core.Buckets
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
-        private volatile IConfigInfo _configInfo;
+        private IConfigInfo _configInfo;
         private volatile bool _disposed;
 
         internal CouchbaseBucket(IClusterManager clusterManager)
@@ -101,6 +101,27 @@ namespace Couchbase.Core.Buckets
         {
             var server = _configInfo.GetServer();
             return server.Send<T>(query);
+        }
+
+        public IViewQuery CreateQuery(bool development)
+        {
+            var server = _configInfo.GetServer();
+            var baseUri = server.GetBaseViewUri();
+            return new ViewQuery(baseUri, development);
+        }
+
+        public IViewQuery CreateQuery(string designdoc, bool development)
+        {
+            var server = _configInfo.GetServer();
+            var baseUri = server.GetBaseViewUri();
+            return new ViewQuery(baseUri, designdoc, development);
+        }
+         
+        public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
+        {
+            var server = _configInfo.GetServer();
+            var baseUri = server.GetBaseViewUri();
+            return new ViewQuery(baseUri, designdoc, viewname, development);
         }
 
         bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)

@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = ConfigUtil.ServerConfig.Buckets.Find(x => x.BucketType == "memcached");
             _servers = bucket.Nodes.
-                Select(node => new Server(ObjectFactory.CreateIOStrategy(node))).
+                Select(node => new Server(ObjectFactory.CreateIOStrategy(node), node)).
                 Cast<IServer>().
                 ToList();
 

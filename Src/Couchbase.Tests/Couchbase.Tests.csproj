@@ -71,6 +71,7 @@
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucket_View_Tests.cs" />
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />

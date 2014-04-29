@@ -74,7 +74,7 @@ namespace Couchbase.Tests.Core.Buckets
                 From("beer-sample", "beer").
                 View("brewery_beers").
                 Limit(10);
-
+            Console.WriteLine(query.RawUri());
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
             _cluster.CloseBucket((IBucket)bucket);
@@ -125,7 +125,7 @@ namespace Couchbase.Tests.Core.Buckets
             var setResult= bucket.Insert(key, value);
             Assert.IsTrue(setResult.Success);
             var getResult = bucket.GetAsync<string>(key);
-            getResult.Wait();
+            //getResult.Wait();
             Assert.AreEqual(value, getResult.Result.Value);
             _cluster.CloseBucket(bucket);
         }

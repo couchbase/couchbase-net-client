@@ -233,8 +233,11 @@ namespace Couchbase.Views
                 sb.Append(ForwardSlash);
             }
 
-            sb.Append(_bucketName);
-            sb.Append(ForwardSlash);
+            if (!string.IsNullOrWhiteSpace(_bucketName))
+            {
+                sb.Append(_bucketName);
+                sb.Append(ForwardSlash);
+            }
             sb.Append(Design);
             sb.Append(ForwardSlash);
 

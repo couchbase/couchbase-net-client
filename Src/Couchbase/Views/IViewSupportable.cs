@@ -13,5 +13,11 @@ namespace Couchbase.Views
     public interface IViewSupportable
     {
         IViewResult<T> Get<T>(IViewQuery query);
+
+        IViewQuery CreateQuery(bool development);
+
+        IViewQuery CreateQuery(string designdoc, bool development);
+
+        IViewQuery CreateQuery(string designdoc, string view, bool development);
     }
 }

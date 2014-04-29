@@ -49,7 +49,7 @@ namespace Couchbase.Configuration
                     var endpoint = GetEndPoint(node, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
                     var ioStrategy = _ioStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy);
+                    var server = new Core.Server(ioStrategy, node);
            
                     _servers.Add(server); //todo make atomic
                     _keyMapper = new KetamaKeyMapper(_servers);//todo make atomic
