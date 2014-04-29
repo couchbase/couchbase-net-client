@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
-    internal class HttpStreamingProvider : IConfigProvider, IDisposable
+    internal class HttpStreamingProvider : IConfigProvider
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private IServerConfig _serverConfig;
@@ -26,8 +26,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigObserver> _listeners = new ConcurrentDictionary<string, IConfigObserver>();
+        private readonly ConcurrentDictionary<string, IConfigObserver> _observers = new ConcurrentDictionary<string, IConfigObserver>();
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
+        private volatile bool _disposed;
 
         public HttpStreamingProvider(ClientConfiguration clientConfig)
         {
@@ -117,7 +118,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler, cancellationTokenSource.Token);
             var thread = new Thread(configThreadState.ListenForConfigChanges);
             
-            if (_threads.TryAdd(observer.Name, thread) && _listeners.TryAdd(observer.Name, observer))
+            if (_threads.TryAdd(observer.Name, thread) && _observers.TryAdd(observer.Name, observer))
             {
                 _threads[observer.Name].Start();
                 
@@ -138,7 +139,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //3-else update configuration references
             //4-notify the observer that a new configuration is available
 
-            var listener = _listeners[bucketConfig.Name];
+            var listener = _observers[bucketConfig.Name];
 
             IConfigInfo configInfo;
             if (_configs.ContainsKey(bucketConfig.Name))
@@ -221,11 +222,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //TODO provide implementation to begin the bootstrapping procss from the beginning
         }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         public void UnRegisterObserver(IConfigObserver observer)
         {
             Thread thread;
@@ -240,7 +236,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
 
                 IConfigObserver temp;
-                if (_listeners.TryRemove(observer.Name, out temp))
+                if (_observers.TryRemove(observer.Name, out temp))
                 {
                     Log.Info(m=>m("Removing observer for {0}", observer.Name));
                 }
@@ -255,7 +251,32 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public bool ObserverExists(IConfigObserver observer)
         {
-            throw new NotImplementedException();
+            return _observers.ContainsKey(observer.Name);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        public void Dispose(bool disposing)
+        {
+            if (!_disposed && disposing)
+            {
+                GC.SuppressFinalize(this);
+            }
+            foreach (var configObserver in _observers)
+            {
+                UnRegisterObserver(configObserver.Value);
+            }
+            _observers.Clear();
+            _threads.Clear();
+            _disposed = true;
+        }
+
+        ~HttpStreamingProvider()
+        {
+            Dispose(true);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
     internal sealed class CarrierPublicationProvider : IConfigProvider, IDisposable
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
@@ -144,21 +144,21 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             IConfigObserver observerToRemove;
             if (_listeners.TryRemove(observer.Name, out observerToRemove))
             {
-                Log.Info(m => m("Unregistering observer {0}", observerToRemove.Name));
+                _log.Info(m => m("Unregistering observer {0}", observerToRemove.Name));
 
                 IConfigInfo configInfo;
                 if (_configs.TryRemove(observer.Name, out configInfo))
                 {
-                    Log.Info(m => m("Removing config for observer {0}", observer.Name));
+                    _log.Info(m => m("Removing config for observer {0}", observer.Name));
                 }
                 else
                 {
-                    Log.Warn(m => m("Could not remove config for {0}", observer.Name));
+                    _log.Warn(m => m("Could not remove config for {0}", observer.Name));
                 }
             }
             else
             {
-                Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
+                _log.Warn(m => m("Could not unregister observer {0}", observer.Name));
             }
         }
 

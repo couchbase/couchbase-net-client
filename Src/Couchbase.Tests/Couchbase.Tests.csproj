@@ -65,7 +65,6 @@
     <Compile Include="Authentication\BucketAuthenticationTests.cs" />
     <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
     <Compile Include="BucketTests.cs" />
-    <Compile Include="Cluster2Tests.cs" />
     <Compile Include="ClusterTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
@@ -118,7 +117,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="ClassDiagram1.cd" />
     <None Include="Data\Configuration\bootstrap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

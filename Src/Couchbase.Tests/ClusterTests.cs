@@ -71,10 +71,28 @@ namespace Couchbase.Tests
             }
         }
 
+        [Test]
+        public void When_Initialized_Get_Returns_Instance()
+        {
+            Cluster.Initialize();
+            var cluster = Cluster.Get();
+            Assert.IsNotNull(cluster);
+            cluster.Dispose();
+        }
+
+
+        [Test]
+        [ExpectedException(typeof(InitializationException))]
+        public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
+        {
+            var cluster = Cluster.Get();
+        }
+
+
         [TearDown]
         public void TearDown()
         {
-             
+             _cluster.Dispose();
         }
     }
 }

@@ -32,8 +32,12 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = _cluster.OpenBucket("default");
             Assert.AreEqual("default", bucket.Name);
-           // var bucket2 = _cluster.OpenBucket("default");
             _cluster.CloseBucket(bucket);
+        }
+
+        public void When_OpenBucket_Is_Called_More_Than_Once_Same_Bucket_Instance_Is_Returned()
+        {
+            
         }
 
         [Test]

@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.FileSystem;
@@ -17,11 +18,12 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
 {
     [TestFixture]
-    public class HttpStreamingProviderTests
+    internal class HttpStreamingProviderTests : IConfigObserver
     {
         private IConfigProvider _provider;
+        private const string BucketName = "default";
 
-        [TestFixtureSetUp]
+        [SetUp]
         public void SetUp()
         {
             var configuration = new ClientConfiguration();
@@ -36,6 +38,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         {
             var configInfo = _provider.GetConfig("default");
             Assert.IsNotNull(configInfo);
+            Console.WriteLine("GetConfig");
         }
 
         [Test]
@@ -47,10 +50,41 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             Assert.AreEqual(cachedConfig, configInfo);
         }
 
-        [TestFixtureTearDown]
+       [Test]
+        public void Test_RegisterListener()
+        {
+            var configInfo = _provider.GetConfig("default");
+            _provider.RegisterObserver(this);
+
+            var exists = _provider.ObserverExists(this);
+            Assert.IsTrue(exists);
+        }
+
+        [Test] 
+        public void Test_UnRegisterListener()
+        {
+            var configInfo = _provider.GetConfig("default");
+            _provider.RegisterObserver(this);
+            _provider.UnRegisterObserver(this);
+
+            var exists = _provider.ObserverExists(this);
+            Assert.IsFalse(exists);
+        }
+
+        public string Name
+        {
+            get { return BucketName; }
+        }
+
+        public void NotifyConfigChanged(IConfigInfo configInfo)
+        {
+            Assert.IsNotNull(configInfo);
+        }
+
+        [TearDown]
         public void TearDown()
         {
-            
+            _provider.Dispose();
         }
     }
 }

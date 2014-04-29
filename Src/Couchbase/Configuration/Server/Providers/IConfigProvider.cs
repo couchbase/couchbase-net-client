@@ -7,7 +7,7 @@ using Couchbase.IO;
 
 namespace Couchbase.Configuration.Server.Providers
 {
-    internal interface IConfigProvider
+    internal interface IConfigProvider : IDisposable
     {
         IConfigInfo GetCached(string name);
 

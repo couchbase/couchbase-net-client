@@ -20,12 +20,12 @@ namespace Couchbase.Core
 {
     internal sealed class ClusterManager : IClusterManager
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
-        private Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
+        private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
@@ -80,7 +80,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.DebugFormat("Trying to boostrap with {0}.", provider);
+                    _log.DebugFormat("Trying to boostrap with {0}.", provider);
                     var config = provider.GetConfig(bucketName, password);
                     switch (config.NodeLocator)
                     {
@@ -97,10 +97,16 @@ namespace Couchbase.Core
                     }
 
                     var configObserver = bucket as IConfigObserver;
+                    if (provider.ObserverExists(configObserver))
+                    {
+                        _log.DebugFormat("Using existing bootstrap {0}.", provider);
+                        success = true;
+                        break;
+                    }
                     if (provider.RegisterObserver(configObserver) &&
                         _buckets.TryAdd(bucket.Name, bucket))
                     {
-                        Log.DebugFormat("Successfully boostrap using {0}.", provider);
+                        _log.DebugFormat("Successfully boostrap using {0}.", provider);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
@@ -108,15 +114,15 @@ namespace Couchbase.Core
                 }
                 catch (BucketNotFoundException e)
                 {
-                    Log.Warn(e);
+                    _log.Warn(e);
                 }
                 catch (ConfigException e)
                 {
-                    Log.Warn(e);
+                    _log.Warn(e);
                 }
                 catch (AuthenticationException e)
                 {
-                    Log.Warn(e);
+                    _log.Warn(e);
                     break;
                 }
             }
