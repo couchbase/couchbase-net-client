@@ -19,7 +19,7 @@ namespace Couchbase.Core.Buckets
     /// across a cluster.
     /// </summary>
     /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-admin/#data-storage"/>
-    public class CouchbaseBucket : ICouchbaseBucket, IConfigObserver
+    public sealed class CouchbaseBucket : ICouchbaseBucket, IConfigObserver
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
@@ -62,7 +62,6 @@ namespace Couchbase.Core.Buckets
 
         public IOperationResult<T> Get<T>(string key)
         {
-            Console.WriteLine("i ran");
             var keyMapper = _configInfo.GetKeyMapper(Name);
             var vBucket = (IVBucket)keyMapper.MapKey(key);
             var server = vBucket.LocatePrimary();

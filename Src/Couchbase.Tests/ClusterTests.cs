@@ -88,6 +88,18 @@ namespace Couchbase.Tests
             var cluster = Cluster.Get();
         }
 
+        [Test]
+        public void When_OpenBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
+        {
+            Cluster.Initialize();
+            _cluster = Cluster.Get();
+
+            var bucket1 = _cluster.OpenBucket("default");
+            var bucket2 = _cluster.OpenBucket("default");
+
+            Assert.AreSame(bucket1, bucket2);
+        }
+
 
         [TearDown]
         public void TearDown()

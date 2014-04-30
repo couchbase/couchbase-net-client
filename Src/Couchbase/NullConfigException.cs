@@ -7,9 +7,6 @@ using System.Threading.Tasks;
 
 namespace Couchbase
 {
-    /// <summary>
-    /// Thrown when a
-    /// </summary>
     public class NullConfigException : Exception
     {
         public NullConfigException()
