@@ -100,6 +100,7 @@ namespace Couchbase.Core
                     if (provider.ObserverExists(configObserver))
                     {
                         _log.DebugFormat("Using existing bootstrap {0}.", provider);
+                        configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
                     }
