@@ -69,7 +69,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_View_Query()
         {
-            var bucket = (IViewSupportable)_cluster.OpenBucket("beer-sample");
+            var bucket = _cluster.OpenBucket("beer-sample");
             
             var query = new ViewQuery(true).
                 From("beer-sample", "beer").
@@ -85,7 +85,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_View_Query_Lots()
         {
-            var bucket = (IViewSupportable)_cluster.OpenBucket("beer-sample");
+            var bucket = _cluster.OpenBucket("beer-sample");
             var query = new ViewQuery(false).
                 From("beer-sample", "beer").
                 View("brewery_beers");
@@ -104,7 +104,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_N1QL_Query()
         {
-            var bucket = (ICouchbaseBucket) _cluster.OpenBucket("default");
+            var bucket = _cluster.OpenBucket("default");
 
             const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
 

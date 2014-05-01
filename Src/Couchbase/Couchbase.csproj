@@ -126,7 +126,6 @@
     <Compile Include="Core\BucketNotFoundException.cs" />
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
-    <Compile Include="Core\Buckets\ICouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
@@ -150,7 +149,6 @@
     <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
     <Compile Include="N1QL\Info.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
-    <Compile Include="N1QL\IQuerySupportable.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
     <Compile Include="Core\Serializers\ITypeSerializer.cs" />
     <Compile Include="Core\Serializers\TypeSerializer.cs" />
@@ -207,7 +205,6 @@
     <Compile Include="Views\IViewClient.cs" />
     <Compile Include="Views\IVIewQuery.cs" />
     <Compile Include="Views\IViewResult.cs" />
-    <Compile Include="Views\IViewSupportable.cs" />
     <Compile Include="Views\JsonDataMapper.cs" />
     <Compile Include="Views\StaleState.cs" />
     <Compile Include="Views\ViewClient.cs" />

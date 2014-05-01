@@ -22,6 +22,11 @@ namespace Couchbase.Core.Buckets
 
         public string Name { get; set; }
 
+        void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
+        {
+            Interlocked.Exchange(ref _configInfo, configInfo);
+        }
+
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             var keyMapper = _configInfo.GetKeyMapper(Name);
@@ -46,22 +51,42 @@ namespace Couchbase.Core.Buckets
 
         public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public System.Threading.Tasks.Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public void Dispose()
         {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Views.IViewResult<T> Get<T>(Views.IViewQuery query)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public N1QL.IQueryResult<T> Query<T>(string query)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Views.IViewQuery CreateQuery(bool development)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Views.IViewQuery CreateQuery(string designdoc, bool development)
+        {
             throw new NotImplementedException();
         }
 
-        void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
+        public Views.IViewQuery CreateQuery(string designdoc, string view, bool development)
         {
-            Interlocked.Exchange(ref _configInfo, configInfo);
+            throw new NotImplementedException();
         }
     }
 }

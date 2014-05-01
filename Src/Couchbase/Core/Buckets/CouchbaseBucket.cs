@@ -19,7 +19,7 @@ namespace Couchbase.Core.Buckets
     /// across a cluster.
     /// </summary>
     /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-admin/#data-storage"/>
-    public sealed class CouchbaseBucket : ICouchbaseBucket, IConfigObserver
+    public sealed class CouchbaseBucket : IBucket, IConfigObserver
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
