@@ -12,7 +12,9 @@ using Couchbase.Utils;
 
 namespace Couchbase.Views
 {
-    ////http://192.168.56.101:8091/couchBase/Trades/_design/dev_test/_view/test?stale=false&connection_timeout=60000&limit=10&skip=0&_=1395208080725
+    /// <summary>
+    /// Implemented as an object that can query a Couchbase View.
+    /// </summary>
     public class ViewQuery : IViewQuery
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
@@ -92,137 +94,249 @@ namespace Couchbase.Views
             _development = development;
         }
 
+        /// <summary>
+        /// Specifies the bucket and design document to target for a query.
+        /// </summary>
+        /// <param name="bucketName">The bucket to target</param>
+        /// <param name="designDoc">The design document to use</param>
+        /// <returns></returns>
         public IViewQuery From(string bucketName, string designDoc)
         {
             return Bucket(bucketName).DesignDoc(designDoc);
         }
 
+        /// <summary>
+        /// Sets the name of the Couchbase Bucket.
+        /// </summary>
+        /// <param name="name">The name of the bucket.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Bucket(string name)
         {
             _bucketName = name;
             return this;
         }
 
+        /// <summary>
+        /// Sets the name of the design document.
+        /// </summary>
+        /// <param name="name">The name of the design document to use.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery DesignDoc(string name)
         {
             _designDoc = name;
             return this;
         }
 
+        /// <summary>
+        /// Sets the name of the view to query.
+        /// </summary>
+        /// <param name="name">The name of the view to query.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery View(string name)
         {
             _viewName = name;
             return this;
         }
 
+        /// <summary>
+        /// Skip this number of records before starting to return the results
+        /// </summary>
+        /// <param name="count">The number of records to skip</param>
+        /// <returns></returns>
         public IViewQuery Skip(int count)
         {
             _skipCount = count;
             return this;
         }
 
+        /// <summary>
+        /// Allow the results from a stale view to be used. The default is StaleState.Ok; for development work set to StaleState.False
+        /// </summary>
+        /// <param name="staleState">The staleState value to use.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Stale(StaleState staleState)
         {
             _staleState = staleState;
             return this;
         }
 
+        /// <summary>
+        /// Return the documents in ascending by key order
+        /// </summary>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Asc()
         {
             _descending = false;
             return this;
         }
 
+        /// <summary>
+        /// Return the documents in descending by key order
+        /// </summary>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Desc()
         {
             _descending = true;
             return this;
         }
 
+        /// <summary>
+        /// Stop returning records when the specified key is reached. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="endKey">The key to stop at</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery EndKey(object endKey)
         {
             _endKey = endKey;
             return this;
         }
 
+        /// <summary>
+        /// Stop returning records when the specified document ID is reached
+        /// </summary>
+        /// <param name="docId">The document Id to stop at.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery EndKeyDocId(int docId)
         {
             _endDocId = docId;
             return this;
         }
 
+        /// <summary>
+        /// Use the full cluster data set (development views only).
+        /// </summary>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery FullSet()
         {
             _fullSet = true;
             return this;
         }
 
+        /// <summary>
+        /// Group the results using the reduce function to a group or single row
+        /// </summary>
+        /// <param name="group">True to group using the reduce function into a single row</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Group(bool group)
         {
             _group = group;
             return this;
         }
 
+        /// <summary>
+        /// Specify the group level to be used
+        /// </summary>
+        /// <param name="level">The level of grouping to use</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery GroupLevel(int level)
         {
             _groupLevel = level;
             return this;
         }
 
+        /// <summary>
+        /// Specifies whether the specified end key should be included in the result
+        /// </summary>
+        /// <param name="inclusiveEnd">True to include the last key in the result</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery InclusiveEnd(bool inclusiveEnd)
         {
             _inclusiveEnd = inclusiveEnd;
             return this;
         }
 
+        /// <summary>
+        /// Return only documents that match the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="key">The key to retrieve</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Key(object key)
         {
             _key = key;
             return this;
         }
 
+        /// <summary>
+        /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Keys(IEnumerable keys)
         {
             _keys = keys;
             return this;
         }
 
+        /// <summary>
+        /// Limit the number of the returned documents to the specified number
+        /// </summary>
+        /// <param name="limit">The numeric limit</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Limit(int limit)
         {
             _limit = limit;
             return this;
         }
 
+        /// <summary>
+        /// Sets the response in the event of an error
+        /// </summary>
+        /// <param name="stop">True to stop in the event of an error; true to continue</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery OnError(bool stop)
         {
             _continueOnError = stop;
             return this;
         }
 
+        /// <summary>
+        /// Use the reduction function
+        /// </summary>
+        /// <param name="reduce">True to use the reduduction property. Default is false;</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Reduce(bool reduce)
         {
             _reduce = reduce;
             return this;
         }
 
+        /// <summary>
+        /// Return records with a value equal to or greater than the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="endKey">The key to return records greater than or equal to.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery StartKey(object startKey)
         {
             _startKey = startKey;
             return this;
         }
 
+        /// <summary>
+        /// Return records starting with the specified document ID.
+        /// </summary>
+        /// <param name="docId">The docId to return records greater than or equal to.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery StartKeyDocId(object docId)
         {
             _startKeyDocId = docId;
             return this;
         }
 
+        /// <summary>
+        /// The number of seconds before the request will be terminated if it has not completed.
+        /// </summary>
+        /// <param name="timeout">The period of time in seconds</param>
+        /// <returns></returns>
         public IViewQuery ConnectionTimeout(int timeout)
         {
             _connectionTimeout = timeout;
             return this;
         }
 
+        /// <summary>
+        /// Returns the raw REST URI which can be executed in a browser or using curl.
+        /// </summary>
+        /// <returns></returns>
         public Uri RawUri()
         {
             var sb = new StringBuilder();

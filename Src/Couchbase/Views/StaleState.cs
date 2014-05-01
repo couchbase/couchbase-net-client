@@ -21,8 +21,16 @@ namespace Couchbase.Views
         UpdateAfter
     }
 
+    /// <summary>
+    /// Extension methods for working withe StaleState enumeration.
+    /// </summary>
     internal static class StaleStateExtensions
     {
+        /// <summary>
+        /// Converts the StaleState value to a lowercase string.
+        /// </summary>
+        /// <param name="value">The <see cref="StaleState"/> enumeration value to convert to a string.</param>
+        /// <returns>The string value of a StaleState enumeration.</returns>
         public static string ToLowerString(this StaleState value)
         {
             var parsed = "false";

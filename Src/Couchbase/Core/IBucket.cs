@@ -56,9 +56,9 @@ namespace Couchbase.Core
         /// Executes a View query and returns the result.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="T:Couchbase.Views.IViewQuery{T}"/> used to generate the results.</param>
+        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
         /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
-        /// <remarks>Use one of the <see cref="M:Couchbase.Core.IBucket.CreateQuery"/> overloads to generate the query.</remarks>
+        /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
         IViewResult<T> Get<T>(IViewQuery query);
 
         /// <summary>
@@ -70,14 +70,14 @@ namespace Couchbase.Core
         IQueryResult<T> Query<T>(string query);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="T:Couchbase.Views.IViewQuery{T}"/>, which targets a given bucket.
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket.
         /// </summary>
         /// <param name="development">True will execute on the development dataset.</param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         IViewQuery CreateQuery(bool development);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="T:Couchbase.Views.IViewQuery{T}"/>, which targets a given bucket, design document and view.
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
         /// </summary>
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="development">True will execute on the development dataset.</param>
@@ -85,7 +85,7 @@ namespace Couchbase.Core
         IViewQuery CreateQuery(string designdoc, bool development);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="T:Couchbase.Views.IViewQuery{T}"/>, which targets a given bucket and design document.
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>
         /// <param name="designdoc">The design document that the View belongs to.</param>>
         /// <param name="view">The View to query.</param>

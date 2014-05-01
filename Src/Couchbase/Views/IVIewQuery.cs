@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Views
 {
+    /// <summary>
+    /// Implemented as an object that can query a Couchbase View.
+    /// <remarks>This is a "Fluent" style interface and methods can be chained togather.</remarks>
+    /// </summary>
     public interface IViewQuery
     {
         /// <summary>
@@ -18,7 +22,7 @@ namespace Couchbase.Views
         IViewQuery From(string bucketName, string designDoc);
 
         /// <summary>
-        /// Sets the name of the bucket.
+        /// Sets the name of the Couchbase Bucket.
         /// </summary>
         /// <param name="name">The name of the bucket.</param>
         /// <returns>An IViewQuery object for chaining</returns>
