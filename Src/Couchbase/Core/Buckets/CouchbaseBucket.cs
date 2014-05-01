@@ -78,11 +78,7 @@ namespace Couchbase.Core.Buckets
 
         public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
-            Console.WriteLine("using thread {0}", Thread.CurrentThread.ManagedThreadId);
-
-            var task = new Task<IOperationResult<T>>(() => Get<T>(key));
-            task.Start();
-            return task;
+            throw new NotImplementedException();
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
@@ -136,6 +132,32 @@ namespace Couchbase.Core.Buckets
                 }
             }
             return requiresRetry;
+        }
+
+        private bool Equals(CouchbaseBucket other)
+        {
+            return Equals(_clusterManager, other._clusterManager) &&
+                _disposed.Equals(other._disposed) &&
+                string.Equals(Name, other.Name);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (_configInfo != null ? _configInfo.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (_clusterManager != null ? _clusterManager.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj is CouchbaseBucket && Equals((CouchbaseBucket) obj);
         }
 
         public void Dispose()

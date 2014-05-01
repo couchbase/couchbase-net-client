@@ -13,11 +13,14 @@ namespace Couchbase.Tests.Authentication
         {
             Cluster.Initialize(new ClientConfiguration
             {
-                BucketConfigs = new List<BucketConfiguration>
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    new BucketConfiguration
                     {
-                        BucketName = "authenticated"
+                        "authenticated",
+                        new BucketConfiguration
+                        {
+                            BucketName = "authenticated"
+                        }
                     }
                 }
             });
@@ -35,11 +38,14 @@ namespace Couchbase.Tests.Authentication
         {
             Cluster.Initialize(new ClientConfiguration
             {
-                BucketConfigs = new List<BucketConfiguration>
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    new BucketConfiguration
                     {
-                        BucketName = "authenticated"
+                        "authenticated",
+                        new BucketConfiguration
+                        {
+                            BucketName = "authenticated"
+                        }
                     }
                 }
             });

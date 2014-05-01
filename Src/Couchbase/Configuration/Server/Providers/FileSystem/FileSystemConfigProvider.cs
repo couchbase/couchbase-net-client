@@ -8,16 +8,18 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         private readonly ClientConfiguration _clientConfig;
         private IConfigInfo _configInfo;
         private IServerConfig _serverConfig;
+        private readonly string _bootstrapPath;
 
         public FileSystemConfigProvider(ClientConfiguration clientConfig)
         {
             _clientConfig = clientConfig;
         }
 
-        public FileSystemConfigProvider(IServerConfig serverConfig, ClientConfiguration clientConfig)
+        public FileSystemConfigProvider(IServerConfig serverConfig, ClientConfiguration clientConfig, string bootstrapPath)
         {
             _serverConfig = serverConfig;
             _clientConfig = clientConfig;
+            _bootstrapPath = bootstrapPath;
         }
 
         public IConfigInfo GetCached(string bucketName)
@@ -29,7 +31,7 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             if (_serverConfig == null)
             {
-                _serverConfig = new FileSystemConfig(_clientConfig.BootstrapPath);
+                _serverConfig = new FileSystemConfig(_bootstrapPath);
             }
             _configInfo = new ConfigInfo(_serverConfig, _clientConfig);
             return _configInfo;

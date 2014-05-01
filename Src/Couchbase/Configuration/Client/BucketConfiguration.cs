@@ -17,7 +17,6 @@ namespace Couchbase.Configuration.Client
             Password = string.Empty;
             Username = string.Empty;
             BucketName = "default";
-            PoolConfiguration = new PoolConfiguration();
         }
 
         public List<string> Servers { get; set; }

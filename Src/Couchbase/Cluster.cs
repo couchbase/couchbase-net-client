@@ -55,7 +55,8 @@ namespace Couchbase
         /// Call one of the Initialize() overloads to create or recreate the Singleton instance.
         /// However, Initialize() should only be called when the process starts up.
         /// </remarks>
-        /// <returns>A Singleton instance of the Cluster class.</returns><exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
+        /// <returns>A Singleton instance of the Cluster class.</returns>
+        /// <exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
         public static Cluster Get()
         {
             if (_instance == null)
@@ -104,7 +105,8 @@ namespace Couchbase
             {
                 throw new ArgumentNullException(configuration == null ? "configuration" : "clusterManager");
             }
-
+            
+            configuration.Initialize();
             var factory = new Func<Cluster>(() => new Cluster(configuration, clusterManager));
             Initialize(factory);
         }
@@ -125,6 +127,7 @@ namespace Couchbase
                 throw new ArgumentNullException("configuration");
             }
 
+            configuration.Initialize();
             var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterManager(configuration)));
             Initialize(factory);
         }

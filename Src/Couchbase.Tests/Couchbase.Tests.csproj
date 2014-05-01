@@ -64,8 +64,8 @@
   <ItemGroup>
     <Compile Include="Authentication\BucketAuthenticationTests.cs" />
     <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
-    <Compile Include="BucketTests.cs" />
     <Compile Include="ClusterTests.cs" />
+    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />

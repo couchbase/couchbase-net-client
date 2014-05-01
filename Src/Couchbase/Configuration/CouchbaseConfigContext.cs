@@ -39,6 +39,7 @@ namespace Couchbase.Configuration
                 var nodes = bucketConfig.Nodes;
                 for (var i = 0; i < nodes.Length; i++)
                 {
+                    //var clientBucketConfig = _clientConfig.BucketConfigs.
                     var ip = bucketConfig.VBucketServerMap.ServerList[i];
                     var endpoint = GetEndPoint(ip, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);

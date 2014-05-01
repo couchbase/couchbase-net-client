@@ -70,10 +70,12 @@ namespace Couchbase.Tests.Core.Buckets
         public void Test_View_Query()
         {
             var bucket = (IViewSupportable)_cluster.OpenBucket("beer-sample");
+            
             var query = new ViewQuery(true).
                 From("beer-sample", "beer").
                 View("brewery_beers").
                 Limit(10);
+
             Console.WriteLine(query.RawUri());
             var result = bucket.Get<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
@@ -111,22 +113,6 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 Console.WriteLine(row);
             }
-            _cluster.CloseBucket(bucket);
-        }
-
-        [Test]
-        public void Test_GetAsync()
-        {
-            const string key = "asynckey";
-            const string value = "asyncvalue";
-
-            Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-            var bucket = (ICouchbaseBucket)_cluster.OpenBucket("default");
-            var setResult= bucket.Insert(key, value);
-            Assert.IsTrue(setResult.Success);
-            var getResult = bucket.GetAsync<string>(key);
-            //getResult.Wait();
-            Assert.AreEqual(value, getResult.Result.Value);
             _cluster.CloseBucket(bucket);
         }
 

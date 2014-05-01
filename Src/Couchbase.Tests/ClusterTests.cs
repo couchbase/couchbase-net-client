@@ -23,17 +23,8 @@ namespace Couchbase.Tests
         [Test]
         public void Test_GetBucket_Using_HttpStreamingProvider()
         {
-            var clientConfig = new ClientConfiguration
-            {
-                ProviderConfigs = new List<ProviderConfiguration>
-                {
-                    new ProviderConfiguration
-                    {
-                        Name = "HttpStreaming",
-                        TypeName = "Couchbase.Configuration.Server.Providers.Streaming.HttpStreamingProvider, Couchbase"
-                    }
-                }
-            };
+            var clientConfig = new ClientConfiguration();
+
             Cluster.Initialize(clientConfig);
             _cluster = Cluster.Get();
 
@@ -47,19 +38,7 @@ namespace Couchbase.Tests
         [Test]
         public void Test_GetBucket_Using_CarrierPublicationProvider()
         {
-            var config = new ClientConfiguration()
-            {
-                ProviderConfigs = new List<ProviderConfiguration>
-                {
-                    new ProviderConfiguration
-                    {
-                        Name = "CarrierPublication",
-                        TypeName =
-                            "Couchbase.Configuration.Server.Providers.CarrierPublication.CarrierPublicationProvider, Couchbase"
-                    }
-                }
-            };
-
+            var config = new ClientConfiguration();
             Cluster.Initialize(config);
             _cluster = Cluster.Get();
 
@@ -97,7 +76,28 @@ namespace Couchbase.Tests
             var bucket1 = _cluster.OpenBucket("default");
             var bucket2 = _cluster.OpenBucket("default");
 
-            Assert.AreSame(bucket1, bucket2);
+            Assert.AreEqual(bucket1, bucket2);
+        }
+
+        [Test]
+        public void When_Configuration_Is_Customized_Good_Things_Happens()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://192.168.56.101:8091/pools")
+                },
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = 10,
+                    MinSize = 10
+                }
+            };
+
+            Cluster.Initialize(config);
+            _cluster = Cluster.Get();
+
         }
 
 

@@ -47,34 +47,39 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public IConfigInfo GetConfig(string bucketName, string password)
         {
-            var bootstrap = _clientConfig.BucketConfigs.FirstOrDefault(x => x.BucketName == bucketName);
-            if (bootstrap == null)
+            BucketConfiguration bucketConfiguration = null;
+            if (_clientConfig.BucketConfigs.ContainsKey(bucketName))
+            {
+                bucketConfiguration = _clientConfig.BucketConfigs[bucketName];
+            }
+            if (bucketConfiguration == null)
             {
                 var defaultBucket = _clientConfig.BucketConfigs.FirstOrDefault();
-                if (defaultBucket == null)
+                if (defaultBucket.Value == null)
                 {
-                    bootstrap = new BucketConfiguration
+                    bucketConfiguration = new BucketConfiguration
                     {
                         BucketName = bucketName
                     };
                 }
                 else
                 {
-                    bootstrap = new BucketConfiguration
+                    var defaultConfig = defaultBucket.Value;
+                    bucketConfiguration = new BucketConfiguration
                     {
                         BucketName = bucketName,
-                        PoolConfiguration = defaultBucket.PoolConfiguration,
-                        Servers = defaultBucket.Servers,
-                        Port = defaultBucket.Port,
-                        Username = defaultBucket.Username,
-                        Password = defaultBucket.Password
+                        PoolConfiguration = defaultConfig.PoolConfiguration,
+                        Servers = defaultConfig.Servers,
+                        Port = defaultConfig.Port,
+                        Username = defaultConfig.Username,
+                        Password = defaultConfig.Password
                     };
                 }
-                _clientConfig.BucketConfigs.Add(bootstrap);
+                _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
             }
 
             var saslMechanism = new PlainTextMechanism(bucketName, password);
-            var connectionPool = new DefaultConnectionPool(bootstrap.PoolConfiguration, bootstrap.GetEndPoint());
+            var connectionPool = new DefaultConnectionPool(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
             var ioStrategy = new SocketAsyncStrategy(connectionPool, saslMechanism);//this needs to be configurable
 
             IConfigInfo configInfo = null;

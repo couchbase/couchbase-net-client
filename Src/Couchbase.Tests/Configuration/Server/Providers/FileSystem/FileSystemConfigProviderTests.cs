@@ -16,7 +16,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.FileSystem
         {
             _serverConfig = new FileSystemConfig(PoolsPath);
             _serverConfig.Initialize();
-            _provider = new FileSystemConfigProvider(_serverConfig, null);
+            _provider = new FileSystemConfigProvider(_serverConfig, null, PoolsPath);
         }
 
         [Test]
