@@ -9,6 +9,9 @@ using Couchbase.Cryptography;
 
 namespace Couchbase.Core.Buckets
 {
+    /// <summary>
+    /// Provides a means of mapping keys to nodes within a Couchbase Server and a Couchbase Bucket.
+    /// </summary>
     internal class VBucketKeyMapper : IKeyMapper
     {
         private const int Mask = 1023;
@@ -40,12 +43,20 @@ namespace Couchbase.Core.Buckets
         {
         }
 
+        /// <summary>
+        /// Maps a given Key to it's node in a Couchbase Cluster.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
             return _vBuckets[index];
         }
 
+        /// <summary>
+        /// The alogrithm for hashing the keys. Couchbase Buckets use CRC32.
+        /// </summary>
         public HashAlgorithm HashAlgorithm { get; set; }
 
         public int GetIndex(string key)
@@ -55,7 +66,10 @@ namespace Couchbase.Core.Buckets
             var hash = BitConverter.ToUInt32(hashedKeyBytes, 0);
             return (int)hash & Mask;
         }
-
+        /// <summary>
+        /// Creates a mapping of VBuckets to nodes.
+        /// </summary>
+        /// <returns>A mapping of indexes and Vbuckets.</returns>
         Dictionary<int, IVBucket> CreateVBuckets()
         {
             var vBuckets = new Dictionary<int, IVBucket>();
