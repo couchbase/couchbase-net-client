@@ -46,6 +46,7 @@ namespace Couchbase.Configuration
             _connectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
             _bucketConfig = bucketConfig;
+            LoadConfig(bucketConfig);
         }
 
         /// <summary>

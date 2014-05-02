@@ -9,6 +9,9 @@ using Couchbase.IO.Operations;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// 
+    /// </summary>
     internal interface IOStrategy : IDisposable
     {
         IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection);

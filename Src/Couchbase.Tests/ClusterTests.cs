@@ -97,7 +97,6 @@ namespace Couchbase.Tests
 
             Cluster.Initialize(config);
             _cluster = Cluster.Get();
-
         }
 
 

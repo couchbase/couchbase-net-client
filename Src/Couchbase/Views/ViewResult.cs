@@ -1,16 +1,13 @@
-﻿using System;
+﻿using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Net;
 
 namespace Couchbase.Views
 {
     /// <summary>
     /// Represents the results of a View query.
     /// </summary>
-    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/> 
+    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/>
     /// implementation.</typeparam>
     public class ViewResult<T> : IViewResult<T>
     {
@@ -25,5 +22,13 @@ namespace Couchbase.Views
         /// </summary>
         [JsonProperty("rows")]
         public List<T> Rows { get; set; }
+
+        public string Error { get; set; }
+
+        public string Message { get; set; }
+
+        public bool Success { get; set; }
+
+        public HttpStatusCode StatusCode { get; set; }
     }
 }

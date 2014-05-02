@@ -198,6 +198,7 @@
     <Compile Include="Utils\SortedDictionaryExtensions.cs" />
     <Compile Include="Utils\StringExtensions.cs" />
     <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\Error.cs" />
     <Compile Include="Views\IDataMapper.cs" />
     <Compile Include="Views\IViewClient.cs" />
     <Compile Include="Views\IVIewQuery.cs" />

@@ -117,7 +117,6 @@ namespace tester
         static void ParallerInsert(IBucket bucket, int n)
         {
             var options = new ParallelOptions {MaxDegreeOfParallelism = 4};
-            
             Parallel.For(0, n, options, i =>
             {
                 var key = "key" + i;
