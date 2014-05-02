@@ -115,8 +115,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 _ioStrategyFactory,
                 _connectionPoolFactory);
 
-            configInfo.LoadConfig(bucketConfig);
-
             return configInfo;
         }
 
