@@ -17,7 +17,7 @@ namespace Couchbase.Views
     /// </summary>
     public class ViewQuery : IViewQuery
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";

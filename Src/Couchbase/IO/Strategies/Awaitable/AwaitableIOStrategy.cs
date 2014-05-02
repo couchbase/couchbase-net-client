@@ -15,7 +15,7 @@ namespace Couchbase.IO.Strategies.Awaitable
 {
     internal sealed class AwaitableIOStrategy : IOStrategy
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
         private readonly AwaitableSocketPool _awaitableSocketPool;
         private volatile bool _disposed;
@@ -52,16 +52,16 @@ namespace Couchbase.IO.Strategies.Awaitable
             var socketAsync = socketAwaitable.EventArgs;
 
             var buffer = operation.GetBuffer();
-            _log.Debug(m => m("writing buffer...{0} bytes", buffer.Length));
+            Log.Debug(m => m("writing buffer...{0} bytes", buffer.Length));
 
              socketAsync.SetBuffer(buffer, 0, buffer.Length);
 
-            _log.Debug(m => m("sending buffer...{0} bytes", buffer.Length));
+            Log.Debug(m => m("sending buffer...{0} bytes", buffer.Length));
  
             await socketAwaitable.SendAsync();
             await Receive(operation, socketAwaitable);
 
-            _log.Debug(m => m("sent buffer...{0} bytes", buffer.Length));
+            Log.Debug(m => m("sent buffer...{0} bytes", buffer.Length));
             _awaitableSocketPool.Release(socketAwaitable);
             return operation.GetResult();
         }       
@@ -97,7 +97,7 @@ namespace Couchbase.IO.Strategies.Awaitable
                 await socketAwaitable.ReceiveAsync();
                 state.BytesReceived += eventArgs.BytesTransferred;
                 state.Data.Write(eventArgs.Buffer, eventArgs.Offset, eventArgs.Count);
-                _log.Debug(m => m("receive...{0} bytes", state.BytesReceived));
+                Log.Debug(m => m("receive...{0} bytes", state.BytesReceived));
 
                 if (operation.Header.BodyLength == 0)
                 {

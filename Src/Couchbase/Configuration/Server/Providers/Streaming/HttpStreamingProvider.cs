@@ -20,7 +20,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal sealed class HttpStreamingProvider : IConfigProvider
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private IServerConfig _serverConfig;
         private readonly ClientConfiguration _clientConfig;
 

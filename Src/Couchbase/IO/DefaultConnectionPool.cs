@@ -10,7 +10,7 @@ namespace Couchbase.IO
 {
     internal class  DefaultConnectionPool : IConnectionPool
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentQueue<IConnection> _store = new ConcurrentQueue<IConnection>();
         private readonly Func<IConnectionPool, IConnection> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);

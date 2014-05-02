@@ -7,7 +7,7 @@ namespace Couchbase.IO.Strategies.Awaitable
 {
     internal sealed class AwaitableSocketPool
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly BufferAllocator _bufferAllocator = new BufferAllocator(50000 * 512, 512);
         private readonly ConcurrentQueue<SocketAwaitable> _pool = new ConcurrentQueue<SocketAwaitable>();
         private readonly Func<IConnectionPool, BufferAllocator, SocketAwaitable> _factory;

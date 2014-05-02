@@ -18,7 +18,7 @@ namespace Couchbase.Views
     internal class ViewClient : IViewClient
     {
         const string Success = "Success";
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper)
         {
@@ -44,7 +44,7 @@ namespace Couchbase.Views
             {
                 ae.Flatten().Handle(e =>
                 {
-                    _log.Error(e);
+                    Log.Error(e);
                     return true;
                 });
             }
@@ -75,7 +75,7 @@ namespace Couchbase.Views
                 ae.Flatten().Handle(e =>
                 {
                     ProcessError(e, viewResult);
-                    _log.Error(e);
+                    Log.Error(e);
                     return true;
                 });
             }

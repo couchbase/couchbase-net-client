@@ -8,7 +8,7 @@ namespace Couchbase.Core.Serializers
 {
     internal sealed class TypeSerializer : ITypeSerializer
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private static readonly byte[] NullArray = new byte[0];
 
         public byte[] Serialize<T>(OperationBase<T> operation)

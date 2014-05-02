@@ -20,7 +20,7 @@ namespace Couchbase.Core
 {
     internal sealed class ClusterManager : IClusterManager
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
@@ -80,7 +80,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    _log.DebugFormat("Trying to boostrap with {0}.", provider);
+                    Log.DebugFormat("Trying to boostrap with {0}.", provider);
                     var config = provider.GetConfig(bucketName, password);
                     switch (config.NodeLocator)
                     {
@@ -99,7 +99,7 @@ namespace Couchbase.Core
                     var configObserver = bucket as IConfigObserver;
                     if (provider.ObserverExists(configObserver))
                     {
-                        _log.DebugFormat("Using existing bootstrap {0}.", provider);
+                        Log.DebugFormat("Using existing bootstrap {0}.", provider);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
@@ -107,7 +107,7 @@ namespace Couchbase.Core
                     if (provider.RegisterObserver(configObserver) &&
                         _buckets.TryAdd(bucket.Name, bucket))
                     {
-                        _log.DebugFormat("Successfully boostrap using {0}.", provider);
+                        Log.DebugFormat("Successfully boostrap using {0}.", provider);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
@@ -115,15 +115,15 @@ namespace Couchbase.Core
                 }
                 catch (BucketNotFoundException e)
                 {
-                    _log.Warn(e);
+                    Log.Warn(e);
                 }
                 catch (ConfigException e)
                 {
-                    _log.Warn(e);
+                    Log.Warn(e);
                 }
                 catch (AuthenticationException e)
                 {
-                    _log.Warn(e);
+                    Log.Warn(e);
                     break;
                 }
             }

@@ -20,7 +20,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     public sealed class CouchbaseBucket : IBucket, IConfigObserver
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
@@ -68,7 +68,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                _log.Debug(m => m("Requires retry {0}", key));
+                Log.Debug(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -90,7 +90,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                _log.Debug(m => m("Requires retry {0}", key));
+                Log.Debug(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }

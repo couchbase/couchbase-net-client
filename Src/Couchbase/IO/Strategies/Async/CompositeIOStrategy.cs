@@ -15,7 +15,7 @@ namespace Couchbase.IO.Strategies.Async
 {
     internal sealed class CompositeIOStrategy : IOStrategy
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentQueue<IOStrategy> _pool = new ConcurrentQueue<IOStrategy>();
         private readonly object _lock = new object();
         private int _count;
@@ -39,7 +39,7 @@ namespace Couchbase.IO.Strategies.Async
             IOStrategy iOStrategy = null;
             if (_pool.TryDequeue(out iOStrategy))
             {
-                _log.Debug(m=>m("aquire existing IOStrategy {0}", iOStrategy.GetHashCode()));
+                Log.Debug(m=>m("aquire existing IOStrategy {0}", iOStrategy.GetHashCode()));
                 return iOStrategy;
             }
 
@@ -48,7 +48,7 @@ namespace Couchbase.IO.Strategies.Async
                 if (_count < _maxSize)
                 {
                     iOStrategy = _factory(ConnectionPool);
-                    _log.Debug(m => m("create new IOStrategy {0}", iOStrategy.GetHashCode()));
+                    Log.Debug(m => m("create new IOStrategy {0}", iOStrategy.GetHashCode()));
 
                     Interlocked.Increment(ref _count );
                     return iOStrategy;
@@ -56,13 +56,13 @@ namespace Couchbase.IO.Strategies.Async
             }
             _autoResetEvent.WaitOne(_waitTimeout);
 
-            _log.Debug(m => m("No SocketAsyncEventArgs currently available. Trying again."));
+            Log.Debug(m => m("No SocketAsyncEventArgs currently available. Trying again."));
             return Acquire();
         }
 
         public void Release(IOStrategy strategy)
         {
-            _log.Debug(m => m("Releasing strategy: {0} [{1}, {2}]", strategy.GetHashCode(), _count, _pool.Count));
+            Log.Debug(m => m("Releasing strategy: {0} [{1}, {2}]", strategy.GetHashCode(), _count, _pool.Count));
 
             _pool.Enqueue(strategy);
             _autoResetEvent.Set();
@@ -76,7 +76,7 @@ namespace Couchbase.IO.Strategies.Async
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             var iOStrategy = Acquire();
-            _log.Debug(m=>m("Executing operation on thread {0}", Thread.CurrentThread.ManagedThreadId));
+            Log.Debug(m=>m("Executing operation on thread {0}", Thread.CurrentThread.ManagedThreadId));
             var result = iOStrategy.Execute(operation);
             Release(iOStrategy);
             return result;

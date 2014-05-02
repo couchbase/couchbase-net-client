@@ -12,7 +12,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     public class MemcachedBucket : IBucket, IConfigObserver
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;

@@ -14,7 +14,7 @@ namespace Couchbase.N1QL
     /// </summary>
     internal class QueryClient : IQueryClient
     {
-        private readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper)
         {

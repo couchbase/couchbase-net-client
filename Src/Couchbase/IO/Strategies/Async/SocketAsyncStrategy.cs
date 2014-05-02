@@ -13,13 +13,13 @@ namespace Couchbase.IO.Strategies.Async
 {
     internal class SocketAsyncStrategy : IOStrategy
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
         private readonly SocketAsyncPool _socketAsyncPool;
-        private volatile bool _disposed;
         private static readonly AutoResetEvent WaitEvent = new AutoResetEvent(true);
         private static readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         private ISaslMechanism _saslMechanism;
+        private volatile bool _disposed;
 
         public SocketAsyncStrategy(IConnectionPool connectionPool)
             : this(connectionPool,
@@ -64,7 +64,7 @@ namespace Couchbase.IO.Strategies.Async
             state.Reset();
 
             var socket = state.Connection.Socket;
-            _log.Debug(m => m("sending key {0}", operation.Key));
+            Log.Debug(m => m("sending key {0}", operation.Key));
 
             var buffer = operation.GetBuffer();
             socketAsync.SetBuffer(buffer, 0, buffer.Length);
@@ -112,7 +112,7 @@ namespace Couchbase.IO.Strategies.Async
                 }
 
                 var socket = state.Connection.Socket;
-                _log.Debug(m => m("sending key {0} using {1}", operation.Key, state.Connection.Identity));
+                Log.Debug(m => m("sending key {0} using {1}", operation.Key, state.Connection.Identity));
 
                 var buffer = operation.GetBuffer();
                 socketAsync.SetBuffer(buffer, 0, buffer.Length);
@@ -129,7 +129,7 @@ namespace Couchbase.IO.Strategies.Async
             }
             catch (Exception e)
             {
-                _log.Error(e);
+                Log.Error(e);
             }
             finally
             {
@@ -158,7 +158,7 @@ namespace Couchbase.IO.Strategies.Async
 
         private static void Send(SocketAsyncEventArgs e)
         {
-            //_log.Debug(m=>m("send..."));
+            Log.Debug(m=>m("send..."));
             if (e.SocketError == SocketError.Success)
             {
                 var state = (OperationAsyncState)e.UserToken;
@@ -185,12 +185,12 @@ namespace Couchbase.IO.Strategies.Async
                     var state = (OperationAsyncState)e.UserToken;
                     state.BytesReceived += e.BytesTransferred;
                     state.Data.Write(e.Buffer, e.Offset, e.Count);
-                    // _log.Debug(m => m("receive...{0} bytes of {1} offset {2}", state.BytesReceived, e.Count, e.Offset));
+                    Log.Debug(m => m("receive...{0} bytes of {1} offset {2}", state.BytesReceived, e.Count, e.Offset));
 
                     if (state.Header.BodyLength == 0)
                     {
                         CreateHeader(state);
-                        //_log.Debug(m => m("received key {0}", state.Header.Key));
+                        Log.Debug(m => m("received key {0}", state.Header.Key));
                     }
 
                     if (state.BytesReceived < state.Header.TotalLength)
@@ -203,7 +203,7 @@ namespace Couchbase.IO.Strategies.Async
                     }
                     else
                     {
-                        //_log.Debug(m => m("bytes rcvd/length: {0}/{1}", state.BytesReceived, state.Header.TotalLength));
+                        Log.Debug(m => m("bytes rcvd/length: {0}/{1}", state.BytesReceived, state.Header.TotalLength));
                         CreateBody(state);
                         SendEvent.Set();
                     }

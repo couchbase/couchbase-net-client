@@ -17,7 +17,7 @@ namespace Couchbase.Core
 {
     internal class Server : IServer
     {
-        private static readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IOStrategy _ioStrategy;
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
