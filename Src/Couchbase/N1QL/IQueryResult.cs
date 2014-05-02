@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 
 namespace Couchbase.N1QL
 {
+    /// <summary>
+    /// Interface for the results of a N1QL query.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IQueryResult<T>
     {
-        List<T> Rows { get; set; } 
+        /// <summary>
+        /// The resultset of the N1QL query.
+        /// </summary>
+        List<T> Rows { get; set; }
 
-
+        List<Error> Error { get; set; }
     }
 }

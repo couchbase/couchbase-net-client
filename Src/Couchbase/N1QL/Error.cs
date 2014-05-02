@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 
 namespace Couchbase.N1QL
 {
-    public struct Info
+    /// <summary>
+    /// Represents additional information returned from a N1QL query when an error has occurred.
+    /// </summary>
+    public struct Error
     {
         public string Caller { get; set; }
 
         public int Code { get; set; }
+
+        public string Cause { get; set; }
 
         public string Key { get; set; }
 

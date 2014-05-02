@@ -9,6 +9,9 @@ using Couchbase.Views;
 
 namespace Couchbase.N1QL
 {
+    /// <summary>
+    /// A <see cref="IViewClient"/> implementation for executing N1QL queries against a Couchbase Server.
+    /// </summary>
     internal class QueryClient : IQueryClient
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
@@ -19,6 +22,13 @@ namespace Couchbase.N1QL
             DataMapper = dataMapper;
         }
 
+        /// <summary>
+        /// Executes an ad-hoc N1QL query against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="server">The <see cref="Uri"/> of the server.</param>
+        /// <param name="query">A string containing a N1QL query.</param>
+        /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
         public IQueryResult<T> Query<T>(Uri server, string query)
         {
             IQueryResult<T> queryResult = new QueryResult<T>();
@@ -46,8 +56,14 @@ namespace Couchbase.N1QL
             return queryResult;
         }
 
+        /// <summary>
+        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
+        /// </summary>
         public IDataMapper DataMapper { get; set; }
 
+        /// <summary>
+        /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
+        /// </summary>
         public HttpClient HttpClient { get; set; }
     }
 }
