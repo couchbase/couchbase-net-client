@@ -5,7 +5,10 @@ using System;
 
 namespace Couchbase.Authentication.SASL
 {
-    internal class PlainTextMechanism : ISaslMechanism
+    /// <summary>
+    /// A PLAIN text implementation of <see cref="ISaslMechanism"/> for authening connections to Couchbase Buckets. 
+    /// </summary>
+    internal sealed class PlainTextMechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private IOStrategy _strategy;
@@ -28,25 +31,49 @@ namespace Couchbase.Authentication.SASL
             Password = password;
         }
 
+        /// <summary>
+        /// The I/O strategy to use <see cref="IOStrategy"/>
+        /// </summary>
         public IOStrategy IOStrategy
         {
             set { _strategy = value; }
         }
 
+        /// <summary>
+        /// The username or Bucket name.
+        /// </summary>
         public string Username { get; private set; }
 
+        /// <summary>
+        /// The password to authenticate against.
+        /// </summary>
         public string Password { get; private set; }
 
+        /// <summary>
+        /// The type of SASL mechanism to use: PLAIN or CRAM MD5.
+        /// </summary>
         public string MechanismType
         {
             get { return "PLAIN"; }
         }
 
+        /// <summary>
+        /// Authenticates a username and password.
+        /// </summary>
+        /// <param name="connection">An implementation of <see cref="IConnection"/> which represents a TCP connection to a Couchbase Server.</param>
+        /// <returns>True if succesful.</returns>
         public bool Authenticate(IConnection connection)
         {
             return Authenticate(connection, Username, Password);
         }
 
+        /// <summary>
+        /// Authenticates a username and password using a specific <see cref="IConnection"/> instance.
+        /// </summary>
+        /// <param name="connection">An implementation of <see cref="IConnection"/> which represents a TCP connection to a Couchbase Server.</param>
+        /// <param name="username">The username or bucket name to authentic against.</param>
+        /// <param name="password">The password to authenticate against.</param>
+        /// <returns>True if succesful.</returns>
         public bool Authenticate(IConnection connection, string username, string password)
         {
             var authenticated = false;

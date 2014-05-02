@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace Couchbase.Authentication.SASL
 {
+    /// <summary>
+    /// The SASL mechanism type.
+    /// </summary>
     internal enum SaslMechanismType
     {
-        Plain
+        Plain,
+
+        CramMd5
     }
 }
