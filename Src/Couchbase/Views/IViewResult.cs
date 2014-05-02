@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,6 +22,12 @@ namespace Couchbase.Views
         /// <summary>
         /// The results of the query if successful.
         /// </summary>
-        List<T> Rows { get; set; } 
+        List<T> Rows { get; set; }
+
+        string Message { get; set; }
+
+        bool Success { get; set; }
+
+        HttpStatusCode StatusCode { get; set; }
     }
 }

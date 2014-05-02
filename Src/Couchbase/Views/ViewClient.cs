@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,6 +17,7 @@ namespace Couchbase.Views
     /// </summary>
     internal class ViewClient : IViewClient
     {
+        const string Success = "Success";
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper)
@@ -64,17 +66,43 @@ namespace Couchbase.Views
                 task.Wait();
                 var result = task.Result;
                 viewResult = Mapper.Map<ViewResult<T>>(result);
+                viewResult.Success = true;
+                viewResult.StatusCode = HttpStatusCode.Found;
+                viewResult.Message = Success;
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
+                    ProcessError(e, viewResult);
                     _log.Error(e);
                     return true;
                 });
             }
 
             return viewResult;
+        }
+
+        void ProcessError<T>(Exception ex, IViewResult<T> viewResult)
+        {
+            viewResult.Success = false;
+            viewResult.StatusCode = GetStatusCode(ex.Message);
+            viewResult.Message = ex.Message;
+        }
+
+        HttpStatusCode GetStatusCode(string message)
+        {
+            var httpStatusCode = HttpStatusCode.Found;
+            var codes = Enum.GetValues(typeof (HttpStatusCode));
+            foreach (int code in codes)
+            {
+                if (message.Contains(code.ToString(CultureInfo.InvariantCulture)))
+                {
+                    httpStatusCode = (HttpStatusCode) code;
+                    break;
+                }
+            }
+            return httpStatusCode;
         }
 
         /// <summary>
