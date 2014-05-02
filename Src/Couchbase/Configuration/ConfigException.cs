@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Configuration
 {
+    /// <summary>
+    /// Generic exception thrown when a configuration cannot be bootstrapped or is the wrong type for the given bucket.
+    /// </summary>
     public class ConfigException : Exception
     {
         public ConfigException()

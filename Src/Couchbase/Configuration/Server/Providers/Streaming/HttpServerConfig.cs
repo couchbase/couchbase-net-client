@@ -11,6 +11,9 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
+    /// <summary>
+    /// A configuration info class for supporting HTTP streaming provider.
+    /// </summary>
     internal class HttpServerConfig : AuthenticatingWebClient, IServerConfig
     {
         private readonly ILog _log = LogManager.GetCurrentClassLogger();

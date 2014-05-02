@@ -16,8 +16,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
     internal delegate void ErrorOccurred(IBucketConfig streamingHttp);
 
-    internal class ConfigThreadState 
-    {
+    /// <summary>
+    /// Represents a long-lived comet style connection to an HTTP service.
+    /// </summary>
+    internal sealed class ConfigThreadState 
+    { 
         private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly BucketConfig _bucketConfig;
         private readonly ConfigChanged _configChangedDelegate;

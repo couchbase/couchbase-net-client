@@ -15,7 +15,10 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
-    internal class HttpStreamingProvider : IConfigProvider
+    /// <summary>
+    /// A comet style streaming HTTP connection provider for Couchbase configurations.
+    /// </summary>
+    internal sealed class HttpStreamingProvider : IConfigProvider
     {
         private readonly ILog Log = LogManager.GetCurrentClassLogger();
         private IServerConfig _serverConfig;
@@ -44,6 +47,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _connectionPoolFactory = connectionPoolFactory;
         }
 
+        /// <summary>
+        /// Gets the currently cached (and used) configuration.
+        /// </summary>
+        /// <param name="bucketName">The name of the Couchbase Bucket used to lookup the <see cref="IConfigInfo"/> object.</param>
+        /// <returns></returns>
         public IConfigInfo GetCached(string bucketName)
         {
             IConfigInfo configInfo;
@@ -54,6 +62,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return configInfo;
         }
 
+        /// <summary>
+        /// Starts the HTTP streaming connection to the Couchbase Server and gets the latest configuration for a SASL authenticated Bucket.
+        /// </summary>
+        /// <param name="bucketName">The name of the Couchbase Bucket.</param>
+        /// <param name="password">The SASL password used to connect to the Bucket.</param>
+        /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public IConfigInfo GetConfig(string bucketName, string password)
         {
             StartProvider(bucketName, password);
@@ -99,11 +113,22 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return configInfo;
         }
 
+        /// <summary>
+        /// Starts the HTTP streaming connection to the Couchbase Server and gets the latest configuration for a non-SASL authenticated Bucket.
+        /// </summary>
+        /// <param name="bucketName">The name of the Couchbase Bucket.</param>
+        /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public IConfigInfo GetConfig(string bucketName)
         {
             return GetConfig(bucketName, string.Empty);
         }
 
+        /// <summary>
+        /// Registers an <see cref="IConfigObserver"/> object, which is notified when a configuration changes.
+        /// </summary>
+        /// <param name="observer">The <see cref="IConfigObserver"/> that will be notified when a configuration 
+        /// update occurs. These are Memcached and Couchbase Buckets.</param>
+        /// <returns>True if the observer was registered without failure.</returns>
         public bool RegisterObserver(IConfigObserver observer)
         {
             var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
@@ -132,14 +157,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return true;//todo fix
         }
 
+        /// <summary>
+        /// Raised when a configuration update has occurred. All observers will be notified of the changes.
+        /// </summary>
+        /// <param name="bucketConfig"></param>
         private void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
-            //1-Compare previous with current
-            //2-if no change, then continue
-            //3-else update configuration references
-            //4-notify the observer that a new configuration is available
-
-            var listener = _observers[bucketConfig.Name];
+            var configObserver = _observers[bucketConfig.Name];
 
             IConfigInfo configInfo;
             if (_configs.ContainsKey(bucketConfig.Name))
@@ -159,7 +183,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
             try
             {
-                listener.NotifyConfigChanged(configInfo);
+                configObserver.NotifyConfigChanged(configInfo);
             }
             catch (Exception e)
             {
@@ -176,6 +200,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
+        /// <summary>
+        /// Creates a Bucket specific <see cref="IConfigInfo"/> instance.
+        /// </summary>
+        /// <param name="bucketConfig">The <see cref="IBucketConfig"/> to use for client configuration.</param>
+        /// <returns></returns>
         IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
         {
             IConfigInfo configInfo = null;
@@ -199,6 +228,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return configInfo;
         }
 
+        /// <summary>
+        /// Starts the HTTP streaming connection.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
         void StartProvider(string username, string password)
         {
             _serverConfig = new HttpServerConfig(_clientConfig, username, password);
@@ -222,6 +256,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //TODO provide implementation to begin the bootstrapping procss from the beginning
         }
 
+        /// <summary>
+        /// Un-registers an observer, which is either a Couchbase or Memcached Bucket, from the Provider.
+        /// </summary>
+        /// <param name="observer"></param>
         public void UnRegisterObserver(IConfigObserver observer)
         {
             Thread thread;
@@ -249,6 +287,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
+        /// <summary>
+        /// Checks to see if an observer has been registered.
+        /// </summary>
+        /// <param name="observer"></param>
+        /// <returns></returns>
         public bool ObserverExists(IConfigObserver observer)
         {
             return _observers.ContainsKey(observer.Name);

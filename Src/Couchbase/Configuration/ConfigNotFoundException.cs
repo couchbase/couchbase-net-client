@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Configuration
 {
+    /// <summary>
+    /// Thrown when a configuration does not exist within the provider.
+    /// </summary>
     public class ConfigNotFoundException : Exception
     {
         public ConfigNotFoundException()

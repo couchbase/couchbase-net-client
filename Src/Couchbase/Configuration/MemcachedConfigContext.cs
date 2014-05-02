@@ -13,6 +13,9 @@ using Couchbase.Utils;
 
 namespace Couchbase.Configuration
 {
+    /// <summary>
+    /// Represents a configuration context for a Memcached Bucket.
+    /// </summary>
     internal class MemcachedConfigContext : ConfigContextBase
     {
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig) : 
@@ -27,6 +30,12 @@ namespace Couchbase.Configuration
         {
         }
 
+        /// <summary>
+        /// Gets an <see cref="IPEndPoint"/> instance for a given Node and <see cref="IBucketConfig"/>
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="bucketConfig"></param>
+        /// <returns></returns>
         protected IPEndPoint GetEndPoint(Node node, IBucketConfig bucketConfig)
         {
             const string couchbasePort = "8091";
@@ -39,6 +48,10 @@ namespace Couchbase.Configuration
             return endpoint;
         }
 
+        /// <summary>
+        /// Loads the current configuration setting the internal state of this configuration context.
+        /// </summary>
+        /// <param name="bucketConfig"></param>
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");

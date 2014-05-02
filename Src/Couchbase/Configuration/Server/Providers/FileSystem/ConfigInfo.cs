@@ -1,18 +1,12 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Cryptography;
 
-namespace Couchbase.Configuration
+namespace Couchbase.Configuration.Server.Providers.FileSystem
 {
+    [Obsolete]
     internal class ConfigInfo : IConfigInfo
     {
         private readonly List<IServer> _servers = new List<IServer>();

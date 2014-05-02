@@ -58,15 +58,13 @@
     <Compile Include="Cluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
-    <Compile Include="Configuration\Client\ProviderConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
     <Compile Include="Configuration\CouchbaseConfigContext.cs" />
     <Compile Include="Configuration\ConfigContextBase.cs" />
     <Compile Include="Configuration\ConfigException.cs" />
-    <Compile Include="Configuration\ConfigInfo.cs" />
-    <Compile Include="Configuration\ConfigListenerNotFoundException.cs" />
+    <Compile Include="Configuration\ConfigObserverNotFoundException.cs" />
     <Compile Include="Configuration\ConfigNotFoundException.cs" />
-    <Compile Include="Configuration\DefaultConfig.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProvider.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfig.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProvider.cs" />

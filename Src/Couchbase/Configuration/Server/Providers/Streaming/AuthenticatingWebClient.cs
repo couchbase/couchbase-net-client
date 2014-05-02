@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
+    /// <summary>
+    /// Represents a WebClient capable of supporting SASL authentication.
+    /// </summary>
     internal class AuthenticatingWebClient : WebClient
     {
         public AuthenticatingWebClient() 
@@ -20,6 +19,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             BucketName = username;
         }
 
+        /// <summary>
+        /// The name of the Couchbase Bucket to authenticate against.
+        /// </summary>
         public string BucketName { get; private set; }
 
         protected override WebRequest GetWebRequest(Uri address)

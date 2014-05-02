@@ -1,3 +1,4 @@
+using System.Threading;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -14,9 +15,13 @@ using System.Net;
 
 namespace Couchbase.Configuration
 {
+    /// <summary>
+    /// Base class for configuration contexts. The configuration context is a class which maintains the internal
+    /// state of the cluster and communicats with configuration providers to ensure that the state is up-to-date.
+    /// </summary>
     internal abstract class ConfigContextBase : IConfigInfo
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         protected IBucketConfig _bucketConfig;
         protected IKeyMapper _keyMapper;
         private readonly DateTime _creationTime;
@@ -40,29 +45,45 @@ namespace Couchbase.Configuration
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
-            LoadConfig(bucketConfig);///TODO fix resharper warning
+            _bucketConfig = bucketConfig;
         }
 
+        /// <summary>
+        /// The time at which this configuration context has been created.
+        /// </summary>
         public DateTime CreationTime
         {
             get { return _creationTime; }
         }
 
+        /// <summary>
+        /// The client configuration for a bucket.
+        /// <remarks> See <see cref="IBucketConfig"/> for details.</remarks>
+        /// </summary>
         public IBucketConfig BucketConfig
         {
             get { return _bucketConfig; }
         }
 
+        /// <summary>
+        /// The name of the Bucket that this configuration represents.
+        /// </summary>
         public string BucketName
         {
             get { return _bucketConfig.Name; }
         }
 
+        /// <summary>
+        /// The client configuration.
+        /// </summary>
         public ClientConfiguration ClientConfig
         {
             get { return _clientConfig; }
         }
 
+        /// <summary>
+        /// The <see cref="BucketTypeEnum"/> that this configuration context is for.
+        /// </summary>
         public BucketTypeEnum BucketType
         {
             get
@@ -76,6 +97,9 @@ namespace Couchbase.Configuration
             }
         }
 
+        /// <summary>
+        /// The <see cref="NodeLocatorEnum"/> that this configuration is using.
+        /// </summary>
         public NodeLocatorEnum NodeLocator
         {
             get
@@ -89,6 +113,12 @@ namespace Couchbase.Configuration
             }
         }
 
+        /// <summary>
+        /// Gets an <see cref="IPEndPoint"/> for a given hostname and bucketconfig.
+        /// </summary>
+        /// <param name="hostName">The specified hostname.</param>
+        /// <param name="bucketConfig">The <see cref="IBucketConfig"/> to use if replacement is required.</param>
+        /// <returns></returns>
         protected virtual IPEndPoint GetEndPoint(string hostName, IBucketConfig bucketConfig)
         {
             const string blah = "$HOST";
@@ -96,23 +126,44 @@ namespace Couchbase.Configuration
             return Core.Server.GetEndPoint(address);
         }
 
+        /// <summary>
+        /// Loads the most updated configuration creating any resources as needed.
+        /// </summary>
+        /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/> 
+        /// that will drive the recreation if the configuration context.</param>
         public abstract void LoadConfig(IBucketConfig bucketConfig);
 
+        /// <summary>
+        /// Gets the <see cref="IKeyMapper"/> instance associated with this <see cref="IConfigInfo"/>.
+        /// </summary>
+        /// <param name="bucketName"></param>
+        /// <returns></returns>
         public IKeyMapper GetKeyMapper(string bucketName)
         {
             return _keyMapper;
         }
 
+        /// <summary>
+        /// Gets a random server instance from the underlying <see cref="IServer"/> collection.
+        /// </summary>
+        /// <returns></returns>
         public IServer GetServer()
         {
             return _servers.Shuffle().First();
         }
 
+        /// <summary>
+        /// Reclaims all resources and suppresses finalization.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
         }
 
+        /// <summary>
+        /// Reclams all resources and optionally suppresses finalization.
+        /// </summary>
+        /// <param name="disposing">True to suppress finalization.</param>
         private void Dispose(bool disposing)
         {
             if (!_disposed) return;
@@ -120,10 +171,16 @@ namespace Couchbase.Configuration
             {
                 GC.SuppressFinalize(this);
             }
-            _servers.ForEach(x => x.Dispose());
+            if (_servers != null)
+            {
+                _servers.ForEach(x => x.Dispose());
+            }
             _disposed = false;
         }
 
+        /// <summary>
+        /// Reclaims all un-reclaimed resources.
+        /// </summary>
         ~ConfigContextBase()
         {
             Dispose(false);

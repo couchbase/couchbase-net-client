@@ -17,7 +17,10 @@ using Couchbase.Utils;
 
 namespace Couchbase.Configuration
 {
-    internal class CouchbaseConfigContext : ConfigContextBase
+    /// <summary>
+    /// Represents a configuration context for a Couchbase Bucket.
+    /// </summary>
+    internal sealed class CouchbaseConfigContext : ConfigContextBase
     {
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
             : base(bucketConfig, clientConfig)
@@ -31,6 +34,11 @@ namespace Couchbase.Configuration
         {
         }
 
+        /// <summary>
+        /// Loads the most updated configuration creating any resources as needed.
+        /// </summary>
+        /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/> 
+        /// that will drive the recreation if the configuration context.</param>
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
@@ -39,7 +47,6 @@ namespace Couchbase.Configuration
                 var nodes = bucketConfig.Nodes;
                 for (var i = 0; i < nodes.Length; i++)
                 {
-                    //var clientBucketConfig = _clientConfig.BucketConfigs.
                     var ip = bucketConfig.VBucketServerMap.ServerList[i];
                     var endpoint = GetEndPoint(ip, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);

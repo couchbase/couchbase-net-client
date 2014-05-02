@@ -110,10 +110,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         private IConfigInfo GetConfig(IBucketConfig bucketConfig)
         {
-            IConfigInfo configInfo = new CouchbaseConfigContext(bucketConfig,
+            ConfigContextBase configInfo = new CouchbaseConfigContext(bucketConfig,
                 _clientConfig,
                 _ioStrategyFactory,
                 _connectionPoolFactory);
+
+            configInfo.LoadConfig(bucketConfig);
 
             return configInfo;
         }
@@ -128,7 +130,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             IConfigObserver observer;
             if (!_listeners.TryGetValue(bucketConfig.Name, out observer))
             {
-                throw new ConfigListenerNotFoundException(bucketConfig.Name);
+                throw new ConfigObserverNotFoundException(bucketConfig.Name);
             }
 
             IConfigInfo oldConfigInfo;

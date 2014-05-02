@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Security.Permissions;
+using Couchbase.Core;
+using Couchbase.IO;
 
 namespace Couchbase.Configuration.Client
 {
+    /// <summary>
+    /// Represents the configuration of a <see cref="Cluster"/> object. The <see cref="Cluster"/> object
+    /// will use this class to construct it's internals.
+    /// </summary>
     public class ClientConfiguration
     {
         private const string DefaultBucket = "default";
@@ -35,6 +39,9 @@ namespace Couchbase.Configuration.Client
             _poolConfigurationChanged = false;
         }
 
+        /// <summary>
+        /// A list of hosts used to bootstrap from.
+        /// </summary>
         public List<Uri> Servers
         {
             get { return _servers; }
@@ -45,6 +52,9 @@ namespace Couchbase.Configuration.Client
             }
         }
 
+        /// <summary>
+        /// A map of <see cref="BucketConfiguration"/>s and their names.
+        /// </summary>
         public Dictionary<string, BucketConfiguration> BucketConfigs
         {
             get { return _bucketConfigurations; }
@@ -55,6 +65,9 @@ namespace Couchbase.Configuration.Client
             }
         }
 
+        /// <summary>
+        /// The configuration used for creating the <see cref="IConnectionPool"/> for each <see cref="IBucket"/>.
+        /// </summary>
         public PoolConfiguration PoolConfiguration
         {
             get { return _poolConfiguration; }

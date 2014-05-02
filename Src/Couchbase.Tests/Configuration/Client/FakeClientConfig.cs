@@ -18,7 +18,5 @@ namespace Couchbase.Tests.Configuration.Client
         {
             get { throw new NotImplementedException(); }
         }
-
-        public List<ProviderConfiguration> ProviderConfigs { get; set; }
     }
 }

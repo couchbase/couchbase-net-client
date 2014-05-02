@@ -70,6 +70,8 @@
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Tests.cs" />
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
@@ -82,8 +84,6 @@
     <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
     <Compile Include="Configuration\Server\Serialization\BucketTests.cs" />

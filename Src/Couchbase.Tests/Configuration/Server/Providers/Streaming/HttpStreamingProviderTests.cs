@@ -1,18 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
-using Couchbase.Configuration.Server.Providers.FileSystem;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
