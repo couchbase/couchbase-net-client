@@ -17,6 +17,8 @@ namespace Couchbase.N1QL
         /// </summary>
         List<T> Rows { get; set; }
 
-        List<Error> Error { get; set; }
+        Error Error { get; set; }
+
+        bool Success { get; }
     }
 }

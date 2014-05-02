@@ -25,5 +25,18 @@ namespace Couchbase.Tests.N1QL
             Assert.IsNotNull(result);
             Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
         }
+
+        [Test]
+        public void TestQuery_Incorrect_Syntax()
+        {
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var uri = new Uri("http://localhost:8093/query");
+            const string query = "SELECT 'Hello World' ASB Greeting";
+
+            var result = client.Query<dynamic>(uri, query);
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+            Assert.IsNull(result.Rows);
+        }
     }
 }

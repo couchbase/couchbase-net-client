@@ -25,6 +25,14 @@ namespace Couchbase.N1QL
         /// Additional information returned by the query.
         /// </summary>
         [JsonProperty("error")]
-        public List<Error> Error { get; set; } 
+        public Error Error { get; set; }
+
+        /// <summary>
+        /// True if query was successful.
+        /// </summary>
+        public bool Success
+        {
+            get { return Error == null; }
+        }
     }
 }

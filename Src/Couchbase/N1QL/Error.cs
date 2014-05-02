@@ -9,7 +9,7 @@ namespace Couchbase.N1QL
     /// <summary>
     /// Represents additional information returned from a N1QL query when an error has occurred.
     /// </summary>
-    public struct Error
+    public sealed class Error
     {
         public string Caller { get; set; }
 
