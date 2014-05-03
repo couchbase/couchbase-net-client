@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var response = _ioStrategy.Execute(operation);
 
             Console.WriteLine(response.Value);
-            Assert.AreEqual("Auth failure", response.Value);
+            Assert.AreEqual("Auth failure", response.Message);
             Assert.AreEqual(ResponseStatus.AuthenticationError, response.Status);
             Assert.IsFalse(response.Success);
         }

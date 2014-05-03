@@ -26,8 +26,13 @@ namespace Couchbase.IO.Operations
         {
             get
             {
-                var serializer = _operation.Serializer;
-                return serializer.Deserialize(_operation);
+                var value = default(T);
+                if (Success)
+                {
+                    var serializer = _operation.Serializer;
+                    value = serializer.Deserialize(_operation);
+                }
+                return value;
             }
         }
 
@@ -46,11 +51,12 @@ namespace Couchbase.IO.Operations
                     {
                         try
                         {
-                            var data = _operation.Body;
-                            message = Encoding.ASCII.GetString(
-                                data.Data.Array,
-                                data.Data.Offset,
-                                data.Data.Array.Length - data.Data.Offset);
+                            var serializer = _operation.Serializer;
+                            var buffer = _operation.Body.Data;
+                            var header = _operation.Header;
+                            var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
+                            var length = header.BodyLength - header.ExtrasLength;
+                            message = serializer.Deserialize(buffer, offset, length);
                         }
                         catch (Exception e)
                         {

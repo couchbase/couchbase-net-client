@@ -51,7 +51,7 @@ namespace Couchbase.Core.Serializers
             switch (typeCode)
             {
                 case TypeCode.String:
-                    value = GetString(data, headerLength + extrasLength, bodyLength - extrasLength);
+                    value = Deserialize(data, headerLength + extrasLength, bodyLength - extrasLength);
                     break;
 
                 case TypeCode.Int32:
@@ -68,10 +68,20 @@ namespace Couchbase.Core.Serializers
         public T Deserialize<T>(ArraySegment<byte> bytes, int offset, int length)
         {
             //It would be better to do this without converting to a string first - a TODO
-            var value = GetString(bytes, offset, length);
+            var value = Deserialize(bytes, offset, length);
 
             Log.Trace(value);
             return JsonConvert.DeserializeObject<T>(value);
+        }
+
+        public string Deserialize(ArraySegment<byte> bytes, int offset, int length)
+        {
+            var result = string.Empty;
+            if (bytes.Array != null)
+            {
+                result = Encoding.UTF8.GetString(bytes.Array, offset, length);
+            }
+            return result;
         }
 
         private static byte[] GetBytes()
@@ -87,28 +97,6 @@ namespace Couchbase.Core.Serializers
         private static byte[] GetBytes(int value)
         {
             return BitConverter.GetBytes(value);
-        }
-
-        private static string GetString(ArraySegment<byte> bytes, int offset, int length)
-        {
-            var result = string.Empty;
-            if (bytes.Array != null)
-            {
-                result = Encoding.UTF8.GetString(bytes.Array, offset, length);
-            }
-            return result;
-        }
-
-        private static string GetString(ArraySegment<byte> bytes)
-        {
-            var result = string.Empty;
-            if (bytes.Array != null)
-            {
-                var index = bytes.Offset;
-                var count = bytes.Array.Length - bytes.Offset;
-                result = Encoding.UTF8.GetString(bytes.Array, index, count);
-            }
-            return result;
         }
 
         private static int GetInt32(ArraySegment<byte> bytes)

@@ -52,6 +52,18 @@ namespace Couchbase.Tests.IO.Operations
             }
         }
 
+        [Test]
+        public void When_Key_Not_Found_Success_Is_False()
+        {
+            const string keyThatDoesntExist = "keyThatDoesntExist";
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                var getResponse = bucket.Get<string>(keyThatDoesntExist);
+                Assert.IsFalse(getResponse.Success);
+                Assert.AreEqual("Not found", getResponse.Message);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
