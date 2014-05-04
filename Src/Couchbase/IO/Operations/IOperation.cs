@@ -24,5 +24,7 @@ namespace Couchbase.IO.Operations
         int SequenceId { get; }
 
         string Key { get; }
+
+        Exception Exception { get; set; }
     }
 }

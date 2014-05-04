@@ -129,6 +129,7 @@ namespace Couchbase.IO.Strategies.Async
             }
             catch (Exception e)
             {
+                operation.Exception = e;
                 Log.Error(e);
             }
             finally
