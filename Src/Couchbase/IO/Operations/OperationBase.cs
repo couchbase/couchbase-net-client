@@ -189,5 +189,7 @@ namespace Couchbase.IO.Operations
         {
             get { return _sequenceId + GetHashCode(); }
         }
+
+        public Exception Exception { get; set; }
     }
 }

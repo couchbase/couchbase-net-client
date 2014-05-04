@@ -39,6 +39,30 @@ namespace Couchbase.Tests.IO.Operations
             }
         }
 
+        [Test]
+        public void Test_Insert_POCO()
+        {
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                var foo = new Foo
+                {
+                    Age = 24,
+                    Bar = "None4"
+                };
+                var response = bucket.Insert("pocokey3", foo);
+                Assert.IsTrue(response.Success);
+                Console.WriteLine(response.Message);
+                Console.WriteLine(response.Status);
+            }
+        }
+
+        public class Foo
+        {
+            public string Bar { get; set; }
+
+            public int Age { get; set; }
+        }
+
         [TestFixtureTearDown]
         public void TearDown()
         {

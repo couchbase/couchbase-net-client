@@ -1,4 +1,6 @@
-﻿using Common.Logging;
+﻿using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using Common.Logging;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json;
 using System;
@@ -32,6 +34,9 @@ namespace Couchbase.Core.Serializers
 
                 case TypeCode.DBNull:
                     bytes = GetBytes();
+                    break;
+                default:
+                    bytes = GetBytes2(value);
                     break;
             }
             return bytes;
@@ -82,6 +87,22 @@ namespace Couchbase.Core.Serializers
                 result = Encoding.UTF8.GetString(bytes.Array, offset, length);
             }
             return result;
+        }
+
+        private static byte[] GetBytes<T>(T value)
+        {
+            using (var ms = new MemoryStream())
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(ms, value);
+                return ms.GetBuffer();
+            }
+        }
+
+        private static byte[] GetBytes2<T>(T value)
+        {
+            var obj  = JsonConvert.SerializeObject(value);
+            return Encoding.UTF8.GetBytes(obj);
         }
 
         private static byte[] GetBytes()

@@ -11,13 +11,13 @@ namespace Couchbase.IO
 
         void Release(IConnection connection);
 
+        void Initialize();
+
         int Count();
 
         PoolConfiguration Configuration { get; }
 
         IPEndPoint EndPoint { get; set; }
-
-        void Initialize();
 
         IEnumerable<IConnection> Connections { get; }
     }

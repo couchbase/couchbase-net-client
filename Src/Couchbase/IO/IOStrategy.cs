@@ -10,10 +10,17 @@ using Couchbase.IO.Operations;
 namespace Couchbase.IO
 {
     /// <summary>
-    /// 
+    /// Primary interface for the IO engine.
     /// </summary>
     internal interface IOStrategy : IDisposable
     {
+        /// <summary>
+        /// Executes an operation for a given key.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="connection"></param>
+        /// <returns></returns>
         IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection);
 
         IOperationResult<T> Execute<T>(IOperation<T> operation);

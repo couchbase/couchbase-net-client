@@ -44,5 +44,7 @@ namespace Couchbase.IO
         InternalError = 0x0084,
         Busy = 0x0085,
         TemporaryFailure = 0x0086,
+
+        ClientFailure = 0x0199
     }
 }

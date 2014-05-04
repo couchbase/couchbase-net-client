@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace Couchbase.IO
 {
-    internal class DefaultConnection : IConnection
+    internal sealed class DefaultConnection : IConnection
     {
         private readonly IConnectionPool _connectionPool;
         private readonly Socket _socket;

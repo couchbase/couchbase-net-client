@@ -4,6 +4,10 @@ using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.IO.Operations
 {
+    /// <summary>
+    /// Represents the result of a Couchbase or Memcached operation. 
+    /// </summary>
+    /// <typeparam name="T">The Type of the <see cref="Value"/> field.</typeparam>
     internal class OperationResult<T> : IOperationResult<T>
     {
         private readonly OperationBase<T> _operation;
@@ -13,15 +17,23 @@ namespace Couchbase.IO.Operations
             _operation = operation;
         }
 
+        /// <summary>
+        /// Returns true if the operation completed succesfully.
+        /// </summary>
         public virtual bool Success
         {
             get
             {
                 var header = _operation.Header;
-                return header.Status == ResponseStatus.Success;
+                return header.Status == ResponseStatus.Success && 
+                    _operation.Exception == null;
             }
         }
 
+        /// <summary>
+        /// Returns the value of an operation - this is the result of a Get or the value to be Inserted.
+        /// </summary>
+        /// <remarks>This Value will be the default value for T if the operation was not successful.</remarks>
         public virtual T Value
         {
             get
@@ -36,6 +48,9 @@ namespace Couchbase.IO.Operations
             }
         }
 
+        /// <summary>
+        /// If the operation failed, this will provide more detailed information about the reason why it failed.
+        /// </summary>
         public virtual string Message
         {
             get
@@ -49,18 +64,25 @@ namespace Couchbase.IO.Operations
                     }
                     else
                     {
-                        try
+                        if (_operation.Exception == null)
                         {
-                            var serializer = _operation.Serializer;
-                            var buffer = _operation.Body.Data;
-                            var header = _operation.Header;
-                            var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
-                            var length = header.BodyLength - header.ExtrasLength;
-                            message = serializer.Deserialize(buffer, offset, length);
+                            try
+                            {
+                                var serializer = _operation.Serializer;
+                                var buffer = _operation.Body.Data;
+                                var header = _operation.Header;
+                                var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
+                                var length = header.BodyLength - header.ExtrasLength;
+                                message = serializer.Deserialize(buffer, offset, length);
+                            }
+                            catch (Exception e)
+                            {
+                                message = e.Message;
+                            }
                         }
-                        catch (Exception e)
+                        else
                         {
-                            message = e.Message;
+                            message = _operation.Exception.Message;
                         }
                     }
                 }
@@ -68,16 +90,35 @@ namespace Couchbase.IO.Operations
             }
         }
 
+        /// <summary>
+        /// Gets the <see cref="ResponseStatus"/> of the operation that was executed.
+        /// </summary>
         public virtual ResponseStatus Status
         {
-            get { return _operation.Header.Status; }
+            get
+            {
+                var status = _operation.Header.Status;
+                if (_operation.Exception != null)
+                {
+                    status = ResponseStatus.ClientFailure;
+                }
+                return status;
+            }
         }
 
+        /// <summary>
+        /// A numeric value for enforcing optomistic concurreny
+        /// </summary>
         public virtual ulong Cas
         {
             get { return _operation.Header.Cas; }
         }
 
+        /// <summary>
+        /// Gets a <see cref="IBucketConfig"/> object if the operation was preempted by a configuration change.
+        /// </summary>
+        /// <returns>The latest <see cref="IBucketConfig"/> configuration.</returns>
+        /// <remarks>This method is for internal use only.</remarks>
         public virtual IBucketConfig GetConfig()
         {
             IBucketConfig config = null;

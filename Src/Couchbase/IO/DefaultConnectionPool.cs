@@ -8,7 +8,7 @@ using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO
 {
-    internal class  DefaultConnectionPool : IConnectionPool
+    internal sealed class  DefaultConnectionPool : IConnectionPool
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentQueue<IConnection> _store = new ConcurrentQueue<IConnection>();
