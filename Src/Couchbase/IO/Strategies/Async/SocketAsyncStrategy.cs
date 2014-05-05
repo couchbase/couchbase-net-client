@@ -263,7 +263,28 @@ namespace Couchbase.IO.Strategies.Async
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Dispose(true);
+        }
+
+        void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                GC.SuppressFinalize(this);
+            }
+            if (_connectionPool != null)
+            {
+                _connectionPool.Dispose();
+            }
+            if (_socketAsyncPool != null)
+            {
+                _socketAsyncPool.Dispose();
+            }
+        }
+
+        ~SocketAsyncStrategy()
+        {
+            Dispose(false);
         }
     }
 }

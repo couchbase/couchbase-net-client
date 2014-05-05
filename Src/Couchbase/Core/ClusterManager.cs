@@ -135,16 +135,6 @@ namespace Couchbase.Core
             return bucket;
         }
 
-        private IServer CreateServer(Node node)
-        {
-            throw new NotImplementedException();
-        }
-
-        private IKeyMapper CreateMapper()
-        {
-            throw new NotImplementedException();
-        }
-
         public void NotifyConfigPublished(IBucketConfig bucketConfig)
         {
             var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
@@ -163,10 +153,10 @@ namespace Couchbase.Core
             IBucket temp;
             if (_buckets.TryRemove(bucket.Name, out temp))
             {
-                var listener = temp as IConfigObserver;
+                var configObserver = temp as IConfigObserver;
                 foreach (var configProvider in ConfigProviders)
                 {
-                    configProvider.UnRegisterObserver(listener);
+                    configProvider.UnRegisterObserver(configObserver);
                 }
             }
         }

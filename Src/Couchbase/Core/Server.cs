@@ -141,8 +141,10 @@ namespace Couchbase.Core
                 {
                     GC.SuppressFinalize(this);
                 }
-                
-                _ioStrategy.Dispose();
+                if (_ioStrategy != null)
+                {
+                    _ioStrategy.Dispose();
+                }
                 _disposed = true;
             }
         }

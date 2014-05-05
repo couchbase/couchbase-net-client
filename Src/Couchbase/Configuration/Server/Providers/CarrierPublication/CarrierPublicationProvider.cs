@@ -9,17 +9,19 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
+using Couchbase.Views;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
-    internal sealed class CarrierPublicationProvider : IConfigProvider, IDisposable
+    internal sealed class CarrierPublicationProvider : IConfigProvider
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigObserver> _listeners = new ConcurrentDictionary<string, IConfigObserver>();
+        private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
+        private volatile bool _disposed;
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig)
         {
@@ -120,13 +122,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public bool RegisterObserver(IConfigObserver observer)
         {
-            return _listeners.TryAdd(observer.Name, observer);
+            return _configObservers.TryAdd(observer.Name, observer);
         }
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
-            IConfigObserver observer;
-            if (!_listeners.TryGetValue(bucketConfig.Name, out observer))
+            IConfigObserver configObserver;
+            if (!_configObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
                 throw new ConfigObserverNotFoundException(bucketConfig.Name);
             }
@@ -140,16 +142,22 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             var configInfo = GetConfig(bucketConfig);
             if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
             {
-                observer.NotifyConfigChanged(configInfo);
+                configObserver.NotifyConfigChanged(configInfo);
             }
+        }
+
+        public bool ObserverExists(IConfigObserver observer)
+        {
+            return _configObservers.ContainsKey(observer.Name);
         }
 
         public void UnRegisterObserver(IConfigObserver observer)
         {
             IConfigObserver observerToRemove;
-            if (_listeners.TryRemove(observer.Name, out observerToRemove))
+            if (_configObservers.TryRemove(observer.Name, out observerToRemove))
             {
-                Log.Info(m => m("Unregistering observer {0}", observerToRemove.Name));
+                var temp = observerToRemove;
+                Log.Info(m => m("Unregistering observer {0}", temp.Name));
 
                 IConfigInfo configInfo;
                 if (_configs.TryRemove(observer.Name, out configInfo))
@@ -160,6 +168,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     Log.Warn(m => m("Could not remove config for {0}", observer.Name));
                 }
+                observerToRemove.Dispose();
             }
             else
             {
@@ -169,12 +178,26 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Dispose(true);
         }
 
-        public bool ObserverExists(IConfigObserver observer)
+        public void Dispose(bool disposing)
         {
-            return _listeners.ContainsKey(observer.Name);
+            if (!_disposed && disposing)
+            {
+                GC.SuppressFinalize(this);
+            }
+            foreach (var configObserver in _configObservers)
+            {
+                UnRegisterObserver(configObserver.Value);
+            }
+            _configObservers.Clear();
+            _disposed = true;
+        }
+
+        ~CarrierPublicationProvider()
+        {
+            Dispose(false);
         }
     }
 }

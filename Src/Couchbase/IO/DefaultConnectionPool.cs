@@ -97,14 +97,18 @@ namespace Couchbase.IO
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         public void Dispose(bool disposing)
         {
+            if (disposing)
+            {
+                GC.SuppressFinalize(this);
+            }
             if (!_disposed)
             {
                 _disposed = true;
+                if(_store == null) return;
                 while (_store.Count > 0)
                 {
                     IConnection connection;

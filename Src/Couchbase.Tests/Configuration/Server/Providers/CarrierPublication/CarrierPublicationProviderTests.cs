@@ -82,5 +82,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             Assert.Greater(cachedConfig.BucketConfig.Rev, 0);
             Assert.AreEqual(configInfo.BucketConfig.Rev, cachedConfig.BucketConfig.Rev);
         }
+
+        public void Dispose()
+        {
+            //NOOP
+        }
     }
 }

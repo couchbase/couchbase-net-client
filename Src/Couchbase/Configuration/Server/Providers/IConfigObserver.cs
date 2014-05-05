@@ -9,7 +9,7 @@ namespace Couchbase.Configuration.Server.Providers
     /// <summary>
     /// An interface for implementing classes which observe changes from configuration providers.
     /// </summary>
-    internal interface IConfigObserver
+    internal interface IConfigObserver : IDisposable
     {
         /// <summary>
         /// The name of the observer - the Bucket's name.

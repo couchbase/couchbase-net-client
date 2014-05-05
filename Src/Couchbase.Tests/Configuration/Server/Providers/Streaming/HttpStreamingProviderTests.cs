@@ -86,5 +86,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         {
             _provider.Dispose();
         }
+
+        public void Dispose()
+        {
+            //NOOP
+        }
     }
 }
