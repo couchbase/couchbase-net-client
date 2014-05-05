@@ -538,11 +538,11 @@ namespace Couchbase
 
             private void Worker(object state)
             {
-                if (log.IsWarnEnabled) log.WarnFormat("HB: Pinging current node '{0}' to check if it's still alive.", this.uri);
+                if (log.IsDebugEnabled) log.DebugFormat("HB: Pinging current node '{0}' to check if it's still alive.", this.uri);
 
                 if (this.shouldAbort > 0)
                 {
-                    if (log.IsWarnEnabled) log.WarnFormat("HB: Already aborted {0}, returning.", this.uri);
+                    if (log.IsDebugEnabled) log.DebugFormat("HB: Already aborted {0}, returning.", this.uri);
 
                     return;
                 }
@@ -562,7 +562,7 @@ namespace Couchbase
 
                 try
                 {
-                    log.WarnFormat("HB: Trying '{0}'", this.uri);
+                    log.DebugFormat("HB: Trying '{0}'", this.uri);
 
                     this.response = request.GetResponse();
 
@@ -571,7 +571,7 @@ namespace Couchbase
                     {
                         sr.ReadToEnd();
 
-                        log.WarnFormat("HB: Node '{0}' is OK", this.uri);
+                        log.DebugFormat("HB: Node '{0}' is OK", this.uri);
                     }
 
                     if (this.shouldAbort == 0)
@@ -579,7 +579,7 @@ namespace Couchbase
                 }
                 catch (Exception e)
                 {
-                    log.ErrorFormat("HB: Node '{0}' is not available.\n{1}", this.uri, e);
+                    log.WarnFormat("HB: Node '{0}' is not available.\n{1}", this.uri, e);
 
                     if (this.shouldAbort == 0)
                         this.abortAction();
