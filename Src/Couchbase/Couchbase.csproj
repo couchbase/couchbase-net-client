@@ -31,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Common.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
@@ -136,13 +137,12 @@
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
-    <Compile Include="IO\Strategies\Async\AsyncOperationToken.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
-    <Compile Include="IO\Strategies\Awaitable\AwaitableSocketFactory.cs" />
-    <Compile Include="IO\Strategies\Awaitable\AwaitableSocketPool.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
@@ -160,7 +160,6 @@
     <Compile Include="IO\Operations\SetOperation.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
-    <Compile Include="IO\Strategies\Awaitable\SocketAsyncEventArgsPool.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategy.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="IO\DefaultConnection.cs" />
@@ -212,6 +211,7 @@
   <ItemGroup />
   <ItemGroup>
     <None Include="Diagrams\ClassDiagram1.cd" />
+    <None Include="Diagrams\ClassDiagram2.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

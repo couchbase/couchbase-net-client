@@ -11,7 +11,10 @@ using System.Threading;
 
 namespace Couchbase.IO.Strategies.Async
 {
-    internal class SocketAsyncStrategy : IOStrategy
+    /// <summary>
+    /// A <see cref="IOStrategy"/> implementation for <see cref="SocketAsyncEventArgs"/>.
+    /// </summary>
+    internal sealed class SocketAsyncStrategy : IOStrategy
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
@@ -47,6 +50,13 @@ namespace Couchbase.IO.Strategies.Async
             _saslMechanism.IOStrategy = this;
         }
 
+        /// <summary>
+        /// Executes an <see cref="IOperation{T}"/> asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="connection"></param>
+        /// <returns></returns>
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
             var socketAsync = new SocketAsyncEventArgs

@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
+    /// <summary>
+    /// A buffer allocator for <see cref="SocketAsyncEventArgs"/> instances.
+    /// </summary>
+    /// <remarks>Used to reduce memory fragmentation do to pinning.</remarks>
     internal sealed class BufferAllocator
     {
         private readonly int _numberOfBytes;
@@ -24,6 +28,11 @@ namespace Couchbase.IO.Strategies.Awaitable
             _buffer = new byte[_numberOfBytes];
         }
 
+        /// <summary>
+        /// Sets the buffer for a <see cref="SocketAsyncEventArgs"/> object.
+        /// </summary>
+        /// <param name="eventArgs"></param>
+        /// <returns></returns>
         public bool SetBuffer(SocketAsyncEventArgs eventArgs)
         {
             lock (_freeIndexPool)
@@ -49,6 +58,10 @@ namespace Couchbase.IO.Strategies.Awaitable
             }
         }
 
+        /// <summary>
+        /// Releases the buffer allocate to a <see cref="SocketAsyncEventArgs"/> instance.
+        /// </summary>
+        /// <param name="eventArgs"></param>
         public void ReleaseBuffer(SocketAsyncEventArgs eventArgs)
         {
             lock (_freeIndexPool)

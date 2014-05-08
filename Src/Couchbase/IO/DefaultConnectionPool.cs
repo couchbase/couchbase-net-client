@@ -8,6 +8,9 @@ using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// Provides a basic implementation for <see cref="IConnectionPool"/>.
+    /// </summary>
     internal sealed class  DefaultConnectionPool : IConnectionPool
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
@@ -24,6 +27,12 @@ namespace Couchbase.IO
         {
         }
 
+        /// <summary>
+        /// CTOR for testing/dependency injection.
+        /// </summary>
+        /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
+        /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
+        /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
         public DefaultConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<IConnectionPool, IConnection> factory)
         {
             _configuration = configuration;
@@ -31,23 +40,43 @@ namespace Couchbase.IO
             EndPoint = endPoint;
         }
 
+        /// <summary>
+        /// The configuration passed into the pool when it is created. It has fields
+        /// for MaxSize, MinSize, etc.
+        /// </summary>
         public PoolConfiguration Configuration
         {
             get { return _configuration; }
         }
 
+        /// <summary>
+        /// The <see cref="IPEndPoint"/> of the server that the <see cref="IConnection"/>s are connected to.
+        /// </summary>
         public IPEndPoint EndPoint { get; set; }
 
+        /// <summary>
+        /// Returns a collection of <see cref="IConnection"/> objects.
+        /// </summary>
+        /// <remarks>Only returns what is available in the queue at the point in time it is called.</remarks>
         public IEnumerable<IConnection> Connections
         {
             get { return _store.ToArray(); }
         }
 
+        /// <summary>
+        /// Gets the number of <see cref="IConnection"/> within the pool, whether or not they are availabe or not.
+        /// </summary>
+        /// <returns></returns>
         public int Count()
         {
             return _count;
         }
 
+        /// <summary>
+        /// Sets the initial state of the pool and adds the MinSize of <see cref="IConnection"/> object to the pool.
+        /// </summary>After the <see cref="PoolConfiguration.MinSize"/> is reached, the pool will grow to <see cref="PoolConfiguration.MaxSize"/>
+        /// and any pending requests will then wait for a <see cref="IConnection"/> to be released back into the pool.
+        /// <remarks></remarks>
         public void Initialize()
         {
             do
@@ -58,6 +87,11 @@ namespace Couchbase.IO
             while (_store.Count < _configuration.MinSize);
         }
 
+        /// <summary>
+        /// Returns a <see cref="IConnection"/> the pool, creating a new one if none are available
+        /// and the <see cref="PoolConfiguration.MaxSize"/> has not been reached.
+        /// </summary>
+        /// <returns>A TCP <see cref="IConnection"/> object to a Couchbase Server.</returns>
         public IConnection Acquire()
         {
             IConnection connection;
@@ -86,6 +120,10 @@ namespace Couchbase.IO
             return Acquire();
         }
 
+        /// <summary>
+        /// Releases an acquired <see cref="IConnection"/> object back into the pool so that it can be reused by another operation.
+        /// </summary>
+        /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(IConnection connection)
         {
             Log.Debug(m=>m("Releasing: {0}", connection.Identity));
@@ -94,6 +132,9 @@ namespace Couchbase.IO
             _autoResetEvent.Set();
         }
 
+        /// <summary>
+        /// Removes and disposes all <see cref="IConnection"/> objects in the pool.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

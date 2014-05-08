@@ -7,11 +7,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO.Strategies.Async
 {
-    internal class SocketAsyncPool
+    /// <summary>
+    /// A pool for <see cref="SocketAsyncEventArgs"/> objects.
+    /// </summary>
+    internal sealed class SocketAsyncPool
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly BufferAllocator _bufferAllocator = new BufferAllocator(500 * 512, 512);
@@ -29,6 +33,13 @@ namespace Couchbase.IO.Strategies.Async
             _factory = socketAsyncFactory;
         }
 
+        /// <summary>
+        /// Acquires an <see cref="SocketAsyncEventArgs"/> instance from the pool.
+        /// </summary>
+        /// <returns>A <see cref="SocketAsyncEventArgs"/> object.</returns>
+        /// <remarks>After the <see cref="PoolConfiguration.MinSize"/> is reached, the pool will grow to <see cref="PoolConfiguration.MaxSize"/>
+        /// and any pending requests will then wait for a <see cref="SocketAwaitable"/> to be released back into the pool.
+        /// </remarks>
         public SocketAsyncEventArgs Acquire()
         {
             SocketAsyncEventArgs socketAsync;
@@ -55,6 +66,10 @@ namespace Couchbase.IO.Strategies.Async
             return Acquire();
         }
 
+        /// <summary>
+        /// Releases a <see cref="SocketAsyncEventArgs"/> instance back into the pool, so that it can be reused.
+        /// </summary>
+        /// <param name="socketAsync">A <see cref="SocketAsyncEventArgs"/> to release back into the pool.</param>
         public void Release(SocketAsyncEventArgs socketAsync)
         {
             Log.Debug(m => m("Releasing SocketAsyncEventArgs: {0} [{1}, {2}]", socketAsync.GetHashCode(), _count, _pool.Count));
@@ -63,11 +78,18 @@ namespace Couchbase.IO.Strategies.Async
             _autoResetEvent.Set();
         }
 
+        /// <summary>
+        /// The total count of <see cref="SocketAwaitable"/> allocated.
+        /// </summary>
+        /// <returns>The total count of <see cref="SocketAwaitable"/> allocated.</returns>
         public int Count()
         {
             return _count;
         }
 
+        /// <summary>
+        /// Initializes the pool to the <see cref="PoolConfiguration.MinSize"/>
+        /// </summary> provided in the configuration.
         public void Initialize()
         {
             do
@@ -78,6 +100,9 @@ namespace Couchbase.IO.Strategies.Async
             while (_pool.Count < _connectionPool.Configuration.MinSize);
         }
 
+        /// <summary>
+        /// Releases and disposes all <see cref="SocketAsyncEventArgs"/> associated with this pool.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

@@ -1,6 +1,10 @@
 ﻿
 namespace Couchbase.IO.Utils
 {
+    /// <summary>
+    /// Bytes offsets and constants for BinaryProtocolRevamped packets.
+    /// </summary>
+    /// <see cref="http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Packet_Structure"/>
     public struct HeaderIndexFor
     {
         public const byte MagicValue = 0x81;

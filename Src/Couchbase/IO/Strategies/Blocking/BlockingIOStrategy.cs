@@ -6,7 +6,11 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.Blocking
 {
-    internal class BlockingIOStrategy : IOStrategy
+    /// <summary>
+    /// Represents a strategy for blocking IO (non-async).
+    /// </summary>
+    [Obsolete]
+    internal sealed class BlockingIOStrategy : IOStrategy
     {
         private readonly IConnectionPool _connectionPool;
         private volatile bool _disposed;

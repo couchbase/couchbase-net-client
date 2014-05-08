@@ -4,11 +4,19 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
-    internal static class AwaitableSocketFactory
+    /// <summary>
+    /// A functory for creating <see cref="SocketAwaitable"/> instances.
+    /// </summary>
+    internal static class SocketAwaitableFactory
     {
+        /// <summary>
+        /// Creates and returns a <see cref="SocketAwaitable"/> object based off of the <see cref="PoolConfiguration"/>.
+        /// </summary>
+        /// <returns></returns>
         public static Func<IConnectionPool, BufferAllocator, SocketAwaitable> GetSocketAwaitable()
         {
             Func<IConnectionPool, BufferAllocator, SocketAwaitable> factory = (p, b) =>

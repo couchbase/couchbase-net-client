@@ -31,20 +31,73 @@ namespace Couchbase.IO
         /// </summary>
         InvalidArguments = 0x0004,
 
-
+        /// <summary>
+        /// The item could be stored in the database
+        /// </summary>
         ItemNotStored = 0x0005,
+
+        /// <summary>
+        /// The increment operation was called on a non-numeric value
+        /// </summary>
         IncrDecrOnNonNumericValue = 0x0006,
+
+        /// <summary>
+        /// The VBucket the operation was attempted on, no longer belongs to the server.
+        /// <remarks>This is a common during rebalancing after adding or removing a node or during a failover.</remarks>
+        /// </summary>
         VBucketBelongsToAnotherServer = 0x0007,
+
+        /// <summary>
+        /// The connection to Couchbase could not be authenticated.
+        /// </summary>
+        /// <remarks>Check the bucket name and/or password being used.</remarks>
         AuthenticationError = 0x0020,
+
+        /// <summary>
+        /// During SASL authentication, another step (or more) must be made before authentication is complete.
+        /// <remarks>This is a system-level response status.</remarks>
+        /// </summary>
         AuthenticationContinue = 0x0021,
+
+        /// <summary>
+        /// The value was outside of supported range.
+        /// </summary>
         InvalidRange = 0x0022,
+
+        /// <summary>
+        /// The server received an unknown command from a client.
+        /// </summary>
         UnknownCommand = 0x0081,
+
+        /// <summary>
+        /// The server is temporarily out of memory.
+        /// </summary>
         OutOfMemory = 0x0082,
+
+        /// <summary>
+        /// The operation is not supported.
+        /// </summary>
         NotSupported = 0x0083,
+
+        /// <summary>
+        /// An internal error has occured.
+        /// </summary>
+        /// <remarks>See logs for more details.</remarks>
         InternalError = 0x0084,
+
+        /// <summary>
+        /// The server was too busy to complete the operation.
+        /// </summary>
         Busy = 0x0085,
+
+        /// <summary>
+        /// A temporary error has occured in the server.
+        /// </summary>
         TemporaryFailure = 0x0086,
 
+        /// <summary>
+        /// A client error has occured before the operation could be sent to the server.
+        /// </summary>
         ClientFailure = 0x0199
     }
 }

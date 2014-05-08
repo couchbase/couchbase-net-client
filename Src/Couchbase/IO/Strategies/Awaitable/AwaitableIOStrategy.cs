@@ -7,48 +7,90 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
+    /// <summary>
+    /// An IO strategy that leverages the Task Asynchrony Pattern (TAP) so that IO operations can be awaited on.
+    /// </summary>
     internal sealed class AwaitableIOStrategy : IOStrategy
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
-        private readonly AwaitableSocketPool _awaitableSocketPool;
+        private readonly SocketAwaitablePool _socketAwaitablePool;
         private volatile bool _disposed;
 
         public AwaitableIOStrategy(IConnectionPool connectionPool) 
-            : this(connectionPool, new AwaitableSocketPool(connectionPool, AwaitableSocketFactory.GetSocketAwaitable()))
+            : this(connectionPool, new SocketAwaitablePool(connectionPool, SocketAwaitableFactory.GetSocketAwaitable()))
         {
         }
        
-        public AwaitableIOStrategy(IConnectionPool connectionPool, AwaitableSocketPool awaitableSocketPool)
+        public AwaitableIOStrategy(IConnectionPool connectionPool, SocketAwaitablePool socketAwaitablePool)
         {
             _connectionPool = connectionPool;
-            _awaitableSocketPool = awaitableSocketPool;
+            _socketAwaitablePool = socketAwaitablePool;
         }
 
+        /// <summary>
+        /// The <see cref="IPEndPoint"/> of the Couchbase Server we are connected to.
+        /// </summary>
         public IPEndPoint EndPoint
         {
             get { return _connectionPool.EndPoint; }
         }
 
+        /// <summary>
+        /// The pool of <see cref="IConnection"/> objects to use for TCP operations.
+        /// </summary>
         public IConnectionPool ConnectionPool
         {
             get { return _connectionPool; }
         }
 
+        /// <summary>
+        /// The <see cref="SaslMechanism"/> supported and used for authenticating <see cref="IConnection"/>s.
+        /// </summary>
+        public ISaslMechanism SaslMechanism
+        {
+            set { throw new NotImplementedException(); }
+        }
+
+        /// <summary>
+        /// Executes a synchronous operation
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Executes a synchronous operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <returns></returns>
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Executes an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <returns></returns>
         public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
         {
-            var socketAwaitable = _awaitableSocketPool.Acquire();
+            var socketAwaitable = _socketAwaitablePool.Acquire();
             var socketAsync = socketAwaitable.EventArgs;
 
             var buffer = operation.GetBuffer();
@@ -62,10 +104,13 @@ namespace Couchbase.IO.Strategies.Awaitable
             await Receive(operation, socketAwaitable);
 
             Log.Debug(m => m("sent buffer...{0} bytes", buffer.Length));
-            _awaitableSocketPool.Release(socketAwaitable);
+            _socketAwaitablePool.Release(socketAwaitable);
             return operation.GetResult();
-        }       
+        }
 
+        /// <summary>
+        /// Executes an asynchronous operation.
+        /// </summary>
         public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
             var eventArgs = new SocketAsyncEventArgs
@@ -86,6 +131,13 @@ namespace Couchbase.IO.Strategies.Awaitable
             return operation.GetResult();
         }
 
+        /// <summary>
+        /// Recieves data from the remote server.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="socketAwaitable"></param>
+        /// <returns></returns>
         private async Task Receive<T>(IOperation<T> operation, SocketAwaitable socketAwaitable)
         {
             var eventArgs = socketAwaitable.EventArgs;
@@ -110,6 +162,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             state.Reset();
         }
 
+        /// <summary>
+        /// Creates an <see cref="OperationHeader"/> for the current operation in progress.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="state"></param>
         static void CreateHeader<T>(IOperation<T> operation, OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
@@ -129,6 +187,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             }
         }
 
+        /// <summary>
+        /// Creates the <see cref="OperationBody"/> of the current operation in progress.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="state"></param>
         static void CreateBody<T>(IOperation<T> operation, OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
@@ -139,6 +203,9 @@ namespace Couchbase.IO.Strategies.Awaitable
             };
         }
 
+        /// <summary>
+        /// Disposes this object and it's internal <see cref="IConnectionPool"/> object.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
@@ -160,17 +227,6 @@ namespace Couchbase.IO.Strategies.Awaitable
         ~AwaitableIOStrategy()
         {
             Dispose(false);
-        }
-
-        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        public Authentication.SASL.ISaslMechanism SaslMechanism
-        {
-            set { throw new NotImplementedException(); }
         }
     }
 }

@@ -2,10 +2,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
-    internal sealed class AwaitableSocketPool
+    /// <summary>
+    /// A pool for <see cref="SocketAwaitable"/> instances.
+    /// </summary>
+    internal sealed class SocketAwaitablePool
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly BufferAllocator _bufferAllocator = new BufferAllocator(50000 * 512, 512);
@@ -17,12 +21,19 @@ namespace Couchbase.IO.Strategies.Awaitable
         private int _count;
         private bool _disposed;
 
-        public AwaitableSocketPool(IConnectionPool connectionPool, Func<IConnectionPool, BufferAllocator, SocketAwaitable> socketAwaitableFactory)
+        public SocketAwaitablePool(IConnectionPool connectionPool, Func<IConnectionPool, BufferAllocator, SocketAwaitable> socketAwaitableFactory)
         {
             _connectionPool = connectionPool;
             _factory = socketAwaitableFactory;
         }
 
+        /// <summary>
+        /// Acquires an <see cref="SocketAwaitable"/> instance from the pool.
+        /// </summary>
+        /// <returns>A <see cref="SocketAwaitable"/> object.</returns>
+        /// <remarks>After the <see cref="PoolConfiguration.MinSize"/> is reached, the pool will grow to <see cref="PoolConfiguration.MaxSize"/>
+        /// and any pending requests will then wait for a <see cref="SocketAwaitable"/> to be released back into the pool.
+        /// </remarks>
         public SocketAwaitable Acquire()
         {
             SocketAwaitable socketAwaitable;
@@ -49,6 +60,10 @@ namespace Couchbase.IO.Strategies.Awaitable
             return Acquire();
         }
 
+        /// <summary>
+        /// Releases a <see cref="SocketAwaitable"/> instance back into the pool, so that it can be reused.
+        /// </summary>
+        /// <param name="socketAwaitable">A <see cref="SocketAwaitable"/> to release back into the pool.</param>
         public void Release(SocketAwaitable socketAwaitable)
         {
             Log.Debug(m => m("Releasing socketAwaitable: {0} [{1}, {2}]", socketAwaitable.GetHashCode(), _count, _pool.Count));
@@ -57,17 +72,29 @@ namespace Couchbase.IO.Strategies.Awaitable
             _autoResetEvent.Set();
         }
 
+        /// <summary>
+        /// Resets a buffer on a <see cref="SocketAwaitable"/> instance.
+        /// </summary>
+        /// <param name="socketAwaitable"></param>
+        /// <remarks>May be obsolete</remarks>
         public void ResetBuffer(SocketAwaitable socketAwaitable)
         {
             _bufferAllocator.ReleaseBuffer(socketAwaitable.EventArgs);
             _bufferAllocator.SetBuffer(socketAwaitable.EventArgs);
         }
 
+        /// <summary>
+        /// The total count of <see cref="SocketAwaitable"/> allocated.
+        /// </summary>
+        /// <returns>The total count of <see cref="SocketAwaitable"/> allocated.</returns>
         public int Count()
         {
             return _count;
         }
 
+        /// <summary>
+        /// Initializes the pool to the <see cref="PoolConfiguration.MinSize"/>
+        /// </summary> provided in the configuration.
         public void Initialize()
         {
             do

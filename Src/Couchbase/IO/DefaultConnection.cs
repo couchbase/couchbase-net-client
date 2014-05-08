@@ -3,6 +3,9 @@ using System.Net.Sockets;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// Represents a TCP connection to a CouchbaseServer.
+    /// </summary>
     internal sealed class DefaultConnection : IConnection
     {
         private readonly IConnectionPool _connectionPool;
@@ -16,18 +19,30 @@ namespace Couchbase.IO
             _socket = socket;
         }
 
+        /// <summary>
+        /// True if the connection has been SASL authenticated.
+        /// </summary>
         public bool IsAuthenticated { get; set; }
 
+        /// <summary>
+        /// Unique identifier for this connection.
+        /// </summary>
         public Guid Identity
         {
             get { return _identity; }
         }
 
+        /// <summary>
+        /// The Socket used for IO.
+        /// </summary>
         public Socket Socket
         {
             get { return _socket; }
         }
 
+        /// <summary>
+        /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

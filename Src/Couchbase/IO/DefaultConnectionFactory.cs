@@ -1,10 +1,18 @@
 ﻿using System;
 using System.Net.Sockets;
+using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// A factory creator for <see cref="IConnection"/>s
+    /// </summary>
     public static class DefaultConnectionFactory
     {
+        /// <summary>
+        /// Returns a functory for creating <see cref="DefaultConnection"/> objects.
+        /// </summary>
+        /// <returns>A <see cref="DefaultConnection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
         internal static Func<IConnectionPool, IConnection> GetDefault()
         {
             Func<IConnectionPool, IConnection> factory = p =>

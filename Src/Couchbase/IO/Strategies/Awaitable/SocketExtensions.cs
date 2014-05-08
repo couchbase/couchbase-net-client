@@ -3,8 +3,17 @@ using System.Net.Sockets;
 
 namespace Couchbase.IO.Strategies.Awaitable
 {
+    /// <summary>
+    /// Extension methods for using <see cref="SocketAwaitable"/> instances for awaitable async IO.
+    /// </summary>
     public static class SocketExtensions
     {
+        /// <summary>
+        /// Begins an asynchronous request to receive data from a connected <see cref="Socket"/> object using await.
+        /// </summary>
+        /// <param name="socket">The connected <see cref="Socket"/> object to use.</param>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable ReceiveAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -15,6 +24,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Sends data asynchronously to a connected <see cref="Socket"/> object using await.
+        /// </summary>
+        /// <param name="socket">The connected <see cref="Socket"/> object to use.</param>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable SendAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -25,6 +40,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Begins an asynchronous to a connection to a remote host using await.
+        /// </summary>
+        /// <param name="socket">The connected <see cref="Socket"/> object to use.</param>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable ConnectAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -35,6 +56,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Begins an asynchronous to disconnect from a remote host using await.
+        /// </summary>
+        /// <param name="socket">The connected <see cref="Socket"/> object to use.</param>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable DisconnectAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -45,6 +72,12 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Begins an asynchronous to accept an incoming connection attempt using await.
+        /// </summary>
+        /// <param name="socket">The connected <see cref="Socket"/> object to use.</param>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable AcceptAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -55,6 +88,11 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Begins an asynchronous request to receive data from a connected <see cref="Socket"/> object using await.
+        /// </summary>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable ReceiveAsync(this SocketAwaitable awaitable)
         {
             awaitable.Reset();
@@ -66,6 +104,11 @@ namespace Couchbase.IO.Strategies.Awaitable
             return awaitable;
         }
 
+        /// <summary>
+        /// Sends data asynchronously to a connected <see cref="Socket"/> object using await.
+        /// </summary>
+        /// <param name="awaitable">The <see cref="SocketAwaitable"/> to await on.</param>
+        /// <returns>A <see cref="SocketAwaitable"/> object ready to be reused.</returns>
         public static SocketAwaitable SendAsync(this SocketAwaitable awaitable)
         {
             awaitable.Reset();

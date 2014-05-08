@@ -8,8 +8,15 @@ using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO.Strategies.Async
 {
+    /// <summary>
+    /// A factory class for creating <see cref="SocketAsyncEventArgs"/> objects.
+    /// </summary>
     internal static class SocketAsyncFactory
     {
+        /// <summary>
+        /// Gets a functory for creating <see cref="SocketAsyncEventArgs"/>
+        /// </summary>
+        /// <returns></returns>
         public static Func<IConnectionPool, BufferAllocator, SocketAsyncEventArgs> GetSocketAsyncFunc()
         {
             Func<IConnectionPool, BufferAllocator, SocketAsyncEventArgs> factory = (p, b) =>
