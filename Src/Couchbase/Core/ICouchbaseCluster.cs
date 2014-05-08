@@ -6,7 +6,7 @@ namespace Couchbase.Core
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    internal interface ICluster : IDisposable
+    internal interface ICouchbaseCluster : IDisposable
     {
         /// <summary>
         /// Opens a Couchbase Bucket instance.

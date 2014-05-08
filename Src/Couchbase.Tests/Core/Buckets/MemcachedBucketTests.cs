@@ -13,14 +13,14 @@ namespace Couchbase.Tests.Core.Buckets
     [TestFixture]
     public class MemcachedBucketTests
     {
-        private ICluster _cluster;
+        private ICouchbaseCluster _cluster;
         private IBucket _bucket;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
-            Cluster.Initialize();
-            _cluster = Cluster.Get();
+            CouchbaseCluster.Initialize();
+            _cluster = CouchbaseCluster.Get();
         }
 
         [Test]

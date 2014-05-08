@@ -16,7 +16,7 @@ namespace tester
     class Program
     {
         private static readonly AutoResetEvent ResetEvent = new AutoResetEvent(false);
-        private static Cluster _cluster;
+        private static CouchbaseCluster _cluster;
         static void Main(string[] args)
         {
             var config = new ClientConfiguration
@@ -32,8 +32,8 @@ namespace tester
                 }
             };
 
-            Cluster.Initialize(config);
-            _cluster = Cluster.Get();
+            CouchbaseCluster.Initialize(config);
+            _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
             int n = 100000;

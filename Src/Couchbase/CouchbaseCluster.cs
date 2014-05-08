@@ -7,9 +7,9 @@ namespace Couchbase
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    public sealed class Cluster : ICluster 
+    public sealed class CouchbaseCluster : ICouchbaseCluster 
     {
-        private static Lazy<Cluster> _instance;
+        private static Lazy<CouchbaseCluster> _instance;
         private ClientConfiguration _configuration;
         private readonly IClusterManager _clusterManager;
         private static readonly object SyncObj = new object();
@@ -20,7 +20,7 @@ namespace Couchbase
         /// <remarks>
         /// This is the default configuration and will attempt to boostrap off of localhost.
         /// </remarks>
-        private Cluster() 
+        private CouchbaseCluster() 
             : this(new ClientConfiguration())
         {
         }
@@ -29,7 +29,7 @@ namespace Couchbase
         /// Ctor for creating Cluster instance. 
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        private Cluster(ClientConfiguration configuration) 
+        private CouchbaseCluster(ClientConfiguration configuration) 
             : this(configuration, new ClusterManager(configuration))
         {
         }
@@ -42,7 +42,7 @@ namespace Couchbase
         /// <remarks>
         /// This overload is primarly added for testing.
         /// </remarks>
-        private Cluster(ClientConfiguration configuration, IClusterManager clusterManager)
+        private CouchbaseCluster(ClientConfiguration configuration, IClusterManager clusterManager)
         {
             _configuration = configuration;
             _clusterManager = clusterManager;
@@ -57,7 +57,7 @@ namespace Couchbase
         /// </remarks>
         /// <returns>A Singleton instance of the Cluster class.</returns>
         /// <exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
-        public static Cluster Get()
+        public static CouchbaseCluster Get()
         {
             if (_instance == null)
             {
@@ -75,7 +75,7 @@ namespace Couchbase
         /// scenarios where you explicitly want to reinitialize the current cluster instance.
         /// </remarks>
         /// <param name="factory">The factory Func that creates the instance.</param>
-        private static void Initialize(Func<Cluster> factory)
+        private static void Initialize(Func<CouchbaseCluster> factory)
         {
             lock (SyncObj)
             {
@@ -88,7 +88,7 @@ namespace Couchbase
                         _instance = null;
                     }
                 }
-                _instance = new Lazy<Cluster>(factory);
+                _instance = new Lazy<CouchbaseCluster>(factory);
             }
         }
 
@@ -107,7 +107,7 @@ namespace Couchbase
             }
             
             configuration.Initialize();
-            var factory = new Func<Cluster>(() => new Cluster(configuration, clusterManager));
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, clusterManager));
             Initialize(factory);
         }
 
@@ -128,7 +128,7 @@ namespace Couchbase
             }
 
             configuration.Initialize();
-            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterManager(configuration)));
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterManager(configuration)));
             Initialize(factory);
         }
 
@@ -140,7 +140,7 @@ namespace Couchbase
         /// </summary>
         public static void Initialize()
         {
-            var factory = new Func<Cluster>(() => new Cluster());
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster());
             Initialize(factory);
         }
 
@@ -218,7 +218,7 @@ namespace Couchbase
         /// Cleans up any non-reclaimed resources.
         /// </summary>
         /// <remarks>will run if Dispose is not called on a Cluster instance.</remarks>
-        ~Cluster()
+        ~CouchbaseCluster()
         {
             if (_clusterManager != null)
             {

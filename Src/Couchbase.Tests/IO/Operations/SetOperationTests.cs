@@ -11,13 +11,13 @@ namespace Couchbase.Tests.IO.Operations
     [TestFixture]
     public class SetOperationTests
     {
-        private Cluster _cluster;
+        private CouchbaseCluster _cluster;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            Cluster.Initialize();
-            _cluster = Cluster.Get();
+            CouchbaseCluster.Initialize();
+            _cluster = CouchbaseCluster.Get();
         }
 
         [Test]

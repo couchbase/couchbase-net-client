@@ -20,7 +20,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
     [TestFixture]
     public class CarrierPublicationTests
     {
-        private ICluster _cluster;
+        private ICouchbaseCluster _cluster;
         private IBucket _bucket;
 
         [TestFixtureSetUp]
@@ -42,8 +42,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             });
   
 
-            Cluster.Initialize(configuration, clusterManager);
-            _cluster = Cluster.Get();
+            CouchbaseCluster.Initialize(configuration, clusterManager);
+            _cluster = CouchbaseCluster.Get();
         }
 
         [Test]

@@ -56,7 +56,7 @@
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
-    <Compile Include="Cluster.cs" />
+    <Compile Include="CouchbaseCluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />
@@ -151,7 +151,7 @@
     <Compile Include="Core\Serializers\TypeSerializer.cs" />
     <Compile Include="Cryptography\Crc32.cs" />
     <Compile Include="Core\IBucket.cs" />
-    <Compile Include="Core\ICluster.cs" />
+    <Compile Include="Core\ICouchbaseCluster.cs" />
     <Compile Include="Core\IClusterInfo.cs" />
     <Compile Include="Core\IKeyMapper.cs" />
     <Compile Include="Configuration\IConfigInfo.cs" />
