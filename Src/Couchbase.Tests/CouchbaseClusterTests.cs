@@ -21,6 +21,15 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public void Test_OpenBucket()
+        {
+            CouchbaseCluster.Initialize();
+            var cluster = CouchbaseCluster.Get();
+            var bucket = cluster.OpenBucket();
+            Assert.AreEqual("default", bucket.Name);
+        }
+
+        [Test]
         public void Test_GetBucket_Using_HttpStreamingProvider()
         {
             var clientConfig = new ClientConfiguration();

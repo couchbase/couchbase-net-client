@@ -9,6 +9,7 @@ namespace Couchbase
     /// </summary>
     public sealed class CouchbaseCluster : ICouchbaseCluster 
     {
+        private const string DefaultBucket = "default";
         private static Lazy<CouchbaseCluster> _instance;
         private ClientConfiguration _configuration;
         private readonly IClusterManager _clusterManager;
@@ -143,6 +144,18 @@ namespace Couchbase
             var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster());
             Initialize(factory);
         }
+
+        /// <summary>
+        /// Opens the default bucket associated with a Couchbase Cluster.
+        /// </summary>
+        /// <returns>An instance which implements the IBucket interface with the
+        /// default buckets configuration.</returns>
+        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
+        public IBucket OpenBucket()
+        {
+            return _clusterManager.CreateBucket(DefaultBucket);
+        }
+
 
         /// <summary>
         /// Creates a connection to a specific SASL authenticated Couchbase Bucket.

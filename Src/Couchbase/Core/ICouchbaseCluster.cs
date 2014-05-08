@@ -11,6 +11,12 @@ namespace Couchbase.Core
         /// <summary>
         /// Opens a Couchbase Bucket instance.
         /// </summary>
+        /// <returns>The default bucket for a Couchbase Cluster.</returns>
+        IBucket OpenBucket();
+
+        /// <summary>
+        /// Opens a Couchbase Bucket instance.
+        /// </summary>
         /// <param name="bucketname">The name of the bucket to open.</param>
         /// <param name="password">The password to use if it's a SASL authenticated bucket.</param>
         /// <returns>A object that implements IBucket.</returns>
