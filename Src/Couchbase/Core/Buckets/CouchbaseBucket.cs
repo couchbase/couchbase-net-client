@@ -57,7 +57,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Insert<T>(string key, T value)
+        public IOperationResult<T> Upsert<T>(string key, T value)
         {
             var keyMapper = _configInfo.GetKeyMapper(Name);
             var vBucket = (IVBucket)keyMapper.MapKey(key);

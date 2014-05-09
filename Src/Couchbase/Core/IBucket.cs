@@ -25,7 +25,7 @@ namespace Couchbase.Core
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        IOperationResult<T> Insert<T>(string key, T value);
+        IOperationResult<T> Upsert<T>(string key, T value);
 
         /// <summary>
         /// Gets a value for a given key.

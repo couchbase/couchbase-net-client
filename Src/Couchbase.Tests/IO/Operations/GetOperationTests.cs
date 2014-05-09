@@ -43,7 +43,7 @@ namespace Couchbase.Tests.IO.Operations
             const string value = "the value";
             using (var bucket = _cluster.OpenBucket("default"))
             {
-                var setResponse = bucket.Insert(key, value);
+                var setResponse = bucket.Upsert(key, value);
                 Assert.IsTrue(setResponse.Success);
 
                 var getResponse = bucket.Get<string>(key);

@@ -50,7 +50,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         public void Test_That_A_NMV_Response_Will_Force_A_Config_Update()
         {
             _bucket = _cluster.OpenBucket("default");
-            var operationResult = _bucket.Insert("test", "value");
+            var operationResult = _bucket.Upsert("test", "value");
 
             //note that the client should be retrying the operation. Once that is in place, this 
             //test will need to be refactored.

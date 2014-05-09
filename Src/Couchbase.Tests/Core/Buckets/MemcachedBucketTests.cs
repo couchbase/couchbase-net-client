@@ -46,7 +46,7 @@ namespace Couchbase.Tests.Core.Buckets
             const string value = "somedata";
 
             _bucket = _cluster.OpenBucket("memcached");
-            var result = _bucket.Insert(key, value);
+            var result = _bucket.Upsert(key, value);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(ResponseStatus.Success, result.Status);

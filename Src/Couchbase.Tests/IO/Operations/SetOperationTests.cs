@@ -25,7 +25,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             using (var bucket = _cluster.OpenBucket("default"))
             {
-                var response = bucket.Insert(TestKeys.KeyWithStringValue.Key, TestKeys.KeyWithStringValue.Value);
+                var response = bucket.Upsert(TestKeys.KeyWithStringValue.Key, TestKeys.KeyWithStringValue.Value);
                 Assert.IsTrue(response.Success);
             }
         }
@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             using (var bucket = _cluster.OpenBucket("default"))
             {
-                var response = bucket.Insert(TestKeys.KeyWithInt32Value.Key, TestKeys.KeyWithInt32Value.Value);
+                var response = bucket.Upsert(TestKeys.KeyWithInt32Value.Key, TestKeys.KeyWithInt32Value.Value);
                 Assert.IsTrue(response.Success);
             }
         }
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.IO.Operations
                     IntProperty = 23
                 };
                 
-                var response = bucket.Insert("dynamickey", obj);
+                var response = bucket.Upsert("dynamickey", obj);
                 Assert.IsTrue(response.Success);
             }
         }
@@ -66,7 +66,7 @@ namespace Couchbase.Tests.IO.Operations
                     Age = 24,
                     Bar = "None4"
                 };
-                var response = bucket.Insert("pocokey3", foo);
+                var response = bucket.Upsert("pocokey3", foo);
                 Assert.IsTrue(response.Success);
                 Console.WriteLine(response.Message);
                 Console.WriteLine(response.Status);
