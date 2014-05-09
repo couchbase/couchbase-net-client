@@ -82,7 +82,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Views.IViewResult<T> Get<T>(Views.IViewQuery query)
+        public Views.IViewResult<T> Query<T>(Views.IViewQuery query)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

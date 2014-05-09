@@ -77,7 +77,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Limit(10);
 
             Console.WriteLine(query.RawUri());
-            var result = bucket.Get<dynamic>(query);
+            var result = bucket.Query<dynamic>(query);
             Assert.Greater(result.TotalRows, 0);
             _cluster.CloseBucket((IBucket)bucket);
         }
@@ -90,7 +90,7 @@ namespace Couchbase.Tests.Core.Buckets
                 From("beer-sample", "beer").
                 View("brewery_beers");
 
-            var result = bucket.Get<dynamic>(query);
+            var result = bucket.Query<dynamic>(query);
             for (var i = 0; i < 10; i++)
             {
                 using (new OperationTimer())

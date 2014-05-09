@@ -125,7 +125,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
         /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
         /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
-        public IViewResult<T> Get<T>(IViewQuery query)
+        public IViewResult<T> Query<T>(IViewQuery query)
         {
             var server = _configInfo.GetServer();
             return server.Send<T>(query);
