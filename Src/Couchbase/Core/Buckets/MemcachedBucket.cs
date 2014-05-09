@@ -4,6 +4,7 @@
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
  using Couchbase.IO.Operations;
+ using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
 {
@@ -150,12 +151,12 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Views.IViewQuery CreateQuery(string designdoc, bool development)
+        public IViewQuery CreateQuery(bool development, string designdoc)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Views.IViewQuery CreateQuery(string designdoc, string view, bool development)
+        public IViewQuery CreateQuery(bool development, string designdoc, string view)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

@@ -41,7 +41,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery("beer", true).
+            var query = bucket.CreateQuery(true, "beer").
                 View("brewery_beers").
                 RawUri();
 
@@ -54,7 +54,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery("beer", "brewery_beers", true).
+            var query = bucket.CreateQuery(true, "beer", "brewery_beers").
                 RawUri();
 
             _cluster.CloseBucket(bucket);

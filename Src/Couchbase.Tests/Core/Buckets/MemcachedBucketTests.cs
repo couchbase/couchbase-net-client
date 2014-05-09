@@ -232,7 +232,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery("designdoc", true);
+                var query = bucket.CreateQuery(true, "designdoc");
             }
         }
 
@@ -242,7 +242,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery("designdoc", "view", true);
+                var query = bucket.CreateQuery(true, "designdoc", "view");
             }
         }
 
