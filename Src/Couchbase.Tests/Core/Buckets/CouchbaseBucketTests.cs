@@ -9,6 +9,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.IO;
 using Couchbase.Views;
 using NUnit.Framework;
 using Wintellect;
@@ -33,11 +34,6 @@ namespace Couchbase.Tests.Core.Buckets
             var bucket = _cluster.OpenBucket("default");
             Assert.AreEqual("default", bucket.Name);
             _cluster.CloseBucket(bucket);
-        }
-
-        public void When_OpenBucket_Is_Called_More_Than_Once_Same_Bucket_Instance_Is_Returned()
-        {
-            
         }
 
         [Test]
@@ -114,6 +110,125 @@ namespace Couchbase.Tests.Core.Buckets
                 Console.WriteLine(row);
             }
             _cluster.CloseBucket(bucket);
+        }
+
+        [Test]
+        public void When_Key_Does_Not_Exist_Replace_Fails()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string key = "When_Key_Does_Not_Exist_Replace_Fails";
+                var value = new {P1 = "p1"};
+                var result = bucket.Replace(key, value);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Replace_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string key = "When_Key_Exists_Replace_Succeeds";
+                var value = new { P1 = "p1" };
+                bucket.Upsert(key, value);
+
+                var result = bucket.Replace(key, value);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Delete_Returns_Success()
+        {
+            const string key = "When_Key_Exists_Delete_Returns_Success";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Upsert(key, new {Foo = "foo"});
+                var result = bucket.Remove(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.Success);
+            }
+        }
+
+        [Test]
+        public void When_Key_Does_Not_Exist_Delete_Returns_Success()
+        {
+            const string key = "When_Key_Does_Not_Exist_Delete_Returns_Success";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Remove(key);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+            }
+        }
+
+        [Test]
+        public void Test_Upsert()
+        {
+            const string key = "Test_Upsert";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var expDoc1 = new {Bar = "Bar1"};
+                var expDoc2 = new {Bar = "Bar2"};
+
+                var result = bucket.Upsert(key, expDoc1);
+                Assert.IsTrue(result.Success);
+
+                var result1 = bucket.Get<dynamic>(key);
+                Assert.IsTrue(result1.Success);
+
+                var actDoc1 = result1.Value;
+                Assert.AreEqual(expDoc1.Bar, actDoc1.Bar.Value);
+
+                var result2 = bucket.Upsert(key, expDoc2);
+                Assert.IsTrue(result2.Success);
+
+                var result3 = bucket.Get<dynamic>(key);
+                Assert.IsTrue(result3.Success);
+
+                var actDoc2 = result3.Value;
+                Assert.AreEqual(expDoc2.Bar, actDoc2.Bar.Value);
+            }
+        }
+
+        [Test]
+        public void When_KeyExists_Insert_Fails()
+        {
+            const string key = "When_KeyExists_Insert_Fails";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                dynamic doc = new {Bar = "Bar1"};
+                var result = bucket.Upsert(key, doc);
+                Assert.IsTrue(result.Success);
+
+                //Act
+                var result1 = bucket.Insert(key, doc);
+
+                //Assert
+                Assert.IsFalse(result1.Success);
+                Assert.AreEqual(result1.Status, ResponseStatus.KeyExists);
+            }
+        }
+
+        [Test]
+        public void When_Key_Does_Not_Exist_Insert_Succeeds()
+        {
+            const string key = "When_Key_Does_Not_Exist_Insert_Fails";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                //Arrange - delete key if it exists
+                bucket.Remove(key);
+
+                //Act
+                var result1 = bucket.Insert(key, new {Bar = "somebar"});
+
+                //Assert
+                Assert.IsTrue(result1.Success);
+                Assert.AreEqual(result1.Status, ResponseStatus.Success);
+            }
         }
 
         [TestFixtureTearDown]

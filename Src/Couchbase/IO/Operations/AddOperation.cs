@@ -8,19 +8,19 @@ using Couchbase.Core;
 namespace Couchbase.IO.Operations
 {
     /// <summary>
-    /// Add a key to the database, replacing the key if it already exists.
+    /// Add a key to the database, failing if the key exists.
     /// </summary>
-    /// <typeparam name="T">The value to insert.</typeparam>
-    internal sealed class SetOperation<T> : OperationBase<T>
+    /// <typeparam name="T">The value to add to the database.</typeparam>
+    internal sealed class AddOperation<T> : OperationBase<T>
     {
-        public SetOperation(string key, T value, IVBucket vBucket)
+        public AddOperation(string key, T value, IVBucket vBucket)
             : base(key, value, vBucket)
         {
         }
 
         public override OperationCode OperationCode
         {
-            get { return OperationCode.Set; }
+            get { return OperationCode.Add; }
         }
     }
 }

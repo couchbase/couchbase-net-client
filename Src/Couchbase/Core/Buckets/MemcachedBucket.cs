@@ -56,6 +56,29 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public IOperationResult<T> Insert<T>(string key, T value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<object> Remove(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Gets a value for a given key from a Memcached Bucket on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

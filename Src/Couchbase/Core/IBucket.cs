@@ -28,6 +28,32 @@ namespace Couchbase.Core
         IOperationResult<T> Upsert<T>(string key, T value);
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Replace<T>(string key, T value);
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Insert<T>(string key, T value);
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        IOperationResult<object> Remove(string key);
+            
+        /// <summary>
         /// Gets a value for a given key.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

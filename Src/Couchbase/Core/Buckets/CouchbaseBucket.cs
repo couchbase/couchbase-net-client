@@ -50,6 +50,13 @@ namespace Couchbase.Core.Buckets
             Interlocked.Exchange(ref _configInfo, configInfo);
         }
 
+        IServer GetServer(string key, out IVBucket vBucket)
+        {
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            vBucket = (IVBucket)keyMapper.MapKey(key);
+            return vBucket.LocatePrimary();
+        }
+
         /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
@@ -59,11 +66,75 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
-            var vBucket = (IVBucket)keyMapper.MapKey(key);
-            var server = vBucket.LocatePrimary();
+            IVBucket vBucket = null;
+            var server = GetServer(key, out vBucket);
 
             var operation = new SetOperation<T>(key, value, vBucket);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Debug(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value)
+        {
+            IVBucket vBucket = null;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new ReplaceOperation<T>(key, value, vBucket);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Debug(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Inserts a document into the database using a given key, failing if the key exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Insert<T>(string key, T value)
+        {
+            IVBucket vBucket = null;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new AddOperation<T>(key, value, vBucket);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Debug(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// For a given key, removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<object> Remove(string key)
+        {
+            IVBucket vBucket = null;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new DeleteOperation(key, vBucket);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -81,9 +152,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
-            var vBucket = (IVBucket)keyMapper.MapKey(key);
-            var server = vBucket.LocatePrimary();
+            IVBucket vBucket = null;
+            var server = GetServer(key, out vBucket);
 
             var operation = new GetOperation<T>(key, vBucket);
             var operationResult = server.Send(operation);
@@ -167,6 +237,7 @@ namespace Couchbase.Core.Buckets
             var baseUri = server.GetBaseViewUri();
             return new ViewQuery(baseUri, designdoc, development);
         }
+
         /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>

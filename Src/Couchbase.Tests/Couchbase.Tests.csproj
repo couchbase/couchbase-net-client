@@ -81,6 +81,7 @@
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
+    <Compile Include="IO\Operations\AddOperationTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
@@ -97,6 +98,7 @@
     <Compile Include="IO\ConnectionPoolTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
+    <Compile Include="IO\Operations\OperationTestBase.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
