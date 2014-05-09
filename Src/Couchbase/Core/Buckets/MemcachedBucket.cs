@@ -64,18 +64,48 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            throw new NotImplementedException();
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new ReplaceOperation<T>(key, value, null);
+            var operationResult = server.Send(operation);
+            return operationResult;
         }
 
-
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            throw new NotImplementedException();
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new AddOperation<T>(key, value, null);
+            var operationResult = server.Send(operation);
+            return operationResult;
         }
 
+        /// <summary>
+        /// For a given key, removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
         {
-            throw new NotImplementedException();
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new DeleteOperation(key, null);
+            var operationResult = server.Send(operation);
+            return operationResult;
         }
 
         /// <summary>
