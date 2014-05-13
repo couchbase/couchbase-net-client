@@ -22,6 +22,8 @@ namespace Couchbase.Configuration
     /// </summary>
     internal sealed class CouchbaseConfigContext : ConfigContextBase
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
             : base(bucketConfig, clientConfig)
         {
@@ -44,6 +46,7 @@ namespace Couchbase.Configuration
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
             if (_bucketConfig == null || !_bucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
             {
+                Log.Info(m=>m("Creating the Servers list using rev#{0}", bucketConfig.Rev));
                 var nodes = bucketConfig.Nodes;
                 for (var i = 0; i < nodes.Length; i++)
                 {
@@ -57,6 +60,7 @@ namespace Couchbase.Configuration
             }
             if (_bucketConfig == null || !_bucketConfig.VBucketServerMap.Equals(bucketConfig.VBucketServerMap))
             {
+                Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
                 _keyMapper = new VBucketKeyMapper(_servers, bucketConfig.VBucketServerMap);
             }
             _bucketConfig = bucketConfig;

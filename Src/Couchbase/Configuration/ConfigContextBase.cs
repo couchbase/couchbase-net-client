@@ -140,6 +140,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IKeyMapper GetKeyMapper(string bucketName)
         {
+            Log.Info(m=>m("Getting KeyMapper for {0} on thread {1}", _bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
             return _keyMapper;
         }
 

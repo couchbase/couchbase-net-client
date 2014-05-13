@@ -26,6 +26,9 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("vBucketMap")]
         public int[][] VBucketMap { get; set; }
 
+        [JsonProperty("vBucketMapForward")]
+        public int[][] VBucketMapForward { get; set; }
+
         public bool Equals(VBucketServerMap other)
         {
             return (other != null && 

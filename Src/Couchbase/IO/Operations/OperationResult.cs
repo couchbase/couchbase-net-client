@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using Common.Logging;
 using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.IO.Operations
@@ -10,6 +11,7 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The Type of the <see cref="Value"/> field.</typeparam>
     internal class OperationResult<T> : IOperationResult<T>
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly OperationBase<T> _operation;
 
         public OperationResult(OperationBase<T> operation)
@@ -124,11 +126,19 @@ namespace Couchbase.IO.Operations
             IBucketConfig config = null;
             if (Status == ResponseStatus.VBucketBelongsToAnotherServer)
             {
-                var offset = OperationBase<T>.HeaderLength + _operation.Header.ExtrasLength;
-                var length = _operation.Header.BodyLength - _operation.Header.ExtrasLength;
+                try
+                {
+                    var offset = OperationBase<T>.HeaderLength + _operation.Header.ExtrasLength;
+                    var length = _operation.Header.BodyLength - _operation.Header.ExtrasLength;
 
-                var serializer = _operation.Serializer;
-                config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
+                    var serializer = _operation.Serializer;
+                    config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
+                    Log.Info(m=>m("Received config rev#{0}", config.Rev));
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
             }
             return config;
         }

@@ -24,6 +24,7 @@ namespace Couchbase.Core.Buckets
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
+        private static object _syncObj = new object();
 
         internal CouchbaseBucket(IClusterManager clusterManager)
         {
@@ -47,7 +48,12 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Interlocked.Exchange(ref _configInfo, configInfo);
+            Log.Info(m => m("Updating CouchbaseBucket - old config rev#{0} new config rev#{1} on thread {2}", _configInfo.BucketConfig.Rev, configInfo.BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
+            lock (_syncObj)
+            {
+                var old = Interlocked.Exchange(ref _configInfo, configInfo);
+                Log.Info(m=>m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1}", old.BucketConfig.Rev, _configInfo.BucketConfig.Rev ));
+            }
         }
 
         IServer GetServer(string key, out IVBucket vBucket)
@@ -74,7 +80,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                Log.Debug(m => m("Requires retry {0}", key));
+                Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -96,7 +102,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                Log.Debug(m => m("Requires retry {0}", key));
+                Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -118,7 +124,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                Log.Debug(m => m("Requires retry {0}", key));
+                Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -139,7 +145,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                Log.Debug(m => m("Requires retry {0}", key));
+                Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -160,7 +166,7 @@ namespace Couchbase.Core.Buckets
 
             if (CheckForConfigUpdates(operationResult))
             {
-                Log.Debug(m => m("Requires retry {0}", key));
+                Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
         }
@@ -269,6 +275,7 @@ namespace Couchbase.Core.Buckets
                 var bucketConfig = ((OperationResult<T>)operationResult).GetConfig();
                 if (bucketConfig != null)
                 {
+                    Log.Info(m => m("New config found {0}", bucketConfig.Rev));
                     _clusterManager.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
                 }

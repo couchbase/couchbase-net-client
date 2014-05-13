@@ -22,7 +22,7 @@ namespace Couchbase.Core
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
         private bool _disposed;
-        private Node _nodeInfo;
+        private readonly Node _nodeInfo;
         
         public Server(IOStrategy ioStrategy, Node node) : 
             this(ioStrategy, 
@@ -74,6 +74,7 @@ namespace Couchbase.Core
 
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
+            Log.Debug(m=>m("Sending {0} using server {1}", operation.Key, EndPoint));
             return _ioStrategy.Execute(operation);
         }
 

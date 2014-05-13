@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Common.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Cryptography;
 
@@ -14,6 +15,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class VBucketKeyMapper : IKeyMapper
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const int Mask = 1023;
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
@@ -26,9 +28,9 @@ namespace Couchbase.Core.Buckets
 
         public VBucketKeyMapper(HashAlgorithm algorithm, List<IServer> servers, VBucketServerMap vBucketServerMap)
         {
+            HashAlgorithm = algorithm;
             _servers = servers;
             _vBucketServerMap = vBucketServerMap;
-            HashAlgorithm = algorithm;
             _vBuckets = CreateVBuckets();
         }
  
@@ -66,6 +68,7 @@ namespace Couchbase.Core.Buckets
             var hash = BitConverter.ToUInt32(hashedKeyBytes, 0);
             return (int)hash & Mask;
         }
+
         /// <summary>
         /// Creates a mapping of VBuckets to nodes.
         /// </summary>
@@ -73,7 +76,9 @@ namespace Couchbase.Core.Buckets
         Dictionary<int, IVBucket> CreateVBuckets()
         {
             var vBuckets = new Dictionary<int, IVBucket>();
+            var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
+            Log.Info(m=>m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length, vBucketForwardMap.Length));
             for (var i = 0; i < vBucketMap.Length; i++)
             {
                 var primary = vBucketMap[i][0];
