@@ -139,10 +139,14 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 throw new ConfigNotFoundException(bucketConfig.Name);
             }
 
-            var configInfo = GetConfig(bucketConfig);
-            if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+            var oldBucketConfig = oldConfigInfo.BucketConfig;
+            if (bucketConfig.Rev > oldBucketConfig.Rev)
             {
-                configObserver.NotifyConfigChanged(configInfo);
+                var configInfo = GetConfig(bucketConfig);
+                if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+                {
+                    configObserver.NotifyConfigChanged(configInfo);
+                }
             }
         }
 
