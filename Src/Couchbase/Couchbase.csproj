@@ -32,6 +32,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release\Couchbase.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Common.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
@@ -56,6 +57,7 @@
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
+    <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="CouchbaseCluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
@@ -134,12 +136,16 @@
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
     <Compile Include="Core\InitializationException.cs" />
+    <Compile Include="IO\ConnectionPool.cs" />
+    <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />
+    <Compile Include="IO\Strategies\EAP\EapConnection.cs" />
+    <Compile Include="IO\Strategies\EAP\EAPIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
@@ -147,6 +153,9 @@
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
+    <Compile Include="IO\Strategies\EAP\EAPIOStrategy2.cs" />
+    <Compile Include="IO\Strategies\EAP\SaeaConnection.cs" />
+    <Compile Include="IO\Strategies\EAP\SslConnection.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
@@ -169,7 +178,7 @@
     <Compile Include="IO\DefaultConnectionFactory.cs" />
     <Compile Include="IO\DefaultConnectionPool.cs" />
     <Compile Include="IO\IConnection.cs" />
-    <Compile Include="IO\IConnectionPool.cs" />
+    <Compile Include="IO\IConnectionPool_T.cs" />
     <Compile Include="IO\IOStrategy.cs" />
     <Compile Include="IO\Operations\IOperation.cs" />
     <Compile Include="IO\Operations\IOperationRequest.cs" />

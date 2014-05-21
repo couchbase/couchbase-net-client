@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Common.Logging;
 using Couchbase.Core;
 using Couchbase.IO;
 
@@ -20,6 +21,8 @@ namespace Couchbase.Configuration.Client
         private bool _serversChanged;
         private Dictionary<string, BucketConfiguration> _bucketConfigurations;
         private bool _bucketConfigurationsChanged;
+        private bool _encryptTraffic;
+        private bool _encryptTrafficChanged;
 
         public ClientConfiguration()
         {
@@ -37,6 +40,19 @@ namespace Couchbase.Configuration.Client
             _bucketConfigurationsChanged = false;
             _serversChanged = false;
             _poolConfigurationChanged = false;
+        }
+
+        /// <summary>
+        /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
+        /// </summary>
+        public bool EncryptTraffic
+        {
+            get { return _encryptTraffic; }
+            set
+            {
+                _encryptTraffic = value;
+                _encryptTrafficChanged = true;
+            }
         }
 
         /// <summary>
@@ -102,6 +118,28 @@ namespace Couchbase.Configuration.Client
                 if (bucketConfiguration.Servers.Count == 0)
                 {
                     bucketConfiguration.Servers.AddRange(Servers.Select(x=>x.Host).ToList());
+                }
+                if (_encryptTrafficChanged)
+                {
+                    for (var i = 0; i< _servers.Count(); i++)
+                    {
+                        if (EncryptTraffic)
+                        {
+                            if (_servers[i].Port == (int)DefaultPorts.MgmtApi)
+                            {
+                                var oldUri = _servers[i];
+                                var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
+                                    ":", (int)DefaultPorts.HttpsMgmt, oldUri.PathAndQuery));
+                                _servers[i] = newUri;
+                            }
+                            foreach (var bucketConfig in BucketConfigs.Values)
+                            {
+                                bucketConfig.EncryptTraffic = EncryptTraffic;
+                                bucketConfig.Port = (int)DefaultPorts.SslDirect;
+                                bucketConfig.PoolConfiguration.EncryptTraffic = EncryptTraffic;
+                            }
+                        }
+                    }
                 }
             }
         }

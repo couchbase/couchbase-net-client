@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             var configuration = new ClientConfiguration();
             _provider = new HttpStreamingProvider(
                 configuration,
-                pool => new SocketAsyncStrategy(pool), 
+                (pool, sasl) => new SocketAsyncStrategy(pool, sasl), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint));
         }
 

@@ -27,7 +27,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         public void SetUp()
         {
             var configuration = new ClientConfiguration();
-            var clusterManager = new ClusterManager(configuration, p =>
+            var clusterManager = new ClusterManager(configuration, (p, sasl) =>
             {
                 var operation = new FakeOperation();
                 operation.SetOperationResult(new FakeOperationResult(operation)
@@ -49,6 +49,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [Test]
         public void Test_That_A_NMV_Response_Will_Force_A_Config_Update()
         {
+            //TODO this test needs to be rewritten along with fake/mock
             _bucket = _cluster.OpenBucket("default");
             var operationResult = _bucket.Upsert("test", "value");
 

@@ -68,6 +68,11 @@ namespace Couchbase.Configuration.Client
 
         [Obsolete]
         public int SendTimeout { get; set; }
+
+        /// <summary>
+        /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
+        /// </summary>
+        public bool EncryptTraffic { get; set; }
     }
 }
 

@@ -9,7 +9,6 @@ namespace Couchbase.Views
     public class ErrorObj
     {
         public string Error { get; set; }
-
     }
 }
 

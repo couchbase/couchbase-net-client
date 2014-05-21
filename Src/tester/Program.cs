@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Text;
@@ -19,32 +20,34 @@ namespace tester
         private static CouchbaseCluster _cluster;
         static void Main(string[] args)
         {
+            File.Delete(@"C:\temp\log.txt");
             var config = new ClientConfiguration
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri("http://127.0.0.1:8091/pools")
                 },
                 PoolConfiguration = new PoolConfiguration
                 {
                     MaxSize = 10,
                     MinSize = 1
-                }
+                },
+                EncryptTraffic = false
             };
-
+           
             CouchbaseCluster.Initialize(config);
             _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
-            int n = 100000;
+            int n = 10000;
 
             using (var timer = new OperationTimer())
             {
                 //ThreadPoolInsert(bucket, n);
                //ThreadPoolInsert(bucket, n);
               //SynchronousInsert(bucket, n);
-             // ParallerInsert(bucket, n);
-               MultiThreaded(4, 1000, null);
+             //ParallerInsert(bucket, n);
+               MultiThreaded(4, n, bucket);
             }
             Console.Read();
             //_cluster.CloseBucket(bucket);
@@ -92,11 +95,10 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-                var result = bucket.Upsert(key, value);
-
+               /* var result = bucket.Upsert(key, value);
                 if (result.Success)
                 {
-                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);
+                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);*/
                     var result2 = bucket.Get<string>(key);
                     if (result2.Success)
                     {
@@ -106,11 +108,11 @@ namespace tester
                     {
                         Console.WriteLine("Read Error: {0} - {1}", key, result2.Message);
                     }
-                }
+                /*}
                 else
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
-                }
+                }*/
             }
         }
 
@@ -152,7 +154,6 @@ namespace tester
 
         public static void MultiThreaded(int threadCount, int keys, IBucket bucket)
         {
-            bucket = _cluster.OpenBucket("default");
             var threads = new Thread[threadCount];
             for (var i = 0; i < threadCount; i++)
             {
@@ -179,13 +180,13 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-               // var result = threadData.Bucket.Upsert(key, value);
-                //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
+              // var result = threadData.Bucket.Upsert(key, value);
+               //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
                 Console.WriteLine("Get {0} - {1} on thread {2}: {3}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Message);
             }
-            ThreadData.Processed += threadData.Keys;
 
+            ThreadData.Processed += threadData.Keys;
             if (ThreadData.Processed == threadData.NumberOfKeysToCreate)
             {
                 ResetEvent.Set();

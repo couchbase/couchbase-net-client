@@ -30,7 +30,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             var configuration = new ClientConfiguration();
             _provider = new CarrierPublicationProvider(
                 configuration, 
-                pool => new SocketAsyncStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)), 
+                (pool, sasl) => new SocketAsyncStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)), 
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint));
         }
 

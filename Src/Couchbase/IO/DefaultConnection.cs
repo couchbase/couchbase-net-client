@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Security;
 using System.Net.Sockets;
 
 namespace Couchbase.IO
@@ -84,6 +85,30 @@ namespace Couchbase.IO
         ~DefaultConnection()
         {
             Dispose(false);
+        }
+
+
+        public void Send(byte[] buffer, int offset, int length, Strategies.Awaitable.OperationAsyncState state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Receive(byte[] buffer, int offset, int length, Strategies.Awaitable.OperationAsyncState state)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public Strategies.Awaitable.OperationAsyncState State
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

@@ -9,6 +9,15 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("direct")]
         public int Direct { get; set; }
+
+        [JsonProperty("sslDirect")]
+        public int SslDirect { get; set; }
+
+        [JsonProperty("httpsCAPI")]
+        public int HttpsCapi { get; set; }
+
+        [JsonProperty("httpsMgmt")]
+        public int HttpsMgmt { get; set; }
     }
 }
 

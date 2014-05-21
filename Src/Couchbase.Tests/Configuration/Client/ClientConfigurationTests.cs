@@ -122,6 +122,20 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.SendTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
         }
+
+        [Test]
+        public void Test_EncryptTraffic()
+        {
+            var config = new ClientConfiguration {EncryptTraffic = true};
+            config.Initialize();
+
+            var bucket = config.BucketConfigs.First().Value;
+            Assert.AreEqual(true, bucket.EncryptTraffic);
+            //Assert.AreEqual("https://localhost:18091/default", bucket.Servers.First());
+            Assert.AreEqual("https://localhost:18091/pools", config.Servers.First().ToString());
+
+            Assert.AreEqual("127.0.0.1:11207", bucket.GetEndPoint().ToString());      
+        }
     }
 }
 

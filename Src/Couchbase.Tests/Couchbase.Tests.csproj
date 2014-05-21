@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="Authentication\BucketAuthenticationTests.cs" />
     <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
+    <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
     <Compile Include="CouchbaseClusterTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
@@ -81,13 +82,14 @@
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
+    <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
     <Compile Include="IO\Operations\AddOperationTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\BucketTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\BucketConfigTests.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
     <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
     <Compile Include="ConfigUtil.cs" />
@@ -95,7 +97,7 @@
     <Compile Include="Core\ServerTests.cs" />
     <Compile Include="Cryptography\CrC32Tests.cs" />
     <Compile Include="Helpers\ObjectFactory.cs" />
-    <Compile Include="IO\ConnectionPoolTests.cs" />
+    <Compile Include="IO\DefaultConnectionPoolTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
@@ -104,6 +106,8 @@
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategyTests.cs" />
+    <Compile Include="IO\Strategies\EAP\EapIoStrategy2Tests.cs" />
+    <Compile Include="IO\Strategies\EAP\EapIoStrategyTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -130,6 +134,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\pools.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\terse-bucket-ssl.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\vbucket-forwardmap.json" />

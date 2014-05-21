@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Net.Security;
 using Couchbase.IO.Operations;
 
 namespace Couchbase.IO.Strategies.Awaitable
@@ -41,7 +42,9 @@ namespace Couchbase.IO.Strategies.Awaitable
         /// <summary>
         /// A current count of the bytes recieved for the current operation.
         /// </summary>
-        public int BytesReceived { get; set; } 
+        public int BytesReceived { get; set; }
+
+        public SslStream Stream { get; set; }
 
         /// <summary>
         /// Sets all values back to their defaults, so this object can be reused.

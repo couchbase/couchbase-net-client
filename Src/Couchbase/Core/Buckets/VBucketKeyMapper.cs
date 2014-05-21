@@ -78,7 +78,7 @@ namespace Couchbase.Core.Buckets
             var vBuckets = new Dictionary<int, IVBucket>();
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
-            Log.Info(m=>m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length, vBucketForwardMap.Length));
+            Log.Info(m => m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length, vBucketForwardMap == null ? 0: vBucketForwardMap.Length));
             for (var i = 0; i < vBucketMap.Length; i++)
             {
                 var primary = vBucketMap[i][0];

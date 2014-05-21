@@ -27,18 +27,18 @@ namespace Couchbase.Configuration
         private readonly DateTime _creationTime;
         protected ClientConfiguration _clientConfig;
         protected readonly List<IServer> _servers = new List<IServer>();
-        protected Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        protected Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
-            : this(bucketConfig, clientConfig, pool => new SocketAsyncStrategy(pool, new PlainTextMechanism(bucketConfig.Name, string.Empty)),
+            : this(bucketConfig, clientConfig, (pool, sm) => new SocketAsyncStrategy(pool, new PlainTextMechanism(bucketConfig.Name, string.Empty)),
                 (config, endpoint) => new DefaultConnectionPool(config, endpoint))
         {
         }
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
         {
             _clientConfig = clientConfig;
@@ -123,6 +123,13 @@ namespace Couchbase.Configuration
         {
             const string blah = "$HOST";
             var address = hostName.Replace(blah, bucketConfig.SurrogateHost);
+
+            var bucket = _clientConfig.BucketConfigs[bucketConfig.Name];
+            if (bucket.EncryptTraffic)
+            {
+                var splits = address.Split(':');
+                address = string.Concat(splits[0], ":", bucket.Port);
+            }
             return Core.Server.GetEndPoint(address);
         }
 

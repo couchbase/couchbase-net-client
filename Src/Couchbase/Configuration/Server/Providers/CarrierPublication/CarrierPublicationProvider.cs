@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
+using Couchbase.IO.Strategies.EAP;
 using Couchbase.Views;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
@@ -17,7 +18,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
-        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
@@ -29,7 +30,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         }
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
         {
             _clientConfig = clientConfig;
@@ -81,8 +82,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
 
             var saslMechanism = new PlainTextMechanism(bucketName, password);
-            var connectionPool = new DefaultConnectionPool(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
-            var ioStrategy = new SocketAsyncStrategy(connectionPool, saslMechanism);//this needs to be configurable
+            var connectionPool = _connectionPoolFactory(bucketConfiguration.PoolConfiguration,
+                bucketConfiguration.GetEndPoint());
+            var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
 
             IConfigInfo configInfo = null;
             var operationResult = ioStrategy.Execute(new ConfigOperation());

@@ -24,7 +24,7 @@ namespace Couchbase.Core.Buckets
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
-        private static object _syncObj = new object();
+        private static readonly object SyncObj = new object();
 
         internal CouchbaseBucket(IClusterManager clusterManager)
         {
@@ -48,11 +48,18 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Updating CouchbaseBucket - old config rev#{0} new config rev#{1} on thread {2}", _configInfo.BucketConfig.Rev, configInfo.BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
-            lock (_syncObj)
+            Log.Info(m => m("Updating CouchbaseBucket - old config rev#{0} new config rev#{1} on thread {2}",
+               _configInfo == null ? 0 : _configInfo.BucketConfig.Rev, 
+                configInfo.BucketConfig.Rev, 
+                Thread.CurrentThread.ManagedThreadId));
+
+            lock (SyncObj)
             {
                 var old = Interlocked.Exchange(ref _configInfo, configInfo);
-                Log.Info(m=>m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1}", old.BucketConfig.Rev, _configInfo.BucketConfig.Rev ));
+
+                Log.Info(m=>m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1}", 
+                    old==null ? 0 : old.BucketConfig.Rev, 
+                    _configInfo.BucketConfig.Rev ));
             }
         }
 

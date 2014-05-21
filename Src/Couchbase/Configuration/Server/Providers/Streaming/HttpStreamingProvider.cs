@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -24,7 +25,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private IServerConfig _serverConfig;
         private readonly ClientConfiguration _clientConfig;
 
-        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
@@ -39,7 +40,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         }
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
         {
             _clientConfig = clientConfig;

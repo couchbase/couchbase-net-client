@@ -1,29 +1,29 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 
 namespace Couchbase.IO
 {
-    /// <summary>
-    /// Provides a basic implementation for <see cref="IConnectionPool"/>.
-    /// </summary>
-    internal sealed class DefaultConnectionPool : IConnectionPool
+    internal class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly ConcurrentQueue<IConnection> _store = new ConcurrentQueue<IConnection>();
-        private readonly Func<IConnectionPool, IConnection> _factory;
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
+        private readonly Func<ConnectionPool<T>, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
         private readonly PoolConfiguration _configuration;
         private readonly object _lock = new object();
         private int _count;
         private bool _disposed;
 
-        public DefaultConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint) 
-            : this(configuration, endPoint, DefaultConnectionFactory.GetDefault())
+        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
+            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>())
         {
         }
 
@@ -33,7 +33,7 @@ namespace Couchbase.IO
         /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
         /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
         /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
-        public DefaultConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<IConnectionPool, IConnection> factory)
+        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, T> factory)
         {
             _configuration = configuration;
             _factory = factory;
@@ -58,7 +58,7 @@ namespace Couchbase.IO
         /// Returns a collection of <see cref="IConnection"/> objects.
         /// </summary>
         /// <remarks>Only returns what is available in the queue at the point in time it is called.</remarks>
-        public IEnumerable<IConnection> Connections
+        public IEnumerable<T> Connections
         {
             get { return _store.ToArray(); }
         }
@@ -83,8 +83,7 @@ namespace Couchbase.IO
             {
                 _store.Enqueue(_factory(this));
                 Interlocked.Increment(ref _count);
-            }
-            while (_store.Count < _configuration.MinSize);
+            } while (_store.Count < _configuration.MinSize);
         }
 
         /// <summary>
@@ -92,13 +91,13 @@ namespace Couchbase.IO
         /// and the <see cref="PoolConfiguration.MaxSize"/> has not been reached.
         /// </summary>
         /// <returns>A TCP <see cref="IConnection"/> object to a Couchbase Server.</returns>
-        public IConnection Acquire()
+        public T Acquire()
         {
-            IConnection connection;
+            T connection;
 
             if (_store.TryDequeue(out connection))
             {
-                Log.Debug(m=>m("Acquire existing: {0}", connection.Identity));
+                Log.Debug(m => m("Acquire existing: {0}", connection.Identity));
                 return connection;
             }
 
@@ -108,7 +107,7 @@ namespace Couchbase.IO
                 {
                     connection = _factory(this);
 
-                    Log.Debug(m=>m("Acquire new: {0}", connection.Identity));
+                    Log.Debug(m => m("Acquire new: {0}", connection.Identity));
                     Interlocked.Increment(ref _count);
                     return connection;
                 }
@@ -116,7 +115,7 @@ namespace Couchbase.IO
 
             _autoResetEvent.WaitOne(_configuration.WaitTimeout);
 
-            Log.Debug(m=>m("No connections currently available. Trying again."));
+            Log.Debug(m => m("No connections currently available. Trying again."));
             return Acquire();
         }
 
@@ -124,9 +123,9 @@ namespace Couchbase.IO
         /// Releases an acquired <see cref="IConnection"/> object back into the pool so that it can be reused by another operation.
         /// </summary>
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
-        public void Release(IConnection connection)
+        public void Release(T connection) 
         {
-            Log.Debug(m=>m("Releasing: {0}", connection.Identity));
+            Log.Debug(m => m("Releasing: {0}", connection.Identity));
 
             _store.Enqueue(connection);
             _autoResetEvent.Set();
@@ -149,10 +148,10 @@ namespace Couchbase.IO
             if (!_disposed)
             {
                 _disposed = true;
-                if(_store == null) return;
+                if (_store == null) return;
                 while (_store.Count > 0)
                 {
-                    IConnection connection;
+                    T connection;
                     if (_store.TryDequeue(out connection))
                     {
                         connection.Dispose();
@@ -161,32 +160,24 @@ namespace Couchbase.IO
             }
         }
 
-        ~DefaultConnectionPool()
+        ~ConnectionPool()
         {
             Dispose(false);
         }
+
+        IConnection IConnectionPool.Acquire()
+        {
+            return Acquire();
+        }
+
+        void IConnectionPool.Release(IConnection connection)
+        {
+            Release((T)connection);
+        }
+
+        IEnumerable<IConnection> IConnectionPool.Connections
+        {
+            get { return _store.ToArray(); }
+        }
     }
 }
-
-#region [ License information          ]
-
-/* ************************************************************
- *
- *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *
- * ************************************************************/
-
-#endregion

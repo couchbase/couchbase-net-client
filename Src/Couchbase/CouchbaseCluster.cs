@@ -156,7 +156,6 @@ namespace Couchbase
             return _clusterManager.CreateBucket(DefaultBucket);
         }
 
-
         /// <summary>
         /// Creates a connection to a specific SASL authenticated Couchbase Bucket.
         /// </summary>

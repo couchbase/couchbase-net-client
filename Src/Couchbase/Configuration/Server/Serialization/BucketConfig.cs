@@ -153,7 +153,6 @@ namespace Couchbase.Configuration.Server.Serialization
             return sb.ToString();
         }
 
-
         public Uri GetTerseStreamingUri(Node node)
         {
             const string protocol = "http://";

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Net.Security;
 using System.Net.Sockets;
 using Couchbase.Configuration.Client;
+using Couchbase.IO.Strategies.EAP;
 
 namespace Couchbase.IO
 {
@@ -27,7 +29,50 @@ namespace Couchbase.IO
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 socket.Connect(p.EndPoint);
+                if (config.EncryptTraffic)
+                {
+                    var ns = new NetworkStream(socket);
+                    var ssls = new SslStream(ns);
+                    ssls.AuthenticateAsClient(p.EndPoint.Address.ToString());
+                }
                 return new DefaultConnection(p, socket);
+            };
+            return factory;
+        }
+
+        /// <summary>
+        /// Returns a functory for creating <see cref="DefaultConnection"/> objects.
+        /// </summary>
+        /// <returns>A <see cref="DefaultConnection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
+        internal static Func<ConnectionPool<T>, T> GetGeneric<T>() where T : class, IConnection
+        {
+            Func<IConnectionPool<T>, T> factory = p => 
+            {
+                var config = p.Configuration;
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                {
+                    ReceiveTimeout = config.RecieveTimeout,
+                    SendTimeout = config.SendTimeout,
+                };
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, config.RecieveTimeout);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                socket.Connect(p.EndPoint);
+
+                //TODO refactor
+                IConnection connection = null;
+                if (p.Configuration.EncryptTraffic)
+                {
+                    var pool = p as ConnectionPool<SslConnection>;
+                    connection = new SslConnection(pool, socket);
+                    ((SslConnection)connection).Authenticate();
+                }
+                else
+                {
+                    var pool = p as ConnectionPool<SaeaConnection>;
+                    connection = new SaeaConnection(pool, socket);
+                }
+                return connection as T;
             };
             return factory;
         }

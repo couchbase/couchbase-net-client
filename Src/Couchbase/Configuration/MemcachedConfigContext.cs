@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
@@ -23,8 +24,8 @@ namespace Couchbase.Configuration
         {
         }
 
-        public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig, 
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
+        public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
+            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory) 
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory)
         {
@@ -61,7 +62,8 @@ namespace Couchbase.Configuration
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
-                    var ioStrategy = _ioStrategyFactory(connectionPool);
+                    var saslMechanism = new PlainTextMechanism(bucketConfig.Name, bucketConfig.Password);//todo likely bug
+                    var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
                     var server = new Core.Server(ioStrategy, node);
            
                     _servers.Add(server); //todo make atomic

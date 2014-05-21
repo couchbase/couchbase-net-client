@@ -15,6 +15,10 @@ namespace Couchbase.Configuration.Client
     /// <remarks>The default setting use 127.0.0.1 and port 11210.</remarks>
     public sealed class BucketConfiguration
     {
+        public const int SslPort = 11207;
+        /// <summary>
+        /// Default CTOR for localhost.
+        /// </summary>
         public BucketConfiguration()
         {
             Servers = new List<string> {"127.0.0.1" };
@@ -23,6 +27,11 @@ namespace Couchbase.Configuration.Client
             Username = string.Empty;
             BucketName = "default";
         }
+
+        /// <summary>
+        /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
+        /// </summary>
+        public bool EncryptTraffic { get; set; }
 
         /// <summary>
         /// A list of IP's to bootstrap off of.
@@ -43,7 +52,6 @@ namespace Couchbase.Configuration.Client
         /// The password to use if it's a SASL authenticated Bucket.
         /// </summary>
         public string Password { get; set; }
-
 
         /// <summary>
         /// The username for connecting to a Bucket.
@@ -74,7 +82,10 @@ namespace Couchbase.Configuration.Client
                 throw new ArgumentException("ipAddress");
             }
 
-            return new IPEndPoint(ipAddress, Port);
+            //this needs to be configurable perhaps,
+            //because you can only use the default SslPort for now...
+            var port = EncryptTraffic ? SslPort : Port;
+            return new IPEndPoint(ipAddress, port);
         } 
     }
 }

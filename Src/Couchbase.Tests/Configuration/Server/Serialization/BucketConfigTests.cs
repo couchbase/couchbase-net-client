@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Serialization
 {
     [TestFixture]
-    public class BucketTests
+    public class BucketConfigTests
     {
         private BucketConfig _bucket1;
         private BucketConfig _bucket2;
@@ -62,8 +64,8 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
                 {
                     HashAlgorithm = "CRC",
                     NumReplicas = 1,
-                    ServerList = new[] { "192.168.56.101:11210", "192.168.56.104:11210" },
-                    VBucketMap = new[] { new[] { 1, 0 }, new[] { 1, 0 }, new[] { 1, 0 } }
+                    ServerList = new[] {"192.168.56.101:11210", "192.168.56.104:11210"},
+                    VBucketMap = new[] {new[] {1, 0}, new[] {1, 0}, new[] {1, 0}}
                 },
                 Nodes = new[]
                 {
@@ -127,6 +129,24 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         {
             Assert.IsTrue(_bucket1.Equals(_bucket2));
             Assert.IsFalse(_bucket2.Equals(_bucket3));
+        }
+
+        [Test]
+        public void Test_BucketConfig_Nodes()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\terse-bucket-ssl.json");
+            var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
+
+            Assert.AreEqual(2, bucket.Nodes.Count());
+            var node = bucket.Nodes.First();
+
+            Assert.AreEqual("http://192.168.56.102:8092/default", node.CouchApiBase);
+            Assert.AreEqual("192.168.56.102:8091", node.Hostname);
+            Assert.AreEqual(11211, node.Ports.Proxy);
+            Assert.AreEqual(11210, node.Ports.Direct);
+            Assert.AreEqual(11207,node.Ports.SslDirect);
+            Assert.AreEqual(18092,node.Ports.HttpsCapi);
+            Assert.AreEqual(18091, node.Ports.HttpsMgmt);
         }
     }
 }

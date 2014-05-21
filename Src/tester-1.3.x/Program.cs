@@ -55,9 +55,9 @@ namespace tester_1._3.x
 
         static void ParallerInsert(CouchbaseClient client, int n)
         {
-            //var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
 
-            Parallel.For(0, n, /*options,*/ i =>
+            Parallel.For(0, n, options, i =>
             {
                 var key = "key" + i;
                 var value = "value" + i;

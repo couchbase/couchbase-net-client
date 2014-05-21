@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Authentication;
+using Couchbase.IO.Strategies.EAP;
 
 namespace Couchbase.Core
 {
@@ -24,25 +25,49 @@ namespace Couchbase.Core
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
-        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            pool => new SocketAsyncStrategy(pool, new PlainTextMechanism("default", string.Empty)),
-            (config, endpoint) => new DefaultConnectionPool(config, endpoint))
+            (pool, sm) => new EAPIOStrategy2(pool, sm),
+                (config, endpoint) =>
+                {
+                    IConnectionPool connectionPool = null;
+                    if (config.EncryptTraffic)
+                    {
+                        connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
+                    }
+                    else
+                    {
+                        connectionPool = new ConnectionPool<SaeaConnection>(config, endpoint);
+                    }
+                    return connectionPool;
+                })
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory)
             : this(clientConfig,
             ioStrategyFactory,
-            (config, endpoint) => new DefaultConnectionPool(config, endpoint))
+            (config, endpoint) =>
+            {
+                IConnectionPool connectionPool = null;
+                if (config.EncryptTraffic)
+                {
+                    connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
+                }
+                else
+                {
+                    connectionPool = new ConnectionPool<SaeaConnection>(config, endpoint);
+                }
+                return connectionPool;
+            })
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
