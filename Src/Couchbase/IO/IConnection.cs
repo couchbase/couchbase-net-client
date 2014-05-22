@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO
@@ -25,11 +26,9 @@ namespace Couchbase.IO
         /// </summary>
         bool IsAuthenticated { get; set; }
 
-        void Send(byte[] buffer, int offset, int length, OperationAsyncState state);
+       IOperationResult<T> Send<T>(IOperation<T> operation); 
 
-        void Receive(byte[] buffer, int offset, int length, OperationAsyncState state);
-
-        OperationAsyncState State { get; set; }
+        OperationAsyncState State { get; }
     }
 }
 

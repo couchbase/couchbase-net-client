@@ -23,7 +23,7 @@ namespace Couchbase.Tests.IO
         private const int ShutdownTimeout = 10000;
         private const int RecieveTimeout = 1000;
         private const int SendTimeout = 1000;
-        private const string Address = "192.168.56.102:11207";
+        private const string Address = "127.0.0.1:11207";
 
         [SetUp]
         public void SetUp()

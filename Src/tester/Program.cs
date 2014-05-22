@@ -39,7 +39,7 @@ namespace tester
             _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
-            int n = 10000;
+            int n = 100000;
 
             using (var timer = new OperationTimer())
             {
@@ -180,8 +180,8 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-              // var result = threadData.Bucket.Upsert(key, value);
-               //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
+                //var result = threadData.Bucket.Upsert(key, value);
+                //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
                 Console.WriteLine("Get {0} - {1} on thread {2}: {3}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Message);
             }

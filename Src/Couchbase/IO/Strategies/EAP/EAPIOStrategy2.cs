@@ -41,16 +41,7 @@ namespace Couchbase.IO.Strategies.EAP
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
-            var buffer = operation.GetBuffer();
-            var state = new OperationAsyncState();
-
-            connection.Send(buffer, 0, buffer.Length, state);
-            connection.Receive(state.Buffer, 0, buffer.Length, state);
-
-            operation.Header = state.Header;
-            operation.Body = state.Body;
-
-            return operation.GetResult();
+            return connection.Send(operation);
         }
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
@@ -60,19 +51,9 @@ namespace Couchbase.IO.Strategies.EAP
             {
                Authenticate(connection);
             }
-
-            var buffer = operation.GetBuffer();
-           // var state = new OperationAsyncState();
-
-            var state = connection.State;
-            connection.Send(buffer, 0, buffer.Length, state);
-            connection.Receive(state.Buffer, 0, buffer.Length, state);
-
-            operation.Header = state.Header;
-            operation.Body = state.Body;
-
+            var result = Execute(operation, connection);
             _connectionPool.Release(connection);
-            return operation.GetResult();
+            return result;
         }
 
         public IPEndPoint EndPoint

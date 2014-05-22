@@ -110,6 +110,12 @@ namespace Couchbase.IO
                 throw new NotImplementedException();
             }
         }
+
+
+        public Operations.IOperationResult<T> Send<T>(Operations.IOperation<T> operation)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

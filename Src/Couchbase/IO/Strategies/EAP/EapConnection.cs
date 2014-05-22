@@ -12,13 +12,10 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.EAP
 {
-    internal class EapConnection : IConnection
+    internal class EapConnection : ConnectionBase
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConnectionPool<EapConnection> _connectionPool;
         private readonly NetworkStream _networkStream ;
-        private readonly Socket _socket;
-        private readonly Guid _identity = Guid.NewGuid();
         private readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         private readonly AutoResetEvent ReceiveEvent = new AutoResetEvent(false);
         private volatile bool _disposed;
@@ -26,40 +23,33 @@ namespace Couchbase.IO.Strategies.EAP
         internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket) 
             : this(connectionPool, socket, new NetworkStream(socket))
         {
-            _connectionPool = connectionPool;
-            _socket = socket;
         }
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream)
+        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream) 
+            : base(socket)
         {
             _connectionPool = connectionPool;
-            _socket = socket;
             _networkStream = networkStream;
-            State = new OperationAsyncState();
         }
 
-        public void Authenticate()
-        {
-        }
-
-        public void Send(byte[] buffer, int offset, int length, OperationAsyncState state)
+        public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             State.Reset();
-            _networkStream.BeginWrite(buffer, offset, length, SendCallback, State);
+            var buffer = operation.GetBuffer();
+            _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
             SendEvent.WaitOne();
+            operation.Header = State.Header;
+            operation.Body = State.Body;
+            return operation.GetResult();
         }
 
         private void SendCallback(IAsyncResult asyncResult)
         {
             _networkStream.EndWrite(asyncResult);
-            SendEvent.Set();
+            var state = asyncResult.AsyncState as OperationAsyncState;
+            _networkStream.BeginRead(state.Buffer, 0, State.Buffer.Length, ReceiveCallback, State);
         }
 
-        public void Receive(byte[] buffer, int offset, int length, OperationAsyncState state)
-        {
-            _networkStream.BeginRead(buffer, offset, length, ReceiveCallback, State);
-            ReceiveEvent.WaitOne();
-        }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
@@ -83,66 +73,14 @@ namespace Couchbase.IO.Strategies.EAP
             else
             {
                 CreateBody(state);
-                ReceiveEvent.Set();
+                SendEvent.Set();
             }
-        }
-
-        private void CreateHeader(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            if (buffer.Length > 0)
-            {
-                state.Header = new OperationHeader
-                {
-                    Magic = buffer[HeaderIndexFor.Magic],
-                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
-                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
-                };
-            }
-        }
-
-        private void CreateBody(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            state.Body = new OperationBody
-            {
-                Extras = new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
-                Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
-            };
-        }
-
-        public OperationAsyncState State { get; set; }
-
-        /// <summary>
-        /// True if the connection has been SASL authenticated.
-        /// </summary>
-        public bool IsAuthenticated { get; set; }
-
-        /// <summary>
-        /// Unique identifier for this connection.
-        /// </summary>
-        public Guid Identity
-        {
-            get { return _identity; }
-        }
-
-        /// <summary>
-        /// The Socket used for IO.
-        /// </summary>
-        public Socket Socket
-        {
-            get { return _socket; }
         }
 
         /// <summary>
         /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -154,17 +92,17 @@ namespace Couchbase.IO.Strategies.EAP
             {
                 if (!_disposed)
                 {
-                    if (_socket != null)
+                    if (Socket != null)
                     {
-                        if (_socket.Connected)
+                        if (Socket.Connected)
                         {
-                            _socket.Shutdown(SocketShutdown.Both);
-                            _socket.Close(_connectionPool.Configuration.ShutdownTimeout);
+                            Socket.Shutdown(SocketShutdown.Both);
+                            Socket.Close(_connectionPool.Configuration.ShutdownTimeout);
                         }
                         else
                         {
-                            _socket.Close();
-                            _socket.Dispose();
+                            Socket.Close();
+                            Socket.Dispose();
                         }
                     }
                     if (_networkStream != null)
@@ -175,10 +113,10 @@ namespace Couchbase.IO.Strategies.EAP
             }
             else
             {
-                if (_socket != null)
+                if (Socket != null)
                 {
-                    _socket.Close();
-                    _socket.Dispose();
+                    Socket.Close();
+                    Socket.Dispose();
                 }
                 if (_networkStream != null)
                 {

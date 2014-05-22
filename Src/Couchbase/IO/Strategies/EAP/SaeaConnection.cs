@@ -12,13 +12,9 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.EAP
 {
-    internal class SaeaConnection : IConnection
+    internal class SaeaConnection : ConnectionBase
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConnectionPool<SaeaConnection> _connectionPool;
-        private readonly Guid _identity = Guid.NewGuid();
-        private readonly Socket _socket;
-        private readonly AutoResetEvent WaitEvent = new AutoResetEvent(true);
         private readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         private readonly SocketAsyncEventArgs _socketAsync;
         private volatile bool _disposed;
@@ -26,18 +22,15 @@ namespace Couchbase.IO.Strategies.EAP
         internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket) 
             : this(connectionPool, socket, new SocketAsyncEventArgs())
         {
-            _connectionPool = connectionPool;
-            _socket = socket;
         }
 
-        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket, SocketAsyncEventArgs socketAsync)
+        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket, SocketAsyncEventArgs socketAsync) 
+            : base(socket)
         {
             _connectionPool = connectionPool;
-            _socket = socket;
             _socketAsync = socketAsync;
-            _socketAsync.AcceptSocket = _socket;
+            _socketAsync.AcceptSocket = Socket;
             _socketAsync.Completed += SocketAsyncCompleted;
-            State = new OperationAsyncState();
         }
 
         void SocketAsyncCompleted(object sender, SocketAsyncEventArgs e)
@@ -55,35 +48,19 @@ namespace Couchbase.IO.Strategies.EAP
             }
         }
 
-        public OperationAsyncState State { get; set; }
-
-        public Socket Socket
-        {
-            get { return _socket; }
-        }
-
-        public Guid Identity
-        {
-            get { return _identity; }
-        }
-
-        public bool IsAuthenticated { get; set; }
-
-        public void Send(byte[] buffer, int offset, int length, OperationAsyncState state)
+        public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             State.Reset();
-            WaitEvent.WaitOne();
             _socketAsync.UserToken = State;
-            _socketAsync.SetBuffer(buffer, offset, length);
-            _socket.SendAsync(_socketAsync);
-            WaitEvent.Reset();
-            SendEvent.WaitOne();
-            WaitEvent.Set();
-        }
 
-        public void Receive(byte[] buffer, int offset, int length, OperationAsyncState state)
-        {
-            //Not needed
+            var buffer = operation.GetBuffer();
+            _socketAsync.SetBuffer(buffer, 0, buffer.Length);
+            _socketAsync.AcceptSocket.SendAsync(_socketAsync);
+            SendEvent.WaitOne();
+
+            operation.Header = State.Header;
+            operation.Body = State.Body;
+            return operation.GetResult();
         }
 
         private void Send(SocketAsyncEventArgs e)
@@ -91,7 +68,7 @@ namespace Couchbase.IO.Strategies.EAP
             Log.Debug(m => m("send..."));
             if (e.SocketError == SocketError.Success)
             {
-                var willRaiseCompletedEvent = _socket.ReceiveAsync(e);
+                var willRaiseCompletedEvent = e.AcceptSocket.ReceiveAsync(e);
                 if (!willRaiseCompletedEvent)
                 {
                     Receive(e);
@@ -143,40 +120,10 @@ namespace Couchbase.IO.Strategies.EAP
             }
         }
 
-        private static void CreateHeader(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            if (buffer.Length > 0)
-            {
-                state.Header = new OperationHeader
-                {
-                    Magic = buffer[HeaderIndexFor.Magic],
-                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
-                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
-                };
-            }
-        }
-
-        private static void CreateBody(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            state.Body = new OperationBody
-            {
-                Extras = new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
-                Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
-            };
-        }
-
-
         /// <summary>
         /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -188,27 +135,27 @@ namespace Couchbase.IO.Strategies.EAP
             {
                 if (!_disposed)
                 {
-                    if (_socket != null)
+                    if (Socket != null)
                     {
-                        if (_socket.Connected)
+                        if (Socket.Connected)
                         {
-                            _socket.Shutdown(SocketShutdown.Both);
-                            _socket.Close(_connectionPool.Configuration.ShutdownTimeout);
+                            Socket.Shutdown(SocketShutdown.Both);
+                            Socket.Close(_connectionPool.Configuration.ShutdownTimeout);
                         }
                         else
                         {
-                            _socket.Close();
-                            _socket.Dispose();
+                            Socket.Close();
+                            Socket.Dispose();
                         }
                     }
                 }
             }
             else
             {
-                if (_socket != null)
+                if (Socket != null)
                 {
-                    _socket.Close();
-                    _socket.Dispose();
+                    Socket.Close();
+                    Socket.Dispose();
                 }
    
             }

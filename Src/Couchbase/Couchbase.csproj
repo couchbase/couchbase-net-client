@@ -136,6 +136,7 @@
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
     <Compile Include="Core\InitializationException.cs" />
+    <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />

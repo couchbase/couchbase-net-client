@@ -19,7 +19,7 @@ namespace Couchbase.Tests.Authentication.SSL
         public void TestSSLConnect()
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect("192.168.56.102", (int)DefaultPorts.SslDirect);
+            socket.Connect("127.0.0.1", (int)DefaultPorts.SslDirect);
             using (var ns = new NetworkStream(socket))
             {
                 var buffer = Encoding.UTF8.GetBytes("hello world!");
@@ -27,7 +27,7 @@ namespace Couchbase.Tests.Authentication.SSL
 
                 using (var ssls = new SslStream(ns))
                 {
-                    ssls.AuthenticateAsClient("192.168.56.102");
+                    ssls.AuthenticateAsClient("127.0.0.1");
                     Console.WriteLine("Is Encrypted: {0}", ssls.IsEncrypted);
                     //ssls.Write(buffer, 0, buffer.Length);
                    
@@ -74,9 +74,12 @@ namespace Couchbase.Tests.Authentication.SSL
         [Test]
         public void Test_ClientConnection_With_Ssl()
         {
-            var config = new ClientConfiguration {EncryptTraffic = true, Servers = new List<Uri>
+            var config = new ClientConfiguration 
             {
-                new Uri("http://192.168.56.102:8091/pools")
+                EncryptTraffic = true, 
+                Servers = new List<Uri>
+            {
+                new Uri("http://127.0.0.1:8091/pools")
             }};
             config.Initialize();
 

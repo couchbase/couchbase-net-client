@@ -15,10 +15,10 @@ namespace Couchbase.Tests.IO.Strategies.EAP
     public class EapIoStrategy2Tests
     {
         private EAPIOStrategy2 _ioStrategy;
-        private IConnectionPool<SaeaConnection> _connectionPool;
+        private IConnectionPool<EapConnection> _connectionPool;
         //private IConnectionPool<SslConnection> _connectionPool;
-        //private const string Address = "192.168.56.102:11207";
-        private const string Address = "192.168.56.102:11210";
+        //private const string Address = "192.168.56.104:11207";
+        private const string Address = "127.0.0.1:11210";
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -26,7 +26,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration {EncryptTraffic = false};
             //_connectionPool = new ConnectionPool<SslConnection>(connectionPoolConfig, ipEndpoint);      
-            _connectionPool = new ConnectionPool<SaeaConnection>(connectionPoolConfig, ipEndpoint); 
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint); 
             _ioStrategy = new EAPIOStrategy2(_connectionPool);
         }
 
