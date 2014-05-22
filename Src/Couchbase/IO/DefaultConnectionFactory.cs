@@ -2,7 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using Couchbase.Configuration.Client;
-using Couchbase.IO.Strategies.EAP;
+using Couchbase.IO.Strategies;
 
 namespace Couchbase.IO
 {
@@ -69,8 +69,9 @@ namespace Couchbase.IO
                 }
                 else
                 {
-                    var pool = p as ConnectionPool<SaeaConnection>;
-                    connection = new SaeaConnection(pool, socket);
+                    //TODO this should be from T...
+                    var pool = p as ConnectionPool<EapConnection>;
+                    connection = new EapConnection(pool, socket);
                 }
                 return connection as T;
             };

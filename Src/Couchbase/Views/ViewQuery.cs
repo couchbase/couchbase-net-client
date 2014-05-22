@@ -303,7 +303,7 @@ namespace Couchbase.Views
         /// <summary>
         /// Return records with a value equal to or greater than the specified key. Key must be specified as a JSON value.
         /// </summary>
-        /// <param name="endKey">The key to return records greater than or equal to.</param>
+        /// <param name="startKey">The key to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery StartKey(object startKey)
         {

@@ -9,7 +9,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
-using Couchbase.IO.Strategies.EAP;
 using Couchbase.Views;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication

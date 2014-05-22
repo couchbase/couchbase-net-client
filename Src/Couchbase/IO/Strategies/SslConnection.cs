@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -10,34 +12,40 @@ using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
 
-namespace Couchbase.IO.Strategies.EAP
+namespace Couchbase.IO.Strategies
 {
-    internal class EapConnection : ConnectionBase
+    internal class SslConnection : ConnectionBase
     {
-        private readonly ConnectionPool<EapConnection> _connectionPool;
-        private readonly NetworkStream _networkStream ;
-        private readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
-        private readonly AutoResetEvent ReceiveEvent = new AutoResetEvent(false);
+        private readonly SslStream _sslStream;
+        private readonly ConnectionPool<SslConnection> _connectionPool;
+        private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
         private volatile bool _disposed;
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket) 
-            : this(connectionPool, socket, new NetworkStream(socket))
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket) 
+            : this(connectionPool, socket, new SslStream(new NetworkStream(socket)))
         {
         }
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream) 
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream) 
             : base(socket)
         {
             _connectionPool = connectionPool;
-            _networkStream = networkStream;
+            _sslStream = sslStream;
+        }
+
+        public void Authenticate()
+        {
+            var targetHost = _connectionPool.EndPoint.Address.ToString();
+            Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
+            _sslStream.AuthenticateAsClient(targetHost);
         }
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             State.Reset();
             var buffer = operation.GetBuffer();
-            _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
-            SendEvent.WaitOne();
+            _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
+            _sendEvent.WaitOne();
             operation.Header = State.Header;
             operation.Body = State.Body;
             return operation.GetResult();
@@ -45,21 +53,20 @@ namespace Couchbase.IO.Strategies.EAP
 
         private void SendCallback(IAsyncResult asyncResult)
         {
-            _networkStream.EndWrite(asyncResult);
             var state = asyncResult.AsyncState as OperationAsyncState;
-            _networkStream.BeginRead(state.Buffer, 0, State.Buffer.Length, ReceiveCallback, State);
+            _sslStream.EndWrite(asyncResult);
+            _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, State);
         }
-
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
             
-            var bytesRead = _networkStream.EndRead(asyncResult);
+            var bytesRead = _sslStream.EndRead(asyncResult);
             state.BytesReceived += bytesRead;
             state.Data.Write(state.Buffer, 0, bytesRead);
 
-            Log.Debug(m => m("Bytes read {0}", state.BytesReceived));
+            Log.Debug(m => m("Bytes read {0} of {1}", state.BytesReceived, state.Header.TotalLength));
 
             if (state.Header.BodyLength == 0)
             {
@@ -68,12 +75,12 @@ namespace Couchbase.IO.Strategies.EAP
             }
             if (state.BytesReceived > 0 && state.BytesReceived < state.Header.TotalLength)
             {
-                _networkStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
+                _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
             else
             {
                 CreateBody(state);
-                SendEvent.Set();
+                _sendEvent.Set();
             }
         }
 
@@ -105,9 +112,9 @@ namespace Couchbase.IO.Strategies.EAP
                             Socket.Dispose();
                         }
                     }
-                    if (_networkStream != null)
+                    if (_sslStream != null)
                     {
-                        _networkStream.Dispose();
+                        _sslStream.Dispose();
                     }
                 }
             }
@@ -118,15 +125,15 @@ namespace Couchbase.IO.Strategies.EAP
                     Socket.Close();
                     Socket.Dispose();
                 }
-                if (_networkStream != null)
+                if (_sslStream != null)
                 {
-                    _networkStream.Dispose();
+                    _sslStream.Dispose();
                 }
             }
             _disposed = true;
         }
 
-        ~EapConnection()
+        ~SslConnection()
         {
             Dispose(false);
         }

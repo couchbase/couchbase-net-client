@@ -8,6 +8,7 @@ using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using System;
 using System.Collections.Concurrent;
@@ -15,7 +16,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Authentication;
-using Couchbase.IO.Strategies.EAP;
 
 namespace Couchbase.Core
 {
@@ -31,7 +31,7 @@ namespace Couchbase.Core
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            (pool, sm) => new EAPIOStrategy2(pool, sm),
+            (pool, sm) => new DefaultIOStrategy(pool, sm),
                 (config, endpoint) =>
                 {
                     IConnectionPool connectionPool = null;
@@ -41,7 +41,7 @@ namespace Couchbase.Core
                     }
                     else
                     {
-                        connectionPool = new ConnectionPool<SaeaConnection>(config, endpoint);
+                        connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
                     }
                     return connectionPool;
                 })
@@ -60,7 +60,7 @@ namespace Couchbase.Core
                 }
                 else
                 {
-                    connectionPool = new ConnectionPool<SaeaConnection>(config, endpoint);
+                    connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
                 }
                 return connectionPool;
             })

@@ -13,26 +13,23 @@ using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
 
-namespace Couchbase.IO.Strategies.EAP
+namespace Couchbase.IO.Strategies
 {
 // ReSharper disable once InconsistentNaming
-    internal class EAPIOStrategy2 : IOStrategy
+    internal class DefaultIOStrategy : IOStrategy
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
-        private Func<IConnectionPool, IConnection> _factory;
         private volatile bool _disposed;
-        private static readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
-        private static readonly AutoResetEvent ReceiveEvent = new AutoResetEvent(false);
         private ISaslMechanism _saslMechanism;
 
-        public EAPIOStrategy2(IConnectionPool connectionPool)
+        public DefaultIOStrategy(IConnectionPool connectionPool)
             : this(connectionPool,
             new PlainTextMechanism("default", string.Empty))
         {
         }
 
-        public EAPIOStrategy2(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
+        public DefaultIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
@@ -94,17 +91,21 @@ namespace Couchbase.IO.Strategies.EAP
 
         void Dispose(bool disposing)
         {
-            if (disposing)
+            if (_disposed)
             {
-                GC.SuppressFinalize(this);
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+                if (_connectionPool != null)
+                {
+                    _connectionPool.Dispose();
+                }
             }
-            if (_connectionPool != null)
-            {
-                _connectionPool.Dispose();
-            }
+            _disposed = true;
         }
 
-        ~EAPIOStrategy2()
+        ~DefaultIOStrategy()
         {
             Dispose(false);
         }

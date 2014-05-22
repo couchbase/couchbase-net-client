@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
-using Couchbase.IO.Strategies.EAP;
+using Couchbase.IO.Strategies;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO

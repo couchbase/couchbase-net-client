@@ -145,7 +145,7 @@
     <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />
-    <Compile Include="IO\Strategies\EAP\EapConnection.cs" />
+    <Compile Include="IO\Strategies\EapConnection.cs" />
     <Compile Include="IO\Strategies\EAP\EAPIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
@@ -154,9 +154,9 @@
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
-    <Compile Include="IO\Strategies\EAP\EAPIOStrategy2.cs" />
-    <Compile Include="IO\Strategies\EAP\SaeaConnection.cs" />
-    <Compile Include="IO\Strategies\EAP\SslConnection.cs" />
+    <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
+    <Compile Include="IO\Strategies\SaeaConnection.cs" />
+    <Compile Include="IO\Strategies\SslConnection.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />

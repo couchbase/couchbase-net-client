@@ -10,12 +10,12 @@ using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
 
-namespace Couchbase.IO.Strategies.EAP
+namespace Couchbase.IO.Strategies
 {
     internal class SaeaConnection : ConnectionBase
     {
         private readonly ConnectionPool<SaeaConnection> _connectionPool;
-        private readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
         private readonly SocketAsyncEventArgs _socketAsync;
         private volatile bool _disposed;
 
@@ -56,7 +56,7 @@ namespace Couchbase.IO.Strategies.EAP
             var buffer = operation.GetBuffer();
             _socketAsync.SetBuffer(buffer, 0, buffer.Length);
             _socketAsync.AcceptSocket.SendAsync(_socketAsync);
-            SendEvent.WaitOne();
+            _sendEvent.WaitOne();
 
             operation.Header = State.Header;
             operation.Body = State.Body;
@@ -109,7 +109,7 @@ namespace Couchbase.IO.Strategies.EAP
                     {
                         Log.Debug(m => m("bytes rcvd/length: {0}/{1}", state.BytesReceived, state.Header.TotalLength));
                         CreateBody(state);
-                        SendEvent.Set();
+                        _sendEvent.Set();
                     }
                 }
                 else

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.EAP;
+using Couchbase.IO.Strategies;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Strategies.EAP
@@ -14,7 +14,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
     [TestFixture]
     public class EapIoStrategy2Tests
     {
-        private EAPIOStrategy2 _ioStrategy;
+        private DefaultIOStrategy _ioStrategy;
         private IConnectionPool<EapConnection> _connectionPool;
         //private IConnectionPool<SslConnection> _connectionPool;
         //private const string Address = "192.168.56.104:11207";
@@ -27,7 +27,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
             var connectionPoolConfig = new PoolConfiguration {EncryptTraffic = false};
             //_connectionPool = new ConnectionPool<SslConnection>(connectionPoolConfig, ipEndpoint);      
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint); 
-            _ioStrategy = new EAPIOStrategy2(_connectionPool);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
         [Test]
