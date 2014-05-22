@@ -24,6 +24,25 @@ namespace Couchbase.Tests.Utils
             return client.ExecuteStore(mode, key, value);
         }
 
+        /// <summary>
+        /// Store a document with a TTL (time to live) value.
+        /// </summary>
+        /// <param name="ts">TimeSpan, e.g. TimeSpan.FromDays(60) stores document for 60-days</param>
+        /// <returns></returns>
+        public static IStoreOperationResult Store(ICouchbaseClient client, TimeSpan ts, StoreMode mode = StoreMode.Set, string key = null, string value = null)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                key = GetUniqueKey("store");
+            }
+
+            if (value == null)
+            {
+                value = GetRandomString();
+            }
+            return client.ExecuteStore(mode, key, value, ts);
+        }
+
         public static string GetUniqueKey(string prefix = null)
         {
             return (!string.IsNullOrEmpty(prefix) ? prefix + "_" : "") +

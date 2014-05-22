@@ -1042,6 +1042,12 @@ namespace Enyim.Caching
                 // infinity
                 if (validFor == TimeSpan.Zero || validFor == TimeSpan.MaxValue) return 0;
 
+                // NCBC-485 send small TTLs (less than 30 days) in seconds, not EPOCH.
+                if(validFor < TimeSpan.FromSeconds(((60*60) * 24)*30))
+                {
+                    return (uint)validFor.GetValueOrDefault().Seconds;
+                }
+
                 expiresAt = DateTime.Now.Add(validFor.Value);
             }
 

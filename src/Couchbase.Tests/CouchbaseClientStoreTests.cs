@@ -116,6 +116,23 @@ namespace Couchbase.Tests
                 Assert.That(storeResult.Message, Is.StringContaining(ClientErrors.FAILURE_NODE_NOT_FOUND));
             }
         }
+
+        /// <summary>
+        /// @test: Store a document with a small TTL and assert that the TTL is adhered to by waiting and storing again.
+        /// @pre: Default configuration to initialize client in app.config
+        /// @post: Test passes if the both store calls are successful.
+        /// </summary>
+        [Test]
+        public void Storing_Document_With_Small_TTL()
+        {
+            var document = @"{""name"": ""test_document""}";
+            int ttl = 5; // seconds for the TTL
+            var result1 = TestUtils.Store(Client, TimeSpan.FromSeconds(ttl), StoreMode.Add, "key_ttl_test", document);
+            System.Threading.Thread.Sleep(1000 * (ttl*2)); // Sleep for longer than the TTL.
+            var result2 = TestUtils.Store(Client, TimeSpan.FromSeconds(ttl), StoreMode.Add, "key_ttl_test", document);
+            TestUtils.StoreAssertPass(result1);
+            TestUtils.StoreAssertPass(result2);
+        }
     }
 }
 
