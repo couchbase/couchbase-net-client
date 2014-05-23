@@ -92,9 +92,11 @@ namespace Couchbase.Configuration.Server.Serialization
 
         Node GetRandomNode();
 
-        Uri GetTerseStreamingUri(Node node);
+        Uri GetTerseStreamingUri(Node node, bool useSsl);
 
-        Uri GetTerseUri(Node node);
+        Uri GetTerseUri(Node node, bool useSsl);
+
+        bool UseSsl { get; set; }
     }
 }
 

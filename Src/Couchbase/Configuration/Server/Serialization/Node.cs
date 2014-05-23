@@ -10,10 +10,27 @@ namespace Couchbase.Configuration.Server.Serialization
     {
         const string LocalHost = "127.0.0.1";
         private const string HostToken = "$HOST";
-        private const string ViewPort = "8091"; 
+        private const string ViewPort = "8091";
+
+        public Node()
+        {
+            Ports = new Ports
+            {
+                Direct = 11210,
+                Proxy = 11211,
+                SslDirect = 11207,
+                HttpsCapi = 18092,
+                HttpsMgmt = 18091
+            };
+            CouchApiBase = "http://$HOST:8092/default";
+            CouchApiBaseHttps = "https://$HOST:18092/default";
+        }
 
         [JsonProperty("couchApiBase")]
         public string CouchApiBase { get; set; }
+
+        [JsonProperty("couchApiBaseHTTPS")]
+        public string CouchApiBaseHttps { get; set; }
 
         [JsonProperty("replication")]
         public double Replication { get; set; }
@@ -52,9 +69,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public bool Equals(Node other)
         {
             return (other != null &&
-                    //other.ClusterMembership == ClusterMembership &&
-                    other.Hostname == Hostname);// &&
-                    //other.Status == Status);
+                    other.Hostname == Hostname);
         }
 
         public override bool Equals(object obj)
@@ -67,9 +82,7 @@ namespace Couchbase.Configuration.Server.Serialization
             unchecked
             {
                 var hash = 17;
-                //hash = hash * 23 + ClusterMembership.GetHashCode();
                 hash = hash * 23 + Hostname.GetHashCode();
-                //hash = hash * 23 + Status.GetHashCode();
                 return hash;
             }
         }

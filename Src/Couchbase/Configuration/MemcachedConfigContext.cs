@@ -64,7 +64,7 @@ namespace Couchbase.Configuration
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
                     var saslMechanism = new PlainTextMechanism(bucketConfig.Name, bucketConfig.Password);//todo likely bug
                     var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
-                    var server = new Core.Server(ioStrategy, node);
+                    var server = new Core.Server(ioStrategy, node, _clientConfig);
            
                     _servers.Add(server); //todo make atomic
                     _keyMapper = new KetamaKeyMapper(_servers);//todo make atomic

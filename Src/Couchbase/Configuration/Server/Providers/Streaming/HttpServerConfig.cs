@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -63,6 +65,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 Pools = DownLoadConfig<Pools>(Bootstrap.GetPoolsUri(server));
                 Buckets = DownLoadConfig<List<BucketConfig>>(Pools.GetBucketUri(server));
                 WriteTerseUris(Buckets, Pools);
+                UpdateUseSsl(Buckets);
                 BootstrapServer = server;
                 success = true;
                 Log.Info(m=>m("Bootstrapped from {0}", server));
@@ -98,15 +101,31 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
+        void UpdateUseSsl(IEnumerable<BucketConfig> bucketConfigs)
+        {
+            foreach (var bucketConfig in bucketConfigs)
+            {
+                bucketConfig.UseSsl = _clientConfig.BucketConfigs[bucketConfig.Name].EncryptTraffic;
+            }
+        }
+
         T DownLoadConfig<T>(Uri uri)
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
+            ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
             var response = DownloadString(uri);
             return JsonConvert.DeserializeObject<T>(response);
+        }
+
+        private bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
+            return true;
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

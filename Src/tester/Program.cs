@@ -46,8 +46,8 @@ namespace tester
                 //ThreadPoolInsert(bucket, n);
                //ThreadPoolInsert(bucket, n);
               //SynchronousInsert(bucket, n);
-             ParallerInsert(bucket, n);
-             //  MultiThreaded(4, n, bucket);
+             //ParallerInsert(bucket, n);
+             MultiThreaded(8, n, bucket);
             }
             Console.Read();
             //_cluster.CloseBucket(bucket);
@@ -183,7 +183,7 @@ namespace tester
                 //var result = threadData.Bucket.Upsert(key, value);
                 //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
-                Console.WriteLine("Get {0} - {1} on thread {2}: {3}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Message);
+                Console.WriteLine("Get {0} - {1} on thread {2}: {3}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value);
             }
 
             ThreadData.Processed += threadData.Keys;

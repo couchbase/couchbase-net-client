@@ -90,5 +90,11 @@ namespace Couchbase.Tests.Authentication.SSL
                 Assert.IsNotNull(bucket);
             }
         }
+
+        [Test]
+        public void Test_Views()
+        {
+            
+        }
     }
 }

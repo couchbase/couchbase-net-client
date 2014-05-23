@@ -40,16 +40,18 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.101:11210",
+                        Hostname = "192.168.56.101:8091",
                         Status = "healthy"
                     },
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.104:11210",
+                        Hostname = "192.168.56.104:8091",
                         Status = "healthy"
                     }
-                }
+                },
+                TerseStreamingUri = "/pools/default/bs/default",
+                TerseUri = "/pools/default/b/default"
             };
 
             _bucket2 = new BucketConfig
@@ -72,13 +74,13 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.101:11210",
+                        Hostname = "192.168.56.101:8091",
                         Status = "healthy"
                     },
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.104:11210",
+                        Hostname = "192.168.56.104:8091",
                         Status = "healthy"
                     }
                 }
@@ -104,13 +106,13 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.101:11210",
+                        Hostname = "192.168.56.101:8091",
                         Status = "healthy"
                     },
                     new Node
                     {
                         ClusterMembership = "active",
-                        Hostname = "192.168.56.104:11210",
+                        Hostname = "192.168.56.104:8091",
                         Status = "healthy"
                     }
                 }
@@ -147,6 +149,42 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
             Assert.AreEqual(11207,node.Ports.SslDirect);
             Assert.AreEqual(18092,node.Ports.HttpsCapi);
             Assert.AreEqual(18091, node.Ports.HttpsMgmt);
+        }
+
+        [Test]
+        public void When_GetTerseStreamingUri_Called_With_useSsl_True_Url_Uses_Https()
+        {
+            var useSsl = true;
+            var node = _bucket1.Nodes.First();
+            var url = _bucket1.GetTerseStreamingUri(node, useSsl);
+            Assert.AreEqual(new Uri("https://192.168.56.101:18091/pools/default/bs/default"), url);
+        }
+
+        [Test]
+        public void When_GetTerseStreamingUri_Called_With_useSsl_False_Url_Uses_Http()
+        {
+            var useSsl = false;
+            var node = _bucket1.Nodes.First();
+            var url = _bucket1.GetTerseStreamingUri(node, useSsl);
+            Assert.AreEqual(new Uri("http://192.168.56.101:8091/pools/default/bs/default"), url);
+        }
+
+        [Test]
+        public void When_GetTerseUri_Called_With_useSsl_True_Url_Uses_Https()
+        {
+            var useSsl = true;
+            var node = _bucket1.Nodes.First();
+            var url = _bucket1.GetTerseUri(node, useSsl);
+            Assert.AreEqual(new Uri("https://192.168.56.101:18091/pools/default/b/default"), url);
+        }
+
+        [Test]
+        public void When_GetTerseUri_Called_With_useSsl_False_Url_Uses_Http()
+        {
+            var useSsl = false;
+            var node = _bucket1.Nodes.First();
+            var url = _bucket1.GetTerseUri(node, useSsl);
+            Assert.AreEqual(new Uri("http://192.168.56.101:8091/pools/default/b/default"), url);
         }
     }
 }

@@ -97,7 +97,7 @@ namespace Couchbase.IO
 
             if (_store.TryDequeue(out connection))
             {
-                Log.Debug(m => m("Acquire existing: {0}", connection.Identity));
+                Log.Debug(m => m("Acquire existing: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
                 return connection;
             }
 
@@ -107,7 +107,7 @@ namespace Couchbase.IO
                 {
                     connection = _factory(this);
 
-                    Log.Debug(m => m("Acquire new: {0}", connection.Identity));
+                    Log.Debug(m => m("Acquire new: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
                     Interlocked.Increment(ref _count);
                     return connection;
                 }

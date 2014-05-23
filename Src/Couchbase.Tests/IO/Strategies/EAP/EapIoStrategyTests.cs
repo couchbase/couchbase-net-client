@@ -16,7 +16,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
     {
         private EAPIOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
-        private const string Address = "192.168.56.102:11207";
+        private const string Address = "127.0.0.1:11207";
         //private const string Address = "192.168.56.102:11210";
 
         [TestFixtureSetUp]

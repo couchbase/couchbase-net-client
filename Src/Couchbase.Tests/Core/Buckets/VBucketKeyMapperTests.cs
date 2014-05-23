@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             _servers = _vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node())).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
                 Cast<IServer>().
                 ToList();
         }

@@ -25,9 +25,10 @@ namespace Couchbase.Tests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
+            var configuration = new ClientConfiguration();
             var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
             var ioStrategy = new SocketAsyncStrategy(connectionPool);
-            _server = new Server(ioStrategy, new Node());
+            _server = new Server(ioStrategy, new Node(), configuration);
         }
 
         [Test]
@@ -62,6 +63,42 @@ namespace Couchbase.Tests.Core
 
             Assert.AreEqual(endpoint.Address.ToString(), "192.168.56.101");
             Assert.AreEqual(endpoint.Port, 11210);
+        }
+
+        [Test]
+        public void When_GetBaseViewUri_Is_Called_With_EncryptTraffic_True_Uri_Is_SSL_URI()
+        {
+            var configuration = new ClientConfiguration
+            {
+                EncryptTraffic = true
+            };
+            configuration.Initialize();
+
+            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            using (var server = new Server(ioStrategy, new Node(), configuration))
+            {
+                var uri = server.GetBaseViewUri("default");
+                Assert.AreEqual("https://localhost:18092/default", uri);
+            }
+        }
+
+        [Test]
+        public void When_GetBaseViewUri_Is_Called_With_EncryptTraffic_False_Uri_Is_Not_SSL_URI()
+        {
+            var configuration = new ClientConfiguration
+            {
+                EncryptTraffic = false
+            };
+            configuration.Initialize();
+
+            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            using (var server = new Server(ioStrategy, new Node(), configuration))
+            {
+                var uri = server.GetBaseViewUri("default");
+                Assert.AreEqual("http://localhost:8092/default", uri);
+            }
         }
 
         [TestFixtureTearDown]

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using NUnit.Framework;
@@ -10,21 +12,26 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Core.Buckets
 {
     [TestFixture]
-    public class CouchbaseBucketViewTests
+    public class CouchbaseBucketViewSslTests
     {
         private ICouchbaseCluster _cluster;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            CouchbaseCluster.Initialize();
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>{ new Uri("http://127.0.0.1:8091/pools")},
+                EncryptTraffic = true
+            };
+            CouchbaseCluster.Initialize(config);
             _cluster = CouchbaseCluster.Get();
         }
 
         [Test]
-        public void Test_CreateQuery()
+        public void When_UseSsl_True_CreateQuery_Returns_Https_Url()
         {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
 
             var query = bucket.CreateQuery(true).
@@ -37,9 +44,9 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_CreateQuery_Overload2()
+        public void When_UseSsl_True_CreateQuery2_Returns_Https_Url()
         {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery(true, "beer").
                 View("brewery_beers").
@@ -50,9 +57,9 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_CreateQuery_Overload3()
+        public void When_UseSsl_True_CreateQuery3_Returns_Https_Url()
         {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery(true, "beer", "brewery_beers").
                 RawUri();

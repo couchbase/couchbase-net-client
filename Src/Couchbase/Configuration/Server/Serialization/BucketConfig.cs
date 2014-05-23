@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Couchbase.Utils;
@@ -97,6 +98,8 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("rev")]
         public int Rev { get; set; }
 
+        public bool UseSsl { get; set; }
+
         public string SurrogateHost
         {
             get { return _surrogateHost; }
@@ -153,29 +156,31 @@ namespace Couchbase.Configuration.Server.Serialization
             return sb.ToString();
         }
 
-        public Uri GetTerseStreamingUri(Node node)
+        public Uri GetTerseStreamingUri(Node node, bool useSsl)
         {
-            const string protocol = "http://";
+            var protocol = useSsl ? "https://" : "http://";
             var hostName = node.Hostname;
-            var streamingUri = string.Empty;
+            var streamingUri = string.IsNullOrEmpty(TerseStreamingUri) ? StreamingUri : TerseStreamingUri;
 
-            if (!string.IsNullOrEmpty(TerseStreamingUri))
+            if (useSsl)
             {
-                streamingUri = TerseStreamingUri;
-            }
-            else
-            {
-                streamingUri = StreamingUri;
+                hostName = hostName.Replace(((int) DefaultPorts.MgmtApi).ToString(CultureInfo.InvariantCulture),
+                    ((int) DefaultPorts.HttpsMgmt).ToString(CultureInfo.InvariantCulture));
             }
             return new Uri(string.Concat(protocol, hostName, streamingUri));
         }
 
-        public Uri GetTerseUri(Node node)
+        public Uri GetTerseUri(Node node, bool useSsl)
         {
-            const string protocol = "http://";
+            var protocol = useSsl ? "https://" : "http://";
             var hostName = node.Hostname;
             var streamingUri = TerseUri;
 
+            if (useSsl)
+            {
+                hostName = hostName.Replace(((int)DefaultPorts.MgmtApi).ToString(CultureInfo.InvariantCulture),
+                    ((int)DefaultPorts.HttpsMgmt).ToString(CultureInfo.InvariantCulture));
+            }
             return new Uri(string.Concat(protocol, hostName, streamingUri));
         }
     }

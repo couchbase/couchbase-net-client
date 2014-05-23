@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -6,6 +7,8 @@ using System.Security.Authentication;
 using System.Text;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -18,26 +21,28 @@ namespace Couchbase.Core
     internal class Server : IServer
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ClientConfiguration _clientConfiguration;
         private readonly IOStrategy _ioStrategy;
+        private readonly Node _nodeInfo;
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
         private bool _disposed;
-        private readonly Node _nodeInfo;
         
-        public Server(IOStrategy ioStrategy, Node node) : 
+        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration) : 
             this(ioStrategy, 
             new ViewClient(new HttpClient(), new JsonDataMapper()), 
             new QueryClient(new HttpClient(), new JsonDataMapper()),
-            node)
+            node, clientConfiguration)
         {
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo)
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo, ClientConfiguration clientConfiguration)
         {
             _ioStrategy = ioStrategy;
             ViewClient = viewClient;
             QueryClient = queryClient;
             _nodeInfo = nodeInfo;
+            _clientConfiguration = clientConfiguration;
         }
 
         public uint ViewPort
@@ -96,6 +101,24 @@ namespace Couchbase.Core
             return uri.Replace("$HOST", "localhost");
         }
 
+        //TODO refactor to use CouchbaseApiHttps element when stabilized
+        public string GetBaseViewUri(string bucketName)
+        {
+            var uri = _nodeInfo.CouchApiBase;
+            var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
+            if (bucketConfig.EncryptTraffic)
+            {
+                var port = _nodeInfo.Ports.HttpsCapi;
+                uri = uri.Replace(((int)DefaultPorts.RestApi).
+                    ToString(CultureInfo.InvariantCulture), port.
+                    ToString(CultureInfo.InvariantCulture));
+                uri = uri.Replace("http", "https");
+            }
+            
+            return uri.Replace("$HOST", "localhost");
+        }
+
+        //TODO needs SSL support!
         public string GetBaseQueryUri()
         {
             var sb = new StringBuilder();

@@ -47,7 +47,7 @@ namespace Couchbase.Tests.Views
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

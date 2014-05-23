@@ -71,6 +71,38 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public IConfigInfo GetConfig(string bucketName, string password)
         {
+            BucketConfiguration bucketConfiguration = null;
+            if (_clientConfig.BucketConfigs.ContainsKey(bucketName))
+            {
+                bucketConfiguration = _clientConfig.BucketConfigs[bucketName];
+            }
+            if (bucketConfiguration == null)
+            {
+                var defaultBucket = _clientConfig.BucketConfigs.FirstOrDefault();
+                if (defaultBucket.Value == null)
+                {
+                    bucketConfiguration = new BucketConfiguration
+                    {
+                        BucketName = bucketName
+                    };
+                }
+                else
+                {
+                    var defaultConfig = defaultBucket.Value;
+                    bucketConfiguration = new BucketConfiguration
+                    {
+                        BucketName = bucketName,
+                        PoolConfiguration = defaultConfig.PoolConfiguration,
+                        Servers = defaultConfig.Servers,
+                        Port = defaultConfig.Port,
+                        Username = defaultConfig.Username,
+                        Password = defaultConfig.Password,
+                        EncryptTraffic = defaultConfig.EncryptTraffic
+                    };
+                }
+                _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
+            }
+
             StartProvider(bucketName, password);
             var bucketConfig = GetBucketConfig(bucketName, password);
 
@@ -85,7 +117,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     IBucketConfig newConfig;
-                    var uri = bucketConfig.GetTerseUri(node);
+                    var uri = bucketConfig.GetTerseUri(node, _clientConfig.BucketConfigs[bucketName].EncryptTraffic);
                     using (var webClient = new AuthenticatingWebClient(bucketName, password))
                     {
                         var body = webClient.DownloadString(uri);

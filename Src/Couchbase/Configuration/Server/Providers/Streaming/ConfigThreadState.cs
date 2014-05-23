@@ -62,7 +62,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     var node = nodes[0];
                     nodes.Remove(node);
 
-                    var streamingUri = _bucketConfig.GetTerseStreamingUri(node);
+                    var streamingUri = _bucketConfig.GetTerseStreamingUri(node, _bucketConfig.UseSsl);
                     Log.Info(m=>m("Listening to {0}", streamingUri));
 
                     using (var webClient = new AuthenticatingWebClient(_bucketConfig.Name, _bucketConfig.Password))

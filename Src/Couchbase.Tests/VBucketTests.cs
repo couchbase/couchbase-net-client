@@ -29,7 +29,7 @@ namespace Couchbase.Tests
 
             _servers = vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node())).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
                 Cast<IServer>().
                 ToList();
 

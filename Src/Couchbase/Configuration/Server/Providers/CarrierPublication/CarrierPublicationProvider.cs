@@ -74,7 +74,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         Servers = defaultConfig.Servers,
                         Port = defaultConfig.Port,
                         Username = defaultConfig.Username,
-                        Password = defaultConfig.Password
+                        Password = defaultConfig.Password,
+                        EncryptTraffic = defaultConfig.EncryptTraffic
                     };
                 }
                 _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);

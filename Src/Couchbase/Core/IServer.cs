@@ -39,7 +39,7 @@ namespace Couchbase.Core
 
         IQueryResult<T> Send<T>(string query);
 
-        string GetBaseViewUri();
+        string GetBaseViewUri(string name);
 
         string GetBaseQueryUri();
     }

@@ -56,7 +56,7 @@ namespace Couchbase.Configuration
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
                     var saslMechanism = new PlainTextMechanism(bucketConfig.Name, bucketConfig.Password);//todo likely bug
                     var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
-                    var server = new Core.Server(ioStrategy, nodes[i]);//this should be a Func factory...a functory
+                    var server = new Core.Server(ioStrategy, nodes[i], _clientConfig);//this should be a Func factory...a functory
                     _servers.Add(server);
                 }
             }

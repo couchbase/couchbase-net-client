@@ -58,12 +58,11 @@ namespace Couchbase.IO.Strategies
             state.BytesReceived += bytesRead;
             state.Data.Write(state.Buffer, 0, bytesRead);
 
-            Log.Debug(m => m("Bytes read {0}", state.BytesReceived));
+            Log.Debug(m => m("Bytes read {0} using {1} on thread {2}", state.BytesReceived, Identity, Thread.CurrentThread.ManagedThreadId));
 
             if (state.Header.BodyLength == 0)
             {
                 CreateHeader(state);
-                Log.Debug(m => m("received key {0}", state.Header.Key));
             }
             if (state.BytesReceived > 0 && state.BytesReceived < state.Header.TotalLength)
             {

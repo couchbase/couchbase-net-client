@@ -234,7 +234,7 @@ namespace Couchbase.Core.Buckets
         public IViewQuery CreateQuery(bool development)
         {
             var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri();
+            var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, development);
         }
 
@@ -247,7 +247,7 @@ namespace Couchbase.Core.Buckets
         public IViewQuery CreateQuery(bool development, string designdoc)
         {
             var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri();
+            var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, designdoc, development);
         }
 
@@ -263,7 +263,7 @@ namespace Couchbase.Core.Buckets
         public IViewQuery CreateQuery(bool development, string designdoc, string viewname)
         {
             var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri();
+            var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, designdoc, viewname, development);
         }
 
