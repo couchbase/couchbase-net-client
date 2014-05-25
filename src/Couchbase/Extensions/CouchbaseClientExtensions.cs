@@ -120,7 +120,7 @@ namespace Couchbase.Extensions
 
         private static bool IsArrayOrCollection(Type type)
         {
-            return type.GetInterface(typeof (IEnumerable<>).FullName) != null;
+            return type.GetInterface(typeof (IEnumerable<>).FullName) != null || type.Name== typeof(IEnumerable<>).Name;
         }
 
         public static T GetJson<T>(this ICouchbaseClient client, string key) where T : class
