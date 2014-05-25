@@ -136,6 +136,29 @@ namespace Couchbase.Tests
 
             Assert.Fail("Id was not returned in view");
         }
+
+        [Test]
+        public void When_Type_Is_String_IsArrayOrCollection_Returns_True()
+        {
+            var value = "Hello World!";
+            var actual = CouchbaseClientExtensions.IsArrayOrCollection(value.GetType());
+            Assert.IsTrue(actual);
+        }
+
+        [Test]
+        public void When_Type_Is_IEnumerable_IsArrayOrCollection_Returns_True()
+        {
+            var actual = CouchbaseClientExtensions.IsArrayOrCollection(typeof(IEnumerable<string>));
+            Assert.IsTrue(actual);
+        }
+
+        [Test]
+        public void When_Type_Is_Object_IsArrayOrCollection_Returns_False()
+        {
+            var value = new object();
+            var actual = CouchbaseClientExtensions.IsArrayOrCollection(value.GetType());
+            Assert.IsFalse(actual);
+        }
     }
 
     internal class Thing
