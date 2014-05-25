@@ -31,10 +31,9 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_AuthFailure_With_InvalidCredentials()
         {
-            var operation = new SaslAuthenticate("PLAIN", "foo", "bar");
+            var operation = new SaslStart("PLAIN",  GetAuthData("foo", "bar"));
             var response = _ioStrategy.Execute(operation);
 
-            Console.WriteLine(response.Value);
             Assert.AreEqual("Auth failure", response.Message);
             Assert.AreEqual(ResponseStatus.AuthenticationError, response.Status);
             Assert.IsFalse(response.Success);
@@ -44,13 +43,35 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_Succuss_With_ValidCredentials()
         {
-            var operation = new SaslAuthenticate("PLAIN", "authenticated", "secret");
+            var operation = new SaslStart("PLAIN",  GetAuthData("authenticated", "secret"));
             var response = _ioStrategy.Execute(operation);
 
-            Console.WriteLine(response.Value);
             Assert.AreEqual("Authenticated", response.Value);
             Assert.AreEqual(ResponseStatus.Success, response.Status);             
             Assert.IsTrue(response.Success);
+        }
+
+        [Test]
+        public void When_CRAM_MD5_Used_SaslStart_Returns_AuthenticationContinue()
+        {
+            var operation = new SaslStart("CRAM-MD5", null);
+            var response = _ioStrategy.Execute(operation);
+
+            Assert.IsNotNullOrEmpty(response.Message);
+            Assert.AreEqual(ResponseStatus.AuthenticationContinue, response.Status);
+            Assert.IsFalse(response.Success);
+        }
+
+        static string GetAuthData(string userName, string passWord)
+        {
+            const string empty = "\0";
+            var sb = new StringBuilder();
+            sb.Append(userName);
+            sb.Append(empty);
+            sb.Append(userName);
+            sb.Append(empty);
+            sb.Append(passWord);
+            return sb.ToString();
         }
 
         [TestFixtureTearDown]

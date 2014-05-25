@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Authentication\BucketAuthenticationTests.cs" />
+    <Compile Include="Authentication\Sasl\CramMd5MechanismTests.cs" />
     <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
     <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />

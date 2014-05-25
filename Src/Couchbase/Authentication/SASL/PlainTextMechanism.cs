@@ -1,3 +1,4 @@
+using System.Text;
 using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
@@ -82,7 +83,7 @@ namespace Couchbase.Authentication.SASL
 
             try
             {
-                var operation = new SaslAuthenticate(MechanismType, username, password);
+                var operation = new SaslStart(MechanismType, GetAuthData(username, password));
                 var result = _strategy.Execute(operation, connection);
 
                 if (!result.Success &&
@@ -102,10 +103,22 @@ namespace Couchbase.Authentication.SASL
             }
             return authenticated;
         }
+
+        static string GetAuthData(string userName, string passWord)
+        {
+            const string empty = "\0";
+            var sb = new StringBuilder();
+            sb.Append(userName);
+            sb.Append(empty);
+            sb.Append(userName);
+            sb.Append(empty);
+            sb.Append(passWord);
+            return sb.ToString();
+        }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

@@ -1,21 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.IO.Operations.Authentication
 {
-    internal class SaslContinue : SaslAuthenticate
+    internal class SaslContinue : SaslStart
     {
-        public SaslContinue(string key, string userName, string passWord) 
-            : base(key, userName, passWord)
+        public SaslContinue(string key, string value) 
+            : base(key, value)
         {
+        }
+
+        public override OperationCode OperationCode
+        {
+            get { return OperationCode.SaslStep; }
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

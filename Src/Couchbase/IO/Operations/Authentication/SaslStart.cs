@@ -7,33 +7,16 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
 {
-    internal class SaslAuthenticate : OperationBase<string>
+    internal class SaslStart : OperationBase<string>
     {
-        private readonly string _userName;
-        private readonly string _passWord;
-
-        public SaslAuthenticate(string key, string userName, string passWord) 
-            : base(key, GetAuthData(userName, passWord), null)
+        public SaslStart(string key, string value) 
+            : base(key, value, null)
         {
-            _userName = userName;
-            _passWord = passWord;
         }
 
         public override OperationCode OperationCode
         {
             get { return OperationCode.SaslStart; }
-        }
-
-        static string GetAuthData(string userName, string passWord)
-        {
-            const string empty = "\0";
-            var sb = new StringBuilder();
-            sb.Append(userName);
-            sb.Append(empty);
-            sb.Append(userName);
-            sb.Append(empty);
-            sb.Append(passWord);
-            return sb.ToString();
         }
 
         public override ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)

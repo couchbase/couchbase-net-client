@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Core;
 using Couchbase.IO;
 

@@ -54,6 +54,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
@@ -142,7 +143,8 @@
     <Compile Include="IO\Operations\AddOperation.cs" />
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslAuthenticate.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />
     <Compile Include="IO\Strategies\EapConnection.cs" />
