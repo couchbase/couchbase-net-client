@@ -57,6 +57,7 @@
     <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
+    <Compile Include="Authentication\SASL\SaslFactory.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="CouchbaseCluster.cs" />
