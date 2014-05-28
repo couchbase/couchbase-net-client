@@ -9,6 +9,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
@@ -26,8 +27,8 @@ namespace Couchbase.Tests.Core
         public void TestFixtureSetup()
         {
             var configuration = new ClientConfiguration();
-            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
-            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new DefaultIOStrategy(connectionPool);
             _server = new Server(ioStrategy, new Node(), configuration);
         }
 
@@ -74,8 +75,8 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
-            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new Node(), configuration))
             {
                 var uri = server.GetBaseViewUri("default");
@@ -92,8 +93,8 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new DefaultConnectionPool(new PoolConfiguration(), Server.GetEndPoint(Address));
-            var ioStrategy = new SocketAsyncStrategy(connectionPool);
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new Node(), configuration))
             {
                 var uri = server.GetBaseViewUri("default");

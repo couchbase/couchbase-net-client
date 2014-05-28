@@ -24,6 +24,7 @@ namespace Couchbase.Configuration.Client
         private bool _bucketConfigurationsChanged;
         private bool _encryptTraffic;
         private bool _encryptTrafficChanged;
+        private SaslMechanismType _saslMechanismType;
 
         public ClientConfiguration()
         {
@@ -41,6 +42,13 @@ namespace Couchbase.Configuration.Client
             _bucketConfigurationsChanged = false;
             _serversChanged = false;
             _poolConfigurationChanged = false;
+            _saslMechanismType = SaslMechanismType.Plain;
+        }
+
+        public SaslMechanismType SaslMechanism
+        {
+            get { return _saslMechanismType; }
+            set { _saslMechanismType = value; }
         }
 
         /// <summary>

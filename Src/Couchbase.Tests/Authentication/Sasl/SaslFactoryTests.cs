@@ -25,7 +25,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void When_PlainText_Provided_Factory_Returns_PlainTextMechanism()
         {
             var factory = SaslFactory.GetFactory();
-            var mechanism = factory(null, "PLAIN");
+            var mechanism = factory("authenticated", "secret", "PLAIN");
             Assert.IsTrue(mechanism is PlainTextMechanism);
         }
 
@@ -33,7 +33,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void When_PlainText_Provided_Factory_Returns_CramMd5Mechanism()
         {
             var factory = SaslFactory.GetFactory();
-            var mechanism = factory(null, "CRAMMD5");
+            var mechanism = factory("authenticated", "secret", "CRAMMD5");
             Assert.IsTrue(mechanism is CramMd5Mechanism);
         }
     }

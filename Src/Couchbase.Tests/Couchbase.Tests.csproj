@@ -105,7 +105,9 @@
     <Compile Include="IO\Operations\GetOperationTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncStrategyTests.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncStrategyTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategyTests.cs" />

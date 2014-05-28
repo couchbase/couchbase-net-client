@@ -19,6 +19,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
+        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         private volatile bool _disposed;
@@ -30,11 +31,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
+            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
+            _saslFactory = saslFactory;
         }
 
         public IConfigInfo GetCached(string bucketName)
@@ -81,9 +84,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
             }
 
-            var saslMechanism = new PlainTextMechanism(bucketName, password);
-            var connectionPool = _connectionPoolFactory(bucketConfiguration.PoolConfiguration,
-                bucketConfiguration.GetEndPoint());
+            var saslMechanism = _saslFactory(bucketName, password, _clientConfig.SaslMechanism);
+            var connectionPool = _connectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
             var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
 
             IConfigInfo configInfo = null;
@@ -117,7 +119,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             ConfigContextBase configInfo = new CouchbaseConfigContext(bucketConfig,
                 _clientConfig,
                 _ioStrategyFactory,
-                _connectionPoolFactory);
+                _connectionPoolFactory, 
+                _saslFactory);
 
             return configInfo;
         }

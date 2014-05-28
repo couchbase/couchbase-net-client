@@ -141,6 +141,7 @@
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
+    <Compile Include="IO\IOStrategyFactory.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />
     <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
@@ -148,10 +149,15 @@
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="IO\Strategies\EapConnection.cs" />
     <Compile Include="IO\Strategies\EAP\EAPIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
@@ -174,7 +180,6 @@
     <Compile Include="IO\Operations\ConfigOperation.cs" />
     <Compile Include="IO\Operations\GetOperation.cs" />
     <Compile Include="IO\Operations\SetOperation.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
     <Compile Include="IO\Strategies\Blocking\BlockingIOStrategy.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />

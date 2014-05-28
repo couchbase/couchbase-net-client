@@ -23,6 +23,12 @@ namespace Couchbase.Authentication.SASL
             _ioStrategy = ioStrategy;
         }
 
+        public CramMd5Mechanism(string username, string password)
+        {
+            Username = username;
+            Password = password;
+        }
+
         public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password)
         {
             _ioStrategy = ioStrategy;
@@ -43,7 +49,7 @@ namespace Couchbase.Authentication.SASL
         {
             var authenticated = false;
             Username = username;
-            Password = password;
+            Password = password ?? string.Empty;
            
             var temp = connection;
             Log.Debug(m => m("Authenticating socket {0}", temp.Identity));

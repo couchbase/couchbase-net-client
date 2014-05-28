@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
@@ -24,9 +25,9 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
         [Test]

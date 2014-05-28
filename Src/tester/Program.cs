@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Wintellect;
@@ -32,14 +33,15 @@ namespace tester
                     MaxSize = 10,
                     MinSize = 1
                 },
-                EncryptTraffic = false
+                EncryptTraffic = false,
+                SaslMechanism = SaslMechanismType.CramMd5
             };
            
             CouchbaseCluster.Initialize(config);
             _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
-            int n = 100000;
+            int n = 1000;
 
             using (var timer = new OperationTimer())
             {
@@ -180,10 +182,10 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-                //var result = threadData.Bucket.Upsert(key, value);
-                //Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
+                var result = threadData.Bucket.Upsert(key, value);
+                Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
-                Console.WriteLine("Get {0} - {1} on thread {2}: {3}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value);
+                Console.WriteLine("Get {0} - {1} on thread {2}: {3} reason: {4}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value, result1.Message);
             }
 
             ThreadData.Processed += threadData.Keys;

@@ -75,10 +75,12 @@ namespace Couchbase.IO.Strategies
                 var result = _saslMechanism.Authenticate(connection);
                 if (result)
                 {
+                    Log.Debug(m => m("Authenticated {0} using {1}.", _saslMechanism.Username, _saslMechanism.GetType()));
                     connection.IsAuthenticated = true;
                 }
                 else
                 {
+                    Log.Debug(m => m("Could not authenticate {0} using {1}.", _saslMechanism.Username, _saslMechanism.GetType()));
                     throw new AuthenticationException(_saslMechanism.Username);
                 }
             }

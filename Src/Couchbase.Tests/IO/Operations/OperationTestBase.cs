@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
 
@@ -23,8 +24,8 @@ namespace Couchbase.Tests.IO.Operations
         {
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
         internal IVBucket GetVBucket()

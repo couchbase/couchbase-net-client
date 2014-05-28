@@ -2,6 +2,7 @@
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
 using System;
@@ -24,9 +25,9 @@ namespace Couchbase.Tests.IO.Operations
                 MinSize = 1,
                 MaxSize = 1
             };
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
 
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
         [Test]
@@ -42,7 +43,7 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_GetConfig_Non_Default_Bucket()
         {
             var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret");
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool, saslMechanism);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
 
             var response = _ioStrategy.Execute(new ConfigOperation());
 

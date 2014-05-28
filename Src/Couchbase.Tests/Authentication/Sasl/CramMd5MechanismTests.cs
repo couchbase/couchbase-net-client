@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
 
@@ -25,9 +26,9 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new SocketAsyncStrategy(_connectionPool);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
 
@@ -80,6 +81,32 @@ namespace Couchbase.Tests.Authentication.Sasl
             {
                 var isAuthenticated = authenticator.Authenticate(connection);
                 Assert.IsFalse(isAuthenticated);
+            }
+        }
+
+        [Test]
+        public void When_Bucket_Has_No_Password_And_Password_Is_Null_Authenticate_Succeeds()
+        {
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null);
+            _ioStrategy.ConnectionPool.Initialize();
+
+            foreach (var connection in _ioStrategy.ConnectionPool.Connections)
+            {
+                var isAuthenticated = authenticator.Authenticate(connection);
+                Assert.IsTrue(isAuthenticated);
+            }
+        }
+
+        [Test]
+        public void When_Bucket_Has_No_Password_Authenticate_Succeeds()
+        {
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty);
+            _ioStrategy.ConnectionPool.Initialize();
+
+            foreach (var connection in _ioStrategy.ConnectionPool.Connections)
+            {
+                var isAuthenticated = authenticator.Authenticate(connection);
+                Assert.IsTrue(isAuthenticated);
             }
         }
 

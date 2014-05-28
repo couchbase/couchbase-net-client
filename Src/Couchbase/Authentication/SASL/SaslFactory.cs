@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Common.Logging;
 using Couchbase.IO;
 
 namespace Couchbase.Authentication.SASL
 {
     internal static class SaslFactory
     {
-        public static Func<IOStrategy, string, ISaslMechanism> GetFactory()
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+
+        public static Func<string, string, string, ISaslMechanism> GetFactory()
         {
-            return (strategy, mechanism) =>
+            return (username, password, mechanism) =>
             {
                 ISaslMechanism saslMechanism;
                 SaslMechanismType mechanismType;
@@ -20,10 +23,10 @@ namespace Couchbase.Authentication.SASL
                     switch (mechanismType)
                     {
                         case SaslMechanismType.Plain:
-                            saslMechanism = new PlainTextMechanism(strategy);
+                            saslMechanism = new PlainTextMechanism(username, password);
                             break;
                         case SaslMechanismType.CramMd5:
-                            saslMechanism = new CramMd5Mechanism(strategy);
+                            saslMechanism = new CramMd5Mechanism(username, password);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
@@ -32,6 +35,27 @@ namespace Couchbase.Authentication.SASL
                 else
                 {
                     throw new NotSupportedException(mechanism);
+                }
+                return saslMechanism;
+            };
+        }
+
+        public static Func<string, string, SaslMechanismType, ISaslMechanism> GetFactory2()
+        {
+            return (username, password, mechanismType) =>
+            {
+                Log.Debug(m => m("Using {0} Sasl Mechanism for authentication.", mechanismType));
+                ISaslMechanism saslMechanism;
+                switch (mechanismType)
+                {
+                    case SaslMechanismType.Plain:
+                        saslMechanism = new PlainTextMechanism(username, password);
+                        break;
+                    case SaslMechanismType.CramMd5:
+                        saslMechanism = new CramMd5Mechanism(username, password);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
                 return saslMechanism;
             };

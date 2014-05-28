@@ -31,6 +31,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _observers = new ConcurrentDictionary<string, IConfigObserver>();
+        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
         private volatile bool _disposed;
 
@@ -41,11 +42,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
+            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
+            _saslFactory = saslFactory;
         }
 
         /// <summary>
@@ -247,13 +250,15 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     configInfo = new CouchbaseConfigContext(bucketConfig,
                         _clientConfig,
                         _ioStrategyFactory,
-                        _connectionPoolFactory);
+                        _connectionPoolFactory,
+                        _saslFactory);
                     break;
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
                         _clientConfig,
                         _ioStrategyFactory,
-                        _connectionPoolFactory);
+                        _connectionPoolFactory,
+                        _saslFactory);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

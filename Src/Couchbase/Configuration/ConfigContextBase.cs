@@ -29,22 +29,19 @@ namespace Couchbase.Configuration
         protected readonly List<IServer> _servers = new List<IServer>();
         protected Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
+        protected readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
         private bool _disposed;
-
-        protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig)
-            : this(bucketConfig, clientConfig, (pool, sm) => new SocketAsyncStrategy(pool, new PlainTextMechanism(bucketConfig.Name, string.Empty)),
-                (config, endpoint) => new DefaultConnectionPool(config, endpoint))
-        {
-        }
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
+            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
+            _saslFactory = saslFactory;
             LoadConfig(bucketConfig);
         }
 

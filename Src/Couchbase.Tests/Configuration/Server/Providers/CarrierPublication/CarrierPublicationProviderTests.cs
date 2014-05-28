@@ -12,6 +12,7 @@ using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
@@ -30,8 +31,9 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             var configuration = new ClientConfiguration();
             _provider = new CarrierPublicationProvider(
                 configuration, 
-                (pool, sasl) => new SocketAsyncStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)), 
-                (config, endpoint) => new DefaultConnectionPool(config, endpoint));
+                (pool, sasl) => new DefaultIOStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)),
+                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                SaslFactory.GetFactory2());
         }
 
         [Test]

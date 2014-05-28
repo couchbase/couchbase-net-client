@@ -27,24 +27,26 @@ namespace Couchbase.Core
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
+        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
             (pool, sm) => new DefaultIOStrategy(pool, sm),
-                (config, endpoint) =>
+            (config, endpoint) =>
+            {
+                IConnectionPool connectionPool = null;
+                if (config.EncryptTraffic)
                 {
-                    IConnectionPool connectionPool = null;
-                    if (config.EncryptTraffic)
-                    {
-                        connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
-                    }
-                    else
-                    {
-                        connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
-                    }
-                    return connectionPool;
-                })
+                    connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
+                }
+                else
+                {
+                    connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
+                }
+                return connectionPool;
+            },
+            SaslFactory.GetFactory2())
         {
         }
 
@@ -63,15 +65,16 @@ namespace Couchbase.Core
                     connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
                 }
                 return connectionPool;
-            })
+            }, SaslFactory.GetFactory2())
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
+            _saslFactory = saslFactory;
             Initialize();
         }
 
@@ -80,8 +83,8 @@ namespace Couchbase.Core
         //TODO possibly make providers instantiation configurable...maybe. perhaps.
         private void Initialize()
         {
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory));
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
         }
 
         public IConfigProvider GetProvider(string name)

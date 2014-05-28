@@ -16,7 +16,6 @@ namespace Couchbase.Tests.Core.Buckets
     public class MemcachedBucketTests
     {
         private ICouchbaseCluster _cluster;
-        private IBucket _bucket;
 
         [TestFixtureSetUp]
         public void SetUp()
@@ -28,16 +27,20 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_OpenBucket()
         {
-            _bucket = _cluster.OpenBucket("memcached");
-            Assert.IsNotNull(_bucket);
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                Assert.IsNotNull(bucket);
+            }
         }
 
         [Test]
         [ExpectedException(typeof(ConfigException))]
         public void Test_That_OpenBucket_Throws_ConfigException_If_Bucket_Does_Not_Exist()
         {
-            var bucket = _cluster.OpenBucket("doesnotexist");
-            Assert.IsNotNull(bucket);
+            using (var bucket = _cluster.OpenBucket("doesnotexist"))
+            {
+                Assert.IsNotNull(bucket);
+            } 
         }
 
         [Test]
@@ -47,15 +50,15 @@ namespace Couchbase.Tests.Core.Buckets
             const string key = "memkey1";
             const string value = "somedata";
 
-            _bucket = _cluster.OpenBucket("memcached");
-            var result = _bucket.Upsert(key, value);
-
-            Assert.IsTrue(result.Success);
-            Assert.AreEqual(ResponseStatus.Success, result.Status);
-            Assert.AreEqual(string.Empty, result.Message);
-            Assert.AreEqual(string.Empty, result.Value);
-            Assert.Greater(result.Cas, zero);
-            
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var result = bucket.Upsert(key, value);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+                Assert.AreEqual(string.Empty, result.Message);
+                Assert.AreEqual(string.Empty, result.Value);
+                Assert.Greater(result.Cas, zero);
+            }
         }
 
         [Test]
@@ -65,14 +68,16 @@ namespace Couchbase.Tests.Core.Buckets
             const string key = "memkey1";
             const string value = "somedata";
 
-            _bucket = _cluster.OpenBucket("memcached");
-            var result = _bucket.Get<string>(key);
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var result = bucket.Get<string>(key);
 
-            Assert.IsTrue(result.Success);
-            Assert.AreEqual(ResponseStatus.Success, result.Status);
-            Assert.AreEqual(string.Empty, result.Message);
-            Assert.AreEqual(value, result.Value);
-            Assert.Greater(result.Cas, zero);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+                Assert.AreEqual(string.Empty, result.Message);
+                Assert.AreEqual(value, result.Value);
+                Assert.Greater(result.Cas, zero);
+            }
         }
 
         [Test]
@@ -243,20 +248,6 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
                 var query = bucket.CreateQuery(true, "designdoc", "view");
-            }
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            if (_bucket == null)
-            {
-                //noop
-            }
-            else
-            {
-                _cluster.CloseBucket(_bucket);
-                _bucket = null;
             }
         }
 
