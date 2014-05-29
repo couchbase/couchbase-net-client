@@ -31,7 +31,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _observers = new ConcurrentDictionary<string, IConfigObserver>();
-        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
         private volatile bool _disposed;
 
@@ -43,7 +43,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
+            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
@@ -188,6 +188,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     CountdownEvent.Reset(1);
                 }
 
+                //TODO add timeout
                 CountdownEvent.Wait();
             }
             return true;//todo fix

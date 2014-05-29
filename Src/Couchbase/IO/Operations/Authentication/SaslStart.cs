@@ -3,12 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
 {
+    /// <summary>
+    /// Starts the SASL authentication process using a specified SASL mechanism type as a key.
+    /// </summary>
     internal class SaslStart : OperationBase<string>
     {
+        /// <summary>
+        /// Creates an instance of the <see cref="SaslStart"/>" object for starting the SASL authentication process.
+        /// </summary>
+        /// <param name="key">The SASL Mechanism to use: PLAIN or CRAM-MD5.</param>
+        /// <param name="value"></param>
         public SaslStart(string key, string value) 
             : base(key, value, null)
         {

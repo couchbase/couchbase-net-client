@@ -27,7 +27,7 @@ namespace Couchbase.Core
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
@@ -46,7 +46,7 @@ namespace Couchbase.Core
                 }
                 return connectionPool;
             },
-            SaslFactory.GetFactory2())
+            SaslFactory.GetFactory3())
         {
         }
 
@@ -65,11 +65,11 @@ namespace Couchbase.Core
                     connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
                 }
                 return connectionPool;
-            }, SaslFactory.GetFactory2())
+            }, SaslFactory.GetFactory3())
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;

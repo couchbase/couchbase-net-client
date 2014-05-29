@@ -46,7 +46,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             _cluster = CouchbaseCluster.Get();
         }
 
-        [Test]
+       // [Test]
         public void Test_That_A_NMV_Response_Will_Force_A_Config_Update()
         {
             //TODO this test needs to be rewritten along with fake/mock

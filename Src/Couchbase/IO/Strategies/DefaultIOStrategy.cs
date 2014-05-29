@@ -24,16 +24,15 @@ namespace Couchbase.IO.Strategies
         private ISaslMechanism _saslMechanism;
 
         public DefaultIOStrategy(IConnectionPool connectionPool)
-            : this(connectionPool,
-            new PlainTextMechanism("default", string.Empty))
         {
+            _connectionPool = connectionPool;
         }
 
         public DefaultIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
-            _saslMechanism.IOStrategy = this;
+            //_saslMechanism.IOStrategy = this;
         }
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)

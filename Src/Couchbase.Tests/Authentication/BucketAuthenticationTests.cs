@@ -1,4 +1,5 @@
-﻿using Couchbase.Configuration;
+﻿using System;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -38,6 +39,7 @@ namespace Couchbase.Tests.Authentication
         {
             CouchbaseCluster.Initialize(new ClientConfiguration
             {
+                Servers = new List<Uri> { new Uri("http://192.168.56.102:8091") },
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {

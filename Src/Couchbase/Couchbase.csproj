@@ -143,8 +143,7 @@
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\IOStrategyFactory.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslContinue.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslListMechanism.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />

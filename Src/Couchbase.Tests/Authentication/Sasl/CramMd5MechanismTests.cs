@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
@@ -28,7 +29,7 @@ namespace Couchbase.Tests.Authentication.Sasl
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioStrategy = new DefaultIOStrategy(_connectionPool, null);
         }
 
 
@@ -37,6 +38,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy);
             _ioStrategy.ConnectionPool.Initialize();
+            _ioStrategy.SaslMechanism = authenticator;
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
             {
@@ -50,6 +52,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy);
             _ioStrategy.ConnectionPool.Initialize();
+            _ioStrategy.SaslMechanism = authenticator;
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
             {
@@ -63,6 +66,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secret");
             _ioStrategy.ConnectionPool.Initialize();
+            _ioStrategy.SaslMechanism = authenticator;
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
             {
@@ -76,6 +80,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "wrongpass");
             _ioStrategy.ConnectionPool.Initialize();
+            _ioStrategy.SaslMechanism = authenticator;
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
             {
@@ -89,6 +94,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null);
             _ioStrategy.ConnectionPool.Initialize();
+            _ioStrategy.SaslMechanism = authenticator;
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
             {

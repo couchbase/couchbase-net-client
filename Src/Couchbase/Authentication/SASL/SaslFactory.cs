@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.IO;
+using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL
 {
+    /// <summary>
+    /// Creates an ISaslMechanism to use for authenticating Couchbase Clients.
+    /// </summary>
     internal static class SaslFactory
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
@@ -40,6 +45,10 @@ namespace Couchbase.Authentication.SASL
             };
         }
 
+        /// <summary>
+        /// Gets a factory for creating an ISaslMechanism.
+        /// </summary>
+        /// <returns>An ISaslMechanism for authenticating connectivity to a Couchbase Bucket.</returns>
         public static Func<string, string, SaslMechanismType, ISaslMechanism> GetFactory2()
         {
             return (username, password, mechanismType) =>
@@ -56,6 +65,39 @@ namespace Couchbase.Authentication.SASL
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
+                }
+                return saslMechanism;
+            };
+        }
+        
+        public static Func<string, string, IOStrategy, ISaslMechanism> GetFactory3()
+        {
+            return (username, password, strategy) =>
+            {
+                ISaslMechanism saslMechanism = null;
+                var connection = strategy.ConnectionPool.Acquire();
+                try
+                {
+                    var saslListResult = strategy.Execute(new SaslList(), connection);
+                    if (saslListResult.Success)
+                    {
+                        if (saslListResult.Value.Contains("CRAM-MD5"))
+                        {
+                            saslMechanism = new CramMd5Mechanism(strategy ,username, password);
+                        }
+                        else
+                        {
+                            saslMechanism = new PlainTextMechanism(strategy, username, password);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                if (saslMechanism != null)
+                {
+                    saslMechanism.IOStrategy = strategy;
                 }
                 return saslMechanism;
             };

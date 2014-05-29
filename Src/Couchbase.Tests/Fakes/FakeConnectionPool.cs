@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System.Linq;
+using Couchbase.Core;
 using Couchbase.IO;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ namespace Couchbase.Tests.Fakes
 {
     internal class FakeConnectionPool : IConnectionPool
     {
-        private IEnumerable<IConnection> _connections = new List<IConnection>();
+        private readonly List<IConnection> _connections = new List<IConnection>();
 
         public FakeConnectionPool()
         {
@@ -16,12 +17,16 @@ namespace Couchbase.Tests.Fakes
 
         public IConnection Acquire()
         {
-            throw new NotImplementedException();
+            if (!_connections.Any())
+            {
+                _connections.Add(new FakeConnection());
+            }
+            return _connections.First();
         }
 
         public void Release(IConnection connection)
         {
-            throw new NotImplementedException();
+            
         }
 
         public int Count()

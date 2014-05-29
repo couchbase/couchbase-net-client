@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -15,6 +16,7 @@ namespace Couchbase.Tests.IO.Strategies
     {
         private K _operation;
         private IConnectionPool _connectionPool = new FakeConnectionPool();
+        private ISaslMechanism _mechanism;
 
         public FakeIOStrategy(K operation)
         {
@@ -59,7 +61,7 @@ namespace Couchbase.Tests.IO.Strategies
 
         public Couchbase.Authentication.SASL.ISaslMechanism SaslMechanism
         {
-            set { throw new NotImplementedException(); }
+            set { _mechanism = value; }
         }
     }
 }

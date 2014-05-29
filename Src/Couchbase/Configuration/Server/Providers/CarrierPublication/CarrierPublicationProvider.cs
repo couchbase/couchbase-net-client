@@ -1,9 +1,11 @@
-﻿using Common.Logging;
+﻿using System.Dynamic;
+using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies.Async;
 using System;
 using System.Collections.Concurrent;
@@ -19,7 +21,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, SaslMechanismType, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         private volatile bool _disposed;
@@ -32,7 +34,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory)
+            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
@@ -84,9 +86,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
             }
 
-            var saslMechanism = _saslFactory(bucketName, password, _clientConfig.SaslMechanism);
             var connectionPool = _connectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
-            var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
+            var ioStrategy = _ioStrategyFactory(connectionPool, null);
+            var saslMechanism = _saslFactory(bucketName, password, ioStrategy);
+            ioStrategy.SaslMechanism = saslMechanism;
 
             IConfigInfo configInfo = null;
             var operationResult = ioStrategy.Execute(new ConfigOperation());
@@ -105,7 +108,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                 }
             }
-
             return configInfo;
         }
 

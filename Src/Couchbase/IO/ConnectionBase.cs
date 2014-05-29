@@ -80,11 +80,15 @@ namespace Couchbase.IO
         protected static void CreateBody(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
-            state.Body = new OperationBody
+            if (buffer.Length > 0)
             {
-                Extras = new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
-                Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
-            };
+                state.Body = new OperationBody
+                {
+                    Extras =
+                        new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
+                    Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
+                };
+            }
         }
 
         public abstract void Dispose();

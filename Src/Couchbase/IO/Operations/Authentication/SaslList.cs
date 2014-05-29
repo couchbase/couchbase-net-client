@@ -7,7 +7,10 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
 {
-    internal sealed class SaslListMechanism : OperationBase<string>
+    /// <summary>
+    /// Gets the supported SASL Mechanisms supported by the Couchbase Server.
+    /// </summary>
+    internal sealed class SaslList : OperationBase<string>
     {
         public override OperationCode OperationCode
         {

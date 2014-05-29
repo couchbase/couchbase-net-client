@@ -31,9 +31,9 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             var configuration = new ClientConfiguration();
             _provider = new CarrierPublicationProvider(
                 configuration, 
-                (pool, sasl) => new DefaultIOStrategy(pool, new PlainTextMechanism(BucketName, string.Empty)),
+                (pool, sasl) => new DefaultIOStrategy(pool, null /*new PlainTextMechanism(BucketName, string.Empty)*/),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
-                SaslFactory.GetFactory2());
+                SaslFactory.GetFactory3());
         }
 
         [Test]

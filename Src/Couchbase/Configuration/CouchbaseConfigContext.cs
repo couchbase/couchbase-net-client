@@ -28,7 +28,7 @@ namespace Couchbase.Configuration
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory) 
+            Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
         {
         }
@@ -50,8 +50,9 @@ namespace Couchbase.Configuration
                     var ip = bucketConfig.VBucketServerMap.ServerList[i];
                     var endpoint = GetEndPoint(ip, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
-                    var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, _clientConfig.SaslMechanism);
-                    var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
+                    //var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, _clientConfig.SaslMechanism);
+                    var ioStrategy = _ioStrategyFactory(connectionPool, /*saslMechanism*/null);
+                    var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy);
                     var server = new Core.Server(ioStrategy, nodes[i], _clientConfig);//this should be a Func factory...a functory
                     _servers.Add(server);
                 }

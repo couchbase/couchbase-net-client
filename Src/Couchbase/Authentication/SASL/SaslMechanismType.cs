@@ -6,8 +6,14 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     public enum SaslMechanismType
     {
+        /// <summary>
+        /// The username and password will be sent using human-readable plain text.
+        /// </summary>
         Plain,
 
+        /// <summary>
+        /// The username and password will be sent encrypted and will not be human-readable on the wire.
+        /// </summary>
         CramMd5
     }
 }

@@ -7,7 +7,7 @@ using System;
 namespace Couchbase.Authentication.SASL
 {
     /// <summary>
-    /// A PLAIN text implementation of <see cref="ISaslMechanism"/> for authening connections to Couchbase Buckets. 
+    /// A PLAIN text implementation of <see cref="ISaslMechanism"/> for authenticating connections to Couchbase Buckets. 
     /// </summary>
     internal sealed class PlainTextMechanism : ISaslMechanism
     {
@@ -51,7 +51,7 @@ namespace Couchbase.Authentication.SASL
         public string Password { get; private set; }
 
         /// <summary>
-        /// The type of SASL mechanism to use: PLAIN or CRAM MD5.
+        /// The type of SASL mechanism to use: will always be PLAIN.
         /// </summary>
         public string MechanismType
         {

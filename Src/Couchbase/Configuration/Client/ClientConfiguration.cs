@@ -24,7 +24,6 @@ namespace Couchbase.Configuration.Client
         private bool _bucketConfigurationsChanged;
         private bool _encryptTraffic;
         private bool _encryptTrafficChanged;
-        private SaslMechanismType _saslMechanismType;
 
         public ClientConfiguration()
         {
@@ -42,13 +41,6 @@ namespace Couchbase.Configuration.Client
             _bucketConfigurationsChanged = false;
             _serversChanged = false;
             _poolConfigurationChanged = false;
-            _saslMechanismType = SaslMechanismType.Plain;
-        }
-
-        public SaslMechanismType SaslMechanism
-        {
-            get { return _saslMechanismType; }
-            set { _saslMechanismType = value; }
         }
 
         /// <summary>
@@ -105,6 +97,19 @@ namespace Couchbase.Configuration.Client
 
         internal void Initialize()
         {
+            if (_serversChanged)
+            {
+                for(var i=0; i<_servers.Count(); i++)
+                {
+                    if (_servers[i].OriginalString.Contains("/pools")) { /*noop*/ }
+                    else
+                    {
+                        var newUri = _servers[i].ToString();
+                        newUri = string.Concat(newUri, "/pools");
+                        _servers[i] = new Uri(newUri);
+                    }
+                }
+            }
             foreach (var keyValue in BucketConfigs)
             {
                 var bucketConfiguration = keyValue.Value;

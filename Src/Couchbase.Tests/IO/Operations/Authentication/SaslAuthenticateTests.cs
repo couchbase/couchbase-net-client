@@ -76,22 +76,6 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             return sb.ToString();
         }
 
-        [Test]
-        public void Test_Configure_Client_With_CramMd5()
-        {
-            var configuration = new ClientConfiguration
-            {
-                SaslMechanism = SaslMechanismType.CramMd5
-            };
-
-            CouchbaseCluster.Initialize(configuration);
-            var cluster = CouchbaseCluster.Get();
-            using (var bucket = cluster.OpenBucket())
-            {
-                
-            }
-        }
-
         [TestFixtureTearDown]
         public void TearDown()
         {

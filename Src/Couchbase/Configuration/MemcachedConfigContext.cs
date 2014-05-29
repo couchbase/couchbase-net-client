@@ -22,8 +22,8 @@ namespace Couchbase.Configuration
 
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, 
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
-            Func<string, string, SaslMechanismType, ISaslMechanism> saslFactory) 
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
+            Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
         {
         }
@@ -59,9 +59,10 @@ namespace Couchbase.Configuration
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
                     var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
-                    var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password,_clientConfig.SaslMechanism);
-                    var ioStrategy = _ioStrategyFactory(connectionPool, saslMechanism);
+                    //var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password,_clientConfig.SaslMechanism);
+                    var ioStrategy = _ioStrategyFactory(connectionPool, /*saslMechanism*/ null);
                     var server = new Core.Server(ioStrategy, node, _clientConfig);
+                    var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy);
            
                     _servers.Add(server); //todo make atomic
                     _keyMapper = new KetamaKeyMapper(_servers);//todo make atomic

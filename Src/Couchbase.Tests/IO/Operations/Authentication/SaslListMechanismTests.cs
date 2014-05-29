@@ -32,7 +32,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslListMechanism()
         {
-            var response = _ioStrategy.Execute(new SaslListMechanism());
+            var response = _ioStrategy.Execute(new SaslList());
             Assert.IsNotNullOrEmpty(response.Value);
             Console.WriteLine(response.Value);
             Assert.IsTrue(response.Success);

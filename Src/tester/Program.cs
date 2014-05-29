@@ -30,18 +30,17 @@ namespace tester
                 },
                 PoolConfiguration = new PoolConfiguration
                 {
-                    MaxSize = 10,
+                    MaxSize = 2,
                     MinSize = 1
                 },
-                EncryptTraffic = false,
-                SaslMechanism = SaslMechanismType.CramMd5
+                EncryptTraffic = false
             };
            
             CouchbaseCluster.Initialize(config);
             _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
-            int n = 1000;
+            int n = 100000;
 
             using (var timer = new OperationTimer())
             {
@@ -182,8 +181,8 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-                var result = threadData.Bucket.Upsert(key, value);
-                Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
+              /*  var result = threadData.Bucket.Upsert(key, value);
+                Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);*/
                 var result1 = threadData.Bucket.Get<string>(key);
                 Console.WriteLine("Get {0} - {1} on thread {2}: {3} reason: {4}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value, result1.Message);
             }
