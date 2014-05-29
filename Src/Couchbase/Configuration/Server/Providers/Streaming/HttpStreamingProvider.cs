@@ -19,51 +19,20 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// <summary>
     /// A comet style streaming HTTP connection provider for Couchbase configurations.
     /// </summary>
-    internal sealed class HttpStreamingProvider : IConfigProvider
+    internal sealed class HttpStreamingProvider : ConfigProviderBase
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private IServerConfig _serverConfig;
-        private readonly ClientConfiguration _clientConfig;
-
-        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
-        private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
-        private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigObserver> _observers = new ConcurrentDictionary<string, IConfigObserver>();
-        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
         private volatile bool _disposed;
-
-        public HttpStreamingProvider(ClientConfiguration clientConfig)
-        {
-            _clientConfig = clientConfig;
-        }
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
         {
-            _clientConfig = clientConfig;
-            _ioStrategyFactory = ioStrategyFactory;
-            _connectionPoolFactory = connectionPoolFactory;
-            _saslFactory = saslFactory;
-        }
-
-        /// <summary>
-        /// Gets the currently cached (and used) configuration.
-        /// </summary>
-        /// <param name="bucketName">The name of the Couchbase Bucket used to lookup the <see cref="IConfigInfo"/> object.</param>
-        /// <returns></returns>
-        public IConfigInfo GetCached(string bucketName)
-        {
-            IConfigInfo configInfo;
-            if (!_configs.TryGetValue(bucketName, out configInfo))
-            {
-                throw new ConfigNotFoundException(bucketName);
-            }
-            return configInfo;
         }
 
         /// <summary>
@@ -72,40 +41,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketName">The name of the Couchbase Bucket.</param>
         /// <param name="password">The SASL password used to connect to the Bucket.</param>
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
-        public IConfigInfo GetConfig(string bucketName, string password)
+        public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            BucketConfiguration bucketConfiguration = null;
-            if (_clientConfig.BucketConfigs.ContainsKey(bucketName))
-            {
-                bucketConfiguration = _clientConfig.BucketConfigs[bucketName];
-            }
-            if (bucketConfiguration == null)
-            {
-                var defaultBucket = _clientConfig.BucketConfigs.FirstOrDefault();
-                if (defaultBucket.Value == null)
-                {
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName
-                    };
-                }
-                else
-                {
-                    var defaultConfig = defaultBucket.Value;
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName,
-                        PoolConfiguration = defaultConfig.PoolConfiguration,
-                        Servers = defaultConfig.Servers,
-                        Port = defaultConfig.Port,
-                        Username = defaultConfig.Username,
-                        Password = defaultConfig.Password,
-                        EncryptTraffic = defaultConfig.EncryptTraffic
-                    };
-                }
-                _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
-            }
-
+            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
             StartProvider(bucketName, password);
             var bucketConfig = GetBucketConfig(bucketName, password);
 
@@ -120,7 +58,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     IBucketConfig newConfig;
-                    var uri = bucketConfig.GetTerseUri(node, _clientConfig.BucketConfigs[bucketName].EncryptTraffic);
+                    var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.EncryptTraffic);
                     using (var webClient = new AuthenticatingWebClient(bucketName, password))
                     {
                         var body = webClient.DownloadString(uri);
@@ -128,7 +66,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     }
 
                     configInfo = CreateConfigInfo(newConfig);
-                    _configs[bucketName] = configInfo;
+                    Configs[bucketName] = configInfo;
                     break;
 
                 }
@@ -150,22 +88,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         }
 
         /// <summary>
-        /// Starts the HTTP streaming connection to the Couchbase Server and gets the latest configuration for a non-SASL authenticated Bucket.
-        /// </summary>
-        /// <param name="bucketName">The name of the Couchbase Bucket.</param>
-        /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
-        public IConfigInfo GetConfig(string bucketName)
-        {
-            return GetConfig(bucketName, string.Empty);
-        }
-
-        /// <summary>
         /// Registers an <see cref="IConfigObserver"/> object, which is notified when a configuration changes.
         /// </summary>
         /// <param name="observer">The <see cref="IConfigObserver"/> that will be notified when a configuration 
         /// update occurs. These are Memcached and Couchbase Buckets.</param>
         /// <returns>True if the observer was registered without failure.</returns>
-        public bool RegisterObserver(IConfigObserver observer)
+        public override bool RegisterObserver(IConfigObserver observer)
         {
             var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
             if (bucketConfig == null)
@@ -179,7 +107,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler, cancellationTokenSource.Token);
             var thread = new Thread(configThreadState.ListenForConfigChanges);
             
-            if (_threads.TryAdd(observer.Name, thread) && _observers.TryAdd(observer.Name, observer))
+            if (_threads.TryAdd(observer.Name, thread) && ConfigObservers.TryAdd(observer.Name, observer))
             {
                 _threads[observer.Name].Start();
                 
@@ -200,12 +128,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketConfig"></param>
         private void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
-            var configObserver = _observers[bucketConfig.Name];
+            var configObserver = ConfigObservers[bucketConfig.Name];
 
             IConfigInfo configInfo;
-            if (_configs.ContainsKey(bucketConfig.Name))
+            if (Configs.ContainsKey(bucketConfig.Name))
             {
-                configInfo = _configs[bucketConfig.Name];
+                configInfo = Configs[bucketConfig.Name];
                 if (configInfo.BucketConfig.Equals(bucketConfig))
                 {
                     SignalCountdownEvent();
@@ -216,7 +144,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             else
             {
                 configInfo = CreateConfigInfo(bucketConfig);
-                _configs.TryAdd(bucketConfig.Name, configInfo);
+                Configs.TryAdd(bucketConfig.Name, configInfo);
             }
             try
             {
@@ -249,17 +177,17 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 case NodeLocatorEnum.VBucket:
                     configInfo = new CouchbaseConfigContext(bucketConfig,
-                        _clientConfig,
-                        _ioStrategyFactory,
-                        _connectionPoolFactory,
-                        _saslFactory);
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory);
                     break;
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
-                        _clientConfig,
-                        _ioStrategyFactory,
-                        _connectionPoolFactory,
-                        _saslFactory);
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -274,7 +202,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="password"></param>
         void StartProvider(string username, string password)
         {
-            _serverConfig = new HttpServerConfig(_clientConfig, username, password);
+            _serverConfig = new HttpServerConfig(ClientConfig, username, password);
             _serverConfig.Initialize();
             Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
         }
@@ -299,7 +227,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// Un-registers an observer, which is either a Couchbase or Memcached Bucket, from the Provider.
         /// </summary>
         /// <param name="observer"></param>
-        public void UnRegisterObserver(IConfigObserver observer)
+        public override void UnRegisterObserver(IConfigObserver observer)
         {
             Thread thread;
             if (_threads.TryRemove(observer.Name, out thread))
@@ -313,30 +241,20 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
 
                 IConfigObserver temp;
-                if (_observers.TryRemove(observer.Name, out temp))
+                if (ConfigObservers.TryRemove(observer.Name, out temp))
                 {
                     Log.Info(m=>m("Removing observer for {0}", observer.Name));
                 }
 
                 IConfigInfo configInfo = null;
-                if (_configs.TryRemove(observer.Name, out configInfo))
+                if (Configs.TryRemove(observer.Name, out configInfo))
                 {
                     Log.Info(m=>m("Removing config for {0}", observer.Name));
                 }
             }
         }
 
-        /// <summary>
-        /// Checks to see if an observer has been registered.
-        /// </summary>
-        /// <param name="observer"></param>
-        /// <returns></returns>
-        public bool ObserverExists(IConfigObserver observer)
-        {
-            return _observers.ContainsKey(observer.Name);
-        }
-
-        public void Dispose()
+        public override void Dispose()
         {
             Dispose(true);
         }
@@ -347,11 +265,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 GC.SuppressFinalize(this);
             }
-            foreach (var configObserver in _observers)
+            foreach (var configObserver in ConfigObservers)
             {
                 UnRegisterObserver(configObserver.Value);
             }
-            _observers.Clear();
+            ConfigObservers.Clear();
             _threads.Clear();
             _disposed = true;
         }

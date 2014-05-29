@@ -15,80 +15,22 @@ using Couchbase.Views;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
-    internal sealed class CarrierPublicationProvider : IConfigProvider
+    internal sealed class CarrierPublicationProvider : ConfigProviderBase
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly ClientConfiguration _clientConfig;
-        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
-        private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
-        private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
-        private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
-        private volatile bool _disposed;
-
-        public CarrierPublicationProvider(ClientConfiguration clientConfig)
-        {
-            _clientConfig = clientConfig;
-        }
-
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+            Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
+            : base(clientConfig,ioStrategyFactory, connectionPoolFactory, saslFactory)
         {
-            _clientConfig = clientConfig;
-            _ioStrategyFactory = ioStrategyFactory;
-            _connectionPoolFactory = connectionPoolFactory;
-            _saslFactory = saslFactory;
         }
 
-        public IConfigInfo GetCached(string bucketName)
+        public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            IConfigInfo configInfo;
-            if (!_configs.TryGetValue(bucketName, out configInfo))
-            {
-                throw new ConfigNotFoundException(bucketName);
-            }
-            return configInfo;
-        }
-
-        public IConfigInfo GetConfig(string bucketName, string password)
-        {
-            BucketConfiguration bucketConfiguration = null;
-            if (_clientConfig.BucketConfigs.ContainsKey(bucketName))
-            {
-                bucketConfiguration = _clientConfig.BucketConfigs[bucketName];
-            }
-            if (bucketConfiguration == null)
-            {
-                var defaultBucket = _clientConfig.BucketConfigs.FirstOrDefault();
-                if (defaultBucket.Value == null)
-                {
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName
-                    };
-                }
-                else
-                {
-                    var defaultConfig = defaultBucket.Value;
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName,
-                        PoolConfiguration = defaultConfig.PoolConfiguration,
-                        Servers = defaultConfig.Servers,
-                        Port = defaultConfig.Port,
-                        Username = defaultConfig.Username,
-                        Password = defaultConfig.Password,
-                        EncryptTraffic = defaultConfig.EncryptTraffic
-                    };
-                }
-                _clientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
-            }
-
-            var connectionPool = _connectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
-            var ioStrategy = _ioStrategyFactory(connectionPool, null);
-            var saslMechanism = _saslFactory(bucketName, password, ioStrategy);
+            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+            var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
+            var ioStrategy = IOStrategyFactory(connectionPool, null);
+            var saslMechanism = SaslFactory(bucketName, password, ioStrategy);
             ioStrategy.SaslMechanism = saslMechanism;
 
             IConfigInfo configInfo = null;
@@ -99,7 +41,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
 
                 configInfo = GetConfig(bucketConfig);
-                _configs[bucketName] = configInfo;
+                Configs[bucketName] = configInfo;
             }
             else
             {
@@ -111,37 +53,32 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return configInfo;
         }
 
-        public IConfigInfo GetConfig(string bucketName)
-        {
-            return GetConfig(bucketName, string.Empty);
-        }
-
         private IConfigInfo GetConfig(IBucketConfig bucketConfig)
         {
             ConfigContextBase configInfo = new CouchbaseConfigContext(bucketConfig,
-                _clientConfig,
-                _ioStrategyFactory,
-                _connectionPoolFactory, 
-                _saslFactory);
+                ClientConfig,
+                IOStrategyFactory,
+                ConnectionPoolFactory, 
+                SaslFactory);
 
             return configInfo;
         }
 
-        public bool RegisterObserver(IConfigObserver observer)
+        public override bool RegisterObserver(IConfigObserver observer)
         {
-            return _configObservers.TryAdd(observer.Name, observer);
+            return ConfigObservers.TryAdd(observer.Name, observer);
         }
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
             IConfigObserver configObserver;
-            if (!_configObservers.TryGetValue(bucketConfig.Name, out configObserver))
+            if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
                 throw new ConfigObserverNotFoundException(bucketConfig.Name);
             }
 
             IConfigInfo oldConfigInfo;
-            if (!_configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
+            if (!Configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
             {
                 throw new ConfigNotFoundException(bucketConfig.Name);
             }
@@ -150,28 +87,23 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             if (bucketConfig.Rev > oldBucketConfig.Rev)
             {
                 var configInfo = GetConfig(bucketConfig);
-                if (_configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+                if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
                 {
                     configObserver.NotifyConfigChanged(configInfo);
                 }
             }
         }
 
-        public bool ObserverExists(IConfigObserver observer)
-        {
-            return _configObservers.ContainsKey(observer.Name);
-        }
-
-        public void UnRegisterObserver(IConfigObserver observer)
+        public override void UnRegisterObserver(IConfigObserver observer)
         {
             IConfigObserver observerToRemove;
-            if (_configObservers.TryRemove(observer.Name, out observerToRemove))
+            if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
             {
                 var temp = observerToRemove;
                 Log.Info(m => m("Unregistering observer {0}", temp.Name));
 
                 IConfigInfo configInfo;
-                if (_configs.TryRemove(observer.Name, out configInfo))
+                if (Configs.TryRemove(observer.Name, out configInfo))
                 {
                     Log.Info(m => m("Removing config for observer {0}", observer.Name));
                 }
@@ -187,23 +119,23 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             Dispose(true);
         }
 
         public void Dispose(bool disposing)
         {
-            if (!_disposed && disposing)
+            if (!Disposed && disposing)
             {
                 GC.SuppressFinalize(this);
             }
-            foreach (var configObserver in _configObservers)
+            foreach (var configObserver in ConfigObservers)
             {
                 UnRegisterObserver(configObserver.Value);
             }
-            _configObservers.Clear();
-            _disposed = true;
+            ConfigObservers.Clear();
+            Disposed = true;
         }
 
         ~CarrierPublicationProvider()
