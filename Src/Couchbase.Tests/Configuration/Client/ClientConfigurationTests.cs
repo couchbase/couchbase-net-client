@@ -126,7 +126,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_EncryptTraffic()
         {
-            var config = new ClientConfiguration {EncryptTraffic = true};
+            var config = new ClientConfiguration {UseSsl = true};
             config.Initialize();
 
             var bucket = config.BucketConfigs.First().Value;

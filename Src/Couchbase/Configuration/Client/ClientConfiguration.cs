@@ -22,8 +22,8 @@ namespace Couchbase.Configuration.Client
         private bool _serversChanged;
         private Dictionary<string, BucketConfiguration> _bucketConfigurations;
         private bool _bucketConfigurationsChanged;
-        private bool _encryptTraffic;
-        private bool _encryptTrafficChanged;
+        private bool _useSsl;
+        private bool _useSslChanged;
 
         public ClientConfiguration()
         {
@@ -46,13 +46,13 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
         /// </summary>
-        public bool EncryptTraffic
+        public bool UseSsl
         {
-            get { return _encryptTraffic; }
+            get { return _useSsl; }
             set
             {
-                _encryptTraffic = value;
-                _encryptTrafficChanged = true;
+                _useSsl = value;
+                _useSslChanged = true;
             }
         }
 
@@ -133,11 +133,11 @@ namespace Couchbase.Configuration.Client
                 {
                     bucketConfiguration.Servers.AddRange(Servers.Select(x=>x.Host).ToList());
                 }
-                if (_encryptTrafficChanged)
+                if (_useSslChanged)
                 {
                     for (var i = 0; i< _servers.Count(); i++)
                     {
-                        if (EncryptTraffic)
+                        if (UseSsl)
                         {
                             if (_servers[i].Port == (int)DefaultPorts.MgmtApi)
                             {
@@ -148,9 +148,9 @@ namespace Couchbase.Configuration.Client
                             }
                             foreach (var bucketConfig in BucketConfigs.Values)
                             {
-                                bucketConfig.EncryptTraffic = EncryptTraffic;
+                                bucketConfig.EncryptTraffic = UseSsl;
                                 bucketConfig.Port = (int)DefaultPorts.SslDirect;
-                                bucketConfig.PoolConfiguration.EncryptTraffic = EncryptTraffic;
+                                bucketConfig.PoolConfiguration.EncryptTraffic = UseSsl;
                             }
                         }
                     }

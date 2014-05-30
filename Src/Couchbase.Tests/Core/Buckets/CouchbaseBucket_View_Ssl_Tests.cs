@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Core.Buckets
             var config = new ClientConfiguration
             {
                 Servers = new List<Uri>{ new Uri("http://127.0.0.1:8091/pools")},
-                EncryptTraffic = true
+                UseSsl = true
             };
             CouchbaseCluster.Initialize(config);
             _cluster = CouchbaseCluster.Get();

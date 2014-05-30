@@ -71,7 +71,7 @@ namespace Couchbase.Tests.Core
         {
             var configuration = new ClientConfiguration
             {
-                EncryptTraffic = true
+                UseSsl = true
             };
             configuration.Initialize();
 
@@ -89,7 +89,7 @@ namespace Couchbase.Tests.Core
         {
             var configuration = new ClientConfiguration
             {
-                EncryptTraffic = false
+                UseSsl = false
             };
             configuration.Initialize();
 

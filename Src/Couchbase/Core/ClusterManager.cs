@@ -83,7 +83,7 @@ namespace Couchbase.Core
         //TODO possibly make providers instantiation configurable...maybe. perhaps.
         private void Initialize()
         {
-            //_configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
             _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
         }
 

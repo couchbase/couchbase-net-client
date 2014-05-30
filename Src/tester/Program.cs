@@ -33,7 +33,7 @@ namespace tester
                     MaxSize = 2,
                     MinSize = 1
                 },
-                EncryptTraffic = false
+                UseSsl = false
             };
            
             CouchbaseCluster.Initialize(config);

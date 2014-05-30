@@ -76,7 +76,7 @@ namespace Couchbase.Tests.Authentication.SSL
         {
             var config = new ClientConfiguration 
             {
-                EncryptTraffic = true, 
+                UseSsl = true, 
                 Servers = new List<Uri>
             {
                 new Uri("http://127.0.0.1:8091/pools")
