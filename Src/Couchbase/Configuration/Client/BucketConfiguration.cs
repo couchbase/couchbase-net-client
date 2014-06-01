@@ -31,7 +31,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
         /// </summary>
-        public bool EncryptTraffic { get; set; }
+        public bool UseSsl { get; set; }
 
         /// <summary>
         /// A list of IP's to bootstrap off of.
@@ -84,7 +84,7 @@ namespace Couchbase.Configuration.Client
 
             //this needs to be configurable perhaps,
             //because you can only use the default SslPort for now...
-            var port = EncryptTraffic ? SslPort : Port;
+            var port = UseSsl ? SslPort : Port;
             return new IPEndPoint(ipAddress, port);
         } 
     }

@@ -35,7 +35,7 @@ namespace Couchbase.Configuration
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

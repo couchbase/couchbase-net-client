@@ -72,7 +72,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
         /// </summary>
-        public bool EncryptTraffic { get; set; }
+        public bool UseSsl { get; set; }
     }
 }
 

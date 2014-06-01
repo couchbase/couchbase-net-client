@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client.Providers;
+using Couchbase.Core;
+using Couchbase.IO;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Client
@@ -46,7 +49,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_UseSsl_Is_True_In_AppConfig_UseSsl_Returns_True()
         {
-            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_1");
             Assert.IsTrue(section.UseSsl);
         }
 
@@ -77,6 +80,41 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
+        public void When_Bucket_Contains_ConnectionPoolElement_It_Is_Used()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_1");
+            var buckets = new BucketElement[section.Buckets.Count];
+            section.Buckets.CopyTo(buckets, 0);
+
+            var bucket = buckets.First();
+
+            Assert.IsNotNull(bucket.ConnectionPool);
+            Assert.AreEqual(5000, bucket.ConnectionPool.WaitTimeout);
+            Assert.AreEqual(3000, bucket.ConnectionPool.ShutdownTimeout);
+            Assert.AreEqual(10, bucket.ConnectionPool.MaxSize);
+            Assert.AreEqual(5, bucket.ConnectionPool.MinSize);
+            Assert.AreEqual("custom", bucket.ConnectionPool.Name);
+        }
+
+        [Test]
+        public void When_Bucket_Does_Not_Contain_ConnectionPoolElement_Default_Is_Used()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
+            var buckets = new BucketElement[section.Buckets.Count];
+            section.Buckets.CopyTo(buckets, 0);
+
+            var bucket = buckets.First();
+
+            Assert.IsNotNull(bucket.ConnectionPool);
+            Assert.AreEqual(2500, bucket.ConnectionPool.WaitTimeout);
+            Assert.AreEqual(10000, bucket.ConnectionPool.ShutdownTimeout);
+            Assert.AreEqual(2, bucket.ConnectionPool.MaxSize);
+            Assert.AreEqual(1, bucket.ConnectionPool.MinSize);
+            Assert.AreEqual("default", bucket.ConnectionPool.Name);
+            
+        }
+
+        [Test]
         public void Test_Default_Ports()
         {
             var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
@@ -99,5 +137,120 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(18098, section.HttpsApiPort);
             Assert.AreEqual(11219, section.DirectPort);
         }
+
+        [Test]
+        public void Test_Programmatic_Config_Construction_Using_Default_Settings()
+        {
+            CouchbaseCluster.Initialize("couchbaseClients/couchbase");
+            var cluster = CouchbaseCluster.Get();
+            var configuration = cluster.Configuration;
+            Assert.AreEqual(11207, configuration.SslPort);
+            Assert.AreEqual(8091, configuration.MgmtPort);
+            Assert.AreEqual(8092, configuration.ApiPort);
+            Assert.AreEqual(18091, configuration.HttpsMgmtPort);
+            Assert.AreEqual(18092, configuration.HttpsApiPort);
+            Assert.AreEqual(11210, configuration.DirectPort);
+            Assert.IsFalse(configuration.UseSsl);
+
+            var server = configuration.Servers.First();
+            Assert.AreEqual(new Uri("http://localhost:8091"), server);
+
+            var bucketKvp = configuration.BucketConfigs.First();
+            Assert.AreEqual("default", bucketKvp.Key);
+            Assert.AreEqual(string.Empty, bucketKvp.Value.Password);
+            Assert.IsFalse(bucketKvp.Value.UseSsl);
+            Assert.AreEqual("default", bucketKvp.Value.BucketName);
+
+            var poolConfiguration = bucketKvp.Value.PoolConfiguration;
+            Assert.IsFalse(poolConfiguration.UseSsl);
+            Assert.AreEqual(2, poolConfiguration.MaxSize);
+            Assert.AreEqual(1, poolConfiguration.MinSize);
+            Assert.AreEqual(2500, poolConfiguration.WaitTimeout);
+            Assert.AreEqual(10000, poolConfiguration.ShutdownTimeout);
+        }
+
+        [Test]
+        public void Test_Programmatic_Config_Construction_Using_Custom_Settings()
+        {
+            CouchbaseCluster.Initialize("couchbaseClients/couchbase_1");
+            var cluster = CouchbaseCluster.Get();
+            var configuration = cluster.Configuration;
+            Assert.AreEqual(443, configuration.SslPort);
+            Assert.AreEqual(8095, configuration.MgmtPort);
+            Assert.AreEqual(8094, configuration.ApiPort);
+            Assert.AreEqual(18099, configuration.HttpsMgmtPort);
+            Assert.AreEqual(18098, configuration.HttpsApiPort);
+            Assert.AreEqual(11219, configuration.DirectPort);
+            Assert.IsTrue(configuration.UseSsl);
+
+            var server = configuration.Servers.First();
+            Assert.AreEqual(new Uri("http://localhost2:8091"), server);
+
+            var bucketKvp = configuration.BucketConfigs.First();
+            Assert.AreEqual("testbucket", bucketKvp.Key);
+            Assert.AreEqual("shhh!", bucketKvp.Value.Password);
+            Assert.IsFalse(bucketKvp.Value.UseSsl);
+            Assert.AreEqual("testbucket", bucketKvp.Value.BucketName);
+
+            var poolConfiguration = bucketKvp.Value.PoolConfiguration;
+            Assert.IsFalse(poolConfiguration.UseSsl);
+            Assert.AreEqual(10, poolConfiguration.MaxSize);
+            Assert.AreEqual(5, poolConfiguration.MinSize);
+            Assert.AreEqual(5000, poolConfiguration.WaitTimeout);
+            Assert.AreEqual(3000, poolConfiguration.ShutdownTimeout);
+        }
+
+        [Test]
+        public void When_Bucket_UseSsl_Is_True_In_AppConfig_UseSsl_Returns_True()
+        {
+            var section = (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
+            
+            var buckets = new BucketElement[section.Buckets.Count];
+            section.Buckets.CopyTo(buckets, 0);
+            
+            Assert.IsFalse(section.UseSsl);
+            Assert.IsTrue(buckets.First().UseSsl);
+        }
+
+        [Test]
+        public void When_Initialize_Called_With_AppConfig_Settings_Bucket_Can_Be_Opened()
+        {
+            CouchbaseCluster.Initialize("couchbaseClients/couchbase");
+            var cluster = CouchbaseCluster.Get();
+            var bucket = cluster.OpenBucket();
+            Assert.AreEqual("default", bucket.Name);
+
+            var result = bucket.Upsert("testkey", "testvalue");
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+
+            var result2 = bucket.Get<string>("testkey");
+            Assert.IsTrue(result2.Success);
+            Assert.AreEqual(ResponseStatus.Success, result2.Status);
+            Assert.AreEqual("testvalue", result2.Value);
+        }
     }
 }
+
+#region [ License information ]
+
+/* ************************************************************
+ *
+ *    @author Couchbase <info@couchbase.com>
+ *    @copyright 2014 Couchbase, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *
+ * ************************************************************/
+
+#endregion

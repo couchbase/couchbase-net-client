@@ -28,7 +28,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private volatile bool _disposed;
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
@@ -58,7 +58,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     IBucketConfig newConfig;
-                    var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.EncryptTraffic);
+                    var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
                     using (var webClient = new AuthenticatingWebClient(bucketName, password))
                     {
                         var body = webClient.DownloadString(uri);

@@ -29,7 +29,7 @@ namespace Couchbase.IO
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 socket.Connect(p.EndPoint);
-                if (config.EncryptTraffic)
+                if (config.UseSsl)
                 {
                     var ns = new NetworkStream(socket);
                     var ssls = new SslStream(ns);
@@ -61,7 +61,7 @@ namespace Couchbase.IO
 
                 //TODO refactor
                 IConnection connection = null;
-                if (p.Configuration.EncryptTraffic)
+                if (p.Configuration.UseSsl)
                 {
                     var pool = p as ConnectionPool<SslConnection>;
                     connection = new SslConnection(pool, socket);

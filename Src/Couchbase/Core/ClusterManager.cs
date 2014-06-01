@@ -25,18 +25,18 @@ namespace Couchbase.Core
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
-        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            (pool, sm) => new DefaultIOStrategy(pool, sm),
+            (pool) => new DefaultIOStrategy(pool),
             (config, endpoint) =>
             {
                 IConnectionPool connectionPool = null;
-                if (config.EncryptTraffic)
+                if (config.UseSsl)
                 {
                     connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
                 }
@@ -50,13 +50,13 @@ namespace Couchbase.Core
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
             : this(clientConfig,
             ioStrategyFactory,
             (config, endpoint) =>
             {
                 IConnectionPool connectionPool = null;
-                if (config.EncryptTraffic)
+                if (config.UseSsl)
                 {
                     connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
                 }
@@ -69,7 +69,7 @@ namespace Couchbase.Core
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;

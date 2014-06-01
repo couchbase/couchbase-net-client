@@ -130,7 +130,7 @@ namespace Couchbase.Tests.Configuration.Client
             config.Initialize();
 
             var bucket = config.BucketConfigs.First().Value;
-            Assert.AreEqual(true, bucket.EncryptTraffic);
+            Assert.AreEqual(true, bucket.UseSsl);
             //Assert.AreEqual("https://localhost:18091/default", bucket.Servers.First());
             Assert.AreEqual("https://localhost:18091/pools", config.Servers.First().ToString());
 

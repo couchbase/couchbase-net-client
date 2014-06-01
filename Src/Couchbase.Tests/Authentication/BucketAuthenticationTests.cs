@@ -39,7 +39,7 @@ namespace Couchbase.Tests.Authentication
         {
             CouchbaseCluster.Initialize(new ClientConfiguration
             {
-                Servers = new List<Uri> { new Uri("http://192.168.56.102:8091") },
+                Servers = new List<Uri> { new Uri("http://127.0.0.1:8091") },
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {

@@ -106,7 +106,7 @@ namespace Couchbase.Core
         {
             var uri = _nodeInfo.CouchApiBase;
             var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
-            if (bucketConfig.EncryptTraffic)
+            if (bucketConfig.UseSsl)
             {
                 var port = _nodeInfo.Ports.HttpsCapi;
                 uri = uri.Replace(((int)DefaultPorts.RestApi).

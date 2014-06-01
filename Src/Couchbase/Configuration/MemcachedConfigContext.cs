@@ -21,7 +21,7 @@ namespace Couchbase.Configuration
     {
 
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory, 
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
@@ -58,9 +58,9 @@ namespace Couchbase.Configuration
                 foreach (var node in bucketConfig.Nodes)
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
-                    var connectionPool = _connectionPoolFactory(_clientConfig.PoolConfiguration, endpoint);
+                    var connectionPool = _connectionPoolFactory(_clientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration, endpoint);
                     //var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password,_clientConfig.SaslMechanism);
-                    var ioStrategy = _ioStrategyFactory(connectionPool, /*saslMechanism*/ null);
+                    var ioStrategy = _ioStrategyFactory(connectionPool);
                     var server = new Core.Server(ioStrategy, node, _clientConfig);
                     var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy);
            
