@@ -31,7 +31,7 @@ namespace Couchbase.Tests.IO
             var ipEndpoint = Server.GetEndPoint(Address);
             var factory = DefaultConnectionFactory.GetGeneric<SslConnection>();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout,
-                SendTimeout) {EncryptTraffic = true};
+                SendTimeout) {UseSsl = true};
             _connectionPool = new ConnectionPool<SslConnection>(_configuration, ipEndpoint, factory);
             _connectionPool.Initialize();
         }

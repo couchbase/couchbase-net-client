@@ -1,5 +1,6 @@
 ﻿
 using System;
+using Couchbase.Configuration.Client;
 
 namespace Couchbase.Core
 {
@@ -40,6 +41,8 @@ namespace Couchbase.Core
         /// stats and information.
         /// </summary>
         IClusterInfo Info { get; }
+
+        ClientConfiguration Configuration { get; }
     }
 }
 

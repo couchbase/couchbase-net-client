@@ -29,5 +29,12 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (string)this["password"]; }
             set { this["password"] = value; }
         }
+
+        [ConfigurationProperty("connectionPool", IsRequired = false)]
+        public ConnectionPoolElement ConnectionPool
+        {
+            get { return (ConnectionPoolElement) this["connectionPool"]; }
+            set { this["connectionPool"] = value; }
+        }
     }
 }

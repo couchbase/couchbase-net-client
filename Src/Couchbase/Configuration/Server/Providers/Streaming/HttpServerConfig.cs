@@ -105,7 +105,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         {
             foreach (var bucketConfig in bucketConfigs)
             {
-                bucketConfig.UseSsl = _clientConfig.BucketConfigs[bucketConfig.Name].EncryptTraffic;
+                bucketConfig.UseSsl = _clientConfig.BucketConfigs[bucketConfig.Name].UseSsl;
             }
         }
 

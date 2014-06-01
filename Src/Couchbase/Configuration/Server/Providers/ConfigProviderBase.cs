@@ -17,14 +17,14 @@ namespace Couchbase.Configuration.Server.Providers
         protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
-        private readonly Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         protected volatile bool Disposed;
 
         protected ConfigProviderBase(ClientConfiguration clientConfig,
-            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
@@ -44,7 +44,7 @@ namespace Couchbase.Configuration.Server.Providers
             get { return _saslFactory; }
         }
 
-        protected Func<IConnectionPool, ISaslMechanism, IOStrategy> IOStrategyFactory
+        protected Func<IConnectionPool, IOStrategy> IOStrategyFactory
         {
             get { return _ioStrategyFactory; }
         }
@@ -99,7 +99,7 @@ namespace Couchbase.Configuration.Server.Providers
                     Port = defaultConfig.Port,
                     Username = defaultConfig.Username,
                     Password = defaultConfig.Password,
-                    EncryptTraffic = defaultConfig.EncryptTraffic
+                    UseSsl = defaultConfig.UseSsl
                 };
             }
             ClientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);

@@ -24,7 +24,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
         public void TestFixtureSetUp()
         {
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
-            var connectionPoolConfig = new PoolConfiguration {EncryptTraffic = false};
+            var connectionPoolConfig = new PoolConfiguration {UseSsl = false};
             //_connectionPool = new ConnectionPool<SslConnection>(connectionPoolConfig, ipEndpoint);      
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint); 
             _ioStrategy = new DefaultIOStrategy(_connectionPool);

@@ -23,7 +23,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             var configuration = new ClientConfiguration();
             _provider = new HttpStreamingProvider(
                 configuration,
-                (pool, sasl) => new DefaultIOStrategy(pool, sasl),
+                (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
                 SaslFactory.GetFactory3());
         }

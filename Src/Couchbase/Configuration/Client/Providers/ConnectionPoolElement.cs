@@ -43,5 +43,12 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["shutdownTimeout"]; }
             set { this["shutdownTimeout"] = value; }
         }
+
+        [ConfigurationProperty("useSsl", DefaultValue = false, IsRequired = false)]
+        public bool UseSsl
+        {
+            get { return (bool)this["useSsl"]; }
+            set { this["useSsl"] = value; }
+        }
     }
 }

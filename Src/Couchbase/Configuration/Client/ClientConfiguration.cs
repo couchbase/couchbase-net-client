@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.IO;
 
@@ -44,6 +45,46 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
+        /// For synchronization with App.config or Web.configs.
+        /// </summary>
+        /// <param name="couchbaseClientSection"></param>
+        internal ClientConfiguration(CouchbaseClientSection couchbaseClientSection)
+        {
+            UseSsl = couchbaseClientSection.UseSsl;
+            SslPort = couchbaseClientSection.SslPort;
+            ApiPort = couchbaseClientSection.ApiPort;
+            DirectPort = couchbaseClientSection.DirectPort;
+            MgmtPort = couchbaseClientSection.MgmtPort;
+            HttpsMgmtPort = couchbaseClientSection.HttpsMgmtPort;
+            HttpsApiPort = couchbaseClientSection.HttpsApiPort;
+            Servers= new List<Uri>();
+            foreach (var server in couchbaseClientSection.Servers)
+            {
+                Servers.Add(((UriElement)server).Uri);
+            }
+            foreach (var bucketElement in couchbaseClientSection.Buckets)
+            {
+                var bucket = (BucketElement) bucketElement;
+                var bucketConfiguration = new BucketConfiguration
+                {
+                    BucketName = bucket.Name,
+                    UseSsl = bucket.UseSsl,
+                    Password = bucket.Password,
+                    PoolConfiguration = new PoolConfiguration
+                    {
+                        MaxSize = bucket.ConnectionPool.MaxSize,
+                        MinSize = bucket.ConnectionPool.MinSize,
+                        WaitTimeout = bucket.ConnectionPool.WaitTimeout,
+                        ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
+                        UseSsl = bucket.ConnectionPool.UseSsl
+                    }
+                };
+                BucketConfigs = new Dictionary<string, BucketConfiguration>();
+                BucketConfigs.Add(bucket.Name, bucketConfiguration);
+            }
+        }
+
+        /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
         /// </summary>
         public bool UseSsl
@@ -55,6 +96,18 @@ namespace Couchbase.Configuration.Client
                 _useSslChanged = true;
             }
         }
+
+        public int SslPort { get; set; }
+
+        public int ApiPort { get; set; }
+
+        public int MgmtPort { get; set; }
+
+        public int DirectPort { get; set; }
+
+        public int HttpsMgmtPort { get; set; }
+
+        public int HttpsApiPort { get; set; }
 
         /// <summary>
         /// A list of hosts used to bootstrap from.
@@ -148,9 +201,9 @@ namespace Couchbase.Configuration.Client
                             }
                             foreach (var bucketConfig in BucketConfigs.Values)
                             {
-                                bucketConfig.EncryptTraffic = UseSsl;
+                                bucketConfig.UseSsl = UseSsl;
                                 bucketConfig.Port = (int)DefaultPorts.SslDirect;
-                                bucketConfig.PoolConfiguration.EncryptTraffic = UseSsl;
+                                bucketConfig.PoolConfiguration.UseSsl = UseSsl;
                             }
                         }
                     }

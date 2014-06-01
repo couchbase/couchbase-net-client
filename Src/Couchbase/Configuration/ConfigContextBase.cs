@@ -27,13 +27,13 @@ namespace Couchbase.Configuration
         private readonly DateTime _creationTime;
         protected ClientConfiguration _clientConfig;
         protected readonly List<IServer> _servers = new List<IServer>();
-        protected Func<IConnectionPool, ISaslMechanism, IOStrategy> _ioStrategyFactory;
+        protected Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
@@ -122,7 +122,7 @@ namespace Couchbase.Configuration
             var address = hostName.Replace(blah, bucketConfig.SurrogateHost);
 
             var bucket = _clientConfig.BucketConfigs[bucketConfig.Name];
-            if (bucket.EncryptTraffic)
+            if (bucket.UseSsl)
             {
                 var splits = address.Split(':');
                 address = string.Concat(splits[0], ":", bucket.Port);

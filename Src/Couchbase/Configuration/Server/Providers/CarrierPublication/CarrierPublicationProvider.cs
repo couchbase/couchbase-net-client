@@ -18,10 +18,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
     internal sealed class CarrierPublicationProvider : ConfigProviderBase
     {
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, ISaslMechanism, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
-            : base(clientConfig,ioStrategyFactory, connectionPoolFactory, saslFactory)
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
         {
         }
 
@@ -29,7 +29,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         {
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
             var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
-            var ioStrategy = IOStrategyFactory(connectionPool, null);
+            var ioStrategy = IOStrategyFactory(connectionPool);
             var saslMechanism = SaslFactory(bucketName, password, ioStrategy);
             ioStrategy.SaslMechanism = saslMechanism;
 

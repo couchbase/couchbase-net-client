@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 
 namespace Couchbase
@@ -145,6 +147,16 @@ namespace Couchbase
             Initialize(factory);
         }
 
+        public static void Initialize(string configurationSectionName)
+        {
+            var configurationSection = (CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName);
+            var configuration = new ClientConfiguration(configurationSection);
+            configuration.Initialize();
+
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterManager(configuration)));
+            Initialize(factory);
+        }
+
         /// <summary>
         /// Opens the default bucket associated with a Couchbase Cluster.
         /// </summary>
@@ -208,6 +220,17 @@ namespace Couchbase
         public IClusterInfo Info
         {
             get { throw new NotImplementedException(); }
+        }
+
+        /// <summary>
+        /// The current client configuration being used by the <see cref="CouchbaseCluster"/> object.
+        /// Set this by passing in a <see cref="ClientConfiguration"/> object into <see cref="Initialize(ClientConfiguration)" /> or by
+        /// providing a <see cref="CouchbaseClientSection"/> in your App.config or Web.config and calling <see cref="Initialize(string)"/>
+        /// </summary>
+        public ClientConfiguration Configuration
+        {
+            //TODO returned cloned copy?
+            get { return _configuration; }
         }
 
         /// <summary>
