@@ -81,7 +81,7 @@ namespace Couchbase.Core.Buckets
             var result = ((long) (hash[3] & 0xFF) << 24)
                 | ((long)(hash[2] & 0xFF) << 16)
                 | ((long)(hash[1] & 0xFF) << 8)
-                | hash[0] & 0xFF;
+                | (uint)hash[0] & 0xFF;
             return result;
         }
 
@@ -104,7 +104,7 @@ namespace Couchbase.Core.Buckets
                         var key = ((long) (hash[3 + j*4] & 0xFF) << 24)
                                   | ((long) (hash[2 + j*4] & 0xFF) << 16)
                                   | ((long) (hash[1 + j*4] & 0xFF) << 8)
-                                  | hash[0 + j*4] & 0xFF;
+                                  | (uint) (hash[0 + j*4] & 0xFF);
 
                         _buckets[key] = server;
                     }
