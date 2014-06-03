@@ -3,8 +3,14 @@ using System.Configuration;
 
 namespace Couchbase.Configuration.Client.Providers
 {
+    /// <summary>
+    /// Allows a server to be added to the boostrap list within an <see cref="CouchbaseClientSection"/>.
+    /// </summary>
     public sealed class UriElement : ConfigurationElement
     {
+        /// <summary>
+        /// The <see cref="Uri"/> of the Couchbase server to connect to.
+        /// </summary>
         [ConfigurationProperty("uri", IsRequired = true, IsKey = true)]
         public Uri Uri
         {

@@ -2,8 +2,17 @@
 
 namespace Couchbase.Configuration.Client.Providers
 {
+    /// <summary>
+    /// Allows a Couchbase Server's Bucket to be configured.
+    /// </summary>
     public sealed class BucketElement : ConfigurationElement
     {
+        /// <summary>
+        /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
+        /// </summary>
+        /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>
+        /// <remarks>This feature is only supported by Couchbase Cluster 3.0 and greater.</remarks>
+        /// <remarks>If the parent <see cref="CouchbaseClientSection"/>'s UseSSL is false, setting this to true will override that configuration and enable the Bucket to use SSL./></remarks>
         [ConfigurationProperty("useSsl", DefaultValue = false, IsRequired = false)]
         public bool UseSsl
         {
@@ -11,6 +20,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["useSsl"] = value; }
         }
 
+        /// <summary>
+        /// The name of the Bucket.
+        /// </summary>
+        /// <remarks>The name can be set within the Couchbase Management Console.</remarks>
         [ConfigurationProperty("name", DefaultValue = "default", IsRequired = false, IsKey = true)]
         public string Name
         {
@@ -18,6 +31,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["name"] = value; }
         }
 
+        /// <summary>
+        /// The password used to connect to the bucket. 
+        /// </summary>
+        /// <remarks>The password can be set within the Couchbase Management Console.</remarks>
         [ConfigurationProperty("password", DefaultValue = "", IsRequired = false)]
         public string Password
         {
@@ -25,6 +42,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["password"] = value; }
         }
 
+        /// <summary>
+        /// Allows the default connection pool settings to be overridden. 
+        /// </summary>
+        /// <remarks>The default settings are: MinSize=1, MaxSize=2, WaitTimout=2500ms, ShutdownTimeout=10000ms.</remarks>
         [ConfigurationProperty("connectionPool", IsRequired = false)]
         public ConnectionPoolElement ConnectionPool
         {

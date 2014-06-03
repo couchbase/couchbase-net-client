@@ -79,8 +79,12 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
-        /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
+        /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
+        /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>
+        /// <remarks>This feature is only supported by Couchbase Cluster 3.0 and greater.</remarks>
+        /// <remarks>Set to true to require all buckets to use SSL.</remarks>
+        /// <remarks>Set to false and then set UseSSL at the individual Bucket level to use SSL on specific buckets.</remarks>
         public bool UseSsl
         {
             get { return _useSsl; }
@@ -91,16 +95,55 @@ namespace Couchbase.Configuration.Client
             }
         }
 
+        /// <summary>
+        /// Overrides the default and sets the SSL port to use for Key/Value operations using the Binary Memcached protocol.
+        /// </summary>
+        /// <remarks>The default and suggested port for SSL is 11207.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>Requires UseSSL to be true.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom SSL port.</remarks>
         public int SslPort { get; set; }
 
+        /// <summary>
+        /// Overrides the default and sets the Views REST API to use a custom port.
+        /// </summary>
+        /// <remarks>The default and suggested port for the Views REST API is 8092.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Views REST API port.</remarks>
         public int ApiPort { get; set; }
 
+        /// <summary>
+        /// Overrides the default and sets the Couchbase Management REST API to use a custom port.
+        /// </summary>
+        /// <remarks>The default and suggested port for the Views REST API is 8091.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Management REST API port.</remarks>
         public int MgmtPort { get; set; }
 
+            /// <summary>
+            /// Overrides the default and sets the direct port to use for Key/Value operations using the Binary Memcached protocol.
+            /// </summary>
+            /// <remarks>The default and suggested direct port is 11210.</remarks>
+            /// <remarks>Only set if you wish to override the default behavior.</remarks>
+            /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom direct port.</remarks>
         public int DirectPort { get; set; }
 
+        /// <summary>
+        /// Overrides the default and sets the Couchbase Management REST API to use a custom SSL port.
+        /// </summary>
+        /// <remarks>The default and suggested port for SSL is 18091.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>Requires UseSSL to be true.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Couchbase Management REST API SSL port.</remarks>
         public int HttpsMgmtPort { get; set; }
 
+        /// <summary>
+        /// Overrides the default and sets the Couchbase Views REST API to use a custom SSL port.
+        /// </summary>
+        /// <remarks>The default and suggested port for SSL is 18092.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>Requires UseSSL to be true.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Couchbase Views REST API SSL port.</remarks>
         public int HttpsApiPort { get; set; }
 
         /// <summary>
@@ -149,6 +192,8 @@ namespace Couchbase.Configuration.Client
                     }
                 }
             }
+
+            //Update the bucket configs
             foreach (var keyValue in BucketConfigs)
             {
                 var bucketConfiguration = keyValue.Value;
@@ -166,29 +211,32 @@ namespace Couchbase.Configuration.Client
                 }
                 if (bucketConfiguration.Servers == null || _serversChanged)
                 {
-                    bucketConfiguration.Servers = Servers.Select(x => x.Host).ToList();
+                    bucketConfiguration.Servers = Servers.Select(x => x).ToList();
                 }
                 if (bucketConfiguration.Servers.Count == 0)
                 {
-                    bucketConfiguration.Servers.AddRange(Servers.Select(x=>x.Host).ToList());
+                    bucketConfiguration.Servers.AddRange(Servers.Select(x=>x).ToList());
                 }
                 if (_useSslChanged)
                 {
-                    for (var i = 0; i< _servers.Count(); i++)
+                    for (var i = 0; i < _servers.Count(); i++)
                     {
+                        //Rewrite the URI's for boostrapping to use SSL.
                         if (UseSsl)
                         {
-                            if (_servers[i].Port == (int)DefaultPorts.MgmtApi)
+                            if (_servers[i].Port == MgmtPort)
                             {
                                 var oldUri = _servers[i];
                                 var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
-                                    ":", (int)DefaultPorts.HttpsMgmt, oldUri.PathAndQuery));
+                                    ":", HttpsMgmtPort, oldUri.PathAndQuery));
                                 _servers[i] = newUri;
                             }
+
+                            //Setting ssl to true at parent level overrides child level ssl settings
                             foreach (var bucketConfig in BucketConfigs.Values)
                             {
                                 bucketConfig.UseSsl = UseSsl;
-                                bucketConfig.Port = (int)DefaultPorts.SslDirect;
+                                bucketConfig.Port = SslPort;
                                 bucketConfig.PoolConfiguration.UseSsl = UseSsl;
                             }
                         }

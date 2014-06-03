@@ -19,7 +19,7 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public BucketConfiguration()
         {
-            Servers = new List<string> {"127.0.0.1" };
+            Servers = new List<Uri> {new Uri("http://127.0.0.1") };
             Port = 11210;
             Password = string.Empty;
             Username = string.Empty;
@@ -34,7 +34,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// A list of IP's to bootstrap off of.
         /// </summary>
-        public List<string> Servers { get; set; }
+        public List<Uri> Servers { get; set; }
 
         /// <summary>
         /// The Memcached port to use.
@@ -74,8 +74,9 @@ namespace Couchbase.Configuration.Client
                 throw new ArgumentException("server");
             }
 
+            //TODO handle hostname=>ip resolution here
             IPAddress ipAddress;
-            if (!IPAddress.TryParse(server, out ipAddress))
+            if (!IPAddress.TryParse(server.Host, out ipAddress))
             {
                 throw new ArgumentException("ipAddress");
             }

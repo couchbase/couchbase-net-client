@@ -1,9 +1,17 @@
 ﻿using System.Configuration;
+using Couchbase.IO;
 
 namespace Couchbase.Configuration.Client.Providers
 {
+    /// <summary>
+    /// Provides configuration support for the Bucket's <see cref="ConnectionPool{T}"/> object, which is pool of TCP connections.
+    /// </summary>
     public class ConnectionPoolElement : ConfigurationElement
     {
+        /// <summary>
+        /// The name for the connection pool. 
+        /// </summary>
+        /// <remarks>This is used internally and does not need to be set or customized.</remarks>
         [ConfigurationProperty("name", DefaultValue = "default", IsRequired = false, IsKey = true)]
         public string Name
         {
@@ -11,6 +19,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["name"] = value; }
         }
 
+        /// <summary>
+        /// The maximum number of TCP connections that the client will allocate for a given Bucket.
+        /// </summary>
+        /// <remarks>The default is two TCP connections per bucket.</remarks>
         [ConfigurationProperty("maxSize", DefaultValue = 2, IsRequired = false)]
         public int MaxSize
         {
@@ -18,6 +30,11 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["maxSize"] = value; }
         }
 
+        /// <summary>
+        /// The minimum number of TCP connections that the client will allocate for a given bucket.
+        /// </summary>
+        /// <remarks>The default is one TCP connection per bucket.</remarks>
+        /// <remarks>The connection pool will add TCP connections until <see cref="MaxSize"/> is reached.</remarks>
         [ConfigurationProperty("minSize", DefaultValue = 1, IsRequired = false)]
         public int MinSize
         {
@@ -25,6 +42,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["minSize"] = value; }
         }
 
+        /// <summary>
+        /// The amount of time a thread will wait for a <see cref="IConnection"/> once the MaxSize of the pool has been reached and no TCP connections are available.
+        /// </summary>
+        /// <remarks>The default is 2500ms.</remarks>
         [ConfigurationProperty("waitTimeout", DefaultValue = 2500, IsRequired = false)]
         public int WaitTimeout
         {
@@ -32,6 +53,10 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["waitTimeout"] = value; }
         }
 
+        /// <summary>
+        /// Wait up to the <see cref="ShutdownTimeout"/> to send or recieve data before closing the <see cref="IConnection"/>.
+        /// </summary>
+        /// <remarks>The default value is 10000ms.</remarks>
         [ConfigurationProperty("shutdownTimeout", DefaultValue = 10000, IsRequired = false)]
         public int ShutdownTimeout
         {
@@ -39,6 +64,12 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["shutdownTimeout"] = value; }
         }
 
+        /// <summary>
+        /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
+        /// </summary>
+        /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>
+        /// <remarks>This feature is only supported by Couchbase Cluster 3.0 and greater.</remarks>
+        /// <remarks>If the parent <see cref="CouchbaseClientSection"/>'s UseSSL is false, setting this to true will override that configuration and enable the Bucket to use SSL./></remarks>
         [ConfigurationProperty("useSsl", DefaultValue = false, IsRequired = false)]
         public bool UseSsl
         {
