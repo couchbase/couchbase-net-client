@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
@@ -15,25 +11,16 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies.EAP
 {
-    internal class EAPIOStrategy : IOStrategy
+    internal class EapioStrategy : IOStrategy
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
-        private Func<IConnectionPool, IConnection> _factory;
-        private volatile bool _disposed;
         private static readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         private static readonly AutoResetEvent ReceiveEvent = new AutoResetEvent(false);
 
-        public EAPIOStrategy(IConnectionPool connectionPool)
-            : this(connectionPool, DefaultConnectionFactory.GetDefault())
-        {
-            
-        }
-
-        public EAPIOStrategy(IConnectionPool connectionPool, Func<IConnectionPool, IConnection> factory)
+        public EapioStrategy(IConnectionPool connectionPool)
         {
             _connectionPool = connectionPool;
-            _factory = factory;
         }
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
@@ -65,10 +52,8 @@ namespace Couchbase.IO.Strategies.EAP
 
             var buffer = operation.GetBuffer();
             state.Stream.BeginWrite(buffer, 0, buffer.Length, SendCallback, state);
-            //connection.Socket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendCallback, state);
             SendEvent.WaitOne();
             
-           // connection.Socket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
             state.Stream.BeginRead(state.Buffer, 0, buffer.Length, ReceiveCallback, state);
             ReceiveEvent.WaitOne();
 
@@ -83,8 +68,11 @@ namespace Couchbase.IO.Strategies.EAP
         static void SendCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
-            var connection = state.Connection;
-            //var bytes = connection.Socket.EndSend(asyncResult);
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
+
             state.Stream.EndWrite(asyncResult);
             SendEvent.Set();
             Log.Debug(m=>m("Bytes sent {0}", 0));
@@ -93,10 +81,12 @@ namespace Couchbase.IO.Strategies.EAP
         static void ReceiveCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
-            var connection = state.Connection;
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
 
-            int bytesRead = state.Stream.EndRead(asyncResult);
-            //var bytesRead = connection.Socket.EndReceive(asyncResult);
+            var bytesRead = state.Stream.EndRead(asyncResult);
             state.BytesReceived += bytesRead;
             Log.Debug(m => m("Bytes read {0}", state.BytesReceived));
             
@@ -110,8 +100,6 @@ namespace Couchbase.IO.Strategies.EAP
 
             if (state.BytesReceived > 0 && state.BytesReceived < state.Header.TotalLength)
             {
-                //connection.Socket.BeginReceive(state.Buffer, 0, state.Buffer.Length, 
-                    //SocketFlags.None, ReceiveCallback, state);
                 state.Stream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
             else

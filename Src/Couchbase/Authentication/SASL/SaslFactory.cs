@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;

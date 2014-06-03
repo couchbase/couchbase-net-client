@@ -1,12 +1,6 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Utils;
 
@@ -27,7 +21,7 @@ namespace Couchbase.Views
         const string QueryArgPattern = "{0}={1}&";
         private const string DefaultHost = "http://localhost:8092/";
 
-        private string _baseUri;
+        private readonly string _baseUri;
         private string _bucketName;
         private string _designDoc;
         private string _viewName;

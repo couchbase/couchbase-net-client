@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Common.Logging;
-using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.IO;
@@ -21,8 +19,6 @@ namespace Couchbase.Configuration.Client
         private bool _poolConfigurationChanged;
         private List<Uri> _servers;
         private bool _serversChanged;
-        private Dictionary<string, BucketConfiguration> _bucketConfigurations;
-        private bool _bucketConfigurationsChanged;
         private bool _useSsl;
         private bool _useSslChanged;
 
@@ -39,7 +35,6 @@ namespace Couchbase.Configuration.Client
             Servers = new List<Uri> { _defaultServer };
 
             //Set back to default
-            _bucketConfigurationsChanged = false;
             _serversChanged = false;
             _poolConfigurationChanged = false;
         }
@@ -76,11 +71,10 @@ namespace Couchbase.Configuration.Client
                         MinSize = bucket.ConnectionPool.MinSize,
                         WaitTimeout = bucket.ConnectionPool.WaitTimeout,
                         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
-                        UseSsl = bucket.ConnectionPool.UseSsl
+                        UseSsl = bucket.ConnectionPool.UseSsl, 
                     }
                 };
-                BucketConfigs = new Dictionary<string, BucketConfiguration>();
-                BucketConfigs.Add(bucket.Name, bucketConfiguration);
+                BucketConfigs = new Dictionary<string, BucketConfiguration> {{bucket.Name, bucketConfiguration}};
             }
         }
 
@@ -125,15 +119,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// A map of <see cref="BucketConfiguration"/>s and their names.
         /// </summary>
-        public Dictionary<string, BucketConfiguration> BucketConfigs
-        {
-            get { return _bucketConfigurations; }
-            set
-            {
-                _bucketConfigurations = value;
-                _bucketConfigurationsChanged = true;
-            }
-        }
+        public Dictionary<string, BucketConfiguration> BucketConfigs { get; set; }
 
         /// <summary>
         /// The configuration used for creating the <see cref="IConnectionPool"/> for each <see cref="IBucket"/>.
@@ -154,11 +140,11 @@ namespace Couchbase.Configuration.Client
             {
                 for(var i=0; i<_servers.Count(); i++)
                 {
-                    if (_servers[i].OriginalString.Contains("/pools")) { /*noop*/ }
+                    if (_servers[i].OriginalString.EndsWith("/pools")) { /*noop*/ }
                     else
                     {
                         var newUri = _servers[i].ToString();
-                        newUri = string.Concat(newUri, "/pools");
+                        newUri = string.Concat(newUri, newUri.EndsWith("/") ? "pools" : "/pools");
                         _servers[i] = new Uri(newUri);
                     }
                 }

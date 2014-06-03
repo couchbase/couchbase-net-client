@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -95,6 +94,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns>True if the observer was registered without failure.</returns>
         public override bool RegisterObserver(IConfigObserver observer)
         {
+            var hasRegistered = false;
             var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
             if (bucketConfig == null)
             {
@@ -116,10 +116,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     CountdownEvent.Reset(1);
                 }
 
-                //TODO add timeout
-                CountdownEvent.Wait();
+                //TODO add timeout?
+                CountdownEvent.Wait(cancellationTokenSource.Token);
+                hasRegistered = true;
             }
-            return true;//todo fix
+            return hasRegistered;
         }
 
         /// <summary>
@@ -172,7 +173,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns></returns>
         IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
         {
-            IConfigInfo configInfo = null;
+            IConfigInfo configInfo;
             switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
             {
                 case NodeLocatorEnum.VBucket:
@@ -246,7 +247,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     Log.Info(m=>m("Removing observer for {0}", observer.Name));
                 }
 
-                IConfigInfo configInfo = null;
+                IConfigInfo configInfo;
                 if (Configs.TryRemove(observer.Name, out configInfo))
                 {
                     Log.Info(m=>m("Removing config for {0}", observer.Name));

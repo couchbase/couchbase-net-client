@@ -8,6 +8,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public string Uri { get; set; }
 
         [JsonProperty("validateURI")]
+// ReSharper disable once InconsistentNaming
         public string ValidateURI { get; set; }
     }
 }

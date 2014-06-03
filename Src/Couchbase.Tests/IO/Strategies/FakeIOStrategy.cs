@@ -12,13 +12,13 @@ using Couchbase.Tests.Fakes;
 
 namespace Couchbase.Tests.IO.Strategies
 {
-    internal class FakeIOStrategy<K>: IOStrategy where K : class
+    internal class FakeIOStrategy<TK>: IOStrategy where TK : class
     {
-        private K _operation;
-        private IConnectionPool _connectionPool = new FakeConnectionPool();
+        private readonly TK _operation;
+        private readonly IConnectionPool _connectionPool = new FakeConnectionPool();
         private ISaslMechanism _mechanism;
 
-        public FakeIOStrategy(K operation)
+        public FakeIOStrategy(TK operation)
         {
             _operation = operation;
         }

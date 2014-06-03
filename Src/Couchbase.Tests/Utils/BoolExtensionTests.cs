@@ -35,14 +35,14 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void Test_That_ToLowerString_Returns_false_When_False()
         {
-            bool value = false;
+            const bool value = false;
             Assert.AreEqual("false", value.ToLowerString());
         }
 
         [Test]
         public void Test_That_ToLowerString_Returns_true_When_True()
         {
-            bool value = true;
+            const bool value = true;
             Assert.AreEqual("true", value.ToLowerString());
         }
     }

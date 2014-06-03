@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Couchbase.Core.Buckets
 {
@@ -35,7 +32,7 @@ namespace Couchbase.Core.Buckets
         /// Maps a Key to a node in the cluster.
         /// </summary>
         /// <param name="key">The key to map.</param>
-        /// <returns>An object representing the node that the key was mapped to, which implements <see cref="IMappedNode"/>"></exception></returns>
+        /// <returns>An object representing the node that the key was mapped to, which implements <see cref="IMappedNode"/></returns>
         public IMappedNode MapKey(string key)
         {
             var hash = GetHash(key);

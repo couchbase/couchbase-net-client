@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.IO.Operations;
 
@@ -23,7 +17,7 @@ namespace Couchbase.IO.Strategies.Async
         private readonly Func<IConnectionPool, IOStrategy> _factory;
         private readonly TimeSpan _waitTimeout;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
-        private IConnectionPool _connectionPool;
+        private readonly IConnectionPool _connectionPool;
 
         public CompositeIOStrategy(int maxSize, TimeSpan waitTimeout, Func<IConnectionPool, IOStrategy> factory, IConnectionPool connectionPool)
         {
@@ -31,12 +25,11 @@ namespace Couchbase.IO.Strategies.Async
             _factory = factory;
             _waitTimeout = waitTimeout;
             _connectionPool = connectionPool;
-           // Initialize();
         }
 
         public IOStrategy Acquire()
         {
-            IOStrategy iOStrategy = null;
+            IOStrategy iOStrategy;
             if (_pool.TryDequeue(out iOStrategy))
             {
                 Log.Debug(m=>m("aquire existing IOStrategy {0}", iOStrategy.GetHashCode()));

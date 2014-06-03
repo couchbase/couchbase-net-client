@@ -19,7 +19,6 @@ namespace Couchbase.IO.Strategies.Awaitable
         private readonly IConnectionPool _connectionPool;
         private readonly object _lock = new object();
         private int _count;
-        private bool _disposed;
 
         public SocketAwaitablePool(IConnectionPool connectionPool, Func<IConnectionPool, BufferAllocator, SocketAwaitable> socketAwaitableFactory)
         {

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -79,7 +76,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            IVBucket vBucket = null;
+            IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
             var operation = new SetOperation<T>(key, value, vBucket);
@@ -101,7 +98,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            IVBucket vBucket = null;
+            IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
             var operation = new ReplaceOperation<T>(key, value, vBucket);
@@ -123,7 +120,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            IVBucket vBucket = null;
+            IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
             var operation = new AddOperation<T>(key, value, vBucket);
@@ -139,12 +136,11 @@ namespace Couchbase.Core.Buckets
         /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
         {
-            IVBucket vBucket = null;
+            IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
             var operation = new DeleteOperation(key, vBucket);
@@ -165,7 +161,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            IVBucket vBucket = null;
+            IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
             var operation = new GetOperation<T>(key, vBucket);
@@ -258,7 +254,6 @@ namespace Couchbase.Core.Buckets
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="viewname"></param>
         /// >
-        /// <param name="view">The View to query.</param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         public IViewQuery CreateQuery(bool development, string designdoc, string viewname)
         {

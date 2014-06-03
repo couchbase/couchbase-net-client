@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ namespace Couchbase.Tests.Helpers
 
         internal static IOStrategy CreateIOStrategy(Node node)
         {
-            var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString());
+            var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString(CultureInfo.InvariantCulture));
             var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(server));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             return ioStrategy;

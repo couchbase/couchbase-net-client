@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.IO.Operations.Authentication
+﻿namespace Couchbase.IO.Operations.Authentication
 {
     /// <summary>
     /// Peforms the next step in the in SASL authentication process when required by a AuthenticationContinue message from a <see cref="SaslStart"/> operation.

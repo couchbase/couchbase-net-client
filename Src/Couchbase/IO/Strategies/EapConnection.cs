@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Common.Logging;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
-using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies
 {
@@ -46,6 +40,10 @@ namespace Couchbase.IO.Strategies
         {
             _networkStream.EndWrite(asyncResult);
             var state = asyncResult.AsyncState as OperationAsyncState;
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
             _networkStream.BeginRead(state.Buffer, 0, State.Buffer.Length, ReceiveCallback, State);
         }
 
@@ -53,7 +51,11 @@ namespace Couchbase.IO.Strategies
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
-            
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
+
             var bytesRead = _networkStream.EndRead(asyncResult);
             state.BytesReceived += bytesRead;
             state.Data.Write(state.Buffer, 0, bytesRead);

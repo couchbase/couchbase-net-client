@@ -153,7 +153,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsFalse(configuration.UseSsl);
 
             var server = configuration.Servers.First();
-            Assert.AreEqual(new Uri("http://localhost:8091"), server);
+            Assert.AreEqual(new Uri("http://localhost:8091/pools"), server);
 
             var bucketKvp = configuration.BucketConfigs.First();
             Assert.AreEqual("default", bucketKvp.Key);
@@ -184,16 +184,16 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsTrue(configuration.UseSsl);
 
             var server = configuration.Servers.First();
-            Assert.AreEqual(new Uri("http://localhost2:8091"), server);
+            Assert.AreEqual(new Uri("https://localhost2:18091/pools"), server);
 
             var bucketKvp = configuration.BucketConfigs.First();
             Assert.AreEqual("testbucket", bucketKvp.Key);
             Assert.AreEqual("shhh!", bucketKvp.Value.Password);
-            Assert.IsFalse(bucketKvp.Value.UseSsl);
+            Assert.IsTrue(bucketKvp.Value.UseSsl);
             Assert.AreEqual("testbucket", bucketKvp.Value.BucketName);
 
             var poolConfiguration = bucketKvp.Value.PoolConfiguration;
-            Assert.IsFalse(poolConfiguration.UseSsl);
+            Assert.IsTrue(poolConfiguration.UseSsl);
             Assert.AreEqual(10, poolConfiguration.MaxSize);
             Assert.AreEqual(5, poolConfiguration.MinSize);
             Assert.AreEqual(5000, poolConfiguration.WaitTimeout);

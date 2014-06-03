@@ -154,7 +154,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_GetTerseStreamingUri_Called_With_useSsl_True_Url_Uses_Https()
         {
-            var useSsl = true;
+            const bool useSsl = true;
             var node = _bucket1.Nodes.First();
             var url = _bucket1.GetTerseStreamingUri(node, useSsl);
             Assert.AreEqual(new Uri("https://192.168.56.101:18091/pools/default/bs/default"), url);
@@ -163,7 +163,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_GetTerseStreamingUri_Called_With_useSsl_False_Url_Uses_Http()
         {
-            var useSsl = false;
+            const bool useSsl = false;
             var node = _bucket1.Nodes.First();
             var url = _bucket1.GetTerseStreamingUri(node, useSsl);
             Assert.AreEqual(new Uri("http://192.168.56.101:8091/pools/default/bs/default"), url);
@@ -172,7 +172,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_GetTerseUri_Called_With_useSsl_True_Url_Uses_Https()
         {
-            var useSsl = true;
+            const bool useSsl = true;
             var node = _bucket1.Nodes.First();
             var url = _bucket1.GetTerseUri(node, useSsl);
             Assert.AreEqual(new Uri("https://192.168.56.101:18091/pools/default/b/default"), url);
@@ -181,7 +181,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_GetTerseUri_Called_With_useSsl_False_Url_Uses_Http()
         {
-            var useSsl = false;
+            const bool useSsl = false;
             var node = _bucket1.Nodes.First();
             var url = _bucket1.GetTerseUri(node, useSsl);
             Assert.AreEqual(new Uri("http://192.168.56.101:8091/pools/default/b/default"), url);

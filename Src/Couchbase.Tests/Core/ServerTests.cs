@@ -59,7 +59,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void TestGetEndpoint()
         {
-            var address = "192.168.56.101:11210";
+            const string address = "192.168.56.101:11210";
             var endpoint = Server.GetEndPoint(address);
 
             Assert.AreEqual(endpoint.Address.ToString(), "192.168.56.101");

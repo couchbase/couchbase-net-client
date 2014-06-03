@@ -22,12 +22,6 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
 
         void Initialize()
         {
-            var nodes = ServerConfig.Pools.Nodes;
-            foreach (var node in nodes)
-            {
-                //_servers.Add(new Core.Server(node.Hostname));
-            }
-
             var buckets = ServerConfig.Buckets;
             foreach (var bucket in buckets)
             {

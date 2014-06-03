@@ -1,7 +1,4 @@
-﻿
-using Couchbase.Configuration.Server.Serialization;
-
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
     /// <summary>
     /// The result of an operation.

@@ -5,9 +5,11 @@ namespace Couchbase.Configuration.Server.Serialization
     internal sealed class Replication
     {
         [JsonProperty("createURI")]
+// ReSharper disable once InconsistentNaming
         public string CreateURI { get; set; }
 
         [JsonProperty("validateURI")]
+// ReSharper disable once InconsistentNaming
         public string ValidateURI { get; set; }
     }
 }

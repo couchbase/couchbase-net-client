@@ -121,8 +121,8 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void Test_ComputeResponse()
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy, "protected", "secret");
-            string challenge = "6382f3e79a804548";//"15cedeaaf8b06c34";
-            string expected = "protected 3ca7b9f1b81bc7f6c2c9e5f48af3311d";//"protected 06f8b68edb01c7b453f50429d4bfb195";
+            const string challenge = "6382f3e79a804548"; //"15cedeaaf8b06c34";
+            const string expected = "protected 3ca7b9f1b81bc7f6c2c9e5f48af3311d"; //"protected 06f8b68edb01c7b453f50429d4bfb195";
 
             var actual = authenticator.ComputeResponse(challenge);
             Assert.AreEqual(expected, actual);

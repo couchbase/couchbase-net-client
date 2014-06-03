@@ -48,7 +48,6 @@ namespace Couchbase.Core
         /// <summary>
         /// Removes a document for a given key from the database.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="key"></param>
         /// <returns></returns>
         IOperationResult<object> Remove(string key);

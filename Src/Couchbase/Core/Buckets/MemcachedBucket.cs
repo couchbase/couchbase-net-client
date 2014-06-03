@@ -17,6 +17,7 @@ namespace Couchbase.Core.Buckets
         private readonly IClusterManager _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
+        private static readonly object SyncObj = new object();
 
         internal MemcachedBucket(IClusterManager clusterManager, string bucketName)
         {
@@ -35,7 +36,19 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Interlocked.Exchange(ref _configInfo, configInfo);
+            Log.Info(m => m("Updating MemcachedBucket - old config rev#{0} new config rev#{1} on thread {2}",
+               _configInfo == null ? 0 : _configInfo.BucketConfig.Rev,
+                configInfo.BucketConfig.Rev,
+                Thread.CurrentThread.ManagedThreadId));
+
+            lock (SyncObj)
+            {
+                var old = Interlocked.Exchange(ref _configInfo, configInfo);
+
+                Log.Info(m => m("Updated MemcachedBucket - old config rev#{0} new config rev#{1}",
+                    old == null ? 0 : old.BucketConfig.Rev,
+                    _configInfo.BucketConfig.Rev));
+            }
         }
 
         /// <summary>
@@ -95,7 +108,6 @@ namespace Couchbase.Core.Buckets
         /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
@@ -136,7 +148,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Views.IViewResult<T> Query<T>(Views.IViewQuery query)
+        public IViewResult<T> Query<T>(IViewQuery query)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -146,7 +158,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Views.IViewQuery CreateQuery(bool development)
+        public IViewQuery CreateQuery(bool development)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

@@ -14,6 +14,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public object[] Alerts { get; set; }
 
         [JsonProperty("alertsSilenceURL")]
+// ReSharper disable once InconsistentNaming
         public string AlertsSilenceURL { get; set; }
 
         [JsonProperty("nodes")]

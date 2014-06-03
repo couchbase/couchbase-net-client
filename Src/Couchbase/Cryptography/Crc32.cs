@@ -8,7 +8,7 @@ namespace Couchbase.Cryptography
         private const uint Polynomial = 0xedb88320u;
         private const uint Seed = 0xffffffffu;
         private static readonly uint[] Table = new uint[256];
-        private uint _hash = 0;
+        private uint _hash;
 
         static Crc32()
         {

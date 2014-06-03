@@ -13,7 +13,7 @@ namespace Couchbase
     {
         private const string DefaultBucket = "default";
         private static Lazy<CouchbaseCluster> _instance;
-        private ClientConfiguration _configuration;
+        private readonly ClientConfiguration _configuration;
         private readonly IClusterManager _clusterManager;
         private static readonly object SyncObj = new object();
 

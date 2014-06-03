@@ -18,7 +18,6 @@ namespace Couchbase.Tests.Core.Buckets
     public class VBucketKeyMapperTests
     {
         const string Key = "XXXXX";
-        private Dictionary<int, IVBucket> _vBuckets;
         private List<IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
 

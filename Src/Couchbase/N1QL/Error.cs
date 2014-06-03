@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.N1QL
+﻿namespace Couchbase.N1QL
 {
     /// <summary>
     /// Represents additional information returned from a N1QL query when an error has occurred.

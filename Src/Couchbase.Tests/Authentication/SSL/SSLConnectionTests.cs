@@ -13,10 +13,10 @@ using NUnit.Framework.Constraints;
 namespace Couchbase.Tests.Authentication.SSL
 {
     [TestFixture]
-    public class SSLConnectionTests
+    public class SslConnectionTests
     {
         [Test]
-        public void TestSSLConnect()
+        public void TestSslConnect()
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Connect("127.0.0.1", (int)DefaultPorts.SslDirect);

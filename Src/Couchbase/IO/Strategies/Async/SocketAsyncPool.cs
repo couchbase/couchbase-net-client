@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Strategies.Awaitable;
@@ -24,7 +20,7 @@ namespace Couchbase.IO.Strategies.Async
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
         private readonly IConnectionPool _connectionPool;
         private readonly object _lock = new object();
-        private volatile int _count;
+        private int _count;
         private bool _disposed;
 
         public SocketAsyncPool(IConnectionPool connectionPool, Func<IConnectionPool, BufferAllocator, SocketAsyncEventArgs> socketAsyncFactory)
@@ -110,15 +106,20 @@ namespace Couchbase.IO.Strategies.Async
 
         void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!_disposed)
             {
-                GC.SuppressFinalize(this);
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+
+                if (_pool == null) return;
+                foreach (SocketAsyncEventArgs socketAsyncEventArgs in _pool)
+                {
+                    socketAsyncEventArgs.Dispose();
+                }
             }
-            if (_pool == null) return;
-            foreach (var socketAsyncEventArgs in _pool)
-            {
-                socketAsyncEventArgs.Dispose();
-            }
+            _disposed = true;
         }
 
         ~SocketAsyncPool()

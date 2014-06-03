@@ -12,6 +12,7 @@ using System.Diagnostics;
 ///////////////////////////////////////////////////////////////////////////////
 
 
+// ReSharper disable once CheckNamespace
 namespace Wintellect
 {
     /// <summary>
@@ -19,10 +20,18 @@ namespace Wintellect
     /// </summary>
     public sealed class OperationTimer : IDisposable
     {
+// ReSharper disable once InconsistentNaming
         private static Int32 s_NumOperationTimersStarted;
+// ReSharper disable once InconsistentNaming
         private Stopwatch m_sw;
+// ReSharper disable once InconsistentNaming
+// ReSharper disable once FieldCanBeMadeReadOnly.Local
         private String m_text;
+// ReSharper disable InconsistentNaming
+// ReSharper disable FieldCanBeMadeReadOnly.Local
         private Int32 m_collectionCount;
+// ReSharper restore FieldCanBeMadeReadOnly.Local
+// ReSharper restore InconsistentNaming
 
         /// <summary>
         /// Constructs an OperationTimer with an empty text string

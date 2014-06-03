@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
 
 namespace Couchbase.IO.Operations
 {

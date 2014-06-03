@@ -6,7 +6,6 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
-using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
 using System;
 using System.Collections.Generic;
@@ -22,14 +21,13 @@ namespace Couchbase.Configuration
     internal abstract class ConfigContextBase : IConfigInfo
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
-        protected IBucketConfig _bucketConfig;
-        protected IKeyMapper _keyMapper;
+        protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
-        protected ClientConfiguration _clientConfig;
-        protected readonly List<IServer> _servers = new List<IServer>();
-        protected Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
-        protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        protected readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
+        private readonly ClientConfiguration _clientConfig;
+        private readonly List<IServer> _servers = new List<IServer>();
+        protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
+        protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
+        protected readonly Func<string, string, IOStrategy, ISaslMechanism> SaslFactory;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
@@ -38,11 +36,16 @@ namespace Couchbase.Configuration
             Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
         {
             _clientConfig = clientConfig;
-            _ioStrategyFactory = ioStrategyFactory;
-            _connectionPoolFactory = connectionPoolFactory;
+            IOStrategyFactory = ioStrategyFactory;
+            ConnectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
-            _saslFactory = saslFactory;
+            SaslFactory = saslFactory;
             LoadConfig(bucketConfig);
+        }
+
+        protected List<IServer> Servers
+        {
+            get { return _servers; }
         }
 
         /// <summary>
@@ -57,17 +60,14 @@ namespace Couchbase.Configuration
         /// The client configuration for a bucket.
         /// <remarks> See <see cref="IBucketConfig"/> for details.</remarks>
         /// </summary>
-        public IBucketConfig BucketConfig
-        {
-            get { return _bucketConfig; }
-        }
+        public IBucketConfig BucketConfig { get; set; }
 
         /// <summary>
         /// The name of the Bucket that this configuration represents.
         /// </summary>
         public string BucketName
         {
-            get { return _bucketConfig.Name; }
+            get { return BucketConfig.Name; }
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Couchbase.Configuration
             get
             {
                 BucketTypeEnum bucketType;
-                if (!Enum.TryParse(_bucketConfig.BucketType, true, out bucketType))
+                if (!Enum.TryParse(BucketConfig.BucketType, true, out bucketType))
                 {
                     throw new NullConfigException("BucketType is not defined");
                 }
@@ -102,7 +102,7 @@ namespace Couchbase.Configuration
             get
             {
                 NodeLocatorEnum nodeLocator;
-                if (!Enum.TryParse(_bucketConfig.NodeLocator, true, out nodeLocator))
+                if (!Enum.TryParse(BucketConfig.NodeLocator, true, out nodeLocator))
                 {
                     throw new NullConfigException("NodeLocator is not defined");
                 }
@@ -144,8 +144,8 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IKeyMapper GetKeyMapper(string bucketName)
         {
-            Log.Info(m=>m("Getting KeyMapper for rev#{0} on thread {1}", _bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
-            return _keyMapper;
+            Log.Info(m=>m("Getting KeyMapper for rev#{0} on thread {1}", BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
+            return KeyMapper;
         }
 
         /// <summary>

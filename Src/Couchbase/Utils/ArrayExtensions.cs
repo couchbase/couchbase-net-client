@@ -79,7 +79,7 @@ namespace Couchbase.Utils
                 {
                     if (item.GetType().BaseType == typeof (Array))
                     {
-                        var jagged = item as Array;
+                        var jagged = (Array)item;
                         foreach (var inner in jagged)
                         {
                             hash += inner.GetHashCode();

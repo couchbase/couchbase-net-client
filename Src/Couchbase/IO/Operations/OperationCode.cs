@@ -17,6 +17,7 @@ namespace Couchbase.IO.Operations
         NoOp = 0x0A,
         Version = 0x0B,
         GetK = 0x0C,
+// ReSharper disable once InconsistentNaming
         GetKQ = 0x0D,
         Append = 0x0E,
         Prepend = 0x0F,

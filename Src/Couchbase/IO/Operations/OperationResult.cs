@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using Common.Logging;
 using Couchbase.Configuration.Server.Serialization;
 

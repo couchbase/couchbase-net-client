@@ -14,10 +14,9 @@ namespace Couchbase.Tests.IO.Strategies.EAP
     [TestFixture]
     public class EapIoStrategyTests
     {
-        private EAPIOStrategy _ioStrategy;
+        private EapioStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11207";
-        //private const string Address = "192.168.56.102:11210";
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -25,7 +24,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
             var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);       
-            _ioStrategy = new EAPIOStrategy(_connectionPool);
+            _ioStrategy = new EapioStrategy(_connectionPool);
         }
 
         [Test]

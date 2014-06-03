@@ -1,16 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Common.Logging;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
-using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Strategies
 {
@@ -54,6 +47,10 @@ namespace Couchbase.IO.Strategies
         private void SendCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
             _sslStream.EndWrite(asyncResult);
             _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, State);
         }
@@ -61,7 +58,11 @@ namespace Couchbase.IO.Strategies
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
             var state = asyncResult.AsyncState as OperationAsyncState;
-            
+            if (state == null)
+            {
+                throw new NullReferenceException("state cannot be null.");
+            }
+
             var bytesRead = _sslStream.EndRead(asyncResult);
             state.BytesReceived += bytesRead;
             state.Data.Write(state.Buffer, 0, bytesRead);

@@ -9,7 +9,6 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -32,10 +31,10 @@ namespace Couchbase.Core
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            (pool) => new DefaultIOStrategy(pool),
+            pool => new DefaultIOStrategy(pool),
             (config, endpoint) =>
             {
-                IConnectionPool connectionPool = null;
+                IConnectionPool connectionPool;
                 if (config.UseSsl)
                 {
                     connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
@@ -55,7 +54,7 @@ namespace Couchbase.Core
             ioStrategyFactory,
             (config, endpoint) =>
             {
-                IConnectionPool connectionPool = null;
+                IConnectionPool connectionPool;
                 if (config.UseSsl)
                 {
                     connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
@@ -99,9 +98,6 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName, string password)
         {
-            //note we probably want to treat this whole process as an aggregate and not log
-            //until the process has completed with success or failure then logged along with
-            //the sequence of events that occurred.
             var success = false;
             IBucket bucket = null;
             foreach (var provider in _configProviders)

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -83,7 +82,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                 {
                                     Log.Info(m=>m("configuration changed count: {0}", count++));
                                     Log.Info(m=>m("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId));
-                                    Log.Debug(m=>m("{0}", config));
+                                    var config1 = config;
+                                    Log.Debug(m=>m("{0}", config1));
 
                                     var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
                                     bucketConfig.SurrogateHost = GetSurrogateHost(streamingUri);

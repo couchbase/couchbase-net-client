@@ -21,7 +21,7 @@ namespace Couchbase.Core.Serializers
                 TypeCode.DBNull :
                 Type.GetTypeCode(type);
 
-            byte[] bytes = null;
+            byte[] bytes;
             switch (typeCode)
             {
                 case TypeCode.String:
@@ -52,7 +52,7 @@ namespace Couchbase.Core.Serializers
             var extrasLength = operation.Header.ExtrasLength;
             const int headerLength = OperationBase<T>.HeaderLength;
 
-            object value = null;
+            object value;
             switch (typeCode)
             {
                 case TypeCode.String:

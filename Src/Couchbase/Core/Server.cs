@@ -3,16 +3,13 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.Authentication;
 using System.Text;
 using Common.Logging;
-using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.Async;
 using Couchbase.N1QL;
 using Couchbase.Views;
 

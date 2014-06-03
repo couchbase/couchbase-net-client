@@ -40,7 +40,7 @@ namespace tester
             _cluster = CouchbaseCluster.Get();
             var bucket = _cluster.OpenBucket("default");
  
-            int n = 100000;
+            const int n = 100000;
 
             using (var timer = new OperationTimer())
             {

@@ -1,17 +1,10 @@
-﻿using System.Dynamic;
-using Common.Logging;
-using Couchbase.Authentication.SASL;
+﻿using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Operations.Authentication;
-using Couchbase.IO.Strategies.Async;
 using System;
-using System.Collections.Concurrent;
-using System.Linq;
 using System.Net;
-using Couchbase.Views;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {

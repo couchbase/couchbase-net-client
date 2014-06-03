@@ -13,11 +13,6 @@ namespace Couchbase.Tests.Configuration.Client
         {
             get { return @"Data\\Configuration\\bootstrap.json"; }
         }
-
-        public List<Uri> Servers
-        {
-            get { throw new NotImplementedException(); }
-        }
     }
 }
 

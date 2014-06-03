@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
@@ -20,8 +19,7 @@ namespace Couchbase.Tests.Core.Buckets
     {
         private KetamaKeyMapper _keyMapper;
         private List<IServer> _servers;
-        private VBucketServerMap _vBucketServerMap;
-        
+
         [TestFixtureSetUp]
         public void SetUp()
         {

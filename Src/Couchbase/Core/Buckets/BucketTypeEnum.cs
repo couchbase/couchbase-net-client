@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.Core.Buckets
+﻿namespace Couchbase.Core.Buckets
 {
     /// <summary>
     /// Represents the Bucket types supported by Couchbase Server

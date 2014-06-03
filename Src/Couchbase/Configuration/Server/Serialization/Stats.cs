@@ -8,9 +8,11 @@ namespace Couchbase.Configuration.Server.Serialization
         public string Uri { get; set; }
 
         [JsonProperty("directoryURI")]
+// ReSharper disable once InconsistentNaming
         public string DirectoryURI { get; set; }
 
         [JsonProperty("nodeStatsListURI")]
+// ReSharper disable once InconsistentNaming
         public string NodeStatsListURI { get; set; }
     }
 }

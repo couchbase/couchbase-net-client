@@ -60,7 +60,7 @@ namespace Couchbase.IO
                 socket.Connect(p.EndPoint);
 
                 //TODO refactor
-                IConnection connection = null;
+                IConnection connection;
                 if (p.Configuration.UseSsl)
                 {
                     var pool = p as ConnectionPool<SslConnection>;

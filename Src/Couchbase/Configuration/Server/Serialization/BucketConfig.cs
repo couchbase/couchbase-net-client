@@ -146,7 +146,7 @@ namespace Couchbase.Configuration.Server.Serialization
                 hash = hash*23 + Uuid.GetHashCode();
                 hash = hash*23 + Nodes.GetCombinedHashcode();
                 return hash;
-            };
+            }
         }
 
         public override string ToString()

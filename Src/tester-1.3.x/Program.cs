@@ -11,7 +11,7 @@ namespace tester_1._3.x
 {
     class Program
     {
-        static CouchbaseClient Client = new CouchbaseClient();
+        static readonly CouchbaseClient Client = new CouchbaseClient();
         static void Main(string[] args)
         {
             int n = 100000;

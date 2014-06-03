@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -53,20 +49,20 @@ namespace Couchbase.Configuration
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-            if (_bucketConfig == null || !_bucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
+            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
             {
                 foreach (var node in bucketConfig.Nodes)
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
-                    var connectionPool = _connectionPoolFactory(_clientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration, endpoint);
-                    //var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password,_clientConfig.SaslMechanism);
-                    var ioStrategy = _ioStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy, node, _clientConfig);
-                    var saslMechanism = _saslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy);
+                    var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration, endpoint);
+                    var ioStrategy = IOStrategyFactory(connectionPool);
+                    var server = new Core.Server(ioStrategy, node, ClientConfig);
+                    var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy);
+                    saslMechanism.IOStrategy = ioStrategy;
            
-                    _servers.Add(server); //todo make atomic
-                    _keyMapper = new KetamaKeyMapper(_servers);//todo make atomic
-                    _bucketConfig = bucketConfig;
+                    Servers.Add(server); //todo make atomic
+                    KeyMapper = new KetamaKeyMapper(Servers);//todo make atomic
+                    BucketConfig = bucketConfig;
                 }
             }
         }

@@ -8,6 +8,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public int Ram { get; set; }
 
         [JsonProperty("rawRAM")]
+// ReSharper disable once InconsistentNaming
         public int RawRAM { get; set; }
     }
 }

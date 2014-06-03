@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Configuration;
-using System.Net.Sockets;
 using Couchbase.Core;
 using Couchbase.IO;
-using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.Configuration.Client
 {
