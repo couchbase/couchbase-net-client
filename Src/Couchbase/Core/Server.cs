@@ -115,7 +115,7 @@ namespace Couchbase.Core
             return uri.Replace("$HOST", "localhost");
         }
 
-        //TODO needs SSL support!
+        //TODO needs SSL support (when N1QL supports SSL)!
         public string GetBaseQueryUri()
         {
             var sb = new StringBuilder();
@@ -126,27 +126,6 @@ namespace Couchbase.Core
             sb.Append("/query");
 
             return sb.ToString();
-        }
-
-        public static IPEndPoint GetEndPoint(string server)
-        {
-            const int maxSplits = 2;
-            var address = server.Split(':');
-            if (address.Count() != maxSplits)
-            {
-                throw new ArgumentException("server");
-            }
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(address[0], out ipAddress))
-            {
-                throw new ArgumentException("ipAddress");
-            }
-            int port;
-            if (!int.TryParse(address[1], out port))
-            {
-                throw new ArgumentException("port");
-            }
-            return new IPEndPoint(ipAddress, port);
         }
 
         public void Dispose()

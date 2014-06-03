@@ -24,6 +24,14 @@ namespace Couchbase.Configuration.Client
 
         public ClientConfiguration()
         {
+            UseSsl = false;
+            SslPort = 11207;
+            ApiPort = 8092;
+            DirectPort = 11210;
+            MgmtPort = 8091;
+            HttpsMgmtPort = 18091;
+            HttpsApiPort = 18092;
+
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
@@ -224,13 +232,10 @@ namespace Couchbase.Configuration.Client
                         //Rewrite the URI's for boostrapping to use SSL.
                         if (UseSsl)
                         {
-                            if (_servers[i].Port == MgmtPort)
-                            {
-                                var oldUri = _servers[i];
-                                var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
-                                    ":", HttpsMgmtPort, oldUri.PathAndQuery));
-                                _servers[i] = newUri;
-                            }
+                            var oldUri = _servers[i];
+                            var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
+                                ":", HttpsMgmtPort, oldUri.PathAndQuery));
+                            _servers[i] = newUri;
 
                             //Setting ssl to true at parent level overrides child level ssl settings
                             foreach (var bucketConfig in BucketConfigs.Values)

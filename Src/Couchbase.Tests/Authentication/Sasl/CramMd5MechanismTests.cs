@@ -11,6 +11,7 @@ using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Authentication.Sasl
@@ -25,7 +26,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();

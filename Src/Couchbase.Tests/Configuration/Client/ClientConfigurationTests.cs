@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Configuration.Client
             var bucketConfig = config.BucketConfigs.First().Value;
 
             IPAddress ipAddress;
-            IPAddress.TryParse("127.0.0.1", out ipAddress);
+            IPAddress.TryParse("192.168.56.1", out ipAddress);
             var endPoint = new IPEndPoint(ipAddress, bucketConfig.Port);
             Assert.AreEqual(endPoint, bucketConfig.GetEndPoint());
 
@@ -56,7 +56,7 @@ namespace Couchbase.Tests.Configuration.Client
             var bucketConfig = config.BucketConfigs.First().Value;
 
             IPAddress ipAddress;
-            IPAddress.TryParse("127.0.0.1", out ipAddress);
+            IPAddress.TryParse("192.168.56.1", out ipAddress);
             var endPoint = new IPEndPoint(ipAddress, bucketConfig.Port);
             Assert.AreEqual(endPoint, bucketConfig.GetEndPoint());
 
@@ -107,7 +107,7 @@ namespace Couchbase.Tests.Configuration.Client
             var bucketConfig = config.BucketConfigs.First().Value;
 
             IPAddress ipAddress;
-            IPAddress.TryParse("127.0.0.1", out ipAddress);
+            IPAddress.TryParse("192.168.56.1", out ipAddress);
             var endPoint = new IPEndPoint(ipAddress, bucketConfig.Port);
             Assert.AreEqual(endPoint, bucketConfig.GetEndPoint());
 
@@ -124,17 +124,16 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
-        public void Test_EncryptTraffic()
+        public void Test_UseSsl()
         {
             var config = new ClientConfiguration {UseSsl = true};
             config.Initialize();
 
             var bucket = config.BucketConfigs.First().Value;
             Assert.AreEqual(true, bucket.UseSsl);
-            //Assert.AreEqual("https://localhost:18091/default", bucket.Servers.First());
             Assert.AreEqual("https://localhost:18091/pools", config.Servers.First().ToString());
 
-            Assert.AreEqual("127.0.0.1:11207", bucket.GetEndPoint().ToString());      
+            Assert.AreEqual("192.168.56.1:11207", bucket.GetEndPoint().ToString());      
         }
     }
 }

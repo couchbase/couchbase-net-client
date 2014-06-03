@@ -1,8 +1,65 @@
-﻿namespace Couchbase.Utils
+﻿using System;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+
+namespace Couchbase.Utils
 {
+    /// <summary>
+    /// Provides extension methods for working with <see cref="Uri"/> class instances.
+    /// </summary>
     public static class UriExtensions
     {
- 
+        public static IPAddress GetIpAddress(this Uri uri)
+        {
+            IPAddress ipAddress = null;
+            var hostEntry = Dns.GetHostEntry(uri.Host);
+            foreach (var host in hostEntry.AddressList)
+            {
+                if (host.AddressFamily != AddressFamily.InterNetwork) continue;
+                ipAddress = host;
+                break;
+            }
+            if (ipAddress == null)
+            {
+                throw new UnsupportedAddressFamilyException(uri.OriginalString);
+            }
+            return ipAddress;
+        }
+
+        /// <summary>
+        /// Gets an <see cref="IPEndPoint"/> given a valid <see cref="Uri"/> instance and port.
+        /// </summary>
+        /// <param name="uri">The <see cref="Uri"/> to use to get the <see cref="IPEndPoint"/></param>
+        /// <param name="port">The network port to use.</param>
+        /// <returns>An <see cref="IPEndPoint"/> reference.</returns>
+// ReSharper disable once InconsistentNaming
+        public static IPEndPoint GetIPEndPoint(this Uri uri, int port)
+        {
+            var ipAddress = uri.GetIpAddress();
+            return new IPEndPoint(ipAddress, port);
+        }
+
+        public static IPEndPoint GetEndPoint(string server)
+        {
+            const int maxSplits = 2;
+            var address = server.Split(':');
+            if (address.Count() != maxSplits)
+            {
+                throw new ArgumentException("server");
+            }
+            IPAddress ipAddress;
+            if (!IPAddress.TryParse(address[0], out ipAddress))
+            {
+                throw new ArgumentException("ipAddress");
+            }
+            int port;
+            if (!int.TryParse(address[1], out port))
+            {
+                throw new ArgumentException("port");
+            }
+            return new IPEndPoint(ipAddress, port);
+        }
     }
 }
 

@@ -13,6 +13,7 @@ using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core
@@ -27,7 +28,7 @@ namespace Couchbase.Tests.Core
         public void TestFixtureSetup()
         {
             var configuration = new ClientConfiguration();
-            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             _server = new Server(ioStrategy, new Node(), configuration);
         }
@@ -60,7 +61,7 @@ namespace Couchbase.Tests.Core
         public void TestGetEndpoint()
         {
             const string address = "192.168.56.101:11210";
-            var endpoint = Server.GetEndPoint(address);
+            var endpoint = UriExtensions.GetEndPoint(address);
 
             Assert.AreEqual(endpoint.Address.ToString(), "192.168.56.101");
             Assert.AreEqual(endpoint.Port, 11210);
@@ -75,7 +76,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new Node(), configuration))
             {
@@ -93,7 +94,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), Server.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new Node(), configuration))
             {

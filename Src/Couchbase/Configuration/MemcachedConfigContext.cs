@@ -37,9 +37,7 @@ namespace Couchbase.Configuration
 
             var address = node.Hostname.Replace(blah, bucketConfig.SurrogateHost);
             address = address.Replace(couchbasePort, node.Ports.Direct.ToString(CultureInfo.InvariantCulture));
-            var endpoint = Core.Server.GetEndPoint(address);
-
-            return endpoint;
+            return UriExtensions.GetEndPoint(address);
         }
 
         /// <summary>

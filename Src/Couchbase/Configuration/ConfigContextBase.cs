@@ -127,7 +127,7 @@ namespace Couchbase.Configuration
                 var splits = address.Split(':');
                 address = string.Concat(splits[0], ":", bucket.Port);
             }
-            return Core.Server.GetEndPoint(address);
+            return UriExtensions.GetEndPoint(address);
         }
 
         /// <summary>

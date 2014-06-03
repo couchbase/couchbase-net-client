@@ -73,19 +73,9 @@ namespace Couchbase.Configuration.Client
             {
                 throw new ArgumentException("server");
             }
-
-            //TODO handle hostname=>ip resolution here
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(server.Host, out ipAddress))
-            {
-                throw new ArgumentException("ipAddress");
-            }
-
-            //this needs to be configurable perhaps,
-            //because you can only use the default SslPort for now...
             var port = UseSsl ? SslPort : Port;
-            return new IPEndPoint(ipAddress, port);
-        } 
+            return server.GetIPEndPoint(port);
+        }
     }
 }
 

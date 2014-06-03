@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Strategies.EAP
@@ -23,9 +24,8 @@ namespace Couchbase.Tests.IO.Strategies.EAP
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
-            var connectionPoolConfig = new PoolConfiguration {UseSsl = false};
-            //_connectionPool = new ConnectionPool<SslConnection>(connectionPoolConfig, ipEndpoint);      
+            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            var connectionPoolConfig = new PoolConfiguration {UseSsl = false};     
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint); 
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }

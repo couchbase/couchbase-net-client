@@ -10,6 +10,7 @@ using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Operations.Authentication
@@ -24,7 +25,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = Couchbase.Core.Server.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);

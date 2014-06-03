@@ -3,6 +3,7 @@ using Couchbase.Core;
 using Couchbase.IO;
 using System;
 using System.Collections.Generic;
+using Couchbase.Utils;
 
 namespace Couchbase.Tests.Fakes
 {
@@ -12,7 +13,7 @@ namespace Couchbase.Tests.Fakes
 
         public FakeConnectionPool()
         {
-            EndPoint = Server.GetEndPoint("127.0.01:8091");
+            EndPoint = UriExtensions.GetEndPoint("127.0.01:8091");
         }
 
         public IConnection Acquire()

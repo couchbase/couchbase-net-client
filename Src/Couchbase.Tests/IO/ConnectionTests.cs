@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO
@@ -19,7 +20,7 @@ namespace Couchbase.Tests.IO
         [SetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = Server.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
         }

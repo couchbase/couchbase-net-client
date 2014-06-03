@@ -82,6 +82,7 @@
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
+    <Compile Include="Encryption\EffectiveConfigurationTests.cs" />
     <Compile Include="Fakes\FakeConnection.cs" />
     <Compile Include="Fakes\FakeConnectionPool.cs" />
     <Compile Include="Fakes\FakeOperation.cs" />
@@ -123,6 +124,7 @@
     <Compile Include="Utils\BoolExtensionTests.cs" />
     <Compile Include="Utils\BufferExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
+    <Compile Include="Utils\UriExtensionTests.cs" />
     <Compile Include="VBucketTests.cs">
       <SubType>Code</SubType>
     </Compile>
