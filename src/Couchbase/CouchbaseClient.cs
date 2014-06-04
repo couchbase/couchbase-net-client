@@ -46,7 +46,10 @@ namespace Couchbase
         ~CouchbaseClient()
         {
             // On destruction explictly request a Dispose of the Pool, all associated sockets are now cleaned up.
-            this.Pool.Dispose();
+            if (Pool != null)
+            {
+                this.Pool.Dispose();
+            }
         }
 
         /// <summary>
