@@ -10,7 +10,11 @@ namespace Couchbase.N1QL
     /// <remarks>The dynamic keyword works well for the Type T.</remarks>
     public class QueryResult<T> : IQueryResult<T>
     {
-        /// <summary>
+        public QueryResult()
+        {
+            Rows = new List<T>();
+        }
+            /// <summary>
         /// The resultset or rows that are returned in a query.
         /// </summary>
         [JsonProperty("resultset")]

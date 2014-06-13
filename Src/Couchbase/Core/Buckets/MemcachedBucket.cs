@@ -138,6 +138,73 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
+        /// <summary>
+        /// Increments the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<long> Increment(string key)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<long> Increment(string key, ulong delta)
+        {
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<long> Increment(string key, ulong delta, ulong initial)
+        {
+            //infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0;
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration)
+        {
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new IncrementOperation(key, initial, delta, expiration, null);
+            var operationResult = server.Send(operation);
+
+            return operationResult;
+        }
+
         public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");

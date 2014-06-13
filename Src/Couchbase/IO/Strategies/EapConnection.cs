@@ -74,7 +74,7 @@ namespace Couchbase.IO.Strategies
             {
                 CreateBody(state);
                 _sendEvent.Set();
-            }
+            }   
         }
 
         /// <summary>

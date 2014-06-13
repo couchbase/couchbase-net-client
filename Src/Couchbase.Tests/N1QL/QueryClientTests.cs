@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.N1QL;
+using Couchbase.Tests.Documents;
 using Couchbase.Views;
 using NUnit.Framework;
 
@@ -37,6 +38,34 @@ namespace Couchbase.Tests.N1QL
             Assert.IsNotNull(result);
             Assert.IsFalse(result.Success);
             Assert.IsNull(result.Rows);
+        }
+
+        //SELECT c.children FROM tutorial as c
+        [Test]
+        public void TestQuery_Select_Children_Dynamic()
+        {
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var uri = new Uri("http://localhost:8093/query");
+            const string query = "SELECT c.children FROM tutorial as c";
+
+            var result = client.Query<dynamic>(uri, query);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+            Assert.IsNotNull(result.Rows);
+        }
+
+        //SELECT c.children FROM tutorial as c
+        [Test]
+        public void TestQuery_Select_Children_Poco()
+        {
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var uri = new Uri("http://localhost:8093/query");
+            const string query = "SELECT c.children FROM tutorial as c";
+
+            var result = client.Query<Contact>(uri, query);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+            Assert.IsNotNull(result.Rows);
         }
     }
 }

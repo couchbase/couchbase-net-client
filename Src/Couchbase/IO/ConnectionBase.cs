@@ -78,11 +78,13 @@ namespace Couchbase.IO
             var buffer = state.Data.GetBuffer();
             if (buffer.Length > 0)
             {
+                //hack for increment wierdness
+                var offset = state.Header.OperationCode == OperationCode.Increment ? 31 : 28;
                 state.Body = new OperationBody
                 {
-                    Extras =
-                        new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
-                    Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
+                  Extras =state.Header.ExtrasLength > 0 ?
+                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength) : new ArraySegment<byte>(),
+                    Data = new ArraySegment<byte>(buffer, offset, state.Header.BodyLength)
                 };
             }
         }

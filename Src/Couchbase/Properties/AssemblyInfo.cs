@@ -36,4 +36,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 [assembly: InternalsVisibleTo("Couchbase.Tests")]
-[assembly: InternalsVisibleTo("ConsoleApplication1")]
+[assembly: InternalsVisibleTo("Couchbase.Linq.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Linq")]

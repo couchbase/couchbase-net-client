@@ -6,7 +6,7 @@ namespace Couchbase.Views
     /// <summary>
     /// Provides and interface for mapping the results of a <see cref="ViewQuery"/> to it's <see cref="IViewResult{T}"/>
     /// </summary>
-    internal interface IDataMapper
+    public interface IDataMapper
     {
         /// <summary>
         /// Maps a single row.

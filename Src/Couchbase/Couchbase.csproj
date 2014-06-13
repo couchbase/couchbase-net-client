@@ -154,6 +154,7 @@
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
+    <Compile Include="IO\Operations\IncrementOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs">
       <SubType>Code</SubType>

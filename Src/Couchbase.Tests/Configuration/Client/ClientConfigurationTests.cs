@@ -135,6 +135,17 @@ namespace Couchbase.Tests.Configuration.Client
 
             Assert.AreEqual("192.168.56.1:11207", bucket.GetEndPoint().ToString());      
         }
+
+        [Test]
+        public void Test_UseSsl2()
+        {
+            var configuration = new ClientConfiguration
+            {
+                UseSsl = true
+            };
+            CouchbaseCluster.Initialize(configuration);
+            var cluster = CouchbaseCluster.Get();
+        }
     }
 }
 

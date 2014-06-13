@@ -21,7 +21,7 @@ namespace Couchbase.Tests.IO.Operations
         private const string Address = "127.0.0.1:11210";
 
         [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        public virtual void TestFixtureSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -49,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
         internal IOStrategy IOStrategy { get { return _ioStrategy; } }
 
         [TestFixtureTearDown]
-        public void TearDown()
+        public virtual void TestFixtureTearDown()
         {
             _connectionPool.Dispose();
         }

@@ -251,6 +251,57 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                const string key = "When_Integer_Is_Incremented_Value_Increases_By_One";
+                bucket.Remove(key);
+
+                var result = bucket.Increment(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.Value);
+
+                result = bucket.Increment(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(2, result.Value);
+            }
+        }
+
+        [Test]
+        public void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12()
+        {
+            const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12";
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                bucket.Remove(key);
+                var result = bucket.Increment(key, 10, 2);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(2, result.Value);
+
+                result = bucket.Increment(key, 10, 2);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(12, result.Value);
+            }
+        }
+
+        [Test]
+        public void When_Expiration_Is_2_Key_Expires_After_2_Seconds()
+        {
+            const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds";
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                bucket.Remove(key);
+                var result = bucket.Increment(key, 1, 1, 1);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.Value);
+                Thread.Sleep(2000);
+                result = bucket.Get<long>(key);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

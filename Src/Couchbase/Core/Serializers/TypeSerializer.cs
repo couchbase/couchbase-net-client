@@ -63,6 +63,14 @@ namespace Couchbase.Core.Serializers
                     value = GetInt32(data);
                     break;
 
+                case TypeCode.UInt64:
+                    value = GetUInt64(data);
+                    break;
+
+                case TypeCode.Int64:
+                    value = GetInt64(data);
+                    break;
+
                 default:
                     value = Deserialize<T>(data, headerLength + extrasLength, bodyLength - extrasLength);
                     break;
@@ -126,6 +134,26 @@ namespace Couchbase.Core.Serializers
             if (bytes.Array != null)
             {
                 result = BitConverter.ToInt32(bytes.Array, bytes.Offset);
+            }
+            return result;
+        }
+
+        private static ulong GetUInt64(ArraySegment<byte> bytes)
+        {
+            var result = 0ul;
+            if (bytes.Array != null)
+            {
+                result = BitConverter.ToUInt64(bytes.Array, bytes.Offset);
+            }
+            return result;
+        }
+
+        private static long GetInt64(ArraySegment<byte> bytes)
+        {
+            var result = 0l;
+            if (bytes.Array != null)
+            {
+                result = BitConverter.ToInt64(bytes.Array, bytes.Offset);
             }
             return result;
         }

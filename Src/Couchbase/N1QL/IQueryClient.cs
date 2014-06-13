@@ -7,7 +7,7 @@ namespace Couchbase.N1QL
     /// <summary>
     /// An interface for client-side support for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    internal interface IQueryClient
+    public interface IQueryClient
     {
         /// <summary>
         /// Executes an ad-hoc N1QL query against a Couchbase Server.

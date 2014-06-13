@@ -8,7 +8,7 @@ namespace Couchbase.N1QL
     /// <summary>
     /// A <see cref="IViewClient"/> implementation for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    internal class QueryClient : IQueryClient
+    public class QueryClient : IQueryClient
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
 

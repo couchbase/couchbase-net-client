@@ -32,7 +32,7 @@ namespace Couchbase.Tests.Utils
         {
             var uri = new Uri("http://localhost:8091/pools");
             var ipEndPoint = uri.GetIPEndPoint(12101);
-            Assert.AreEqual(ipEndPoint.Address.ToString(), "127.0.0.1");
+            Assert.AreEqual("127.0.0.1", ipEndPoint.Address.ToString());
         }
 
         [Test]
@@ -40,7 +40,7 @@ namespace Couchbase.Tests.Utils
         {
             var uri = new Uri("http://127.0.0.1:8091/pools");
             var ipEndPoint = uri.GetIPEndPoint(12101);
-            Assert.AreEqual(ipEndPoint.Address.ToString(), "192.168.56.1");
+            Assert.AreEqual( "192.168.56.1", ipEndPoint.Address.ToString());
         }
     }
 }
