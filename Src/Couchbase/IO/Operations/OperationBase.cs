@@ -11,6 +11,7 @@ namespace Couchbase.IO.Operations
 {
     internal abstract class OperationBase<T> : IOperation<T>
     {
+        private const int DefaultOffset = 28;
         public const int HeaderLength = 24;
         private static int _sequenceId;//needs to be resolved
         private readonly int _opaque;
@@ -60,6 +61,11 @@ namespace Couchbase.IO.Operations
         public IVBucket VBucket
         {
             get { return _vBucket; }
+        }
+
+        public virtual int Offset
+        {
+            get { return DefaultOffset; }
         }
 
         public abstract OperationCode OperationCode { get; }

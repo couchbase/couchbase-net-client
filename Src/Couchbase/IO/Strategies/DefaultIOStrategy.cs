@@ -24,7 +24,6 @@ namespace Couchbase.IO.Strategies
         {
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
-            //_saslMechanism.IOStrategy = this;
         }
 
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)

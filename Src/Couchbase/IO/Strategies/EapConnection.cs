@@ -29,6 +29,8 @@ namespace Couchbase.IO.Strategies
         {
             State.Reset();
             var buffer = operation.GetBuffer();
+            State.Offset = operation.Offset;
+
             _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
             _sendEvent.WaitOne();
             operation.Header = State.Header;

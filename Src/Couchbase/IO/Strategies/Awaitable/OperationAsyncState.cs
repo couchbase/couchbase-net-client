@@ -46,6 +46,8 @@ namespace Couchbase.IO.Strategies.Awaitable
 
         public SslStream Stream { get; set; }
 
+        public int Offset { get; set; }
+
         /// <summary>
         /// Sets all values back to their defaults, so this object can be reused.
         /// </summary>

@@ -10,6 +10,7 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class IncrementOperation : OperationBase<long>
     {
+        private const int BodyOffset = 31;
         private readonly ulong _delta;
         private readonly uint _expiration;
         private readonly ulong _initial;
@@ -39,6 +40,11 @@ namespace Couchbase.IO.Operations
         public override ArraySegment<byte> CreateBody()
         {
             return new ArraySegment<byte>();
+        }
+
+        public override int Offset
+        {
+            get { return BodyOffset; }
         }
     }
 

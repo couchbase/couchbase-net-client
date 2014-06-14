@@ -25,6 +25,8 @@ namespace Couchbase.IO.Operations
         string Key { get; }
 
         Exception Exception { get; set; }
+
+        int Offset { get; }
     }
 }
 
