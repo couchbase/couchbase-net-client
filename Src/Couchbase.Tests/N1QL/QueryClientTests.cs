@@ -37,7 +37,7 @@ namespace Couchbase.Tests.N1QL
             var result = client.Query<dynamic>(uri, query);
             Assert.IsNotNull(result);
             Assert.IsFalse(result.Success);
-            Assert.IsNull(result.Rows);
+            Assert.IsEmpty(result.Rows);
         }
 
         //SELECT c.children FROM tutorial as c

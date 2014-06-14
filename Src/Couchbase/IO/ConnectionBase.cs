@@ -79,7 +79,8 @@ namespace Couchbase.IO
             if (buffer.Length > 0)
             {
                 //hack for increment wierdness
-                var offset = state.Header.OperationCode == OperationCode.Increment ? 31 : 28;
+                var offset = state.Header.OperationCode == OperationCode.Increment || 
+                    state.Header.OperationCode == OperationCode.Decrement ? 31 : 28;
                 state.Body = new OperationBody
                 {
                   Extras =state.Header.ExtrasLength > 0 ?

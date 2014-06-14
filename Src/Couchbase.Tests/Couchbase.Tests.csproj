@@ -108,6 +108,7 @@
     <Compile Include="IO\DefaultConnectionPoolTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
+    <Compile Include="IO\Operations\DecrementOperationTests.cs" />
     <Compile Include="IO\Operations\IncrementTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />

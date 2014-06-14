@@ -153,6 +153,7 @@
     <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
+    <Compile Include="IO\Operations\DecrementOperation.cs" />
     <Compile Include="IO\Operations\DeleteOperation.cs" />
     <Compile Include="IO\Operations\IncrementOperation.cs" />
     <Compile Include="IO\Operations\ReplaceOperation.cs" />

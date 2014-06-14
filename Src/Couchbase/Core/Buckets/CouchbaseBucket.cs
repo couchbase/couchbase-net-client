@@ -245,6 +245,76 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Decrements the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<long> Decrement(string key)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<long> Decrement(string key, ulong delta)
+        {
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<long> Decrement(string key, ulong delta, ulong initial)
+        {
+            //infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0;
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<long> Decrement(string key, ulong delta, ulong initial, uint expiration)
+        {
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new DecrementOperation(key, initial, delta, expiration, vBucket);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
         /// Gets a Task that can be awaited on for a given Key and value.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

@@ -64,7 +64,6 @@ namespace Couchbase.Core
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with 1.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="key"></param>
         /// <returns></returns>
         IOperationResult<long> Increment(string key);
@@ -98,6 +97,44 @@ namespace Couchbase.Core
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration);
+
+        /// <summary>
+        /// Decrements the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        IOperationResult<long> Decrement(string key);
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        IOperationResult<long> Decrement(string key, ulong delta);
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        IOperationResult<long> Decrement(string key, ulong delta, ulong initial);
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.  
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        IOperationResult<long> Decrement(string key, ulong delta, ulong initial, uint expiration);
 
         /// <summary>
         /// Gets a Task that can be awaited on for a given Key and value.

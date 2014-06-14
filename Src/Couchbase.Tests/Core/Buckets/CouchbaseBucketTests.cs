@@ -282,6 +282,85 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+
+        [Test]
+        public void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One";
+                bucket.Remove(key);
+
+                var result = bucket.Decrement(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.Value);
+
+                result = bucket.Decrement(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.Value);
+            }
+        }
+
+        [Test]
+        public void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero";
+
+                //remove key if it exists
+                bucket.Remove(key);
+
+                //will add the initial value
+                var result = bucket.Decrement(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.Value);
+
+                //decrement the key
+                result = bucket.Decrement(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.Value);
+
+                //Should still be zero
+                result = bucket.Decrement(key);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.Value);
+            }
+        }
+
+        [Test]
+        public void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2()
+        {
+            const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result = bucket.Decrement(key, 2, 4);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(4, result.Value);
+
+                result = bucket.Decrement(key, 2, 4);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(2, result.Value);
+            }
+        }
+
+        [Test]
+        public void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds()
+        {
+            const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result = bucket.Decrement(key, 1, 1, 1);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.Value);
+                Thread.Sleep(2000);
+                result = bucket.Get<long>(key);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
