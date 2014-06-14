@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using Common.Logging;
 
 namespace Couchbase.Utils
 {
@@ -10,15 +11,34 @@ namespace Couchbase.Utils
     /// </summary>
     public static class UriExtensions
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        
+        /// <summary>
+        /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.
+        /// </summary>
+        /// <param name="uri">The <see cref="Uri"/> to resolve the <see cref="IPAddress"/> from.</param>
+        /// <returns>An <see cref="IPAddress"/> reference.</returns>
+        /// <exception cref="UnsupportedAddressFamilyException"></exception>
+        /// <remarks>Only returns IPV4 Addresses!</remarks>
         public static IPAddress GetIpAddress(this Uri uri)
         {
             IPAddress ipAddress = null;
-            var hostEntry = Dns.GetHostEntry(uri.Host);
-            foreach (var host in hostEntry.AddressList)
+            if (!IPAddress.TryParse(uri.Host, out ipAddress))
             {
-                if (host.AddressFamily != AddressFamily.InterNetwork) continue;
-                ipAddress = host;
-                break;
+                try
+                {
+                    var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
+                    foreach (var host in hostEntry.AddressList)
+                    {
+                        if (host.AddressFamily != AddressFamily.InterNetwork) continue;
+                        ipAddress = host;
+                        break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Could not resolve hostname to IP", e);
+                }
             }
             if (ipAddress == null)
             {

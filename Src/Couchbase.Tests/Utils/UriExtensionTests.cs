@@ -12,6 +12,14 @@ namespace Couchbase.Tests.Utils
     public class UriExtensionTests
     {
         [Test]
+        public void When_Hostname_Is_IPAddress_Return_It()
+        {
+            var uri = new Uri("http://192.168.56.102:8091/pools");
+            var ipAddress = uri.GetIpAddress();
+            Assert.AreEqual("192.168.56.102", ipAddress.ToString());
+        }
+
+        [Test]
         public void When_GetIPAddress_Called_With_LocalHost_Returns_LoopBackIP()
         {
             var uri = new Uri("http://localhost:8091/pools");
@@ -24,7 +32,7 @@ namespace Couchbase.Tests.Utils
         {
             var uri = new Uri("http://127.0.0.1:8091/pools");
             var ipAddress = uri.GetIpAddress();
-            Assert.AreEqual("192.168.56.1", ipAddress.ToString());
+            Assert.AreEqual("127.0.0.1", ipAddress.ToString());
         }
 
         [Test]
@@ -40,7 +48,7 @@ namespace Couchbase.Tests.Utils
         {
             var uri = new Uri("http://127.0.0.1:8091/pools");
             var ipEndPoint = uri.GetIPEndPoint(12101);
-            Assert.AreEqual( "192.168.56.1", ipEndPoint.Address.ToString());
+            Assert.AreEqual("127.0.0.1", ipEndPoint.Address.ToString());
         }
     }
 }
