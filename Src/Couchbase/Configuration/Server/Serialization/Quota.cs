@@ -5,11 +5,11 @@ namespace Couchbase.Configuration.Server.Serialization
     internal sealed class Quota
     {
         [JsonProperty("ram")]
-        public int Ram { get; set; }
+        public ulong Ram { get; set; }
 
         [JsonProperty("rawRAM")]
 // ReSharper disable once InconsistentNaming
-        public int RawRAM { get; set; }
+        public ulong RawRAM { get; set; }
     }
 }
 
