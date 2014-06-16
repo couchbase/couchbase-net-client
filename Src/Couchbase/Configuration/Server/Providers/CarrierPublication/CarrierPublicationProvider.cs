@@ -21,6 +21,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+            password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
             var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
             var ioStrategy = IOStrategyFactory(connectionPool);
             var saslMechanism = SaslFactory(bucketName, password, ioStrategy);
@@ -42,6 +43,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                 }
+                throw new ConfigException("Could not retrieve configuration for {0}. Reason: {1}", bucketName, operationResult.Message);
             }
             return configInfo;
         }
