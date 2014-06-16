@@ -225,6 +225,12 @@ namespace Couchbase.Configuration.Client
                 {
                     bucketConfiguration.Servers.AddRange(Servers.Select(x=>x).ToList());
                 }
+                if (bucketConfiguration.Port == (int)DefaultPorts.Proxy)
+                {
+                    var message = string.Format("Proxy port {0} is not supported by the .NET client.",
+                        bucketConfiguration.Port);
+                    throw new NotSupportedException(message);
+                }
                 if (_useSslChanged)
                 {
                     for (var i = 0; i < _servers.Count(); i++)

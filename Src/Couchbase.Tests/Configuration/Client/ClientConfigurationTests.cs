@@ -137,6 +137,29 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_NotSupportedException_Thrown_When_Proxy_Port_Is_Configured()
+        {
+            var configuration = new ClientConfiguration {PoolConfiguration = {MaxSize = 10, MinSize = 10}};
+
+            configuration.Servers.Clear();
+            configuration.Servers.Add(new Uri("http://127.0.0.1:8091/pools"));
+
+            var bc = new BucketConfiguration();
+            bc.Password = "secret";
+            bc.Username = "admin";
+            bc.BucketName = "authenticated";
+
+            bc.Servers.Clear();
+            bc.Servers.Add(new Uri("http://127.0.0.1:8091/pools"));
+            bc.Port = 11211;
+
+            configuration.BucketConfigs.Clear();
+            configuration.BucketConfigs.Add("authenticated", bc);
+            configuration.Initialize();
+        }
+
+        [Test]
         public void Test_UseSsl2()
         {
             var configuration = new ClientConfiguration
