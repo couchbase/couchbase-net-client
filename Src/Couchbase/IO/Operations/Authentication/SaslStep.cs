@@ -5,8 +5,8 @@
     /// </summary>
     internal class SaslStep : SaslStart
     {
-         public SaslStep(string key, string value) 
-            : base(key, value)
+         public SaslStep(string key, string value, IByteConverter converter) 
+            : base(key, value, converter)
         {
         }
 

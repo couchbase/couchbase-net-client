@@ -5,8 +5,8 @@ namespace Couchbase.IO.Operations
 {
     internal class GetOperation<T> : OperationBase<T>
     {
-        public GetOperation(string key, IVBucket vBucket)
-            : base(key, vBucket)
+        public GetOperation(string key, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
         {
         }
 

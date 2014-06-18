@@ -26,7 +26,8 @@ namespace Couchbase.Core
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
+        private readonly IByteConverter _converter;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
@@ -45,7 +46,8 @@ namespace Couchbase.Core
                 }
                 return connectionPool;
             },
-            SaslFactory.GetFactory3())
+            SaslFactory.GetFactory3(),
+            new ManualByteConverter())
         {
         }
 
@@ -64,16 +66,22 @@ namespace Couchbase.Core
                     connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
                 }
                 return connectionPool;
-            }, SaslFactory.GetFactory3())
+            }, SaslFactory.GetFactory3(),
+            new ManualByteConverter())
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory, Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+        public ClusterManager(ClientConfiguration clientConfig, 
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            IByteConverter converter)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
+            _converter = converter;
             Initialize();
         }
 
@@ -82,8 +90,8 @@ namespace Couchbase.Core
         //TODO possibly make providers instantiation configurable...maybe. perhaps.
         private void Initialize()
         {
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory));
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory, _converter));
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory, _converter));
         }
 
         public IConfigProvider GetProvider(string name)
@@ -109,11 +117,11 @@ namespace Couchbase.Core
                     switch (config.NodeLocator)
                     {
                         case NodeLocatorEnum.VBucket:
-                            bucket = new CouchbaseBucket(this, bucketName);
+                            bucket = new CouchbaseBucket(this, bucketName, _converter);
                             break;
 
                         case NodeLocatorEnum.Ketama:
-                            bucket = new MemcachedBucket(this, bucketName);
+                            bucket = new MemcachedBucket(this, bucketName, _converter);
                             break;
 
                         default:

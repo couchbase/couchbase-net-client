@@ -12,15 +12,16 @@ namespace Couchbase.IO
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
-        private readonly Func<ConnectionPool<T>, T> _factory;
+        private readonly Func<ConnectionPool<T>, IByteConverter, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
         private readonly PoolConfiguration _configuration;
         private readonly object _lock = new object();
+        private readonly IByteConverter _converter;
         private int _count;
         private bool _disposed;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
-            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>())
+            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new ManualByteConverter())
         {
         }
 
@@ -30,10 +31,11 @@ namespace Couchbase.IO
         /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
         /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
         /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
-        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, T> factory)
+        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, T> factory, IByteConverter converter)
         {
             _configuration = configuration;
             _factory = factory;
+            _converter = converter;
             EndPoint = endPoint;
         }
 
@@ -78,7 +80,7 @@ namespace Couchbase.IO
         {
             do
             {
-                _store.Enqueue(_factory(this));
+                _store.Enqueue(_factory(this, _converter));
                 Interlocked.Increment(ref _count);
             } while (_store.Count < _configuration.MinSize);
         }
@@ -102,7 +104,7 @@ namespace Couchbase.IO
             {
                 if (_count < _configuration.MaxSize)
                 {
-                    connection = _factory(this);
+                    connection = _factory(this, _converter);
 
                     Log.Debug(m => m("Acquire new: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
                     Interlocked.Increment(ref _count);

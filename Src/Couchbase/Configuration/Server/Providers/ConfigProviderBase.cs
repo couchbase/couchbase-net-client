@@ -13,7 +13,7 @@ namespace Couchbase.Configuration.Server.Providers
     {
         protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
-        private readonly Func<string, string, IOStrategy, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
@@ -23,12 +23,14 @@ namespace Couchbase.Configuration.Server.Providers
         protected ConfigProviderBase(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            IByteConverter converter)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
+            Converter = converter;
         }
 
         protected ClientConfiguration ClientConfig
@@ -36,7 +38,7 @@ namespace Couchbase.Configuration.Server.Providers
             get { return _clientConfig; }
         }
 
-        protected Func<string, string, IOStrategy, ISaslMechanism> SaslFactory
+        protected Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory
         {
             get { return _saslFactory; }
         }
@@ -60,6 +62,8 @@ namespace Couchbase.Configuration.Server.Providers
         {
             get { return _configObservers; }
         }
+
+        public IByteConverter Converter { get; set; }
 
         public abstract IConfigInfo GetConfig(string name, string password);
 

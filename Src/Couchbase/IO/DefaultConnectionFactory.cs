@@ -44,9 +44,9 @@ namespace Couchbase.IO
         /// Returns a functory for creating <see cref="DefaultConnection"/> objects.
         /// </summary>
         /// <returns>A <see cref="DefaultConnection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
-        internal static Func<ConnectionPool<T>, T> GetGeneric<T>() where T : class, IConnection
+        internal static Func<ConnectionPool<T>, IByteConverter, T> GetGeneric<T>() where T : class, IConnection
         {
-            Func<IConnectionPool<T>, T> factory = p => 
+            Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) => 
             {
                 var config = p.Configuration;
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
@@ -64,14 +64,14 @@ namespace Couchbase.IO
                 if (p.Configuration.UseSsl)
                 {
                     var pool = p as ConnectionPool<SslConnection>;
-                    connection = new SslConnection(pool, socket);
+                    connection = new SslConnection(pool, socket, c);
                     ((SslConnection)connection).Authenticate();
                 }
                 else
                 {
                     //TODO this should be from T...
                     var pool = p as ConnectionPool<EapConnection>;
-                    connection = new EapConnection(pool, socket);
+                    connection = new EapConnection(pool, socket, c);
                 }
                 return connection as T;
             };

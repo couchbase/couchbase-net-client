@@ -8,8 +8,8 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The value to insert.</typeparam>
     internal sealed class SetOperation<T> : OperationBase<T>
     {
-        public SetOperation(string key, T value, IVBucket vBucket)
-            : base(key, value, vBucket)
+        public SetOperation(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, vBucket, converter)
         {
         }
 

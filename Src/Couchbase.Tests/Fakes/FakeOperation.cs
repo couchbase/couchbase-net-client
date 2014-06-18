@@ -14,7 +14,8 @@ namespace Couchbase.Tests.Fakes
     internal class FakeOperation : OperationBase<string>
     {
         private FakeOperationResult _operationResult;
-        public FakeOperation()
+
+        public FakeOperation(IByteConverter converter) : base(converter)
         {
         }
 

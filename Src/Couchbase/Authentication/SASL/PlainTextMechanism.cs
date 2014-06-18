@@ -13,10 +13,12 @@ namespace Couchbase.Authentication.SASL
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private IOStrategy _strategy;
+        private readonly IByteConverter _converter;
 
-        public PlainTextMechanism(IOStrategy strategy)
+        public PlainTextMechanism(IOStrategy strategy, IByteConverter converter)
         {
             _strategy = strategy;
+            _converter = converter;
         }
 
         public PlainTextMechanism(string username, string password)
@@ -83,7 +85,7 @@ namespace Couchbase.Authentication.SASL
 
             try
             {
-                var operation = new SaslStart(MechanismType, GetAuthData(username, password));
+                var operation = new SaslStart(MechanismType, GetAuthData(username, password), _converter);
                 var result = _strategy.Execute(operation, connection);
 
                 if (!result.Success &&

@@ -31,9 +31,12 @@ namespace Couchbase.Tests.IO
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var factory = DefaultConnectionFactory.GetGeneric<SslConnection>();
-            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout,
-                SendTimeout) {UseSsl = true};
-            _connectionPool = new ConnectionPool<SslConnection>(_configuration, ipEndpoint, factory);
+            var converter = new ManualByteConverter();
+            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout)
+            {
+                UseSsl = true
+            };
+            _connectionPool = new ConnectionPool<SslConnection>(_configuration, ipEndpoint, factory, converter);
             _connectionPool.Initialize();
         }
 

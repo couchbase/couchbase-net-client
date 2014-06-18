@@ -13,13 +13,13 @@ namespace Couchbase.IO.Strategies
         private readonly SocketAsyncEventArgs _socketAsync;
         private volatile bool _disposed;
 
-        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket) 
-            : this(connectionPool, socket, new SocketAsyncEventArgs())
+        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket, IByteConverter converter) 
+            : this(connectionPool, socket, new SocketAsyncEventArgs(), converter)
         {
         }
 
-        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket, SocketAsyncEventArgs socketAsync) 
-            : base(socket)
+        internal SaeaConnection(ConnectionPool<SaeaConnection> connectionPool, Socket socket, SocketAsyncEventArgs socketAsync, IByteConverter converter) 
+            : base(socket, converter)
         {
             _connectionPool = connectionPool;
             _socketAsync = socketAsync;

@@ -74,6 +74,19 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             throw new NotImplementedException();
         }
+
+
+        public IO.IByteConverter Converter
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }
 

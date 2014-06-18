@@ -29,8 +29,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, IByteConverter converter)
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter)
         {
         }
 
@@ -181,14 +181,16 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         ClientConfig,
                         IOStrategyFactory,
                         ConnectionPoolFactory,
-                        SaslFactory);
+                        SaslFactory,
+                        Converter);
                     break;
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
                         ClientConfig,
                         IOStrategyFactory,
                         ConnectionPoolFactory,
-                        SaslFactory);
+                        SaslFactory,
+                        Converter);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

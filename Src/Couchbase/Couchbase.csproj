@@ -147,8 +147,10 @@
     <Compile Include="Core\InitializationException.cs" />
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
+    <Compile Include="IO\IByteConverter.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\IOStrategyFactory.cs" />
+    <Compile Include="IO\ManualByteConverter.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />
     <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
@@ -221,6 +223,7 @@
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
+    <Compile Include="Utils\ArraySegmentExtensions.cs" />
     <Compile Include="Utils\BoolExtensions.cs" />
     <Compile Include="Utils\IPEndPointExtensions.cs" />
     <Compile Include="Utils\SortedDictionaryExtensions.cs" />

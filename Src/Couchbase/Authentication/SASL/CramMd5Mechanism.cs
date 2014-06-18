@@ -13,15 +13,17 @@ namespace Couchbase.Authentication.SASL
     internal class CramMd5Mechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IByteConverter _converter;
         private IOStrategy _ioStrategy;
 
         /// <summary>
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOStrategy"/>.
         /// </summary>
         /// <param name="ioStrategy">The I/O strategy to use.</param>
-        public CramMd5Mechanism(IOStrategy ioStrategy)
+        public CramMd5Mechanism(IOStrategy ioStrategy, IByteConverter converter)
         {
             _ioStrategy = ioStrategy;
+            _converter = converter;
         }
 
         /// <summary>
@@ -83,14 +85,14 @@ namespace Couchbase.Authentication.SASL
             var temp = connection;
             Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
 
-            var operation = new SaslStart(MechanismType, null);
+            var operation = new SaslStart(MechanismType, null, _converter);
             var result = _ioStrategy.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
                 var challenge = result.Message;
                 var reply = ComputeResponse(challenge);
 
-                operation = new SaslStep(MechanismType, reply);
+                operation = new SaslStep(MechanismType, reply, _converter);
                 result = _ioStrategy.Execute(operation, connection);
 
                 authenticated = result.Status == ResponseStatus.Success && 

@@ -8,8 +8,8 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class ReplaceOperation<T> : OperationBase<T>
     {
-        public ReplaceOperation(string key, T value, IVBucket vBucket) 
-            : base(key, value, vBucket)
+        public ReplaceOperation(string key, T value, IVBucket vBucket, IByteConverter converter) 
+            : base(key, value, vBucket, converter)
         {
         }
 

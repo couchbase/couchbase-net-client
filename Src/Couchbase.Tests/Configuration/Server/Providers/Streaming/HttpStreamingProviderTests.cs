@@ -25,7 +25,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
-                SaslFactory.GetFactory3());
+                SaslFactory.GetFactory3(), 
+                new ManualByteConverter());
         }
 
         [Test]

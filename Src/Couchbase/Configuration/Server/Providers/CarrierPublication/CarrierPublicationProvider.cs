@@ -13,8 +13,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ISaslMechanism> saslFactory) 
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory)
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            IByteConverter converter) 
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter)
         {
         }
 
@@ -24,11 +25,11 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
             var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
             var ioStrategy = IOStrategyFactory(connectionPool);
-            var saslMechanism = SaslFactory(bucketName, password, ioStrategy);
+            var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
             ioStrategy.SaslMechanism = saslMechanism;
 
             IConfigInfo configInfo = null;
-            var operationResult = ioStrategy.Execute(new ConfigOperation());
+            var operationResult = ioStrategy.Execute(new ConfigOperation(Converter));
             if (operationResult.Success)
             {
                 var bucketConfig = operationResult.Value;
@@ -54,7 +55,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 ClientConfig,
                 IOStrategyFactory,
                 ConnectionPoolFactory, 
-                SaslFactory);
+                SaslFactory,
+                Converter);
 
             return configInfo;
         }

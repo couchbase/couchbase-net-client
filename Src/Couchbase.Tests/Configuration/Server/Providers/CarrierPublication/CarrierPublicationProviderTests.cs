@@ -33,7 +33,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 configuration, 
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
-                SaslFactory.GetFactory3());
+                SaslFactory.GetFactory3(), 
+                new ManualByteConverter());
         }
 
         [Test]

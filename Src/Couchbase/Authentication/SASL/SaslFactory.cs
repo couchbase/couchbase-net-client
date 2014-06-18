@@ -65,15 +65,15 @@ namespace Couchbase.Authentication.SASL
             };
         }
         
-        public static Func<string, string, IOStrategy, ISaslMechanism> GetFactory3()
+        public static Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> GetFactory3()
         {
-            return (username, password, strategy) =>
+            return (username, password, strategy, converter) =>
             {
                 ISaslMechanism saslMechanism = null;
                 var connection = strategy.ConnectionPool.Acquire();
                 try
                 {
-                    var saslListResult = strategy.Execute(new SaslList(), connection);
+                    var saslListResult = strategy.Execute(new SaslList(converter), connection);
                     if (saslListResult.Success)
                     {
                         if (saslListResult.Value.Contains("CRAM-MD5"))

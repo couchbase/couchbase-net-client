@@ -3,6 +3,7 @@
  using Common.Logging;
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
+ using Couchbase.IO;
  using Couchbase.IO.Operations;
  using Couchbase.Views;
 
@@ -18,10 +19,12 @@ namespace Couchbase.Core.Buckets
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
+        private readonly IByteConverter _converter;
 
-        internal MemcachedBucket(IClusterManager clusterManager, string bucketName)
+        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter)
         {
             _clusterManager = clusterManager;
+            _converter = converter;
             Name = bucketName;
         }
 
@@ -64,7 +67,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new SetOperation<T>(key, value, null);
+            var operation = new SetOperation<T>(key, value, null, _converter);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -82,7 +85,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new ReplaceOperation<T>(key, value, null);
+            var operation = new ReplaceOperation<T>(key, value, null, _converter);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -100,7 +103,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new AddOperation<T>(key, value, null);
+            var operation = new AddOperation<T>(key, value, null, _converter);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -116,7 +119,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new DeleteOperation(key, null);
+            var operation = new DeleteOperation(key, null, _converter);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -133,7 +136,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new GetOperation<T>(key, null);
+            var operation = new GetOperation<T>(key, null, _converter);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -199,7 +202,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new IncrementOperation(key, initial, delta, expiration, null);
+            var operation = new IncrementOperation(key, initial, delta, expiration, null, _converter);
             var operationResult = server.Send(operation);
 
             return operationResult;
@@ -266,7 +269,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new DecrementOperation(key, initial, delta, expiration, null);
+            var operation = new DecrementOperation(key, initial, delta, expiration, null, _converter);
             var operationResult = server.Send(operation);
 
             return operationResult;

@@ -14,13 +14,13 @@ namespace Couchbase.IO.Strategies
         private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
         private volatile bool _disposed;
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket) 
-            : this(connectionPool, socket, new SslStream(new NetworkStream(socket)))
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter) 
+            : this(connectionPool, socket, new SslStream(new NetworkStream(socket)), converter)
         {
         }
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream) 
-            : base(socket)
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream, IByteConverter converter) 
+            : base(socket, converter)
         {
             _connectionPool = connectionPool;
             _sslStream = sslStream;

@@ -27,7 +27,7 @@ namespace Couchbase.Tests.IO.Strategies.Async
         [Test]
         public void Test_Execute()
         {
-            var operation = new ConfigOperation();
+            var operation = new ConfigOperation(new ManualByteConverter());
             var result = _ioStrategy.Execute(operation);
             var result1 = _ioStrategy.Execute(operation);
             Assert.IsNotNull(result.Value);

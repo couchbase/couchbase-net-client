@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Couchbase.IO.Operations;
 
 namespace Couchbase.IO.Utils
@@ -16,6 +17,11 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="TypeCode"/> enumeration value.</returns>
         public static TypeCode ToTypeCode(this byte[] buffer, int offset)
         {
+            
+            /*var array = new byte[4];
+            Buffer.BlockCopy(buffer, offset, array, 0, 4);
+            Array.Reverse(array);
+            return (TypeCode) BitConverter.ToInt32(array, 0);*/
             return (TypeCode)BinaryConverter.DecodeInt32(buffer, offset);
         }
 
@@ -38,6 +44,10 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="ResponseStatus"/> enumeration value.</returns>
         public static ResponseStatus GetResponseStatus(this byte[] buffer, int offset)
         {
+            /*var array = new byte[4];
+            Buffer.BlockCopy(buffer, offset, array, 0, 4);
+            Array.Reverse(array);
+            return (ResponseStatus)BitConverter.ToInt32(array, 0);*/
             return (ResponseStatus)BinaryConverter.DecodeUInt16(buffer, offset);
         }
 
@@ -49,6 +59,10 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="UInt64"/> value.</returns>
         public static ulong GetUInt64(this byte[] buffer, int offset)
         {
+            /*var array = new byte[8];
+            Buffer.BlockCopy(buffer, offset, array, 0, 8);
+            Array.Reverse(array);
+            return BitConverter.ToUInt64(array, 0);*/
             return BinaryConverter.DecodeUInt64(buffer, offset);
         }
 
@@ -71,6 +85,10 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="UInt32"/> value.</returns>
         public static uint GetUInt32(this byte[] buffer, int offset)
         {
+            /*var array = new byte[4];
+            Buffer.BlockCopy(buffer, offset, array, 0, 4);
+            Array.Reverse(array);
+            return BitConverter.ToUInt32(array, 0);*/
             return BinaryConverter.DecodeUInt32(buffer, offset);
         }
 
@@ -82,6 +100,10 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="Int32"/> value.</returns>
         public static int GetInt32(this byte[] buffer, int offset)
         {
+            /*var array = new byte[4];
+            Buffer.BlockCopy(buffer, offset, array, 0, 4);
+            Array.Reverse(array);
+            return BitConverter.ToInt32(array, 0);*/
             return BinaryConverter.DecodeInt32(buffer, offset);
         }
 
@@ -93,7 +115,11 @@ namespace Couchbase.IO.Utils
         /// <returns>A <see cref="UInt16"/> value.</returns>
         public static ushort GetUInt16(this byte[] buffer, int offset)
         {
-            return BinaryConverter.DecodeUInt16(buffer, offset);
+           /* var array = new byte[2];
+            Buffer.BlockCopy(buffer, offset, array, 0, 2);
+            Array.Reverse(array);
+            return BitConverter.ToUInt16(array, 0);*/
+           return BinaryConverter.DecodeUInt16(buffer, offset);
         }
 
         /// <summary>

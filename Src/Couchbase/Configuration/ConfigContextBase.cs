@@ -27,19 +27,22 @@ namespace Couchbase.Configuration
         private readonly List<IServer> _servers = new List<IServer>();
         protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
-        protected readonly Func<string, string, IOStrategy, ISaslMechanism> SaslFactory;
+        protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
+        protected readonly IByteConverter Converter;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ISaslMechanism> saslFactory)
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            IByteConverter converter)
         {
             _clientConfig = clientConfig;
             IOStrategyFactory = ioStrategyFactory;
             ConnectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
+            Converter = converter;
             LoadConfig(bucketConfig);
         }
 

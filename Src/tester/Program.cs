@@ -181,10 +181,11 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-              /*  var result = threadData.Bucket.Upsert(key, value);
-                Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);*/
+                var result = threadData.Bucket.Upsert(key, value);
+                Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
                 Console.WriteLine("Get {0} - {1} on thread {2}: {3} reason: {4}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value, result1.Message);
+                if(value != result1.Value) throw new Exception();
             }
 
             ThreadData.Processed += threadData.Keys;

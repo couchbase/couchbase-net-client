@@ -4,6 +4,11 @@ namespace Couchbase.IO.Operations
 {
     internal class ConfigOperation : OperationBase<BucketConfig>
     {
+        public ConfigOperation(IByteConverter converter) 
+            : base(converter)
+        {
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.GetClusterConfig; }

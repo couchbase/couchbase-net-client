@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -18,28 +19,30 @@ namespace Couchbase.IO.Operations
         private readonly ITypeSerializer _serializer;
         private readonly T _value;
         private readonly IVBucket _vBucket;
+        private readonly IByteConverter _converter;
 
-        protected OperationBase()
-            : this(string.Empty, null)
+        protected OperationBase(IByteConverter converter)
+            : this(string.Empty, null, converter)
         {
         }
 
-        protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket)
+        protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
         {
             Key = key;
             _value = value;
             _serializer = serializer;
             _opaque = Interlocked.Increment(ref _sequenceId);
             _vBucket = vBucket;
+            _converter = converter;
         }
 
-        protected OperationBase(string key, T value, IVBucket vBucket)
-            : this(key, value, new TypeSerializer(), vBucket)
+        protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : this(key, value, new TypeSerializer(), vBucket, converter)
         {
         }
 
-        protected OperationBase(string key, IVBucket vBucket)
-            : this(key, default(T), new TypeSerializer(), vBucket)
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
+            : this(key, default(T), new TypeSerializer(), vBucket, converter)
         {
         }
 
@@ -81,12 +84,12 @@ namespace Couchbase.IO.Operations
         public virtual ArraySegment<byte> CreateExtras()
         {
             var extras = new ArraySegment<byte>(new byte[8]);
-
             var typeCode = Type.GetTypeCode(typeof(T));
             var flag = (uint)((int)typeCode | 0x0100);
 
-            BinaryConverter.EncodeUInt32(flag, extras.Array, 0);
-            BinaryConverter.EncodeUInt32(Expires, extras.Array, 4);
+            _converter.FromUInt32(flag, extras.Array, 0);
+            _converter.FromUInt32(Expires, extras.Array, 4);
+
             return extras;
         }
 
@@ -119,6 +122,25 @@ namespace Couchbase.IO.Operations
         }
 
         public virtual ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)
+        {
+            var header = new ArraySegment<byte>(new byte[24]);
+            var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe();
+            _converter.FromByte((byte)Magic.Request, header.Array, HeaderIndexFor.Magic);
+            _converter.FromByte((byte)OperationCode, header.Array, HeaderIndexFor.Opcode);
+            _converter.FromInt16((short)key.Length, header.Array, HeaderIndexFor.KeyLength);
+            _converter.FromByte((byte)extras.GetLengthSafe(), header.Array, HeaderIndexFor.ExtrasLength);
+
+            if (VBucket != null)
+            {
+                _converter.FromInt16((short) VBucket.Index, header.Array, HeaderIndexFor.VBucket);
+            }
+
+            _converter.FromInt32(totalLength, header.Array, HeaderIndexFor.BodyLength);
+            _converter.FromInt32(Opaque, header.Array, HeaderIndexFor.Opaque);
+            return header;
+        }
+
+        public virtual ArraySegment<byte> CreateHeader2(byte[] extras, byte[] body, byte[] key)
         {
             var header = new ArraySegment<byte>(new byte[24]);
             var buffer = header.Array;

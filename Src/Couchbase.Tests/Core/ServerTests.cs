@@ -48,7 +48,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_Send()
         {
-            var operation = new ConfigOperation();
+            var operation = new ConfigOperation(new ManualByteConverter());
             var response = _server.Send(operation);
             Assert.IsTrue(response.Success);
             Assert.AreEqual(response.Cas, 0);

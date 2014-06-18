@@ -15,8 +15,9 @@ namespace Couchbase.IO.Operations.Authentication
         /// </summary>
         /// <param name="key">The SASL Mechanism to use: PLAIN or CRAM-MD5.</param>
         /// <param name="value"></param>
-        public SaslStart(string key, string value) 
-            : base(key, value, null)
+        /// <param name="converter">The <see cref="IByteConverter"/> to use for encoding and decoding values.</param>
+        public SaslStart(string key, string value, IByteConverter converter) 
+            : base(key, value, null, converter)
         {
         }
 

@@ -12,6 +12,7 @@ namespace Couchbase.IO.Strategies
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
+
         private volatile bool _disposed;
         private ISaslMechanism _saslMechanism;
 

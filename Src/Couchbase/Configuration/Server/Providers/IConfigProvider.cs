@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.IO;
 
 namespace Couchbase.Configuration.Server.Providers
 {
@@ -18,6 +19,8 @@ namespace Couchbase.Configuration.Server.Providers
         void UnRegisterObserver(IConfigObserver observer);
 
         bool ObserverExists(IConfigObserver observer);
+
+        IByteConverter Converter { get; set; }
     }
 }
 

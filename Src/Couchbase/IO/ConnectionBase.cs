@@ -13,17 +13,19 @@ namespace Couchbase.IO
         private readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
+        private readonly IByteConverter _converter;
 
-        protected ConnectionBase(Socket socket) 
-            : this(socket, new OperationAsyncState())
+        protected ConnectionBase(Socket socket, IByteConverter converter) 
+            : this(socket, new OperationAsyncState(), converter)
         {
             
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState)
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter)
         {
             _socket = socket;
             _state = asyncState;
+            _converter = converter;
         }
 
         public OperationAsyncState State
@@ -54,21 +56,21 @@ namespace Couchbase.IO
 
         public abstract IOperationResult<T> Send<T>(IOperation<T> operation); 
 
-        protected static void CreateHeader(OperationAsyncState state)
+        protected void CreateHeader(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
             if (buffer.Length > 0)
             {
                 state.Header = new OperationHeader
                 {
-                    Magic = buffer[HeaderIndexFor.Magic],
-                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
+                    Magic = _converter.ToByte(buffer, HeaderIndexFor.Magic),
+                    OperationCode = _converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
+                    KeyLength = _converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
+                    ExtrasLength = _converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
                     Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
+                    BodyLength = _converter.ToInt32(buffer, HeaderIndexFor.Body),
+                    Opaque = _converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Cas = _converter.ToUInt64(buffer, HeaderIndexFor.Cas)
                 };
             }
         }
@@ -81,7 +83,8 @@ namespace Couchbase.IO
                 state.Body = new OperationBody
                 {
                   Extras =state.Header.ExtrasLength > 0 ?
-                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength) : new ArraySegment<byte>(),
+                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength) : 
+                      new ArraySegment<byte>(),
                     Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength)
                 };
             }

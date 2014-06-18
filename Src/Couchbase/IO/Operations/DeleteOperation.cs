@@ -8,8 +8,8 @@ namespace Couchbase.IO.Operations
     /// </summary>
     internal sealed class DeleteOperation : OperationBase<object>
     {
-        public DeleteOperation(string key, IVBucket vBucket)
-            : base(key, vBucket)
+        public DeleteOperation(string key, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
         {
         }
 

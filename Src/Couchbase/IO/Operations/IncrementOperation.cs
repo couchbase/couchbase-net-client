@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -15,8 +16,8 @@ namespace Couchbase.IO.Operations
         private readonly uint _expiration;
         private readonly ulong _initial;
 
-        public IncrementOperation(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket)
-            : base(key, vBucket)
+        public IncrementOperation(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
         {
             _delta = delta;
             _initial = initial;
@@ -31,9 +32,10 @@ namespace Couchbase.IO.Operations
         public override ArraySegment<byte> CreateExtras()
         {
             var extras = new ArraySegment<byte>(new byte[20]);
-            BinaryConverter.EncodeUInt64(_delta, extras.Array, 0);
-            BinaryConverter.EncodeUInt64(_initial, extras.Array, 8);
-            BinaryConverter.EncodeUInt32(_expiration, extras.Array, 16);
+            extras.ConvertAndCopy(_delta, 0, 8);
+            extras.ConvertAndCopy(_initial, 8, 8);
+            extras.ConvertAndCopy(_expiration, 16, 4);
+            return extras;
             return extras;
         }
 

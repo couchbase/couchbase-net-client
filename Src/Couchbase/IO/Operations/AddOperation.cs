@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System.Dynamic;
+using Couchbase.Core;
 
 namespace Couchbase.IO.Operations
 {
@@ -8,8 +9,8 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The value to add to the database.</typeparam>
     internal sealed class AddOperation<T> : OperationBase<T>
     {
-        public AddOperation(string key, T value, IVBucket vBucket)
-            : base(key, value, vBucket)
+        public AddOperation(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, vBucket, converter)
         {
         }
 

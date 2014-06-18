@@ -29,7 +29,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             var configuration = new ClientConfiguration();
             var clusterManager = new ClusterManager(configuration, (p) =>
             {
-                var operation = new FakeOperation();
+                var operation = new FakeOperation(new ManualByteConverter());
                 operation.SetOperationResult(new FakeOperationResult(operation)
                 {
                     Message = "nmv",

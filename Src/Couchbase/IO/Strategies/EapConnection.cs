@@ -13,13 +13,13 @@ namespace Couchbase.IO.Strategies
         private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
         private volatile bool _disposed;
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket) 
-            : this(connectionPool, socket, new NetworkStream(socket))
+        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, IByteConverter converter) 
+            : this(connectionPool, socket, new NetworkStream(socket), converter)
         {
         }
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream) 
-            : base(socket)
+        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream, IByteConverter converter) 
+            : base(socket, converter)
         {
             _connectionPool = connectionPool;
             _networkStream = networkStream;

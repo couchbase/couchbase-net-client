@@ -37,7 +37,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy);
+            var authenticator = new CramMd5Mechanism(_ioStrategy, new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_InValid_Credentials_Provided_Authenticate_Returns_False()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy);
+            var authenticator = new CramMd5Mechanism(_ioStrategy, new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 

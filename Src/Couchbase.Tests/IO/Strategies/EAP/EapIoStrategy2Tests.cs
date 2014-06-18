@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO.Strategies.EAP
         {
             for (int i = 0; i < 10; i++)
             {
-                var operation = new ConfigOperation();
+                var operation = new ConfigOperation(new ManualByteConverter());
                 var result = _ioStrategy.Execute(operation);
                 Assert.IsTrue(result.Success);
                 Assert.IsNotNull(result.Value);
