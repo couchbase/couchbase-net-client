@@ -1,5 +1,7 @@
 ﻿using System;
 using Couchbase.Core;
+using Couchbase.Core.Serializers;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
@@ -8,8 +10,8 @@ namespace Couchbase.IO.Operations
     /// </summary>
     internal sealed class DeleteOperation : OperationBase<object>
     {
-        public DeleteOperation(string key, IVBucket vBucket, IByteConverter converter)
-            : base(key, vBucket, converter)
+        public DeleteOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+            : base(key, vBucket, converter, serializer)
         {
         }
 

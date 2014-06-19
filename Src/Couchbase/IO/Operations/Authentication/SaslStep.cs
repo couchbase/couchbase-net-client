@@ -1,4 +1,6 @@
-﻿namespace Couchbase.IO.Operations.Authentication
+﻿using Couchbase.IO.Converters;
+
+namespace Couchbase.IO.Operations.Authentication
 {
     /// <summary>
     /// Peforms the next step in the in SASL authentication process when required by a AuthenticationContinue message from a <see cref="SaslStart"/> operation.

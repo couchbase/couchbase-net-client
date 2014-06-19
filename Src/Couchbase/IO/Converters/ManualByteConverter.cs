@@ -6,7 +6,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Couchbase.IO
+namespace Couchbase.IO.Converters
 {
 
     /// <summary>
@@ -57,8 +57,8 @@ namespace Couchbase.IO
         {
             return (buffer[offset++] << 24) |
                    (buffer[offset++] << 16) |
-                   (buffer[offset++] << 8) |
-                   buffer[offset++];
+                   (buffer[offset++] << 8)  |
+                    buffer[offset++];
         }
 
         /// <summary>
@@ -70,9 +70,9 @@ namespace Couchbase.IO
         public uint ToUInt32(byte[] buffer, int offset)
         {
             return (uint)((buffer[offset++] << 24) |
-                   (buffer[offset++] << 16) |
-                   (buffer[offset++] << 8) |
-                   buffer[offset++]);
+                          (buffer[offset++] << 16) |
+                          (buffer[offset++] << 8)  |
+                           buffer[offset++]);
         }
 
         /// <summary>
@@ -89,8 +89,8 @@ namespace Couchbase.IO
                    (buffer[offset++] << 32) |
                    (buffer[offset++] << 24) |
                    (buffer[offset++] << 16) |
-                   (buffer[offset++] << 8) |
-                   buffer[offset++];
+                   (buffer[offset++] << 8)  |
+                    buffer[offset++];
         }
 
         /// <summary>
@@ -107,8 +107,8 @@ namespace Couchbase.IO
                             (buffer[offset++] << 32) |
                             (buffer[offset++] << 24) |
                             (buffer[offset++] << 16) |
-                            (buffer[offset++] << 8) |
-                            buffer[offset++]);
+                            (buffer[offset++] << 8)  |
+                             buffer[offset++]);
         }
 
         /// <summary>
@@ -131,6 +131,22 @@ namespace Couchbase.IO
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromByte(byte value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[1];
+            }
+            FromByte(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="byte"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
         public void FromByte(byte value, byte[] buffer, int offset)
         {
             buffer[offset] = value;
@@ -142,10 +158,42 @@ namespace Couchbase.IO
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromInt16(short value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[2];
+            }
+            FromInt16(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ushort"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromUInt16(ushort value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[2];
+            }
+            FromUInt16(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="short"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
         public void FromInt16(short value, byte[] buffer, int offset)
         {
-           buffer[offset++] = (byte)(value >> 8);
-           buffer[offset++] = (byte)(value & 255);
+            buffer[offset++] = (byte)(value >> 8);
+            buffer[offset++] = (byte)(value & 255);
         }
 
         /// <summary>
@@ -158,6 +206,38 @@ namespace Couchbase.IO
         {
             buffer[offset++] = (byte)(value >> 8);
             buffer[offset++] = (byte)(value & 255);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="int"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromInt32(int value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[4];
+            }
+            FromInt32(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="uint"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromUInt32(uint value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[4];
+            }
+            FromUInt32(value, buffer, offset);
         }
 
         /// <summary>
@@ -190,6 +270,38 @@ namespace Couchbase.IO
 
         /// <summary>
         /// Writes a <see cref="long"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromInt64(long value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[8];
+            }
+            FromInt64(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ulong"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <remarks>Will create the buffer if null or empty.</remarks>
+        public void FromUInt64(ulong value, ref byte[] buffer, int offset)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                buffer = new byte[8];
+            }
+            FromUInt64(value, buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="ulong"/> to a buffer at a given offset.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>

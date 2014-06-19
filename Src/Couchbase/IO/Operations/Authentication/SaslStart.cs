@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication

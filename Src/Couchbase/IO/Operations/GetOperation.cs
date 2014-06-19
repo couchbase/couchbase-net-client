@@ -1,12 +1,14 @@
 ﻿using System;
 using Couchbase.Core;
+using Couchbase.Core.Serializers;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
     internal class GetOperation<T> : OperationBase<T>
     {
-        public GetOperation(string key, IVBucket vBucket, IByteConverter converter)
-            : base(key, vBucket, converter)
+        public GetOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+            : base(key, vBucket, converter, serializer)
         {
         }
 

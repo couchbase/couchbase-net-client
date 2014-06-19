@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations.Authentication
 {

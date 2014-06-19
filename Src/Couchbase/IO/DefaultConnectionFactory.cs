@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using Couchbase.Configuration.Client;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
 
 namespace Couchbase.IO

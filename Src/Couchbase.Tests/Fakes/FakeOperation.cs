@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json;
 

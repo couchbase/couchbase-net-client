@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Client;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO
 {

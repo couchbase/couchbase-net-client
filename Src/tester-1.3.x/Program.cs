@@ -62,10 +62,10 @@ namespace tester_1._3.x
                 var key = "key" + i;
                 var value = "value" + i;
 
-                /*var result = client.ExecuteStore(StoreMode.Set, key, value);
+                var result = client.ExecuteStore(StoreMode.Set, key, value);
                 if (result.Success)
                 {
-                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);*/
+                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);
                     var result2 = client.ExecuteGet<string>(key);
                     if (result2.Success)
                     {
@@ -73,13 +73,13 @@ namespace tester_1._3.x
                     }
                     else
                     {
-                       // Console.WriteLine("Read Error: {0} - {1}", key, result.Message);
+                        Console.WriteLine("Read Error: {0} - {1}", key, result.Message);
                     }
-                /*}
+                }
                 else
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
-                }*/
+                }
             });
         }
     }

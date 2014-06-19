@@ -112,7 +112,10 @@ namespace Couchbase.Tests
         [TearDown]
         public void TearDown()
         {
-             _cluster.Dispose();
+            if (_cluster != null)
+            {
+                _cluster.Dispose();
+            }
         }
     }
 }

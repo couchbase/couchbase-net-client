@@ -5,7 +5,9 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration
@@ -20,8 +22,9 @@ namespace Couchbase.Configuration
             Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
-            IByteConverter converter) 
-            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter)
+            IByteConverter converter,
+            ITypeSerializer2 serializer) 
+            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
         {
         }
 

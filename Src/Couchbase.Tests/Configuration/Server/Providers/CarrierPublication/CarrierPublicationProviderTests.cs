@@ -11,7 +11,9 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.IO.Strategies.Awaitable;
@@ -34,7 +36,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
                 SaslFactory.GetFactory3(), 
-                new ManualByteConverter());
+                new ManualByteConverter(),
+                new TypeSerializer2(new ManualByteConverter()));
         }
 
         [Test]

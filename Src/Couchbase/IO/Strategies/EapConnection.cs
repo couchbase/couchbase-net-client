@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Threading;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 

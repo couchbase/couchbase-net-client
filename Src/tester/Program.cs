@@ -48,7 +48,7 @@ namespace tester
                //ThreadPoolInsert(bucket, n);
               //SynchronousInsert(bucket, n);
              //ParallerInsert(bucket, n);
-             MultiThreaded(8, n, bucket);
+                MultiThreaded(8, n, bucket);
             }
             Console.Read();
             //_cluster.CloseBucket(bucket);
@@ -123,15 +123,15 @@ namespace tester
             Parallel.For(0, n, options, i =>
             {
                 var key = "key" + i;
-                var value = "value" + i;
+                int value =  i;
 
-              /*var result = bucket.Upsert(key, value);
+              var result = bucket.Upsert(key, value);
 
                 if (result.Success)
                 {
-                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);*/
+                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);
                    
-                    var result2 = bucket.Get<string>(key);
+                    var result2 = bucket.Get<int>(key);
                     if (result2.Success)
                     {
                         if (result2.Value != value)
@@ -144,11 +144,11 @@ namespace tester
                     {
                         Console.WriteLine("Read Error: {0} - {1}", key, result2.Message);
                     }
-               /* }
+               }
                 else
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
-                }*/
+                }
                
             });
         }

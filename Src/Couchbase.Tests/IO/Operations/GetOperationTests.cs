@@ -12,6 +12,11 @@ namespace Couchbase.Tests.IO.Operations
         {
             CouchbaseCluster.Initialize();
             _cluster = CouchbaseCluster.Get();
+
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Upsert(TestKeys.KeyWithInt32Value.Key, TestKeys.KeyWithInt32Value.Value);
+            }
         }
 
         [Test]
@@ -67,6 +72,10 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(TestKeys.KeyWithInt32Value.Key);
+            }
             _cluster.Dispose();
         }
     }
