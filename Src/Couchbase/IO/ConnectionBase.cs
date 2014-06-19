@@ -85,7 +85,7 @@ namespace Couchbase.IO
                   Extras =state.Header.ExtrasLength > 0 ?
                       new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength) : 
                       new ArraySegment<byte>(),
-                    Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength)
+                    Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength-state.Header.ExtrasLength)
                 };
             }
         }

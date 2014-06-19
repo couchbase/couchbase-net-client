@@ -21,17 +21,19 @@ namespace Couchbase.Authentication.SASL
             _converter = converter;
         }
 
-        public PlainTextMechanism(string username, string password)
+        public PlainTextMechanism(string username, string password, IByteConverter converter)
         {
             Username = username;
             Password = password;
+            _converter = converter;
         }
 
-        public PlainTextMechanism(IOStrategy strategy, string username, string password)
+        public PlainTextMechanism(IOStrategy strategy, string username, string password, IByteConverter converter)
         {
             _strategy = strategy;
             Username = username;
             Password = password;
+            _converter = converter;
         }
 
         /// <summary>

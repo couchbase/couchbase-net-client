@@ -13,6 +13,7 @@ using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 
 namespace Couchbase.Tests.Authentication.Sasl
 {
@@ -65,7 +66,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True2()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secret");
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secret", new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -79,7 +80,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_InValid_Credentials_Provided_Authenticate_Returns_False2()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "wrongpass");
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "wrongpass", new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -93,7 +94,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Bucket_Has_No_Password_And_Password_Is_Null_Authenticate_Succeeds()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null);
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null, new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -107,7 +108,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Bucket_Has_No_Password_Authenticate_Succeeds()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty);
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new ManualByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
@@ -121,7 +122,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void Test_ComputeResponse()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "protected", "secret");
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "protected", "secret", new ManualByteConverter());
             const string challenge = "6382f3e79a804548"; //"15cedeaaf8b06c34";
             const string expected = "protected 3ca7b9f1b81bc7f6c2c9e5f48af3311d"; //"protected 06f8b68edb01c7b453f50429d4bfb195";
 

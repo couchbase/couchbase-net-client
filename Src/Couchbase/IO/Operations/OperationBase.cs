@@ -16,7 +16,7 @@ namespace Couchbase.IO.Operations
         public const int HeaderLength = 24;
         private static int _sequenceId;//needs to be resolved
         private readonly int _opaque;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeSerializer2 _serializer;
         private readonly T _value;
         private readonly IVBucket _vBucket;
         private readonly IByteConverter _converter;
@@ -26,7 +26,7 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
+        protected OperationBase(string key, T value, ITypeSerializer2 serializer, IVBucket vBucket, IByteConverter converter)
         {
             Key = key;
             _value = value;
@@ -37,12 +37,12 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new TypeSerializer(), vBucket, converter)
+            : this(key, value, new TypeSerializer2(converter), vBucket, converter)
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new TypeSerializer(), vBucket, converter)
+            : this(key, default(T), new TypeSerializer2(converter), vBucket, converter)
         {
         }
 
@@ -53,7 +53,12 @@ namespace Couchbase.IO.Operations
 
         public T Value
         {
-            get { return Serializer.Deserialize(this); }
+            get
+            {
+                var offset = HeaderLength + Header.ExtrasLength;
+                var length = Header.BodyLength - Header.ExtrasLength;
+                return Serializer.Deserialize<T>(Body.Data, offset, length);
+            }
         }
 
         internal T RawValue
@@ -101,7 +106,18 @@ namespace Couchbase.IO.Operations
 
         public virtual ArraySegment<byte> CreateBody()
         {
-            var bytes = _serializer.Serialize(this);
+            byte[] bytes;
+            if (typeof (T).IsValueType)
+            {
+                bytes = _serializer.Serialize(RawValue);
+            }
+            else
+            {
+                bytes = RawValue == null ? 
+                    new byte[0] : 
+                    _serializer.Serialize(RawValue);
+            }
+            
             return new ArraySegment<byte>(bytes);
         }
 
@@ -187,7 +203,7 @@ namespace Couchbase.IO.Operations
             return new OperationResult<T>(this);
         }
 
-        public ITypeSerializer Serializer
+        public ITypeSerializer2 Serializer
         {
             get { return _serializer; }
         }

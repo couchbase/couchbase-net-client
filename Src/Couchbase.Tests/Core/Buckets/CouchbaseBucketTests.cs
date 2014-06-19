@@ -67,7 +67,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var bucket = _cluster.OpenBucket("beer-sample");
             
-            var query = new ViewQuery(true).
+            var query = new ViewQuery(false).
                 From("beer-sample", "beer").
                 View("brewery_beers").
                 Limit(10);

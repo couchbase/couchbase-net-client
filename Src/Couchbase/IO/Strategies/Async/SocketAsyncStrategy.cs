@@ -27,7 +27,7 @@ namespace Couchbase.IO.Strategies.Async
         public SocketAsyncStrategy(IConnectionPool connectionPool)
             : this(connectionPool,
             new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()),
-            new PlainTextMechanism("default", string.Empty))
+            new PlainTextMechanism("default", string.Empty, new ManualByteConverter()))
         {
         }
 

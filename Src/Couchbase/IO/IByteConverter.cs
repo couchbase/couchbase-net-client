@@ -39,6 +39,8 @@ namespace Couchbase.IO
 
         void FromUInt64(ulong value, byte[] buffer, int offset);
 
+        void FromString(string value, ref byte[] buffer, int offset);
+
         void FromString(string value, byte[] buffer, int offset);
 
         void FromByte(byte value, byte[] buffer, int offset);

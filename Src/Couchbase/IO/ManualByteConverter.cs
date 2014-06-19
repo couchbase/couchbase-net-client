@@ -230,6 +230,23 @@ namespace Couchbase.IO
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
+        /// <remarks>Will resize buffer if empty.</remarks>
+        public void FromString(string value, ref byte[] buffer, int offset)
+        {
+            var bytes = Encoding.UTF8.GetBytes(value);
+            if (buffer.Length == 0)
+            {
+                buffer = new byte[bytes.Length];
+            }
+            Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="string"/> to a buffer at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
         public void FromString(string value, byte[] buffer, int offset)
         {
             var bytes = Encoding.UTF8.GetBytes(value);

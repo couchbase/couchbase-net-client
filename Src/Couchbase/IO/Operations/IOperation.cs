@@ -18,7 +18,7 @@ namespace Couchbase.IO.Operations
 
         IOperationResult<T> GetResult();
 
-        ITypeSerializer Serializer { get; }
+        ITypeSerializer2 Serializer { get; }
 
         int SequenceId { get; }
 

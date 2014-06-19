@@ -20,6 +20,7 @@ namespace Couchbase.Authentication.SASL
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOStrategy"/>.
         /// </summary>
         /// <param name="ioStrategy">The I/O strategy to use.</param>
+        /// <param name="converter">The <see cref="IByteConverter"/> to use for converting to and from byte arrays.</param>
         public CramMd5Mechanism(IOStrategy ioStrategy, IByteConverter converter)
         {
             _ioStrategy = ioStrategy;
@@ -43,11 +44,12 @@ namespace Couchbase.Authentication.SASL
         /// <param name="ioStrategy">The <see cref="IOStrategy"/>to use for I/O.</param>
         /// <param name="username">The name of the Bucket you are connecting to.</param>
         /// <param name="password">The password for the Bucket.</param>
-        public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password)
+        public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password, IByteConverter converter)
         {
             _ioStrategy = ioStrategy;
             Username = username;
             Password = password;
+            _converter = converter;
         }
 
         /// <summary>

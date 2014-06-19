@@ -12,59 +12,6 @@ namespace Couchbase.Authentication.SASL
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
 
-        public static Func<string, string, string, ISaslMechanism> GetFactory()
-        {
-            return (username, password, mechanism) =>
-            {
-                ISaslMechanism saslMechanism;
-                SaslMechanismType mechanismType;
-                if (Enum.TryParse(mechanism, true, out mechanismType))
-                {
-                    switch (mechanismType)
-                    {
-                        case SaslMechanismType.Plain:
-                            saslMechanism = new PlainTextMechanism(username, password);
-                            break;
-                        case SaslMechanismType.CramMd5:
-                            saslMechanism = new CramMd5Mechanism(username, password);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                }
-                else
-                {
-                    throw new NotSupportedException(mechanism);
-                }
-                return saslMechanism;
-            };
-        }
-
-        /// <summary>
-        /// Gets a factory for creating an ISaslMechanism.
-        /// </summary>
-        /// <returns>An ISaslMechanism for authenticating connectivity to a Couchbase Bucket.</returns>
-        public static Func<string, string, SaslMechanismType, ISaslMechanism> GetFactory2()
-        {
-            return (username, password, mechanismType) =>
-            {
-                Log.Debug(m => m("Using {0} Sasl Mechanism for authentication.", mechanismType));
-                ISaslMechanism saslMechanism;
-                switch (mechanismType)
-                {
-                    case SaslMechanismType.Plain:
-                        saslMechanism = new PlainTextMechanism(username, password);
-                        break;
-                    case SaslMechanismType.CramMd5:
-                        saslMechanism = new CramMd5Mechanism(username, password);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                return saslMechanism;
-            };
-        }
-        
         public static Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> GetFactory3()
         {
             return (username, password, strategy, converter) =>
@@ -78,11 +25,11 @@ namespace Couchbase.Authentication.SASL
                     {
                         if (saslListResult.Value.Contains("CRAM-MD5"))
                         {
-                            saslMechanism = new CramMd5Mechanism(strategy ,username, password);
+                            saslMechanism = new CramMd5Mechanism(strategy ,username, password, converter);
                         }
                         else
                         {
-                            saslMechanism = new PlainTextMechanism(strategy, username, password);
+                            saslMechanism = new PlainTextMechanism(strategy, username, password, converter);
                         }
                     }
                 }

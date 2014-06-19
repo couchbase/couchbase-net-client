@@ -68,6 +68,8 @@
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
+    <Compile Include="Core\Serializers\ITypeSerializer2.cs" />
+    <Compile Include="Core\Serializers\TypeSerializer2.cs" />
     <Compile Include="CouchbaseCluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />

@@ -10,7 +10,7 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The Type of the <see cref="Value"/> field.</typeparam>
     internal class OperationResult<T> : IOperationResult<T>
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly ILog _log = LogManager.GetCurrentClassLogger();
         private readonly OperationBase<T> _operation;
 
         public OperationResult(OperationBase<T> operation)
@@ -43,12 +43,16 @@ namespace Couchbase.IO.Operations
                 if (Success)
                 {
                     var serializer = _operation.Serializer;
-                    value = serializer.Deserialize(_operation);
+                    var buffer = _operation.Body.Data;
+                    var header = _operation.Header;
+                    var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
+                    var length = header.BodyLength - header.ExtrasLength;
+                    value = serializer.Deserialize<T>(buffer, offset, length);
                 }
                 return value;
             }
         }
-
+        
         /// <summary>
         /// If the operation failed, this will provide more detailed information about the reason why it failed.
         /// </summary>
@@ -74,7 +78,7 @@ namespace Couchbase.IO.Operations
                                 var header = _operation.Header;
                                 var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
                                 var length = header.BodyLength - header.ExtrasLength;
-                                message = serializer.Deserialize(buffer, offset, length);
+                                message = serializer.Deserialize<string>(buffer, offset, length);
                             }
                             catch (Exception e)
                             {
@@ -132,11 +136,11 @@ namespace Couchbase.IO.Operations
 
                     var serializer = _operation.Serializer;
                     config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
-                    Log.Info(m=>m("Received config rev#{0}", config.Rev));
+                    _log.Info(m=>m("Received config rev#{0}", config.Rev));
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e);
+                    _log.Error(e);
                 }
             }
             return config;
