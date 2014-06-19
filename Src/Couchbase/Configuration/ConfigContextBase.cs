@@ -5,7 +5,9 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.Utils;
 using System;
 using System.Collections.Generic;
@@ -29,13 +31,15 @@ namespace Couchbase.Configuration
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
         protected readonly IByteConverter Converter;
+        protected readonly ITypeSerializer2 Serializer;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
-            IByteConverter converter)
+            IByteConverter converter,
+            ITypeSerializer2 serializer)
         {
             _clientConfig = clientConfig;
             IOStrategyFactory = ioStrategyFactory;
@@ -43,6 +47,7 @@ namespace Couchbase.Configuration
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Converter = converter;
+            Serializer = serializer;
             LoadConfig(bucketConfig);
         }
 

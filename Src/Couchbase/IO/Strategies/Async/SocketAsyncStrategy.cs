@@ -1,5 +1,6 @@
 ﻿using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;

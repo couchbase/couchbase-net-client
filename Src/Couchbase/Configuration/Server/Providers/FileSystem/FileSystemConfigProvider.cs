@@ -1,5 +1,6 @@
 ﻿using System;
 using Couchbase.Configuration.Client;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.Configuration.Server.Providers.FileSystem
 {
@@ -76,7 +77,7 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         }
 
 
-        public IO.IByteConverter Converter
+        public IByteConverter Converter
         {
             get
             {

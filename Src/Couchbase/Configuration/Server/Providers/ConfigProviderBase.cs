@@ -5,7 +5,9 @@ using System.Net;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.Configuration.Server.Providers
 {
@@ -24,13 +26,15 @@ namespace Couchbase.Configuration.Server.Providers
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
-            IByteConverter converter)
+            IByteConverter converter,
+            ITypeSerializer2 serializer)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             Converter = converter;
+            Serializer = serializer;
         }
 
         protected ClientConfiguration ClientConfig
@@ -64,6 +68,8 @@ namespace Couchbase.Configuration.Server.Providers
         }
 
         public IByteConverter Converter { get; set; }
+
+        public ITypeSerializer2 Serializer { get; set; }
 
         public abstract IConfigInfo GetConfig(string name, string password);
 

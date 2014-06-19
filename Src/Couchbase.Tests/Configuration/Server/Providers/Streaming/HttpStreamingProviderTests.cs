@@ -4,7 +4,9 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
@@ -26,7 +28,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
                 SaslFactory.GetFactory3(), 
-                new ManualByteConverter());
+                new ManualByteConverter(),
+                new TypeSerializer2(new ManualByteConverter()));
         }
 
         [Test]

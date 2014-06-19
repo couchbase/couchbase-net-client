@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;

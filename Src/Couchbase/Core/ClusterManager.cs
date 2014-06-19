@@ -7,7 +7,9 @@ using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
 using System;
 using System.Collections.Concurrent;
@@ -28,6 +30,7 @@ namespace Couchbase.Core
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly IByteConverter _converter;
+        private readonly ITypeSerializer2 _serializer;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
@@ -47,7 +50,8 @@ namespace Couchbase.Core
                 return connectionPool;
             },
             SaslFactory.GetFactory3(),
-            new ManualByteConverter())
+            new ManualByteConverter(),
+            new TypeSerializer2(new ManualByteConverter()))
         {
         }
 
@@ -67,7 +71,8 @@ namespace Couchbase.Core
                 }
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
-            new ManualByteConverter())
+            new ManualByteConverter(),
+            new TypeSerializer2(new ManualByteConverter()))
         {
         }
 
@@ -75,23 +80,35 @@ namespace Couchbase.Core
             Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
-            IByteConverter converter)
+            IByteConverter converter,
+            ITypeSerializer2 serializer)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             _converter = converter;
+            _serializer = serializer;
             Initialize();
         }
 
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 
-        //TODO possibly make providers instantiation configurable...maybe. perhaps.
         private void Initialize()
         {
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory, _converter));
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig, _ioStrategyFactory, _connectionPoolFactory, _saslFactory, _converter));
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, 
+                _ioStrategyFactory, 
+                _connectionPoolFactory, 
+                _saslFactory, 
+                _converter, 
+                _serializer));
+
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig, 
+                _ioStrategyFactory,
+                _connectionPoolFactory, 
+                _saslFactory, 
+                _converter,
+                _serializer)); ;
         }
 
         public IConfigProvider GetProvider(string name)
@@ -117,11 +134,11 @@ namespace Couchbase.Core
                     switch (config.NodeLocator)
                     {
                         case NodeLocatorEnum.VBucket:
-                            bucket = new CouchbaseBucket(this, bucketName, _converter);
+                            bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
                             break;
 
                         case NodeLocatorEnum.Ketama:
-                            bucket = new MemcachedBucket(this, bucketName, _converter);
+                            bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
                             break;
 
                         default:

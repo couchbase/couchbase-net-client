@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Views;
@@ -23,11 +25,13 @@ namespace Couchbase.Core.Buckets
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
+        private readonly ITypeSerializer2 _serializer;
 
-        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter)
+        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer2 serializer)
         {
             _clusterManager = clusterManager;
             _converter = converter;
+            _serializer = serializer;
             Name = bucketName;
         }
 
@@ -53,7 +57,7 @@ namespace Couchbase.Core.Buckets
 
                 Log.Info(m=>m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1}", 
                     old==null ? 0 : old.BucketConfig.Rev, 
-                    _configInfo.BucketConfig.Rev ));
+                    _configInfo.BucketConfig.Rev));
             }
         }
 
@@ -98,7 +102,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new ReplaceOperation<T>(key, value, vBucket, _converter);
+            var operation = new ReplaceOperation<T>(key, value, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -120,7 +124,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new AddOperation<T>(key, value, vBucket, _converter);
+            var operation = new AddOperation<T>(key, value, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -140,7 +144,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new DeleteOperation(key, vBucket, _converter);
+            var operation = new DeleteOperation(key, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -161,7 +165,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new GetOperation<T>(key, vBucket, _converter);
+            var operation = new GetOperation<T>(key, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -231,7 +235,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new IncrementOperation(key, initial, delta, expiration, vBucket, _converter);
+            var operation = new IncrementOperation(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -247,7 +251,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<long> Decrement(string key)
+        public IOperationResult<ulong> Decrement(string key)
         {
             const ulong initial = 1;
             const ulong delta = 1;
@@ -263,7 +267,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<long> Decrement(string key, ulong delta)
+        public IOperationResult<ulong> Decrement(string key, ulong delta)
         {
             const ulong initial = 1;
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
@@ -279,7 +283,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<long> Decrement(string key, ulong delta, ulong initial)
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial)
         {
             //infinite - there is also a 'special' value -1: 'don't create if missing'
             const uint expiration = 0;
@@ -296,12 +300,12 @@ namespace Couchbase.Core.Buckets
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<long> Decrement(string key, ulong delta, ulong initial, uint expiration)
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new DecrementOperation(key, initial, delta, expiration, vBucket, _converter);
+            var operation = new DecrementOperation(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))

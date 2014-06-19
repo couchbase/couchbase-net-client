@@ -1,5 +1,6 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Serializers;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using System;
 using System.Collections.Generic;
@@ -43,6 +44,11 @@ namespace Couchbase.IO.Operations
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
             : this(key, default(T), new TypeSerializer2(converter), vBucket, converter)
+        {
+        }
+
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+            : this(key, default(T), serializer, vBucket, converter)
         {
         }
 

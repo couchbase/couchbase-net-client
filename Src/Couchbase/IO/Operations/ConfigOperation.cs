@@ -1,4 +1,5 @@
 ﻿using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {

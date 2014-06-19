@@ -356,7 +356,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(1, result.Value);
                 Thread.Sleep(2000);
-                result = bucket.Get<long>(key);
+                result = bucket.Get<ulong>(key);
                 Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
             }
         }

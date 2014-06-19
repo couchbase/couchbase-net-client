@@ -1,4 +1,5 @@
 ﻿using Couchbase.Core;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {

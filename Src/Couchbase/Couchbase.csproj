@@ -149,10 +149,10 @@
     <Compile Include="Core\InitializationException.cs" />
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
-    <Compile Include="IO\IByteConverter.cs" />
+    <Compile Include="IO\Converters\IByteConverter.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\IOStrategyFactory.cs" />
-    <Compile Include="IO\ManualByteConverter.cs" />
+    <Compile Include="IO\Converters\ManualByteConverter.cs" />
     <Compile Include="IO\Operations\AddOperation.cs" />
     <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />

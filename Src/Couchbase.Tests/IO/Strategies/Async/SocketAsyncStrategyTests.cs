@@ -1,5 +1,6 @@
 ﻿using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;

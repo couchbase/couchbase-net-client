@@ -1,7 +1,9 @@
 ﻿using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
@@ -14,8 +16,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
-            IByteConverter converter) 
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter)
+            IByteConverter converter,
+            ITypeSerializer2 serializer) 
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
         {
         }
 
@@ -56,7 +59,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 IOStrategyFactory,
                 ConnectionPoolFactory, 
                 SaslFactory,
-                Converter);
+                Converter,
+                Serializer);
 
             return configInfo;
         }

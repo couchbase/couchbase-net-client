@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -29,33 +30,28 @@ namespace Couchbase.Core.Serializers
                     break;
 
                 case TypeCode.Int16:
-                    bytes = new byte[2];
-                    _converter.FromInt16(Convert.ToInt16(value), bytes, 0);
+                    _converter.FromInt16(Convert.ToInt16(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt16:
-                    bytes = new byte[2];
-                    _converter.FromUInt16(Convert.ToUInt16(value), bytes, 0);
+                    _converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int32:
-                    bytes = new byte[4];
-                    _converter.FromInt32(Convert.ToInt32(value), bytes, 0);
+                    _converter.FromInt32(Convert.ToInt32(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt32:
-                    bytes = new byte[4];
-                    _converter.FromUInt32(Convert.ToUInt32(value), bytes, 0);
+                    _converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int64:
-                    bytes = new byte[8];
-                    _converter.FromInt64(Convert.ToInt64(value), bytes, 0);
+                    _converter.FromInt64(Convert.ToInt64(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt64:
-                    bytes = new byte[8];
-                    _converter.FromUInt64(Convert.ToUInt64(value), bytes, 0);
+
+                    _converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Single:
@@ -120,7 +116,7 @@ namespace Couchbase.Core.Serializers
                 case TypeCode.Byte:
                     break;
                 case TypeCode.Object:
-                    value = Deserialize2<T>(buffer, offset, length);
+                    value = DeserializeAsJson<T>(buffer, offset, length);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -128,7 +124,7 @@ namespace Couchbase.Core.Serializers
             return (T)value;
         }
 
-        public T Deserialize2<T>(byte[] buffer, int offset, int length)
+        public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
             var value = default(T);
             using (var ms = new MemoryStream(buffer, offset, length))

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;

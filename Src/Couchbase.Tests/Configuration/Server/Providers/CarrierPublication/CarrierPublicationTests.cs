@@ -9,6 +9,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Fakes;
 using Couchbase.Tests.IO.Strategies;

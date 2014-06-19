@@ -1,6 +1,7 @@
 ﻿using System;
 using Common.Logging;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL

@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Converters
