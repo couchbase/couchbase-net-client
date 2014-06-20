@@ -8,6 +8,28 @@ namespace Couchbase.IO.Converters
 {
     public sealed class AutoByteConverter : IByteConverter
     {
+        static byte[] CopyAndReverse(byte[] src, int offset, int length)
+        {
+            var dst = new byte[length];
+            for (var i = dst.Length; i > 0; i--)
+            {
+                dst[i - 1] = src[offset++];
+            }
+            return dst;
+        }
+
+        static void CopyAndReverse(byte[] src, ref byte[] dst, int offset, int length)
+        {
+            if (dst.Length == 0)
+            {
+                dst = new byte[length];
+            }
+            for (var i = src.Length; i > 0; i--)
+            {
+                dst[offset++] = src[i - 1];
+            }
+        }
+
         public byte ToByte(byte[] buffer, int offset)
         {
             return buffer[offset];
@@ -15,75 +37,56 @@ namespace Couchbase.IO.Converters
 
         public short ToInt16(byte[] buffer, int offset)
         {
-            var array = new byte[2];
-            Buffer.BlockCopy(buffer, offset, array, 0, 2);
-            Array.Reverse(array);
-            
+            const int length = 2;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToInt16(array, 0);
         }
 
         public ushort ToUInt16(byte[] buffer, int offset)
         {
-            var array = new byte[2];
-            Buffer.BlockCopy(buffer, offset, array, 0, 2);
-            Array.Reverse(array);
-
+            const int length = 2;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToUInt16(array, 0);
         }
 
         public int ToInt32(byte[] buffer, int offset)
         {
-            var array = new byte[4];
-            Buffer.BlockCopy(buffer, offset, array, 0, 4);
-            Array.Reverse(array);
-
+            const int length = 4;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToInt32(array, 0);
         }
 
         public uint ToUInt32(byte[] buffer, int offset)
         {
-            var array = new byte[4];
-            Buffer.BlockCopy(buffer, offset, array, 0, 4);
-            Array.Reverse(array);
-
+            const int length = 4;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToUInt32(array, 0);
         }
 
         public long ToInt64(byte[] buffer, int offset)
         {
-            var array = new byte[8];
-            Buffer.BlockCopy(buffer, offset, array, 0, 8);
-            Array.Reverse(array);
-
+            const int length = 8;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToInt64(array, 0);
         }
 
         public ulong ToUInt64(byte[] buffer, int offset)
         {
-            var array = new byte[8];
-            Buffer.BlockCopy(buffer, offset, array, 0, 8);
-            Array.Reverse(array);
-
+            const int length = 8;
+            var array = CopyAndReverse(buffer, offset, length);
             return BitConverter.ToUInt64(array, 0);
         }
 
         public string ToString(byte[] buffer, int offset, int length)
         {
-            var array = new byte[length];
-            Buffer.BlockCopy(buffer, offset, array, 0, length);
- 
-            return Encoding.UTF8.GetString(array);
+            return Encoding.UTF8.GetString(buffer, offset, length);
         }
 
         public void FromInt16(short value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[2];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 2);
+            const int length = 2;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromInt16(short value, byte[] buffer, int offset)
@@ -93,13 +96,9 @@ namespace Couchbase.IO.Converters
 
         public void FromUInt16(ushort value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[2];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 2);
+            const int length = 2;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromUInt16(ushort value, byte[] buffer, int offset)
@@ -109,24 +108,16 @@ namespace Couchbase.IO.Converters
 
         public void FromInt32(int value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[4];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 4);
+            const int length = 4;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromUInt32(uint value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[4];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 4);
+            const int length = 4;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromInt32(int value, byte[] buffer, int offset)
@@ -141,24 +132,16 @@ namespace Couchbase.IO.Converters
 
         public void FromInt64(long value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[8];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 8);
+            const int length = 8;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromUInt64(ulong value, ref byte[] buffer, int offset)
         {
-            if (buffer.Length == 0)
-            {
-                buffer = new byte[8];
-            }
-            var array = BitConverter.GetBytes(value);
-            Array.Reverse(array);
-            Buffer.BlockCopy(array, 0, buffer, offset, 8);
+            const int length = 8;
+            var src = BitConverter.GetBytes(value);
+            CopyAndReverse(src, ref buffer, offset, length);
         }
 
         public void FromInt64(long value, byte[] buffer, int offset)
@@ -172,12 +155,12 @@ namespace Couchbase.IO.Converters
         }
 
         /// <summary>
-        /// Writes a <see cref="string"/> to a buffer at a given offset.
+        /// Writes a <see cref="string"/> to a dst at a given offset.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
+        /// <param name="buffer">The dst.</param>
         /// <param name="offset">The offset.</param>
-        /// <remarks>Will resize buffer if empty.</remarks>
+        /// <remarks>Will resize dst if empty.</remarks>
         public void FromString(string value, ref byte[] buffer, int offset)
         {
             var bytes = Encoding.UTF8.GetBytes(value);
@@ -189,10 +172,10 @@ namespace Couchbase.IO.Converters
         }
 
         /// <summary>
-        /// Writes a <see cref="string"/> to a buffer at a given offset.
+        /// Writes a <see cref="string"/> to a dst at a given offset.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
+        /// <param name="buffer">The dst.</param>
         /// <param name="offset">The offset.</param>
         public void FromString(string value, byte[] buffer, int offset)
         {
