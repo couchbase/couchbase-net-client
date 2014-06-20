@@ -50,8 +50,13 @@ namespace Couchbase.Core
                 return connectionPool;
             },
             SaslFactory.GetFactory3(),
+<<<<<<< HEAD
             new AutoByteConverter(), 
             new TypeSerializer2(new AutoByteConverter()))
+=======
+            new ManualByteConverter(),
+            new TypeSerializer2(new ManualByteConverter()))
+>>>>>>> 95a1dbbdaa201d6661a680706ce1a0f7885c7480
         {
         }
 
@@ -71,8 +76,13 @@ namespace Couchbase.Core
                 }
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
+<<<<<<< HEAD
             new AutoByteConverter(), 
             new TypeSerializer2(new AutoByteConverter()))
+=======
+            new ManualByteConverter(),
+            new TypeSerializer2(new ManualByteConverter()))
+>>>>>>> 95a1dbbdaa201d6661a680706ce1a0f7885c7480
         {
         }
 
