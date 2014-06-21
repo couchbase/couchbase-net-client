@@ -34,10 +34,9 @@ namespace Couchbase.IO.Operations
         public override ArraySegment<byte> CreateExtras()
         {
             var extras = new ArraySegment<byte>(new byte[20]);
-            extras.ConvertAndCopy(_delta, 0, 8);
-            extras.ConvertAndCopy(_initial, 8, 8);
-            extras.ConvertAndCopy(_expiration, 16, 4);
-            return extras;
+            Converter.FromUInt64(_delta, extras.Array, 0);
+            Converter.FromUInt64(_initial, extras.Array, 8);
+            Converter.FromUInt32(_expiration, extras.Array, 16);
             return extras;
         }
 

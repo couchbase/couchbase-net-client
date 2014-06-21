@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -15,12 +14,12 @@ namespace Couchbase.IO.Operations
     {
         private const int DefaultOffset = 28;
         public const int HeaderLength = 24;
-        private static int _sequenceId;//needs to be resolved
+        private static int _sequenceId;//needs to be resolved - note there will be an instance of the variable for every Type T!
         private readonly int _opaque;
         private readonly ITypeSerializer2 _serializer;
         private readonly T _value;
         private readonly IVBucket _vBucket;
-        private readonly IByteConverter _converter;
+        protected readonly IByteConverter Converter;
 
         protected OperationBase(IByteConverter converter)
             : this(string.Empty, null, converter)
@@ -34,7 +33,7 @@ namespace Couchbase.IO.Operations
             _serializer = serializer;
             _opaque = Interlocked.Increment(ref _sequenceId);
             _vBucket = vBucket;
-            _converter = converter;
+            Converter = converter;
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
@@ -98,8 +97,8 @@ namespace Couchbase.IO.Operations
             var typeCode = Type.GetTypeCode(typeof(T));
             var flag = (uint)((int)typeCode | 0x0100);
 
-            _converter.FromUInt32(flag, extras.Array, 0);
-            _converter.FromUInt32(Expires, extras.Array, 4);
+            Converter.FromUInt32(flag, extras.Array, 0);
+            Converter.FromUInt32(Expires, extras.Array, 4);
 
             return extras;
         }
@@ -113,17 +112,17 @@ namespace Couchbase.IO.Operations
         public virtual ArraySegment<byte> CreateBody()
         {
             byte[] bytes;
-            if (typeof (T).IsValueType)
+            if (typeof(T).IsValueType)
             {
                 bytes = _serializer.Serialize(RawValue);
             }
             else
             {
-                bytes = RawValue == null ? 
-                    new byte[0] : 
+                bytes = RawValue == null ?
+                    new byte[0] :
                     _serializer.Serialize(RawValue);
             }
-            
+
             return new ArraySegment<byte>(bytes);
         }
 
@@ -147,60 +146,18 @@ namespace Couchbase.IO.Operations
         {
             var header = new ArraySegment<byte>(new byte[24]);
             var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe();
-            _converter.FromByte((byte)Magic.Request, header.Array, HeaderIndexFor.Magic);
-            _converter.FromByte((byte)OperationCode, header.Array, HeaderIndexFor.Opcode);
-            _converter.FromInt16((short)key.Length, header.Array, HeaderIndexFor.KeyLength);
-            _converter.FromByte((byte)extras.GetLengthSafe(), header.Array, HeaderIndexFor.ExtrasLength);
+            Converter.FromByte((byte)Magic.Request, header.Array, HeaderIndexFor.Magic);
+            Converter.FromByte((byte)OperationCode, header.Array, HeaderIndexFor.Opcode);
+            Converter.FromInt16((short)key.Length, header.Array, HeaderIndexFor.KeyLength);
+            Converter.FromByte((byte)extras.GetLengthSafe(), header.Array, HeaderIndexFor.ExtrasLength);
 
             if (VBucket != null)
             {
-                _converter.FromInt16((short) VBucket.Index, header.Array, HeaderIndexFor.VBucket);
+                Converter.FromInt16((short)VBucket.Index, header.Array, HeaderIndexFor.VBucket);
             }
 
-            _converter.FromInt32(totalLength, header.Array, HeaderIndexFor.BodyLength);
-            _converter.FromInt32(Opaque, header.Array, HeaderIndexFor.Opaque);
-            return header;
-        }
-
-        public virtual ArraySegment<byte> CreateHeader2(byte[] extras, byte[] body, byte[] key)
-        {
-            var header = new ArraySegment<byte>(new byte[24]);
-            var buffer = header.Array;
-            var totalLength = extras.GetLengthSafe() +
-                key.GetLengthSafe() +
-                body.GetLengthSafe();
-
-            //0 magic and 1 opcode
-            buffer[0x00] = (byte)Magic.Request;
-            buffer[0x01] = (byte)OperationCode;
-
-            //2 & 3 Key length
-            buffer[0x02] = (byte)(key.Length >> 8);
-            buffer[0x03] = (byte)(key.Length & 255);
-
-            //4 extra length
-            buffer[0x04] = (byte)extras.GetLengthSafe();
-
-            //5 data type?
-
-            //6 vbucket id
-            if (VBucket != null)
-            {
-                buffer[0x06] = (byte)(VBucket.Index >> 8);
-                buffer[0x07] = (byte)(VBucket.Index & 255);
-            }
-
-            //8-11 total body length
-            buffer[0x08] = (byte)(totalLength >> 24);
-            buffer[0x09] = (byte)(totalLength >> 16);
-            buffer[0x0a] = (byte)(totalLength >> 8);
-            buffer[0x0b] = (byte)(totalLength & 255);
-
-            //12-15 opaque (correlationid)
-            buffer[0x0c] = (byte)(Opaque >> 24);
-            buffer[0x0d] = (byte)(Opaque >> 16);
-            buffer[0x0e] = (byte)(Opaque >> 8);
-            buffer[0x0f] = (byte)(Opaque & 255);
+            Converter.FromInt32(totalLength, header.Array, HeaderIndexFor.BodyLength);
+            Converter.FromInt32(Opaque, header.Array, HeaderIndexFor.Opaque);
             return header;
         }
 
@@ -218,8 +175,7 @@ namespace Couchbase.IO.Operations
         public virtual byte[] GetBuffer()
         {
             var buffer = CreateBuffer();
-            var bytes = new byte[
-                buffer[0].Array.GetLengthSafe() +
+            var bytes = new byte[buffer[0].Array.GetLengthSafe() + 
                 buffer[1].Array.GetLengthSafe() +
                 buffer[2].Array.GetLengthSafe() +
                 buffer[3].Array.GetLengthSafe()];
@@ -265,4 +221,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

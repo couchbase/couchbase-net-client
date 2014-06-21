@@ -31,6 +31,20 @@ namespace Couchbase.IO.Operations.Authentication
         {
             var header = new ArraySegment<byte>(new byte[24]);
             var buffer = header.Array;
+            var totalLength = key.GetLengthSafe() + body.GetLengthSafe();
+
+            Converter.FromByte((byte) Magic.Request, buffer, HeaderIndexFor.Magic);
+            Converter.FromByte((byte)OperationCode, buffer, HeaderIndexFor.Opcode);
+            Converter.FromInt16((short)key.Length, buffer, HeaderIndexFor.KeyLength);
+            Converter.FromInt32(totalLength, buffer, HeaderIndexFor.BodyLength);
+
+            return header;
+        }
+
+        public ArraySegment<byte> CreateHeader2(byte[] extras, byte[] body, byte[] key)
+        {
+            var header = new ArraySegment<byte>(new byte[24]);
+            var buffer = header.Array;
             var totalLength = key.GetLengthSafe() +
                 body.GetLengthSafe();
 

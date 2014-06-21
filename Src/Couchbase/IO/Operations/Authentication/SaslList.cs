@@ -1,5 +1,6 @@
 ﻿using System;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
 {
@@ -23,9 +24,8 @@ namespace Couchbase.IO.Operations.Authentication
             var header = new ArraySegment<byte>(new byte[24]);
             var buffer = header.Array;
 
-            //0 magic and 1 opcode
-            buffer[0x00] = (byte)Magic.Request;
-            buffer[0x01] = (byte)OperationCode;
+            Converter.FromByte((byte)Magic.Request, buffer, HeaderIndexFor.Magic);
+            Converter.FromByte((byte) OperationCode, buffer, HeaderIndexFor.Opcode);
 
             return header;
         }
