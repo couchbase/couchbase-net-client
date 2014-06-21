@@ -10,7 +10,7 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The Type of the <see cref="Value"/> field.</typeparam>
     internal class OperationResult<T> : IOperationResult<T>
     {
-        private readonly ILog _log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog _log = LogManager.GetCurrentClassLogger();
         private readonly OperationBase<T> _operation;
 
         public OperationResult(OperationBase<T> operation)
