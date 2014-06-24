@@ -24,8 +24,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Servers = new List<Uri>{ new Uri("http://localhost:8091/pools")},
                 UseSsl = true
             };
-            CouchbaseCluster.Initialize(config);
-            _cluster = CouchbaseCluster.Get();
+            _cluster = new CouchbaseCluster(config);
         }
 
         [Test]

@@ -10,8 +10,7 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            CouchbaseCluster.Initialize();
-            _cluster = CouchbaseCluster.Get();
+            _cluster = new CouchbaseCluster();
 
             using (var bucket = _cluster.OpenBucket())
             {

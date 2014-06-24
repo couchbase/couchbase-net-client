@@ -83,8 +83,7 @@ namespace Couchbase.Tests.Authentication.SSL
             }};
             config.Initialize();
 
-            CouchbaseCluster.Initialize(config);
-            var cluster = CouchbaseCluster.Get();
+            var cluster = new CouchbaseCluster(config);
             using (var bucket = cluster.OpenBucket())
             {
                 Assert.IsNotNull(bucket);

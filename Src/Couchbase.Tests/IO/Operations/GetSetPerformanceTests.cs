@@ -70,26 +70,28 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Get()
         {
-            CouchbaseCluster.Initialize();
-            var cluster = CouchbaseCluster.Get();
-            using (var bucket = cluster.OpenBucket())
+            using (var cluster = new CouchbaseCluster())
             {
-                var key = string.Format("key{0}", 1);
-                var result = bucket.Get<int>(key);
-                Console.WriteLine(result.Value);
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = string.Format("key{0}", 1);
+                    var result = bucket.Get<int>(key);
+                    Console.WriteLine(result.Value);
+                }
             }
         }
 
         [Test]
         public void Set()
         {
-            CouchbaseCluster.Initialize();
-            var cluster = CouchbaseCluster.Get();
-            using (var bucket = cluster.OpenBucket())
+            using (var cluster = new CouchbaseCluster())
             {
-                var key = string.Format("key{0}", 1);
-                var result = bucket.Upsert(key, 12);
-                Console.WriteLine(result.Value);
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = string.Format("key{0}", 1);
+                    var result = bucket.Upsert(key, 12);
+                    Console.WriteLine(result.Value);
+                }
             }
         }
 
@@ -99,26 +101,26 @@ namespace Couchbase.Tests.IO.Operations
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var n = 1000;//set to a higher # if needed
 
-            CouchbaseCluster.Initialize();
-            var cluster = CouchbaseCluster.Get();
-            using (var bucket = cluster.OpenBucket())
+            using (var cluster = new CouchbaseCluster())
             {
-                using (new OperationTimer())
+                using (var bucket = cluster.OpenBucket())
                 {
-                    var temp = bucket;
-                    Parallel.For(0, n, options, i =>
+                    using (new OperationTimer())
                     {
-                        var key = string.Format("key{0}", i);
-                        var result = temp.Upsert(key, i);
-                        Assert.IsTrue(result.Success);
+                        var temp = bucket;
+                        Parallel.For(0, n, options, i =>
+                        {
+                            var key = string.Format("key{0}", i);
+                            var result = temp.Upsert(key, i);
+                            Assert.IsTrue(result.Success);
 
-                        var result1 = temp.Get<int>(key);
-                        Assert.IsTrue(result1.Success);
-                        Assert.AreEqual(i, result1.Value);
-                    });
+                            var result1 = temp.Get<int>(key);
+                            Assert.IsTrue(result1.Success);
+                            Assert.AreEqual(i, result1.Value);
+                        });
+                    }
                 }
             }
-            cluster.Dispose();
         }
     }
 }

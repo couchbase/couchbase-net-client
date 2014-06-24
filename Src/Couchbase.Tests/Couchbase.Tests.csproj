@@ -70,7 +70,7 @@
     <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Serializers\TypeSerializer2Tests.cs" />
-    <Compile Include="CouchbaseClusterTests.cs" />
+    <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />

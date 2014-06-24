@@ -23,8 +23,7 @@ namespace Couchbase.Tests.IO.Operations
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
-            CouchbaseCluster.Initialize();
-            _cluster = CouchbaseCluster.Get();
+            _cluster = new CouchbaseCluster();
         }
 
         [Test]

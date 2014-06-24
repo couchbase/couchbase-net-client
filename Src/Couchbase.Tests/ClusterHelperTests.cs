@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests
 {
     [TestFixture]
-    public class CouchbaseClusterTests
+    public class ClusterHelperTests
     {
         private ICouchbaseCluster _cluster;
 
@@ -23,8 +23,8 @@ namespace Couchbase.Tests
         [Test]
         public void Test_OpenBucket()
         {
-            CouchbaseCluster.Initialize();
-            var cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize();
+            var cluster = ClusterHelper.Get();
             var bucket = cluster.OpenBucket();
             Assert.AreEqual("default", bucket.Name);
         }
@@ -34,8 +34,8 @@ namespace Couchbase.Tests
         {
             var clientConfig = new ClientConfiguration();
 
-            CouchbaseCluster.Initialize(clientConfig);
-            _cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize(clientConfig);
+            _cluster = ClusterHelper.Get();
 
             const string expected = "default";
             using (var bucket = _cluster.OpenBucket("default"))
@@ -48,8 +48,8 @@ namespace Couchbase.Tests
         public void Test_GetBucket_Using_CarrierPublicationProvider()
         {
             var config = new ClientConfiguration();
-            CouchbaseCluster.Initialize(config);
-            _cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize(config);
+            _cluster = ClusterHelper.Get();
 
             const string expected = "default";
             using (var bucket = _cluster.OpenBucket("default"))
@@ -62,8 +62,8 @@ namespace Couchbase.Tests
         [Test]
         public void When_Initialized_Get_Returns_Instance()
         {
-            CouchbaseCluster.Initialize();
-            var cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize();
+            var cluster = ClusterHelper.Get();
             Assert.IsNotNull(cluster);
             cluster.Dispose();
         }
@@ -73,14 +73,14 @@ namespace Couchbase.Tests
         [ExpectedException(typeof(InitializationException))]
         public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
         {
-            var cluster = CouchbaseCluster.Get();
+            var cluster = ClusterHelper.Get();
         }
 
         [Test]
         public void When_OpenBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
         {
-            CouchbaseCluster.Initialize();
-            _cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize();
+            _cluster = ClusterHelper.Get();
 
             var bucket1 = _cluster.OpenBucket("default");
             var bucket2 = _cluster.OpenBucket("default");
@@ -104,8 +104,8 @@ namespace Couchbase.Tests
                 }
             };
 
-            CouchbaseCluster.Initialize(config);
-            _cluster = CouchbaseCluster.Get();
+            ClusterHelper.Initialize(config);
+            _cluster = ClusterHelper.Get();
         }
 
 

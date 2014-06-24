@@ -96,6 +96,7 @@ namespace Couchbase.Core
 
         private void Initialize()
         {
+            _clientConfig.Initialize();
             _configProviders.Add(new CarrierPublicationProvider(_clientConfig, 
                 _ioStrategyFactory, 
                 _connectionPoolFactory, 

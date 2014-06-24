@@ -141,8 +141,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_Programmatic_Config_Construction_Using_Default_Settings()
         {
-            CouchbaseCluster.Initialize("couchbaseClients/couchbase");
-            var cluster = CouchbaseCluster.Get();
+            var cluster = new CouchbaseCluster("couchbaseClients/couchbase");
             var configuration = cluster.Configuration;
             Assert.AreEqual(11207, configuration.SslPort);
             Assert.AreEqual(8091, configuration.MgmtPort);
@@ -172,32 +171,33 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_Programmatic_Config_Construction_Using_Custom_Settings()
         {
-            CouchbaseCluster.Initialize("couchbaseClients/couchbase_1");
-            var cluster = CouchbaseCluster.Get();
-            var configuration = cluster.Configuration;
-            Assert.AreEqual(443, configuration.SslPort);
-            Assert.AreEqual(8095, configuration.MgmtPort);
-            Assert.AreEqual(8094, configuration.ApiPort);
-            Assert.AreEqual(18099, configuration.HttpsMgmtPort);
-            Assert.AreEqual(18098, configuration.HttpsApiPort);
-            Assert.AreEqual(11219, configuration.DirectPort);
-            Assert.IsTrue(configuration.UseSsl);
+            using (var cluster = new CouchbaseCluster("couchbaseClients/couchbase_1"))
+            {
+                var configuration = cluster.Configuration;
+                Assert.AreEqual(443, configuration.SslPort);
+                Assert.AreEqual(8095, configuration.MgmtPort);
+                Assert.AreEqual(8094, configuration.ApiPort);
+                Assert.AreEqual(18099, configuration.HttpsMgmtPort);
+                Assert.AreEqual(18098, configuration.HttpsApiPort);
+                Assert.AreEqual(11219, configuration.DirectPort);
+                Assert.IsTrue(configuration.UseSsl);
 
-            var server = configuration.Servers.First();
-            Assert.AreEqual(new Uri("https://localhost2:18099/pools"), server);
+                var server = configuration.Servers.First();
+                Assert.AreEqual(new Uri("https://localhost2:18099/pools"), server);
 
-            var bucketKvp = configuration.BucketConfigs.First();
-            Assert.AreEqual("testbucket", bucketKvp.Key);
-            Assert.AreEqual("shhh!", bucketKvp.Value.Password);
-            Assert.IsTrue(bucketKvp.Value.UseSsl);
-            Assert.AreEqual("testbucket", bucketKvp.Value.BucketName);
+                var bucketKvp = configuration.BucketConfigs.First();
+                Assert.AreEqual("testbucket", bucketKvp.Key);
+                Assert.AreEqual("shhh!", bucketKvp.Value.Password);
+                Assert.IsTrue(bucketKvp.Value.UseSsl);
+                Assert.AreEqual("testbucket", bucketKvp.Value.BucketName);
 
-            var poolConfiguration = bucketKvp.Value.PoolConfiguration;
-            Assert.IsTrue(poolConfiguration.UseSsl);
-            Assert.AreEqual(10, poolConfiguration.MaxSize);
-            Assert.AreEqual(5, poolConfiguration.MinSize);
-            Assert.AreEqual(5000, poolConfiguration.WaitTimeout);
-            Assert.AreEqual(3000, poolConfiguration.ShutdownTimeout);
+                var poolConfiguration = bucketKvp.Value.PoolConfiguration;
+                Assert.IsTrue(poolConfiguration.UseSsl);
+                Assert.AreEqual(10, poolConfiguration.MaxSize);
+                Assert.AreEqual(5, poolConfiguration.MinSize);
+                Assert.AreEqual(5000, poolConfiguration.WaitTimeout);
+                Assert.AreEqual(3000, poolConfiguration.ShutdownTimeout);
+            }
         }
 
         [Test]
@@ -215,19 +215,20 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_Initialize_Called_With_AppConfig_Settings_Bucket_Can_Be_Opened()
         {
-            CouchbaseCluster.Initialize("couchbaseClients/couchbase");
-            var cluster = CouchbaseCluster.Get();
-            var bucket = cluster.OpenBucket();
-            Assert.AreEqual("default", bucket.Name);
+            using (var cluster = new CouchbaseCluster("couchbaseClients/couchbase"))
+            {
+                var bucket = cluster.OpenBucket();
+                Assert.AreEqual("default", bucket.Name);
 
-            var result = bucket.Upsert("testkey", "testvalue");
-            Assert.IsTrue(result.Success);
-            Assert.AreEqual(ResponseStatus.Success, result.Status);
+                var result = bucket.Upsert("testkey", "testvalue");
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
 
-            var result2 = bucket.Get<string>("testkey");
-            Assert.IsTrue(result2.Success);
-            Assert.AreEqual(ResponseStatus.Success, result2.Status);
-            Assert.AreEqual("testvalue", result2.Value);
+                var result2 = bucket.Get<string>("testkey");
+                Assert.IsTrue(result2.Success);
+                Assert.AreEqual(ResponseStatus.Success, result2.Status);
+                Assert.AreEqual("testvalue", result2.Value);
+            }
         }
     }
 }

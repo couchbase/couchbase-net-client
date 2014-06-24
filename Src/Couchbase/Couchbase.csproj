@@ -60,6 +60,7 @@
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslFactory.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
+    <Compile Include="ClusterHelper.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElement.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElementCollection.cs" />
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />

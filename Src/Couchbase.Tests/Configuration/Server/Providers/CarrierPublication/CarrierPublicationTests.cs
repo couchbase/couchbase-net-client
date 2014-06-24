@@ -41,10 +41,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 });
                 return new FakeIOStrategy<FakeOperation>(operation);
             });
-  
-
-            CouchbaseCluster.Initialize(configuration, clusterManager);
-            _cluster = CouchbaseCluster.Get();
+ 
+            _cluster = new CouchbaseCluster(configuration, clusterManager);
         }
 
        // [Test]

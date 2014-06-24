@@ -162,12 +162,9 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_UseSsl2()
         {
-            var configuration = new ClientConfiguration
+            using (new CouchbaseCluster(new ClientConfiguration{UseSsl = true}))
             {
-                UseSsl = true
-            };
-            CouchbaseCluster.Initialize(configuration);
-            var cluster = CouchbaseCluster.Get();
+            }
         }
     }
 }

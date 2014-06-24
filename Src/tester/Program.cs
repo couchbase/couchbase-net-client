@@ -35,25 +35,23 @@ namespace tester
                 },
                 UseSsl = false
             };
-           
-            CouchbaseCluster.Initialize(config);
-            _cluster = CouchbaseCluster.Get();
-            var bucket = _cluster.OpenBucket("default");
- 
-            const int n = 100000;
 
-            using (var timer = new OperationTimer())
+            using (_cluster = new CouchbaseCluster(config))
             {
-                //ThreadPoolInsert(bucket, n);
-               //ThreadPoolInsert(bucket, n);
-              //SynchronousInsert(bucket, n);
-             //ParallerInsert(bucket, n);
-                MultiThreaded(8, n, bucket);
+                using (var bucket = _cluster.OpenBucket("default"))
+                {
+                    const int n = 100000;
+                    using (var timer = new OperationTimer())
+                    {
+                        //ThreadPoolInsert(bucket, n);
+                        //ThreadPoolInsert(bucket, n);
+                        //SynchronousInsert(bucket, n);
+                        //ParallerInsert(bucket, n);
+                        MultiThreaded(8, n, bucket);
+                    }
+                }
             }
             Console.Read();
-            //_cluster.CloseBucket(bucket);
-
-            
         }
 
         static void ThreadPoolInsert(IBucket bucket, int n)
