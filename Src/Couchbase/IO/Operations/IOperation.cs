@@ -12,8 +12,6 @@ namespace Couchbase.IO.Operations
 
         OperationBody Body { get; set; }
 
-        List<ArraySegment<byte>> CreateBuffer();
-
         byte[] GetBuffer();
 
         IOperationResult<T> GetResult();

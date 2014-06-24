@@ -20,9 +20,9 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Delete; }
         }
 
-        public override ArraySegment<byte> CreateExtras()
+        public override byte[] CreateExtras()
         {
-            return new ArraySegment<byte>();
+            return new byte[0];
         }
     }
 }

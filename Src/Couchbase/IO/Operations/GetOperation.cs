@@ -12,14 +12,14 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public override ArraySegment<byte> CreateBody()
+        public override byte[] CreateBody()
         {
-            return new ArraySegment<byte>(new byte[] { });
+            return new byte[0];
         }
 
-        public override ArraySegment<byte> CreateExtras()
+        public override byte[] CreateExtras()
         {
-            return new ArraySegment<byte>(new byte[] { });
+            return new byte[0];
         }
 
         public override OperationCode OperationCode

@@ -37,18 +37,18 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Decrement; }
         }
 
-        public override ArraySegment<byte> CreateExtras()
+        public override byte[] CreateExtras()
         {
-            var extras = new ArraySegment<byte>(new byte[20]);
-            Converter.FromUInt64(_delta, extras.Array, 0);
-            Converter.FromUInt64(_initial, extras.Array, 8);
-            Converter.FromUInt32(_expiration, extras.Array, 16);
+            var extras = new byte[20];
+            Converter.FromUInt64(_delta, extras, 0);
+            Converter.FromUInt64(_initial, extras, 8);
+            Converter.FromUInt32(_expiration, extras, 16);
             return extras;
         }
 
-        public override ArraySegment<byte> CreateBody()
+        public override byte[] CreateBody()
         {
-            return new ArraySegment<byte>();
+            return new byte[0];
         }
 
         public override int Offset

@@ -19,13 +19,12 @@ namespace Couchbase.IO.Operations.Authentication
             get { return OperationCode.SaslList; }
         }
 
-        public override ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)
+        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
-            var header = new ArraySegment<byte>(new byte[24]);
-            var buffer = header.Array;
+            var header = new byte[24];
 
-            Converter.FromByte((byte)Magic.Request, buffer, HeaderIndexFor.Magic);
-            Converter.FromByte((byte) OperationCode, buffer, HeaderIndexFor.Opcode);
+            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
+            Converter.FromByte((byte) OperationCode, header, HeaderIndexFor.Opcode);
 
             return header;
         }

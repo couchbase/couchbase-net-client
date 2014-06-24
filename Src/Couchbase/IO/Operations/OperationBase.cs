@@ -91,25 +91,24 @@ namespace Couchbase.IO.Operations
 
         public OperationBody Body { get; set; }
 
-        public virtual ArraySegment<byte> CreateExtras()
+        public virtual byte[] CreateExtras()
         {
-            var extras = new ArraySegment<byte>(new byte[8]);
+            var extras = new byte[8];
             var typeCode = Type.GetTypeCode(typeof(T));
             var flag = (uint)((int)typeCode | 0x0100);
 
-            Converter.FromUInt32(flag, extras.Array, 0);
-            Converter.FromUInt32(Expires, extras.Array, 4);
+            Converter.FromUInt32(flag, extras, 0);
+            Converter.FromUInt32(Expires, extras, 4);
 
             return extras;
         }
 
-        public virtual ArraySegment<byte> CreateKey()
+        public virtual byte[] CreateKey()
         {
-            var bytes = Encoding.UTF8.GetBytes(Key);
-            return new ArraySegment<byte>(bytes);
+            return Encoding.UTF8.GetBytes(Key);
         }
 
-        public virtual ArraySegment<byte> CreateBody()
+        public virtual byte[] CreateBody()
         {
             byte[] bytes;
             if (typeof(T).IsValueType)
@@ -123,41 +122,27 @@ namespace Couchbase.IO.Operations
                     _serializer.Serialize(RawValue);
             }
 
-            return new ArraySegment<byte>(bytes);
+            return bytes;
         }
 
-        public virtual List<ArraySegment<byte>> CreateBuffer()
+        public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
-            var extras = CreateExtras();
-            var body = CreateBody();
-            var key = CreateKey();
-            var header = CreateHeader(extras.Array, body.Array, key.Array);
-
-            return new List<ArraySegment<byte>>(4)
-                {
-                    header,
-                    extras,
-                    key,
-                    body
-                };
-        }
-
-        public virtual ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)
-        {
-            var header = new ArraySegment<byte>(new byte[24]);
+            var header = new byte[24];
             var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe();
-            Converter.FromByte((byte)Magic.Request, header.Array, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, header.Array, HeaderIndexFor.Opcode);
-            Converter.FromInt16((short)key.Length, header.Array, HeaderIndexFor.KeyLength);
-            Converter.FromByte((byte)extras.GetLengthSafe(), header.Array, HeaderIndexFor.ExtrasLength);
+
+            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
+            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
+            Converter.FromInt16((short)key.Length, header, HeaderIndexFor.KeyLength);
+            Converter.FromByte((byte)extras.GetLengthSafe(), header, HeaderIndexFor.ExtrasLength);
 
             if (VBucket != null)
             {
-                Converter.FromInt16((short)VBucket.Index, header.Array, HeaderIndexFor.VBucket);
+                Converter.FromInt16((short)VBucket.Index, header, HeaderIndexFor.VBucket);
             }
 
-            Converter.FromInt32(totalLength, header.Array, HeaderIndexFor.BodyLength);
-            Converter.FromInt32(Opaque, header.Array, HeaderIndexFor.Opaque);
+            Converter.FromInt32(totalLength, header, HeaderIndexFor.BodyLength);
+            Converter.FromInt32(Opaque, header, HeaderIndexFor.Opaque);
+
             return header;
         }
 
@@ -171,24 +156,24 @@ namespace Couchbase.IO.Operations
             get { return _serializer; }
         }
 
-        //refactor
         public virtual byte[] GetBuffer()
         {
-            var buffer = CreateBuffer();
-            var bytes = new byte[buffer[0].Array.GetLengthSafe() + 
-                buffer[1].Array.GetLengthSafe() +
-                buffer[2].Array.GetLengthSafe() +
-                buffer[3].Array.GetLengthSafe()];
+            var extras = CreateExtras();
+            var body = CreateBody();
+            var key = CreateKey();
+            var header = CreateHeader(extras, body, key);
+            
+            var buffer = new byte[extras.GetLengthSafe() + 
+                body.GetLengthSafe() + 
+                key.GetLengthSafe() + 
+                header.GetLengthSafe()];
 
-            var count = 0;
-            foreach (var segment in buffer)
-            {
-                foreach (var b in segment.ToArray())
-                {
-                    bytes[count++] = b;
-                }
-            }
-            return bytes;
+            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            Buffer.BlockCopy(extras, 0, buffer, header.Length, extras.Length);
+            Buffer.BlockCopy(key, 0, buffer, header.Length + extras.Length, key.Length);
+            Buffer.BlockCopy(body, 0, buffer, header.Length + extras.Length + key.Length, body.Length);
+
+            return buffer;
         }
 
         public int SequenceId

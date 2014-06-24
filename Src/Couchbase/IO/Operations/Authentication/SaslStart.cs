@@ -27,10 +27,10 @@ namespace Couchbase.IO.Operations.Authentication
             get { return OperationCode.SaslStart; }
         }
 
-        public override ArraySegment<byte> CreateHeader(byte[] extras, byte[] body, byte[] key)
+        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
-            var header = new ArraySegment<byte>(new byte[24]);
-            var buffer = header.Array;
+            var header = new byte[24];
+            var buffer = header;
             var totalLength = key.GetLengthSafe() + body.GetLengthSafe();
 
             Converter.FromByte((byte) Magic.Request, buffer, HeaderIndexFor.Magic);
@@ -41,61 +41,21 @@ namespace Couchbase.IO.Operations.Authentication
             return header;
         }
 
-        public ArraySegment<byte> CreateHeader2(byte[] extras, byte[] body, byte[] key)
-        {
-            var header = new ArraySegment<byte>(new byte[24]);
-            var buffer = header.Array;
-            var totalLength = key.GetLengthSafe() +
-                body.GetLengthSafe();
-
-            //0 magic and 1 opcode
-            buffer[0x00] = (byte)Magic.Request;
-            buffer[0x01] = (byte)OperationCode;
-
-            //2 & 3 Key length
-            buffer[0x02] = (byte)(key.Length >> 8);
-            buffer[0x03] = (byte)(key.Length & 255); 
-
-            //8-11 total body length
-            buffer[0x08] = (byte)(totalLength >> 24);
-            buffer[0x09] = (byte)(totalLength >> 16);
-            buffer[0x0a] = (byte)(totalLength >> 8);
-            buffer[0x0b] = (byte)(totalLength & 255);
-
-            return header;
-        }
-
-        public override List<ArraySegment<byte>> CreateBuffer()
+        public override byte[] GetBuffer()
         {
             var body = CreateBody();
             var key = CreateKey();
-            var header = CreateHeader(null, body.Array, key.Array);
+            var header = CreateHeader(null, body, key);
 
-            return new List<ArraySegment<byte>>(4)
-                {
-                    header,
-                    key,
-                    body
-                };
-        }
+            var buffer = new byte[header.GetLengthSafe() + 
+                key.GetLengthSafe() +
+                body.GetLengthSafe()];
 
-        public override byte[] GetBuffer()
-        {
-            var buffer = CreateBuffer();
-            var bytes = new byte[
-                buffer[0].Array.GetLengthSafe() +
-                buffer[1].Array.GetLengthSafe() +
-                buffer[2].Array.GetLengthSafe()];
+            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
+            Buffer.BlockCopy(body, 0, buffer, header.Length + key.Length, body.Length);
 
-            var count = 0;
-            foreach (var segment in buffer)
-            {
-                foreach (var b in segment.ToArray())
-                {
-                    bytes[count++] = b;
-                }
-            }
-            return bytes;
+            return buffer;
         }
 
         /*Field (offset) (value)

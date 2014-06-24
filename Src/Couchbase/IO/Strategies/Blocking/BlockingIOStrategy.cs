@@ -26,11 +26,11 @@ namespace Couchbase.IO.Strategies.Blocking
 
             try
             {
-                var buffer = operation.CreateBuffer();
+                var buffer = operation.GetBuffer();
                 connection = _connectionPool.Acquire();
 
                 SocketError error;
-                connection.Socket.Send(buffer, SocketFlags.None, out error);
+                connection.Socket.Send(buffer);
 
                 operation.Header = ReadHeader(connection);
                 if (operation.Header.HasData())
