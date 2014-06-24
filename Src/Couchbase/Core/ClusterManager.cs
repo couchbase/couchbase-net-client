@@ -227,6 +227,10 @@ namespace Couchbase.Core
                 {
                     DestroyBucket(pair.Value);
                 }
+                foreach (var configProvider in ConfigProviders)
+                {
+                    configProvider.Dispose();
+                }
                 _disposed = true;
             }
         }

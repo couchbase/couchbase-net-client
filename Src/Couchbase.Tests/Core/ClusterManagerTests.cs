@@ -17,12 +17,13 @@ namespace Couchbase.Tests.Core
     public class ClusterManagerTests
     {
         private IClusterManager _clusterManager;
+        protected ClientConfiguration _clientConfig;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var clientConfig = new ClientConfiguration();
-            _clusterManager = new ClusterManager(clientConfig);
+            _clientConfig = new ClientConfiguration();
+            _clusterManager = new ClusterManager(_clientConfig);
         }
 
         [Test]
@@ -38,6 +39,59 @@ namespace Couchbase.Tests.Core
             Assert.AreEqual(providerCount, _clusterManager.ConfigProviders.Count);
             Assert.AreEqual(_clusterManager.ConfigProviders[0].GetType(), typeof(CarrierPublicationProvider));
             Assert.AreEqual(_clusterManager.ConfigProviders[1].GetType(), typeof(HttpStreamingProvider));
+        }
+
+        [Test]
+        public void When_Disposing_StreamingProvider_Worker_Thread_Does_Not_Hang_No_Buckets_Open()
+        {
+            //remove CCCP provider because we want to bootstrap off of the StreamingProvider
+            var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
+            _clusterManager.ConfigProviders.Remove(cccp);
+
+            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+            cluster.Dispose();
+        }
+
+        [Test]
+        public void When_Disposing_StreamingProvider_Worker_Thread_Does_Not_Hang_With_Bucket_Opened_And_Disposed()
+        {
+            //remove CCCP provider because we want to bootstrap off of the StreamingProvider
+            var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
+            _clusterManager.ConfigProviders.Remove(cccp);
+
+            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+
+            var bucket = cluster.OpenBucket();
+            bucket.Dispose();
+            cluster.Dispose();
+        }
+
+        [Test]
+        public void When_Disposing_StreamingProvider_Worker_Thread_Does_Not_Hang_With_Bucket_Open()
+        {
+            //remove CCCP provider because we want to bootstrap off of the StreamingProvider
+            var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
+            _clusterManager.ConfigProviders.Remove(cccp);
+
+            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+
+            var bucket = cluster.OpenBucket();
+            bucket.Dispose();
+            cluster.Dispose();
+        }
+
+        [Test]
+        public void When_Disposing_StreamingProvider_Worker_Thread_Does_Not_Hang_With_Bucket_Open_And_Closed()
+        {
+            //remove CCCP provider because we want to bootstrap off of the StreamingProvider
+            var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
+            _clusterManager.ConfigProviders.Remove(cccp);
+
+            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+
+            var bucket = cluster.OpenBucket();
+            cluster.CloseBucket(bucket);
+            cluster.Dispose();
         }
     }
 }

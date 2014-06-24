@@ -21,9 +21,9 @@ namespace Couchbase
         /// Ctor for creating Cluster instance.
         /// </summary>
         /// <remarks>
-        /// This is the default configuration and will attempt to boostrap off of localhost.
+        /// This is the default configuration and will attempt to bootstrap off of localhost.
         /// </remarks>
-        private CouchbaseCluster() 
+        public CouchbaseCluster() 
             : this(new ClientConfiguration())
         {
         }
@@ -32,7 +32,7 @@ namespace Couchbase
         /// Ctor for creating Cluster instance. 
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        private CouchbaseCluster(ClientConfiguration configuration) 
+        public CouchbaseCluster(ClientConfiguration configuration) 
             : this(configuration, new ClusterManager(configuration))
         {
         }
@@ -45,7 +45,7 @@ namespace Couchbase
         /// <remarks>
         /// This overload is primarly added for testing.
         /// </remarks>
-        private CouchbaseCluster(ClientConfiguration configuration, IClusterManager clusterManager)
+        internal CouchbaseCluster(ClientConfiguration configuration, IClusterManager clusterManager)
         {
             _configuration = configuration;
             _clusterManager = clusterManager;
