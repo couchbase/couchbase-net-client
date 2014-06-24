@@ -193,8 +193,8 @@ namespace Couchbase.IO.Strategies.Awaitable
             var buffer = state.Data.GetBuffer();
             operation.Body = new OperationBody
             {
-                Extras = new ArraySegment<byte>(buffer, OperationBase<T>.HeaderLength, operation.Header.ExtrasLength),
-                Data = new ArraySegment<byte>(buffer, 28, operation.Header.BodyLength),
+                Extras = new ArraySegment<byte>(buffer, OperationBase<T>.HeaderLength, operation.Header.ExtrasLength).Array,
+                Data = new ArraySegment<byte>(buffer, 28, operation.Header.BodyLength).Array,
             };
         }
 

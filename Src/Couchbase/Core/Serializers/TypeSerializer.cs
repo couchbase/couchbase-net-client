@@ -78,7 +78,7 @@ namespace Couchbase.Core.Serializers
             return (T)value;
         }
 
-        public T Deserialize<T>(ArraySegment<byte> bytes, int offset, int length)
+        public T Deserialize<T>(byte[] bytes, int offset, int length)
         {
             //It would be better to do this without converting to a string first - a TODO
             var value = Deserialize(bytes, offset, length);
@@ -87,12 +87,12 @@ namespace Couchbase.Core.Serializers
             return JsonConvert.DeserializeObject<T>(value);
         }
 
-        public string Deserialize(ArraySegment<byte> bytes, int offset, int length)
+        public string Deserialize(byte[] bytes, int offset, int length)
         {
             var result = string.Empty;
-            if (bytes.Array != null)
+            if (bytes != null)
             {
-                result = Encoding.UTF8.GetString(bytes.Array, offset, length);
+                result = Encoding.UTF8.GetString(bytes, offset, length);
             }
             return result;
         }
@@ -128,12 +128,12 @@ namespace Couchbase.Core.Serializers
             return BitConverter.GetBytes(value);
         }
 
-        private static int GetInt32(ArraySegment<byte> bytes)
+        private static int GetInt32(byte[] bytes)
         {
             var result = 0;
-            if (bytes.Array != null)
+            if (bytes != null)
             {
-                result = BitConverter.ToInt32(bytes.Array, bytes.Offset);
+                result = BitConverter.ToInt32(bytes, bytes.Offset);
             }
             return result;
         }

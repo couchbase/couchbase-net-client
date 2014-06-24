@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Deployment.Internal;
 using System.Net.Sockets;
+using System.ServiceModel.Channels;
+using System.Text;
 using Common.Logging;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -15,18 +18,19 @@ namespace Couchbase.IO
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
         private readonly IByteConverter _converter;
+        protected readonly BufferManager BufferManager;
 
         protected ConnectionBase(Socket socket, IByteConverter converter) 
-            : this(socket, new OperationAsyncState(), converter)
+            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*100, 1024))
         {
-            
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter)
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager)
         {
             _socket = socket;
             _state = asyncState;
             _converter = converter;
+            BufferManager = bufferManager;
         }
 
         public OperationAsyncState State
@@ -84,9 +88,9 @@ namespace Couchbase.IO
                 state.Body = new OperationBody
                 {
                   Extras =state.Header.ExtrasLength > 0 ?
-                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength) : 
-                      new ArraySegment<byte>(),
-                    Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength-state.Header.ExtrasLength)
+                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength).Array :
+                      new ArraySegment<byte>().Array,
+                    Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength-state.Header.ExtrasLength).Array
                 };
             }
         }

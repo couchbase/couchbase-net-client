@@ -105,7 +105,10 @@ namespace Couchbase.IO.Operations
 
         public virtual byte[] CreateKey()
         {
-            return Encoding.UTF8.GetBytes(Key);
+            var length = Encoding.UTF8.GetByteCount(Key);
+            var buffer = new byte[length];
+            Converter.FromString(Key, buffer, 0);
+            return buffer;
         }
 
         public virtual byte[] CreateBody()

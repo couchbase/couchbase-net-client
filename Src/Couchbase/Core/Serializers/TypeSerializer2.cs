@@ -50,7 +50,6 @@ namespace Couchbase.Core.Serializers
                     break;
 
                 case TypeCode.UInt64:
-
                     _converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
                     break;
 

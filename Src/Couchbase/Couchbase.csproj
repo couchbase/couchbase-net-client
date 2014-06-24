@@ -47,6 +47,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -169,7 +170,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="IO\Strategies\EapConnection.cs" />
-    <Compile Include="IO\Strategies\EAP\EAPIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
@@ -183,7 +183,6 @@
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
     <Compile Include="Core\Serializers\ITypeSerializer.cs" />
-    <Compile Include="Core\Serializers\TypeSerializer.cs" />
     <Compile Include="Cryptography\Crc32.cs" />
     <Compile Include="Core\IBucket.cs" />
     <Compile Include="Core\ICouchbaseCluster.cs" />
@@ -194,7 +193,6 @@
     <Compile Include="IO\Operations\GetOperation.cs" />
     <Compile Include="IO\Operations\SetOperation.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
-    <Compile Include="IO\Strategies\Blocking\BlockingIOStrategy.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="IO\DefaultConnection.cs" />
     <Compile Include="IO\DefaultConnectionFactory.cs" />

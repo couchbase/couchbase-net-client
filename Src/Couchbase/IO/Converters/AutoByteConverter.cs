@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -163,12 +164,11 @@ namespace Couchbase.IO.Converters
         /// <remarks>Will resize dst if empty.</remarks>
         public void FromString(string value, ref byte[] buffer, int offset)
         {
-            var bytes = Encoding.UTF8.GetBytes(value);
             if (buffer.Length == 0)
             {
-                buffer = new byte[bytes.Length];
+                buffer = new byte[Encoding.UTF8.GetByteCount(value)];
             }
-            Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
+            Encoding.UTF8.GetBytes(value, 0, value.Length, buffer, offset);
         }
 
         /// <summary>
@@ -179,8 +179,7 @@ namespace Couchbase.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromString(string value, byte[] buffer, int offset)
         {
-            var bytes = Encoding.UTF8.GetBytes(value);
-            Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
+            FromString(value, ref buffer, offset);
         }
 
         public void FromByte(byte value, ref byte[] buffer, int offset)

@@ -252,8 +252,8 @@ namespace Couchbase.IO.Strategies.Async
             var buffer = state.Data.GetBuffer();
             state.Body = new OperationBody
             {
-                Extras = new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength),
-                Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength),
+                Extras = new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength).Array,
+                Data = new ArraySegment<byte>(buffer, 28, state.Header.BodyLength).Array,
             };
         }
 

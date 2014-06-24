@@ -112,17 +112,12 @@
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
     <Compile Include="IO\Operations\DecrementOperationTests.cs" />
+    <Compile Include="IO\Operations\GetSetPerformanceTests.cs" />
     <Compile Include="IO\Operations\IncrementTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncStrategyTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
-    <Compile Include="IO\Strategies\Blocking\BlockingIOStrategyTests.cs" />
-    <Compile Include="IO\Strategies\EAP\EapIoStrategy2Tests.cs" />
-    <Compile Include="IO\Strategies\EAP\EapIoStrategyTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -183,7 +178,9 @@
     <Content Include="config-example.xml" />
     <None Include="Data\N1QL\HelloWorld.json" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="IO\Strategies\Async\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
