@@ -40,10 +40,5 @@ namespace Couchbase.IO.Operations
         {
             get { return OperationCode.Append; }
         }
-
-        public override int Offset
-        {
-            get { return base.Offset; }
-        }
     }
 }

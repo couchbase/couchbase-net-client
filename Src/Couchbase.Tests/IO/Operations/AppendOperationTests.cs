@@ -38,6 +38,7 @@ namespace Couchbase.Tests.IO.Operations
             var serializer = new TypeSerializer(converter);
 
             var key = "Hello";
+            var expected = "Hello!";
 
             //clean up old keys
             var deleteOperation = new DeleteOperation(key, GetVBucket(), converter, serializer);
@@ -60,7 +61,7 @@ namespace Couchbase.Tests.IO.Operations
 
             var get = new GetOperation<string>(key, GetVBucket(), converter, serializer);
             var getResult = IOStrategy.Execute(get);
-            Assert.AreEqual(key+"!", getResult.Value);
+            Assert.AreEqual(expected, getResult.Value);
         }
     }
 }
