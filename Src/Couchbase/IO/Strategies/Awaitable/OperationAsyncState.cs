@@ -57,6 +57,7 @@ namespace Couchbase.IO.Strategies.Awaitable
             {
                 Data.Dispose();
             }
+            Buffer = new byte[512];
             Data = new MemoryStream();
             BytesReceived = 0;
             Header = new OperationHeader();

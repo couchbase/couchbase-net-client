@@ -95,6 +95,7 @@
     <Compile Include="IO\Converters\AutoByteConverterTests.cs" />
     <Compile Include="IO\Converters\ManualByteConverterTests.cs" />
     <Compile Include="IO\Operations\AddOperationTests.cs" />
+    <Compile Include="IO\Operations\AppendOperationTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
