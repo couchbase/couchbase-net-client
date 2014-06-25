@@ -13,24 +13,6 @@ namespace Couchbase.Tests.IO.Operations
 {
     public class AppendOperationTests : OperationTestBase
     {
-        public override void TestFixtureSetUp()
-        {
-            byte[] _bytes;
-            base.TestFixtureSetUp();
-
-            _bytes = new byte[]
-            {
-                0x80, 0x0e, 0x00, 0x05,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x06,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x48, 0x65, 0x6c, 0x6c,
-                0x6f, 0x21, 0x00, 0x00
-            };
-        }
-
         [Test]
         public void When_Key_Exists_Append_Succeeds()
         {

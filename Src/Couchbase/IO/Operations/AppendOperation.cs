@@ -11,23 +11,28 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class AppendOperation<T> : OperationBase<T>
     {
-        public AppendOperation(IByteConverter converter) : base(converter)
+        public AppendOperation(IByteConverter converter)
+            : base(converter)
         {
         }
 
-        public AppendOperation(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter) : base(key, value, serializer, vBucket, converter)
+        public AppendOperation(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, serializer, vBucket, converter)
         {
         }
 
-        public AppendOperation(string key, T value, IVBucket vBucket, IByteConverter converter) : base(key, value, vBucket, converter)
+        public AppendOperation(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, vBucket, converter)
         {
         }
 
-        public AppendOperation(string key, IVBucket vBucket, IByteConverter converter) : base(key, vBucket, converter)
+        public AppendOperation(string key, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
         {
         }
 
-        public AppendOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer) : base(key, vBucket, converter, serializer)
+        public AppendOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, vBucket, converter, serializer)
         {
         }
 
