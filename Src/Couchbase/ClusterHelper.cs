@@ -166,6 +166,21 @@ namespace Couchbase
             var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterManager(configuration)));
             Initialize(factory);
         }
+
+        /// <summary>
+        /// Disposes the current <see cref="CouchbaseCluster"/> instance and cleans up resources.
+        /// </summary>
+        public static void Close()
+        {
+            lock (SyncObj)
+            {
+                if (_instance == null || !_instance.IsValueCreated) return;
+                var cluster = _instance.Value;
+                if (cluster == null) return;
+                cluster.Dispose();
+                _instance = null;
+            }
+        }
     }
 }
 

@@ -20,6 +20,15 @@ namespace Couchbase.Tests
         {
         }
 
+
+        [Test]
+        [ExpectedException(typeof(InitializationException))]
+        public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
+        {
+            ClusterHelper.Close();
+            var cluster = ClusterHelper.Get();
+        }
+
         [Test]
         public void Test_OpenBucket()
         {
@@ -66,14 +75,6 @@ namespace Couchbase.Tests
             var cluster = ClusterHelper.Get();
             Assert.IsNotNull(cluster);
             cluster.Dispose();
-        }
-
-
-        [Test]
-        [ExpectedException(typeof(InitializationException))]
-        public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
-        {
-            var cluster = ClusterHelper.Get();
         }
 
         [Test]
