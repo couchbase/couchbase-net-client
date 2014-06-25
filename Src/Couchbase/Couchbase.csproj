@@ -70,8 +70,8 @@
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
-    <Compile Include="Core\Serializers\ITypeSerializer2.cs" />
-    <Compile Include="Core\Serializers\TypeSerializer2.cs" />
+    <Compile Include="Core\Serializers\ITypeSerializer.cs" />
+    <Compile Include="Core\Serializers\TypeSerializer.cs" />
     <Compile Include="CouchbaseCluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
@@ -183,7 +183,6 @@
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
-    <Compile Include="Core\Serializers\ITypeSerializer.cs" />
     <Compile Include="Cryptography\Crc32.cs" />
     <Compile Include="Core\IBucket.cs" />
     <Compile Include="Core\ICouchbaseCluster.cs" />

@@ -31,11 +31,11 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "Test_IncrementOperation";
 
-            var delete = new DeleteOperation(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer2(new ManualByteConverter()));
+            var delete = new DeleteOperation(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
             var result = IOStrategy.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
-            var incrementOperation = new IncrementOperation(key, 0, 1, 0, GetVBucket(), new ManualByteConverter(), new TypeSerializer2(new ManualByteConverter()));
+            var incrementOperation = new IncrementOperation(key, 0, 1, 0, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
             var result1 = IOStrategy.Execute(incrementOperation);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
@@ -44,7 +44,7 @@ namespace Couchbase.Tests.IO.Operations
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(result2.Value, 1);
 
-            var getOperation = new GetOperation<string>(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer2(new ManualByteConverter()));
+            var getOperation = new GetOperation<string>(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
             var result3 = IOStrategy.Execute(getOperation);
             Assert.AreEqual(result1.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
         }

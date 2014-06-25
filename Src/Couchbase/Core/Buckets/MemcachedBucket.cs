@@ -22,9 +22,9 @@ namespace Couchbase.Core.Buckets
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
-        private readonly ITypeSerializer2 _serializer;
+        private readonly ITypeSerializer _serializer;
 
-        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer2 serializer)
+        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
         {
             _clusterManager = clusterManager;
             _converter = converter;

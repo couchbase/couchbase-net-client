@@ -24,7 +24,7 @@ namespace Couchbase.IO.Operations
            uint expiration, 
            IVBucket vBucket, 
            IByteConverter converter, 
-           ITypeSerializer2 serializer) 
+           ITypeSerializer serializer) 
            : base(key, initial, serializer, vBucket, converter)
         {
             _delta = delta;

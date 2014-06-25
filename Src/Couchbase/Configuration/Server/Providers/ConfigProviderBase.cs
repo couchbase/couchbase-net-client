@@ -27,7 +27,7 @@ namespace Couchbase.Configuration.Server.Providers
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter,
-            ITypeSerializer2 serializer)
+            ITypeSerializer serializer)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
@@ -69,7 +69,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         public IByteConverter Converter { get; set; }
 
-        public ITypeSerializer2 Serializer { get; set; }
+        public ITypeSerializer Serializer { get; set; }
 
         public abstract IConfigInfo GetConfig(string name, string password);
 

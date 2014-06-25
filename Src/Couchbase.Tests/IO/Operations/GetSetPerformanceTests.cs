@@ -19,7 +19,7 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_Timed_Execution()
         {
             var converter = new AutoByteConverter();
-            var serializer = new TypeSerializer2(converter);
+            var serializer = new TypeSerializer(converter);
             var vbucket = GetVBucket();
             int n = 1000; //set to a higher # if needed
 
@@ -46,7 +46,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var converter = new AutoByteConverter();
-            var serializer = new TypeSerializer2(converter);
+            var serializer = new TypeSerializer(converter);
             var vbucket = GetVBucket();
             var n = 1000;//set to a higher # if needed
 

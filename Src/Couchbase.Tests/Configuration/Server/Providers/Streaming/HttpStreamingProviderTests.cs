@@ -29,7 +29,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
                 SaslFactory.GetFactory3(), 
                 new ManualByteConverter(),
-                new TypeSerializer2(new ManualByteConverter()));
+                new TypeSerializer(new ManualByteConverter()));
         }
 
         [Test]

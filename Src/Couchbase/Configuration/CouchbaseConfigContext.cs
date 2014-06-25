@@ -24,7 +24,7 @@ namespace Couchbase.Configuration
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
-            ITypeSerializer2 serializer) 
+            ITypeSerializer serializer) 
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
         {
         }

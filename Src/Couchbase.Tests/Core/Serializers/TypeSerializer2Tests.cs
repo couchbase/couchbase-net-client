@@ -16,7 +16,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_Int16()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             Int16 data = 5;
 
             var expected = new byte[] {0x00, 0x05};
@@ -28,7 +28,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_UInt16()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             UInt16 data = 5;
 
             var expected = new byte[] { 0x00, 0x05 };
@@ -40,7 +40,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_Int32()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             Int32 data = 9;
 
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x09 };
@@ -52,7 +52,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_UInt32()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             UInt32 data = 9;
 
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x09 };
@@ -64,7 +64,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_Int64()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             Int64 data = 9;
 
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09 };
@@ -76,7 +76,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_UInt64()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             UInt64 data = 9;
 
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09 };
@@ -88,7 +88,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Serialize_String()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             string data = "Hello";
 
             var expected = new byte[] { 0x48, 0x65, 0x6c, 0x6c, 0x6f };
@@ -100,7 +100,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Null()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
 
             var expected = new byte[0];
             var actual = serializer.Serialize<string>(null);
@@ -111,7 +111,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Char()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             var value = 'o';
             var expected = new byte[] { 0x6f };
             var actual = serializer.Serialize(value);
@@ -122,7 +122,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Poco()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             var value = new Person {Name = "jeff"};
             var bytes = serializer.Serialize(value);
 
@@ -134,7 +134,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Deserialize_Int()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             var five = 5;
             var bytes = serializer.Serialize(five);
             var actual = serializer.Deserialize<int>(bytes, 0, bytes.Length);
@@ -145,7 +145,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Deserialize_Null()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             object value = null;
             var bytes = serializer.SerializeAsJson(value);
             var actual = serializer.Deserialize<object>(bytes, 0, bytes.Length);
@@ -155,7 +155,7 @@ namespace Couchbase.Tests.Core.Serializers
         [Test]
         public void Test_Deserialize_String()
         {
-            var serializer = new TypeSerializer2(new ManualByteConverter());
+            var serializer = new TypeSerializer(new ManualByteConverter());
             var value = "astring";
             var bytes = serializer.Serialize(value);
             var bytes1 = Encoding.UTF8.GetBytes(value);

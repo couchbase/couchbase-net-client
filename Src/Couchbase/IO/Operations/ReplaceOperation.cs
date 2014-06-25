@@ -10,7 +10,7 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class ReplaceOperation<T> : OperationBase<T>
     {
-        public ReplaceOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer) 
+        public ReplaceOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer) 
             : base(key, value, serializer, vBucket, converter)
         {
         }

@@ -11,7 +11,7 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The value to add to the database.</typeparam>
     internal sealed class AddOperation<T> : OperationBase<T>
     {
-        public AddOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+        public AddOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, value, serializer, vBucket, converter)
         {
         }

@@ -1,184 +1,174 @@
-﻿using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
-using Common.Logging;
-using Couchbase.IO.Operations;
+﻿using System.Text;
+using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 using System;
-using System.Text;
+using System.IO;
 
 namespace Couchbase.Core.Serializers
 {
-    internal sealed class TypeSerializer : ITypeSerializer
+    public sealed class TypeSerializer : ITypeSerializer
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private static readonly byte[] NullArray = new byte[0];
+        private readonly IByteConverter _converter;
 
-        public byte[] Serialize<T>(OperationBase<T> operation)
+        public TypeSerializer(IByteConverter converter)
         {
-            var value = (object)operation.RawValue;
-            var type = typeof(T);
-            var typeCode = value == null ?
-                TypeCode.DBNull :
-                Type.GetTypeCode(type);
+            _converter = converter;
+        }
 
-            byte[] bytes;
+        public byte[] Serialize<T>(T value)
+        {
+            var bytes = new byte[] { };
+            var typeCode = Type.GetTypeCode(typeof(T));
             switch (typeCode)
             {
+                case TypeCode.Empty:
+                case TypeCode.DBNull:
                 case TypeCode.String:
-                    bytes = GetBytes(value as string);
+                case TypeCode.Char:
+                    _converter.FromString(Convert.ToString(value), ref bytes, 0);
+                    break;
+
+                case TypeCode.Int16:
+                    _converter.FromInt16(Convert.ToInt16(value), ref bytes, 0);
+                    break;
+
+                case TypeCode.UInt16:
+                    _converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int32:
-                    bytes = GetBytes(Convert.ToInt32(value));
+                    _converter.FromInt32(Convert.ToInt32(value), ref bytes, 0);
                     break;
 
-                case TypeCode.DBNull:
-                    bytes = GetBytes();
+                case TypeCode.UInt32:
+                    _converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0);
                     break;
+
+                case TypeCode.Int64:
+                    _converter.FromInt64(Convert.ToInt64(value), ref bytes, 0);
+                    break;
+
+                case TypeCode.UInt64:
+                    _converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
+                    break;
+
+                case TypeCode.Single:
+                case TypeCode.Double:
+                case TypeCode.Decimal:
+                case TypeCode.DateTime:
+                case TypeCode.Boolean:
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Object:
+                    bytes = SerializeAsJson(value);
+                    break;
+
                 default:
-                    bytes = GetBytes2(value);
-                    break;
+                    throw new ArgumentOutOfRangeException();
             }
             return bytes;
         }
 
-        public T Deserialize<T>(OperationBase<T> operation)
+        public T Deserialize<T>(byte[] buffer, int offset, int length)
         {
-            var type = typeof(T);
-            var typeCode = Type.GetTypeCode(type);
-            var operationBody = operation.Body;
-            var data = operationBody.Data;
-            var bodyLength = operation.Header.BodyLength;
-            var extrasLength = operation.Header.ExtrasLength;
-            const int headerLength = OperationBase<T>.HeaderLength;
-
-            object value;
+            object value = default(T);
+            var typeCode = Type.GetTypeCode(typeof(T));
             switch (typeCode)
             {
+                case TypeCode.Empty:
+                case TypeCode.DBNull:
                 case TypeCode.String:
-                    value = Deserialize(data, headerLength + extrasLength, bodyLength - extrasLength);
+                case TypeCode.Char:
+                    value = Deserialize(buffer, offset, length);
                     break;
-
+                case TypeCode.Int16:
+                    value =_converter.ToInt16(buffer, offset);
+                    break;
+                case TypeCode.UInt16:
+                    value = _converter.ToUInt16(buffer, offset);
+                    break;
                 case TypeCode.Int32:
-                    value = GetInt32(data);
+                    value = _converter.ToInt32(buffer, offset);
                     break;
-
-                case TypeCode.UInt64:
-                    value = GetUInt64(data);
+                case TypeCode.UInt32:
+                    value = _converter.ToUInt32(buffer, offset);
                     break;
-
                 case TypeCode.Int64:
-                    value = GetInt64(data);
+                    value = _converter.ToInt64(buffer, offset);
                     break;
-
+                case TypeCode.UInt64:
+                    value = _converter.ToUInt64(buffer, offset);
+                    break;
+                case TypeCode.Single:
+                    break;
+                case TypeCode.Double:
+                    break;
+                case TypeCode.Decimal:
+                    break;
+                case TypeCode.DateTime:
+                    break;
+                case TypeCode.Boolean:
+                    break;
+                case TypeCode.SByte:
+                    break;
+                case TypeCode.Byte:
+                    break;
+                case TypeCode.Object:
+                    value = DeserializeAsJson<T>(buffer, offset, length);
+                    break;
                 default:
-                    value = Deserialize<T>(data, headerLength + extrasLength, bodyLength - extrasLength);
-                    break;
+                    throw new ArgumentOutOfRangeException();
             }
             return (T)value;
         }
 
-        public T Deserialize<T>(byte[] bytes, int offset, int length)
+        public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
-            //It would be better to do this without converting to a string first - a TODO
-            var value = Deserialize(bytes, offset, length);
-
-            Log.Trace(value);
-            return JsonConvert.DeserializeObject<T>(value);
-        }
-
-        public string Deserialize(byte[] bytes, int offset, int length)
-        {
-            var result = string.Empty;
-            if (bytes != null)
+            var value = default(T);
+            using (var ms = new MemoryStream(buffer, offset, length))
             {
-                result = Encoding.UTF8.GetString(bytes, offset, length);
+                using (var sr = new StreamReader(ms))
+                {
+                    using (var jr = new JsonTextReader(sr))
+                    {
+                        var serializer = new JsonSerializer();
+                        value = serializer.Deserialize<T>(jr);
+                    }
+                }
             }
-            return result;
+            return value;
         }
 
-        private static byte[] GetBytes<T>(T value)
+        public T Deserialize<T>(ArraySegment<byte> buffer, int offset, int length)
+        {
+            return Deserialize<T>(buffer.Array, offset, length);
+        }
+
+        public byte[] SerializeAsJson<T>(T value)
         {
             using (var ms = new MemoryStream())
             {
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(ms, value);
+                using (var sw = new StreamWriter(ms))
+                {
+                    using (var jr = new JsonTextWriter(sw))
+                    {
+                        var serializer = new JsonSerializer();
+                        serializer.Serialize(jr, value);
+                    }
+                }
                 return ms.GetBuffer();
             }
         }
 
-        private static byte[] GetBytes2<T>(T value)
+        string Deserialize(byte[] buffer, int offset, int length)
         {
-            var obj  = JsonConvert.SerializeObject(value);
-            return Encoding.UTF8.GetBytes(obj);
-        }
-
-        private static byte[] GetBytes()
-        {
-            return NullArray;
-        }
-
-        private static byte[] GetBytes(string value)
-        {
-            return Encoding.UTF8.GetBytes(value);
-        }
-
-        private static byte[] GetBytes(int value)
-        {
-            return BitConverter.GetBytes(value);
-        }
-
-        private static int GetInt32(byte[] bytes)
-        {
-            var result = 0;
-            if (bytes != null)
+            var result = string.Empty;
+            if (buffer != null)
             {
-                result = BitConverter.ToInt32(bytes, bytes.Offset);
-            }
-            return result;
-        }
-
-        private static ulong GetUInt64(ArraySegment<byte> bytes)
-        {
-            var result = 0ul;
-            if (bytes.Array != null)
-            {
-                result = BitConverter.ToUInt64(bytes.Array, bytes.Offset);
-            }
-            return result;
-        }
-
-        private static long GetInt64(ArraySegment<byte> bytes)
-        {
-            var result = 0l;
-            if (bytes.Array != null)
-            {
-                result = BitConverter.ToInt64(bytes.Array, bytes.Offset);
+                result = Encoding.UTF8.GetString(buffer, offset, length);
             }
             return result;
         }
     }
 }
-
-#region [ License information          ]
-
-/* ************************************************************
- *
- *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *
- * ************************************************************/
-
-#endregion

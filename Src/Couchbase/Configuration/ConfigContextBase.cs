@@ -31,7 +31,7 @@ namespace Couchbase.Configuration
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
         protected readonly IByteConverter Converter;
-        protected readonly ITypeSerializer2 Serializer;
+        protected readonly ITypeSerializer Serializer;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
@@ -39,7 +39,7 @@ namespace Couchbase.Configuration
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter,
-            ITypeSerializer2 serializer)
+            ITypeSerializer serializer)
         {
             _clientConfig = clientConfig;
             IOStrategyFactory = ioStrategyFactory;

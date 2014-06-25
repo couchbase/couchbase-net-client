@@ -30,7 +30,7 @@ namespace Couchbase.Core
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly IByteConverter _converter;
-        private readonly ITypeSerializer2 _serializer;
+        private readonly ITypeSerializer _serializer;
         private bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
@@ -51,7 +51,7 @@ namespace Couchbase.Core
             },
             SaslFactory.GetFactory3(),
             new AutoByteConverter(), 
-            new TypeSerializer2(new AutoByteConverter()))
+            new TypeSerializer(new AutoByteConverter()))
         {
         }
 
@@ -72,7 +72,7 @@ namespace Couchbase.Core
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
             new AutoByteConverter(), 
-            new TypeSerializer2(new AutoByteConverter()))
+            new TypeSerializer(new AutoByteConverter()))
         {
         }
 
@@ -81,7 +81,7 @@ namespace Couchbase.Core
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter,
-            ITypeSerializer2 serializer)
+            ITypeSerializer serializer)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;

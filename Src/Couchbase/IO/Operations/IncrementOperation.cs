@@ -18,7 +18,7 @@ namespace Couchbase.IO.Operations
         private readonly uint _expiration;
         private readonly ulong _initial;
 
-        public IncrementOperation(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+        public IncrementOperation(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, vBucket, converter, serializer)
         {
             _delta = delta;

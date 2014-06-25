@@ -16,7 +16,7 @@ namespace Couchbase.IO.Operations
         public const int HeaderLength = 24;
         private static int _sequenceId;//needs to be resolved - note there will be an instance of the variable for every Type T!
         private readonly int _opaque;
-        private readonly ITypeSerializer2 _serializer;
+        private readonly ITypeSerializer _serializer;
         private readonly T _value;
         private readonly IVBucket _vBucket;
         protected readonly IByteConverter Converter;
@@ -26,7 +26,7 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        protected OperationBase(string key, T value, ITypeSerializer2 serializer, IVBucket vBucket, IByteConverter converter)
+        protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
         {
             Key = key;
             _value = value;
@@ -37,16 +37,16 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new TypeSerializer2(converter), vBucket, converter)
+            : this(key, value, new TypeSerializer(converter), vBucket, converter)
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new TypeSerializer2(converter), vBucket, converter)
+            : this(key, default(T), new TypeSerializer(converter), vBucket, converter)
         {
         }
 
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer2 serializer)
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : this(key, default(T), serializer, vBucket, converter)
         {
         }
@@ -154,7 +154,7 @@ namespace Couchbase.IO.Operations
             return new OperationResult<T>(this);
         }
 
-        public ITypeSerializer2 Serializer
+        public ITypeSerializer Serializer
         {
             get { return _serializer; }
         }
