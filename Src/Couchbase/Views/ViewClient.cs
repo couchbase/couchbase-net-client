@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -32,8 +33,14 @@ namespace Couchbase.Views
             IViewResult<T> viewResult = new ViewResult<T>();
             try
             {
-                var result = await HttpClient.GetStreamAsync(query.RawUri());
-                viewResult = Mapper.Map<ViewResult<T>>(result);
+                var result = await HttpClient.GetAsync(query.RawUri());
+                var content = result.Content;
+                
+                var stream = await content.ReadAsStreamAsync();
+
+                viewResult = Mapper.Map<ViewResult<T>>(stream);
+                viewResult.Success = result.IsSuccessStatusCode;
+                viewResult.StatusCode = result.StatusCode;
             }
             catch (AggregateException ae)
             {
@@ -45,6 +52,7 @@ namespace Couchbase.Views
             }
             return viewResult;
         }
+
 
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> synchronously against a View.
@@ -55,15 +63,20 @@ namespace Couchbase.Views
         public IViewResult<T> Execute<T>(IViewQuery query)
         {
             IViewResult<T> viewResult = new ViewResult<T>();
-            var task = HttpClient.GetStreamAsync(query.RawUri());
+            var task = HttpClient.GetAsync(query.RawUri());
+
             try
             {
                 task.Wait();
                 var result = task.Result;
-                viewResult = Mapper.Map<ViewResult<T>>(result);
-                viewResult.Success = true;
-                viewResult.StatusCode = HttpStatusCode.Found;
-                viewResult.Message = Success;
+
+                var content = result.Content;
+                var stream = content.ReadAsStreamAsync();
+                stream.Wait();
+
+                viewResult = Mapper.Map<ViewResult<T>>(stream.Result);
+                viewResult.Success = result.IsSuccessStatusCode;
+                viewResult.StatusCode = result.StatusCode;
             }
             catch (AggregateException ae)
             {
@@ -74,18 +87,17 @@ namespace Couchbase.Views
                     return true;
                 });
             }
-
             return viewResult;
         }
 
-        void ProcessError<T>(Exception ex, IViewResult<T> viewResult)
+        static void ProcessError<T>(Exception ex, IViewResult<T> viewResult)
         {
             viewResult.Success = false;
             viewResult.StatusCode = GetStatusCode(ex.Message);
             viewResult.Message = ex.Message;
         }
 
-        HttpStatusCode GetStatusCode(string message)
+        static HttpStatusCode GetStatusCode(string message)
         {
             var httpStatusCode = HttpStatusCode.Found;
             var codes = Enum.GetValues(typeof (HttpStatusCode));
@@ -113,7 +125,7 @@ namespace Couchbase.Views
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

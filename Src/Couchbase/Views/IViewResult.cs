@@ -22,6 +22,8 @@ namespace Couchbase.Views
 
         string Message { get; set; }
 
+        string Error { get; set; }
+
         bool Success { get; set; }
 
         HttpStatusCode StatusCode { get; set; }

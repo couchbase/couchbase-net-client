@@ -23,8 +23,10 @@ namespace Couchbase.Views
         [JsonProperty("rows")]
         public List<T> Rows { get; set; }
 
+        [JsonProperty("error")]
         public string Error { get; set; }
 
+        [JsonProperty("reason")]
         public string Message { get; set; }
 
         public bool Success { get; set; }

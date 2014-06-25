@@ -14,7 +14,7 @@ namespace Couchbase.Tests.Views
     public class ViewClientTests
     {
         [Test]
-        public void Test()
+        public void When_Query_Is_Succesful_Rows_Are_Returned()
         {
             var query = new ViewQuery(false).
                 From("beer-sample", "beer").
@@ -22,10 +22,8 @@ namespace Couchbase.Tests.Views
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());
             var result = client.Execute<dynamic>(query);
-            foreach (var row in result.Rows)
-            {
-                Console.WriteLine("Id={0} Key={1}", row.id, row.key);
-            }
+            Assert.IsNotNull(result.Rows);
+            Assert.AreEqual(result.StatusCode, HttpStatusCode.OK);
         }
 
         [Test]
@@ -40,6 +38,25 @@ namespace Couchbase.Tests.Views
             
             Assert.IsNotNull(result.Message);
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+            Assert.IsFalse(result.Success);
+
+            Console.WriteLine(result.Message);
+        }
+
+        [Test]
+        public void When_View_Is_Called_With_Invalid_Parameters_Error_Is_Returned()
+        {
+            var query = new ViewQuery(false).
+                From("beer-sample", "beer").
+                View("brewery_beers").
+                Group(true);
+
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var result = client.Execute<dynamic>(query);
+            
+            Assert.AreEqual("query_parse_error", result.Error);
+            Assert.AreEqual("Invalid URL parameter 'group' or  'group_level' for non-reduce view.", result.Message);
+            Assert.AreEqual(HttpStatusCode.BadRequest, result.StatusCode);
             Assert.IsFalse(result.Success);
 
             Console.WriteLine(result.Message);
