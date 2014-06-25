@@ -23,17 +23,19 @@ namespace Couchbase.IO.Strategies.Async
         private static readonly AutoResetEvent WaitEvent = new AutoResetEvent(true);
         private static readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         private ISaslMechanism _saslMechanism;
+        private IByteConverter _converter;
         private volatile bool _disposed;
 
         public SocketAsyncStrategy(IConnectionPool connectionPool)
             : this(connectionPool,
             new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()),
-            new PlainTextMechanism("default", string.Empty, new ManualByteConverter()))
+            new PlainTextMechanism("default", string.Empty, new AutoByteConverter()), 
+            new AutoByteConverter())
         {
         }
 
         public SocketAsyncStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
-            : this(connectionPool, new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()), saslMechanism)
+            : this(connectionPool, new SocketAsyncPool(connectionPool, SocketAsyncFactory.GetSocketAsyncFunc()), saslMechanism, new AutoByteConverter())
         {
         }
 
@@ -43,12 +45,13 @@ namespace Couchbase.IO.Strategies.Async
             _socketAsyncPool = socketAsyncPool;
         }
 
-        public SocketAsyncStrategy(IConnectionPool connectionPool, SocketAsyncPool socketAsyncPool, ISaslMechanism saslMechanism)
+        public SocketAsyncStrategy(IConnectionPool connectionPool, SocketAsyncPool socketAsyncPool, ISaslMechanism saslMechanism, IByteConverter converter)
         {
             _connectionPool = connectionPool;
             _socketAsyncPool = socketAsyncPool;
             _saslMechanism = saslMechanism;
             _saslMechanism.IOStrategy = this;
+            _converter = converter;
         }
 
         /// <summary>
@@ -168,7 +171,7 @@ namespace Couchbase.IO.Strategies.Async
             }
         }
 
-        private static void Send(SocketAsyncEventArgs e)
+        private void Send(SocketAsyncEventArgs e)
         {
             Log.Debug(m=>m("send..."));
             if (e.SocketError == SocketError.Success)
@@ -188,7 +191,7 @@ namespace Couchbase.IO.Strategies.Async
             }
         }
 
-        private static void Receive(SocketAsyncEventArgs e)
+        private void Receive(SocketAsyncEventArgs e)
         {
             while (true)
             {
@@ -228,21 +231,21 @@ namespace Couchbase.IO.Strategies.Async
             }
         }
 
-        private static void CreateHeader(OperationAsyncState state)
+        private void CreateHeader(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
             if (buffer.Length > 0)
             {
                 state.Header = new OperationHeader
                 {
-                    Magic = buffer[HeaderIndexFor.Magic],
-                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
-                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
+                    Magic = _converter.ToByte(buffer, HeaderIndexFor.Magic),
+                    OperationCode = _converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
+                    KeyLength = _converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
+                    ExtrasLength = _converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
+                    Status = (ResponseStatus)_converter.ToInt16(buffer, HeaderIndexFor.Status),
+                    BodyLength = _converter.ToInt32(buffer, HeaderIndexFor.Body),
+                    Opaque = _converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Cas = _converter.ToUInt64(buffer, HeaderIndexFor.Cas)
                 };
             }
         }

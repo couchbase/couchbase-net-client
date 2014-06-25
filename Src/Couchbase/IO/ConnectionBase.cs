@@ -72,7 +72,7 @@ namespace Couchbase.IO
                     OperationCode = _converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
                     KeyLength = _converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
                     ExtrasLength = _converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
+                    Status = (ResponseStatus)_converter.ToInt16(buffer, HeaderIndexFor.Status),
                     BodyLength = _converter.ToInt32(buffer, HeaderIndexFor.Body),
                     Opaque = _converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                     Cas = _converter.ToUInt64(buffer, HeaderIndexFor.Cas)

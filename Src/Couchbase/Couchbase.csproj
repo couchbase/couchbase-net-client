@@ -180,6 +180,7 @@
     <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
     <Compile Include="IO\Strategies\SaeaConnection.cs" />
     <Compile Include="IO\Strategies\SslConnection.cs" />
+    <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
@@ -193,7 +194,6 @@
     <Compile Include="IO\Operations\GetOperation.cs" />
     <Compile Include="IO\Operations\SetOperation.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
-    <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="IO\DefaultConnection.cs" />
     <Compile Include="IO\DefaultConnectionFactory.cs" />
     <Compile Include="IO\DefaultConnectionPool.cs" />
@@ -212,7 +212,6 @@
     <Compile Include="IO\Operations\OperationHeader.cs" />
     <Compile Include="IO\Operations\OperationResult.cs" />
     <Compile Include="IO\ResponseStatus.cs" />
-    <Compile Include="IO\Utils\BinaryConverter.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
     <Compile Include="IO\Utils\HeaderIndexFor.cs" />

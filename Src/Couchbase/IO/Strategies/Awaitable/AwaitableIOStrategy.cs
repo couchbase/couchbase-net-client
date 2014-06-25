@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
 
@@ -17,17 +18,19 @@ namespace Couchbase.IO.Strategies.Awaitable
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IConnectionPool _connectionPool;
         private readonly SocketAwaitablePool _socketAwaitablePool;
+        private readonly IByteConverter _converter;
         private volatile bool _disposed;
 
         public AwaitableIOStrategy(IConnectionPool connectionPool) 
-            : this(connectionPool, new SocketAwaitablePool(connectionPool, SocketAwaitableFactory.GetSocketAwaitable()))
+            : this(connectionPool, new SocketAwaitablePool(connectionPool, SocketAwaitableFactory.GetSocketAwaitable()), new AutoByteConverter())
         {
         }
        
-        public AwaitableIOStrategy(IConnectionPool connectionPool, SocketAwaitablePool socketAwaitablePool)
+        public AwaitableIOStrategy(IConnectionPool connectionPool, SocketAwaitablePool socketAwaitablePool, IByteConverter converter)
         {
             _connectionPool = connectionPool;
             _socketAwaitablePool = socketAwaitablePool;
+            _converter = converter;
         }
 
         /// <summary>
@@ -163,21 +166,21 @@ namespace Couchbase.IO.Strategies.Awaitable
         /// <typeparam name="T"></typeparam>
         /// <param name="operation"></param>
         /// <param name="state"></param>
-        static void CreateHeader<T>(IOperation<T> operation, OperationAsyncState state)
+        void CreateHeader<T>(IOperation<T> operation, OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
             if (buffer.Length > 0)
             {
                 operation.Header = new OperationHeader
                 {
-                    Magic = buffer[HeaderIndexFor.Magic],
-                    OperationCode = buffer[HeaderIndexFor.Opcode].ToOpCode(),
-                    KeyLength = buffer.GetInt16(HeaderIndexFor.KeyLength),
-                    ExtrasLength = buffer[HeaderIndexFor.ExtrasLength],
-                    Status = buffer.GetResponseStatus(HeaderIndexFor.Status),
-                    BodyLength = buffer.GetInt32(HeaderIndexFor.Body),
-                    Opaque = buffer.GetUInt32(HeaderIndexFor.Opaque),
-                    Cas = buffer.GetUInt64(HeaderIndexFor.Cas)
+                    Magic = _converter.ToByte(buffer, HeaderIndexFor.Magic),
+                    OperationCode = _converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
+                    KeyLength = _converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
+                    ExtrasLength = _converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
+                    Status = (ResponseStatus)_converter.ToInt16(buffer, HeaderIndexFor.Status),
+                    BodyLength = _converter.ToInt32(buffer, HeaderIndexFor.Body),
+                    Opaque = _converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Cas = _converter.ToUInt64(buffer, HeaderIndexFor.Cas)
                 };
             }
         }

@@ -64,6 +64,33 @@ namespace Couchbase.Tests.Utils
             Value               : None*/
 
         [Test]
+        public void When_Buffer_Is_Zero_GetLengthSafe_Returns_Zero()
+        {
+            var buffer = new byte[0];
+            var length = buffer.GetLengthSafe();
+            const int expected = 0;
+            Assert.AreEqual(expected, length);
+        }
+
+        [Test]
+        public void When_Buffer_Is_Null_GetLengthSafe_Returns_Zero()
+        {
+            byte[] buffer = null;
+            var length = buffer.GetLengthSafe();
+            const int expected = 0;
+            Assert.AreEqual(expected, length);
+        }
+
+        [Test]
+        public void When_Buffer_Is_8bytes_GetLengthSafe_Returns_8()
+        {
+            var buffer = new byte[8];
+            var length = buffer.GetLengthSafe();
+            const int expected = 8;
+            Assert.AreEqual(expected, length);
+        }
+
+        [Test]
         public void Test_Magic()
         {
             var value = _buffer[HeaderIndexFor.Magic];
@@ -73,7 +100,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void Test_OpCode()
         {
-            var value = (OperationCode)_buffer[HeaderIndexFor.Opcode];
+            var value = _buffer[HeaderIndexFor.Opcode].ToOpCode();
             Assert.AreEqual(OperationCode.Add, value);
         }
 
@@ -107,38 +134,6 @@ namespace Couchbase.Tests.Utils
 
             var value = (ResponseStatus)BitConverter.ToUInt16(array, 0);
             Assert.AreEqual(ResponseStatus.KeyExists, value);
-        }
-
-        [Test]
-        public void Test_Status_Performance()
-        {
-            for (var j = 0; j < 10; j++)
-            using (new OperationTimer())
-            {
-                for(var i =0; i<1000000;i++)
-                {
-                    var array = new byte[2];
-                    Buffer.BlockCopy(_buffer, HeaderIndexFor.Status, array, 0, 2);
-                    Array.Reverse(array);
-
-                    var value = (ResponseStatus) BitConverter.ToUInt16(array, 0);
-                    Assert.AreEqual(ResponseStatus.KeyExists, value);
-                }
-            }
-        }
-
-        [Test]
-        public void Test_Status_Performance2()
-        {
-            for(var j=0; j< 10; j++)
-            using (new OperationTimer())
-            {
-                for (var i = 0; i < 1000000; i++)
-                {
-                    var value = (ResponseStatus) BinaryConverter.DecodeUInt16(_buffer, HeaderIndexFor.Status);
-                    Assert.AreEqual(ResponseStatus.KeyExists, value);
-                }
-            }
         }
 
         [Test]
