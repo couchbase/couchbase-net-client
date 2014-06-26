@@ -5,6 +5,7 @@ using System.Net;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -79,6 +80,12 @@ namespace Couchbase.Configuration.Server.Providers
 
         public abstract void Dispose();
 
+        /// <summary>
+        /// Gets an <see cref="BucketConfiguration"/> from the <see cref="ClientConfiguration"/>. If one doesn't exist
+        /// for a given bucket, a new one will be created and added to the configuration.
+        /// </summary>
+        /// <param name="bucketName">The <see cref="IBucket.Name"/> to use for the lookup.</param>
+        /// <returns>An <see cref="BucketConfiguration"/> instance.</returns>
         protected virtual BucketConfiguration GetOrCreateConfiguration(string bucketName)
         {
             BucketConfiguration bucketConfiguration = null;

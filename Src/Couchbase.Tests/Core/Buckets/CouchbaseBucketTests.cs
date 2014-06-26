@@ -360,6 +360,39 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void Test_Append()
+        {
+            const string key = "CouchbaseBucket.Test_Append";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, key).Success);
+                var result = bucket.Append(key, "!");
+                Assert.IsTrue(result.Success);
+                
+                result = bucket.Get<string>(key);
+                Assert.AreEqual(key+"!", result.Value);
+            }
+        }
+
+        [Test]
+        public void Test_Prepend()
+        {
+            const string key = "CouchbaseBucket.Test_Prepend";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, key).Success);
+                var result = bucket.Prepend(key, "!");
+                Assert.IsTrue(result.Success);
+
+                result = bucket.Get<string>(key);
+                Assert.AreEqual("!" +key, result.Value);
+            }
+        }
+
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
