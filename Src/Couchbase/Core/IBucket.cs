@@ -137,6 +137,22 @@ namespace Couchbase.Core
         IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration);
 
         /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns></returns>
+        IOperationResult<string> Append(string key, string value);
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns></returns>
+        IOperationResult<string>Prepend(string key, string value);
+
+        /// <summary>
         /// Gets a Task that can be awaited on for a given Key and value.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

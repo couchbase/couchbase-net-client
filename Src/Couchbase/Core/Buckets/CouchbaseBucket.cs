@@ -316,6 +316,48 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns></returns>
+        public IOperationResult<string> Append(string key, string value)
+        {
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new AppendOperation<string>(key, value, _serializer , vBucket, _converter);
+            var operationResult = server.Send(operation);
+            
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns></returns>
+        public IOperationResult<string> Prepend(string key, string value)
+        {
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new PrependOperation<string>(key, value, _serializer, vBucket, _converter);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
         /// Gets a Task that can be awaited on for a given Key and value.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

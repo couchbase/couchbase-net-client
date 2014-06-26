@@ -279,6 +279,42 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns></returns>
+        public IOperationResult<string> Append(string key, string value)
+        {
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new AppendOperation<string>(key, value, _serializer, null, _converter);
+            var operationResult = server.Send(operation);
+
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns></returns>
+        public IOperationResult<string> Prepend(string key, string value)
+        {
+            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new PrependOperation<string>(key, value, _serializer, null, _converter);
+            var operationResult = server.Send(operation);
+
+            return operationResult;
+        }
+
         public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
