@@ -1045,7 +1045,7 @@ namespace Enyim.Caching
                 // NCBC-485 send small TTLs (less than 30 days) in seconds, not EPOCH.
                 if(validFor < TimeSpan.FromSeconds(((60*60) * 24)*30))
                 {
-                    return (uint)validFor.GetValueOrDefault().Seconds;
+                    return (uint)validFor.GetValueOrDefault().TotalSeconds;
                 }
 
                 expiresAt = DateTime.Now.Add(validFor.Value);
