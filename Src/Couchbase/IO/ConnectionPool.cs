@@ -22,7 +22,7 @@ namespace Couchbase.IO
         private bool _disposed;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
-            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new ManualByteConverter())
+            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new AutoByteConverter())
         {
         }
 

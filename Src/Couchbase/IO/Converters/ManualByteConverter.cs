@@ -364,5 +364,11 @@ namespace Couchbase.IO.Converters
             var bytes = Encoding.UTF8.GetBytes(value);
             Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
         }
+
+
+        public void FromUInt642(ulong value, byte[] buffer, int offset)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

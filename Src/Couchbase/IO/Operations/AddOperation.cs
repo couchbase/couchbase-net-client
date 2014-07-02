@@ -2,6 +2,7 @@
 using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -14,6 +15,12 @@ namespace Couchbase.IO.Operations
         public AddOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, value, serializer, vBucket, converter)
         {
+        }
+
+        public AddOperation(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, value, serializer, vBucket, converter)
+        {
+            Cas = cas;
         }
 
         public override OperationCode OperationCode

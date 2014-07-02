@@ -10,6 +10,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.Views;
 using NUnit.Framework;
 using Wintellect;
@@ -417,15 +418,17 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
-                var set = bucket.Insert(key, "value");
+                IOperationResult<string> set = bucket.Insert(key, "value");
                 Assert.IsTrue(set.Success);
 
-                var get = bucket.Get<string>(key);
+                IOperationResult<string> get = bucket.Get<string>(key);
                 Assert.AreEqual(get.Cas, set.Cas);
 
-                var replace = bucket.Replace(key, "should succeed", set.Cas);
+                IOperationResult<string> replace = bucket.Replace(key, "should succeed", get.Cas);
                 Assert.True(replace.Success);
-                Console.WriteLine(replace.Message);
+
+                get = bucket.Get<string>(key);
+                Assert.AreEqual("should succeed", get.Value);
             }
         }
 

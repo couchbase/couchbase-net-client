@@ -87,6 +87,8 @@ namespace Couchbase.IO.Operations
 
         public uint Expires { get; set; }
 
+        public ulong Cas { get; set; }
+
         public OperationHeader Header { get; set; }
 
         public OperationBody Body { get; set; }
@@ -145,6 +147,7 @@ namespace Couchbase.IO.Operations
 
             Converter.FromInt32(totalLength, header, HeaderIndexFor.BodyLength);
             Converter.FromInt32(Opaque, header, HeaderIndexFor.Opaque);
+            Converter.FromUInt64(Cas, header, HeaderIndexFor.Cas);
 
             return header;
         }

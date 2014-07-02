@@ -15,6 +15,12 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        public ReplaceOperation(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, value, serializer, vBucket, converter)
+        {
+            Cas = cas;
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Replace; }

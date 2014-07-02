@@ -25,6 +25,8 @@ namespace Couchbase.IO.Operations
         Exception Exception { get; set; }
 
         int Offset { get; }
+
+        ulong Cas { get; set; }
     }
 }
 

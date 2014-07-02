@@ -186,5 +186,36 @@ namespace Couchbase.Tests.IO.Converters
 
             Assert.AreEqual(expected, actual);
         }
+
+        [Test]
+        public void Test_Cas()
+        {
+            var converter = new AutoByteConverter();
+            var bytes = new byte[] {255, 255, 255, 255, 229, 93, 159, 223};
+            const ulong expected = 18446744073262702559;
+            var actual = converter.ToUInt64(bytes, 0);
+            Assert.AreEqual(expected, actual);
+        }
+
+         [Test]
+        public void Test_Cas2()
+        {
+            var converter = new AutoByteConverter();
+             var bytes = new byte[]
+             {
+                 0x00,
+		        0x00,
+		        0xa9,
+		        0x53,
+		        0x5f,
+		        0x3d,
+		        0xa7,
+		        0x0f
+             };
+             const ulong expected = 186175545255695;
+            var actual = converter.ToUInt64(bytes, 0);
+            Assert.AreEqual(expected, actual);
+        }
     }
 }
+
