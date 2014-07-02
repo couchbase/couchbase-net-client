@@ -69,6 +69,18 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Upsert<T>(IDocument<T> document)
+        {
+            var result = Upsert(document.Id, document.Value);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -88,6 +100,18 @@ namespace Couchbase.Core.Buckets
                 Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Replace<T>(IDocument<T> document)
+        {
+            var result = Replace(document.Id, document.Value);
+            return new DocumentResult<T>(result, document.Id);
         }
 
         /// <summary>
@@ -113,6 +137,41 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
+        {
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new ReplaceOperation<T>(key, value, cas, vBucket, _converter, _serializer);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Insert<T>(IDocument<T> document)
+        {
+            var result = Insert(document.Id, document.Value);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
         /// Inserts a document into the database using a given key, failing if the key exists.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -135,6 +194,18 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
+        /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
+        public IResult Remove<T>(IDocument<T> document)
+        {
+            var result = Remove(document.Id);
+            return new DocumentResult(result, document.Id);
+        }
+
+        /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
@@ -152,6 +223,18 @@ namespace Couchbase.Core.Buckets
                 Log.Info(m => m("Requires retry {0}", key));
             }
             return operationResult;
+        }
+
+        /// <summary>
+        /// Gets a document by it's given id.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
+        public IResult<T> GetDocument<T>(string id)
+        {
+            var result = Get<T>(id);
+            return new DocumentResult<T>(result, id);
         }
 
         /// <summary>

@@ -19,6 +19,14 @@ namespace Couchbase.Core
         string Name { get; }
 
         /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        IResult<T> Upsert<T>(IDocument<T> document);
+            
+        /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -26,6 +34,14 @@ namespace Couchbase.Core
         /// <param name="value">The value for the key.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Upsert<T>(string key, T value);
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        IResult<T> Replace<T>(IDocument<T> document);
 
         /// <summary>
         /// Replaces a document for a given key if it exists, otherwise fails.
@@ -37,6 +53,24 @@ namespace Couchbase.Core
         IOperationResult<T> Replace<T>(string key, T value);
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Replace<T>(string key, T value, ulong cas);
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        IResult<T> Insert<T>(IDocument<T> document);
+
+        /// <summary>
         /// Inserts a document into the database for a given key, failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -46,6 +80,14 @@ namespace Couchbase.Core
         IOperationResult<T> Insert<T>(string key, T value);
 
         /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
+        /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
+        IResult Remove<T>(IDocument<T> document);
+
+        /// <summary>
         /// Removes a document for a given key from the database.
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
@@ -53,11 +95,19 @@ namespace Couchbase.Core
         IOperationResult<object> Remove(string key);
 
         /// <summary>
-        /// Increments the value of a key by one. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// Gets a document by it's given id.
         /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
+        IResult<T> GetDocument<T>(string id);
+
+        /// <summary>
+        /// Gets value for a given key
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="key">The key to use as a lookup.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Get<T>(string key);
 
         /// <summary>

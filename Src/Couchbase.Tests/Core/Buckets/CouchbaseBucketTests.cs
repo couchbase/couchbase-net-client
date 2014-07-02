@@ -99,16 +99,16 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_N1QL_Query()
         {
-            var bucket = _cluster.OpenBucket("default");
-
-            const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
-
-            var result = bucket.Query<dynamic>(query);
-            foreach (var row in result.Rows)
+            using (var bucket = _cluster.OpenBucket())
             {
-                Console.WriteLine(row);
+                const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
+
+                var result = bucket.Query<dynamic>(query);
+                foreach (var row in result.Rows)
+                {
+                    Console.WriteLine(row);
+                }
             }
-            _cluster.CloseBucket(bucket);
         }
 
         [Test]
@@ -392,6 +392,183 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Cas_Has_Changed_Replace_Fails()
+        {
+            const string key = "CouchbaseBucket.When_Cas_Has_Changed_Replace_Fails";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var set = bucket.Insert(key, "value");
+                Assert.IsTrue(set.Success);
+
+                var upsert = bucket.Upsert(key, "newvalue");
+                Assert.IsTrue(upsert.Success);
+
+                var replace = bucket.Replace(key, "should fail", set.Cas);
+                Assert.IsFalse(replace.Success);
+            }
+        }
+
+        [Test]
+        public void When_Cas_Has_Not_Changed_Replace_Succeeds()
+        {
+            const string key = "CouchbaseBucket.When_Cas_Has_Not_Changed_Replace_Succeeds";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var set = bucket.Insert(key, "value");
+                Assert.IsTrue(set.Success);
+
+                var get = bucket.Get<string>(key);
+                Assert.AreEqual(get.Cas, set.Cas);
+
+                var replace = bucket.Replace(key, "should succeed", set.Cas);
+                Assert.True(replace.Success);
+                Console.WriteLine(replace.Message);
+            }
+        }
+
+        [Test]
+        public void Test_Upsert_With_Document()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var id = "Test_Upsert_With_Document";
+                bucket.Remove(id);
+
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Jeff", Age = 22
+                    }
+                };
+
+                var result = bucket.Upsert(document);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.Success);
+                Assert.IsNullOrEmpty(result.Message);
+            }
+        }
+
+        [Test]
+        public void Test_Replace_With_Document()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var id = "Test_Replace_With_Document";
+                bucket.Remove(id);
+
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Jeff",
+                        Age = 22
+                    }
+                };
+
+                bucket.Upsert(document);
+
+                var document2 = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Geoff",
+                        Age = 22
+                    }
+                };
+                var result = bucket.Replace(document2);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.Success);
+                Assert.IsNullOrEmpty(result.Message);
+
+                var get = bucket.Get<dynamic>(id);
+                Assert.AreEqual("Geoff", get.Value.Name.Value);//Name is a jsonobject, so use Value
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Insert_Fails_On_Document()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var id = "When_Key_Exists_Insert_Fails_On_Document";
+                bucket.Remove(id);
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Jeff",
+                        Age = 22
+                    }
+                };
+
+                Assert.IsTrue(bucket.Upsert(document).Success);
+
+                var result = bucket.Insert(document);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.KeyExists);
+                Assert.AreEqual("Data exists for key", result.Message);
+            }
+        }
+
+        [Test]
+        public void Test_Remove_With_Document()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var id = "When_Key_Exists_Insert_Fails_On_Document";
+                bucket.Remove(id);
+
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Jeff",
+                        Age = 22
+                    }
+                };
+
+                Assert.IsTrue(bucket.Upsert(document).Success);
+
+                var result = bucket.Remove(document);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_GetDocument()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var id = "When_Key_Exists_Insert_Fails_On_Document";
+                bucket.Remove(id);
+
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new
+                    {
+                        Name = "Jeff",
+                        Age = 22
+                    }
+                };
+
+                Assert.IsTrue(bucket.Upsert(document).Success);
+
+                var result = bucket.GetDocument<dynamic>(id);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(document.Value.Name, result.Value.Name.Value);
+                Assert.AreEqual(document.Value.Name, result.Document.Value.Name.Value);
+            }
+        }
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()

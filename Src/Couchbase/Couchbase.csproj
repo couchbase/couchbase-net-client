@@ -149,6 +149,10 @@
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
     <Compile Include="Core\InitializationException.cs" />
+    <Compile Include="Document.cs" />
+    <Compile Include="DocumentResult%27.cs" />
+    <Compile Include="DocumentResult.cs" />
+    <Compile Include="IDocument%27.cs" />
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
     <Compile Include="IO\Converters\AutoByteConverter.cs" />
@@ -183,6 +187,8 @@
     <Compile Include="IO\Strategies\SaeaConnection.cs" />
     <Compile Include="IO\Strategies\SslConnection.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
+    <Compile Include="IResult%27.cs" />
+    <Compile Include="IResult.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
@@ -247,6 +253,7 @@
   <ItemGroup>
     <None Include="Diagrams\ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram2.cd" />
+    <None Include="Diagrams\ClassDiagram3.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
