@@ -92,7 +92,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new SetOperation<T>(key, value, vBucket, _converter);
+            var operation = new Set<T>(key, value, vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -126,7 +126,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new ReplaceOperation<T>(key, value, vBucket, _converter, _serializer);
+            var operation = new Replace<T>(key, value, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -149,7 +149,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new ReplaceOperation<T>(key, value, cas, vBucket, _converter, _serializer);
+            var operation = new Replace<T>(key, value, cas, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -183,7 +183,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new AddOperation<T>(key, value, vBucket, _converter, _serializer);
+            var operation = new Add<T>(key, value, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -215,7 +215,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new DeleteOperation(key, vBucket, _converter, _serializer);
+            var operation = new Delete(key, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -248,7 +248,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new GetOperation<T>(key, vBucket, _converter, _serializer);
+            var operation = new Get<T>(key, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -318,7 +318,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new IncrementOperation(key, initial, delta, expiration, vBucket, _converter, _serializer);
+            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -388,7 +388,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new DecrementOperation(key, initial, delta, expiration, vBucket, _converter, _serializer);
+            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -409,7 +409,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new AppendOperation<string>(key, value, _serializer , vBucket, _converter);
+            var operation = new Append<string>(key, value, _serializer , vBucket, _converter);
             var operationResult = server.Send(operation);
             
             if (CheckForConfigUpdates(operationResult))
@@ -430,7 +430,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new PrependOperation<string>(key, value, _serializer, vBucket, _converter);
+            var operation = new Prepend<string>(key, value, _serializer, vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult))
@@ -622,6 +622,12 @@ namespace Couchbase.Core.Buckets
         ~CouchbaseBucket()
         {
             Dispose(false);
+        }
+
+
+        public IResult<T> Observe<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
         }
     }
 }

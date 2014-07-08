@@ -3,9 +3,9 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal class ConfigOperation : OperationBase<BucketConfig>
+    internal sealed class Config : OperationBase<BucketConfig>
     {
-        public ConfigOperation(IByteConverter converter) 
+        public Config(IByteConverter converter)
             : base(converter)
         {
         }
@@ -14,10 +14,15 @@ namespace Couchbase.IO.Operations
         {
             get { return OperationCode.GetClusterConfig; }
         }
+
+        public override int BodyOffset
+        {
+            get { return 24; }
+        }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -38,4 +43,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information ]

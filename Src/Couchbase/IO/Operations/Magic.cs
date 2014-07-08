@@ -1,7 +1,6 @@
-﻿
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
-    enum Magic : byte
+    internal enum Magic : byte
     {
         Request = 0x80,
         Response = 0x81
@@ -29,4 +28,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

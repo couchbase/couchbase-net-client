@@ -1,33 +1,49 @@
-﻿using System;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    /// <summary>
-    /// Removes a key from the database, failing if it doesn't exist.
-    /// </summary>
-    internal sealed class DeleteOperation : OperationBase<object>
+    internal sealed class Append<T> : OperationBase<T>
     {
-        public DeleteOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, vBucket, converter, serializer)
+        public Append(IByteConverter converter)
+            : base(converter)
         {
         }
 
-        public override OperationCode OperationCode
+        public Append(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, serializer, vBucket, converter)
         {
-            get { return OperationCode.Delete; }
+        }
+
+        public Append(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, vBucket, converter)
+        {
+        }
+
+        public Append(string key, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
+        {
+        }
+
+        public Append(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, vBucket, converter, serializer)
+        {
         }
 
         public override byte[] CreateExtras()
         {
             return new byte[0];
         }
+
+        public override OperationCode OperationCode
+        {
+            get { return OperationCode.Append; }
+        }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -48,4 +64,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information ]

@@ -25,7 +25,7 @@
         /// <summary>
         /// The status returned from the Couchbase Server after an operation.
         /// </summary>
-        /// <remarks><see cref="ResponseStatus.Success"/> will be returned if <see cref="Success"/> 
+        /// <remarks><see cref="ResponseStatus.Success"/> will be returned if <see cref="Success"/>
         /// is true, otherwise <see cref="Success"/> will be false. If <see cref="ResponseStatus.ClientFailure"/> is
         /// returned, then the operation failed before being sent to the Couchbase Server.</remarks>
         ResponseStatus Status { get; }
@@ -58,4 +58,4 @@
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

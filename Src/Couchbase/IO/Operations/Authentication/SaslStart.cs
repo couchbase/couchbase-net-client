@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Couchbase.IO.Converters;
+﻿using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
@@ -17,7 +14,7 @@ namespace Couchbase.IO.Operations.Authentication
         /// <param name="key">The SASL Mechanism to use: PLAIN or CRAM-MD5.</param>
         /// <param name="value"></param>
         /// <param name="converter">The <see cref="IByteConverter"/> to use for encoding and decoding values.</param>
-        public SaslStart(string key, string value, IByteConverter converter) 
+        public SaslStart(string key, string value, IByteConverter converter)
             : base(key, value, null, converter)
         {
         }
@@ -33,7 +30,7 @@ namespace Couchbase.IO.Operations.Authentication
             var buffer = header;
             var totalLength = key.GetLengthSafe() + body.GetLengthSafe();
 
-            Converter.FromByte((byte) Magic.Request, buffer, HeaderIndexFor.Magic);
+            Converter.FromByte((byte)Magic.Request, buffer, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, buffer, HeaderIndexFor.Opcode);
             Converter.FromInt16((short)key.Length, buffer, HeaderIndexFor.KeyLength);
             Converter.FromInt32(totalLength, buffer, HeaderIndexFor.BodyLength);
@@ -41,21 +38,26 @@ namespace Couchbase.IO.Operations.Authentication
             return header;
         }
 
-        public override byte[] GetBuffer()
+        public override byte[] Write()
         {
             var body = CreateBody();
             var key = CreateKey();
             var header = CreateHeader(null, body, key);
 
-            var buffer = new byte[header.GetLengthSafe() + 
+            var buffer = new byte[header.GetLengthSafe() +
                 key.GetLengthSafe() +
                 body.GetLengthSafe()];
 
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
-            Buffer.BlockCopy(body, 0, buffer, header.Length + key.Length, body.Length);
+            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
+            System.Buffer.BlockCopy(body, 0, buffer, header.Length + key.Length, body.Length);
 
             return buffer;
+        }
+
+        public override int BodyOffset
+        {
+            get { return 24; }
         }
 
         /*Field (offset) (value)
@@ -95,4 +97,4 @@ namespace Couchbase.IO.Operations.Authentication
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

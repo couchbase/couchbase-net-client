@@ -1,36 +1,35 @@
-﻿using Couchbase.IO.Converters;
-using Couchbase.IO.Utils;
+﻿using Couchbase.Core;
+using Couchbase.Core.Serializers;
+using Couchbase.IO.Converters;
 
-namespace Couchbase.IO.Operations.Authentication
+namespace Couchbase.IO.Operations
 {
-    /// <summary>
-    /// Gets the supported SASL Mechanisms supported by the Couchbase Server.
-    /// </summary>
-    internal sealed class SaslList : OperationBase<string>
+    internal sealed class Add<T> : OperationBase<T>
     {
-        public SaslList(IByteConverter converter)
-            : base(converter)
+        public Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, value, serializer, vBucket, converter)
         {
+        }
+
+        public Add(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, value, serializer, vBucket, converter)
+        {
+            Cas = cas;
         }
 
         public override OperationCode OperationCode
         {
-            get { return OperationCode.SaslList; }
+            get { return OperationCode.Add; }
         }
 
-        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
+        public override int BodyOffset
         {
-            var header = new byte[24];
-
-            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
-
-            return header;
+            get { return 24; }
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -51,4 +50,4 @@ namespace Couchbase.IO.Operations.Authentication
  *
  * ************************************************************/
 
-#endregion [ License information          ]
+#endregion [ License information ]

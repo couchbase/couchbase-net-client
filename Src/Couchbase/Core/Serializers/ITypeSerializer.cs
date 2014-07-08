@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Core.Serializers
 {
-    interface ITypeSerializer
+    public interface ITypeSerializer
     {
         byte[] Serialize<T>(T value);
 

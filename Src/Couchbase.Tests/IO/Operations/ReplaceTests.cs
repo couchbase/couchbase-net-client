@@ -1,0 +1,63 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using Couchbase.Core.Serializers;
+using Couchbase.IO;
+using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
+using NUnit.Framework;
+
+namespace Couchbase.Tests.IO.Operations
+{
+    [TestFixture]
+    public class ReplaceTests : OperationTestBase
+    {
+        [Test]
+        public void When_Document_Exists_Replace_Succeeds()
+        {
+            const string key = "Replace.When_Document_Exists_Replace_Succeeds";
+
+            //delete the value if it exists
+            var delete = new Delete(key, GetVBucket(), Converter, Serializer);
+            var result = IOStrategy.Execute(delete);
+            Console.WriteLine(result.Message);
+
+            //add the new doc
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Converter, Serializer);
+            var result1 = IOStrategy.Execute(add);
+            Assert.IsTrue(result1.Success);
+
+            //replace it the old doc with a new one
+            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, Serializer);
+            var result2 = IOStrategy.Execute(replace);
+            Assert.IsTrue(result2.Success);
+
+            //check that doc has been updated
+            var get = new Get<dynamic>(key, GetVBucket(),  Converter, Serializer);
+            var result3 = IOStrategy.Execute(get);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(result3.Value.bar.Value, "bar");
+        }
+
+        [Test]
+        public void When_Document_Does_Not_Exist_Replace_Fails()
+        {
+            const string key = "Replace.When_Document_Does_Not_Exist_Replace_Fails";
+
+            //delete the value if it exists
+            var delete = new Delete(key, GetVBucket(), Converter, Serializer);
+            var result = IOStrategy.Execute(delete);
+            Console.WriteLine(result.Message);
+
+            //replace it the old doc with a new one
+            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, Serializer);
+            var result2 = IOStrategy.Execute(replace);
+            Assert.IsFalse(result2.Success);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result2.Status);
+        }
+    }
+}

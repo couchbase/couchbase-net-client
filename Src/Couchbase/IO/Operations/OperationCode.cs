@@ -1,7 +1,5 @@
-﻿
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
-
     public enum OperationCode : byte
     {
         Get = 0x00,
@@ -17,8 +15,10 @@ namespace Couchbase.IO.Operations
         NoOp = 0x0A,
         Version = 0x0B,
         GetK = 0x0C,
-// ReSharper disable once InconsistentNaming
+
+        // ReSharper disable once InconsistentNaming
         GetKQ = 0x0D,
+
         Append = 0x0E,
         Prepend = 0x0F,
         Stat = 0x10,
@@ -35,11 +35,15 @@ namespace Couchbase.IO.Operations
 
         // SASL authentication op-codes
         SaslList = 0x20,
+
         SaslStart = 0x21,
         SaslStep = 0x22,
 
         //CCCP
-        GetClusterConfig = 0xb5
+        GetClusterConfig = 0xb5,
+
+        //Durability constraints
+        Observe = 0x92
     };
 }
 
@@ -64,4 +68,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

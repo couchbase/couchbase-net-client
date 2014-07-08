@@ -4,31 +4,46 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    /// <summary>
-    /// Replace a key in the database, failing if the key does not exist.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    internal sealed class ReplaceOperation<T> : OperationBase<T>
+    internal sealed class Prepend<T> : OperationBase<T>
     {
-        public ReplaceOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer) 
+        public Prepend(IByteConverter converter)
+            : base(converter)
+        {
+        }
+
+        public Prepend(string key, T value, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
             : base(key, value, serializer, vBucket, converter)
         {
         }
 
-        public ReplaceOperation(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, value, serializer, vBucket, converter)
+        public Prepend(string key, T value, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, vBucket, converter)
         {
-            Cas = cas;
+        }
+
+        public Prepend(string key, IVBucket vBucket, IByteConverter converter)
+            : base(key, vBucket, converter)
+        {
+        }
+
+        public Prepend(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, vBucket, converter, serializer)
+        {
+        }
+
+        public override byte[] CreateExtras()
+        {
+            return new byte[0];
         }
 
         public override OperationCode OperationCode
         {
-            get { return OperationCode.Replace; }
+            get { return OperationCode.Prepend; }
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -49,4 +64,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information ]

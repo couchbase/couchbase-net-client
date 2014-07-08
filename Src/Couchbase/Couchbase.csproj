@@ -160,23 +160,31 @@
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\IOStrategyFactory.cs" />
     <Compile Include="IO\Converters\ManualByteConverter.cs" />
-    <Compile Include="IO\Operations\AddOperation.cs" />
-    <Compile Include="IO\Operations\PrependOperation.cs" />
-    <Compile Include="IO\Operations\AppendOperation.cs" />
+    <Compile Include="IO\Operations\Add.cs" />
+    <Compile Include="IO\Operations\Append.cs" />
+    <Compile Include="IO\Operations\Config.cs" />
+    <Compile Include="IO\Operations\Decrement.cs" />
+    <Compile Include="IO\Operations\Delete.cs" />
+    <Compile Include="IO\Operations\Get.cs" />
+    <Compile Include="IO\Operations\Increment.cs" />
+    <Compile Include="IO\Operations\IOperation%27.cs" />
+    <Compile Include="IO\Operations\KeyState.cs" />
+    <Compile Include="IO\Operations\Observe.cs" />
+    <Compile Include="IO\Operations\ObserveState.cs" />
+    <Compile Include="IO\Operations\OperationBase%27.cs" />
+    <Compile Include="IO\Operations\OperationResult.cs" />
+    <Compile Include="IO\Operations\Prepend.cs" />
     <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
-    <Compile Include="IO\Operations\DecrementOperation.cs" />
-    <Compile Include="IO\Operations\DeleteOperation.cs" />
-    <Compile Include="IO\Operations\IncrementOperation.cs" />
-    <Compile Include="IO\Operations\ReplaceOperation.cs" />
+    <Compile Include="IO\Operations\Replace.cs" />
+    <Compile Include="IO\Operations\Set.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="IO\Strategies\EapConnection.cs" />
     <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
     <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
@@ -184,6 +192,7 @@
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
     <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
+    <Compile Include="IO\Strategies\EapConnection.cs" />
     <Compile Include="IO\Strategies\SaeaConnection.cs" />
     <Compile Include="IO\Strategies\SslConnection.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
@@ -198,9 +207,6 @@
     <Compile Include="Core\IClusterInfo.cs" />
     <Compile Include="Core\IKeyMapper.cs" />
     <Compile Include="Configuration\IConfigInfo.cs" />
-    <Compile Include="IO\Operations\ConfigOperation.cs" />
-    <Compile Include="IO\Operations\GetOperation.cs" />
-    <Compile Include="IO\Operations\SetOperation.cs" />
     <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
     <Compile Include="IO\DefaultConnection.cs" />
     <Compile Include="IO\DefaultConnectionFactory.cs" />
@@ -215,10 +221,8 @@
     <Compile Include="Core\IVBucket.cs" />
     <Compile Include="IO\Operations\Magic.cs" />
     <Compile Include="IO\Operations\OperationCode.cs" />
-    <Compile Include="IO\Operations\OperationBase.cs" />
     <Compile Include="IO\Operations\OperationBody.cs" />
     <Compile Include="IO\Operations\OperationHeader.cs" />
-    <Compile Include="IO\Operations\OperationResult.cs" />
     <Compile Include="IO\ResponseStatus.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
@@ -227,9 +231,11 @@
     <Compile Include="N1QL\QueryClient.cs" />
     <Compile Include="N1QL\QueryResult.cs" />
     <Compile Include="NullConfigException.cs" />
+    <Compile Include="PersistTo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
+    <Compile Include="ReplicateTo.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
     <Compile Include="Utils\ArraySegmentExtensions.cs" />
     <Compile Include="Utils\BoolExtensions.cs" />
@@ -251,9 +257,11 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram2.cd" />
     <None Include="Diagrams\ClassDiagram3.cd" />
+    <None Include="Diagrams\document-crud.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

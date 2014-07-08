@@ -4,10 +4,6 @@ using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.IO.Operations
 {
-    /// <summary>
-    /// Represents the result of a Couchbase or Memcached operation. 
-    /// </summary>
-    /// <typeparam name="T">The Type of the <see cref="Value"/> field.</typeparam>
     internal class OperationResult<T> : IOperationResult<T>
     {
         private readonly static ILog _log = LogManager.GetCurrentClassLogger();
@@ -26,73 +22,27 @@ namespace Couchbase.IO.Operations
             get
             {
                 var header = _operation.Header;
-                return header.Status == ResponseStatus.Success && 
+                return header.Status == ResponseStatus.Success &&
                     _operation.Exception == null;
             }
         }
 
-        /// <summary>
-        /// Returns the value of an operation - this is the result of a Get or the value to be Inserted.
-        /// </summary>
-        /// <remarks>This Value will be the default value for T if the operation was not successful.</remarks>
-        public virtual T Value
+        public T Value
         {
             get
             {
                 var value = default(T);
                 if (Success)
                 {
-                    var serializer = _operation.Serializer;
-                    var buffer = _operation.Body.Data;
-                    var header = _operation.Header;
-                    var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
-                    var length = header.BodyLength - header.ExtrasLength;
-                    value = serializer.Deserialize<T>(buffer, offset, length);
+                    value = _operation.GetValue();
                 }
                 return value;
             }
         }
-        
-        /// <summary>
-        /// If the operation failed, this will provide more detailed information about the reason why it failed.
-        /// </summary>
-        public virtual string Message
+
+        public string Message
         {
-            get
-            {
-                var message = string.Empty;
-                if (!Success)
-                {
-                    if (Status == ResponseStatus.VBucketBelongsToAnotherServer)
-                    {
-                        message = ResponseStatus.VBucketBelongsToAnotherServer.ToString();
-                    }
-                    else
-                    {
-                        if (_operation.Exception == null)
-                        {
-                            try
-                            {
-                                var serializer = _operation.Serializer;
-                                var buffer = _operation.Body.Data;
-                                var header = _operation.Header;
-                                var offset = OperationBase<T>.HeaderLength + header.ExtrasLength;
-                                var length = header.BodyLength - header.ExtrasLength;
-                                message = serializer.Deserialize<string>(buffer, offset, length);
-                            }
-                            catch (Exception e)
-                            {
-                                message = e.Message;
-                            }
-                        }
-                        else
-                        {
-                            message = _operation.Exception.Message;
-                        }
-                    }
-                }
-                return message;
-            }
+            get { return _operation.GetMessage(); }
         }
 
         /// <summary>
@@ -136,7 +86,7 @@ namespace Couchbase.IO.Operations
 
                     var serializer = _operation.Serializer;
                     config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
-                    _log.Info(m=>m("Received config rev#{0}", config.Rev));
+                    _log.Info(m => m("Received config rev#{0}", config.Rev));
                 }
                 catch (Exception e)
                 {
@@ -148,7 +98,7 @@ namespace Couchbase.IO.Operations
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -169,4 +119,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information ]

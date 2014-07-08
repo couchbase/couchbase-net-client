@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using Couchbase.Core.Serializers;
+﻿using Couchbase.Core.Serializers;
+using System;
+using System.IO;
 
 namespace Couchbase.IO.Operations
 {
-    internal interface IOperation<out T>
+    internal interface IOperation
     {
         OperationCode OperationCode { get; }
-
-        OperationHeader Header { get; set; }
-
-        OperationBody Body { get; set; }
-
-        byte[] GetBuffer();
-
-        IOperationResult<T> GetResult();
 
         ITypeSerializer Serializer { get; }
 
@@ -24,9 +16,32 @@ namespace Couchbase.IO.Operations
 
         Exception Exception { get; set; }
 
-        int Offset { get; }
+        int BodyOffset { get; }
 
         ulong Cas { get; set; }
+
+        void Read(byte[] buffer, int offset, int length);
+
+        byte[] Write();
+
+        MemoryStream Data { get; set; }
+
+        byte[] Buffer { get; set; }
+
+        int LengthReceived { get; }
+
+        int TotalLength { get; }
+
+        string GetMessage();
+
+        void Reset();
+
+        OperationHeader Header { get; set; }
+
+        OperationBody Body { get; set; }
+
+        [Obsolete("remove after refactoring async stuff")]
+        byte[] GetBuffer();
     }
 }
 
@@ -51,4 +66,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

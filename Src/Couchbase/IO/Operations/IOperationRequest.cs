@@ -1,7 +1,6 @@
-﻿
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
-    interface IOperationRequest
+    internal interface IOperationRequest
     {
         OperationCode OperationCode { get; }
 
@@ -36,4 +35,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

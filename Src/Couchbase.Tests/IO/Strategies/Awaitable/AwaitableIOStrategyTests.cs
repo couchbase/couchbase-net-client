@@ -28,7 +28,7 @@ namespace Couchbase.Tests.IO.Strategies.Awaitable
         [Test]
         public void Test_ExecuteAsnyc()
         {
-            var operation = new ConfigOperation(new ManualByteConverter());
+            var operation = new Config(new AutoByteConverter());
             var task = _ioStrategy.ExecuteAsync(operation);
 
             try

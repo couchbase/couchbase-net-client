@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
     public struct OperationBody
     {
@@ -31,4 +29,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information          ]

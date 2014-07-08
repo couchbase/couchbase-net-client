@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig()
         {
-            var response = _ioStrategy.Execute(new ConfigOperation(new ManualByteConverter()));
+            var response = _ioStrategy.Execute(new Config(new AutoByteConverter()));
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);
             Console.WriteLine(response.Value.ToString());
@@ -44,10 +44,10 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig_Non_Default_Bucket()
         {
-            var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new ManualByteConverter());
+            var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new AutoByteConverter());
             _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
 
-            var response = _ioStrategy.Execute(new ConfigOperation(new ManualByteConverter()));
+            var response = _ioStrategy.Execute(new Config(new ManualByteConverter()));
 
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);

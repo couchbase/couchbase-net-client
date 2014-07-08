@@ -43,7 +43,6 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             Assert.IsFalse(response.Success);
         }
 
-
         [Test]
         public void Test_SaslAuthenticate_Returns_Succuss_With_ValidCredentials()
         {

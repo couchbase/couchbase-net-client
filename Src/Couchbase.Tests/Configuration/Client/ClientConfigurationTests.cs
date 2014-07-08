@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Views;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Client
@@ -162,8 +163,34 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_UseSsl2()
         {
-            using (new CouchbaseCluster(new ClientConfiguration{UseSsl = true}))
+            var config = new ClientConfiguration
             {
+                UseSsl = true
+            };
+            var cluster = new CouchbaseCluster(config);
+            using (var bucket = cluster.OpenBucket())
+            {
+                //all buckets opened with this configuration will use SSL
+            }
+        }
+
+        [Test]
+        public void Test_UseSsl3()
+        {
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {"customers", new BucketConfiguration
+                    {
+                        UseSsl = true
+                    }}
+                }
+            };
+            var cluster = new CouchbaseCluster(config);
+            using (var bucket = cluster.OpenBucket("customers"))
+            {
+                //only the customers bucket will use SSL
             }
         }
     }

@@ -26,8 +26,8 @@ namespace Couchbase.Tests.IO.Operations
             using (new OperationTimer())
             {
                 var key = string.Format("key{0}", 111);
-                var set = new SetOperation<int>(key, 111, vbucket, converter);
-                var get = new GetOperation<int>(key, vbucket, converter, serializer);
+                var set = new Set<int>(key, 111, vbucket, converter);
+                var get = new Get<int>(key, vbucket, converter, serializer);
 
                 for (var i = 0; i < n; i++)
                 {
@@ -55,11 +55,11 @@ namespace Couchbase.Tests.IO.Operations
                 Parallel.For(0, n, options, i =>
                 {
                     var key = string.Format("key{0}", i);
-                    var set = new SetOperation<int>(key, i, vbucket, converter);
+                    var set = new Set<int>(key, i, vbucket, converter);
                     var result = IOStrategy.Execute(set);
                     Assert.IsTrue(result.Success);
   
-                    var get = new GetOperation<int>(key, vbucket, converter, serializer);
+                    var get = new Get<int>(key, vbucket, converter, serializer);
                     var result1 = IOStrategy.Execute(get);
                     Assert.IsTrue(result1.Success); 
                     Assert.AreEqual(i, result1.Value);

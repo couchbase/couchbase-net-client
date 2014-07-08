@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Serializers;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
@@ -18,6 +20,8 @@ namespace Couchbase.Tests.IO.Operations
     {
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
+        protected readonly AutoByteConverter Converter = new AutoByteConverter();
+        protected  ITypeSerializer Serializer;
         private const string Address = "127.0.0.1:11210";
 
         [TestFixtureSetUp]
@@ -52,6 +56,12 @@ namespace Couchbase.Tests.IO.Operations
         public virtual void TestFixtureTearDown()
         {
             _connectionPool.Dispose();
+        }
+
+        [SetUp]
+        public void SetUp()
+        {
+            Serializer = new TypeSerializer(Converter);
         }
     }
 }

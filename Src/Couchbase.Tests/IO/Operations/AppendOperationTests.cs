@@ -16,32 +16,29 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void When_Key_Exists_Append_Succeeds()
         {
-            var converter = new AutoByteConverter();
-            var serializer = new TypeSerializer(converter);
-
-            var key = "Hello";
-            var expected = "Hello!";
+            const string key = "Hello";
+            const string expected = "Hello!";
 
             //clean up old keys
-            var deleteOperation = new DeleteOperation(key, GetVBucket(), converter, serializer);
+            var deleteOperation = new Delete(key, GetVBucket(), Converter, Serializer);
             IOStrategy.Execute(deleteOperation);
 
-            deleteOperation = new DeleteOperation(key + "!", GetVBucket(), converter, serializer);
+            deleteOperation = new Delete(key + "!", GetVBucket(),  Converter, Serializer);
             IOStrategy.Execute(deleteOperation);
 
             //create the key
-            var set = new SetOperation<string>(key, "Hello", GetVBucket(), converter);
+            var set = new Set<string>(key, "Hello", GetVBucket(), Converter);
             var addResult = IOStrategy.Execute(set);
             Assert.IsTrue(addResult.Success);
 
-            var append = new AppendOperation<string>(key, "!", serializer, GetVBucket(), converter);
+            var append = new Append<string>(key, "!", Serializer, GetVBucket(), Converter);
             var result = IOStrategy.Execute(append);
 
             
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
-            var get = new GetOperation<string>(key, GetVBucket(), converter, serializer);
+            var get = new Get<string>(key, GetVBucket(),  Converter, Serializer);
             var getResult = IOStrategy.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
         }

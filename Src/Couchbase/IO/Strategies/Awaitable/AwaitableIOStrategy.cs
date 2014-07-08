@@ -91,7 +91,8 @@ namespace Couchbase.IO.Strategies.Awaitable
             var socketAwaitable = _socketAwaitablePool.Acquire();
             var socketAsync = socketAwaitable.EventArgs;
 
-            var buffer = operation.GetBuffer();
+            operation.Reset();
+            var buffer = operation.Write();
             Log.Debug(m => m("writing buffer...{0} bytes", buffer.Length));
 
              socketAsync.SetBuffer(buffer, 0, buffer.Length);

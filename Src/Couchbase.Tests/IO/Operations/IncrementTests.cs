@@ -31,21 +31,22 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "Test_IncrementOperation";
 
-            var delete = new DeleteOperation(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var delete = new Delete(key, GetVBucket(), Converter, Serializer);
             var result = IOStrategy.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
-            var incrementOperation = new IncrementOperation(key, 0, 1, 0, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
-            var result1 = IOStrategy.Execute(incrementOperation);
+            var increment = new Increment(key, 0, 1, 0, GetVBucket(), Converter, Serializer);
+            var result1 = IOStrategy.Execute(increment);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
 
-            var result2 = IOStrategy.Execute(incrementOperation);
+            var result2 = IOStrategy.Execute(increment);
             Assert.IsTrue(result2.Success);
-            Assert.AreEqual(result2.Value, 1);
+            Assert.AreEqual(1, result2.Value);
 
-            var getOperation = new GetOperation<string>(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var getOperation = new Get<string>(key, GetVBucket(), Converter, Serializer);
             var result3 = IOStrategy.Execute(getOperation);
+            var value = result3.Value;
             Assert.AreEqual(result1.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
         }
 

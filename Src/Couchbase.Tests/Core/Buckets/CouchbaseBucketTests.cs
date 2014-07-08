@@ -474,7 +474,10 @@ namespace Couchbase.Tests.Core.Buckets
                     }
                 };
 
-                bucket.Upsert(document);
+                var inserted = bucket.Insert(document);
+                var replaced = bucket.Replace(document);
+                var upserted = bucket.Upsert(document);
+                //var removed = bucket.Remove(document);
 
                 var document2 = new Document<dynamic>
                 {
@@ -490,7 +493,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.AreEqual(result.Status, ResponseStatus.Success);
                 Assert.IsNullOrEmpty(result.Message);
 
-                var get = bucket.Get<dynamic>(id);
+                var get = bucket.GetDocument<dynamic>(id);
                 Assert.AreEqual("Geoff", get.Value.Name.Value);//Name is a jsonobject, so use Value
             }
         }
@@ -571,6 +574,55 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.AreEqual(document.Value.Name, result.Value.Name.Value);
                 Assert.AreEqual(document.Value.Name, result.Document.Value.Name.Value);
             }
+        }
+
+        [Test]
+        public void Test_Poco()
+        {
+            var key = "poco_moco";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var document = new Document<Poco>
+                {
+                    Id = key,
+                    Value = new Poco
+                    {
+                        Bar = "Foo",
+                        Age = 12
+                    }
+                };
+
+                var result = bucket.Insert(document);
+                if (result.Success)
+                {
+                    var doc = bucket.GetDocument<Poco>(key);
+                    var poco = doc.Value;
+                    Console.WriteLine(poco.Bar);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_Poco2()
+        {
+            var key = "poco_moco2";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Insert(key, new Poco { Bar = "Foo", Age = 12});
+                if (result.Success)
+                {
+                    var result1 = bucket.Get<Poco>(key);
+                    var poco = result1.Value;
+                    Console.WriteLine(poco.Bar);
+                }
+            }
+        }
+
+        public class Poco
+        {
+            public string Bar { get; set; }
+
+            public int Age { get; set; }
         }
 
         [TestFixtureTearDown]

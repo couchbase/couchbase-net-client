@@ -1,13 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
+using System.ServiceModel.Channels;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO.Strategies
 {
-    internal class EapConnection : ConnectionBase
+    internal sealed class EapConnection : ConnectionBase
     {
         private readonly ConnectionPool<EapConnection> _connectionPool;
         private readonly NetworkStream _networkStream ;
@@ -28,56 +33,38 @@ namespace Couchbase.IO.Strategies
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            State.Reset();
-            var buffer = operation.GetBuffer();
-            State.Offset = operation.Offset;
-
-            _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
+            operation.Reset();
+            var buffer = operation.Write();
+            _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
             _sendEvent.WaitOne();
-            operation.Header = State.Header;
-            operation.Body = State.Body;
             return operation.GetResult();
         }
 
         private void SendCallback(IAsyncResult asyncResult)
         {
+            var operation = (IOperation)asyncResult.AsyncState;
             _networkStream.EndWrite(asyncResult);
-            var state = asyncResult.AsyncState as OperationAsyncState;
-            if (state == null)
-            {
-                throw new NullReferenceException("state cannot be null.");
-            }
-            _networkStream.BeginRead(state.Buffer, 0, State.Buffer.Length, ReceiveCallback, State);
-        }
 
+            operation.Buffer = BufferManager.TakeBuffer(512);
+            _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+        }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
-            var state = asyncResult.AsyncState as OperationAsyncState;
-            if (state == null)
-            {
-                throw new NullReferenceException("state cannot be null.");
-            }
-
+            var operation = (IOperation) asyncResult.AsyncState;
             var bytesRead = _networkStream.EndRead(asyncResult);
-            state.BytesReceived += bytesRead;
-            state.Data.Write(state.Buffer, 0, bytesRead);
+            operation.Read(operation.Buffer, 0, bytesRead);
+            BufferManager.ReturnBuffer(operation.Buffer);
 
-            Log.Debug(m => m("Bytes read {0} using {1} on thread {2}", state.BytesReceived, Identity, Thread.CurrentThread.ManagedThreadId));
-
-            if (state.Header.BodyLength == 0)
+            if (operation.LengthReceived < operation.TotalLength)
             {
-                CreateHeader(state);
-            }
-            if (state.BytesReceived > 0 && state.BytesReceived < state.Header.TotalLength)
-            {
-                _networkStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
+                operation.Buffer = BufferManager.TakeBuffer(512);
+                _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
             }
             else
             {
-                CreateBody(state);
                 _sendEvent.Set();
-            }   
+            }
         }
 
         /// <summary>

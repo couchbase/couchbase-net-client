@@ -1,35 +1,50 @@
-﻿using System;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal class GetOperation<T> : OperationBase<T>
+    internal class Increment : OperationBase<long>
     {
-        public GetOperation(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+        private readonly ulong _delta;
+        private readonly uint _expiration;
+        private readonly ulong _initial;
+
+        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, vBucket, converter, serializer)
         {
+            _delta = delta;
+            _initial = initial;
+            _expiration = expiration;
+        }
+
+        public override OperationCode OperationCode
+        {
+            get { return OperationCode.Increment; }
+        }
+
+        public override int BodyOffset
+        {
+            get { return 24; }
+        }
+
+        public override byte[] CreateExtras()
+        {
+            var extras = new byte[20];
+            Converter.FromUInt64(_delta, extras, 0);
+            Converter.FromUInt64(_initial, extras, 8);
+            Converter.FromUInt32(_expiration, extras, 16);
+            return extras;
         }
 
         public override byte[] CreateBody()
         {
             return new byte[0];
         }
-
-        public override byte[] CreateExtras()
-        {
-            return new byte[0];
-        }
-
-        public override OperationCode OperationCode
-        {
-            get { return OperationCode.Get; }
-        }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -50,4 +65,4 @@ namespace Couchbase.IO.Operations
  *
  * ************************************************************/
 
-#endregion
+#endregion [ License information ]

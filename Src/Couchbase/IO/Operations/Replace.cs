@@ -1,23 +1,21 @@
-﻿using System.Dynamic;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
     /// <summary>
-    /// Add a key to the database, failing if the key exists.
+    /// Replace a key in the database, failing if the key does not exist.
     /// </summary>
-    /// <typeparam name="T">The value to add to the database.</typeparam>
-    internal sealed class AddOperation<T> : OperationBase<T>
+    /// <typeparam name="T"></typeparam>
+    internal sealed class Replace<T> : OperationBase<T>
     {
-        public AddOperation(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, value, serializer, vBucket, converter)
         {
         }
 
-        public AddOperation(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, value, serializer, vBucket, converter)
         {
             Cas = cas;
@@ -25,12 +23,11 @@ namespace Couchbase.IO.Operations
 
         public override OperationCode OperationCode
         {
-            get { return OperationCode.Add; }
+            get { return OperationCode.Replace; }
         }
     }
 }
-
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

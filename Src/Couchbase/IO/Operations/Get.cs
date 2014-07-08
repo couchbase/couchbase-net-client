@@ -1,36 +1,43 @@
-﻿using Couchbase.IO.Converters;
+﻿using Couchbase.Core;
+using Couchbase.Core.Serializers;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
-namespace Couchbase.IO.Operations.Authentication
+namespace Couchbase.IO.Operations
 {
-    /// <summary>
-    /// Gets the supported SASL Mechanisms supported by the Couchbase Server.
-    /// </summary>
-    internal sealed class SaslList : OperationBase<string>
+    internal sealed class Get<T> : OperationBase<T>
     {
-        public SaslList(IByteConverter converter)
-            : base(converter)
+        public Get(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, vBucket, converter, serializer)
         {
         }
 
         public override OperationCode OperationCode
         {
-            get { return OperationCode.SaslList; }
+            get { return OperationCode.Get; }
         }
 
-        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
+        public override byte[] Write()
         {
-            var header = new byte[24];
+            var key = CreateKey();
+            var header = CreateHeader(new byte[0], new byte[0], key);
 
-            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
+            var buffer = new byte[key.GetLengthSafe() + header.GetLengthSafe()];
 
-            return header;
+            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
+
+            return buffer;
+        }
+
+        public override int BodyOffset
+        {
+            get { return 28; }
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -51,4 +58,4 @@ namespace Couchbase.IO.Operations.Authentication
  *
  * ************************************************************/
 
-#endregion [ License information          ]
+#endregion [ License information ]

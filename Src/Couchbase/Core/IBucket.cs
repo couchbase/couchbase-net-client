@@ -1,4 +1,4 @@
-﻿
+﻿    
 using System;
 using System.Threading.Tasks;
 using Couchbase.IO.Operations;
@@ -236,6 +236,8 @@ namespace Couchbase.Core
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         IQueryResult<T> Query<T>(string query);
 
+        IResult<T> Observe<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo);
+            
         /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket.
         /// </summary>

@@ -7,9 +7,9 @@ namespace Couchbase.IO.Operations
     /// Add a key to the database, replacing the key if it already exists.
     /// </summary>
     /// <typeparam name="T">The value to insert.</typeparam>
-    internal sealed class SetOperation<T> : OperationBase<T>
+    internal sealed class Set<T> : OperationBase<T>
     {
-        public SetOperation(string key, T value, IVBucket vBucket, IByteConverter converter)
+        public Set(string key, T value, IVBucket vBucket, IByteConverter converter)
             : base(key, value, vBucket, converter)
         {
         }
@@ -18,10 +18,14 @@ namespace Couchbase.IO.Operations
         {
             get { return OperationCode.Set; }
         }
+
+        public override int BodyOffset
+        {
+            get { return 24; }
+        }
     }
 }
-
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

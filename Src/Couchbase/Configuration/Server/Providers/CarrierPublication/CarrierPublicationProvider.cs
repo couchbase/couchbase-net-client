@@ -32,7 +32,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             ioStrategy.SaslMechanism = saslMechanism;
 
             IConfigInfo configInfo = null;
-            var operationResult = ioStrategy.Execute(new ConfigOperation(Converter));
+            var operationResult = ioStrategy.Execute(new Config(Converter));
             if (operationResult.Success)
             {
                 var bucketConfig = operationResult.Value;

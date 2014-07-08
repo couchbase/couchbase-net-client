@@ -15,55 +15,39 @@ using NUnit.Framework;
 namespace Couchbase.Tests.IO.Operations
 {
     [TestFixture]
-    public class DecrementOperationTests : OperationTestBase
+    public class DecrementTests : OperationTestBase
     {
-        private CouchbaseCluster _cluster;
-
-        [TestFixtureSetUp]
-        public override void TestFixtureSetUp()
-        {
-            base.TestFixtureSetUp();
-            _cluster = new CouchbaseCluster();
-        }
-
         [Test]
         public void Test_DecrementOperation()
         {
             const string key = "Test_DecrementOperation";
 
             //delete key if exists
-            var delete = new DeleteOperation(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var delete = new Delete(key, GetVBucket(), Converter, Serializer);
             var result = IOStrategy.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
             //increment the key
-            var operation = new IncrementOperation(key, 1, 1, 0, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var operation = new Increment(key, 1, 1, 0, GetVBucket(), Converter, Serializer);
             var result1 = IOStrategy.Execute(operation);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, 1);
 
             //key should be 1
-            var get = new GetOperation<string>(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var get = new Get<string>(key, GetVBucket(), Converter, Serializer);
             var result3 = IOStrategy.Execute(get);
             Assert.AreEqual(result1.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
 
             //decrement the key
-            var decrement = new DecrementOperation(key, 1, 1, 0, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var decrement = new Decrement(key, 1, 1, 0, GetVBucket(), Converter, Serializer);
             var result2 = IOStrategy.Execute(decrement);
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(result2.Value, 0);
 
             //key should be 0
-            get = new GetOperation<string>(key, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            get = new Get<string>(key, GetVBucket(), Converter, Serializer);
             result3 = IOStrategy.Execute(get);
             Assert.AreEqual(0.ToString(CultureInfo.InvariantCulture), result3.Value);
-        }
-
-        [TestFixtureTearDown]
-        public override void TestFixtureTearDown()
-        {
-            base.TestFixtureTearDown();
-            _cluster.Dispose();
         }
     }
 }
