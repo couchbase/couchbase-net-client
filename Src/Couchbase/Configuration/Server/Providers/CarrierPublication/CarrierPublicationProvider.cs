@@ -75,7 +75,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             IConfigObserver configObserver;
             if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
-                throw new ConfigObserverNotFoundException(bucketConfig.Name);
+                Log.Warn(x=>x("A ConfigObserver for the bucket {0} was not found. Provider has been disposed: {1}", 
+                    bucketConfig.Name, Disposed));
+                return;
             }
 
             IConfigInfo oldConfigInfo;
