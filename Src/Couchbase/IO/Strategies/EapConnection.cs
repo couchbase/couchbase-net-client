@@ -35,8 +35,10 @@ namespace Couchbase.IO.Strategies
         {
             operation.Reset();
             var buffer = operation.Write();
+
             _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
             _sendEvent.WaitOne();
+
             return operation.GetResult();
         }
 

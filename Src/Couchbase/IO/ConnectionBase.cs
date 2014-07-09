@@ -21,7 +21,7 @@ namespace Couchbase.IO
         protected readonly BufferManager BufferManager;
 
         protected ConnectionBase(Socket socket, IByteConverter converter) 
-            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*100, 1024))
+            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*1000, 1024))
         {
         }
 

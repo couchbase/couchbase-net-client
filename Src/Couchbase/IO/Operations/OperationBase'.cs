@@ -155,8 +155,7 @@ namespace Couchbase.IO.Operations
             }
             else
             {
-                bytes = RawValue == null ?
-                    new byte[0] :
+                bytes = RawValue == null ? new byte[0] :
                     _serializer.Serialize(RawValue);
             }
 
@@ -176,7 +175,7 @@ namespace Couchbase.IO.Operations
 
         public virtual T GetValue()
         {
-            var buffer = Data.GetBuffer();
+            var buffer = Data.ToArray();
             return Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
         }
 
@@ -196,7 +195,7 @@ namespace Couchbase.IO.Operations
                     {
                         if (Header.Status != ResponseStatus.Success)
                         {
-                            var buffer = Data.GetBuffer();
+                            var buffer = Data.ToArray();
                             message = Converter.ToString(buffer, 24, TotalLength - 24);
                         }
                     }

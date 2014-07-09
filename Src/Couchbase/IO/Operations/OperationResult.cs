@@ -85,7 +85,7 @@ namespace Couchbase.IO.Operations
                     var length = _operation.Header.BodyLength - _operation.Header.ExtrasLength;
 
                     var serializer = _operation.Serializer;
-                    config = serializer.Deserialize<BucketConfig>(_operation.Body.Data, offset, length);
+                    config = serializer.Deserialize<BucketConfig>(_operation.Data.ToArray(), offset, length);
                     _log.Info(m => m("Received config rev#{0}", config.Rev));
                 }
                 catch (Exception e)
