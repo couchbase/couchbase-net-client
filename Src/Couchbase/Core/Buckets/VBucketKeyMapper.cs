@@ -76,11 +76,18 @@ namespace Couchbase.Core.Buckets
             var vBuckets = new Dictionary<int, IVBucket>();
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
-            Log.Info(m => m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length, vBucketForwardMap == null ? 0: vBucketForwardMap.Length));
+            
+            Log.Info(m => m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length,
+                vBucketForwardMap == null ? 0: vBucketForwardMap.Length));
+
             for (var i = 0; i < vBucketMap.Length; i++)
             {
                 var primary = vBucketMap[i][0];
-                var replica = vBucketMap[i][1];
+                var replica = -1;
+                if (vBucketMap[i].Length > 1)
+                {
+                   replica = vBucketMap[i][1];
+                }
                 vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
             }
             return vBuckets;
