@@ -19,6 +19,16 @@ namespace Couchbase.Core
         string Name { get; }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="cas"></param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns></returns>
+        IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo);
+            
+        /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
@@ -235,8 +245,6 @@ namespace Couchbase.Core
         /// <param name="query">An ad-hoc N1QL query.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         IQueryResult<T> Query<T>(string query);
-
-        IResult<T> Observe<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo);
             
         /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket.

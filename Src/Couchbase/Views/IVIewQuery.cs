@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using Couchbase.Core;
 
 namespace Couchbase.Views
 {
@@ -158,13 +159,25 @@ namespace Couchbase.Views
         /// The number of seconds before the request will be terminated if it has not completed.
         /// </summary>
         /// <param name="timeout">The period of time in seconds</param>
-        /// <returns></returns>
+        /// <returns>An IViewQuery object for chaining</returns>
         IViewQuery ConnectionTimeout(int timeout);
+
+        /// <summary>
+        /// Sets the base uri for the query if it's not set in the constructor.
+        /// </summary>
+        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery BaseUri(string uri);
+
+        /// <summary>
+        /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
+        /// </summary>
+        string BucketName { get; }
 
         /// <summary>
         /// Returns the raw REST URI which can be executed in a browser or using curl.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A <see cref="Uri"/> object that represents the query. This query can be run within a browser.</returns>
         Uri RawUri();
     }
 }

@@ -73,7 +73,8 @@ namespace Couchbase.Core.Serializers
         public T Deserialize<T>(byte[] buffer, int offset, int length)
         {
             object value = default(T);
-            var typeCode = Type.GetTypeCode(typeof(T));
+
+            var typeCode = Type.GetTypeCode(typeof (T));
             switch (typeCode)
             {
                 case TypeCode.Empty:
@@ -83,22 +84,40 @@ namespace Couchbase.Core.Serializers
                     value = Deserialize(buffer, offset, length);
                     break;
                 case TypeCode.Int16:
-                    value =_converter.ToInt16(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToInt16(buffer, offset);
+                    }
                     break;
                 case TypeCode.UInt16:
-                    value = _converter.ToUInt16(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToUInt16(buffer, offset);
+                    }
                     break;
                 case TypeCode.Int32:
-                    value = _converter.ToInt32(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToInt32(buffer, offset);
+                    }
                     break;
                 case TypeCode.UInt32:
-                    value = _converter.ToUInt32(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToUInt32(buffer, offset);
+                    }
                     break;
                 case TypeCode.Int64:
-                    value = _converter.ToInt64(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToInt64(buffer, offset);
+                    }
                     break;
                 case TypeCode.UInt64:
-                    value = _converter.ToUInt64(buffer, offset);
+                    if (length > 0)
+                    {
+                        value = _converter.ToUInt64(buffer, offset);
+                    }
                     break;
                 case TypeCode.Single:
                     break;

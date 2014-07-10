@@ -82,6 +82,8 @@ namespace Couchbase.Core
 
         public IViewResult<T> Send<T>(IViewQuery query)
         {
+            var baseUri = GetBaseViewUri(query.BucketName);
+            query.BaseUri(baseUri);
             return ViewClient.Execute<T>(query);
         }
 

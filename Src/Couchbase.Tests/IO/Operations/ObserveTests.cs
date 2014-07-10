@@ -26,13 +26,24 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Observe2()
         {
-            const string key = "Test_Observe";
+            const string key = "Test_Observe2";
+            var remove = new Delete(key, GetVBucket(), Converter, Serializer);
+
+            var set = new Set<int>(key, 10, GetVBucket(), Converter);
+            var result = IOStrategy.Execute(set);
+            Assert.IsTrue(result.Success);
+
+            var get = new Get<dynamic>(key, GetVBucket(), Converter, Serializer);
+            var result1 = IOStrategy.Execute(get);
+            Assert.IsTrue(result1.Success);
+            Assert.AreEqual(result.Cas, result1.Cas);
 
             var operation = new Observe(key, GetVBucket(), new AutoByteConverter());
-            var result = IOStrategy.Execute(operation);
-            Console.WriteLine(result.Message);
-            Console.WriteLine(result.Value);
-            Assert.IsTrue(result.Success);
+            var result2 = IOStrategy.Execute(operation);
+            Assert.AreEqual(result1.Cas, result2.Value.Cas);
+
+            Assert.AreEqual(KeyState.FoundPersisted, result2.Value.KeyState);
+            Assert.IsTrue(result2.Success);
         }
     }
 }

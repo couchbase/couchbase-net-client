@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Text;
 using Common.Logging;
+using Couchbase.Core;
 using Couchbase.Utils;
 
 namespace Couchbase.Views
@@ -21,7 +22,7 @@ namespace Couchbase.Views
         const string QueryArgPattern = "{0}={1}&";
         private const string DefaultHost = "http://localhost:8092/";
 
-        private readonly string _baseUri;
+        private string _baseUri;
         private string _bucketName;
         private string _designDoc;
         private string _viewName;
@@ -328,6 +329,26 @@ namespace Couchbase.Views
         }
 
         /// <summary>
+        /// Sets the base uri for the query if it's not set in the constructor.
+        /// </summary>
+        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
+        public IViewQuery BaseUri(string uri)
+        {
+            _baseUri = uri;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
+        /// </summary>
+        public string BucketName
+        {
+            get { return _bucketName; }
+        }
+
+        /// <summary>
         /// Returns the raw REST URI which can be executed in a browser or using curl.
         /// </summary>
         /// <returns></returns>
@@ -341,7 +362,7 @@ namespace Couchbase.Views
                 sb.Append(ForwardSlash);
             }
 
-            if (!string.IsNullOrWhiteSpace(_bucketName))
+            if (!string.IsNullOrWhiteSpace(_bucketName) && !_baseUri.Contains(_bucketName))
             {
                 sb.Append(_bucketName);
                 sb.Append(ForwardSlash);

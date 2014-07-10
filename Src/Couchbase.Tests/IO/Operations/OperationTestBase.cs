@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ namespace Couchbase.Tests.IO.Operations
         private IConnectionPool _connectionPool;
         protected readonly AutoByteConverter Converter = new AutoByteConverter();
         protected  ITypeSerializer Serializer;
-        private const string Address = "127.0.0.1:11210";
+        private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [TestFixtureSetUp]
         public virtual void TestFixtureSetUp()

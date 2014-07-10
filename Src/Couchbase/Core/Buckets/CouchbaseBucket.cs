@@ -68,6 +68,11 @@ namespace Couchbase.Core.Buckets
             return vBucket.LocatePrimary();
         }
 
+        public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
@@ -622,12 +627,6 @@ namespace Couchbase.Core.Buckets
         ~CouchbaseBucket()
         {
             Dispose(false);
-        }
-
-
-        public IResult<T> Observe<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
-        {
-            throw new NotImplementedException();
         }
     }
 }

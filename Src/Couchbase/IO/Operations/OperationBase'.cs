@@ -267,10 +267,7 @@ namespace Couchbase.IO.Operations
 
         public virtual bool Success
         {
-            get
-            {
-                return Header.Status == ResponseStatus.Success && Exception == null;
-            }
+            get { return Header.Status == ResponseStatus.Success && Exception == null; }
         }
 
         public uint Expires { get; set; }

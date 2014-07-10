@@ -36,7 +36,7 @@ namespace Couchbase.IO.Operations
                 {
                     value = _operation.GetValue();
                 }
-                return value;
+                    return value;
             }
         }
 

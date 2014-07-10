@@ -61,6 +61,19 @@ namespace Couchbase.Tests.Views
 
             Assert.AreEqual(expected, query.RawUri());
         }
+
+        [Test]
+        public void When_BaseUri_Returns_BucketName_And_UUID_Bucket_Property_IsIgnored()
+        {
+            const string expected = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093/_design/beer/_view/brewery_beers?";
+            const string baseUriWithUuid = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093";
+
+            var actual = new ViewQuery(baseUriWithUuid, false).
+                From("beer-sample", "beer").
+                View("brewery_beers");
+
+            Assert.AreEqual(new Uri(expected), actual.RawUri());
+        }
     }
 }
 

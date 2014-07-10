@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Authentication;
 using System.Text;
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["OperationTestAddress"])
                 }
             };
             _cluster = new CouchbaseCluster(config);
@@ -41,7 +42,6 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket("default"))
             {
                 Assert.AreEqual("default", bucket.Name);
-                _cluster.CloseBucket(bucket);
             }
         }
 
@@ -58,18 +58,20 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_That_Bucket_Can_Be_Opened_When_Not_Configured()
         {
-            var bucket = _cluster.OpenBucket("authenticated", "secret");
-            Assert.IsNotNull(bucket);
-            _cluster.CloseBucket(bucket);
+            using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
+            {
+                Assert.IsNotNull(bucket);
+            }
         }
 
         [Test]
         [ExpectedException(typeof(ConfigException))]
         public void Test_That_Bucket_That_Doesnt_Exist_Throws_ConfigException()
         {
-            var bucket = _cluster.OpenBucket("authenicated", "secret");
-            Assert.IsNotNull(bucket);
-            _cluster.CloseBucket(bucket);
+            using (var bucket = _cluster.OpenBucket("authenicated", "secret"))
+            {
+                Assert.IsNotNull(bucket);
+            }
         }
 
         [Test]
@@ -91,20 +93,21 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_View_Query_Lots()
         {
-            var bucket = _cluster.OpenBucket("beer-sample");
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("brewery_beers");
-
-            var result = bucket.Query<dynamic>(query);
-            for (var i = 0; i < 10; i++)
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
-                using (new OperationTimer())
-                {       
-                    Assert.Greater(result.TotalRows, 0);
+                var query = new ViewQuery(false).
+                    From("beer-sample", "beer").
+                    View("brewery_beers");
+
+                var result = bucket.Query<dynamic>(query);
+                for (var i = 0; i < 10; i++)
+                {
+                    using (new OperationTimer())
+                    {
+                        Assert.Greater(result.TotalRows, 0);
+                    }
                 }
             }
-            _cluster.CloseBucket((IBucket)bucket);
         }
 
         [Test]

@@ -257,7 +257,6 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <None Include="ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram2.cd" />
     <None Include="Diagrams\ClassDiagram3.cd" />
