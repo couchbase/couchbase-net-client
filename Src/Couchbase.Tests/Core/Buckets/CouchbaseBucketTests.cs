@@ -25,24 +25,34 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new CouchbaseCluster();
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://192.168.56.101:8091/pools")
+                }
+            };
+            _cluster = new CouchbaseCluster(config);
         }
 
         [Test]
         public void Test_GetBucket()
         {
-            var bucket = _cluster.OpenBucket("default");
-            Assert.AreEqual("default", bucket.Name);
-            _cluster.CloseBucket(bucket);
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                Assert.AreEqual("default", bucket.Name);
+                _cluster.CloseBucket(bucket);
+            }
         }
 
         [Test]
         [ExpectedException(typeof(ConfigException))]
         public void Test_That_GetBucket_Throws_ConfigException_If_Bucket_Does_Not_Exist()
         {
-            var bucket = _cluster.OpenBucket("doesnotexist");
-            Assert.AreEqual("doesnotexist", bucket.Name);
-            _cluster.CloseBucket(bucket);
+            using (var bucket = _cluster.OpenBucket("doesnotexist"))
+            {
+                Assert.AreEqual("doesnotexist", bucket.Name);
+            }
         }
 
         [Test]
@@ -65,17 +75,17 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_View_Query()
         {
-            var bucket = _cluster.OpenBucket("beer-sample");
-            
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("brewery_beers").
-                Limit(10);
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = new ViewQuery(false).
+                    From("beer-sample", "beer").
+                    View("brewery_beers").
+                    Limit(10);
 
-            Console.WriteLine(query.RawUri());
-            var result = bucket.Query<dynamic>(query);
-            Assert.Greater(result.TotalRows, 0);
-            _cluster.CloseBucket((IBucket)bucket);
+                Console.WriteLine(query.RawUri());
+                var result = bucket.Query<dynamic>(query);
+                Assert.Greater(result.TotalRows, 0);
+            }
         }
 
         [Test]
