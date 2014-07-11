@@ -26,6 +26,7 @@ namespace Couchbase.Core.Buckets
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
         private readonly ITypeSerializer _serializer;
+        private static int _refCount;
 
         internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
         {
@@ -627,6 +628,16 @@ namespace Couchbase.Core.Buckets
         ~CouchbaseBucket()
         {
             Dispose(false);
+        }
+
+        public void Take()
+        {
+            Interlocked.Increment(ref _refCount);
+        }
+
+        public int Release()
+        {
+            return Interlocked.Decrement(ref _refCount);
         }
     }
 }

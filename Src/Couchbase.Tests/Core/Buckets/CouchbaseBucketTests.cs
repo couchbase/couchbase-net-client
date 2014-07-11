@@ -26,14 +26,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var config = new ClientConfiguration
-            {
-                Servers = new List<Uri>
-                {
-                    new Uri(ConfigurationManager.AppSettings["OperationTestAddress"])
-                }
-            };
-            _cluster = new CouchbaseCluster(config);
+            _cluster = new CouchbaseCluster("couchbaseClients/couchbase");
         }
 
         [Test]
@@ -629,6 +622,37 @@ namespace Couchbase.Tests.Core.Buckets
                     Console.WriteLine(poco.Bar);
                 }
             }
+        }
+
+        [Test]
+        public void Test_Dispose_On_Many_Threads()
+        {
+            Random random = new Random(100);
+            int n = 100;
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.For(0, n, options, i =>
+            {
+                try
+                {
+                    using (IBucket bucket = _cluster.OpenBucket())
+                    {
+                        string key = "key_" + i;
+                        IOperationResult<int> set = bucket.Insert(key, i);
+                        Console.WriteLine("Inserted {0}: {1}", key, set.Success);
+                        IOperationResult<int> get = bucket.Get<int>(key);
+                        Console.WriteLine("Getting {0} - {1}: {2}", key, get.Value, get.Success);
+                    }
+                    Thread.Sleep(random.Next(0, 100));
+                }
+                catch (AggregateException ae)
+                {
+                    ae.Flatten().Handle(e =>
+                    {
+                        Console.WriteLine(e);
+                        return true;
+                    });
+                }
+            });
         }
 
         public class Poco

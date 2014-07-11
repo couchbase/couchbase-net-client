@@ -269,6 +269,10 @@ namespace Couchbase.Core
         /// <param name="view">The View to query.</param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         IViewQuery CreateQuery(bool development, string designdoc, string view);
+
+        void Take();
+
+        int Release();
     }
 }
 

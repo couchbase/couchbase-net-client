@@ -1,4 +1,5 @@
-﻿using Common.Logging;
+﻿using System.Threading;
+using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -25,6 +26,7 @@ namespace Couchbase.Core
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
+        private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>(); 
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
@@ -97,24 +99,37 @@ namespace Couchbase.Core
         private void Initialize()
         {
             _clientConfig.Initialize();
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig, 
-                _ioStrategyFactory, 
-                _connectionPoolFactory, 
-                _saslFactory, 
-                _converter, 
+            _configProviders.Add(new CarrierPublicationProvider(_clientConfig,
+                _ioStrategyFactory,
+                _connectionPoolFactory,
+                _saslFactory,
+                _converter,
                 _serializer));
 
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig, 
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig,
                 _ioStrategyFactory,
-                _connectionPoolFactory, 
-                _saslFactory, 
+                _connectionPoolFactory,
+                _saslFactory,
                 _converter,
-                _serializer)); ;
+                _serializer));
         }
 
         public IConfigProvider GetProvider(string name)
         {
             throw new NotImplementedException();
+        }
+
+        public void NotifyConfigPublished(IBucketConfig bucketConfig)
+        {
+            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
+            if (provider != null)
+            {
+                var carrierPublicationProvider = provider as CarrierPublicationProvider;
+                if (carrierPublicationProvider != null)
+                {
+                    carrierPublicationProvider.UpdateConfig(bucketConfig);
+                }
+            }
         }
 
         public IBucket CreateBucket(string bucketName)
@@ -183,19 +198,6 @@ namespace Couchbase.Core
                 throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
             }
             return bucket;
-        }
-
-        public void NotifyConfigPublished(IBucketConfig bucketConfig)
-        {
-            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
-            if (provider != null)
-            {
-                var carrierPublicationProvider = provider as CarrierPublicationProvider;
-                if (carrierPublicationProvider != null)
-                {
-                    carrierPublicationProvider.UpdateConfig(bucketConfig);
-                }
-            }
         }
 
         public void DestroyBucket(IBucket bucket)
