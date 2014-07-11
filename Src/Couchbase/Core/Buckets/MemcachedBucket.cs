@@ -469,6 +469,17 @@ namespace Couchbase.Core.Buckets
         {
             Dispose(false);
         }
+
+
+        public void Take()
+        {
+            throw new NotImplementedException();
+        }
+
+        public int Release()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 
