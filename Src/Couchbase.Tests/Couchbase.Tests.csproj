@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DE41E3C6-1A34-4C23-8422-9DF09CCC924C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Couchbase.Tests</RootNamespace>
+    <AssemblyName>Couchbase.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Common.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Common.Logging.2.0.0\lib\2.0\Common.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Common.Logging.Log4Net, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Common.Logging.Log4Net.2.0.1\lib\net20\Common.Logging.Log4Net.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Authentication\BucketAuthenticationTests.cs" />
+    <Compile Include="Authentication\Sasl\CramMd5MechanismTests.cs" />
+    <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
+    <Compile Include="Authentication\Sasl\SaslFactoryTests.cs" />
+    <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
+    <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
+    <Compile Include="Core\Serializers\TypeSerializer2Tests.cs" />
+    <Compile Include="ClusterHelperTests.cs" />
+    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
+    <Compile Include="Configuration\Client\FakeClientConfig.cs" />
+    <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
+    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
+    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucket_View_Tests.cs" />
+    <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
+    <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
+    <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
+    <Compile Include="Documents\Child.cs" />
+    <Compile Include="Documents\Contact.cs" />
+    <Compile Include="Encryption\EffectiveConfigurationTests.cs" />
+    <Compile Include="Fakes\FakeConnection.cs" />
+    <Compile Include="Fakes\FakeConnectionPool.cs" />
+    <Compile Include="Fakes\FakeOperation.cs" />
+    <Compile Include="Fakes\FakeOperationResult.cs" />
+    <Compile Include="Fakes\FauxBucket.cs" />
+    <Compile Include="Helpers\OperationTimer.cs" />
+    <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
+    <Compile Include="IO\Converters\AutoByteConverterTests.cs" />
+    <Compile Include="IO\Converters\ManualByteConverterTests.cs" />
+    <Compile Include="IO\Operations\AddOperationTests.cs" />
+    <Compile Include="IO\Operations\AppendOperationTests.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
+    <Compile Include="IO\Operations\ConfigOperationTests.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\BucketConfigTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
+    <Compile Include="ConfigUtil.cs" />
+    <Compile Include="Core\ClusterManagerTests.cs" />
+    <Compile Include="Core\ServerTests.cs" />
+    <Compile Include="Cryptography\CrC32Tests.cs" />
+    <Compile Include="Helpers\ObjectFactory.cs" />
+    <Compile Include="IO\DefaultConnectionPoolTests.cs" />
+    <Compile Include="IO\ConnectionTests.cs" />
+    <Compile Include="IO\Operations\ConfigTests.cs" />
+    <Compile Include="IO\Operations\GetOperationTests.cs" />
+    <Compile Include="IO\Operations\DecrementTests.cs" />
+    <Compile Include="IO\Operations\GetSetPerformanceTests.cs" />
+    <Compile Include="IO\Operations\GetTests.cs" />
+    <Compile Include="IO\Operations\IncrementTests.cs" />
+    <Compile Include="IO\Operations\ObserveTests.cs" />
+    <Compile Include="IO\Operations\OperationTestBase.cs" />
+    <Compile Include="IO\Operations\ReplaceTests.cs" />
+    <Compile Include="IO\Operations\SetOperationTests.cs" />
+    <Compile Include="IO\Operations\SetTests.cs" />
+    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
+    <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
+    <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
+    <Compile Include="N1QL\QueryClientTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestKeys.cs" />
+    <Compile Include="Utils\ArrayExtensionsTests.cs" />
+    <Compile Include="Utils\BoolExtensionTests.cs" />
+    <Compile Include="Utils\BufferExtensionTests.cs" />
+    <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
+    <Compile Include="Utils\UriExtensionTests.cs" />
+    <Compile Include="VBucketTests.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Views\ViewClientTests.cs" />
+    <Compile Include="Views\ViewQueryTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="Data\Configuration\bootstrap.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\buckets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\carrier-publication-config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\pools.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\terse-bucket-ssl.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\vbucket-forwardmap.json" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj">
+      <Project>{244EB9C8-8BCB-421D-A6DC-D54DCEB206E8}</Project>
+      <Name>Couchbase</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Configuration\bucketsStreaming-default.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Configuration\bucketsStreaming-test.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Configuration\bucketsStreaming-memcached.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="config-example.xml" />
+    <None Include="Data\N1QL\HelloWorld.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="IO\Strategies\Async\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
