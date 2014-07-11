@@ -2,6 +2,10 @@
 {
     public sealed class ObserveState
     {
+        public uint PersistStat { get; set; }
+
+        public uint ReplState { get; set; }
+
         public int VBucket { get; set; }
 
         public int KeyLength { get; set; }

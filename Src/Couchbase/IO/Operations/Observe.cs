@@ -48,16 +48,18 @@ namespace Couchbase.IO.Operations
 
         public override ObserveState GetValue()
         {
-            var buffer = Data.GetBuffer();
+            var buffer = Data.ToArray();
             var keylength = Converter.ToInt16(buffer, 26);
 
             return new ObserveState
             {
+                PersistStat = Converter.ToUInt32(buffer, 16),
+                ReplState = Converter.ToUInt32(buffer, 20),
                 VBucket = Converter.ToInt16(buffer, 24),
                 KeyLength = keylength,
                 Key = Converter.ToString(buffer, 28, keylength),
-                KeyState = (KeyState)Converter.ToByte(buffer, 33),
-                Cas = Converter.ToUInt64(buffer, 34)
+                KeyState = (KeyState)Converter.ToByte(buffer, 28 + keylength),
+                Cas = Converter.ToUInt64(buffer, 28 + keylength + 1)
             };
         }
 

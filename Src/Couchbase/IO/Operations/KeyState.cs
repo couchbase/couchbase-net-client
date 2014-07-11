@@ -3,7 +3,7 @@
     /// <summary>
     /// In an Observe operation, indicates whether the key is persisted or not.
     /// </summary>
-    public enum KeyState
+    public enum KeyState : byte
     {
         /// <summary>
         /// Found, not persisted. Indicates key is in RAM, but not persisted to disk
