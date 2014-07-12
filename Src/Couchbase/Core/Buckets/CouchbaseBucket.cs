@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core.Serializers;
@@ -26,7 +28,14 @@ namespace Couchbase.Core.Buckets
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
         private readonly ITypeSerializer _serializer;
-        private static int _refCount;
+
+        private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
+
+        [UsedImplicitly]
+        private sealed class RefCount
+        {
+            public int Count;
+        }
 
         internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
         {
@@ -56,16 +65,17 @@ namespace Couchbase.Core.Buckets
             {
                 var old = Interlocked.Exchange(ref _configInfo, configInfo);
 
-                Log.Info(m=>m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1}", 
-                    old==null ? 0 : old.BucketConfig.Rev, 
-                    _configInfo.BucketConfig.Rev));
+                Log.Info(m => m("Updated CouchbaseBucket - old config rev#{0} new config rev#{1} on thread {2}",
+                    old==null ? 0 : old.BucketConfig.Rev,
+                    _configInfo.BucketConfig.Rev,
+                    Thread.CurrentThread.ManagedThreadId));
             }
         }
 
         IServer GetServer(string key, out IVBucket vBucket)
         {
             var keyMapper = _configInfo.GetKeyMapper(Name);
-            vBucket = (IVBucket)keyMapper.MapKey(key);
+            vBucket = (IVBucket) keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
         }
 
@@ -595,13 +605,45 @@ namespace Couchbase.Core.Buckets
             return obj is CouchbaseBucket && Equals((CouchbaseBucket) obj);
         }
 
+
+        public int Retain()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                return Interlocked.Increment(ref refCount.Count);
+            }
+        }
+
+        public int Release()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                if (refCount.Count > 0)
+                {
+                    Interlocked.Decrement(ref refCount.Count);
+                    if (refCount.Count == 0)
+                    {
+                        RefCounts.Remove(this);
+                        Dispose(true);
+                    }
+                }
+                else
+                {
+                    Dispose(true);
+                }
+                return refCount.Count;
+            }
+        }
+
         /// <summary>
         /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources, 
         /// removing it from it's <see cref="ClusterManager"/> instance.
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
+            Release();
         }
 
         /// <summary>
@@ -628,16 +670,6 @@ namespace Couchbase.Core.Buckets
         ~CouchbaseBucket()
         {
             Dispose(false);
-        }
-
-        public void Take()
-        {
-            Interlocked.Increment(ref _refCount);
-        }
-
-        public int Release()
-        {
-            return Interlocked.Decrement(ref _refCount);
         }
     }
 }

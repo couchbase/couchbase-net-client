@@ -1,6 +1,8 @@
 ﻿ using System;
+ using System.Runtime.CompilerServices;
  using System.Threading;
  using Common.Logging;
+ using Couchbase.Annotations;
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
  using Couchbase.Core.Serializers;
@@ -23,6 +25,15 @@ namespace Couchbase.Core.Buckets
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
         private readonly ITypeSerializer _serializer;
+
+        private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
+
+        [UsedImplicitly]
+        private sealed class RefCount
+        {
+            public int Count;
+        }
+
 
         internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
         {
@@ -435,6 +446,38 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+
+        public int Retain()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                return Interlocked.Increment(ref refCount.Count);
+            }
+        }
+
+        public int Release()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                if (refCount.Count > 0)
+                {
+                    Interlocked.Decrement(ref refCount.Count);
+                    if (refCount.Count == 0)
+                    {
+                        RefCounts.Remove(this);
+                        Dispose(true);
+                    }
+                }
+                else
+                {
+                    Dispose(true);
+                }
+                return refCount.Count;
+            }
+        }
+
         /// <summary>
         /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources, 
         /// removing it from it's <see cref="ClusterManager"/> instance.
@@ -468,17 +511,6 @@ namespace Couchbase.Core.Buckets
         ~MemcachedBucket()
         {
             Dispose(false);
-        }
-
-
-        public void Take()
-        {
-            throw new NotImplementedException();
-        }
-
-        public int Release()
-        {
-            throw new NotImplementedException();
         }
     }
 }

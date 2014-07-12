@@ -63,7 +63,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("authenicated", "secret"))
             {
-                Assert.IsNotNull(bucket);
+                Assert.IsNull(bucket);
             }
         }
 
@@ -636,11 +636,11 @@ namespace Couchbase.Tests.Core.Buckets
                 {
                     using (IBucket bucket = _cluster.OpenBucket())
                     {
-                        string key = "key_" + i;
-                        IOperationResult<int> set = bucket.Insert(key, i);
-                        Console.WriteLine("Inserted {0}: {1}", key, set.Success);
-                        IOperationResult<int> get = bucket.Get<int>(key);
-                        Console.WriteLine("Getting {0} - {1}: {2}", key, get.Value, get.Success);
+                        var key = "key_" + i;
+                        var set = bucket.Upsert(key, i);
+                        Console.WriteLine("Inserted {0}: {1} Thread: {2}", key, set.Success, Thread.CurrentThread.ManagedThreadId);
+                        var get = bucket.Get<int>(key);
+                        Console.WriteLine("Getting {0} - {1}: {2} Thread: {3}", key, get.Value, get.Success, Thread.CurrentThread.ManagedThreadId);
                     }
                     Thread.Sleep(random.Next(0, 100));
                 }

@@ -151,10 +151,12 @@ namespace Couchbase.Core
                     {
                         case NodeLocatorEnum.VBucket:
                             bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
+                            bucket.Retain();
                             break;
 
                         case NodeLocatorEnum.Ketama:
                             bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
+                            bucket.Retain();
                             break;
 
                         default:
@@ -169,6 +171,7 @@ namespace Couchbase.Core
                         success = true;
                         break;
                     }
+
                     if (provider.RegisterObserver(configObserver) &&
                         _buckets.TryAdd(bucket.Name, bucket))
                     {
@@ -177,6 +180,9 @@ namespace Couchbase.Core
                         success = true;
                         break;
                     }
+                    configObserver.NotifyConfigChanged(config);
+                    success = true;
+                    break;
                 }
                 catch (BucketNotFoundException e)
                 {
@@ -202,6 +208,7 @@ namespace Couchbase.Core
 
         public void DestroyBucket(IBucket bucket)
         {
+            Log.Debug(m=>m("Disposing!!!"));
             IBucket temp;
             if (_buckets.TryRemove(bucket.Name, out temp))
             {
