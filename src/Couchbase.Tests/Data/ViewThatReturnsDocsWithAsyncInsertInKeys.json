@@ -1,7 +1,0 @@
-﻿{
-    "views": {
-        "Insert": {
-            "map": "function (doc, meta) { if(meta.id.indexOf(\"AsyncInsert\") > -1) { emit(meta.id, doc);}}"
-        }
-    }
-}

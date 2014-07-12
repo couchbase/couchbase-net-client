@@ -1,7 +1,0 @@
-﻿{
-    "views": {
-        "all": {
-            "map": "function (doc, meta) { if (doc.type == \"thing\") { emit(null, null); } }"
-        }
-    }
-}

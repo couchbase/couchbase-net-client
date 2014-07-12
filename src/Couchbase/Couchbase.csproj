@@ -1,17 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{708A2350-A26C-444D-B975-8164263951A7}</ProjectGuid>
+    <ProjectGuid>{244EB9C8-8BCB-421D-A6DC-D54DCEB206E8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile />
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -20,9 +19,10 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET40</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,182 +31,245 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1591</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1591</NoWarn>
-    <DocumentationFile>bin\Release\Couchbase.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\Couchbase.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Common.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Common.Logging.2.0.0\lib\2.0\Common.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
-    <Reference Include="System.configuration" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Extensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncSocketHelper2.cs" />
-    <Compile Include="Configuration\HttpClientElement.cs" />
-    <Compile Include="Configuration\IHttpClientConfiguration.cs" />
-    <Compile Include="Constants\ClientErrors.cs" />
-    <Compile Include="CouchbaseNode.cs" />
-    <Compile Include="CouchbaseSpatialView`1.cs" />
-    <Compile Include="CouchbaseSpatialView.cs" />
-    <Compile Include="CouchbaseSpatialViewBase.cs" />
-    <Compile Include="CouchbaseViewHandler.cs" />
-    <Compile Include="Exceptions\BootstrapConfigurationException.cs" />
-    <Compile Include="Exceptions\DeadNodeException.cs" />
-    <Compile Include="Exceptions\NodeShutdownException.cs" />
-    <Compile Include="Exceptions\OperationTimeoutException.cs" />
-    <Compile Include="Exceptions\QueueTimeoutException.cs" />
-    <Compile Include="Exceptions\ViewExceptions.cs" />
-    <Compile Include="Exceptions\ViewNotFoundException.cs" />
-    <Compile Include="Extensions\ArrayExtensions.cs" />
-    <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
-    <Compile Include="Extensions\CouchbaseClientConfigurationExtensions.cs" />
-    <Compile Include="Extensions\InterfaceContractResolver.cs" />
-    <Compile Include="GenericViewRowTransformer.cs" />
-    <Compile Include="Helpers\DocHelper.cs" />
-    <Compile Include="Helpers\JsonHelper.cs" />
-    <Compile Include="DefaultHttpClient.cs" />
-    <Compile Include="ICouchbaseNode.cs" />
-    <Compile Include="ISpatialView`1.cs" />
-    <Compile Include="ISpatialViewRow.cs" />
-    <Compile Include="Management\Bucket.cs" />
-    <Compile Include="BucketConfigListener.cs" />
-    <Compile Include="BucketConfigSettings.cs" />
-    <Compile Include="ConfigHelper.cs" />
-    <Compile Include="Configuration\BucketPortType.cs" />
-    <Compile Include="Configuration\ProductionModeNameTransformer.cs" />
-    <Compile Include="Configuration\DefaultPerformanceMonitorFactory.cs" />
-    <Compile Include="Configuration\DevelopmentModeNameTransformer.cs" />
-    <Compile Include="Configuration\HeartbeatMonitorElement.cs" />
-    <Compile Include="Configuration\ICouchbasePerformanceMonitorFactory.cs" />
-    <Compile Include="Configuration\ICouchbaseClientConfiguration.cs" />
-    <Compile Include="Configuration\CouchbaseClientConfiguration.cs" />
-    <Compile Include="Configuration\CouchbaseClientSection.cs" />
-    <Compile Include="Configuration\INameTransformer.cs" />
-    <Compile Include="Configuration\IHeartbeatMonitorConfiguration.cs" />
-    <Compile Include="Configuration\ServersElement.cs" />
-    <Compile Include="Configuration\UriElement.cs" />
-    <Compile Include="Configuration\UriElementCollection.cs" />
-    <Compile Include="Configuration\UriValidator.cs" />
-    <Compile Include="CouchbaseViewBase.cs" />
-    <Compile Include="ICouchbaseView`1.cs" />
-    <Compile Include="CouchbaseView`1.cs" />
-    <Compile Include="CouchbaseView.cs" />
-    <Compile Include="DictionaryEx.cs" />
-    <Compile Include="ICouchbaseView.cs" />
-    <Compile Include="ICouchbaseViewRow.cs" />
-    <Compile Include="IHttpClient.cs" />
-    <Compile Include="IHttpClientLocator.cs" />
-    <Compile Include="IPagedView.cs" />
-    <Compile Include="Json.cs" />
-    <Compile Include="Management\BucketEnums.cs" />
-    <Compile Include="Management\ClusterConfigParser.cs" />
-    <Compile Include="Management\Controllers.cs" />
-    <Compile Include="Management\CouchbaseCluster.cs" />
-    <Compile Include="HeartbeatSettings.cs" />
-    <Compile Include="Helpers\HttpHelper.cs" />
-    <Compile Include="Helpers\UriHelper.cs" />
-    <Compile Include="ICouchbaseClient.cs" />
-    <Compile Include="ICouchbaseResultsClient.cs" />
-    <Compile Include="Management\BasicStats.cs" />
-    <Compile Include="Management\DDocs.cs" />
-    <Compile Include="Management\InterestingStats.cs" />
-    <Compile Include="Management\Node.cs" />
-    <Compile Include="Management\Ports.cs" />
-    <Compile Include="Management\Quota.cs" />
-    <Compile Include="Management\Stats.cs" />
-    <Compile Include="Management\SystemStats.cs" />
-    <Compile Include="Management\VBucketServerMap.cs" />
-    <Compile Include="ObservedNode.cs" />
-    <Compile Include="ObserveHandler.cs" />
-    <Compile Include="Operations\Constants\ObserveOperationConstants.cs" />
-    <Compile Include="Management\ICouchbaseCluster.cs" />
-    <Compile Include="Operations\UnlockOperation.cs" />
-    <Compile Include="Operations\GetAndTouchOperation.cs" />
-    <Compile Include="BasicCouchbaseOperationFactory.cs" />
-    <Compile Include="OperationInterfaces.cs" />
-    <Compile Include="Deserialization.cs" />
-    <Compile Include="ICouchbaseOperationFactory.cs" />
-    <Compile Include="ICouchbaseServerPool.cs" />
-    <Compile Include="MessageStreamListener.cs" />
-    <Compile Include="CouchbaseClient.cs" />
-    <Compile Include="CouchbasePool.cs" />
-    <Compile Include="Operations\GetWithLockOperation.cs" />
-    <Compile Include="Operations\ObserveKeyState.cs" />
-    <Compile Include="Operations\ObserveOperation.cs" />
-    <Compile Include="Operations\PersistTo.cs" />
-    <Compile Include="Operations\ReplicateTo.cs" />
-    <Compile Include="Operations\SyncOperation.cs" />
-    <Compile Include="PagedView.cs" />
-    <Compile Include="CouchbasePooledSocket.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Operations\TouchOperation.cs" />
-    <Compile Include="Protocol\CouchbaseOpCode.cs" />
-    <Compile Include="Protocol\CouchbaseStatusCodeEnums.cs" />
-    <Compile Include="Protocol\ObserveResponse.cs" />
-    <Compile Include="Protocol\ObserveRequest.cs" />
-    <Compile Include="Results\IObserveOperationResult.cs" />
-    <Compile Include="Results\IUnlockOperationResult.cs" />
-    <Compile Include="Results\ObserveOperationResult.cs" />
-    <Compile Include="Results\UnlockOperationResult.cs" />
-    <Compile Include="Settings\ObserveSettings.cs" />
-    <Compile Include="SocketPool.cs" />
-    <Compile Include="SpatialViewGeometry.cs" />
-    <Compile Include="SpatialViewRow.cs" />
-    <Compile Include="VBucketAwareOperationFactory.cs" />
-    <Compile Include="ViewParamsBuilder.cs" />
-    <Compile Include="WebClientWithTimeout.cs">
+    <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
+    <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
+    <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
+    <Compile Include="Authentication\SASL\SaslFactory.cs" />
+    <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
+    <Compile Include="ClusterHelper.cs" />
+    <Compile Include="Configuration\Client\Providers\BucketElement.cs" />
+    <Compile Include="Configuration\Client\Providers\BucketElementCollection.cs" />
+    <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
+    <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
+    <Compile Include="Configuration\Client\Providers\UriElement.cs" />
+    <Compile Include="Configuration\Client\Providers\UriElementCollection.cs" />
+    <Compile Include="Configuration\DefaultPorts.cs" />
+    <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
+    <Compile Include="Core\Serializers\ITypeSerializer.cs" />
+    <Compile Include="Core\Serializers\TypeSerializer.cs" />
+    <Compile Include="CouchbaseCluster.cs" />
+    <Compile Include="Configuration\Client\BucketConfiguration.cs" />
+    <Compile Include="Configuration\Client\ClientConfiguration.cs" />
+    <Compile Include="Configuration\Client\PoolConfiguration.cs" />
+    <Compile Include="Configuration\CouchbaseConfigContext.cs" />
+    <Compile Include="Configuration\ConfigContextBase.cs" />
+    <Compile Include="Configuration\ConfigException.cs" />
+    <Compile Include="Configuration\ConfigObserverNotFoundException.cs" />
+    <Compile Include="Configuration\ConfigNotFoundException.cs" />
+    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProvider.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfig.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProvider.cs" />
+    <Compile Include="Configuration\Server\Providers\IConfigObserver.cs" />
+    <Compile Include="Configuration\Server\Providers\IConfigProvider.cs" />
+    <Compile Include="Configuration\Server\IServerConfig.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\AuthenticatingWebClient.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Configuration\Server\Providers\Streaming\ConfigThreadState.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfig.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProvider.cs" />
+    <Compile Include="Configuration\Server\Providers\IConfigPublisher.cs" />
+    <Compile Include="Configuration\Server\Serialization\AddNode.cs" />
+    <Compile Include="Configuration\Server\Serialization\AutoCompactionSettings.cs" />
+    <Compile Include="Configuration\Server\Serialization\BasicStats.cs" />
+    <Compile Include="Configuration\Server\Serialization\Bootstrap.cs" />
+    <Compile Include="Configuration\Server\Serialization\BootstrapException.cs" />
+    <Compile Include="Configuration\Server\Serialization\BucketConfig.cs" />
+    <Compile Include="Configuration\Server\Serialization\Buckets.cs" />
+    <Compile Include="Configuration\Server\Serialization\ComponentsVersion.cs" />
+    <Compile Include="Configuration\Server\Serialization\Controllers.cs" />
+    <Compile Include="Configuration\Server\Serialization\Counters.cs" />
+    <Compile Include="Configuration\Server\Serialization\DatabaseFragmentationThreshold.cs" />
+    <Compile Include="Configuration\Server\Serialization\Ddocs.cs" />
+    <Compile Include="Configuration\Server\Serialization\EjectNode.cs" />
+    <Compile Include="Configuration\Server\Serialization\FailOver.cs" />
+    <Compile Include="Configuration\Server\Serialization\FastWarmupSettings.cs" />
+    <Compile Include="Configuration\Server\Serialization\Hdd.cs" />
+    <Compile Include="Configuration\Server\Serialization\IBucketConfig.cs" />
+    <Compile Include="Configuration\Server\Serialization\InterestingStats.cs" />
+    <Compile Include="Configuration\Server\Serialization\Node.cs" />
+    <Compile Include="Configuration\Server\Serialization\Pool.cs" />
+    <Compile Include="Configuration\Server\Serialization\Pools.cs" />
+    <Compile Include="Configuration\Server\Serialization\BootstrapExtensions.cs" />
+    <Compile Include="Configuration\Server\Serialization\Ports.cs" />
+    <Compile Include="Configuration\Server\Serialization\Quota.cs" />
+    <Compile Include="Configuration\Server\Serialization\Ram.cs" />
+    <Compile Include="Configuration\Server\Serialization\ReAddNode.cs" />
+    <Compile Include="Configuration\Server\Serialization\Rebalance.cs" />
+    <Compile Include="Configuration\Server\Serialization\RemoteClusters.cs" />
+    <Compile Include="Configuration\Server\Serialization\Replication.cs" />
+    <Compile Include="Configuration\Server\Serialization\SetAutoCompaction.cs" />
+    <Compile Include="Configuration\Server\Serialization\SetFastWarmup.cs" />
+    <Compile Include="Configuration\Server\Serialization\Settings.cs" />
+    <Compile Include="Configuration\Server\Serialization\Stats.cs" />
+    <Compile Include="Configuration\Server\Serialization\StorageTotals.cs" />
+    <Compile Include="Configuration\Server\Serialization\SystemStats.cs" />
+    <Compile Include="Configuration\Server\Serialization\Tasks.cs" />
+    <Compile Include="Configuration\Server\Serialization\VBucketServerMap.cs" />
+    <Compile Include="Configuration\Server\Serialization\ViewFragmentationThreshold.cs" />
+    <Compile Include="Configuration\MemcachedConfigContext.cs" />
+    <Compile Include="Core\BucketAlreadyOpenException.cs" />
+    <Compile Include="Core\BucketNotFoundException.cs" />
+    <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
+    <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
+    <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
+    <Compile Include="Core\Buckets\KetamaNode.cs" />
+    <Compile Include="Core\Buckets\MemcachedBucket.cs" />
+    <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
+    <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
+    <Compile Include="Core\ClusterManager.cs" />
+    <Compile Include="Core\IClusterManager.cs" />
+    <Compile Include="Core\IKeyValueStore.cs" />
+    <Compile Include="Core\IMappedNode.cs" />
+    <Compile Include="Core\InitializationException.cs" />
+    <Compile Include="Document.cs" />
+    <Compile Include="DocumentResult%27.cs" />
+    <Compile Include="DocumentResult.cs" />
+    <Compile Include="IDocument%27.cs" />
+    <Compile Include="IO\ConnectionBase.cs" />
+    <Compile Include="IO\ConnectionPool.cs" />
+    <Compile Include="IO\Converters\AutoByteConverter.cs" />
+    <Compile Include="IO\Converters\IByteConverter.cs" />
+    <Compile Include="IO\IConnectionPool.cs" />
+    <Compile Include="IO\IOStrategyFactory.cs" />
+    <Compile Include="IO\Converters\ManualByteConverter.cs" />
+    <Compile Include="IO\Operations\Add.cs" />
+    <Compile Include="IO\Operations\Append.cs" />
+    <Compile Include="IO\Operations\Config.cs" />
+    <Compile Include="IO\Operations\Decrement.cs" />
+    <Compile Include="IO\Operations\Delete.cs" />
+    <Compile Include="IO\Operations\Get.cs" />
+    <Compile Include="IO\Operations\Increment.cs" />
+    <Compile Include="IO\Operations\IOperation%27.cs" />
+    <Compile Include="IO\Operations\KeyState.cs" />
+    <Compile Include="IO\Operations\Observe.cs" />
+    <Compile Include="IO\Operations\ObserveState.cs" />
+    <Compile Include="IO\Operations\OperationBase%27.cs" />
+    <Compile Include="IO\Operations\OperationResult.cs" />
+    <Compile Include="IO\Operations\Prepend.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslList.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
+    <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
+    <Compile Include="IO\Operations\Replace.cs" />
+    <Compile Include="IO\Operations\Set.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
+    <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
+    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
+    <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
+    <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
+    <Compile Include="IO\Strategies\EapConnection.cs" />
+    <Compile Include="IO\Strategies\SaeaConnection.cs" />
+    <Compile Include="IO\Strategies\SslConnection.cs" />
+    <Compile Include="IO\Utils\BufferExtensions.cs" />
+    <Compile Include="IResult%27.cs" />
+    <Compile Include="IResult.cs" />
+    <Compile Include="N1QL\Error.cs" />
+    <Compile Include="N1QL\IQueryClient.cs" />
+    <Compile Include="Core\InvalidBucketTypeException.cs" />
+    <Compile Include="Cryptography\Crc32.cs" />
+    <Compile Include="Core\IBucket.cs" />
+    <Compile Include="Core\ICouchbaseCluster.cs" />
+    <Compile Include="Core\IClusterInfo.cs" />
+    <Compile Include="Core\IKeyMapper.cs" />
+    <Compile Include="Configuration\IConfigInfo.cs" />
+    <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
+    <Compile Include="IO\DefaultConnection.cs" />
+    <Compile Include="IO\DefaultConnectionFactory.cs" />
+    <Compile Include="IO\DefaultConnectionPool.cs" />
+    <Compile Include="IO\IConnection.cs" />
+    <Compile Include="IO\IConnectionPool_T.cs" />
+    <Compile Include="IO\IOStrategy.cs" />
+    <Compile Include="IO\Operations\IOperation.cs" />
+    <Compile Include="IO\Operations\IOperationRequest.cs" />
+    <Compile Include="IO\Operations\IOperationResult.cs" />
+    <Compile Include="Core\IServer.cs" />
+    <Compile Include="Core\IVBucket.cs" />
+    <Compile Include="IO\Operations\Magic.cs" />
+    <Compile Include="IO\Operations\OperationCode.cs" />
+    <Compile Include="IO\Operations\OperationBody.cs" />
+    <Compile Include="IO\Operations\OperationHeader.cs" />
+    <Compile Include="IO\ResponseStatus.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
+    <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
+    <Compile Include="IO\Utils\HeaderIndexFor.cs" />
+    <Compile Include="N1QL\IQueryResult.cs" />
+    <Compile Include="N1QL\QueryClient.cs" />
+    <Compile Include="N1QL\QueryResult.cs" />
+    <Compile Include="NullConfigException.cs" />
+    <Compile Include="PersistTo.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Core\Server.cs" />
+    <Compile Include="Core\VBucket.cs" />
+    <Compile Include="ReplicateTo.cs" />
+    <Compile Include="Utils\ArrayExtensions.cs" />
+    <Compile Include="Utils\ArraySegmentExtensions.cs" />
+    <Compile Include="Utils\BoolExtensions.cs" />
+    <Compile Include="Utils\IPEndPointExtensions.cs" />
+    <Compile Include="Utils\SortedDictionaryExtensions.cs" />
+    <Compile Include="Utils\StringExtensions.cs" />
+    <Compile Include="Utils\UnsupportedAddressFamilyException.cs" />
+    <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\Error.cs" />
+    <Compile Include="Views\IDataMapper.cs" />
+    <Compile Include="Views\IViewClient.cs" />
+    <Compile Include="Views\IVIewQuery.cs" />
+    <Compile Include="Views\IViewResult.cs" />
+    <Compile Include="Views\JsonDataMapper.cs" />
+    <Compile Include="Views\StaleState.cs" />
+    <Compile Include="Views\ViewClient.cs" />
+    <Compile Include="Views\ViewQuery.cs" />
+    <Compile Include="Views\ViewResult.cs" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <None Include="Config.transform" />
-    <None Include="Demo.config" />
-    <None Include="Changes.mdown" />
-    <None Include="Couchbase.nuspec">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="Diagrams\ClassDiagram1.cd" />
+    <None Include="Diagrams\ClassDiagram2.cd" />
+    <None Include="Diagrams\ClassDiagram3.cd" />
+    <None Include="Diagrams\document-crud.cd" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Geo\" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Enyim.Caching\Enyim.Caching.csproj">
-      <Project>{EB42E369-1ADF-4E08-8DB7-6FA792ABDCC7}</Project>
-      <Name>Enyim.Caching</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <GitTagMatch>mb*</GitTagMatch>
-  </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!--<Import Project="..\build\VersionInfo.targets" />-->
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
 </Project>
