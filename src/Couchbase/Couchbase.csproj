@@ -232,6 +232,7 @@
     <Compile Include="N1QL\QueryResult.cs" />
     <Compile Include="NullConfigException.cs" />
     <Compile Include="PersistTo.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
