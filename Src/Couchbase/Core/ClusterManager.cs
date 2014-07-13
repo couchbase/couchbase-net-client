@@ -151,12 +151,12 @@ namespace Couchbase.Core
                     {
                         case NodeLocatorEnum.VBucket:
                             bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
-                            bucket.Retain();
+                            bucket.AddRef();
                             break;
 
                         case NodeLocatorEnum.Ketama:
                             bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
-                            bucket.Retain();
+                            bucket.AddRef();
                             break;
 
                         default:

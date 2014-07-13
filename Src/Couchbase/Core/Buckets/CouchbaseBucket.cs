@@ -29,6 +29,9 @@ namespace Couchbase.Core.Buckets
         private readonly IByteConverter _converter;
         private readonly ITypeSerializer _serializer;
 
+        /// <summary>
+        /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
+        /// </summary>
         private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
 
         [UsedImplicitly]
@@ -605,8 +608,11 @@ namespace Couchbase.Core.Buckets
             return obj is CouchbaseBucket && Equals((CouchbaseBucket) obj);
         }
 
-
-        public int Retain()
+        /// <summary>
+        /// Increments the reference counter for this <see cref="IBucket"/> instance.
+        /// </summary>
+        /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
+        public int AddRef()
         {
             lock (RefCounts)
             {
@@ -615,6 +621,10 @@ namespace Couchbase.Core.Buckets
             }
         }
 
+        /// <summary>
+        /// Decrements the reference counter and calls <see cref="IDisposable.Dispose"/> if the count is zero.
+        /// </summary>
+        /// <returns></returns>
         public int Release()
         {
             lock (RefCounts)
@@ -623,11 +633,9 @@ namespace Couchbase.Core.Buckets
                 if (refCount.Count > 0)
                 {
                     Interlocked.Decrement(ref refCount.Count);
-                    if (refCount.Count == 0)
-                    {
-                        RefCounts.Remove(this);
-                        Dispose(true);
-                    }
+                    if (refCount.Count != 0) return refCount.Count;
+                    RefCounts.Remove(this);
+                    Dispose(true);
                 }
                 else
                 {
