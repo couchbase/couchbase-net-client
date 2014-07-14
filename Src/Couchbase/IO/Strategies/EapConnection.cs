@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.ServiceModel.Channels;
@@ -33,11 +34,21 @@ namespace Couchbase.IO.Strategies
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            operation.Reset();
-            var buffer = operation.Write();
+            try
+            {
+                operation.Reset();
+                var buffer = operation.Write();
 
-            _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-            _sendEvent.WaitOne();
+                _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
+                _sendEvent.WaitOne();
+            }
+            catch (IOException e)
+            {
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+                _sendEvent.Set();
+            }
 
             return operation.GetResult();
         }
@@ -45,28 +56,54 @@ namespace Couchbase.IO.Strategies
         private void SendCallback(IAsyncResult asyncResult)
         {
             var operation = (IOperation)asyncResult.AsyncState;
-            _networkStream.EndWrite(asyncResult);
-
-            operation.Buffer = BufferManager.TakeBuffer(512);
-            _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+            try
+            {
+                _networkStream.EndWrite(asyncResult);
+                operation.Buffer = BufferManager.TakeBuffer(512);
+                _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+            }
+            catch (IOException e)
+            {
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+                _sendEvent.Set();
+            }
         }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
             var operation = (IOperation) asyncResult.AsyncState;
-            var bytesRead = _networkStream.EndRead(asyncResult);
-            operation.Read(operation.Buffer, 0, bytesRead);
-            BufferManager.ReturnBuffer(operation.Buffer);
 
-            if (operation.LengthReceived < operation.TotalLength)
+            try
             {
-                operation.Buffer = BufferManager.TakeBuffer(512);
-                _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+                var bytesRead = _networkStream.EndRead(asyncResult);
+                operation.Read(operation.Buffer, 0, bytesRead);
+                BufferManager.ReturnBuffer(operation.Buffer);
+
+                if (operation.LengthReceived < operation.TotalLength)
+                {
+                    operation.Buffer = BufferManager.TakeBuffer(512);
+                    _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+                }
+                else
+                {
+                    _sendEvent.Set();
+                }
             }
-            else
+            catch (IOException e)
             {
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
                 _sendEvent.Set();
             }
+        }
+
+        static void WriteError(string errorMsg, IOperation operation, int offset)
+        {
+            var bytes = Encoding.UTF8.GetBytes(errorMsg);
+            operation.Read(bytes, offset, errorMsg.Length);
         }
 
         /// <summary>
