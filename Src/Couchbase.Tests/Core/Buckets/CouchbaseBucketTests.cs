@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Security.Authentication;
 using System.Text;
@@ -641,8 +642,11 @@ namespace Couchbase.Tests.Core.Buckets
                         Console.WriteLine("Inserted {0}: {1} Thread: {2}", key, set.Success, Thread.CurrentThread.ManagedThreadId);
                         var get = bucket.Get<int>(key);
                         Console.WriteLine("Getting {0} - {1}: {2} Thread: {3}", key, get.Value, get.Success, Thread.CurrentThread.ManagedThreadId);
+
+                        var sleep = random.Next(0, 100);
+                        Console.WriteLine("Sleep for {0}ms", sleep);
+                        Thread.Sleep(sleep);
                     }
-                    Thread.Sleep(random.Next(0, 100));
                 }
                 catch (AggregateException ae)
                 {
@@ -660,6 +664,48 @@ namespace Couchbase.Tests.Core.Buckets
             public string Bar { get; set; }
 
             public int Age { get; set; }
+        }
+
+        ManualResetEvent resetEvent = new ManualResetEvent(false);
+        [Test]
+        public void Test_Dispose_Multi_Threads2()
+        {
+            var bucket = _cluster.OpenBucket();
+            var thread1 = new Thread(Work);
+            var thread2 = new Thread(Work);
+            var thread3 = new Thread(Work);
+            Console.WriteLine("Current Thread {0}", Thread.CurrentThread.ManagedThreadId);
+            thread1.Start(new WorkState{Bucket = bucket, Count = 1000, Start = 0});
+            thread2.Start(new WorkState { Bucket = bucket, Count = 200, Start = 1000});
+            thread3.Start(new WorkState { Bucket = bucket, Count = 1200, Start = 1200});
+            bucket.Dispose();
+            thread1.Join();
+            thread2.Join();
+            thread3.Join();
+            resetEvent.WaitOne(5000);
+        }
+
+        static void Work(object state)
+        {
+            var workState = state as WorkState;
+            Console.WriteLine("****STARTING {0}***** on Thread {1}", workState.Count, Thread.CurrentThread.ManagedThreadId);
+            using (var bucket = workState.Bucket)
+            {
+                for (int i = workState.Start; i < workState.Count+ workState.Start; i++)
+                {
+                    var id = "id_" + i;
+                    bucket.Insert(new Document<int> {Id = id, Value = i});
+                    var result = bucket.GetDocument<int>(id);
+                    Console.WriteLine("Doc: {0} [{1}] on thread {2}", result.Document.Id, result.Success, Thread.CurrentThread.ManagedThreadId);
+                }
+            }
+        }
+
+        public class WorkState
+        {
+            public int Start;
+            public int Count;
+            public IBucket Bucket;
         }
 
         [TestFixtureTearDown]

@@ -208,7 +208,6 @@ namespace Couchbase.Core
 
         public void DestroyBucket(IBucket bucket)
         {
-            Log.Debug(m=>m("Disposing!!!"));
             IBucket temp;
             if (_buckets.TryRemove(bucket.Name, out temp))
             {

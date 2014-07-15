@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Client;
@@ -20,6 +21,7 @@ namespace Couchbase.IO
         private readonly IByteConverter _converter;
         private int _count;
         private bool _disposed;
+        private static ConcurrentBag<T> _refs = new ConcurrentBag<T>();
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new AutoByteConverter())
@@ -81,7 +83,9 @@ namespace Couchbase.IO
         {
             do
             {
-                _store.Enqueue(_factory(this, _converter));
+                var connection = _factory(this, _converter);
+                _store.Enqueue(connection);
+                _refs.Add(connection);
                 Interlocked.Increment(ref _count);
             } while (_store.Count < _configuration.MinSize);
         }
@@ -106,6 +110,7 @@ namespace Couchbase.IO
                 if (_count < _configuration.MaxSize)
                 {
                     connection = _factory(this, _converter);
+                    _refs.Add(connection);
 
                     Log.Debug(m => m("Acquire new: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
                     Interlocked.Increment(ref _count);
@@ -148,11 +153,10 @@ namespace Couchbase.IO
             if (!_disposed)
             {
                 _disposed = true;
-                if (_store == null) return;
-                while (_store.Count > 0)
+                while (_refs.Count > 0)
                 {
                     T connection;
-                    if (_store.TryDequeue(out connection))
+                    if (_refs.TryTake(out connection))
                     {
                         connection.Dispose();
                     }

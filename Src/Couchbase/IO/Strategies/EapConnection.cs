@@ -1,31 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
+using System;
 using System.Net.Sockets;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO.Strategies
 {
     internal sealed class EapConnection : ConnectionBase
     {
         private readonly ConnectionPool<EapConnection> _connectionPool;
-        private readonly NetworkStream _networkStream ;
+        private readonly NetworkStream _networkStream;
         private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
         private volatile bool _disposed;
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, IByteConverter converter) 
+        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new NetworkStream(socket), converter)
         {
         }
 
-        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream, IByteConverter converter) 
+        internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream, IByteConverter converter)
             : base(socket, converter)
         {
             _connectionPool = connectionPool;
@@ -42,7 +37,7 @@ namespace Couchbase.IO.Strategies
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
                 _sendEvent.WaitOne();
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 Log.Warn(e);
                 WriteError("Failed. Check Exception property.", operation, 0);
@@ -62,7 +57,7 @@ namespace Couchbase.IO.Strategies
                 operation.Buffer = BufferManager.TakeBuffer(512);
                 _networkStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 Log.Warn(e);
                 WriteError("Failed. Check Exception property.", operation, 0);
@@ -73,7 +68,7 @@ namespace Couchbase.IO.Strategies
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
-            var operation = (IOperation) asyncResult.AsyncState;
+            var operation = (IOperation)asyncResult.AsyncState;
 
             try
             {
@@ -91,7 +86,7 @@ namespace Couchbase.IO.Strategies
                     _sendEvent.Set();
                 }
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 Log.Warn(e);
                 WriteError("Failed. Check Exception property.", operation, 0);
@@ -100,7 +95,7 @@ namespace Couchbase.IO.Strategies
             }
         }
 
-        static void WriteError(string errorMsg, IOperation operation, int offset)
+        private static void WriteError(string errorMsg, IOperation operation, int offset)
         {
             var bytes = Encoding.UTF8.GetBytes(errorMsg);
             operation.Read(bytes, offset, errorMsg.Length);

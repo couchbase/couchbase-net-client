@@ -84,7 +84,7 @@ namespace Couchbase.IO.Strategies
 
         void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (!_disposed)
             {
                 if (disposing)
                 {

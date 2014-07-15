@@ -179,7 +179,7 @@ namespace Couchbase.Configuration
         /// <param name="disposing">True to suppress finalization.</param>
         private void Dispose(bool disposing)
         {
-            if (!_disposed) return;
+            if (_disposed) return;
             if (disposing)
             {
                 GC.SuppressFinalize(this);
@@ -188,7 +188,7 @@ namespace Couchbase.Configuration
             {
                 _servers.ForEach(x => x.Dispose());
             }
-            _disposed = false;
+            _disposed = true;
         }
 
         /// <summary>

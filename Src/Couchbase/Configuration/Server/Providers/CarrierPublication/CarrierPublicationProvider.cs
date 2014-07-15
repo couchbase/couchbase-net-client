@@ -108,13 +108,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 IConfigInfo configInfo;
                 if (Configs.TryRemove(observer.Name, out configInfo))
                 {
+                    configInfo.Dispose();
                     Log.Info(m => m("Removing config for observer {0}", observer.Name));
                 }
                 else
                 {
                     Log.Warn(m => m("Could not remove config for {0}", observer.Name));
                 }
-                observerToRemove.Dispose();
             }
             else
             {

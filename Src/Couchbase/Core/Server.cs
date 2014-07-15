@@ -137,7 +137,7 @@ namespace Couchbase.Core
 
         void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (!_disposed)
             {
                 if (disposing)
                 {

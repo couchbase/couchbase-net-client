@@ -108,6 +108,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -142,6 +143,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -165,6 +167,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -199,6 +202,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -231,6 +235,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -264,6 +269,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -334,6 +340,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -404,6 +411,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -425,6 +433,7 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Append(string key, string value)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -446,6 +455,7 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
+            CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
@@ -491,6 +501,7 @@ namespace Couchbase.Core.Buckets
         /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
         public IViewResult<T> Query<T>(IViewQuery query)
         {
+            CheckDisposed();
             var server = _configInfo.GetServer();
             return server.Send<T>(query);
         }
@@ -503,6 +514,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         public IQueryResult<T> Query<T>(string query)
         {
+            CheckDisposed();
             var server = _configInfo.GetServer();
             return server.Send<T>(query);
         }
@@ -514,6 +526,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         public IViewQuery CreateQuery(bool development)
         {
+            CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, development);
@@ -527,6 +540,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         public IViewQuery CreateQuery(bool development, string designdoc)
         {
+            CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, designdoc, development);
@@ -542,6 +556,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         public IViewQuery CreateQuery(bool development, string designdoc, string viewname)
         {
+            CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(baseUri, designdoc, viewname, development);
@@ -596,6 +611,12 @@ namespace Couchbase.Core.Buckets
             }
         }
 
+        void CheckDisposed()
+        {
+            var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
+            if(_disposed) throw new ObjectDisposedException(message);
+        }
+
         /// <summary>
         /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterManager"/> instance.
         /// </summary>
@@ -617,6 +638,7 @@ namespace Couchbase.Core.Buckets
             lock (RefCounts)
             {
                 var refCount = RefCounts.GetOrCreateValue(this);
+                Log.DebugFormat("Creating bucket ref# {0}", refCount.Count);
                 return Interlocked.Increment(ref refCount.Count);
             }
         }
@@ -634,6 +656,7 @@ namespace Couchbase.Core.Buckets
                 {
                     Interlocked.Decrement(ref refCount.Count);
                     if (refCount.Count != 0) return refCount.Count;
+                    Log.DebugFormat("Removing bucket ref# {0}", refCount.Count);
                     RefCounts.Remove(this);
                     Dispose(true);
                 }
@@ -651,6 +674,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         public void Dispose()
         {
+            Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
             Release();
         }
 
@@ -663,6 +687,7 @@ namespace Couchbase.Core.Buckets
         {
             if (!_disposed)
             {
+                Log.Debug(m => m("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId));
                 _clusterManager.DestroyBucket(this);
                 if (disposing)
                 {
