@@ -180,9 +180,10 @@ namespace Enyim.Caching.Memcached.Protocol.Binary
                 this.result[key] = new CacheItem((ushort)flags, response.Data);
                 this.Cas[key] = response.CAS;
             }
-
+            result.StatusCode = response.StatusCode;
             // finished reading but we did not find the NOOP
-            return result.Fail("Found response with CorrelationId {0}, but no key is matching it.");
+            return result.Fail(String.Format("Found response with CorrelationId {0}, but no key is matching it. Status {1}",
+                                              response.CorrelationId, response.StatusCode));
         }
 
         public Dictionary<string, CacheItem> Result
