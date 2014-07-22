@@ -1,10 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Text;
 using System.Threading;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO.Strategies
 {
@@ -29,61 +31,90 @@ namespace Couchbase.IO.Strategies
 
         public void Authenticate()
         {
-            var targetHost = _connectionPool.EndPoint.Address.ToString();
-            Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
-            _sslStream.AuthenticateAsClient(targetHost);
+            try
+            {
+                var targetHost = _connectionPool.EndPoint.Address.ToString();
+                Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
+                _sslStream.AuthenticateAsClient(targetHost);
+                IsSecure = true;
+            }
+            catch (AuthenticationException e)
+            {
+                Log.Error(e);
+            }
         }
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            State.Reset();
-            var buffer = operation.GetBuffer();
-            _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, State);
-            _sendEvent.WaitOne();
-            operation.Header = State.Header;
-            operation.Body = State.Body;
+            try
+            {
+                operation.Reset();
+                var buffer = operation.Write();
+
+                _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
+                _sendEvent.WaitOne();
+            }
+            catch (IOException e)
+            {
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+                _sendEvent.Set();
+            }
             return operation.GetResult();
         }
 
         private void SendCallback(IAsyncResult asyncResult)
         {
-            var state = asyncResult.AsyncState as OperationAsyncState;
-            if (state == null)
+            var operation = (IOperation)asyncResult.AsyncState;
+            try
             {
-                throw new NullReferenceException("state cannot be null.");
+                _sslStream.EndWrite(asyncResult);
+                operation.Buffer = BufferManager.TakeBuffer(512);
+                _sslStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
             }
-            _sslStream.EndWrite(asyncResult);
-            _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, State);
+            catch (IOException e)
+            {
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+                _sendEvent.Set();
+            }
         }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
-            var state = asyncResult.AsyncState as OperationAsyncState;
-            if (state == null)
-            {
-                throw new NullReferenceException("state cannot be null.");
-            }
+            var operation = (IOperation)asyncResult.AsyncState;
 
-            var bytesRead = _sslStream.EndRead(asyncResult);
-            state.BytesReceived += bytesRead;
-            state.Data.Write(state.Buffer, 0, bytesRead);
+            try
+            {
+                var bytesRead = _sslStream.EndRead(asyncResult);
+                operation.Read(operation.Buffer, 0, bytesRead);
+                BufferManager.ReturnBuffer(operation.Buffer);
 
-            Log.Debug(m => m("Bytes read {0} of {1}", state.BytesReceived, state.Header.TotalLength));
-
-            if (state.Header.BodyLength == 0)
-            {
-                CreateHeader(state);
-                Log.Debug(m => m("received key {0}", state.Header.Key));
+                if (operation.LengthReceived < operation.TotalLength)
+                {
+                    operation.Buffer = BufferManager.TakeBuffer(512);
+                    _sslStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+                }
+                else
+                {
+                    _sendEvent.Set();
+                }
             }
-            if (state.BytesReceived > 0 && state.BytesReceived < state.Header.TotalLength)
+            catch (IOException e)
             {
-                _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
-            }
-            else
-            {
-                CreateBody(state);
+                Log.Warn(e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
                 _sendEvent.Set();
             }
+        }
+
+        static void WriteError(string errorMsg, IOperation operation, int offset)
+        {
+            var bytes = Encoding.UTF8.GetBytes(errorMsg);
+            operation.Read(bytes, offset, errorMsg.Length);
         }
 
         /// <summary>
