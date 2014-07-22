@@ -304,6 +304,12 @@ namespace Couchbase.IO.Strategies.Async
         {
             Dispose(false);
         }
+
+
+        public bool IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

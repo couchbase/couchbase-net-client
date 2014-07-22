@@ -42,6 +42,8 @@ namespace Couchbase.Core
         string GetBaseViewUri(string name);
 
         string GetBaseQueryUri();
+
+        bool IsSecure { get; }
     }
 }
 

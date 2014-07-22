@@ -227,6 +227,12 @@ namespace Couchbase.IO.Strategies.Awaitable
         {
             Dispose(false);
         }
+
+
+        public bool IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

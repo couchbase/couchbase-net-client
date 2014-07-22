@@ -77,6 +77,20 @@ namespace Couchbase.IO.Strategies
             }
         }
 
+        /// <summary>
+        /// Returns true if internal TCP connections are using SSL.
+        /// </summary>
+        public bool IsSecure
+        {
+            get
+            {
+                var connection = _connectionPool.Acquire();
+                var isSecure = connection.IsSecure;
+                _connectionPool.Release(connection);
+                return isSecure;
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);

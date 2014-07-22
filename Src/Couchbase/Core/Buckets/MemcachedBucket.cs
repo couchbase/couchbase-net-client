@@ -52,6 +52,20 @@ namespace Couchbase.Core.Buckets
         public string Name { get; set; }
 
         /// <summary>
+        /// Returns true if bucket is using SSL encryption between the client and the server.
+        /// </summary>
+        public bool IsSecure
+        {
+            get
+            {
+                var provider = _clusterManager.GetProvider(Name);
+                var config = provider.GetCached(Name);
+                var server = config.GetServer();
+                return server.IsSecure;
+            }
+        }
+
+        /// <summary>
         /// Called when a configuration update has occurred from the server.
         /// </summary>
         /// <param name="configInfo">The new configuration</param>

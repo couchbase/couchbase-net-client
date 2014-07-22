@@ -59,8 +59,14 @@ namespace Couchbase.IO
         /// </summary>
         public bool IsAuthenticated { get; set; }
 
+        /// <summary>
+        /// True if connection is using SSL
+        /// </summary>
+        public bool IsSecure { get; protected set; }
+
         public abstract IOperationResult<T> Send<T>(IOperation<T> operation); 
 
+        [Obsolete]
         protected void CreateHeader(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();
@@ -80,6 +86,7 @@ namespace Couchbase.IO
             }
         }
 
+        [Obsolete]
         protected static void CreateBody(OperationAsyncState state)
         {
             var buffer = state.Data.GetBuffer();

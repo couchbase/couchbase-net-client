@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -161,36 +162,94 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
-        public void Test_UseSsl2()
+        public void When_UseSsl_Is_False_At_Config_Level_Ssl_Is_Used()
         {
-            var config = new ClientConfiguration
+            var remoteHost = ConfigurationManager.AppSettings["bootstrapUrl"];
+            var config = new ClientConfiguration()
             {
-                UseSsl = true
+                UseSsl = true,
+                Servers = new List<Uri>
+                {
+                    new Uri(remoteHost)
+                }
             };
             var cluster = new CouchbaseCluster(config);
             using (var bucket = cluster.OpenBucket())
             {
                 //all buckets opened with this configuration will use SSL
+                Assert.IsTrue(bucket.IsSecure);
             }
         }
 
         [Test]
-        public void Test_UseSsl3()
+        public void When_UseSsl_Is_False_At_Bucket_Level_Ssl_Is_Used()
         {
+            var remoteHost = ConfigurationManager.AppSettings["bootstrapUrl"];
             var config = new ClientConfiguration
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    {"customers", new BucketConfiguration
+                    {"beer-sample", new BucketConfiguration
                     {
                         UseSsl = true
                     }}
+                },
+                 Servers = new List<Uri>
+                {
+                    new Uri(remoteHost)
                 }
             };
             var cluster = new CouchbaseCluster(config);
-            using (var bucket = cluster.OpenBucket("customers"))
+            using (var bucket = cluster.OpenBucket("beer-sample"))
             {
                 //only the customers bucket will use SSL
+                Assert.IsTrue(bucket.IsSecure);
+            }
+        }
+
+        [Test]
+        public void When_UseSsl_Is_False_At_Config_Level_Ssl_Is_Not_Used()
+        {
+            var remoteHost = ConfigurationManager.AppSettings["bootstrapUrl"];
+            var config = new ClientConfiguration()
+            {
+                UseSsl = false,
+                Servers = new List<Uri>
+                {
+                    new Uri(remoteHost)
+                }
+            };
+            var cluster = new CouchbaseCluster(config);
+            using (var bucket = cluster.OpenBucket())
+            {
+                //all buckets opened with this configuration will not use SSL
+                Assert.IsFalse(bucket.IsSecure);
+            }
+        }
+
+        [Test]
+        public void When_UseSsl_Is_False_At_Bucket_Level_Ssl_Is_Not_Used()
+        {
+            var remoteHost = ConfigurationManager.AppSettings["bootstrapUrl"];
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {"beer-sample", new BucketConfiguration
+                    {
+                        UseSsl = false
+                    }}
+                },
+                Servers = new List<Uri>
+                {
+                    new Uri(remoteHost)
+                }
+            };
+            var cluster = new CouchbaseCluster(config);
+            using (var bucket = cluster.OpenBucket("beer-sample"))
+            {
+                //only the customers bucket will not use SSL
+                Assert.IsFalse(bucket.IsSecure);
             }
         }
     }

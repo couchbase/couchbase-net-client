@@ -26,6 +26,11 @@ namespace Couchbase.IO
         IConnectionPool ConnectionPool { get; }
 
         ISaslMechanism SaslMechanism { set; }
+
+        /// <summary>
+        /// Returns true if internal TCP connections are using SSL.
+        /// </summary>
+        bool IsSecure { get; }
     }
 }
 

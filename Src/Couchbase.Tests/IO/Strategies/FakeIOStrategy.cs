@@ -63,6 +63,12 @@ namespace Couchbase.Tests.IO.Strategies
         {
             set { _mechanism = value; }
         }
+
+
+        public bool IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

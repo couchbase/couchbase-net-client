@@ -38,5 +38,7 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+        public bool IsSecure { get; protected set; }
     }
 }

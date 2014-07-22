@@ -25,6 +25,11 @@ namespace Couchbase.IO
         /// </summary>
         bool IsAuthenticated { get; set; }
 
+        /// <summary>
+        /// True if connection is using SSL
+        /// </summary>
+        bool IsSecure { get; }
+
         IOperationResult<T> Send<T>(IOperation<T> operation); 
 
         OperationAsyncState State { get; }

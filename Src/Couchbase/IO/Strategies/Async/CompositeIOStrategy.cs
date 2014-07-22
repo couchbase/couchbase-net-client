@@ -105,6 +105,12 @@ namespace Couchbase.IO.Strategies.Async
         {
             set { throw new NotImplementedException(); }
         }
+
+
+        public bool IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

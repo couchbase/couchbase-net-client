@@ -281,6 +281,11 @@ namespace Couchbase.Core
         /// </summary>
         /// <returns></returns>
         int Release();
+
+        /// <summary>
+        /// Returns true if bucket is using SSL encryption between the client and the server.
+        /// </summary>
+        bool IsSecure { get; }
     }
 }
 

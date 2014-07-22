@@ -70,6 +70,8 @@ namespace Couchbase.Core
 
         public bool Healthy { get; private set; }
 
+        public bool IsSecure { get { return _ioStrategy.IsSecure; } }
+
         public IQueryClient QueryClient { get; private set; }
 
         public IViewClient ViewClient { get; private set; }

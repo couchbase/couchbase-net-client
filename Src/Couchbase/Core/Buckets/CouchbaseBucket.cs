@@ -669,6 +669,18 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Returns true if bucket is using SSL encryption between the client and the server.
+        /// </summary>
+        public bool IsSecure
+        {
+            get
+            {
+                var server = _configInfo.GetServer();
+                return server.IsSecure;
+            }
+        }
+
+        /// <summary>
         /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources, 
         /// removing it from it's <see cref="ClusterManager"/> instance.
         /// </summary>

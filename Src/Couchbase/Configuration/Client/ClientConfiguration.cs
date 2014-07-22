@@ -235,8 +235,9 @@ namespace Couchbase.Configuration.Client
                 {
                     for (var i = 0; i < _servers.Count(); i++)
                     {
+                        var useSsl = UseSsl || bucketConfiguration.UseSsl;
                         //Rewrite the URI's for boostrapping to use SSL.
-                        if (UseSsl)
+                        if (useSsl)
                         {
                             var oldUri = _servers[i];
                             var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
@@ -246,9 +247,9 @@ namespace Couchbase.Configuration.Client
                             //Setting ssl to true at parent level overrides child level ssl settings
                             foreach (var bucketConfig in BucketConfigs.Values)
                             {
-                                bucketConfig.UseSsl = UseSsl;
+                                bucketConfig.UseSsl = useSsl;
                                 bucketConfig.Port = SslPort;
-                                bucketConfig.PoolConfiguration.UseSsl = UseSsl;
+                                bucketConfig.PoolConfiguration.UseSsl = useSsl;
                             }
                         }
                     }

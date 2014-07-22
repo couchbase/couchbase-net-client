@@ -115,6 +115,8 @@ namespace Couchbase.IO
         {
             throw new NotImplementedException();
         }
+
+        public bool IsSecure { get; protected set; }
     }
 }
 
