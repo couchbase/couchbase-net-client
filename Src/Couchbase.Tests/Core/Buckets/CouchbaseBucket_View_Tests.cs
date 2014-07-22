@@ -33,7 +33,8 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [Test]
@@ -46,7 +47,8 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [Test]
@@ -58,7 +60,8 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [Test]

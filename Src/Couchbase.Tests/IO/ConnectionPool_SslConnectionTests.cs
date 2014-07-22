@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -25,14 +26,15 @@ namespace Couchbase.Tests.IO
         private const int ShutdownTimeout = 10000;
         private const int RecieveTimeout = 1000;
         private const int SendTimeout = 1000;
-        private const string Address = "127.0.0.1:11207";
+        private  string _address;
 
         [SetUp]
         public void SetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            _address = string.Format("{0}:11207", ConfigurationManager.AppSettings["serverIp"]);
+            var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<SslConnection>();
-            var converter = new ManualByteConverter();
+            var converter = new AutoByteConverter();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout)
             {
                 UseSsl = true
@@ -60,46 +62,6 @@ namespace Couchbase.Tests.IO
             var connection = _connectionPool.Acquire();
             Assert.IsTrue(connection.Socket.Connected);
             Assert.IsNotNull(connection);
-        }
-
-        //[Test]
-        public void Test_Acquire_Multithreaded()
-        {
-            Console.WriteLine("Main: {0}", Thread.CurrentThread.ManagedThreadId);
-            _count = 0;
-            while (_count < 1000)
-            {
-                Task.Run(async () =>
-                {
-                    await DoWork();
-                });
-                _count++;
-            }
-
-            Thread.Sleep(10000);
-        }
-
-        private static int _count;
-        async Task DoWork()
-        {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    Console.WriteLine("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId);
-                    var connection = _connectionPool.Acquire();
-                    if (_count % 3 == 0) Thread.Sleep(10);
-                    Assert.IsNotNull(connection);
-                    Interlocked.Increment(ref _count);
-                    if (_count % 2 == 0) Thread.Sleep(10);
-                    _connectionPool.Release(connection);
-                    Console.WriteLine("Count: {0}", _connectionPool.Count());
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            });
         }
 
         [TearDown]

@@ -87,6 +87,48 @@ namespace Couchbase.Tests.Core
         }
 
         [Test]
+        public void Test_BuildUrl()
+        {
+            var configuration = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = true, Port = 18092}}
+                }
+            };
+            var node = new Node
+            {
+                CouchApiBase = "http://192.168.56.104:8092/beer-sample%2Ba6f9e23c32a4fd07278459e40e91f90a"
+            };
+            using (var server = new Server(null, null, null, node, configuration))
+            {
+                var uri = server.GetBaseViewUri("beer-sample");
+                Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
+            }
+        }
+
+        [Test]
+        public void Test_BuildUrl2()
+        {
+            var configuration = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = true, Port = 18092}}
+                }
+            };
+            var node = new Node
+            {
+                CouchApiBase = "http://192.168.56.104:8092/beer-sample"
+            };
+            using (var server = new Server(null, null, null, node, configuration))
+            {
+                var uri = server.GetBaseViewUri("beer-sample");
+                Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
+            }
+        }
+
+        [Test]
         public void When_GetBaseViewUri_Is_Called_With_EncryptTraffic_False_Uri_Is_Not_SSL_URI()
         {
             var configuration = new ClientConfiguration

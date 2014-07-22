@@ -106,6 +106,12 @@ namespace Couchbase.Core
         public string GetBaseViewUri(string bucketName)
         {
             var uri = _nodeInfo.CouchApiBase;
+            var index = uri.LastIndexOf("%", StringComparison.Ordinal);
+            if (index > 0)
+            {
+                uri = uri.Substring(0, index);
+            }
+
             var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
             if (bucketConfig.UseSsl)
             {

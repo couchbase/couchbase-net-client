@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -18,26 +19,23 @@ namespace Couchbase.Tests.Authentication.SSL
         [Test]
         public void TestSslConnect()
         {
+            var serverIp = ConfigurationManager.AppSettings["serverIp"];
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect("127.0.0.1", (int)DefaultPorts.SslDirect);
+            socket.Connect(serverIp, (int)DefaultPorts.SslDirect);
             using (var ns = new NetworkStream(socket))
             {
                 var buffer = Encoding.UTF8.GetBytes("hello world!");
-                //ns.Write(buffer, 0, buffer.Length);
-
                 using (var ssls = new SslStream(ns))
                 {
-                    ssls.AuthenticateAsClient("127.0.0.1");
+                    ssls.AuthenticateAsClient(serverIp);
                     Console.WriteLine("Is Encrypted: {0}", ssls.IsEncrypted);
-                    //ssls.Write(buffer, 0, buffer.Length);
-                   
+
                     var saea = new SocketAsyncEventArgs {AcceptSocket = socket};
                     saea.Completed += saea_Completed;
                     saea.SetBuffer(buffer, 0, buffer.Length);
                     socket.SendAsync(saea);
                 }
             }
-            
         }
 
         void saea_Completed(object sender, SocketAsyncEventArgs e)
@@ -74,12 +72,13 @@ namespace Couchbase.Tests.Authentication.SSL
         [Test]
         public void Test_ClientConnection_With_Ssl()
         {
+            var bootstrapUrl = ConfigurationManager.AppSettings["bootstrapUrl"];
             var config = new ClientConfiguration 
             {
                 UseSsl = true, 
                 Servers = new List<Uri>
             {
-                new Uri("http://localhost:8091/pools")
+                new Uri(bootstrapUrl)
             }};
             config.Initialize();
 
@@ -88,12 +87,6 @@ namespace Couchbase.Tests.Authentication.SSL
             {
                 Assert.IsNotNull(bucket);
             }
-        }
-
-        [Test]
-        public void Test_Views()
-        {
-            
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,9 +20,10 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
+            var bootstrapUrl = ConfigurationManager.AppSettings["bootstrapUrl"];
             var config = new ClientConfiguration
             {
-                Servers = new List<Uri>{ new Uri("http://localhost:8091/pools")},
+                Servers = new List<Uri>{ new Uri(bootstrapUrl)},
                 UseSsl = true
             };
             _cluster = new CouchbaseCluster(config);
@@ -39,7 +41,9 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Port, query.Port);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [Test]
@@ -52,7 +56,9 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Port, query.Port);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [Test]
@@ -64,7 +70,9 @@ namespace Couchbase.Tests.Core.Buckets
                 RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected, query);
+            Assert.AreEqual(expected.Port, query.Port);
+            Assert.AreEqual(expected.Scheme, query.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
         }
 
         [TestFixtureTearDown]
