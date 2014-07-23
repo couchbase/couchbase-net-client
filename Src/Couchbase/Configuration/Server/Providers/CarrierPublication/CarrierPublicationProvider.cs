@@ -24,32 +24,38 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
-            password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
-            var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, bucketConfiguration.GetEndPoint());
-            var ioStrategy = IOStrategyFactory(connectionPool);
-            var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
-            ioStrategy.SaslMechanism = saslMechanism;
-
-            IConfigInfo configInfo = null;
-            var operationResult = ioStrategy.Execute(new Config(Converter));
-            if (operationResult.Success)
+            lock (SyncObj)
             {
-                var bucketConfig = operationResult.Value;
-                bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
+                var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+                password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
+                var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration,
+                    bucketConfiguration.GetEndPoint());
+                var ioStrategy = IOStrategyFactory(connectionPool);
+                var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
+                ioStrategy.SaslMechanism = saslMechanism;
 
-                configInfo = GetConfig(bucketConfig);
-                Configs[bucketName] = configInfo;
-            }
-            else
-            {
-                if (operationResult.Status == ResponseStatus.UnknownCommand)
+                IConfigInfo configInfo = null;
+                var operationResult = ioStrategy.Execute(new Config(Converter));
+                if (operationResult.Success)
                 {
-                    throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                    var bucketConfig = operationResult.Value;
+                    bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
+
+                    configInfo = GetConfig(bucketConfig);
+                    Configs[bucketName] = configInfo;
                 }
-                throw new ConfigException("Could not retrieve configuration for {0}. Reason: {1}", bucketName, operationResult.Message);
+                else
+                {
+                    //CCCP only supported for Couchbase Buckets
+                    if (operationResult.Status == ResponseStatus.UnknownCommand)
+                    {
+                        throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                    }
+                    throw new ConfigException("Could not retrieve configuration for {0}. Reason: {1}", bucketName,
+                        operationResult.Message);
+                }
+                return configInfo;
             }
-            return configInfo;
         }
 
         private IConfigInfo GetConfig(IBucketConfig bucketConfig)
@@ -72,53 +78,60 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
-            IConfigObserver configObserver;
-            if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+            lock (SyncObj)
             {
-                Log.Warn(x=>x("A ConfigObserver for the bucket {0} was not found. Provider has been disposed: {1}", 
-                    bucketConfig.Name, Disposed));
-                return;
-            }
-
-            IConfigInfo oldConfigInfo;
-            if (!Configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
-            {
-                throw new ConfigNotFoundException(bucketConfig.Name);
-            }
-
-            var oldBucketConfig = oldConfigInfo.BucketConfig;
-            if (bucketConfig.Rev > oldBucketConfig.Rev)
-            {
-                var configInfo = GetConfig(bucketConfig);
-                if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+                IConfigObserver configObserver;
+                if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
                 {
-                    configObserver.NotifyConfigChanged(configInfo);
+                    Log.Warn(
+                        x => x("A ConfigObserver for the bucket {0} was not found. Provider has been disposed: {1}",
+                            bucketConfig.Name, Disposed));
+                    return;
+                }
+
+                IConfigInfo oldConfigInfo;
+                if (!Configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
+                {
+                    throw new ConfigNotFoundException(bucketConfig.Name);
+                }
+
+                var oldBucketConfig = oldConfigInfo.BucketConfig;
+                if (bucketConfig.Rev > oldBucketConfig.Rev)
+                {
+                    var configInfo = GetConfig(bucketConfig);
+                    if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+                    {
+                        configObserver.NotifyConfigChanged(configInfo);
+                    }
                 }
             }
         }
 
         public override void UnRegisterObserver(IConfigObserver observer)
         {
-            IConfigObserver observerToRemove;
-            if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
+            lock (SyncObj)
             {
-                var temp = observerToRemove;
-                Log.Info(m => m("Unregistering observer {0}", temp.Name));
-
-                IConfigInfo configInfo;
-                if (Configs.TryRemove(observer.Name, out configInfo))
+                IConfigObserver observerToRemove;
+                if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
                 {
-                    configInfo.Dispose();
-                    Log.Info(m => m("Removing config for observer {0}", observer.Name));
+                    var temp = observerToRemove;
+                    Log.Info(m => m("Unregistering observer {0}", temp.Name));
+
+                    IConfigInfo configInfo;
+                    if (Configs.TryRemove(observer.Name, out configInfo))
+                    {
+                        configInfo.Dispose();
+                        Log.Info(m => m("Removing config for observer {0}", observer.Name));
+                    }
+                    else
+                    {
+                        Log.Warn(m => m("Could not remove config for {0}", observer.Name));
+                    }
                 }
                 else
                 {
-                    Log.Warn(m => m("Could not remove config for {0}", observer.Name));
+                    Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
                 }
-            }
-            else
-            {
-                Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
             }
         }
 
@@ -129,16 +142,19 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void Dispose(bool disposing)
         {
-            if (!Disposed && disposing)
+            lock (SyncObj)
             {
-                GC.SuppressFinalize(this);
+                if (!Disposed && disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+                foreach (var configObserver in ConfigObservers)
+                {
+                    UnRegisterObserver(configObserver.Value);
+                }
+                ConfigObservers.Clear();
+                Disposed = true;
             }
-            foreach (var configObserver in ConfigObservers)
-            {
-                UnRegisterObserver(configObserver.Value);
-            }
-            ConfigObservers.Clear();
-            Disposed = true;
         }
 
         ~CarrierPublicationProvider()

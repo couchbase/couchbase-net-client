@@ -33,7 +33,8 @@ namespace Couchbase.Core
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly IByteConverter _converter;
         private readonly ITypeSerializer _serializer;
-        private bool _disposed;
+        private static readonly object SyncObject = new object();
+        private volatile bool _disposed;
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
@@ -106,7 +107,7 @@ namespace Couchbase.Core
                 _converter,
                 _serializer));
 
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig,
+           _configProviders.Add(new HttpStreamingProvider(_clientConfig,
                 _ioStrategyFactory,
                 _connectionPoolFactory,
                 _saslFactory,
@@ -121,13 +122,16 @@ namespace Couchbase.Core
 
         public void NotifyConfigPublished(IBucketConfig bucketConfig)
         {
-            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
-            if (provider != null)
+            lock (SyncObject)
             {
-                var carrierPublicationProvider = provider as CarrierPublicationProvider;
-                if (carrierPublicationProvider != null)
+                var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
+                if (provider != null)
                 {
-                    carrierPublicationProvider.UpdateConfig(bucketConfig);
+                    var carrierPublicationProvider = provider as CarrierPublicationProvider;
+                    if (carrierPublicationProvider != null)
+                    {
+                        carrierPublicationProvider.UpdateConfig(bucketConfig);
+                    }
                 }
             }
         }
@@ -139,71 +143,74 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName, string password)
         {
-            var success = false;
-            IBucket bucket = null;
-            foreach (var provider in _configProviders)
+            lock (SyncObject)
             {
-                try
+                var success = false;
+                IBucket bucket = null;
+                foreach (var provider in _configProviders)
                 {
-                    Log.DebugFormat("Trying to boostrap with {0}.", provider);
-                    var config = provider.GetConfig(bucketName, password);
-                    switch (config.NodeLocator)
+                    try
                     {
-                        case NodeLocatorEnum.VBucket:
-                            bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
-                            bucket.AddRef();
+                        Log.DebugFormat("Trying to boostrap with {0}.", provider);
+                        var config = provider.GetConfig(bucketName, password);
+                        switch (config.NodeLocator)
+                        {
+                            case NodeLocatorEnum.VBucket:
+                                bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
+                                bucket.AddRef();
+                                break;
+
+                            case NodeLocatorEnum.Ketama:
+                                bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
+                                bucket.AddRef();
+                                break;
+
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+
+                        var configObserver = bucket as IConfigObserver;
+                        if (provider.ObserverExists(configObserver))
+                        {
+                            Log.DebugFormat("Using existing bootstrap {0}.", provider);
+                            configObserver.NotifyConfigChanged(config);
+                            success = true;
                             break;
+                        }
 
-                        case NodeLocatorEnum.Ketama:
-                            bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
-                            bucket.AddRef();
+                        if (provider.RegisterObserver(configObserver) &&
+                            _buckets.TryAdd(bucket.Name, bucket))
+                        {
+                            Log.DebugFormat("Successfully boostrap using {0}.", provider);
+                            configObserver.NotifyConfigChanged(config);
+                            success = true;
                             break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-
-                    var configObserver = bucket as IConfigObserver;
-                    if (provider.ObserverExists(configObserver))
-                    {
-                        Log.DebugFormat("Using existing bootstrap {0}.", provider);
+                        }
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
                     }
-
-                    if (provider.RegisterObserver(configObserver) &&
-                        _buckets.TryAdd(bucket.Name, bucket))
+                    catch (BucketNotFoundException e)
                     {
-                        Log.DebugFormat("Successfully boostrap using {0}.", provider);
-                        configObserver.NotifyConfigChanged(config);
-                        success = true;
+                        Log.Warn(e);
+                    }
+                    catch (ConfigException e)
+                    {
+                        Log.Warn(e);
+                    }
+                    catch (AuthenticationException e)
+                    {
+                        Log.Warn(e);
                         break;
                     }
-                    configObserver.NotifyConfigChanged(config);
-                    success = true;
-                    break;
                 }
-                catch (BucketNotFoundException e)
-                {
-                    Log.Warn(e);
-                }
-                catch (ConfigException e)
-                {
-                    Log.Warn(e);
-                }
-                catch (AuthenticationException e)
-                {
-                    Log.Warn(e);
-                    break;
-                }
-            }
 
-            if (!success)
-            {
-                throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
+                if (!success)
+                {
+                    throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
+                }
+                return bucket;
             }
-            return bucket;
         }
 
         public void DestroyBucket(IBucket bucket)
@@ -226,21 +233,24 @@ namespace Couchbase.Core
 
         public void Dispose(bool disposing)
         {
-            if (!_disposed)
+            lock (SyncObject)
             {
-                if (disposing)
+                if (!_disposed)
                 {
-                    GC.SuppressFinalize(this);
+                    if (disposing)
+                    {
+                        GC.SuppressFinalize(this);
+                    }
+                    foreach (var pair in _buckets)
+                    {
+                        DestroyBucket(pair.Value);
+                    }
+                    foreach (var configProvider in ConfigProviders)
+                    {
+                        configProvider.Dispose();
+                    }
+                    _disposed = true;
                 }
-                foreach (var pair in _buckets)
-                {
-                    DestroyBucket(pair.Value);
-                }
-                foreach (var configProvider in ConfigProviders)
-                {
-                    configProvider.Dispose();
-                }
-                _disposed = true;
             }
         }
 

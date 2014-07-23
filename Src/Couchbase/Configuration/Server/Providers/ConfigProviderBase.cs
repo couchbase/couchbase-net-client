@@ -22,6 +22,7 @@ namespace Couchbase.Configuration.Server.Providers
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         protected volatile bool Disposed;
+        protected static object SyncObj = new object();
 
         protected ConfigProviderBase(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
@@ -88,36 +89,39 @@ namespace Couchbase.Configuration.Server.Providers
         /// <returns>An <see cref="BucketConfiguration"/> instance.</returns>
         protected virtual BucketConfiguration GetOrCreateConfiguration(string bucketName)
         {
-            BucketConfiguration bucketConfiguration = null;
-            if (ClientConfig.BucketConfigs.ContainsKey(bucketName))
+            lock (SyncObj)
             {
-                bucketConfiguration = ClientConfig.BucketConfigs[bucketName];
-            }
-            if (bucketConfiguration != null) return bucketConfiguration;
-            var defaultBucket = ClientConfig.BucketConfigs.FirstOrDefault();
-            if (defaultBucket.Value == null)
-            {
-                bucketConfiguration = new BucketConfiguration
+                BucketConfiguration bucketConfiguration = null;
+                if (ClientConfig.BucketConfigs.ContainsKey(bucketName))
                 {
-                    BucketName = bucketName
-                };
-            }
-            else
-            {
-                var defaultConfig = defaultBucket.Value;
-                bucketConfiguration = new BucketConfiguration
+                    bucketConfiguration = ClientConfig.BucketConfigs[bucketName];
+                }
+                if (bucketConfiguration != null) return bucketConfiguration;
+                var defaultBucket = ClientConfig.BucketConfigs.FirstOrDefault();
+                if (defaultBucket.Value == null)
                 {
-                    BucketName = bucketName,
-                    PoolConfiguration = defaultConfig.PoolConfiguration,
-                    Servers = defaultConfig.Servers,
-                    Port = defaultConfig.Port,
-                    Username = defaultConfig.Username,
-                    Password = defaultConfig.Password,
-                    UseSsl = defaultConfig.UseSsl
-                };
+                    bucketConfiguration = new BucketConfiguration
+                    {
+                        BucketName = bucketName
+                    };
+                }
+                else
+                {
+                    var defaultConfig = defaultBucket.Value;
+                    bucketConfiguration = new BucketConfiguration
+                    {
+                        BucketName = bucketName,
+                        PoolConfiguration = defaultConfig.PoolConfiguration,
+                        Servers = defaultConfig.Servers,
+                        Port = defaultConfig.Port,
+                        Username = defaultConfig.Username,
+                        Password = defaultConfig.Password,
+                        UseSsl = defaultConfig.UseSsl
+                    };
+                }
+                ClientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
+                return bucketConfiguration;
             }
-            ClientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
-            return bucketConfiguration;
         }
 
         /// <summary>
