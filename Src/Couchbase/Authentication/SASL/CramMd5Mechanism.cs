@@ -97,16 +97,19 @@ namespace Couchbase.Authentication.SASL
 
                 operation = new SaslStep(MechanismType, reply, _converter);
                 result = _ioStrategy.Execute(operation, connection);
-
-                authenticated = result.Status == ResponseStatus.Success && 
-                    result.Value.Equals("Authenticated");
-
-                Log.Debug(m => m("Authentication for socket {0} succeeded.", temp.Identity));
             }
-           
-            if (result.Status == ResponseStatus.AuthenticationError)
+
+            authenticated = result.Status == ResponseStatus.Success &&
+                   result.Value.Equals("Authenticated");
+
+            if (result.Status == ResponseStatus.AuthenticationError || !authenticated)
             {
-                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, result.Value));
+                var tempResult = result;
+                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Value));
+            }
+            else
+            {
+                Log.Debug(m => m("Authentication for socket {0} succeeded.", temp.Identity));
             }
 
             return authenticated;
