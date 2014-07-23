@@ -529,7 +529,7 @@ namespace Couchbase.Core.Buckets
             CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(baseUri, development);
+            return new ViewQuery(Name, baseUri, development);
         }
 
         /// <summary>
@@ -543,7 +543,7 @@ namespace Couchbase.Core.Buckets
             CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(baseUri, designdoc, development);
+            return new ViewQuery(Name, baseUri, designdoc, development);
         }
 
         /// <summary>
@@ -559,7 +559,7 @@ namespace Couchbase.Core.Buckets
             CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(baseUri, designdoc, viewname, development);
+            return new ViewQuery(Name, baseUri, designdoc, viewname, development);
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Views;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -58,6 +59,36 @@ namespace Couchbase.Tests.Core.Buckets
 
             _cluster.CloseBucket(bucket);
             Assert.AreEqual(expected, query);
+        }
+
+        [Test]
+        public void When_BucketName_Is_Not_Set_The_Buckets_Name_Is_Used()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var query = bucket.CreateQuery(true, "beer", "brewery_beers");
+                Assert.AreEqual(bucket.Name, query.BucketName);
+            }
+        }
+
+        [Test]
+        public void When_BucketName_Is_Not_Set_The_Buckets_Name_Is_Used2()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var query = bucket.CreateQuery(true, "beer");
+                Assert.AreEqual(bucket.Name, query.BucketName);
+            }
+        }
+
+        [Test]
+        public void When_BucketName_Is_Not_Set_The_Buckets_Name_Is_Used3()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var query = bucket.CreateQuery(true);
+                Assert.AreEqual(bucket.Name, query.BucketName);
+            }
         }
 
         [TestFixtureTearDown]

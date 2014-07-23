@@ -71,18 +71,24 @@ namespace Couchbase.Views
         {
         }
 
-        public ViewQuery(string baseUri, bool development) 
+        public ViewQuery(string baseUri, bool development)
             : this(baseUri, null, development)
         {
         }
 
-        public ViewQuery(string baseUri, string designDoc, bool development) 
-            : this(baseUri, designDoc, null, development)
+        public ViewQuery(string bucketName, string baseUri, bool development)
+            : this(bucketName, baseUri, null, development)
         {
         }
-         
-        public ViewQuery(string baseUri, string designDoc, string viewName, bool development)
+
+        public ViewQuery(string bucketName, string baseUri, string designDoc, bool development)
+            : this(bucketName, baseUri, designDoc, null, development)
         {
+        }
+
+        public ViewQuery(string bucketName, string baseUri, string designDoc, string viewName, bool development)
+        {
+            _bucketName = bucketName;
             _baseUri = baseUri;
             _designDoc = designDoc;
             _viewName = viewName;
