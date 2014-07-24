@@ -80,9 +80,14 @@ namespace Couchbase.Core.Buckets
             {
                 var old = Interlocked.Exchange(ref _configInfo, configInfo);
 
+                var old1 = old;
                 Log.Info(m => m("Updated MemcachedBucket - old config rev#{0} new config rev#{1}",
-                    old == null ? 0 : old.BucketConfig.Rev,
+                    old1 == null ? 0 : old1.BucketConfig.Rev,
                     _configInfo.BucketConfig.Rev));
+
+                if (old == null) return;
+                old.Dispose();
+                old = null;
             }
         }
 

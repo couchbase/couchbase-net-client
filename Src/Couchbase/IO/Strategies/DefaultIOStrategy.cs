@@ -93,6 +93,7 @@ namespace Couchbase.IO.Strategies
 
         public void Dispose()
         {
+            Log.Debug(m => m("Disposing DefaultIOStrategy for {0}", EndPoint));
             Dispose(true);
         }
 
@@ -114,6 +115,7 @@ namespace Couchbase.IO.Strategies
 
         ~DefaultIOStrategy()
         {
+            Log.Debug(m => m("Finalizing DefaultIOStrategy for {0}", EndPoint));
             Dispose(false);
         }
     }

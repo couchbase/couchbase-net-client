@@ -101,7 +101,7 @@ namespace Couchbase.IO
 
             if (_store.TryDequeue(out connection))
             {
-                Log.Debug(m => m("Acquire existing: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
+                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}]", connection.Identity, EndPoint, _store.Count, _count));
                 return connection;
             }
 
@@ -112,7 +112,7 @@ namespace Couchbase.IO
                     connection = _factory(this, _converter);
                     _refs.Add(connection);
 
-                    Log.Debug(m => m("Acquire new: {0} - [{1}, {2}]", connection.Identity, _store.Count, _count));
+                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}]", connection.Identity, EndPoint, _store.Count, _count));
                     Interlocked.Increment(ref _count);
                     return connection;
                 }
@@ -120,7 +120,7 @@ namespace Couchbase.IO
 
             _autoResetEvent.WaitOne(_configuration.WaitTimeout);
 
-            Log.Debug(m => m("No connections currently available. Trying again."));
+            Log.Debug(m => m("No connections currently available on {0}. Trying again.", EndPoint));
             return Acquire();
         }
 
@@ -130,7 +130,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection) 
         {
-            Log.Debug(m => m("Releasing: {0}", connection.Identity));
+            Log.Debug(m => m("Releasing: {0} on {1}", connection.Identity, EndPoint));
 
             _store.Enqueue(connection);
             _autoResetEvent.Set();
@@ -141,6 +141,7 @@ namespace Couchbase.IO
         /// </summary>
         public void Dispose()
         {
+            Log.Debug(m => m("Disposing ConnectionPool for {0}", EndPoint));
             Dispose(true);
         }
 
@@ -166,6 +167,7 @@ namespace Couchbase.IO
 
         ~ConnectionPool()
         {
+            Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
             Dispose(false);
         }
 

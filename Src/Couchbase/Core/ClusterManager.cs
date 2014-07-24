@@ -207,7 +207,7 @@ namespace Couchbase.Core
 
                 if (!success)
                 {
-                    throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
+                        throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
                 }
                 return bucket;
             }

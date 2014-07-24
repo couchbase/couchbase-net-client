@@ -170,6 +170,7 @@ namespace Couchbase.Configuration
         /// </summary>
         public void Dispose()
         {
+            Log.Debug(m => m("Disposing ConfigContext"));
             Dispose(true);
         }
 
@@ -196,6 +197,7 @@ namespace Couchbase.Configuration
         /// </summary>
         ~ConfigContextBase()
         {
+            Log.Debug(m => m("Finalizing ConfigContext for Rev#{0}", BucketConfig.Rev));
             Dispose(false);
         }
     }

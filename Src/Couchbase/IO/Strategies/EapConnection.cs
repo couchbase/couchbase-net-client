@@ -39,10 +39,7 @@ namespace Couchbase.IO.Strategies
             }
             catch (Exception e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
 
             return operation.GetResult();
@@ -59,10 +56,7 @@ namespace Couchbase.IO.Strategies
             }
             catch (Exception e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
         }
 
@@ -88,11 +82,21 @@ namespace Couchbase.IO.Strategies
             }
             catch (Exception e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
+        }
+
+        private void HandleException(Exception e, IOperation operation)
+        {
+            var message = string.Format("Opcode={0} | Key={1} | Host={2}",
+                  operation.OperationCode,
+                  operation.Key,
+                  _connectionPool.EndPoint);
+
+            Log.Warn(message, e);
+            WriteError("Failed. Check Exception property.", operation, 0);
+            operation.Exception = e;
+            _sendEvent.Set();
         }
 
         private static void WriteError(string errorMsg, IOperation operation, int offset)
@@ -106,6 +110,7 @@ namespace Couchbase.IO.Strategies
         /// </summary>
         public override void Dispose()
         {
+            Log.Debug(m => m("Disposing connection for {0}", _connectionPool.EndPoint));
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -152,6 +157,7 @@ namespace Couchbase.IO.Strategies
 
         ~EapConnection()
         {
+            Log.Debug(m=>m("Finalizing connection for {0}", _connectionPool.EndPoint));
             Dispose(false);
         }
     }

@@ -80,6 +80,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         {
             lock (SyncObj)
             {
+                Log.Info(m => m("New config received Rev#{0}", bucketConfig.Rev));
                 IConfigObserver configObserver;
                 if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
                 {
@@ -98,6 +99,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 var oldBucketConfig = oldConfigInfo.BucketConfig;
                 if (bucketConfig.Rev > oldBucketConfig.Rev)
                 {
+                    Log.Info(m => m("New config has changed Rev#{0}", bucketConfig.Rev));
                     var configInfo = GetConfig(bucketConfig);
                     if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
                     {
@@ -137,6 +139,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public override void Dispose()
         {
+            Log.Debug(m => m("Disposing ConfigurationProvider: {0}", GetType().Name));
             Dispose(true);
         }
 
@@ -159,6 +162,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         ~CarrierPublicationProvider()
         {
+            Log.Debug(m => m("Finalizing ConfigurationProvider: {0}", GetType().Name));
             Dispose(false);
         }
     }

@@ -134,6 +134,7 @@ namespace Couchbase.Core
 
         public void Dispose()
         {
+            Log.Debug(m => m("Disposing Server for {0}", EndPoint));
             Dispose(true);
         }
 
@@ -155,6 +156,7 @@ namespace Couchbase.Core
 
         ~Server()
         {
+            Log.Debug(m => m("Finalizing Server for {0}", EndPoint));
             Dispose(false);
         }
     }
