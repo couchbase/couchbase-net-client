@@ -16,6 +16,7 @@ namespace Couchbase.Core.Buckets
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const int Mask = 1023;
         private readonly Dictionary<int, IVBucket> _vBuckets;
+        private readonly Dictionary<int, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly List<IServer> _servers;
 
@@ -29,7 +30,8 @@ namespace Couchbase.Core.Buckets
             HashAlgorithm = algorithm;
             _servers = servers;
             _vBucketServerMap = vBucketServerMap;
-            _vBuckets = CreateVBuckets();
+            _vBuckets = CreateVBucketMap();
+            _vForwardBuckets = CreateVBucketMapForwards();
         }
  
         public VBucketKeyMapper(HashAlgorithm algorithm, Dictionary<int, IVBucket> vBuckets)
@@ -71,7 +73,7 @@ namespace Couchbase.Core.Buckets
         /// Creates a mapping of VBuckets to nodes.
         /// </summary>
         /// <returns>A mapping of indexes and Vbuckets.</returns>
-        Dictionary<int, IVBucket> CreateVBuckets()
+        Dictionary<int, IVBucket> CreateVBucketMap()
         {
             var vBuckets = new Dictionary<int, IVBucket>();
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
@@ -91,6 +93,33 @@ namespace Couchbase.Core.Buckets
                 vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
             }
             return vBuckets;
+        }
+
+        /// <summary>
+        /// Creates a mapping of VBuckets to nodes.
+        /// </summary>
+        /// <returns>A mapping of indexes and Vbuckets.</returns>
+        Dictionary<int, IVBucket> CreateVBucketMapForwards()
+        {
+            var vBucketMapForwards = new Dictionary<int, IVBucket>();
+            var vBucketMapForward = _vBucketServerMap.VBucketMapForward;
+
+            if (vBucketMapForward != null)
+            {
+                Log.Info(m => m("Creating VBucketMapForwards {0}", vBucketMapForward.Length));
+
+                for (var i = 0; i < vBucketMapForward.Length; i++)
+                {
+                    var primary = vBucketMapForward[i][0];
+                    var replica = -1;
+                    if (vBucketMapForward[i].Length > 1)
+                    {
+                        replica = vBucketMapForward[i][1];
+                    }
+                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replica));
+                }
+            }
+            return vBucketMapForwards;
         }
     }
 }
