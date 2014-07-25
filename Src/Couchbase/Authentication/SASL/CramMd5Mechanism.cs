@@ -150,6 +150,7 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// The <see cref="IOStrategy"/> to use for I/O connectivity with the Couchbase cluster or server.
         /// </summary>
+        [Obsolete]
         public IOStrategy IOStrategy
         {
             set { _ioStrategy = value; }

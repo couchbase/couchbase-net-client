@@ -38,10 +38,6 @@ namespace Couchbase.Authentication.SASL
                 {
                     Log.Error(e);
                 }
-                if (saslMechanism != null)
-                {
-                    saslMechanism.IOStrategy = strategy;
-                }
                 return saslMechanism;
             };
         } 

@@ -60,7 +60,7 @@ namespace Couchbase.Configuration
                     var ioStrategy = IOStrategyFactory(connectionPool);
                     var server = new Core.Server(ioStrategy, node, ClientConfig);
                     var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
-                    saslMechanism.IOStrategy = ioStrategy;
+                    ioStrategy.SaslMechanism = saslMechanism;
            
                     Servers.Add(server); //todo make atomic
                     KeyMapper = new KetamaKeyMapper(Servers);//todo make atomic
