@@ -67,7 +67,7 @@ namespace Couchbase.Views
         }
 
         public ViewQuery(bool development)
-            : this(DefaultHost, null, development)
+            : this(null, DefaultHost, development)
         {
         }
 
