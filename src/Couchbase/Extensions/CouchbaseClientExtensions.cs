@@ -150,7 +150,7 @@ namespace Couchbase.Extensions
             {
                 value = DocHelper.InsertId(value, key);
             }
-            return JsonConvert.DeserializeObject<T>(value);
+            return JsonConvert.DeserializeObject<T>(value, JsonSerializerSettings);
         }
 
         private static string SerializeObject(object value)
