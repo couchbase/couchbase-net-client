@@ -72,7 +72,7 @@ namespace Couchbase.Views
         }
 
         public ViewQuery(string baseUri, bool development)
-            : this(baseUri, null, development)
+            : this(null, baseUri, development)
         {
         }
 
