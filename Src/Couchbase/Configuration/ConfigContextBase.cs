@@ -26,21 +26,23 @@ namespace Couchbase.Configuration
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
-        private readonly List<IServer> _servers = new List<IServer>();
+        protected List<IServer> Servers = new List<IServer>();
         protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
         protected readonly IByteConverter Converter;
         protected readonly ITypeSerializer Serializer;
+        protected IBucketConfig _bucketConfig;
         private bool _disposed;
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeSerializer serializer)
         {
+            _bucketConfig = bucketConfig;
             _clientConfig = clientConfig;
             IOStrategyFactory = ioStrategyFactory;
             ConnectionPoolFactory = connectionPoolFactory;
@@ -48,12 +50,6 @@ namespace Couchbase.Configuration
             SaslFactory = saslFactory;
             Converter = converter;
             Serializer = serializer;
-            LoadConfig(bucketConfig);
-        }
-
-        protected List<IServer> Servers
-        {
-            get { return _servers; }
         }
 
         /// <summary>
@@ -68,7 +64,11 @@ namespace Couchbase.Configuration
         /// The client configuration for a bucket.
         /// <remarks> See <see cref="IBucketConfig"/> for details.</remarks>
         /// </summary>
-        public IBucketConfig BucketConfig { get; set; }
+        public IBucketConfig BucketConfig
+        {
+            get { return _bucketConfig; }
+            private set { _bucketConfig = value; }
+        }
 
         /// <summary>
         /// The name of the Bucket that this configuration represents.
@@ -146,6 +146,13 @@ namespace Couchbase.Configuration
         public abstract void LoadConfig(IBucketConfig bucketConfig);
 
         /// <summary>
+        /// Loads the most updated configuration creating any resources as needed. The <see cref="IBucketConfig"/>
+        /// used by this method is passed into the CTOR.
+        /// </summary>
+        /// <remarks>This method should be called immediately after creation.</remarks>
+        public abstract void LoadConfig();
+
+        /// <summary>
         /// Gets the <see cref="IKeyMapper"/> instance associated with this <see cref="IConfigInfo"/>.
         /// </summary>
         /// <param name="bucketName"></param>
@@ -162,7 +169,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IServer GetServer()
         {
-            return _servers.Shuffle().First();
+            return Servers.Shuffle().First();
         }
 
         /// <summary>
@@ -185,9 +192,9 @@ namespace Couchbase.Configuration
             {
                 GC.SuppressFinalize(this);
             }
-            if (_servers != null)
+            if (Servers != null)
             {
-                _servers.ForEach(x => x.Dispose());
+                Servers.ForEach(x => x.Dispose());
             }
             _disposed = true;
         }

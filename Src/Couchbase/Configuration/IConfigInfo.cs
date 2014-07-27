@@ -46,6 +46,13 @@ namespace Couchbase.Configuration
         /// The <see cref="NodeLocatorEnum"/> that this configuration is using.
         /// </summary>
         NodeLocatorEnum NodeLocator { get; }
+
+        /// <summary>
+        /// Loads the most updated configuration creating any resources as needed. The <see cref="IBucketConfig"/>
+        /// used by this method is passed into the CTOR.
+        /// </summary>
+        /// <remarks>This method should be called immediately after creation.</remarks>
+        void LoadConfig();
     }
 }
 

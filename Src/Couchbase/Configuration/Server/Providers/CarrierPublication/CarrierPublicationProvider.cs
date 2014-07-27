@@ -26,22 +26,32 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         {
             lock (SyncObj)
             {
+                Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
                 var bucketConfiguration = GetOrCreateConfiguration(bucketName);
                 password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
                 var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration,
                     bucketConfiguration.GetEndPoint());
+
                 var ioStrategy = IOStrategyFactory(connectionPool);
                 var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
                 ioStrategy.SaslMechanism = saslMechanism;
 
-                IConfigInfo configInfo = null;
+                CouchbaseConfigContext configInfo = null;
                 var operationResult = ioStrategy.Execute(new Config(Converter));
                 if (operationResult.Success)
                 {
                     var bucketConfig = operationResult.Value;
                     bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
 
-                    configInfo = GetConfig(bucketConfig);
+                    configInfo = new CouchbaseConfigContext(bucketConfig,
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory,
+                        Converter,
+                        Serializer);
+
+                    configInfo.LoadConfig(ioStrategy);
                     Configs[bucketName] = configInfo;
                 }
                 else
@@ -56,19 +66,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 return configInfo;
             }
-        }
-
-        private IConfigInfo GetConfig(IBucketConfig bucketConfig)
-        {
-            ConfigContextBase configInfo = new CouchbaseConfigContext(bucketConfig,
-                ClientConfig,
-                IOStrategyFactory,
-                ConnectionPoolFactory, 
-                SaslFactory,
-                Converter,
-                Serializer);
-
-            return configInfo;
         }
 
         public override bool RegisterObserver(IConfigObserver observer)
@@ -100,7 +97,16 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 if (bucketConfig.Rev > oldBucketConfig.Rev)
                 {
                     Log.Info(m => m("New config has changed Rev#{0}", bucketConfig.Rev));
-                    var configInfo = GetConfig(bucketConfig);
+                    var configInfo = new CouchbaseConfigContext(bucketConfig,
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory,
+                        Converter,
+                        Serializer);
+
+                    configInfo.LoadConfig(bucketConfig);
+
                     if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
                     {
                         configObserver.NotifyConfigChanged(configInfo);

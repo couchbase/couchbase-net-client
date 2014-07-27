@@ -15,14 +15,17 @@ namespace Couchbase.IO.Strategies
 
         private volatile bool _disposed;
         private ISaslMechanism _saslMechanism;
+        private readonly Guid _identity = Guid.NewGuid();
 
         public DefaultIOStrategy(IConnectionPool connectionPool)
         {
+            Log.Debug(m=>m("Creating DefaultIOStrategy {0}", _identity));
             _connectionPool = connectionPool;
         }
 
         public DefaultIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
+            Log.Debug(m => m("Creating DefaultIOStrategy {0}", _identity));
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
         }
@@ -66,12 +69,12 @@ namespace Couchbase.IO.Strategies
                 var result = _saslMechanism.Authenticate(connection);
                 if (result)
                 {
-                    Log.Debug(m => m("Authenticated {0} using {1}.", _saslMechanism.Username, _saslMechanism.GetType()));
+                    Log.Debug(m => m("Authenticated {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
                     connection.IsAuthenticated = true;
                 }
                 else
                 {
-                    Log.Debug(m => m("Could not authenticate {0} using {1}.", _saslMechanism.Username, _saslMechanism.GetType()));
+                    Log.Debug(m => m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
                     throw new AuthenticationException(_saslMechanism.Username);
                 }
             }
@@ -93,7 +96,7 @@ namespace Couchbase.IO.Strategies
 
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing DefaultIOStrategy for {0}", EndPoint));
+            Log.Debug(m => m("Disposing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
             Dispose(true);
         }
 
@@ -115,7 +118,7 @@ namespace Couchbase.IO.Strategies
 
         ~DefaultIOStrategy()
         {
-            Log.Debug(m => m("Finalizing DefaultIOStrategy for {0}", EndPoint));
+            Log.Debug(m => m("Finalizing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
             Dispose(false);
         }
     }

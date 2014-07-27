@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
@@ -11,6 +12,7 @@ namespace Couchbase
     /// </summary>
     public sealed class CouchbaseCluster : ICouchbaseCluster 
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
         private readonly IClusterManager _clusterManager;
@@ -146,6 +148,7 @@ namespace Couchbase
             //resolved before developer preview.
             if (_clusterManager != null)
             {
+                Log.Debug(m => m("Disposing {0}", GetType().Name));
                 _clusterManager.Dispose();
             }
         }
@@ -156,6 +159,7 @@ namespace Couchbase
         /// <remarks>will run if Dispose is not called on a Cluster instance.</remarks>
         ~CouchbaseCluster()
         {
+            Log.Debug(m=>m("Finalizing {0}", GetType().Name));
             if (_clusterManager != null)
             {
                 _clusterManager.Dispose();

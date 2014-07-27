@@ -628,35 +628,40 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_Dispose_On_Many_Threads()
         {
-            Random random = new Random(100);
-            int n = 100;
-            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
-            Parallel.For(0, n, options, i =>
+            using (var cluster = new CouchbaseCluster())
             {
-                try
+                Random random = new Random(100);
+                int n = 100;
+                var options = new ParallelOptions {MaxDegreeOfParallelism = 4};
+                Parallel.For(0, n, options, i =>
                 {
-                    using (IBucket bucket = _cluster.OpenBucket())
+                    try
                     {
-                        var key = "key_" + i;
-                        var set = bucket.Upsert(key, i);
-                        Console.WriteLine("Inserted {0}: {1} Thread: {2}", key, set.Success, Thread.CurrentThread.ManagedThreadId);
-                        var get = bucket.Get<int>(key);
-                        Console.WriteLine("Getting {0} - {1}: {2} Thread: {3}", key, get.Value, get.Success, Thread.CurrentThread.ManagedThreadId);
+                        using (IBucket bucket = cluster.OpenBucket())
+                        {
+                            var key = "key_" + i;
+                            var set = bucket.Upsert(key, i);
+                            Console.WriteLine("Inserted {0}: {1} Thread: {2}", key, set.Success,
+                                Thread.CurrentThread.ManagedThreadId);
+                            var get = bucket.Get<int>(key);
+                            Console.WriteLine("Getting {0} - {1}: {2} Thread: {3}", key, get.Value, get.Success,
+                                Thread.CurrentThread.ManagedThreadId);
 
-                        var sleep = random.Next(0, 100);
-                        Console.WriteLine("Sleep for {0}ms", sleep);
-                        Thread.Sleep(sleep);
+                            var sleep = random.Next(0, 100);
+                            Console.WriteLine("Sleep for {0}ms", sleep);
+                            Thread.Sleep(sleep);
+                        }
                     }
-                }
-                catch (AggregateException ae)
-                {
-                    ae.Flatten().Handle(e =>
+                    catch (AggregateException ae)
                     {
-                        Console.WriteLine(e);
-                        return true;
-                    });
-                }
-            });
+                        ae.Flatten().Handle(e =>
+                        {
+                            Console.WriteLine(e);
+                            return true;
+                        });
+                    }
+                });
+            }
         }
 
         public class Poco

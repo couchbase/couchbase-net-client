@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Threading;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Serializers;
 using Couchbase.IO;
@@ -37,9 +41,10 @@ namespace Couchbase.Configuration
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
+            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any())
             {
                 Log.Info(m=>m("Creating the Servers list using rev#{0}", bucketConfig.Rev));
+                var servers = new List<IServer>();
                 var nodes = bucketConfig.Nodes;
                 for (var i = 0; i < nodes.Length; i++)
                 {
@@ -50,15 +55,66 @@ namespace Couchbase.Configuration
                     var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                     ioStrategy.SaslMechanism = saslMechanism;
                     var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);//this should be a Func factory...a functory
-                    Servers.Add(server);
+                    servers.Add(server);
                 }
+                Interlocked.Exchange(ref Servers, servers);
             }
-            if (BucketConfig == null || !BucketConfig.VBucketServerMap.Equals(bucketConfig.VBucketServerMap))
+
+            Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, _bucketConfig.VBucketServerMap));
+            Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+        }
+
+        public void LoadConfig(IOStrategy ioStrategy)
+        {
+            Log.Info(m => m("Creating the Servers list using rev#{0}", BucketConfig.Rev));
+            var servers = new List<IServer>();
+            var nodes = BucketConfig.Nodes;
+            for (var i = 0; i < nodes.Length; i++)
             {
-                Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
-                KeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap);
+                var node = nodes[i];
+                IServer server = null;
+                if (ioStrategy.EndPoint.ToString() == node.Hostname || nodes.Length==1)
+                {
+                    server = new Core.Server(ioStrategy, node, ClientConfig);
+                }
+                else
+                {
+                    var ip = BucketConfig.VBucketServerMap.ServerList[i];
+                    var endpoint = GetEndPoint(ip, BucketConfig);
+                    var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
+                    var newIoStrategy = IOStrategyFactory(connectionPool);
+                    var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, newIoStrategy, Converter);
+                    newIoStrategy.SaslMechanism = saslMechanism;
+                    server = new Core.Server(newIoStrategy, nodes[i], ClientConfig);
+                }
+                //this should be a Func factory...a functory
+                servers.Add(server);
             }
-            BucketConfig = bucketConfig;
+
+            Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
+            Interlocked.Exchange(ref Servers, servers);
+            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
+        }
+
+        public override void LoadConfig()
+        {
+            Log.Info(m => m("Creating the Servers list using rev#{0}", BucketConfig.Rev));
+            var servers = new List<IServer>();
+            var nodes = BucketConfig.Nodes;
+            for (var i = 0; i < nodes.Length; i++)
+            {
+                var ip = BucketConfig.VBucketServerMap.ServerList[i];
+                var endpoint = GetEndPoint(ip, BucketConfig);
+                var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
+                var ioStrategy = IOStrategyFactory(connectionPool);
+                var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
+                ioStrategy.SaslMechanism = saslMechanism;
+                var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);//this should be a Func factory...a functory
+                servers.Add(server);
+            }
+            Interlocked.Exchange(ref Servers, servers);
+            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
         }
     }
 }

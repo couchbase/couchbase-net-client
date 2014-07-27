@@ -45,6 +45,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return uri.Host;
         }
 
+        /// <summary>
+        /// Starts the streaming connection to couchbase server that will
+        /// listen for configuration changes and then update the client as needed.
+        /// </summary>
         public void ListenForConfigChanges()
         {
             var count = 0;
@@ -57,6 +61,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 try
                 {
+                    //If the main thread has canceled, break out of the loop otherwise
+                    //the next node in the server list will be tried; but in this case
+                    //we want to shut things down and terminate the thread
+                    if (_cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
                     nodes = nodes.Shuffle();
                     var node = nodes[0];
                     nodes.Remove(node);
@@ -67,7 +78,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     using (var webClient = new AuthenticatingWebClient(_bucketConfig.Name, _bucketConfig.Password))
                     using (var stream = webClient.OpenRead(streamingUri))
                     {
-                        //this will cancel the infinite wait below - the temp variable removes chance of deadlock when dispose is called on the closure
+                        //this will cancel the infinite wait below - the temp variable removes
+                        //chance of deadlock when dispose is called on the closure
                         var temp = webClient;
                         _cancellationToken.Register(temp.CancelAsync);
 
@@ -106,8 +118,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
             }
 
-            //We tried all nodes in the current configuration, alert the provider that we need to try to 
-            //re-bootstrap from the beginning
+            //We tried all nodes in the current configuration, alert the provider that we
+            //need to try to re-bootstrap from the beginning
             if (nodes.Count == 0)
             {
                 _errorOccurredDelegate(_bucketConfig);

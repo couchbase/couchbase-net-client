@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
+using System.Threading;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Serializers;
 using Couchbase.IO;
@@ -53,6 +56,7 @@ namespace Couchbase.Configuration
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
             if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
             {
+                var servers = new List<IServer>();
                 foreach (var node in bucketConfig.Nodes)
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
@@ -61,12 +65,29 @@ namespace Couchbase.Configuration
                     var server = new Core.Server(ioStrategy, node, ClientConfig);
                     var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                     ioStrategy.SaslMechanism = saslMechanism;
-           
-                    Servers.Add(server); //todo make atomic
-                    KeyMapper = new KetamaKeyMapper(Servers);//todo make atomic
-                    BucketConfig = bucketConfig;
+                    servers.Add(server);
                 }
+                Interlocked.Exchange(ref Servers, servers);
             }
+            Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
+            Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+        }
+
+        public override void LoadConfig()
+        {
+            var servers = new List<IServer>();
+            foreach (var node in BucketConfig.Nodes)
+            {
+                var endpoint = GetEndPoint(node, BucketConfig);
+                var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
+                var ioStrategy = IOStrategyFactory(connectionPool);
+                var server = new Core.Server(ioStrategy, node, ClientConfig);
+                var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
+                ioStrategy.SaslMechanism = saslMechanism;
+                servers.Add(server);
+            }
+            Interlocked.Exchange(ref Servers, servers);
+            Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
         }
     }
 }

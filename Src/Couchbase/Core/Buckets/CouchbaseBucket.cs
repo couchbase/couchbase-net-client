@@ -643,7 +643,7 @@ namespace Couchbase.Core.Buckets
             lock (RefCounts)
             {
                 var refCount = RefCounts.GetOrCreateValue(this);
-                Log.DebugFormat("Creating bucket ref# {0}", refCount.Count);
+                Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
                 return Interlocked.Increment(ref refCount.Count);
             }
         }
@@ -659,9 +659,10 @@ namespace Couchbase.Core.Buckets
                 var refCount = RefCounts.GetOrCreateValue(this);
                 if (refCount.Count > 0)
                 {
+                    Log.DebugFormat("Current bucket refCount# {0}", refCount.Count);
                     Interlocked.Decrement(ref refCount.Count);
                     if (refCount.Count != 0) return refCount.Count;
-                    Log.DebugFormat("Removing bucket ref# {0}", refCount.Count);
+                    Log.DebugFormat("Removing bucket refCount# {0}", refCount.Count);
                     RefCounts.Remove(this);
                     Dispose(true);
                 }

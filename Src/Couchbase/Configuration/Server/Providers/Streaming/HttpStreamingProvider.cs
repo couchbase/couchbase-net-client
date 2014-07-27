@@ -26,6 +26,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
+        private static readonly AutoResetEvent RegisterEvent = new AutoResetEvent(true);
         private volatile bool _disposed;
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
@@ -46,48 +47,51 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
-            StartProvider(bucketName, password);
-            var bucketConfig = GetBucketConfig(bucketName, password);
-
-            IConfigInfo configInfo = null;
-            var nodes = bucketConfig.Nodes.ToList();
-            while (nodes.Any())
+            lock (SyncObj)
             {
-                try
-                {
-                    nodes.Shuffle();
-                    var node = nodes.First();
-                    nodes.Remove(node);
+                var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+                StartProvider(bucketName, password);
+                var bucketConfig = GetBucketConfig(bucketName, password);
 
-                    IBucketConfig newConfig;
-                    var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
-                    using (var webClient = new AuthenticatingWebClient(bucketName, password))
+                IConfigInfo configInfo = null;
+                var nodes = bucketConfig.Nodes.ToList();
+                while (nodes.Any())
+                {
+                    try
                     {
-                        var body = webClient.DownloadString(uri);
-                        newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
+                        nodes.Shuffle();
+                        var node = nodes.First();
+                        nodes.Remove(node);
+
+                        IBucketConfig newConfig;
+                        var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
+                        using (var webClient = new AuthenticatingWebClient(bucketName, password))
+                        {
+                            var body = webClient.DownloadString(uri);
+                            newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
+                        }
+
+                        configInfo = CreateConfigInfo(newConfig);
+                        Configs[bucketName] = configInfo;
+                        break;
+
                     }
-
-                    configInfo = CreateConfigInfo(newConfig);
-                    Configs[bucketName] = configInfo;
-                    break;
-
+                    catch (WebException e)
+                    {
+                        Log.Error(e);
+                    }
+                    catch (IOException e)
+                    {
+                        Log.Error(e);
+                    }
                 }
-                catch (WebException e)
+
+                if (configInfo == null)
                 {
-                    Log.Error(e);
+                    throw new BucketNotFoundException();
                 }
-                catch (IOException e)
-                {
-                    Log.Error(e);
-                }
+                return configInfo;
             }
-
-            if (configInfo == null)
-            {
-                throw new BucketNotFoundException();
-            }
-            return configInfo;
         }
 
         /// <summary>
@@ -98,31 +102,40 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns>True if the observer was registered without failure.</returns>
         public override bool RegisterObserver(IConfigObserver observer)
         {
+            RegisterEvent.WaitOne(10000);//TODO make configurable
             var hasRegistered = false;
-            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
-            if (bucketConfig == null)
-            {
-                throw new BucketNotFoundException(observer.Name);
-            }
 
-            var cancellationTokenSource = new CancellationTokenSource();
-            _cancellationTokens[observer.Name] = cancellationTokenSource;
-
-            var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler, cancellationTokenSource.Token);
-            var thread = new Thread(configThreadState.ListenForConfigChanges);
-            
-            if (_threads.TryAdd(observer.Name, thread) && ConfigObservers.TryAdd(observer.Name, observer))
+            try
             {
-                _threads[observer.Name].Start();
-                
-                if (CountdownEvent.CurrentCount == 0)
+                var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == observer.Name);
+                if (bucketConfig == null)
                 {
-                    CountdownEvent.Reset(1);
+                    throw new BucketNotFoundException(observer.Name);
                 }
 
-                //TODO add timeout?
-                CountdownEvent.Wait(cancellationTokenSource.Token);
-                hasRegistered = true;
+                var cancellationTokenSource = new CancellationTokenSource();
+                _cancellationTokens[observer.Name] = cancellationTokenSource;
+
+                var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler,
+                    cancellationTokenSource.Token);
+                var thread = new Thread(configThreadState.ListenForConfigChanges);
+
+                if (_threads.TryAdd(observer.Name, thread) && ConfigObservers.TryAdd(observer.Name, observer))
+                {
+                    _threads[observer.Name].Start();
+                    if (CountdownEvent.CurrentCount == 0)
+                    {
+                        CountdownEvent.Reset(1);
+                    }
+
+                    //TODO add timeout?
+                    CountdownEvent.Wait(10000, cancellationTokenSource.Token);//TODO make configurable
+                    hasRegistered = true;
+                }
+            }
+            finally
+            {
+                RegisterEvent.Set();
             }
             return hasRegistered;
         }
@@ -133,33 +146,36 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketConfig"></param>
         private void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
-            var configObserver = ConfigObservers[bucketConfig.Name];
+            lock (SyncObj)
+            {
+                var configObserver = ConfigObservers[bucketConfig.Name];
 
-            IConfigInfo configInfo;
-            if (Configs.ContainsKey(bucketConfig.Name))
-            {
-                configInfo = Configs[bucketConfig.Name];
-                if (configInfo.BucketConfig.Equals(bucketConfig))
+                IConfigInfo configInfo;
+                if (Configs.ContainsKey(bucketConfig.Name))
                 {
-                    SignalCountdownEvent();
-                    return;
+                    configInfo = Configs[bucketConfig.Name];
+                    if (configInfo.BucketConfig != null && configInfo.BucketConfig.Equals(bucketConfig))
+                    {
+                        SignalCountdownEvent();
+                        return;
+                    }
+                    configInfo = CreateConfigInfo(bucketConfig);
                 }
-                configInfo = CreateConfigInfo(bucketConfig);
+                else
+                {
+                    configInfo = CreateConfigInfo(bucketConfig);
+                    Configs.TryAdd(bucketConfig.Name, configInfo);
+                }
+                try
+                {
+                    configObserver.NotifyConfigChanged(configInfo);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                SignalCountdownEvent();
             }
-            else
-            {
-                configInfo = CreateConfigInfo(bucketConfig);
-                Configs.TryAdd(bucketConfig.Name, configInfo);
-            }
-            try
-            {
-                configObserver.NotifyConfigChanged(configInfo);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-            SignalCountdownEvent();
         }
 
         void SignalCountdownEvent()
@@ -177,31 +193,36 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns></returns>
         IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
         {
-            IConfigInfo configInfo;
-            switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
+            lock (SyncObj)
             {
-                case NodeLocatorEnum.VBucket:
-                    configInfo = new CouchbaseConfigContext(bucketConfig,
-                        ClientConfig,
-                        IOStrategyFactory,
-                        ConnectionPoolFactory,
-                        SaslFactory,
-                        Converter,
-                        Serializer);
-                    break;
-                case NodeLocatorEnum.Ketama:
-                    configInfo = new MemcachedConfigContext(bucketConfig,
-                        ClientConfig,
-                        IOStrategyFactory,
-                        ConnectionPoolFactory,
-                        SaslFactory,
-                        Converter,
-                        Serializer);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                IConfigInfo configInfo;
+                switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
+                {
+                    case NodeLocatorEnum.VBucket:
+                        configInfo = new CouchbaseConfigContext(bucketConfig,
+                            ClientConfig,
+                            IOStrategyFactory,
+                            ConnectionPoolFactory,
+                            SaslFactory,
+                            Converter,
+                            Serializer);
+                        break;
+                    case NodeLocatorEnum.Ketama:
+                        configInfo = new MemcachedConfigContext(bucketConfig,
+                            ClientConfig,
+                            IOStrategyFactory,
+                            ConnectionPoolFactory,
+                            SaslFactory,
+                            Converter,
+                            Serializer);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                configInfo.LoadConfig();
+                return configInfo;
             }
-            return configInfo;
         }
 
         /// <summary>
@@ -211,20 +232,26 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="password"></param>
         void StartProvider(string username, string password)
         {
-            _serverConfig = new HttpServerConfig(ClientConfig, username, password);
-            _serverConfig.Initialize();
-            Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
+            lock (SyncObj)
+            {
+                _serverConfig = new HttpServerConfig(ClientConfig, username, password);
+                _serverConfig.Initialize();
+                Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
+            }
         }
 
         IBucketConfig GetBucketConfig(string bucketName, string password)
         {
-            var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
-            if (bucketConfig == null)
+            lock (SyncObj)
             {
-                throw new BucketNotFoundException(bucketName);
+                var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
+                if (bucketConfig == null)
+                {
+                    throw new BucketNotFoundException(bucketName);
+                }
+                bucketConfig.Password = password;
+                return bucketConfig;
             }
-            bucketConfig.Password = password;
-            return bucketConfig;
         }
 
         void ErrorOccurredHandler(IBucketConfig bucketConfig)
@@ -238,27 +265,30 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="observer"></param>
         public override void UnRegisterObserver(IConfigObserver observer)
         {
-            Thread thread;
-            if (_threads.TryRemove(observer.Name, out thread))
+            lock (SyncObj)
             {
-                CancellationTokenSource cancellationTokenSource;
-                if (_cancellationTokens.TryRemove(observer.Name, out cancellationTokenSource))
+                Thread thread;
+                if (_threads.TryRemove(observer.Name, out thread))
                 {
-                    Log.Info(m=>m("Cancelling {0}", observer.Name));
-                    cancellationTokenSource.Cancel();
-                    cancellationTokenSource.Dispose();
-                }
+                    CancellationTokenSource cancellationTokenSource;
+                    if (_cancellationTokens.TryRemove(observer.Name, out cancellationTokenSource))
+                    {
+                        Log.Info(m => m("Cancelling {0}", observer.Name));
+                        cancellationTokenSource.Cancel();
+                        cancellationTokenSource.Dispose();
+                    }
 
-                IConfigObserver temp;
-                if (ConfigObservers.TryRemove(observer.Name, out temp))
-                {
-                    Log.Info(m=>m("Removing observer for {0}", observer.Name));
-                }
+                    IConfigObserver temp;
+                    if (ConfigObservers.TryRemove(observer.Name, out temp))
+                    {
+                        Log.Info(m => m("Removing observer for {0}", observer.Name));
+                    }
 
-                IConfigInfo configInfo;
-                if (Configs.TryRemove(observer.Name, out configInfo))
-                {
-                    Log.Info(m=>m("Removing config for {0}", observer.Name));
+                    IConfigInfo configInfo;
+                    if (Configs.TryRemove(observer.Name, out configInfo))
+                    {
+                        Log.Info(m => m("Removing config for {0}", observer.Name));
+                    }
                 }
             }
         }
@@ -270,17 +300,20 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public void Dispose(bool disposing)
         {
-            if (!_disposed && disposing)
+            lock (SyncObj)
             {
-                GC.SuppressFinalize(this);
+                if (!_disposed && disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+                foreach (var configObserver in ConfigObservers)
+                {
+                    UnRegisterObserver(configObserver.Value);
+                }
+                ConfigObservers.Clear();
+                _threads.Clear();
+                _disposed = true;
             }
-            foreach (var configObserver in ConfigObservers)
-            {
-                UnRegisterObserver(configObserver.Value);
-            }
-            ConfigObservers.Clear();
-            _threads.Clear();
-            _disposed = true;
         }
 
         ~HttpStreamingProvider()

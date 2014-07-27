@@ -38,7 +38,11 @@ namespace Couchbase.Core
 
         public ClusterManager(ClientConfiguration clientConfig)
             : this(clientConfig,
-            pool => new DefaultIOStrategy(pool),
+                pool =>
+                {
+                    Log.Debug(m => m("Creating DefaultIOStrategy"));
+                    return new DefaultIOStrategy(pool);
+                },
             (config, endpoint) =>
             {
                 IConnectionPool connectionPool;
@@ -107,7 +111,7 @@ namespace Couchbase.Core
                 _converter,
                 _serializer));
 
-           _configProviders.Add(new HttpStreamingProvider(_clientConfig,
+            _configProviders.Add(new HttpStreamingProvider(_clientConfig,
                 _ioStrategyFactory,
                 _connectionPoolFactory,
                 _saslFactory,
@@ -156,12 +160,12 @@ namespace Couchbase.Core
                         switch (config.NodeLocator)
                         {
                             case NodeLocatorEnum.VBucket:
-                                bucket = new CouchbaseBucket(this, bucketName, _converter, _serializer);
+                                bucket = _buckets.GetOrAdd(bucketName, name => new CouchbaseBucket(this, bucketName, _converter, _serializer));
                                 bucket.AddRef();
                                 break;
 
                             case NodeLocatorEnum.Ketama:
-                                bucket = new MemcachedBucket(this, bucketName, _converter, _serializer);
+                                bucket = _buckets.GetOrAdd(bucketName, name => new MemcachedBucket(this, bucketName, _converter, _serializer));
                                 bucket.AddRef();
                                 break;
 
