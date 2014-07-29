@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -13,6 +14,7 @@ namespace Couchbase.IO.Operations
     {
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
+        public const int DefaultRetries = 2;
 
         //TODO needs to be resolved - note there will be an instance of the variable for every Type T!
         private static int _sequenceId;
@@ -20,7 +22,6 @@ namespace Couchbase.IO.Operations
         private readonly int _opaque;
         private readonly ITypeSerializer _serializer;
         private readonly T _value;
-        private readonly IVBucket _vBucket;
         protected readonly IByteConverter Converter;
 
         protected OperationBase(IByteConverter converter)
@@ -35,8 +36,9 @@ namespace Couchbase.IO.Operations
             _value = value;
             _serializer = serializer;
             _opaque = Interlocked.Increment(ref _sequenceId);
-            _vBucket = vBucket;
+            VBucket = vBucket;
             Converter = converter;
+            MaxRetries = DefaultRetries;
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
@@ -60,8 +62,27 @@ namespace Couchbase.IO.Operations
             {
                 Data.Dispose();
             }
+            LengthReceived = 0;
             Data = new MemoryStream();
             LengthReceived = 0;
+            Buffer = null;
+            Header = new OperationHeader();
+        }
+
+        public virtual void HandleSocketError(string message)
+        {
+            Header = new OperationHeader
+            {
+                Magic = 0,
+                OperationCode = OperationCode,
+                Cas = 0,
+                BodyLength = 0,
+                Key = Key,
+                Status = ResponseStatus.ClientFailure
+            };
+            var msgBytes = Encoding.UTF8.GetBytes(message);
+            LengthReceived += msgBytes.Length;
+            Data.Write(msgBytes, 0, msgBytes.Length);
         }
 
         public virtual void Read(byte[] buffer, int offset, int length)
@@ -196,7 +217,14 @@ namespace Couchbase.IO.Operations
                         if (Header.Status != ResponseStatus.Success)
                         {
                             var buffer = Data.ToArray();
-                            message = Converter.ToString(buffer, 24, TotalLength - 24);
+                            if (buffer.Length > 0 && TotalLength == 24)
+                            {
+                                message = Converter.ToString(buffer, 0, buffer.Length);
+                            }
+                            else
+                            {
+                                message = Converter.ToString(buffer, 24, TotalLength - 24);
+                            }
                         }
                     }
                     catch (Exception e)
@@ -253,10 +281,7 @@ namespace Couchbase.IO.Operations
             get { return _opaque; }
         }
 
-        public IVBucket VBucket
-        {
-            get { return _vBucket; }
-        }
+        public IVBucket VBucket { get; set; }
 
         public int LengthReceived { get; protected set; }
 
@@ -271,6 +296,10 @@ namespace Couchbase.IO.Operations
         }
 
         public uint Expires { get; set; }
+
+        public int Attempts { get; set; }
+
+        public int MaxRetries { get; set; }
     }
 }
 

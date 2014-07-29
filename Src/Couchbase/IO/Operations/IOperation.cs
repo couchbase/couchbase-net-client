@@ -1,4 +1,5 @@
-﻿using Couchbase.Core.Serializers;
+﻿using Couchbase.Core;
+using Couchbase.Core.Serializers;
 using System;
 using System.IO;
 
@@ -42,6 +43,14 @@ namespace Couchbase.IO.Operations
 
         [Obsolete("remove after refactoring async stuff")]
         byte[] GetBuffer();
+
+        int Attempts { get; set; }
+
+        int MaxRetries { get; }
+
+        IVBucket VBucket { get; set; }
+
+        void HandleSocketError(string message);
     }
 }
 

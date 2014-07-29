@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Newtonsoft.Json;
@@ -9,6 +10,7 @@ namespace Couchbase.Core.Serializers
 {
     public sealed class TypeSerializer : ITypeSerializer
     {
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IByteConverter _converter;
 
         public TypeSerializer(IByteConverter converter)
@@ -145,16 +147,23 @@ namespace Couchbase.Core.Serializers
         public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
             var value = default(T);
-            using (var ms = new MemoryStream(buffer, offset, length))
+            try
             {
-                using (var sr = new StreamReader(ms))
+                using (var ms = new MemoryStream(buffer, offset, length))
                 {
-                    using (var jr = new JsonTextReader(sr))
+                    using (var sr = new StreamReader(ms))
                     {
-                        var serializer = new JsonSerializer();
-                        value = serializer.Deserialize<T>(jr);
+                        using (var jr = new JsonTextReader(sr))
+                        {
+                            var serializer = new JsonSerializer();
+                            value = serializer.Deserialize<T>(jr);
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
             return value;
         }
@@ -183,7 +192,7 @@ namespace Couchbase.Core.Serializers
         string Deserialize(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
-            if (buffer != null)
+            if (buffer != null && buffer.Length > 0)
             {
                 result = Encoding.UTF8.GetString(buffer, offset, length);
             }

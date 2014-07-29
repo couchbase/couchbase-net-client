@@ -44,6 +44,10 @@ namespace Couchbase.Core
         string GetBaseQueryUri();
 
         bool IsSecure { get; }
+
+        bool IsDead { get; }
+
+        void MarkDead();
     }
 }
 

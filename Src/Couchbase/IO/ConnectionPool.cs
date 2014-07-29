@@ -21,7 +21,8 @@ namespace Couchbase.IO
         private readonly IByteConverter _converter;
         private int _count;
         private bool _disposed;
-        private static ConcurrentBag<T> _refs = new ConcurrentBag<T>();
+        private ConcurrentBag<T> _refs = new ConcurrentBag<T>();
+        private Guid _identity = Guid.NewGuid();
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new AutoByteConverter())
@@ -84,6 +85,7 @@ namespace Couchbase.IO
             do
             {
                 var connection = _factory(this, _converter);
+                Log.Debug(m=>m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}", EndPoint, connection.Identity, _identity, _disposed));
                 _store.Enqueue(connection);
                 _refs.Add(connection);
                 Interlocked.Increment(ref _count);
@@ -101,7 +103,7 @@ namespace Couchbase.IO
 
             if (_store.TryDequeue(out connection))
             {
-                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}]", connection.Identity, EndPoint, _store.Count, _count));
+                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}", connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
                 return connection;
             }
 
@@ -112,7 +114,7 @@ namespace Couchbase.IO
                     connection = _factory(this, _converter);
                     _refs.Add(connection);
 
-                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}]", connection.Identity, EndPoint, _store.Count, _count));
+                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}", connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
                     Interlocked.Increment(ref _count);
                     return connection;
                 }
@@ -120,7 +122,7 @@ namespace Couchbase.IO
 
             _autoResetEvent.WaitOne(_configuration.WaitTimeout);
 
-            Log.Debug(m => m("No connections currently available on {0}. Trying again.", EndPoint));
+            Log.Debug(m => m("No connections currently available on {0} - {1}. Trying again. - Disposed: {2}", EndPoint, _identity, _disposed));
             return Acquire();
         }
 
@@ -130,7 +132,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection) 
         {
-            Log.Debug(m => m("Releasing: {0} on {1}", connection.Identity, EndPoint));
+            Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
 
             _store.Enqueue(connection);
             _autoResetEvent.Set();
@@ -141,7 +143,7 @@ namespace Couchbase.IO
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing ConnectionPool for {0}", EndPoint));
+            Log.Debug(m => m("Disposing ConnectionPool for {0} - {1}", EndPoint, _identity));
             Dispose(true);
         }
 

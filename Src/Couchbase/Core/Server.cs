@@ -72,6 +72,8 @@ namespace Couchbase.Core
 
         public bool IsSecure { get { return _ioStrategy.IsSecure; } }
 
+        public bool IsDead { get; private set; }
+
         public IQueryClient QueryClient { get; private set; }
 
         public IViewClient ViewClient { get; private set; }
@@ -136,6 +138,11 @@ namespace Couchbase.Core
             sb.Append("/query");
 
             return sb.ToString();
+        }
+
+        public void MarkDead()
+        {
+            IsDead = true;
         }
 
         public void Dispose()

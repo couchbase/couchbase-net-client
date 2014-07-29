@@ -14,7 +14,7 @@ namespace Couchbase.IO
     internal abstract class ConnectionBase : IConnection
     {
         protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly Guid _identity = Guid.NewGuid();
+        protected readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
         private readonly IByteConverter _converter;

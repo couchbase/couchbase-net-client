@@ -1,4 +1,5 @@
-﻿using Couchbase.IO.Converters;
+﻿using System.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net.Sockets;
@@ -33,9 +34,14 @@ namespace Couchbase.IO.Strategies
             {
                 operation.Reset();
                 var buffer = operation.Write();
-
+                var index = operation.VBucket == null ? 0 : operation.VBucket.Index;
+                Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, Socket.RemoteEndPoint));
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-                _sendEvent.WaitOne();
+
+                if (!_sendEvent.WaitOne(500))
+                {
+                    operation.HandleSocketError("Timed out.");
+                }
             }
             catch (Exception e)
             {
@@ -63,10 +69,14 @@ namespace Couchbase.IO.Strategies
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
             var operation = (IOperation)asyncResult.AsyncState;
-
             try
             {
                 var bytesRead = _networkStream.EndRead(asyncResult);
+                if (bytesRead == 0)
+                {
+                    _sendEvent.Set();
+                    return;
+                }
                 operation.Read(operation.Buffer, 0, bytesRead);
                 BufferManager.ReturnBuffer(operation.Buffer);
 
@@ -88,15 +98,21 @@ namespace Couchbase.IO.Strategies
 
         private void HandleException(Exception e, IOperation operation)
         {
-            var message = string.Format("Opcode={0} | Key={1} | Host={2}",
-                  operation.OperationCode,
-                  operation.Key,
-                  _connectionPool.EndPoint);
+            try
+            {
+                var message = string.Format("Opcode={0} | Key={1} | Host={2}",
+                    operation.OperationCode,
+                    operation.Key,
+                    _connectionPool.EndPoint);
 
-            Log.Warn(message, e);
-            WriteError("Failed. Check Exception property.", operation, 0);
-            operation.Exception = e;
-            _sendEvent.Set();
+                Log.Warn(message, e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+            }
+            finally
+            {
+                _sendEvent.Set();
+            }
         }
 
         private static void WriteError(string errorMsg, IOperation operation, int offset)
@@ -110,7 +126,7 @@ namespace Couchbase.IO.Strategies
         /// </summary>
         public override void Dispose()
         {
-            Log.Debug(m => m("Disposing connection for {0}", _connectionPool.EndPoint));
+            Log.Debug(m => m("Disposing connection for {0} - {1}", _connectionPool.EndPoint, _identity));
             Dispose(true);
             GC.SuppressFinalize(this);
         }

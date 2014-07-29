@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Common.Logging;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Serializers;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -73,10 +75,6 @@ namespace Couchbase.Core.Buckets
                     old1==null ? 0 : old1.BucketConfig.Rev,
                     _configInfo.BucketConfig.Rev,
                     Thread.CurrentThread.ManagedThreadId));
-
-                if (old == null) return;
-                old.Dispose();
-                old = null;
             }
         }
 
@@ -85,6 +83,162 @@ namespace Couchbase.Core.Buckets
             var keyMapper = _configInfo.GetKeyMapper(Name);
             vBucket = (IVBucket) keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
+        }
+
+        private IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
+        {
+            IOperationResult<T> operationResult;
+            do
+            {
+                IVBucket vBucket;
+                var server = GetServer(operation.Key, out vBucket);
+                operation.VBucket = vBucket;
+                operationResult = server.Send(operation);
+                if (operationResult.Success)
+                {
+                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    break;
+                }
+                if (CanRetryOperation(operationResult, operation, server))
+                {
+                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                        operation.Key, operationResult.Message));
+                }
+                else
+                {
+                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    break;
+                }
+            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
+
+            if (!operationResult.Success)
+            {
+                Log.Debug(
+                    m =>
+                        m("Operation for key {0} failed after {1} retries. Reason: {2}", operation.Key,
+                            operation.Attempts, operationResult.Message));
+            }
+            return operationResult;
+        }
+
+        static bool OperationSupportsRetries<T>(IOperation<T>  operation)
+        {
+            var supportsRetry = false;
+            switch (operation.OperationCode)
+            {
+                case OperationCode.Get:
+                case OperationCode.Add:
+                    supportsRetry = true;
+                    break;
+                case OperationCode.Set:
+                case OperationCode.Replace:
+                case OperationCode.Delete:
+                case OperationCode.Append:
+                case OperationCode.Prepend:
+                    supportsRetry = operation.Cas > 0;
+                    break;
+                case OperationCode.Increment:
+                case OperationCode.Decrement:
+                case OperationCode.GAT:
+                case OperationCode.Touch:
+                    break;
+            }
+            return supportsRetry;
+        }
+
+        bool CanRetryOperation<T>(IOperationResult<T> operationResult, IOperation<T> operation, IServer server)
+        {
+            var supportsRetry = OperationSupportsRetries(operation);
+            var retry = false;
+            switch (operationResult.Status)
+            {
+                case ResponseStatus.Success:
+                case ResponseStatus.KeyNotFound:
+                case ResponseStatus.KeyExists:
+                case ResponseStatus.ValueTooLarge:
+                case ResponseStatus.InvalidArguments:
+                case ResponseStatus.ItemNotStored:
+                case ResponseStatus.IncrDecrOnNonNumericValue:
+                    break;
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                    retry = CheckForConfigUpdates(operationResult);
+                    break;
+                case ResponseStatus.AuthenticationError:
+                case ResponseStatus.AuthenticationContinue:
+                case ResponseStatus.InvalidRange:
+                case ResponseStatus.UnknownCommand:
+                case ResponseStatus.OutOfMemory:
+                case ResponseStatus.NotSupported:
+                case ResponseStatus.InternalError:
+                case ResponseStatus.Busy:
+                case ResponseStatus.TemporaryFailure:
+                    break;
+                case ResponseStatus.ClientFailure:
+                    retry = HandleIOError(operation, server) || supportsRetry;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return retry;
+        }
+
+        bool HandleIOError<T>(IOperation<T> operation, IServer server)
+        {
+            var retry = false;
+            var exception = operation.Exception as IOException;
+            if (exception != null)
+            {
+                //Mark the current server as dead and force a reconfig
+                server.MarkDead();
+
+                var liveServer = _configInfo.GetServer();
+                var result = liveServer.Send(new Config(_converter));
+                if (result.Success)
+                {
+                    var config = result.Value;
+                    if (config != null)
+                    {
+                        _clusterManager.NotifyConfigPublished(result.Value);
+                    }
+                }
+            }
+            return retry;
+        }
+
+        /// <summary>
+        /// Performs a CCCP request for the latest server configuration if the passed in operationResult
+        /// results in a NMV response.
+        /// </summary>
+        /// <typeparam name="T">The Type parameter of the passed in operation.</typeparam>
+        /// <param name="operationResult">The <see cref="IOperationResult{T}"/> to check.</param>
+        /// <returns>True if the operation should be retried again with the new config.</returns>
+        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)
+        {
+            var requiresRetry = false;
+            if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+            {
+                var bucketConfig = ((OperationResult<T>)operationResult).GetConfig();
+                if (bucketConfig != null)
+                {
+                    if (bucketConfig.Rev > _configInfo.BucketConfig.Rev)
+                    {
+                        Log.Info(m => m("New config found {0}", bucketConfig.Rev));
+                        var server = _configInfo.GetServer();
+
+                        var result = server.Send(new Config(_converter));
+                        if (result.Success)
+                        {
+                            var config = result.Value;
+                            if (config != null)
+                            {
+                                _clusterManager.NotifyConfigPublished(result.Value);
+                            }
+                        }
+                    }
+                }
+                requiresRetry = true;
+            }
+            return requiresRetry;
         }
 
         public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
@@ -114,17 +268,8 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Set<T>(key, value, vBucket, _converter);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            var operation = new Set<T>(key, value, null, _converter);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -149,17 +294,8 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Replace<T>(string key, T value)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Replace<T>(key, value, vBucket, _converter, _serializer);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            var operation = new Replace<T>(key, value, null, _converter, _serializer);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -173,17 +309,8 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Replace<T>(key, value, cas, vBucket, _converter, _serializer);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            var operation = new Replace<T>(key, value, cas, null, _converter, _serializer);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -208,17 +335,8 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Add<T>(key, value, vBucket, _converter, _serializer);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -240,18 +358,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
         {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Delete(key, vBucket, _converter, _serializer);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            CheckDisposed();   
+            var operation = new Delete(key, null, _converter, _serializer);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -275,17 +384,8 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Get<T>(string key)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Get<T>(key, vBucket, _converter, _serializer);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            var operation = new Get<T>(key, null, _converter, _serializer);
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -565,29 +665,6 @@ namespace Couchbase.Core.Buckets
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
             return new ViewQuery(Name, baseUri, designdoc, viewname, development);
-        }
-
-        /// <summary>
-        /// Performs a CCCP request for the latest server configuration if the passed in operationResult
-        /// requires a config update do to a NMV.
-        /// </summary>
-        /// <typeparam name="T">The Type parameter of the passed in operation.</typeparam>
-        /// <param name="operationResult">The <see cref="IOperationResult{T}"/> to check.</param>
-        /// <returns>True if the operation should be retried again with the new config.</returns>
-        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)
-        {
-            var requiresRetry = false;
-            if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                var bucketConfig = ((OperationResult<T>)operationResult).GetConfig();
-                if (bucketConfig != null)
-                {
-                    Log.Info(m => m("New config found {0}", bucketConfig.Rev));
-                    _clusterManager.NotifyConfigPublished(bucketConfig);
-                    requiresRetry = true;
-                }
-            }
-            return requiresRetry;
         }
 
         /// <summary>

@@ -169,7 +169,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IServer GetServer()
         {
-            return Servers.Shuffle().First();
+            return Servers.Shuffle().First(x => !x.IsDead);
         }
 
         /// <summary>
