@@ -43,7 +43,7 @@ namespace Couchbase.Configuration
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
             if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any())
             {
-                Log.Info(m=>m("Creating the Servers list using rev#{0}", bucketConfig.Rev));
+                Log.Info(m=>m("o1-Creating the Servers list using rev#{0}", bucketConfig.Rev));
                 var servers = new List<IServer>();
                 var nodes = bucketConfig.Nodes;
                 for (var i = 0; i < nodes.Length; i++)
@@ -67,21 +67,22 @@ namespace Couchbase.Configuration
 
         public void LoadConfig(IOStrategy ioStrategy)
         {
-            Log.Info(m => m("Creating the Servers list using rev#{0}", BucketConfig.Rev));
+            Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
             var servers = new List<IServer>();
             var nodes = BucketConfig.Nodes;
             for (var i = 0; i < nodes.Length; i++)
             {
                 var node = nodes[i];
+                var ip = BucketConfig.VBucketServerMap.ServerList[i];
+                var endpoint = GetEndPoint(ip, BucketConfig);
+
                 IServer server = null;
-                if (ioStrategy.EndPoint.ToString() == node.Hostname || nodes.Length==1)
+                if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Length==1)
                 {
                     server = new Core.Server(ioStrategy, node, ClientConfig);
                 }
                 else
                 {
-                    var ip = BucketConfig.VBucketServerMap.ServerList[i];
-                    var endpoint = GetEndPoint(ip, BucketConfig);
                     var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
                     var newIoStrategy = IOStrategyFactory(connectionPool);
                     var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, newIoStrategy, Converter);
@@ -99,7 +100,7 @@ namespace Couchbase.Configuration
 
         public override void LoadConfig()
         {
-            Log.Info(m => m("Creating the Servers list using rev#{0}", BucketConfig.Rev));
+            Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
             var servers = new List<IServer>();
             var nodes = BucketConfig.Nodes;
             for (var i = 0; i < nodes.Length; i++)
