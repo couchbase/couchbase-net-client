@@ -47,8 +47,8 @@ namespace Couchbase.Tests.IO.Operations
 
             var vBucketMap = vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
-            var replica = vBucketMap[1];
-            return new VBucket(servers, 0, primary, replica);
+            var replicas = new int[]{vBucketMap[1]};
+            return new VBucket(servers, 0, primary, replicas);
         }
 
         internal IOStrategy IOStrategy { get { return _ioStrategy; } }

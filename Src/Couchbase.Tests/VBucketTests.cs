@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -8,9 +9,11 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests
@@ -35,8 +38,8 @@ namespace Couchbase.Tests
 
             var vBucketMap = vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
-            var replica = vBucketMap[1];
-            _vBucket = new VBucket(_servers, 0, primary, replica);
+            var replicas = new int[]{vBucketMap[1]};
+            _vBucket = new VBucket(_servers, 0, primary, replicas);
         }
 
         [Test]
@@ -52,11 +55,76 @@ namespace Couchbase.Tests
         [Test]
         public void TestLocateReplica()
         {
-            var replica = _vBucket.LocateReplica();
+            const int replicaIndex = 0;
+            var replica = _vBucket.LocateReplica(replicaIndex);
             Assert.IsNotNull(replica);
 
-            var expected = _servers.Skip(1).First();
+            var expected = _servers[replicaIndex];
             Assert.AreSame(expected, replica);
+        }
+
+        [Test]
+        public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replica_Count_Is_Equal()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var servers = bucketConfig.VBucketServerMap.
+               ServerList.
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
+               Cast<IServer>().
+               ToList();
+
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var vBucket = (IVBucket)mapper.MapKey("somekey");
+
+            const int expected = 3;
+            Assert.AreEqual(expected, vBucket.Replicas.Count());
+        }
+
+        [Test]
+        public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replicas_Are_Equal()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var servers = bucketConfig.VBucketServerMap.
+               ServerList.
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
+               Cast<IServer>().
+               ToList();
+
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var vBucket = (IVBucket)mapper.MapKey("somekey");
+
+            var index = mapper.GetIndex("somekey");
+            var expected = bucketConfig.VBucketServerMap.VBucketMap[index];
+            for (var i = 0; i < vBucket.Replicas.Length; i++)
+            {
+                Assert.AreEqual(vBucket.Replicas[i], expected[i+1]);
+            }
+        }
+
+        [Test]
+        public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_LocateReplica_Returns_Correct_Server()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var servers = bucketConfig.VBucketServerMap.
+               ServerList.
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
+               Cast<IServer>().
+               ToList();
+
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var vBucket = (IVBucket)mapper.MapKey("somekey");
+
+            foreach (var index in vBucket.Replicas)
+            {
+                var server = vBucket.LocateReplica(index);
+                Assert.IsNotNull(server);
+
+                var expected = bucketConfig.VBucketServerMap.ServerList[index];
+                Assert.AreEqual(server.EndPoint.Address.ToString(), expected.Split(':').First());
+            }
         }
 
          [TestFixtureTearDown]

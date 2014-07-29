@@ -5,13 +5,14 @@ namespace Couchbase.Core
 {
     internal class VBucket : IVBucket
     {
-        private readonly List<IServer> _cluster; 
-        public VBucket(List<IServer> cluster, int index, int primary, int replica)
+        private readonly List<IServer> _cluster;
+        private readonly int[] _replicas;
+        public VBucket(List<IServer> cluster, int index, int primary, int[] replicas)
         {
             _cluster = cluster;
             Index = index;
             Primary = primary;
-            Replica = replica;
+            _replicas = replicas;
         }
 
         public IServer LocatePrimary()
@@ -19,21 +20,19 @@ namespace Couchbase.Core
             return _cluster[Primary];
         }
 
-        public IServer LocateReplica()
+        public IServer LocateReplica(int replicaIndex)
         {
-            return _cluster[Replica];
+            return _cluster[replicaIndex];
         }
 
-        public List<IServer> Replicas
+        public int[] Replicas
         {
-            get { return _cluster.Skip(1).ToList(); }
+            get { return _replicas; }
         }
 
         public int Index { get; private set; }
 
         public int Primary { get; private set; }
-
-        public int Replica { get; private set; }
     }
 }
 

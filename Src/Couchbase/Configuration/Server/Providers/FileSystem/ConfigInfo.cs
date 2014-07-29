@@ -35,7 +35,7 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
                         if (serverMap == null) continue;
                         var primary = serverMap.VBucketMap[i][0];
                         var replica = serverMap.VBucketMap[i][1];
-                        vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
+                        //vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
                     }
                 }
                 _buckets.Add(bucket, vBuckets);

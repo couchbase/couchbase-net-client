@@ -85,12 +85,12 @@ namespace Couchbase.Core.Buckets
             for (var i = 0; i < vBucketMap.Length; i++)
             {
                 var primary = vBucketMap[i][0];
-                var replica = -1;
-                if (vBucketMap[i].Length > 1)
+                var replicas = new int[vBucketMap[i].Length-1];
+                for (var r = 1; r < vBucketMap[i].Length; r++)
                 {
-                   replica = vBucketMap[i][1];
+                    replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replica));
+                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas));
             }
             return vBuckets;
         }
@@ -111,12 +111,12 @@ namespace Couchbase.Core.Buckets
                 for (var i = 0; i < vBucketMapForward.Length; i++)
                 {
                     var primary = vBucketMapForward[i][0];
-                    var replica = -1;
-                    if (vBucketMapForward[i].Length > 1)
+                    var replicas = new int[vBucketMapForward[i].Length-1];
+                    for (var r = 1; r < vBucketMapForward[i].Length; r++)
                     {
-                        replica = vBucketMapForward[i][1];
+                        replicas[r - 1] = vBucketMapForward[i][r];
                     }
-                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replica));
+                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas));
                 }
             }
             return vBucketMapForwards;
