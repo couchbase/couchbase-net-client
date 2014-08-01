@@ -116,6 +116,8 @@ namespace Couchbase.Core.Buckets
         /// The alogrithm for hashing the keys.
         /// </summary>
         public HashAlgorithm HashAlgorithm { get; set; }
+
+        public int Rev { get; set; }
     }
 }
 

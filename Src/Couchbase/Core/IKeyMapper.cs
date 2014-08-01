@@ -7,6 +7,8 @@ namespace Couchbase.Core
         IMappedNode MapKey(string key);
 
         HashAlgorithm HashAlgorithm { get; set; }
+
+        int Rev { get; set; }
     }
 }
 

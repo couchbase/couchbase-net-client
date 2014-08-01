@@ -22,6 +22,7 @@ namespace Couchbase.Configuration
     internal sealed class CouchbaseConfigContext : ConfigContextBase
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly object SyncObj = new object();
 
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
@@ -40,29 +41,37 @@ namespace Couchbase.Configuration
         /// that will drive the recreation if the configuration context.</param>
         public override void LoadConfig(IBucketConfig bucketConfig)
         {
-            if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any())
+            lock (SyncObj)
             {
-                Log.Info(m=>m("o1-Creating the Servers list using rev#{0}", bucketConfig.Rev));
-                var servers = new List<IServer>();
-                var nodes = bucketConfig.Nodes;
-                for (var i = 0; i < nodes.Length; i++)
+                if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
+                if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any())
                 {
-                    var ip = bucketConfig.VBucketServerMap.ServerList[i];
-                    var endpoint = GetEndPoint(ip, bucketConfig);
-                    var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration, endpoint);
-                    var ioStrategy = IOStrategyFactory(connectionPool);
-                    var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
-                    ioStrategy.SaslMechanism = saslMechanism;
-                    var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);//this should be a Func factory...a functory
-                    servers.Add(server);
+                    Log.Info(m => m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(), bucketConfig.Rev));
+                    var servers = new List<IServer>();
+                    var nodes = bucketConfig.Nodes;
+                    for (var i = 0; i < nodes.Length; i++)
+                    {
+                        var ip = bucketConfig.VBucketServerMap.ServerList[i];
+                        var endpoint = GetEndPoint(ip, bucketConfig);
+                        var connectionPool =
+                            ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration,
+                                endpoint);
+                        var ioStrategy = IOStrategyFactory(connectionPool);
+                        var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
+                        ioStrategy.SaslMechanism = saslMechanism;
+                        var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);
+                        servers.Add(server);
+                    }
+                    var old = Interlocked.Exchange(ref Servers, servers);
+                    old.ForEach(x => x.Dispose());
                 }
-                Interlocked.Exchange(ref Servers, servers);
+                Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, _bucketConfig.VBucketServerMap)
+                {
+                    Rev = _bucketConfig.Rev
+                });
             }
-
-            Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
-            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, _bucketConfig.VBucketServerMap));
-            Interlocked.Exchange(ref _bucketConfig, bucketConfig);
         }
 
         public void LoadConfig(IOStrategy ioStrategy)
@@ -89,13 +98,15 @@ namespace Couchbase.Configuration
                     newIoStrategy.SaslMechanism = saslMechanism;
                     server = new Core.Server(newIoStrategy, nodes[i], ClientConfig);
                 }
-                //this should be a Func factory...a functory
                 servers.Add(server);
             }
 
             Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
             Interlocked.Exchange(ref Servers, servers);
-            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
+            Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap)
+            {
+                Rev = BucketConfig.Rev
+            });
         }
 
         public override void LoadConfig()
@@ -116,6 +127,16 @@ namespace Couchbase.Configuration
             }
             Interlocked.Exchange(ref Servers, servers);
             Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
+        }
+
+        internal List<IServer> GetServers()
+        {
+            return Servers;
+        }
+
+        internal Dictionary<int, IVBucket> GetVBuckets()
+        {
+            return ((VBucketKeyMapper) KeyMapper).GetVBuckets();
         }
     }
 }

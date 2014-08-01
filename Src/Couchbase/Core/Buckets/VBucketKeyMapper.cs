@@ -53,6 +53,7 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
+            Log.Info(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
             return _vBuckets[index];
         }
 
@@ -79,8 +80,8 @@ namespace Couchbase.Core.Buckets
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
             
-            Log.Info(m => m("Creating VBuckets {0} and FMaps {1}", vBucketMap.Length,
-                vBucketForwardMap == null ? 0: vBucketForwardMap.Length));
+            Log.Info(m => m("Creating VBuckets {0} and FMaps {1} for Rev#{2}", vBucketMap.Length,
+                vBucketForwardMap == null ? 0: vBucketForwardMap.Length, Rev));
 
             for (var i = 0; i < vBucketMap.Length; i++)
             {
@@ -121,6 +122,18 @@ namespace Couchbase.Core.Buckets
             }
             return vBucketMapForwards;
         }
+
+        internal Dictionary<int, IVBucket> GetVBuckets()
+        {
+            return _vBuckets;
+        }
+
+        internal Dictionary<int, IVBucket> GetVBucketsForwards()
+        {
+            return _vForwardBuckets;
+        }
+
+        public int Rev { get; set; }
     }
 }
 
