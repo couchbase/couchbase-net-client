@@ -71,6 +71,7 @@
     <Compile Include="Authentication\Sasl\SaslFactoryTests.cs" />
     <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
     <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
+    <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Serializers\TypeSerializer2Tests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
