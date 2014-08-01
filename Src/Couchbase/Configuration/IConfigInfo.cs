@@ -53,6 +53,11 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <remarks>This method should be called immediately after creation.</remarks>
         void LoadConfig();
+
+        /// <summary>
+        /// Loads the most updated configuration creating any resources as needed based upon the passed in  <see cref="IBucketConfig"/>.
+        /// </summary>
+        void LoadConfig(IBucketConfig bucketConfig);
     }
 }
 

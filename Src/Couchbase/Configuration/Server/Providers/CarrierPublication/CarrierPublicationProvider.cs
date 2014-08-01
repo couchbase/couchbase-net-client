@@ -7,6 +7,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
@@ -51,6 +52,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         Converter,
                         Serializer);
 
+                    Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
+
                     configInfo.LoadConfig(ioStrategy);
                     Configs[bucketName] = configInfo;
                 }
@@ -75,43 +78,28 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void UpdateConfig(IBucketConfig bucketConfig)
         {
-            lock (SyncObj)
+            IConfigObserver configObserver;
+            if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
-                Log.Info(m => m("New config received Rev#{0}", bucketConfig.Rev));
-                IConfigObserver configObserver;
-                if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+                IConfigInfo configInfo;
+                if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
                 {
-                    Log.Warn(
-                        x => x("A ConfigObserver for the bucket {0} was not found. Provider has been disposed: {1}",
-                            bucketConfig.Name, Disposed));
-                    return;
-                }
-
-                IConfigInfo oldConfigInfo;
-                if (!Configs.TryGetValue(bucketConfig.Name, out oldConfigInfo))
-                {
-                    throw new ConfigNotFoundException(bucketConfig.Name);
-                }
-
-                var oldBucketConfig = oldConfigInfo.BucketConfig;
-                if (bucketConfig.Rev > oldBucketConfig.Rev)
-                {
-                    Log.Info(m => m("New config has changed Rev#{0}", bucketConfig.Rev));
-                    var configInfo = new CouchbaseConfigContext(bucketConfig,
-                        ClientConfig,
-                        IOStrategyFactory,
-                        ConnectionPoolFactory,
-                        SaslFactory,
-                        Converter,
-                        Serializer);
-
-                    configInfo.LoadConfig(bucketConfig);
-
-                    if (Configs.TryUpdate(bucketConfig.Name, configInfo, oldConfigInfo))
+                    var oldBucketConfig = configInfo.BucketConfig;
+                    if (bucketConfig.Rev > oldBucketConfig.Rev)
                     {
+                        Log.Info(m => m("New config has changed new Rev#{0} | old Rev#{1} CCCP: {2}", bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        configInfo.LoadConfig(bucketConfig);
                         configObserver.NotifyConfigChanged(configInfo);
                     }
                 }
+                else
+                {
+                    throw new ConfigNotFoundException(bucketConfig.Name);
+                }
+            }
+            else
+            {
+                Log.Warn(m=>m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
             }
         }
 
