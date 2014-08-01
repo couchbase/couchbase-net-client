@@ -56,6 +56,9 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("nodes")]
         public Node[] Nodes { get; set; }
 
+        [JsonProperty("nodesExt")]
+        public NodeExt[] NodesExt { get; set; }
+
         [JsonProperty("stats")]
         public Stats Stats { get; set; }
 
