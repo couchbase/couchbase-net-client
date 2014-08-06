@@ -12,19 +12,26 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public Observe(string key, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
-            : base(key, null, serializer, vBucket, converter)
-        {
-        }
-
         public Observe(string key, IVBucket vBucket, IByteConverter converter)
             : base(key, vBucket, converter)
         {
         }
 
+        public Observe(string key, IVBucket vBucket, ulong cas, IByteConverter converter)
+            : base(key, vBucket, converter)
+        {
+            Cas = cas;
+        }
+
         public Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
             : base(key, vBucket, converter, serializer)
         {
+        }
+
+        public Observe(string key, IVBucket vBucket, ulong cas, IByteConverter converter, ITypeSerializer serializer)
+            : base(key, vBucket, converter, serializer)
+        {
+            Cas = cas;
         }
 
         public override byte[] Write()
@@ -39,6 +46,7 @@ namespace Couchbase.IO.Operations
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
             Converter.FromInt32(body.Length, header, HeaderIndexFor.BodyLength);
             Converter.FromInt32(Opaque, header, HeaderIndexFor.Opaque);
+            Converter.FromUInt64(Cas, header, HeaderIndexFor.Cas);
 
             var buffer = new byte[body.Length + header.Length];
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);

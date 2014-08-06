@@ -26,7 +26,7 @@ namespace Couchbase.Core
         /// <param name="replicateTo"></param>
         /// <param name="persistTo"></param>
         /// <returns></returns>
-        IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo);
+        IOperationResult<ObserveState> Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo);
             
         /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.

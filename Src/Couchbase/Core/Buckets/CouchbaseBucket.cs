@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -239,9 +240,87 @@ namespace Couchbase.Core.Buckets
             return requiresRetry;
         }
 
-        public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<ObserveState> Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            var replicatedTo = -1;
+            var persistedTo = -1;
+            KeyState replStatus;
+            KeyState persStatus;
+
+            if (remove)
+            {
+                persStatus = KeyState.NotFound;
+                replStatus = KeyState.LogicalDeleted;
+            }
+            else
+            {
+                persStatus = KeyState.FoundPersisted;
+                replStatus = KeyState.FoundNotPersisted;
+            }
+
+            IVBucket vBucket;
+            var master = GetServer(key, out vBucket);
+
+            //check the master for persistence to disk
+            var result = master.Send(new Observe(key, vBucket, cas, _converter));
+            var state = result.Value;
+            if (state.KeyState == KeyState.FoundPersisted)
+            {
+                replicatedTo++;
+                persistedTo++;
+            }
+            PrintResult(result, master, true, cas);
+
+            //if durabilty constraint is satisfied by master were done
+            if (replicatedTo == (int) replicateTo && persistedTo == (int) persistTo)
+            {
+                return result;
+            }
+
+            //check each replica
+            var replicas = vBucket.Replicas.Where(x=>x > -1).ToArray();
+            do
+            {
+                foreach (var index in replicas)
+                {
+                    var replica = vBucket.LocateReplica(index);
+                    result = replica.Send(new Observe(key, vBucket, cas, _converter));
+                    state = result.Value;
+                    if (state.KeyState == persStatus)
+                    {
+                        replicatedTo++;
+                        persistedTo++;
+                    }
+                    else if (state.KeyState == replStatus)
+                    {
+                        replicatedTo++;
+                    }
+                    PrintResult(result, replica, false, cas);
+
+                    //Have durabilty constraints been met (or exceeded)?
+                    if (replicatedTo >= (int) replicateTo && persistedTo >= (int) persistTo)
+                    {
+                        break;
+                    }
+                }
+
+            //Durability constraints have not been met yet, try again
+            } while (replicatedTo < (int)replicateTo && persistedTo < (int) persistTo);
+            return null;
+        }
+
+        void PrintResult(IOperationResult<ObserveState> result, IServer server, bool isMaster, ulong cas)
+        {
+            var state = result.Value;
+            Console.WriteLine("Node: {0} [{1}]", server.EndPoint, isMaster);
+            Console.WriteLine("Cas: {0} [{1}]", state.Cas, cas==state.Cas);
+            Console.WriteLine("Key: {0}", state.Key);
+            Console.WriteLine("KeyLength: {0}", state.KeyLength);
+            Console.WriteLine("KeyState: {0}", state.KeyState);
+            Console.WriteLine("Perstate: {0}", state.PersistStat);
+            Console.WriteLine("ReplState: {0}", state.ReplState);
+            Console.WriteLine("Success: {0}", result.Success);
+            Console.WriteLine("\n");
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -44,6 +45,46 @@ namespace Couchbase.Tests.IO.Operations
 
             Assert.AreEqual(KeyState.FoundPersisted, result2.Value.KeyState);
             Assert.IsTrue(result2.Success);
+        }
+
+        [Test]
+        public void Test_Observe3()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://192.168.56.101:8091/pools")
+                },
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = 2,
+                    MinSize = 1
+                },
+                UseSsl = false
+            };
+
+            using (var cluster = new CouchbaseCluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    //bucket.Observe("keythatdoesntexist", 0, ReplicateTo.One, PersistTo.One);
+                    for (int i = 0; i < 10; i++)
+                    {
+                        var document = new Document<dynamic>
+                        {
+                            Id = "jeb123",
+                            Value = new {Name = "jeb"}
+                        };
+                        bucket.Remove(document);
+                        Assert.IsFalse(bucket.Get<dynamic>(document.Id).Success);
+
+                        var result = bucket.Insert(document);
+                        bucket.Insert(document);
+                        bucket.Observe(document.Id, result.Document.Cas, true, ReplicateTo.Two, PersistTo.One);
+                    }
+                }
+            }
         }
     }
 }

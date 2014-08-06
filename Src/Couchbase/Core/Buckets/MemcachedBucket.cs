@@ -91,7 +91,7 @@ namespace Couchbase.Core.Buckets
             }
         }
 
-        public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<ObserveState> Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
