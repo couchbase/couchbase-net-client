@@ -6,7 +6,6 @@
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
  using Couchbase.Core.Serializers;
- using Couchbase.IO;
  using Couchbase.IO.Converters;
  using Couchbase.IO.Operations;
  using Couchbase.Views;
@@ -91,7 +90,7 @@ namespace Couchbase.Core.Buckets
             }
         }
 
-        public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -117,7 +116,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -148,7 +147,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -166,7 +165,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -197,7 +196,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -225,7 +224,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<object> Remove(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -254,7 +253,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -320,7 +319,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -387,7 +386,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -405,7 +404,7 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Append(string key, string value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -423,7 +422,7 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
@@ -466,6 +465,52 @@ namespace Couchbase.Core.Buckets
         public IViewQuery CreateQuery(bool development, string designdoc, string view)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<T> Upsert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Upsert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IResult<T> Replace<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IResult<T> Insert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Insert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IResult Remove<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<object> Remove(string key, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public IOperationResult<T> Upsert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo, out ObserveResponse observeResponse)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

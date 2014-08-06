@@ -34,6 +34,11 @@
         /// The Check-and-swap value for a given key or document.
         /// </summary>
         ulong Cas { get; }
+
+        /// <summary>
+        /// Indicates that the given durability requirements were met by the operation request.
+        /// </summary>
+        Durability Durability { get; set; }
     }
 }
 

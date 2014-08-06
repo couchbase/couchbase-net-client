@@ -106,7 +106,7 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         }
 
 
-        IKeyMapper IConfigInfo.GetKeyMapper(string bucketName)
+        IKeyMapper IConfigInfo.GetKeyMapper()
         {
             throw new NotImplementedException();
         }

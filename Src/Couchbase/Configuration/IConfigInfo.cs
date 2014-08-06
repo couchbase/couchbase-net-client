@@ -17,7 +17,7 @@ namespace Couchbase.Configuration
         /// </summary>
         DateTime CreationTime { get; }
 
-        IKeyMapper GetKeyMapper(string bucketName);
+        IKeyMapper GetKeyMapper();
 
         IServer GetServer();
 

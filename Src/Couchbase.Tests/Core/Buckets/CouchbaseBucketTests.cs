@@ -713,6 +713,63 @@ namespace Couchbase.Tests.Core.Buckets
             public IBucket Bucket;
         }
 
+        [Test]
+        public void Test_Observe_Upsert()
+        {
+            var key = "Test_Observe_Upsert";
+            var value = "Test_Observe_Upsert_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result = bucket.Upsert(key, value, PersistTo.Three, ReplicateTo.Three);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
+        [Test]
+        public void Test_Observe_Insert()
+        {
+            var key = "Test_Observe_Insert";
+            var value = "Test_Observe_Insert_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result = bucket.Insert(key, value, PersistTo.Three, ReplicateTo.Three);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
+        [Test]
+        public void Test_Observe_Replace()
+        {
+            var key = "Test_Observe_Replace";
+            var value = "Test_Observe_ReplaceUpsert_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                bucket.Insert(key, value);
+                var result = bucket.Replace(key, value, PersistTo.Three, ReplicateTo.Three);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
+        [Test]
+        public void Test_Observe_Remove()
+        {
+            var key = "Test_Observe_Remove";
+            var value = "Test_Observe_Remove_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Insert(key, value);
+                var result = bucket.Remove(key, PersistTo.Three, ReplicateTo.Three);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

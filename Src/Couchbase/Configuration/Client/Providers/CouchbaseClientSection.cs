@@ -123,6 +123,26 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["httpsApiPort"]; }
             set { this["httpsApiPort"] = value; }
         }
+
+        /// <summary>
+        /// Gets or Sets the max time an observe operation will take before timing out.
+        /// </summary>
+        [ConfigurationProperty("observeInterval", DefaultValue = 2, IsRequired = false)]
+        public int ObserveInterval
+        {
+            get { return (int)this["observeInterval"]; }
+            set { this["observeInterval"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or Sets the interval between each observe attempt.
+        /// </summary>
+        [ConfigurationProperty("observeTimeout", DefaultValue = 500, IsRequired = false)]
+        public int ObserveTimeout
+        {
+            get { return (int)this["observeTimeout"]; }
+            set { this["observeTimeout"] = value; }
+        }
     }
 }
 

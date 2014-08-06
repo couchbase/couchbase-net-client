@@ -72,6 +72,7 @@
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
+    <Compile Include="Core\Buckets\KeyObserver.cs" />
     <Compile Include="Core\Serializers\ITypeSerializer.cs" />
     <Compile Include="Core\Serializers\TypeSerializer.cs" />
     <Compile Include="CouchbaseCluster.cs" />
@@ -172,6 +173,7 @@
     <Compile Include="IO\Operations\IOperation%27.cs" />
     <Compile Include="IO\Operations\KeyState.cs" />
     <Compile Include="IO\Operations\Observe.cs" />
+    <Compile Include="IO\Operations\ObserveResponse.cs" />
     <Compile Include="IO\Operations\ObserveState.cs" />
     <Compile Include="IO\Operations\OperationBase%27.cs" />
     <Compile Include="IO\Operations\OperationResult.cs" />

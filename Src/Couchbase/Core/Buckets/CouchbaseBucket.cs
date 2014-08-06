@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -80,7 +81,7 @@ namespace Couchbase.Core.Buckets
 
         IServer GetServer(string key, out IVBucket vBucket)
         {
-            var keyMapper = _configInfo.GetKeyMapper(Name);
+            var keyMapper = _configInfo.GetKeyMapper();
             vBucket = (IVBucket) keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
         }
@@ -239,9 +240,48 @@ namespace Couchbase.Core.Buckets
             return requiresRetry;
         }
 
-        public IOperationResult<ObserveState> Observe(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>A <see cref="ObserveResponse"/> value indicating if the durability requirement were or were not met.</returns>
+        public ObserveResponse Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            var config = _configInfo.ClientConfig.BucketConfigs[Name];
+            var observer = new KeyObserver(_configInfo, config.ObserveInterval, config.ObserveTimeout);
+            return observer.Observe(key, cas, deletion, replicateTo, persistTo)
+                ? ObserveResponse.DurabilitySatisfied
+                : ObserveResponse.DurabilityNotSatisfied;
+        }
+
+        /// <summary>
+        /// Sends an operation to the server while observing it's durability requirements
+        /// </summary>
+        /// <typeparam name="T">The value for T.</typeparam>
+        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
+        /// <param name="deletion">True if mutation is a deletion.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>The <see cref="IOperationResult{T}"/> with it's <see cref="Durability"/> status.</returns>
+        private IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            var result = SendWithRetry(operation);
+            if (result.Success)
+            {
+                var observeResponse = Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                result.Durability = observeResponse == ObserveResponse.DurabilitySatisfied
+                    ? Durability.Satisfied
+                    : Durability.NotSatisfied;
+            }
+            else
+            {
+                result.Durability = Durability.NotSatisfied;
+            }
+            return result;
         }
 
         /// <summary>
@@ -268,6 +308,36 @@ namespace Couchbase.Core.Buckets
             CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter);
             return SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Upsert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            var result = Upsert(document.Id, document.Value, persistTo, replicateTo);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            CheckDisposed();
+            var operation = new Set<T>(key, value, null, _converter);
+            return SendWithDurability(operation, false, persistTo, replicateTo);
         }
 
         /// <summary>
@@ -312,6 +382,36 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Replace<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            var result = Replace(document.Id, document.Value, persistTo, replicateTo);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            CheckDisposed();
+            var operation = new Replace<T>(key, value, null, _converter, _serializer);
+            return SendWithDurability(operation, false, persistTo, replicateTo);
+        }
+
+        /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -338,6 +438,36 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IResult<T> Insert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            var result = Insert(document.Id, document.Value, persistTo, replicateTo);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database using a given key, failing if the key exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Insert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            return SendWithDurability(operation, false, persistTo, replicateTo);
+        }
+
+        /// <summary>
         /// Removes a document from the database.
         /// </summary>
         /// <typeparam name="T">The type T of the object.</typeparam>
@@ -359,6 +489,34 @@ namespace Couchbase.Core.Buckets
             CheckDisposed();   
             var operation = new Delete(key, null, _converter, _serializer);
             return SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
+        public IResult Remove<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            var result = Remove(document.Id, persistTo, replicateTo);
+            return new DocumentResult(result, document.Id);
+        }
+
+        /// <summary>
+        /// For a given key, removes a document from the database.
+        /// </summary>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<object> Remove(string key, PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _serializer);
+            return SendWithDurability(operation, true, persistTo, replicateTo);
         }
 
         /// <summary>

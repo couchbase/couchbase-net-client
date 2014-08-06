@@ -15,7 +15,6 @@ namespace Couchbase
             Document = new Document<T>
             {
                 Cas = result.Cas,
-                //Expiry = result.Expiry,
                 Id = id,
                 Value = result.Value
             };

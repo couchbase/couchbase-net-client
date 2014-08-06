@@ -12,6 +12,7 @@ namespace Couchbase.IO.Operations
         public OperationResult(OperationBase<T> operation)
         {
             _operation = operation;
+            Durability = Durability.Unspecified;
         }
 
         /// <summary>
@@ -95,6 +96,8 @@ namespace Couchbase.IO.Operations
             }
             return config;
         }
+
+        public Durability Durability { get; set; }
     }
 }
 

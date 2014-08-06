@@ -31,6 +31,8 @@ namespace Couchbase.Configuration.Client
             MgmtPort = 8091;
             HttpsMgmtPort = 18091;
             HttpsApiPort = 18092;
+            ObserveInterval = 10; //ms
+            ObserveTimeout = 500; //ms
 
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -60,6 +62,8 @@ namespace Couchbase.Configuration.Client
             MgmtPort = couchbaseClientSection.MgmtPort;
             HttpsMgmtPort = couchbaseClientSection.HttpsMgmtPort;
             HttpsApiPort = couchbaseClientSection.HttpsApiPort;
+            ObserveInterval = couchbaseClientSection.ObserveInterval;
+            ObserveTimeout = couchbaseClientSection.ObserveTimeout;
             Servers= new List<Uri>();
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -73,6 +77,8 @@ namespace Couchbase.Configuration.Client
                     BucketName = bucket.Name,
                     UseSsl = bucket.UseSsl,
                     Password = bucket.Password,
+                    ObserveInterval = bucket.ObserveInterval,
+                    ObserveTimeout = bucket.ObserveTimeout,
                     PoolConfiguration = new PoolConfiguration
                     {
                         MaxSize = bucket.ConnectionPool.MaxSize,
@@ -153,6 +159,16 @@ namespace Couchbase.Configuration.Client
         /// <remarks>Requires UseSSL to be true.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Couchbase Views REST API SSL port.</remarks>
         public int HttpsApiPort { get; set; }
+
+        /// <summary>
+        /// Gets or Sets the max time an observe operation will take before timing out.
+        /// </summary>
+        public int ObserveTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or Sets the interval between each observe attempt.
+        /// </summary>
+        public int ObserveInterval { get; set; }
 
         /// <summary>
         /// A list of hosts used to bootstrap from.

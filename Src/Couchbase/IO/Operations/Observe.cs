@@ -12,11 +12,6 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public Observe(string key, ITypeSerializer serializer, IVBucket vBucket, IByteConverter converter)
-            : base(key, null, serializer, vBucket, converter)
-        {
-        }
-
         public Observe(string key, IVBucket vBucket, IByteConverter converter)
             : base(key, vBucket, converter)
         {
