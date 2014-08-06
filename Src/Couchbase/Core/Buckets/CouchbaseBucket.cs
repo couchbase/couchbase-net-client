@@ -176,8 +176,6 @@ namespace Couchbase.Core.Buckets
                 case ResponseStatus.ClientFailure:
                     retry = HandleIOError(operation, server) || supportsRetry;
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
             return retry;
         }
