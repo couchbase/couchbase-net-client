@@ -153,14 +153,17 @@ namespace Couchbase.IO.Strategies
             }
             else
             {
-                if (Socket != null)
+                if (!_disposed)
                 {
-                    Socket.Close();
-                    Socket.Dispose();
-                }
-                if (_sslStream != null)
-                {
-                    _sslStream.Dispose();
+                    if (Socket != null)
+                    {
+                        Socket.Close();
+                        Socket.Dispose();
+                    }
+                    if (_sslStream != null)
+                    {
+                        _sslStream.Dispose();
+                    }
                 }
             }
             _disposed = true;
