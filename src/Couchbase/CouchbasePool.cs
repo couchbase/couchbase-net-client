@@ -4,11 +4,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Couchbase.Extensions;
 using Couchbase.Management;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Protocol.Binary;
 using Couchbase.Configuration;
+using Couchbase.Extensions;
 
 namespace Couchbase
 {
@@ -323,7 +325,10 @@ namespace Couchbase
                 return new CouchbaseNode(endpoint, configuration.SocketPool, auth);
             }
 
-            return new CouchbaseNode(endpoint, new Uri(couchApiBase), this.configuration, auth);
+            //Create URI and enable iriParsing per: https://connect.microsoft.com/VisualStudio/feedback/details/758479/system-uri-tostring-behaviour-change
+            var uri = new Uri(couchApiBase);
+            uri.EnableIriParsing(true);
+            return new CouchbaseNode(endpoint, uri, this.configuration, auth);
         }
 
         void IDisposable.Dispose()

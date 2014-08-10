@@ -57,6 +57,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Extensions\UriExtensions.cs">
+      <Link>Extensions\UriExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Extensions\InterfaceContractResolver.cs">
       <Link>Extensions\InterfaceContractResolver.cs</Link>
     </Compile>
