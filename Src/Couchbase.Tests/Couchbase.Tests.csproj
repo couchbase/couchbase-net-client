@@ -156,6 +156,15 @@
     <None Include="Data\Configuration\carrier-publication-config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Configuration\config-revision-8934.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-revision-9958.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-with-nodes-ext.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Configuration\config-with-replicas-complete.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
