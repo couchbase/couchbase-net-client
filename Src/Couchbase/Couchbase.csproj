@@ -241,6 +241,7 @@
     <Compile Include="Core\Server.cs" />
     <Compile Include="Core\VBucket.cs" />
     <Compile Include="ReplicateTo.cs" />
+    <Compile Include="ServerUnavailableException.cs" />
     <Compile Include="Utils\ArrayExtensions.cs" />
     <Compile Include="Utils\ArraySegmentExtensions.cs" />
     <Compile Include="Utils\BoolExtensions.cs" />

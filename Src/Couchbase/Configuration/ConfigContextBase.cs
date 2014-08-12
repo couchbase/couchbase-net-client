@@ -169,7 +169,36 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IServer GetServer()
         {
-            return Servers.Shuffle().First(x => !x.IsDead);
+            const int maxAttempts = 7;
+            var attempts = 0;
+
+            if (!Servers.Any())
+            {
+                throw new ServerUnavailableException();
+            }
+            IServer server;
+            do
+            {
+                server = Servers.
+                    Shuffle().
+                    FirstOrDefault(x => !x.IsDead);
+
+                if (server == null)
+                {
+                    var sleepTime = (int)Math.Pow(2, attempts);
+                    Thread.Sleep(sleepTime);
+                }
+                else
+                {
+                    break;
+                }
+            } while (attempts++ < maxAttempts);
+
+            if (server == null)
+            {
+                throw new ServerUnavailableException();
+            }
+            return server;
         }
 
         /// <summary>
