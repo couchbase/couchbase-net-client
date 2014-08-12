@@ -126,6 +126,94 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Set<T>(key, value, null, _converter)
+            {
+                Expires = expiration
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Set<T>(key, value, null, _converter)
+            {
+                Cas = cas
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Set<T>(key, value, null, _converter)
+            {
+                Cas = cas,
+                Expires = expiration
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Replaces a document if it exists, otherwise fails.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -175,6 +263,53 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Replace<T>(key, value, null, _converter, _serializer)
+            {
+                Expires = expiration
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, uint cas, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -185,7 +320,6 @@ namespace Couchbase.Core.Buckets
             var result = Insert(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
         }
-
 
         /// <summary>
         /// Inserts a document into the database for a given key, failing if it exists.
@@ -203,6 +337,43 @@ namespace Couchbase.Core.Buckets
             var operation = new Add<T>(key, value, null, _converter, _serializer);
             var operationResult = server.Send(operation);
             return operationResult;
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Add<T>(key, value, null, _converter, _serializer)
+            {
+                Expires = expiration
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -231,6 +402,41 @@ namespace Couchbase.Core.Buckets
             var operation = new Delete(key, null, _converter, _serializer);
             var operationResult = server.Send(operation);
             return operationResult;
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<object> Remove(string key, ulong cas)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            var server = bucket.LocatePrimary();
+
+            var operation = new Delete(key, null, _converter, _serializer)
+            {
+                Cas = cas
+            };
+            var operationResult = server.Send(operation);
+            return operationResult;
+        }
+
+        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -467,50 +673,54 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Upsert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Upsert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Replace<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Replace<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Insert<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Insert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo)
+        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult Remove<T>(IDocument<T> document, PersistTo persistTo, ReplicateTo replicateTo)
+        public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<object> Remove(string key, PersistTo persistTo, ReplicateTo replicateTo)
+        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-
-        public IOperationResult<T> Upsert<T>(string key, T value, PersistTo persistTo, ReplicateTo replicateTo, out ObserveResponse observeResponse)
+        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
