@@ -192,7 +192,7 @@ namespace Couchbase.Core.Serializers
         string Deserialize(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
-            if (buffer != null && buffer.Length > 0)
+            if (buffer != null && buffer.Length > 0 && length > 0)
             {
                 result = Encoding.UTF8.GetString(buffer, offset, length);
             }
