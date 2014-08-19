@@ -34,6 +34,7 @@ namespace Couchbase.Configuration
         protected readonly ITypeSerializer Serializer;
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
+        protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
@@ -172,33 +173,50 @@ namespace Couchbase.Configuration
             const int maxAttempts = 7;
             var attempts = 0;
 
-            if (!Servers.Any())
+            try
             {
-                throw new ServerUnavailableException();
-            }
-            IServer server;
-            do
-            {
-                server = Servers.
-                    Shuffle().
-                    FirstOrDefault(x => !x.IsDead);
+                Lock.EnterReadLock();
+                if (!Servers.Any())
+                {
+                    throw new ServerUnavailableException();
+                }
 
+                IServer server;
+                do
+                {
+                    server = Servers.
+                        Shuffle().
+                        FirstOrDefault(x => !x.IsDead);
+
+                    //cannot find a server - usually a temp state
+                    if (server == null)
+                    {
+                        try
+                        {
+                            Lock.ExitReadLock();
+                            var sleepTime = (int)Math.Pow(2, attempts);
+                            Thread.Sleep(sleepTime);
+                        }
+                        finally
+                        {
+                            Lock.EnterReadLock();
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (attempts++ < maxAttempts);
                 if (server == null)
                 {
-                    var sleepTime = (int)Math.Pow(2, attempts);
-                    Thread.Sleep(sleepTime);
+                    throw new ServerUnavailableException();
                 }
-                else
-                {
-                    break;
-                }
-            } while (attempts++ < maxAttempts);
-
-            if (server == null)
-            {
-                throw new ServerUnavailableException();
+                return server;
             }
-            return server;
+            finally
+            {
+                Lock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -216,16 +234,25 @@ namespace Couchbase.Configuration
         /// <param name="disposing">True to suppress finalization.</param>
         private void Dispose(bool disposing)
         {
-            if (_disposed) return;
-            if (disposing)
+            try
             {
-                GC.SuppressFinalize(this);
+                Lock.EnterWriteLock();
+                if (_disposed) return;
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+                if (Servers != null)
+                {
+                    Servers.ForEach(x => x.Dispose());
+                    Servers.Clear();
+                }
+                _disposed = true;
             }
-            if (Servers != null)
+            finally
             {
-                Servers.ForEach(x => x.Dispose());
+                Lock.ExitWriteLock();
             }
-            _disposed = true;
         }
 
         /// <summary>
