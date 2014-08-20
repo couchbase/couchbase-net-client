@@ -46,12 +46,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public void Initialize()
         {
             var servers = _clientConfig.Servers.Shuffle().ToList();
-            foreach (var server in servers)
+            var hasBootStrapped = servers.Any(DownloadConfigs);
+            if (!hasBootStrapped)
             {
-                if (DownloadConfigs(server))
-                {
-                    break;
-                }
+                throw new BootstrapException("Could not bootstrap from configured servers list.");
             }
         }
 
@@ -113,14 +111,20 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
             ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
-            var response = DownloadString(uri);
+            var response = ReplaceHost(DownloadString(uri), uri);
             return JsonConvert.DeserializeObject<T>(response);
         }
 
-        private bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
             return true;
+        }
+
+        static string ReplaceHost(string response, Uri uri)
+        {
+            const string placeholder = "$HOST";
+            return response.Replace(placeholder, uri.Host);
         }
     }
 }
