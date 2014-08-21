@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Threading;
+using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -20,7 +21,6 @@ namespace Couchbase.Configuration
     /// </summary>
     internal class MemcachedConfigContext : ConfigContextBase
     {
-
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
@@ -60,12 +60,21 @@ namespace Couchbase.Configuration
                 foreach (var node in bucketConfig.Nodes)
                 {
                     var endpoint = GetEndPoint(node, bucketConfig);
-                    var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration, endpoint);
-                    var ioStrategy = IOStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy, node, ClientConfig);
-                    var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
-                    ioStrategy.SaslMechanism = saslMechanism;
-                    servers.Add(server);
+                    try
+                    {
+                        var connectionPool =
+                            ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration,
+                                endpoint);
+                        var ioStrategy = IOStrategyFactory(connectionPool);
+                        var server = new Core.Server(ioStrategy, node, ClientConfig);
+                        var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
+                        ioStrategy.SaslMechanism = saslMechanism;
+                        servers.Add(server);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                    }
                 }
                 Interlocked.Exchange(ref Servers, servers);
             }
@@ -79,12 +88,20 @@ namespace Couchbase.Configuration
             foreach (var node in BucketConfig.Nodes)
             {
                 var endpoint = GetEndPoint(node, BucketConfig);
-                var connectionPool = ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
-                var ioStrategy = IOStrategyFactory(connectionPool);
-                var server = new Core.Server(ioStrategy, node, ClientConfig);
-                var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
-                ioStrategy.SaslMechanism = saslMechanism;
-                servers.Add(server);
+                try
+                {
+                    var connectionPool =
+                        ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
+                    var ioStrategy = IOStrategyFactory(connectionPool);
+                    var server = new Core.Server(ioStrategy, node, ClientConfig);
+                    var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
+                    ioStrategy.SaslMechanism = saslMechanism;
+                    servers.Add(server);
+                }
+                catch (Exception e)
+                {
+                    Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                }
             }
             Interlocked.Exchange(ref Servers, servers);
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));

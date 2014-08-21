@@ -80,8 +80,19 @@ namespace Couchbase.Core
 
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            Log.Debug(m=>m("Sending {0} using server {1}", operation.Key, EndPoint));
-            return _ioStrategy.Execute(operation);
+            IOperationResult<T> result;
+            try
+            {
+                Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                result = _ioStrategy.Execute(operation);
+            }
+            catch (Exception e)
+            {
+                result = operation.GetResult();
+                operation.Exception = e;
+                operation.HandleClientError(e.Message);
+            }
+            return result;
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)

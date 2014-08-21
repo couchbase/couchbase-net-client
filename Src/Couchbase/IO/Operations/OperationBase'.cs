@@ -69,7 +69,7 @@ namespace Couchbase.IO.Operations
             Header = new OperationHeader();
         }
 
-        public virtual void HandleSocketError(string message)
+        public virtual void HandleClientError(string message)
         {
             Header = new OperationHeader
             {
@@ -196,8 +196,17 @@ namespace Couchbase.IO.Operations
 
         public virtual T GetValue()
         {
-            var buffer = Data.ToArray();
-            return Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
+            T result;
+            if (Data == null)
+            {
+                result = default(T);
+            }
+            else
+            {
+                var buffer = Data.ToArray();
+                result = Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
+            }
+            return result;
         }
 
         public virtual string GetMessage()
@@ -216,14 +225,21 @@ namespace Couchbase.IO.Operations
                     {
                         if (Header.Status != ResponseStatus.Success)
                         {
-                            var buffer = Data.ToArray();
-                            if (buffer.Length > 0 && TotalLength == 24)
+                            if (Data == null)
                             {
-                                message = Converter.ToString(buffer, 0, buffer.Length);
+                                message = string.Empty;
                             }
                             else
                             {
-                                message = Converter.ToString(buffer, 24, TotalLength - 24);
+                                var buffer = Data.ToArray();
+                                if (buffer.Length > 0 && TotalLength == 24)
+                                {
+                                    message = Converter.ToString(buffer, 0, buffer.Length);
+                                }
+                                else
+                                {
+                                    message = Converter.ToString(buffer, 24, TotalLength - 24);
+                                }
                             }
                         }
                     }

@@ -50,7 +50,7 @@ namespace Couchbase.IO.Operations
 
         IVBucket VBucket { get; set; }
 
-        void HandleSocketError(string message);
+        void HandleClientError(string message);
     }
 }
 

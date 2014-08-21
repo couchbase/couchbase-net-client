@@ -40,7 +40,7 @@ namespace Couchbase.IO.Strategies
 
                 if (!_sendEvent.WaitOne(500))
                 {
-                    operation.HandleSocketError("Timed out.");
+                    operation.HandleClientError("Timed out.");
                 }
             }
             catch (Exception e)

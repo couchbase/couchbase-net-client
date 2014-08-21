@@ -22,7 +22,7 @@ namespace Couchbase.Configuration
     /// </summary>
     internal abstract class ConfigContextBase : IConfigInfo
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        protected static readonly ILog Log = LogManager.GetCurrentClassLogger();
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;

@@ -102,10 +102,19 @@ namespace Couchbase.Authentication.SASL
             authenticated = result.Status == ResponseStatus.Success &&
                    result.Value.Equals("Authenticated");
 
-            if (result.Status == ResponseStatus.AuthenticationError || !authenticated)
+            if (result.Status == ResponseStatus.AuthenticationError)
             {
                 var tempResult = result;
                 Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message));
+            }
+            else if (result.Status != ResponseStatus.Success)
+            {
+                var tempResult = result;
+                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message));
+                if (operation.Exception != null)
+                {
+                    throw operation.Exception;
+                }
             }
             else
             {

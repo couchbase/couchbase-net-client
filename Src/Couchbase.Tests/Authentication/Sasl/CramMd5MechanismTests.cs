@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -129,6 +130,19 @@ namespace Couchbase.Tests.Authentication.Sasl
 
             var actual = authenticator.ComputeResponse(challenge);
             Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        [ExpectedException(typeof(IOException))]
+        public void When_IOException_Occurs_Authenticate_Throws_Exception()
+        {
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new ManualByteConverter());
+            _ioStrategy.ConnectionPool.Initialize();
+
+            var connection = _ioStrategy.ConnectionPool.Acquire();
+            connection.Socket.Disconnect(false);
+
+            authenticator.Authenticate(connection);
         }
 
         [TestFixtureTearDown]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Serializers;
@@ -34,6 +35,17 @@ namespace Couchbase.Tests.IO.Operations
 
             var expected = new {foo = "foo"};
             Assert.AreEqual(result.Value.foo.Value, expected.foo);
+        }
+
+        [Test]
+        public void Test_OperationResult_Returns_Defaults()
+        {
+            var op = new Get<string>("Key", GetVBucket(), new AutoByteConverter(),
+                new TypeSerializer(new AutoByteConverter()));
+
+            var result = op.GetResult();
+            Assert.IsNull(result.Value);
+            Assert.IsEmpty(result.Message);
         }
     }
 }
