@@ -99,6 +99,70 @@ namespace Couchbase.Tests.Utils
             }
             Assert.IsTrue(different);
         }
+
+        [Test]
+        public void Test_GetRandom()
+        {
+            var array1 = new List<char> { 'a', 'b', 'c', 'd' };
+            var random1 = array1.GetRandom();
+            var random2 = array1.GetRandom();
+
+            //note strong chance of collisions...
+            Assert.AreNotEqual(random1, random2);
+        }
+
+        [Test]
+        public void Test_GetRandom_IEnumerable()
+        {
+            var array1 = new List<char> { 'a', 'b', 'c', 'd' };
+            var random1 = array1.Where(x=>x !='c').GetRandom();
+            var random2 = array1.Where(x => x != 'c').GetRandom();
+
+            //note strong chance of collisions...
+            Assert.AreNotEqual(random1, random2);
+        }
+
+        [Test]
+        public void When_Length_Is_One_Return_Same_Item()
+        {
+            var array1 = new List<char> { 'b',};
+            var random1 = array1.GetRandom();
+            var random2 = array1.GetRandom();
+
+            Assert.AreEqual(random1, random2);
+        }
+
+        [Test]
+        public void When_Length_Is_One_Return_Same_Item_IEnumerable()
+        {
+            var array1 = new List<char> { 'b', };
+            var random1 = array1.Where(x => x != 'c').GetRandom();
+            var random2 = array1.Where(x => x != 'c').GetRandom();
+
+            Assert.AreEqual(random1, random2);
+        }
+
+        [Test]
+        public void When_Length_Is_Zero_Return_Default_T()
+        {
+            var array1 = new List<char> { };
+            var random1 = array1.GetRandom();
+            var random2 = array1.GetRandom();
+
+            Assert.AreEqual('\0', random1);
+            Assert.AreEqual(random1, random2);
+        }
+
+        [Test]
+        public void When_Length_Is_Zero_Return_Default_T2()
+        {
+            var array1 = new List<object> { };
+            var random1 = array1.Where(x => x != null).GetRandom();
+            var random2 = array1.GetRandom();
+
+            Assert.AreEqual(null, random1);
+            Assert.AreEqual(random1, random2);
+        }
     }
 }
 

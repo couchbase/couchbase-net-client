@@ -32,8 +32,41 @@ namespace Couchbase.Utils
                 list[index] = list[length];
                 list[length] = item;
             }
-            return list.ToList();
-        } 
+            return list;
+        }
+
+        public static T GetRandom<T>(this List<T> list)
+        {
+            T item;
+            var length = list.Count;
+            if (length > 0)
+            {
+                var index = Random.Next(length);
+                item = list[index];
+            }
+            else
+            {
+                item = default(T);
+            }
+            return item;
+        }
+
+        public static T GetRandom<T>(this IEnumerable<T> list)
+        {
+            T item;
+            var enumerable = list as IList<T> ?? list.ToList();
+            var length = enumerable.Count();
+            if (length > 0)
+            {
+                var index = Random.Next(length);
+                item = enumerable[index];
+            }
+            else
+            {
+                item = default(T);
+            }
+            return item;
+        }
 
         public static bool AreEqual<T>(this Array array, Array other)
         {

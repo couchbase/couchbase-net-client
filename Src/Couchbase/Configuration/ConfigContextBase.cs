@@ -184,9 +184,7 @@ namespace Couchbase.Configuration
                 IServer server;
                 do
                 {
-                    server = Servers.
-                        Shuffle().
-                        FirstOrDefault(x => !x.IsDead);
+                    server = Servers.Where(x => !x.IsDead).GetRandom();
 
                     //cannot find a server - usually a temp state
                     if (server == null)
