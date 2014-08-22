@@ -14,7 +14,7 @@ namespace Couchbase.Configuration.Client
     /// WaitTimeout = 2500;
     /// ReceiveTimeout = 2500;
     /// ShutdownTimeout = 10000;
-    /// SendTimeout = 2500;
+    /// OperationTimeout = 2500;
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
@@ -25,11 +25,11 @@ namespace Couchbase.Configuration.Client
             WaitTimeout = 2500;
             RecieveTimeout = 2500;
             ShutdownTimeout = 10000;
-            SendTimeout = 2500;
+            OperationTimeout = 2500;
         }
 
         public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
-            int sendTimeout)
+            int operationTimeout)
         {
             //todo enable app.configuration
             MaxSize = maxSize;
@@ -37,7 +37,7 @@ namespace Couchbase.Configuration.Client
             WaitTimeout = waitTimeout;
             RecieveTimeout = receiveTimeout;
             ShutdownTimeout = shutdownTimeout;
-            SendTimeout = sendTimeout;
+            OperationTimeout = operationTimeout;
         }
 
         /// <summary>
@@ -63,9 +63,12 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public int ShutdownTimeout { get; set; }
 
-
-        [Obsolete]
-        public int SendTimeout { get; set; }
+        /// <summary>
+        /// The amount of time to wait for a pending operation to complete before timing out.
+        /// </summary>
+        /// <remarks>Default is 2500ms</remarks>
+        /// <remarks>Operations exceeding this timeout will return the following message: "Timed out"</remarks>
+        public int OperationTimeout { get; set; }
 
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.

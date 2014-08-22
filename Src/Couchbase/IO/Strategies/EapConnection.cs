@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
@@ -14,6 +15,7 @@ namespace Couchbase.IO.Strategies
         private readonly ConnectionPool<EapConnection> _connectionPool;
         private readonly NetworkStream _networkStream;
         private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
+        private readonly PoolConfiguration _configuration;
         private volatile bool _disposed;
 
         internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, IByteConverter converter)
@@ -26,6 +28,7 @@ namespace Couchbase.IO.Strategies
         {
             _connectionPool = connectionPool;
             _networkStream = networkStream;
+            _configuration = _connectionPool.Configuration;
         }
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
@@ -38,9 +41,10 @@ namespace Couchbase.IO.Strategies
                 Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, Socket.RemoteEndPoint));
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
 
-                if (!_sendEvent.WaitOne(500))
+                if (!_sendEvent.WaitOne(_configuration.OperationTimeout))
                 {
-                    operation.HandleClientError("Timed out.");
+                    const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
+                    operation.HandleClientError(msg);
                 }
             }
             catch (Exception e)

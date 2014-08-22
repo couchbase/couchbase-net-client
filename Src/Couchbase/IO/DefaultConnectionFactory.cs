@@ -21,13 +21,7 @@ namespace Couchbase.IO
             Func<IConnectionPool, IConnection> factory = p =>
             {
                 var config = p.Configuration;
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-                {
-                    ReceiveTimeout = config.RecieveTimeout,
-                    SendTimeout = config.SendTimeout,
-                };
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, config.RecieveTimeout);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 socket.Connect(p.EndPoint);
                 if (config.UseSsl)
@@ -49,14 +43,7 @@ namespace Couchbase.IO
         {
             Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) => 
             {
-                var config = p.Configuration;
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-                {
-                    ReceiveTimeout = config.RecieveTimeout,
-                    SendTimeout = config.SendTimeout,
-                };
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, config.RecieveTimeout);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, config.SendTimeout);
+                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 socket.Connect(p.EndPoint);
 

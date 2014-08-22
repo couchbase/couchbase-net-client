@@ -36,7 +36,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(1, bucketConfig.PoolConfiguration.MinSize);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
-            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.SendTimeout);
+            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
         }
 
@@ -70,7 +70,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(10, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(10, bucketConfig.PoolConfiguration.MinSize);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
-            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.SendTimeout);
+            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
         }
 
@@ -121,7 +121,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(5, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(5, bucketConfig.PoolConfiguration.MinSize);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
-            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.SendTimeout);
+            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
         }
 
