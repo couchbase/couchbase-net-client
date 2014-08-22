@@ -49,6 +49,13 @@ namespace Couchbase.Tests
             testPageSizes(view);
         }
 
+        [Test]
+        public void When_PageSize_Is_Greater_Than_Number_Of_Items_MoveNext_Returns_True()
+        {
+            var view = Client.GetView<City>("cities", "by_name", true).GetPagedView(1000, "Id", "Name");
+            Assert.IsTrue(view.MoveNext());
+        }
+
         /// <summary>
         /// @test: Get view results with generic type, key and id are set, paging view count is correct
         /// @pre: Default configuration to initialize client in app.config, configure view name 'by_name' with design name 'cities'
