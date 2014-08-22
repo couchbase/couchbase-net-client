@@ -52,7 +52,7 @@ namespace Couchbase
                 this.nextKey = pageInfo.LastKey;
                 this.state = 1;
 
-                return this.nextId != null;
+                return (this.nextId != null && this.items.Count > 0);
             }
 
             // can't go further
