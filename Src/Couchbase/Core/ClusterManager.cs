@@ -173,10 +173,11 @@ namespace Couchbase.Core
                                 throw new ArgumentOutOfRangeException();
                         }
 
-                        var configObserver = bucket as IConfigObserver;
+                        var configObserver = (IConfigObserver)bucket;
                         if (provider.ObserverExists(configObserver))
                         {
                             Log.DebugFormat("Using existing bootstrap {0}.", provider);
+                            UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;
                             break;
@@ -186,10 +187,12 @@ namespace Couchbase.Core
                             _buckets.TryAdd(bucket.Name, bucket))
                         {
                             Log.DebugFormat("Successfully boostrap using {0}.", provider);
+                            UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;
                             break;
                         }
+                        UpdateBootstrapList(config.BucketConfig);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
@@ -214,6 +217,21 @@ namespace Couchbase.Core
                         throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
                 }
                 return bucket;
+            }
+        }
+
+        void UpdateBootstrapList(IBucketConfig bucketConfig)
+        {
+            lock (SyncObject)
+            {
+                foreach (var node in bucketConfig.Nodes)
+                {
+                    var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
+                    if (!_clientConfig.Servers.Contains(uri))
+                    {
+                        _clientConfig.Servers.Add(uri);
+                    }
+                }
             }
         }
 

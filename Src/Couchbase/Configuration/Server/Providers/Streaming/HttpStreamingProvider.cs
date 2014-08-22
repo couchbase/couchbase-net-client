@@ -168,6 +168,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
                 try
                 {
+                    UpdateBootstrapList(bucketConfig);
                     configObserver.NotifyConfigChanged(configInfo);
                 }
                 catch (Exception e)

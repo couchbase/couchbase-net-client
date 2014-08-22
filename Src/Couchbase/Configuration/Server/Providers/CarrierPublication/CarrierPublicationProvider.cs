@@ -89,6 +89,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         Log.Info(m => m("New config has changed new Rev#{0} | old Rev#{1} CCCP: {2}", bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
                         configInfo.LoadConfig(bucketConfig);
+                        UpdateBootstrapList(bucketConfig);
                         configObserver.NotifyConfigChanged(configInfo);
                     }
                 }

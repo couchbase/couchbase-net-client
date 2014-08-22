@@ -5,6 +5,7 @@ using System.Net;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using Couchbase.IO;
@@ -157,6 +158,21 @@ namespace Couchbase.Configuration.Server.Providers
         public virtual bool ObserverExists(IConfigObserver observer)
         {
             return ConfigObservers.ContainsKey(observer.Name);
+        }
+
+        protected void UpdateBootstrapList(IBucketConfig bucketConfig)
+        {
+            lock (SyncObj)
+            {
+                foreach (var node in bucketConfig.Nodes)
+                {
+                    var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
+                    if (!_clientConfig.Servers.Contains(uri))
+                    {
+                        _clientConfig.Servers.Add(uri);
+                    }
+                }
+            }
         }
     }
 }
