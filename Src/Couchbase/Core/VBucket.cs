@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
@@ -15,9 +16,28 @@ namespace Couchbase.Core
             _replicas = replicas;
         }
 
+        /// <summary>
+        /// Gets a reference to the primary server for this VBucket.
+        /// </summary>
+        /// <returns>A <see cref="IServer"/> reference which is the primary server for this <see cref="VBucket"/></returns>
+        ///<remarks>If the VBucket doesn't have a master, it will return a random <see cref="IServer"/> to force a NMV and reconfig.</remarks>
         public IServer LocatePrimary()
         {
-            return _cluster[Primary];
+            IServer server = null;
+            if (Primary > -1)
+            {
+                server = _cluster[Primary];
+            }
+            if(server == null)
+            {
+                var replicas = _replicas.Where(x => x > -1);
+                var enumerable = replicas as int[] ?? replicas.ToArray();
+                if (enumerable.Any())
+                {
+                    server = _cluster[enumerable.GetRandom()];
+                }
+            }
+            return server ?? (_cluster.GetRandom());
         }
 
         public IServer LocateReplica(int replicaIndex)

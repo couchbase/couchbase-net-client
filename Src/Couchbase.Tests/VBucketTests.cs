@@ -127,6 +127,28 @@ namespace Couchbase.Tests
             }
         }
 
+        [Test]
+        public void When_Primary_Is_Negative_Random_Server_Returned()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var servers = bucketConfig.VBucketServerMap.
+               ServerList.
+               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new Node(), new ClientConfiguration())).
+               Cast<IServer>().
+               ToList();
+
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+
+            //maps to -1 primary
+            const string key = "somekey0";
+            var vBucket = (IVBucket)mapper.MapKey(key);
+            Assert.AreEqual(-1, vBucket.Primary);
+
+            var server = vBucket.LocatePrimary();
+            Assert.IsNotNull(server);
+        }
+
          [TestFixtureTearDown]
         public void TearDown()
         {
