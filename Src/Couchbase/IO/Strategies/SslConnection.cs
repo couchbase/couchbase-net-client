@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -13,9 +12,6 @@ namespace Couchbase.IO.Strategies
     internal class SslConnection : ConnectionBase
     {
         private readonly SslStream _sslStream;
-        private readonly ConnectionPool<SslConnection> _connectionPool;
-        private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
-        private volatile bool _disposed;
 
         internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter) 
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket)), converter)
@@ -25,7 +21,7 @@ namespace Couchbase.IO.Strategies
         internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream, IByteConverter converter) 
             : base(socket, converter)
         {
-            _connectionPool = connectionPool;
+            ConnectionPool = connectionPool;
             _sslStream = sslStream;
         }
 
@@ -33,7 +29,7 @@ namespace Couchbase.IO.Strategies
         {
             try
             {
-                var targetHost = _connectionPool.EndPoint.Address.ToString();
+                var targetHost = ConnectionPool.EndPoint.Address.ToString();
                 Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
                 _sslStream.AuthenticateAsClient(targetHost);
                 IsSecure = true;
@@ -52,14 +48,17 @@ namespace Couchbase.IO.Strategies
                 var buffer = operation.Write();
 
                 _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-                _sendEvent.WaitOne();
+                SendEvent.WaitOne();
+
+                if (!SendEvent.WaitOne(Configuration.OperationTimeout))
+                {
+                    const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
+                    operation.HandleClientError(msg);
+                }
             }
             catch (IOException e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
             return operation.GetResult();
         }
@@ -75,10 +74,7 @@ namespace Couchbase.IO.Strategies
             }
             catch (IOException e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
         }
 
@@ -99,22 +95,13 @@ namespace Couchbase.IO.Strategies
                 }
                 else
                 {
-                    _sendEvent.Set();
+                    SendEvent.Set();
                 }
             }
             catch (IOException e)
             {
-                Log.Warn(e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-                _sendEvent.Set();
+                HandleException(e, operation);
             }
-        }
-
-        static void WriteError(string errorMsg, IOperation operation, int offset)
-        {
-            var bytes = Encoding.UTF8.GetBytes(errorMsg);
-            operation.Read(bytes, offset, errorMsg.Length);
         }
 
         /// <summary>
@@ -130,14 +117,14 @@ namespace Couchbase.IO.Strategies
         {
             if (disposing)
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     if (Socket != null)
                     {
                         if (Socket.Connected)
                         {
                             Socket.Shutdown(SocketShutdown.Both);
-                            Socket.Close(_connectionPool.Configuration.ShutdownTimeout);
+                            Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                         }
                         else
                         {
@@ -153,7 +140,7 @@ namespace Couchbase.IO.Strategies
             }
             else
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     if (Socket != null)
                     {
@@ -166,7 +153,7 @@ namespace Couchbase.IO.Strategies
                     }
                 }
             }
-            _disposed = true;
+            Disposed = true;
         }
 
         ~SslConnection()

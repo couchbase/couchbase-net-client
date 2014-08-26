@@ -12,11 +12,7 @@ namespace Couchbase.IO.Strategies
 {
     internal sealed class EapConnection : ConnectionBase
     {
-        private readonly ConnectionPool<EapConnection> _connectionPool;
         private readonly NetworkStream _networkStream;
-        private readonly AutoResetEvent _sendEvent = new AutoResetEvent(false);
-        private readonly PoolConfiguration _configuration;
-        private volatile bool _disposed;
 
         internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new NetworkStream(socket), converter)
@@ -26,9 +22,9 @@ namespace Couchbase.IO.Strategies
         internal EapConnection(ConnectionPool<EapConnection> connectionPool, Socket socket, NetworkStream networkStream, IByteConverter converter)
             : base(socket, converter)
         {
-            _connectionPool = connectionPool;
+            ConnectionPool = connectionPool;
             _networkStream = networkStream;
-            _configuration = _connectionPool.Configuration;
+            Configuration = ConnectionPool.Configuration;
         }
 
         public override IOperationResult<T> Send<T>(IOperation<T> operation)
@@ -41,7 +37,7 @@ namespace Couchbase.IO.Strategies
                 Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, Socket.RemoteEndPoint));
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
 
-                if (!_sendEvent.WaitOne(_configuration.OperationTimeout))
+                if (!SendEvent.WaitOne(Configuration.OperationTimeout))
                 {
                     const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
                     operation.HandleClientError(msg);
@@ -78,7 +74,7 @@ namespace Couchbase.IO.Strategies
                 var bytesRead = _networkStream.EndRead(asyncResult);
                 if (bytesRead == 0)
                 {
-                    _sendEvent.Set();
+                    SendEvent.Set();
                     return;
                 }
                 operation.Read(operation.Buffer, 0, bytesRead);
@@ -91,7 +87,7 @@ namespace Couchbase.IO.Strategies
                 }
                 else
                 {
-                    _sendEvent.Set();
+                    SendEvent.Set();
                 }
             }
             catch (Exception e)
@@ -100,37 +96,12 @@ namespace Couchbase.IO.Strategies
             }
         }
 
-        private void HandleException(Exception e, IOperation operation)
-        {
-            try
-            {
-                var message = string.Format("Opcode={0} | Key={1} | Host={2}",
-                    operation.OperationCode,
-                    operation.Key,
-                    _connectionPool.EndPoint);
-
-                Log.Warn(message, e);
-                WriteError("Failed. Check Exception property.", operation, 0);
-                operation.Exception = e;
-            }
-            finally
-            {
-                _sendEvent.Set();
-            }
-        }
-
-        private static void WriteError(string errorMsg, IOperation operation, int offset)
-        {
-            var bytes = Encoding.UTF8.GetBytes(errorMsg);
-            operation.Read(bytes, offset, errorMsg.Length);
-        }
-
         /// <summary>
         /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
         /// </summary>
         public override void Dispose()
         {
-            Log.Debug(m => m("Disposing connection for {0} - {1}", _connectionPool.EndPoint, _identity));
+            Log.Debug(m => m("Disposing connection for {0} - {1}", ConnectionPool.EndPoint, _identity));
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -139,14 +110,14 @@ namespace Couchbase.IO.Strategies
         {
             if (disposing)
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     if (Socket != null)
                     {
                         if (Socket.Connected)
                         {
                             Socket.Shutdown(SocketShutdown.Both);
-                            Socket.Close(_connectionPool.Configuration.ShutdownTimeout);
+                            Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                         }
                         else
                         {
@@ -162,7 +133,7 @@ namespace Couchbase.IO.Strategies
             }
             else
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     if (Socket != null)
                     {
@@ -175,12 +146,12 @@ namespace Couchbase.IO.Strategies
                     }
                 }
             }
-            _disposed = true;
+            Disposed = true;
         }
 
         ~EapConnection()
         {
-            Log.Debug(m=>m("Finalizing connection for {0}", _connectionPool.EndPoint));
+            Log.Debug(m=>m("Finalizing connection for {0}", ConnectionPool.EndPoint));
             Dispose(false);
         }
     }

@@ -3,9 +3,12 @@ using System.Deployment.Internal;
 using System.Net.Sockets;
 using System.ServiceModel.Channels;
 using System.Text;
+using System.Threading;
 using Common.Logging;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Strategies;
 using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
 
@@ -19,6 +22,10 @@ namespace Couchbase.IO
         private readonly OperationAsyncState _state;
         private readonly IByteConverter _converter;
         protected readonly BufferManager BufferManager;
+        protected readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
+        protected IConnectionPool ConnectionPool;
+        protected PoolConfiguration Configuration;
+        protected volatile bool Disposed;
 
         protected ConnectionBase(Socket socket, IByteConverter converter) 
             : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*1000, 1024))
@@ -103,6 +110,31 @@ namespace Couchbase.IO
         }
 
         public abstract void Dispose();
+
+        protected void HandleException(Exception e, IOperation operation)
+        {
+            try
+            {
+                var message = string.Format("Opcode={0} | Key={1} | Host={2}",
+                    operation.OperationCode,
+                    operation.Key,
+                    ConnectionPool.EndPoint);
+
+                Log.Warn(message, e);
+                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.Exception = e;
+            }
+            finally
+            {
+                SendEvent.Set();
+            }
+        }
+
+        private static void WriteError(string errorMsg, IOperation operation, int offset)
+        {
+            var bytes = Encoding.UTF8.GetBytes(errorMsg);
+            operation.Read(bytes, offset, errorMsg.Length);
+        }
     }
 }
 
