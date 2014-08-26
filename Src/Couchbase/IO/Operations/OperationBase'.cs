@@ -82,6 +82,10 @@ namespace Couchbase.IO.Operations
             };
             var msgBytes = Encoding.UTF8.GetBytes(message);
             LengthReceived += msgBytes.Length;
+            if (Data == null)
+            {
+                Data = new MemoryStream();
+            }
             Data.Write(msgBytes, 0, msgBytes.Length);
         }
 
