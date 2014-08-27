@@ -23,6 +23,7 @@ namespace Couchbase.IO.Strategies
         {
             ConnectionPool = connectionPool;
             _sslStream = sslStream;
+            Configuration = ConnectionPool.Configuration;
         }
 
         public void Authenticate()
