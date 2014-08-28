@@ -49,8 +49,6 @@ namespace Couchbase.IO.Strategies
                 var buffer = operation.Write();
 
                 _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-                SendEvent.WaitOne();
-
                 if (!SendEvent.WaitOne(Configuration.OperationTimeout))
                 {
                     const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
