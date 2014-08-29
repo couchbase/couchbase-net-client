@@ -69,7 +69,11 @@ namespace Couchbase.Configuration
                         }
                     }
                     var old = Interlocked.Exchange(ref Servers, servers);
-                    old.ForEach(x => x.Dispose());
+                    if (old != null)
+                    {
+                        old.ForEach(x => x.Dispose());
+                        old.Clear();
+                    }
                 }
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
                 Interlocked.Exchange(ref _bucketConfig, bucketConfig);
@@ -123,7 +127,12 @@ namespace Couchbase.Configuration
                 }
 
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
-                Interlocked.Exchange(ref Servers, servers);
+                var old = Interlocked.Exchange(ref Servers, servers);
+                if (old != null)
+                {
+                    old.ForEach(x => x.Dispose());
+                    old.Clear();
+                }
                 Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap)
                 {
                     Rev = BucketConfig.Rev
@@ -164,7 +173,12 @@ namespace Couchbase.Configuration
                         Log.ErrorFormat("Could not add server {0}. Exception: {1}", ip, e);
                     }
                 }
-                Interlocked.Exchange(ref Servers, servers);
+                var old = Interlocked.Exchange(ref Servers, servers);
+                if (old != null)
+                {
+                    old.ForEach(x => x.Dispose());
+                    old.Clear();
+                }
                 Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
             }
             finally

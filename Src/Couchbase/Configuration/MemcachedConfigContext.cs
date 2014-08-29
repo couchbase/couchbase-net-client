@@ -76,7 +76,12 @@ namespace Couchbase.Configuration
                         Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
-                Interlocked.Exchange(ref Servers, servers);
+                var old = Interlocked.Exchange(ref Servers, servers);
+                if (old != null)
+                {
+                    old.ForEach(x => x.Dispose());
+                    old.Clear();
+                }
             }
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
             Interlocked.Exchange(ref _bucketConfig, bucketConfig);
@@ -103,7 +108,12 @@ namespace Couchbase.Configuration
                     Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                 }
             }
-            Interlocked.Exchange(ref Servers, servers);
+            var old = Interlocked.Exchange(ref Servers, servers);
+            if (old != null)
+            {
+                old.ForEach(x => x.Dispose());
+                old.Clear();
+            }
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
         }
     }
