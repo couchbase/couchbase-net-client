@@ -425,13 +425,13 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
-                IOperationResult<string> set = bucket.Insert(key, "value");
+                var set = bucket.Insert(key, "value");
                 Assert.IsTrue(set.Success);
 
-                IOperationResult<string> get = bucket.Get<string>(key);
+                var get = bucket.Get<string>(key);
                 Assert.AreEqual(get.Cas, set.Cas);
 
-                IOperationResult<string> replace = bucket.Replace(key, "should succeed", get.Cas);
+                var replace = bucket.Replace(key, "should succeed", get.Cas);
                 Assert.True(replace.Success);
 
                 get = bucket.Get<string>(key);

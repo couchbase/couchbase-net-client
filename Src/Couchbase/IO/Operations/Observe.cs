@@ -58,11 +58,6 @@ namespace Couchbase.IO.Operations
             };
         }
 
-        public override IOperationResult<ObserveState> GetResult()
-        {
-            return new OperationResult<ObserveState>(this);
-        }
-
         public override OperationCode OperationCode
         {
             get { return OperationCode.Observe; }

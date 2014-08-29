@@ -1,22 +1,37 @@
-﻿namespace Couchbase
+﻿using System.Collections.Generic;
+using System.Net;
+
+namespace Couchbase.Views
 {
     /// <summary>
-    /// Default interface for all operation return types.
+    /// Represents the results of a View query.
     /// </summary>
-    public interface IResult
+    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/>
+    /// implementation.</typeparam>
+    public interface IViewResult<T> : IResult
     {
         /// <summary>
-        /// Returns true if the operation was succesful.
+        /// The total number of rows returned by the View request.
         /// </summary>
-        /// <remarks>If Success is false, use the Message property to help determine the reason.</remarks>
-        bool Success { get; }
+        uint TotalRows { get; }
 
         /// <summary>
-        /// If the operation wasn't succesful, a message indicating why it was not succesful.
+        /// The results of the query if successful as a <see cref="List{T}"/>.
         /// </summary>
-        string Message { get; }
+        List<T> Rows { get; }
+
+        /// <summary>
+        /// A View engine specific error message if one occured.
+        /// </summary>
+        string Error { get; }
+
+        /// <summary>
+        /// The HTTP Status Code for the request
+        /// </summary>
+        HttpStatusCode StatusCode { get; }
     }
 }
+
 #region [ License information ]
 
 /* ************************************************************

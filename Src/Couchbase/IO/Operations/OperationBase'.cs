@@ -193,19 +193,37 @@ namespace Couchbase.IO.Operations
             throw new NotImplementedException();
         }
 
-        public virtual IOperationResult<T> GetResult()
+        public virtual Couchbase.IOperationResult<T> GetResult()
         {
-            return new OperationResult<T>(this);
+            return new OperationResult<T>
+            {
+                Cas = Header.Cas,
+                Message = GetMessage(),
+                Status = GetResponseStatus(),
+                Success = GetSuccess(),
+                Value = GetValue()
+            };
+        }
+
+        public virtual bool GetSuccess()
+        {
+            return Header.Status == ResponseStatus.Success && Exception == null;
+        }
+
+        public virtual ResponseStatus GetResponseStatus()
+        {
+            var status = Header.Status;
+            if (Exception != null)
+            {
+                status = ResponseStatus.ClientFailure;
+            }
+            return status;
         }
 
         public virtual T GetValue()
         {
-            T result;
-            if (Data == null)
-            {
-                result = default(T);
-            }
-            else
+            var result = default(T);
+            if(Success && Data != null)
             {
                 var buffer = Data.ToArray();
                 result = Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
@@ -258,6 +276,18 @@ namespace Couchbase.IO.Operations
                 }
             }
             return message;
+        }
+
+        public virtual IBucketConfig GetConfig()
+        {
+            IBucketConfig config = null;
+            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer)
+            {
+                var offset = HeaderLength + Header.ExtrasLength;
+                var length = Header.BodyLength - Header.ExtrasLength;
+                config = Serializer.Deserialize<BucketConfig>(Data.ToArray(), offset, length);
+            }
+            return config;
         }
 
         public abstract OperationCode OperationCode { get; }

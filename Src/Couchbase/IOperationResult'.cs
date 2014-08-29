@@ -1,20 +1,19 @@
-﻿namespace Couchbase.IO.Operations
+﻿namespace Couchbase
 {
-    internal interface IOperationRequest
+    /// <summary>
+    /// The primary return type for binary Memcached operations which return a value
+    /// </summary>
+    /// <typeparam name="T">The value returned by the operation.</typeparam>
+    public interface IOperationResult<out T> : IOperationResult
     {
-        OperationCode OperationCode { get; }
-
-        int CorrelationId { get; }
-
-        string Key { get; }
-
-        ulong Cas { get; }
-
-        ushort Reserved { get; }
+        /// <summary>
+        /// The value returned by the operation.
+        /// </summary>
+        T Value { get;}
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
@@ -35,4 +34,4 @@
  *
  * ************************************************************/
 
-#endregion [ License information          ]
+#endregion

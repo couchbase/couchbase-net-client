@@ -1,10 +1,11 @@
 ﻿using System;
+using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.IO.Operations
 {
     internal interface IOperation<out T> : IOperation
     {
-        IOperationResult<T> GetResult();
+        Couchbase.IOperationResult<T> GetResult();
 
         T GetValue();
     }

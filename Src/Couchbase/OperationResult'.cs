@@ -1,11 +1,20 @@
-﻿namespace Couchbase.Views
+﻿using Couchbase.IO;
+using Couchbase.IO.Operations;
+
+namespace Couchbase
 {
-    public class ErrorObj
+    /// <summary>
+    /// The primary return type for binary Memcached operations which return a value
+    /// </summary>
+    /// <typeparam name="T">The value returned by the operation.</typeparam>
+    public class OperationResult<T> : OperationResult, IOperationResult<T>
     {
-        public string Error { get; set; }
+        /// <summary>
+        /// The value of the key retrieved from Couchbase Server.
+        /// </summary>
+        public T Value { get; internal set; }
     }
 }
-
 #region [ License information ]
 
 /* ************************************************************

@@ -1,59 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.IO;
+﻿using Couchbase.IO;
 using Couchbase.IO.Operations;
 
 namespace Couchbase
 {
     /// <summary>
-    /// The return type for "document" centric operation requests.
+    /// The result of an operation.
     /// </summary>
-    /// <typeparam name="T">The type the value of the document will be.</typeparam>
-    public class DocumentResult<T> : IDocumentResult<T>
+    /// <remarks>If Success is false, use the Message property to help determine the reason.</remarks>
+    public class OperationResult : IOperationResult
     {
-        public DocumentResult(IOperationResult<T> result, string id)
-        {
-            Document = new Document<T>
-            {
-                Cas = result.Cas,
-                Id = id,
-                Value = result.Value
-            };
-            Value = Document.Value;
-            Message = result.Message;
-            Status = result.Status;
-            Success = result.Success;
-        }
-
         /// <summary>
-        /// Returns true if the operation was succesful
+        /// True if the operation succeeded.
         /// </summary>
+        /// <remarks>If Success is false, use the Message property to help determine the reason.</remarks>
         public bool Success { get; internal set; }
 
         /// <summary>
-        /// If the Success is false, a message indicating the reason why
+        /// If Success is false, the reason why the operation failed.
         /// </summary>
         public string Message { get; internal set; }
 
         /// <summary>
-        /// The Document object
+        /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.
         /// </summary>
-        public Document<T> Document { get; internal set; }
+        public ulong Cas { get; internal set; }
 
         /// <summary>
-        /// The response status returned by the server when fulfilling the request.
+        /// The status returned from the Couchbase Server after an operation.
         /// </summary>
+        /// <remarks><see cref="ResponseStatus.Success"/> will be returned if <see cref="Success"/>
+        /// is true, otherwise <see cref="Success"/> will be false. If <see cref="ResponseStatus.ClientFailure"/> is
+        /// returned, then the operation failed before being sent to the Couchbase Server.</remarks>
         public ResponseStatus Status { get; internal set; }
 
         /// <summary>
-        /// The actual value stored within Couchbase
+        /// The level of durability that the operation achieved
         /// </summary>
-        public T Value { get; set; }
+        public Durability Durability { get; set; }
     }
 }
+
 #region [ License information ]
 
 /* ************************************************************

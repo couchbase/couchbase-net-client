@@ -100,8 +100,8 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Upsert<T>(IDocument<T> document)
+        /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document)
         {
             var result = Upsert(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -193,7 +193,7 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
-        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -218,8 +218,8 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Replace<T>(IDocument<T> document)
+        /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
             var result = Replace(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -294,7 +294,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException();
         }
 
-        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -314,8 +314,8 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Insert<T>(IDocument<T> document)
+        /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
             var result = Insert(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -361,7 +361,7 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
-        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -381,11 +381,10 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The type T of the object.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
-        /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
-        public IResult Remove<T>(IDocument<T> document)
+        /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
+        public IOperationResult Remove<T>(IDocument<T> document)
         {
-            var result = Remove(document.Id);
-            return new DocumentResult(result, document.Id);
+            return Remove(document.Id);
         }
 
         /// <summary>
@@ -393,7 +392,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key)
+        public IOperationResult Remove(string key)
         {
             var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
@@ -410,7 +409,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="key">The key to remove from the database</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ulong cas)
+        public IOperationResult Remove(string key, ulong cas)
         {
             var keyMapper = _configInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
@@ -424,17 +423,17 @@ namespace Couchbase.Core.Buckets
             return operationResult;
         }
 
-        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -444,8 +443,8 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The type T to convert the value to.</typeparam>
         /// <param name="id">The documents primary key.</param>
-        /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
-        public IResult<T> GetDocument<T>(string id)
+        /// <returns>An <see cref="IDocumentResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
+        public IDocumentResult<T> GetDocument<T>(string id)
         {
             var result = Get<T>(id);
             return new DocumentResult<T>(result, id);
@@ -673,7 +672,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -683,7 +682,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -698,7 +697,7 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -708,17 +707,17 @@ namespace Couchbase.Core.Buckets
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo)
+        public IOperationResult Remove(string key, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo)
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo)
         {
             throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

@@ -14,11 +14,10 @@ namespace Couchbase.Tests.Fakes
     internal class FakeOperationResult : OperationResult<string>
     {
         public FakeOperationResult()
-            : base(null)
         {
         }
 
-        public FakeOperationResult(OperationBase<string> operation) : base(operation)
+        public FakeOperationResult(OperationBase<string> operation)
         {
 
         }
@@ -34,7 +33,7 @@ namespace Couchbase.Tests.Fakes
         public new ulong Cas { get; set; }
 
 
-        public override IBucketConfig GetConfig()
+        public IBucketConfig GetConfig()
         {
             var text = File.ReadAllText(@"Data\\Configuration\\carrier-publication-config.json");
             return JsonConvert.DeserializeObject<BucketConfig>(text);

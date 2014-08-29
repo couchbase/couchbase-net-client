@@ -154,8 +154,13 @@
     <Compile Include="Core\InitializationException.cs" />
     <Compile Include="Document.cs" />
     <Compile Include="DocumentResult%27.cs" />
-    <Compile Include="DocumentResult.cs" />
     <Compile Include="IDocument%27.cs" />
+    <Compile Include="IDocumentResult.cs" />
+    <Compile Include="IOperationResult%27.cs" />
+    <Compile Include="N1QL\IQueryResult%27.cs" />
+    <Compile Include="Views\IViewResult%27.cs" />
+    <Compile Include="OperationResult%27.cs" />
+    <Compile Include="IOperationResult.cs" />
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
     <Compile Include="IO\Converters\AutoByteConverter.cs" />
@@ -176,7 +181,6 @@
     <Compile Include="IO\Operations\ObserveResponse.cs" />
     <Compile Include="IO\Operations\ObserveState.cs" />
     <Compile Include="IO\Operations\OperationBase%27.cs" />
-    <Compile Include="IO\Operations\OperationResult.cs" />
     <Compile Include="IO\Operations\Prepend.cs" />
     <Compile Include="IO\Operations\Authentication\SaslList.cs" />
     <Compile Include="IO\Operations\Authentication\SaslStart.cs" />
@@ -200,8 +204,8 @@
     <Compile Include="IO\Strategies\SaeaConnection.cs" />
     <Compile Include="IO\Strategies\SslConnection.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
-    <Compile Include="IResult%27.cs" />
     <Compile Include="IResult.cs" />
+    <Compile Include="N1QL\QueryResult.cs" />
     <Compile Include="N1QL\Error.cs" />
     <Compile Include="N1QL\IQueryClient.cs" />
     <Compile Include="Core\InvalidBucketTypeException.cs" />
@@ -219,7 +223,6 @@
     <Compile Include="IO\IConnectionPool_T.cs" />
     <Compile Include="IO\IOStrategy.cs" />
     <Compile Include="IO\Operations\IOperation.cs" />
-    <Compile Include="IO\Operations\IOperationRequest.cs" />
     <Compile Include="IO\Operations\IOperationResult.cs" />
     <Compile Include="Core\IServer.cs" />
     <Compile Include="Core\IVBucket.cs" />
@@ -231,10 +234,9 @@
     <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
     <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
     <Compile Include="IO\Utils\HeaderIndexFor.cs" />
-    <Compile Include="N1QL\IQueryResult.cs" />
     <Compile Include="N1QL\QueryClient.cs" />
-    <Compile Include="N1QL\QueryResult.cs" />
     <Compile Include="NullConfigException.cs" />
+    <Compile Include="OperationResult.cs" />
     <Compile Include="PersistTo.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -250,19 +252,20 @@
     <Compile Include="Utils\StringExtensions.cs" />
     <Compile Include="Utils\UnsupportedAddressFamilyException.cs" />
     <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\ViewResult%27.cs" />
     <Compile Include="Views\Error.cs" />
     <Compile Include="Views\IDataMapper.cs" />
     <Compile Include="Views\IViewClient.cs" />
     <Compile Include="Views\IVIewQuery.cs" />
-    <Compile Include="Views\IViewResult.cs" />
     <Compile Include="Views\JsonDataMapper.cs" />
     <Compile Include="Views\StaleState.cs" />
     <Compile Include="Views\ViewClient.cs" />
     <Compile Include="Views\ViewQuery.cs" />
-    <Compile Include="Views\ViewResult.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
     <None Include="Diagrams\ClassDiagram1.cd" />
     <None Include="Diagrams\ClassDiagram2.cd" />
     <None Include="Diagrams\ClassDiagram3.cd" />

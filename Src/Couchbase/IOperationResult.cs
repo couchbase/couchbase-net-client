@@ -1,25 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using Couchbase.IO;
+using Couchbase.IO.Operations;
 
-namespace Couchbase.N1QL
+namespace Couchbase
 {
     /// <summary>
-    /// Interface for the results of a N1QL query.
+    /// The primary return type for binary Memcached operations
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public interface IQueryResult<T>
+    public interface IOperationResult : IResult
     {
         /// <summary>
-        /// The resultset of the N1QL query.
+        /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.
         /// </summary>
-        List<T> Rows { get; set; }
+        ulong Cas { get; }
 
-        Error Error { get; set; }
+        /// <summary>
+        /// The server's response status for the operation.
+        /// </summary>
+        ResponseStatus Status { get; }
 
-        bool Success { get; }
+        /// <summary>
+        /// The level of durability that the operation achieved
+        /// </summary>
+        Durability Durability { get; set; }
     }
 }
-
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

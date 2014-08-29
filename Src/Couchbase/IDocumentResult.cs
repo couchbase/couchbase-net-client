@@ -1,36 +1,31 @@
-﻿using System.Collections.Generic;
-using System.Net;
+﻿using Couchbase.IO;
 
-namespace Couchbase.Views
+namespace Couchbase
 {
     /// <summary>
-    /// Represents the results of a View query.
+    /// The return type for "document" centric operation requests.
     /// </summary>
-    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/> 
-    /// implementation.</typeparam>
-    public interface IViewResult<T>
+    /// <typeparam name="T">The type the value of the document will be.</typeparam>
+    public interface IDocumentResult<T> : IResult
     {
         /// <summary>
-        /// The total number of rows
+        /// The Document object
         /// </summary>
-        uint TotalRows { get; set; }
+        Document<T> Document { get; }
 
         /// <summary>
-        /// The results of the query if successful.
+        /// The response status returned by the server when fulfilling the request.
         /// </summary>
-        List<T> Rows { get; set; }
+        ResponseStatus Status { get; }
 
-        string Message { get; set; }
-
-        string Error { get; set; }
-
-        bool Success { get; set; }
-
-        HttpStatusCode StatusCode { get; set; }
+        /// <summary>
+        /// The actual value stored within Couchbase
+        /// </summary>
+        T Value { get; }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

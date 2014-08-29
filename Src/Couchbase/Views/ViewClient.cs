@@ -30,7 +30,7 @@ namespace Couchbase.Views
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQuery query)
         {
-            IViewResult<T> viewResult = new ViewResult<T>();
+            var viewResult = new ViewResult<T>();
             try
             {
                 var result = await HttpClient.GetAsync(query.RawUri());
@@ -62,7 +62,7 @@ namespace Couchbase.Views
         /// <returns>The <see cref="IViewResult{T}"/> instance which is the results of the query.</returns>
         public IViewResult<T> Execute<T>(IViewQuery query)
         {
-            IViewResult<T> viewResult = new ViewResult<T>();
+            var viewResult = new ViewResult<T>();
             var task = HttpClient.GetAsync(query.RawUri());
 
             try
@@ -90,7 +90,7 @@ namespace Couchbase.Views
             return viewResult;
         }
 
-        static void ProcessError<T>(Exception ex, IViewResult<T> viewResult)
+        static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
         {
             viewResult.Success = false;
             viewResult.StatusCode = GetStatusCode(ex.Message);

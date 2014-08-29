@@ -163,7 +163,7 @@ namespace Couchbase.Core.Buckets
                 case ResponseStatus.IncrDecrOnNonNumericValue:
                     break;
                 case ResponseStatus.VBucketBelongsToAnotherServer:
-                    retry = CheckForConfigUpdates(operationResult);
+                    retry = CheckForConfigUpdates(operationResult, operation);
                     break;
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue:
@@ -211,30 +211,38 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type parameter of the passed in operation.</typeparam>
         /// <param name="operationResult">The <see cref="IOperationResult{T}"/> to check.</param>
+        /// <param name="operation"></param>
         /// <returns>True if the operation should be retried again with the new config.</returns>
-        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult)
+        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult, IOperation operation)
         {
             var requiresRetry = false;
             if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
             {
-                var bucketConfig = ((OperationResult<T>)operationResult).GetConfig();
-                if (bucketConfig != null)
+                try
                 {
-                    if (bucketConfig.Rev > _configInfo.BucketConfig.Rev)
+                    var bucketConfig = operation.GetConfig();
+                    if (bucketConfig != null)
                     {
-                        Log.Info(m => m("New config found {0}", bucketConfig.Rev));
-                        var server = _configInfo.GetServer();
-
-                        var result = server.Send(new Config(_converter));
-                        if (result.Success)
+                        if (bucketConfig.Rev > _configInfo.BucketConfig.Rev)
                         {
-                            var config = result.Value;
-                            if (config != null)
+                            Log.Info(m => m("New config found {0}", bucketConfig.Rev));
+                            var server = _configInfo.GetServer();
+
+                            var result = server.Send(new Config(_converter));
+                            if (result.Success)
                             {
-                                _clusterManager.NotifyConfigPublished(result.Value);
+                                var config = result.Value;
+                                if (config != null)
+                                {
+                                    _clusterManager.NotifyConfigPublished(result.Value);
+                                }
                             }
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
                 }
                 requiresRetry = true;
             }
@@ -293,7 +301,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Upsert<T>(IDocument<T> document)
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document)
         {
             var result = Upsert(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -366,7 +374,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Upsert(document, replicateTo, PersistTo.Zero);
         }
@@ -392,7 +400,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Upsert(document.Id, document.Value, replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
@@ -459,7 +467,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Replace<T>(IDocument<T> document)
+        public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
             var result = Replace(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -535,7 +543,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Replace(document, replicateTo, PersistTo.Zero);
         }
@@ -575,7 +583,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Replace(document.Id, document.Value, replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
@@ -638,7 +646,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Insert<T>(IDocument<T> document)
+        public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
             var result = Insert(document.Id, document.Value);
             return new DocumentResult<T>(result, document.Id);
@@ -681,7 +689,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Insert(document, replicateTo, PersistTo.Zero);
         }
@@ -707,7 +715,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Insert(document.Id, document.Value, replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
@@ -753,10 +761,9 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The type T of the object.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
         /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
-        public IResult Remove<T>(IDocument<T> document)
+        public IOperationResult Remove<T>(IDocument<T> document)
         {
-            var result = Remove(document.Id);
-            return new DocumentResult(result, document.Id);
+            return Remove(document.Id);
         }
 
         /// <summary>
@@ -764,7 +771,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key)
+        public IOperationResult Remove(string key)
         {
             const ulong cas = 0;
             return Remove(key, cas);
@@ -776,7 +783,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="key">The key to remove from the database</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ulong cas)
+        public IOperationResult Remove(string key, ulong cas)
         {
             var operation = new Delete(key, null, _converter, _serializer)
             {
@@ -792,7 +799,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="document">The <see cref="IDocument{T}"/> to remove from the database.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
-        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Remove(document, replicateTo, PersistTo.Zero);
         }
@@ -803,7 +810,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo)
+        public IOperationResult Remove(string key, ReplicateTo replicateTo)
         {
             return Remove(key, replicateTo, PersistTo.Zero);
         }
@@ -815,7 +822,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo)
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo)
         {
             return Remove(key, cas, replicateTo, PersistTo.Zero);
         }
@@ -828,10 +835,9 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing <see cref="IResult"/> with information regarding the operation.</returns>
-        public IResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var result = Remove(document.Id, replicateTo, persistTo);
-            return new DocumentResult(result, document.Id);
+            return Remove(document.Id, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -841,7 +847,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var operation = new Delete(key, null, _converter, _serializer);
             return SendWithDurability(operation, true, replicateTo, persistTo);
@@ -855,7 +861,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<object> Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var operation = new Delete(key, null, _converter, _serializer)
             {
@@ -870,7 +876,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The type T to convert the value to.</typeparam>
         /// <param name="id">The documents primary key.</param>
         /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
-        public IResult<T> GetDocument<T>(string id)
+        public IDocumentResult<T> GetDocument<T>(string id)
         {
             var result = Get<T>(id);
             return new DocumentResult<T>(result, id);
@@ -952,7 +958,7 @@ namespace Couchbase.Core.Buckets
             var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
-            if (CheckForConfigUpdates(operationResult))
+            if (CheckForConfigUpdates(operationResult, operation))
             {
                 Log.Info(m => m("Requires retry {0}", key));
             }
@@ -1023,7 +1029,7 @@ namespace Couchbase.Core.Buckets
             var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _serializer);
             var operationResult = server.Send(operation);
 
-            if (CheckForConfigUpdates(operationResult))
+            if (CheckForConfigUpdates(operationResult, operation))
             {
                 Log.Info(m => m("Requires retry {0}", key));
             }
@@ -1044,8 +1050,8 @@ namespace Couchbase.Core.Buckets
 
             var operation = new Append<string>(key, value, _serializer , vBucket, _converter);
             var operationResult = server.Send(operation);
-            
-            if (CheckForConfigUpdates(operationResult))
+
+            if (CheckForConfigUpdates(operationResult, operation))
             {
                 Log.Info(m => m("Requires retry {0}", key));
             }
@@ -1067,7 +1073,7 @@ namespace Couchbase.Core.Buckets
             var operation = new Prepend<string>(key, value, _serializer, vBucket, _converter);
             var operationResult = server.Send(operation);
 
-            if (CheckForConfigUpdates(operationResult))
+            if (CheckForConfigUpdates(operationResult, operation))
             {
                 Log.Info(m => m("Requires retry {0}", key));
             }

@@ -47,7 +47,7 @@ namespace Couchbase.Tests.IO.Operations
             var getOperation = new Get<string>(key, GetVBucket(), Converter, Serializer);
             var result3 = IOStrategy.Execute(getOperation);
             var value = result3.Value;
-            Assert.AreEqual(result1.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
+            Assert.AreEqual(result2.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
         }
 
         [TestFixtureTearDown]

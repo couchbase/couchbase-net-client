@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Serializers;
 using System;
 using System.IO;
@@ -51,6 +52,8 @@ namespace Couchbase.IO.Operations
         IVBucket VBucket { get; set; }
 
         void HandleClientError(string message);
+
+        IBucketConfig GetConfig();
     }
 }
 

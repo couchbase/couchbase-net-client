@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Sockets;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.IO
 {
@@ -86,37 +87,18 @@ namespace Couchbase.IO
             Dispose(false);
         }
 
+        public bool IsSecure { get; protected set; }
 
-        public void Send(byte[] buffer, int offset, int length, Strategies.Awaitable.OperationAsyncState state)
+
+        public IOperationResult<T> Send<T>(Operations.IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
-
-        public void Receive(byte[] buffer, int offset, int length, Strategies.Awaitable.OperationAsyncState state)
-        {
-            throw new NotImplementedException();
-        }
-
 
         public Strategies.Awaitable.OperationAsyncState State
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
-
-
-        public Operations.IOperationResult<T> Send<T>(Operations.IOperation<T> operation)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsSecure { get; protected set; }
     }
 }
 

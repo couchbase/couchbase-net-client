@@ -1,46 +1,52 @@
 ﻿using System.Collections.Generic;
-using Couchbase.N1QL;
+using System.Net;
 using Newtonsoft.Json;
 
-namespace Couchbase.N1QL
+namespace Couchbase.Views
 {
     /// <summary>
-    /// The result of a N1QL query.
+    /// Represents the results of a View query.
     /// </summary>
-    /// <typeparam name="T">The Type of each row returned.</typeparam>
-    /// <remarks>The dynamic keyword works well for the Type T.</remarks>
-    public class QueryResult<T> : IQueryResult<T>
+    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/>
+    /// implementation.</typeparam>
+    public class ViewResult<T> : IViewResult<T>
     {
-        public QueryResult()
-        {
-            Rows = new List<T>();
-        }
-            /// <summary>
-        /// The resultset or rows that are returned in a query.
+        /// <summary>
+        /// The total number of rows.
         /// </summary>
-        [JsonProperty("resultset")]
-        public List<T> Rows { get; set; }
+        [JsonProperty("total_rows")]
+        public uint TotalRows { get; internal set; }
 
         /// <summary>
-        /// Additional information returned by the query.
+        /// The results of the query if successful.
+        /// </summary>
+        [JsonProperty("rows")]
+        public List<T> Rows { get; internal set; }
+
+        /// <summary>
+        /// An error message if one occured.
         /// </summary>
         [JsonProperty("error")]
-        public Error Error { get; set; }
+        public string Error { get; internal set; }
 
         /// <summary>
-        /// True if query was successful.
+        /// The HTTP Status Code for the request
         /// </summary>
-        public bool Success
-        {
-            get { return Error == null; }
-        }
+        public HttpStatusCode StatusCode { get; internal set; }
 
         /// <summary>
-        /// Optional message returned by query engine or client
+        /// True if the request was successful
         /// </summary>
+        public bool Success { get; internal set; }
+
+        /// <summary>
+        /// An optional message returned by the server or the client
+        /// </summary>
+        [JsonProperty("reason")]
         public string Message { get; internal set; }
     }
 }
+
 #region [ License information ]
 
 /* ************************************************************

@@ -1,41 +1,26 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Collections.Generic;
+using Couchbase.N1QL;
 
-namespace Couchbase.Views
+namespace Couchbase.N1QL
 {
     /// <summary>
-    /// Represents the results of a View query.
+    /// Interface for the results of a N1QL query.
     /// </summary>
-    /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/>
-    /// implementation.</typeparam>
-    public class ViewResult<T> : IViewResult<T>
+    /// <typeparam name="T"></typeparam>
+    public interface IQueryResult<T> : IResult
     {
         /// <summary>
-        /// The total number of rows.
+        /// The resultset of the N1QL query.
         /// </summary>
-        [JsonProperty("total_rows")]
-        public uint TotalRows { get; set; }
+        List<T> Rows { get; }
 
         /// <summary>
-        /// The results of the query if successful.
+        /// The error message returned by the N1QL engine if the query failed.
         /// </summary>
-        [JsonProperty("rows")]
-        public List<T> Rows { get; set; }
-
-        [JsonProperty("error")]
-        public string Error { get; set; }
-
-        [JsonProperty("reason")]
-        public string Message { get; set; }
-
-        public bool Success { get; set; }
-
-        public HttpStatusCode StatusCode { get; set; }
+        Error Error { get; }
     }
 }
-
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *
