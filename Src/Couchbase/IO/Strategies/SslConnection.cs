@@ -55,10 +55,11 @@ namespace Couchbase.IO.Strategies
                     operation.HandleClientError(msg);
                 }
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 HandleException(e, operation);
             }
+
             return operation.GetResult();
         }
 
@@ -71,7 +72,7 @@ namespace Couchbase.IO.Strategies
                 operation.Buffer = BufferManager.TakeBuffer(512);
                 _sslStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 HandleException(e, operation);
             }
@@ -84,6 +85,11 @@ namespace Couchbase.IO.Strategies
             try
             {
                 var bytesRead = _sslStream.EndRead(asyncResult);
+                if (bytesRead == 0)
+                {
+                    SendEvent.Set();
+                    return;
+                }
                 operation.Read(operation.Buffer, 0, bytesRead);
                 BufferManager.ReturnBuffer(operation.Buffer);
 
@@ -97,7 +103,7 @@ namespace Couchbase.IO.Strategies
                     SendEvent.Set();
                 }
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 HandleException(e, operation);
             }
