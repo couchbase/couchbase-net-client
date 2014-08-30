@@ -112,21 +112,23 @@ namespace Enyim.Caching.Memcached
 
         private uint GetKeyHash(string key)
         {
-            var hashAlgo = this.factory();
-            var uintHash = hashAlgo as IUIntHashAlgorithm;
-
-            var keyData = Encoding.UTF8.GetBytes(key);
-
-            // shortcut for internal hash algorithms
-            if (uintHash == null)
+            using (var hashAlgo = this.factory())
             {
-                var data = hashAlgo.ComputeHash(keyData);
+                var uintHash = hashAlgo as IUIntHashAlgorithm;
 
-                return ((uint)data[3] << 24) | ((uint)data[2] << 16) | ((uint)data[1] << 8) | ((uint)data[0]);
-            }
-            else
-            {
-                return uintHash.ComputeHash(keyData);
+                var keyData = Encoding.UTF8.GetBytes(key);
+
+                // shortcut for internal hash algorithms
+                if (uintHash == null)
+                {
+                    var data = hashAlgo.ComputeHash(keyData);
+
+                    return ((uint) data[3] << 24) | ((uint) data[2] << 16) | ((uint) data[1] << 8) | ((uint) data[0]);
+                }
+                else
+                {
+                    return uintHash.ComputeHash(keyData);
+                }
             }
         }
 
