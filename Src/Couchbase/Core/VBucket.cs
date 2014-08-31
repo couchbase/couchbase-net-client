@@ -24,7 +24,7 @@ namespace Couchbase.Core
         public IServer LocatePrimary()
         {
             IServer server = null;
-            if (Primary > -1)
+            if (Primary > -1 && Primary < _cluster.Count)
             {
                 server = _cluster[Primary];
             }

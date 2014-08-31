@@ -149,6 +149,30 @@ namespace Couchbase.Tests
             Assert.IsNotNull(server);
         }
 
+        [Test]
+        public void When_Primary_Index_Is_Greater_Than_Cluster_Count_Random_Server_Returned()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var servers = bucketConfig.VBucketServerMap.
+               ServerList.
+               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new Node(), new ClientConfiguration())).
+               Cast<IServer>().
+               ToList();
+
+            //remove one server
+            servers.RemoveAt(1);
+
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+
+            //maps to -1 primary
+            const string key = "somekey23";
+            var vBucket = (IVBucket)mapper.MapKey(key);
+
+            var server = vBucket.LocatePrimary();
+            Assert.IsNotNull(server);
+        }
+
          [TestFixtureTearDown]
         public void TearDown()
         {

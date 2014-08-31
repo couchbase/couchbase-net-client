@@ -114,6 +114,18 @@ namespace Couchbase.Configuration.Client
             var port = UseSsl ? SslPort : Port;
             return server.GetIPEndPoint(port);
         }
+
+        public List<IPEndPoint> GetEndPoints()
+        {
+            var endPoints = new List<IPEndPoint>();
+            foreach (var server in Servers.Shuffle())
+            {
+                var port = UseSsl ? SslPort : Port;
+                var endPoint = server.GetIPEndPoint(port);
+                endPoints.Add(endPoint);
+            }
+            return endPoints;
+        }
     }
 }
 

@@ -7,6 +7,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
@@ -30,43 +31,52 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
                 var bucketConfiguration = GetOrCreateConfiguration(bucketName);
                 password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
-                var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration,
-                    bucketConfiguration.GetEndPoint());
-
-                var ioStrategy = IOStrategyFactory(connectionPool);
-                var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
-                ioStrategy.SaslMechanism = saslMechanism;
 
                 CouchbaseConfigContext configInfo = null;
-                var operationResult = ioStrategy.Execute(new Config(Converter));
-                if (operationResult.Success)
+                foreach (var endPoint in bucketConfiguration.GetEndPoints())
                 {
-                    var bucketConfig = operationResult.Value;
-                    bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString(); //for $HOST blah-ness
-
-                    configInfo = new CouchbaseConfigContext(bucketConfig,
-                        ClientConfig,
-                        IOStrategyFactory,
-                        ConnectionPoolFactory,
-                        SaslFactory,
-                        Converter,
-                        Serializer);
-
-                    Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
-
-                    configInfo.LoadConfig(ioStrategy);
-                    Configs[bucketName] = configInfo;
-                }
-                else
-                {
-                    //CCCP only supported for Couchbase Buckets
-                    if (operationResult.Status == ResponseStatus.UnknownCommand)
+                    try
                     {
-                        throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                        var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
+                        var ioStrategy = IOStrategyFactory(connectionPool);
+                        var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
+                        ioStrategy.SaslMechanism = saslMechanism;
+
+                        var operationResult = ioStrategy.Execute(new Config(Converter));
+                        if (operationResult.Success)
+                        {
+                            var bucketConfig = operationResult.Value;
+                            bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
+                            configInfo = new CouchbaseConfigContext(bucketConfig,
+                                ClientConfig,
+                                IOStrategyFactory,
+                                ConnectionPoolFactory,
+                                SaslFactory,
+                                Converter,
+                                Serializer);
+
+                            Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
+
+                            configInfo.LoadConfig(ioStrategy);
+                            Configs[bucketName] = configInfo;
+                            break;
+                        }
+
+                        //CCCP only supported for Couchbase Buckets
+                        if (operationResult.Status == ResponseStatus.UnknownCommand)
+                        {
+                            throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                        }
+                        Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
+                               bucketName,
+                               operationResult.Message));
                     }
-                    throw new ConfigException("Could not retrieve configuration for {0}. Reason: {1}", bucketName,
-                        operationResult.Message);
+                    catch (Exception e)
+                    {
+                        Log.Warn(e);
+                    }
                 }
+
                 return configInfo;
             }
         }
