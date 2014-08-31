@@ -95,7 +95,6 @@
     <Compile Include="Fakes\FakeConnectionPool.cs" />
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
-    <Compile Include="Fakes\FauxBucket.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
     <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
     <Compile Include="IO\Converters\AutoByteConverterTests.cs" />
@@ -160,6 +159,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\config-revision-9958.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-with-negative-one-primary.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\config-with-nodes-ext.json">
