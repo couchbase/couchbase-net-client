@@ -92,7 +92,7 @@ namespace Couchbase.Core.Buckets
 
         public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <summary>
@@ -195,22 +195,22 @@ namespace Couchbase.Core.Buckets
 
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -286,27 +286,27 @@ namespace Couchbase.Core.Buckets
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, uint cas, uint expiration)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -363,17 +363,17 @@ namespace Couchbase.Core.Buckets
 
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -425,17 +425,17 @@ namespace Couchbase.Core.Buckets
 
         public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -639,87 +639,87 @@ namespace Couchbase.Core.Buckets
 
         public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public System.Threading.Tasks.Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IViewResult<T> Query<T>(IViewQuery query)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public N1QL.IQueryResult<T> Query<T>(string query)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IViewQuery CreateQuery(bool development)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IViewQuery CreateQuery(bool development, string designdoc)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IViewQuery CreateQuery(bool development, string designdoc, string view)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult Remove(string key, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
