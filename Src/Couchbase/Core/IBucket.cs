@@ -155,8 +155,7 @@ namespace Couchbase.Core
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo"></param>
-        /// <param name="persistTo"></param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo);
 
@@ -165,8 +164,8 @@ namespace Couchbase.Core
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
         /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo"></param>
-        /// <param name="persistTo"></param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo);
 
