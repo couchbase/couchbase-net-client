@@ -195,13 +195,15 @@ namespace Couchbase.IO.Operations
 
         public virtual Couchbase.IOperationResult<T> GetResult()
         {
+            var value = GetValue();
             return new OperationResult<T>
             {
-                Cas = Header.Cas,
+                Success = GetSuccess(),
                 Message = GetMessage(),
                 Status = GetResponseStatus(),
-                Success = GetSuccess(),
-                Value = GetValue()
+                Value = value,
+                Cas = Header.Cas,
+                Exception = Exception
             };
         }
 
@@ -225,8 +227,16 @@ namespace Couchbase.IO.Operations
             var result = default(T);
             if(Success && Data != null)
             {
-                var buffer = Data.ToArray();
-                result = Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
+                try
+                {
+                    var buffer = Data.ToArray();
+                    result = Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
+                }
+                catch (Exception e)
+                {
+                    Exception = e;
+                    HandleClientError(e.Message);
+                }
             }
             return result;
         }

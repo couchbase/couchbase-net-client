@@ -44,6 +44,11 @@ namespace Couchbase.Views
         /// </summary>
         [JsonProperty("reason")]
         public string Message { get; internal set; }
+
+        /// <summary>
+        /// If Success is false and an exception has been caught internally, this field will contain the exception.
+        /// </summary>
+        public System.Exception Exception { get; set; }
     }
 }
 

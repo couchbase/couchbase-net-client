@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Couchbase.N1QL;
 using Newtonsoft.Json;
 
@@ -39,6 +40,11 @@ namespace Couchbase.N1QL
         /// Optional message returned by query engine or client
         /// </summary>
         public string Message { get; internal set; }
+
+        /// <summary>
+        /// If Success is false and an exception has been caught internally, this field will contain the exception.
+        /// </summary>
+        public Exception Exception { get; set; }
     }
 }
 #region [ License information ]

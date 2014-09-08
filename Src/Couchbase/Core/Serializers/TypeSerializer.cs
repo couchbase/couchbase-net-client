@@ -146,24 +146,17 @@ namespace Couchbase.Core.Serializers
 
         public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
-            var value = default(T);
-            try
+            T value;
+            using (var ms = new MemoryStream(buffer, offset, length))
             {
-                using (var ms = new MemoryStream(buffer, offset, length))
+                using (var sr = new StreamReader(ms))
                 {
-                    using (var sr = new StreamReader(ms))
+                    using (var jr = new JsonTextReader(sr))
                     {
-                        using (var jr = new JsonTextReader(sr))
-                        {
-                            var serializer = new JsonSerializer();
-                            value = serializer.Deserialize<T>(jr);
-                        }
+                        var serializer = new JsonSerializer();
+                        value = serializer.Deserialize<T>(jr);
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
             }
             return value;
         }

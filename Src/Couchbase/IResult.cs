@@ -1,4 +1,6 @@
-﻿namespace Couchbase
+﻿using System;
+
+namespace Couchbase
 {
     /// <summary>
     /// Default interface for all operation return types.
@@ -15,6 +17,11 @@
         /// If the operation wasn't succesful, a message indicating why it was not succesful.
         /// </summary>
         string Message { get; }
+
+        /// <summary>
+        /// If Success is false and an exception has been caught internally, this field will contain the exception.
+        /// </summary>
+        Exception Exception { get; set; }
     }
 }
 #region [ License information ]

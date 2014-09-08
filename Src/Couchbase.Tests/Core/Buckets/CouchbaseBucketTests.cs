@@ -756,6 +756,35 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        public class Beer
+        {
+            public int Ibu { get; set; }
+        }
+
+        [Test]
+        public void When_Type_Cannot_Be_Serialized_Return_Error()
+        {
+            var id = "When_Type_Cannot_Be_Serialized_Return_Error";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(id);
+
+                var document = new Document<dynamic>
+                {
+                    Value = new {Ibu = 3.4},
+                    Id = id
+                };
+
+                var insert = bucket.Insert(document);
+                Assert.IsTrue(insert.Success);
+
+                var get = bucket.GetDocument<Beer>(id);
+                Assert.IsFalse(get.Success);
+                Assert.IsNotNull(get.Exception);
+                Assert.IsNotNull(get.Message);
+            }
+        }
+
         [Test]
         public void Test_Observe_Remove()
         {

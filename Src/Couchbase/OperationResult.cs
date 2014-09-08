@@ -37,6 +37,11 @@ namespace Couchbase
         /// The level of durability that the operation achieved
         /// </summary>
         public Durability Durability { get; set; }
+
+        /// <summary>
+        /// If Success is false and an exception has been caught internally, this field will contain the exception.
+        /// </summary>
+        public System.Exception Exception { get; set; }
     }
 }
 

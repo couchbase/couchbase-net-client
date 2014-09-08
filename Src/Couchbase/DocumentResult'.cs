@@ -26,6 +26,7 @@ namespace Couchbase
             Message = result.Message;
             Status = result.Status;
             Success = result.Success;
+            Exception = result.Exception;
         }
 
         /// <summary>
@@ -52,6 +53,11 @@ namespace Couchbase
         /// The actual value stored within Couchbase
         /// </summary>
         public T Value { get; set; }
+
+        /// <summary>
+        /// If Success is false and an exception has been caught internally, this field will contain the exception.
+        /// </summary>
+        public System.Exception Exception { get; set; }
     }
 }
 #region [ License information ]
