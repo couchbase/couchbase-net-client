@@ -178,7 +178,7 @@ namespace Couchbase.Core.Serializers
                         serializer.Serialize(jr, value);
                     }
                 }
-                return ms.GetBuffer();
+                return ms.ToArray();
             }
         }
 

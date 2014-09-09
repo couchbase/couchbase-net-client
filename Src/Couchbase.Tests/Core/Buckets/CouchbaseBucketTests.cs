@@ -120,6 +120,23 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_Insert()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string id = "CouchbaseBucketTests.Test_Insert";
+                bucket.Remove(id);
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Value = new { Bar = "bar", Foo = "foo" }
+                };
+                var result = bucket.Insert(document);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
         public void When_Key_Does_Not_Exist_Replace_Fails()
         {
             using (var bucket = _cluster.OpenBucket())
