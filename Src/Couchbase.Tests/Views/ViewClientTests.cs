@@ -61,6 +61,22 @@ namespace Couchbase.Tests.Views
 
             Console.WriteLine(result.Message);
         }
+
+        [Test]
+        public void When_Url_Is_Invalid_WebException_Is_Returned()
+        {
+            var query = new ViewQuery(false).
+                From("beer-sample", "beer").
+                View("brewery_beers").
+                BaseUri("http://192.168.56.105:8092/");
+
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var result = client.Execute<dynamic>(query);
+            Assert.IsNotNull(result.Rows);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
+            Assert.AreEqual(typeof(HttpRequestException), result.Exception.GetType());
+        }
     }
 }
 

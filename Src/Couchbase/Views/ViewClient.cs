@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -41,11 +42,13 @@ namespace Couchbase.Views
                 viewResult = Mapper.Map<ViewResult<T>>(stream);
                 viewResult.Success = result.IsSuccessStatusCode;
                 viewResult.StatusCode = result.StatusCode;
+                viewResult.Message = Success;
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
+                    ProcessError(e, viewResult);
                     Log.Error(e);
                     return true;
                 });
@@ -63,10 +66,9 @@ namespace Couchbase.Views
         public IViewResult<T> Execute<T>(IViewQuery query)
         {
             var viewResult = new ViewResult<T>();
-            var task = HttpClient.GetAsync(query.RawUri());
-
             try
             {
+                var task = HttpClient.GetAsync(query.RawUri());
                 task.Wait();
                 var result = task.Result;
 
@@ -92,14 +94,18 @@ namespace Couchbase.Views
 
         static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
         {
+            const string message = "Check Exception and Error fields for details.";
             viewResult.Success = false;
             viewResult.StatusCode = GetStatusCode(ex.Message);
-            viewResult.Message = ex.Message;
+            viewResult.Message = message;
+            viewResult.Error = ex.Message;
+            viewResult.Exception = ex;
+            viewResult.Rows = new List<T>();
         }
 
         static HttpStatusCode GetStatusCode(string message)
         {
-            var httpStatusCode = HttpStatusCode.Found;
+            var httpStatusCode = HttpStatusCode.ServiceUnavailable;
             var codes = Enum.GetValues(typeof (HttpStatusCode));
             foreach (int code in codes)
             {

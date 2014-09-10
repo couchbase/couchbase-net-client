@@ -85,6 +85,24 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void When_View_Dose_Not_Exist_Return_Failure()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = new ViewQuery(false).
+                    From("beer-sample", "beer").
+                    View("brewery_beers2").//does not exist
+                    Limit(10);
+
+                Console.WriteLine(query.RawUri());
+                var result = bucket.Query<dynamic>(query);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual("not_found", result.Error);
+                Assert.Greater(result.TotalRows, 0);
+            }
+        }
+
+        [Test]
         public void Test_View_Query_Lots()
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))

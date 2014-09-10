@@ -143,6 +143,27 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["observeTimeout"]; }
             set { this["observeTimeout"] = value; }
         }
+
+        /// <summary>
+        /// The maximum number of times the client will retry a View operation if it has failed for a retriable reason.
+        /// </summary>
+        [ConfigurationProperty("maxViewRetries", DefaultValue = 2, IsRequired = false)]
+        public int MaxViewRetries
+        {
+            get { return (int)this["maxViewRetries"]; }
+            set { this["maxViewRetries"] = value; }
+        }
+
+
+        /// <summary>
+        /// The maximum number of times the client will retry a View operation if it has failed for a retriable reason.
+        /// </summary>
+        [ConfigurationProperty("viewHardTimeout", DefaultValue = 30000, IsRequired = false)]
+        public int ViewHardTimeout
+        {
+            get { return (int)this["viewHardTimeout"]; }
+            set { this["viewHardTimeout"] = value; }
+        }
     }
 }
 

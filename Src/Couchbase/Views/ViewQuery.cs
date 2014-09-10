@@ -461,6 +461,8 @@ namespace Couchbase.Views
             Log.Debug(m=>m(requestUri));
             return new Uri(requestUri);
         }
+
+        internal int RetryAttempts { get; set; }
     }
 }
 

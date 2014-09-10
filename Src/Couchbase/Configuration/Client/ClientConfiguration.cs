@@ -17,10 +17,12 @@ namespace Couchbase.Configuration.Client
         private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
         private PoolConfiguration _poolConfiguration;
         private bool _poolConfigurationChanged;
-        private List<Uri> _servers;
+        private List<Uri> _servers = new List<Uri>();
         private bool _serversChanged;
         private bool _useSsl;
         private bool _useSslChanged;
+        private int _maxViewRetries;
+        private int _viewHardTimeout;
 
         public ClientConfiguration()
         {
@@ -33,6 +35,8 @@ namespace Couchbase.Configuration.Client
             HttpsApiPort = 18092;
             ObserveInterval = 10; //ms
             ObserveTimeout = 500; //ms
+            MaxViewRetries = 2;
+            ViewHardTimeout = 30000; //ms
 
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -64,7 +68,9 @@ namespace Couchbase.Configuration.Client
             HttpsApiPort = couchbaseClientSection.HttpsApiPort;
             ObserveInterval = couchbaseClientSection.ObserveInterval;
             ObserveTimeout = couchbaseClientSection.ObserveTimeout;
-            Servers= new List<Uri>();
+            MaxViewRetries = couchbaseClientSection.MaxViewRetries;
+            ViewHardTimeout = couchbaseClientSection.ViewHardTimeout;
+
             foreach (var server in couchbaseClientSection.Servers)
             {
                 Servers.Add(((UriElement)server).Uri);
@@ -169,6 +175,37 @@ namespace Couchbase.Configuration.Client
         /// Gets or Sets the interval between each observe attempt.
         /// </summary>
         public int ObserveInterval { get; set; }
+
+        /// <summary>
+        /// The upper limit for the number of times a View request that has failed will be retried.
+        /// </summary>
+        /// <remarks>Note that not all failures are re-tried</remarks>
+        public int MaxViewRetries
+        {
+            get { return _maxViewRetries; }
+            set
+            {
+                if (value > -1)
+                {
+                    _maxViewRetries = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The maximum amount of time that a View will request take before timing out. Note this includes time for retries, etc.
+        /// </summary>
+        public int ViewHardTimeout
+        {
+            get { return _viewHardTimeout; }
+            set
+            {
+                if (value > -1)
+                {
+                    _viewHardTimeout = value;
+                }
+            }
+        }
 
         /// <summary>
         /// A list of hosts used to bootstrap from.

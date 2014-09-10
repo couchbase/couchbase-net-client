@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -97,9 +98,26 @@ namespace Couchbase.Core
 
         public IViewResult<T> Send<T>(IViewQuery query)
         {
-            var baseUri = GetBaseViewUri(query.BucketName);
-            query.BaseUri(baseUri);
-            return ViewClient.Execute<T>(query);
+            IViewResult<T> result;
+            try
+            {
+                var baseUri = GetBaseViewUri(query.BucketName);
+                query.BaseUri(baseUri);
+                result = ViewClient.Execute<T>(query);
+            }
+            catch (Exception e)
+            {
+                result = new ViewResult<T>
+                {
+                    Exception = e,
+                    Message = e.Message,
+                    Error = e.Message,
+                    Success = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Rows = new List<T>()
+                };
+            }
+            return result;
         }
 
         IQueryResult<T> IServer.Send<T>(string query)

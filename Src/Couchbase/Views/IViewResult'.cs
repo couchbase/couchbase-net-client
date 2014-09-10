@@ -29,6 +29,8 @@ namespace Couchbase.Views
         /// The HTTP Status Code for the request
         /// </summary>
         HttpStatusCode StatusCode { get; }
+
+        bool CannotRetry();
     }
 }
 

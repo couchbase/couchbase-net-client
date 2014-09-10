@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1113,8 +1114,47 @@ namespace Couchbase.Core.Buckets
         public IViewResult<T> Query<T>(IViewQuery query)
         {
             CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Send<T>(query);
+            return SendWithRetry<T>((ViewQuery)query);
+        }
+
+        internal IViewResult<T> SendWithRetry<T>(ViewQuery query)
+        {
+            using (var cancellationTokenSource = new CancellationTokenSource(_configInfo.ClientConfig.ViewHardTimeout))
+            {
+                var task = RetryViewEvery((e, c) =>
+                {
+                    var server = c.GetServer();
+                    return server.Send<T>(query);
+                },
+                query, _configInfo, cancellationTokenSource.Token);
+                task.Wait(cancellationTokenSource.Token);
+                return task.Result;
+            }
+        }
+
+        static async Task<IViewResult<T>> RetryViewEvery<T>(Func<ViewQuery, IConfigInfo, IViewResult<T>> execute, ViewQuery query, IConfigInfo configInfo, CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                var result = execute(query, configInfo);
+                if (query.RetryAttempts++ >= configInfo.ClientConfig.MaxViewRetries ||
+                    result.Success ||
+                    result.CannotRetry())
+                {
+                    return result;
+                }
+                Log.Debug(m=>m("trying again: {0}", query.RetryAttempts));
+                var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
+                var task = Task.Delay(sleepTime, cancellationToken);
+                try
+                {
+                    await task;
+                }
+                catch (TaskCanceledException)
+                {
+                    return result;
+                }
+            }
         }
 
         /// <summary>
