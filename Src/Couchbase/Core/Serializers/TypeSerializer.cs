@@ -5,6 +5,7 @@ using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Core.Serializers
 {
@@ -12,10 +13,19 @@ namespace Couchbase.Core.Serializers
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IByteConverter _converter;
+        private readonly IContractResolver _outgoingContractResolver;
+        private readonly IContractResolver _incomingContractResolver;
 
         public TypeSerializer(IByteConverter converter)
+            : this(converter, new CamelCasePropertyNamesContractResolver(), new DefaultContractResolver())
+        {
+        }
+
+        public TypeSerializer(IByteConverter converter, IContractResolver incomingContractResolver, IContractResolver outgoingContractResolver)
         {
             _converter = converter;
+            _incomingContractResolver = incomingContractResolver;
+            _outgoingContractResolver = outgoingContractResolver;
         }
 
         public byte[] Serialize<T>(T value)
@@ -153,7 +163,10 @@ namespace Couchbase.Core.Serializers
                 {
                     using (var jr = new JsonTextReader(sr))
                     {
-                        var serializer = new JsonSerializer();
+                        var serializer = new JsonSerializer
+                        {
+                            ContractResolver = _incomingContractResolver
+                        };
                         value = serializer.Deserialize<T>(jr);
                     }
                 }
@@ -174,7 +187,10 @@ namespace Couchbase.Core.Serializers
                 {
                     using (var jr = new JsonTextWriter(sw))
                     {
-                        var serializer = new JsonSerializer();
+                        var serializer = new JsonSerializer
+                        {
+                            ContractResolver = _outgoingContractResolver
+                        };
                         serializer.Serialize(jr, value);
                     }
                 }
