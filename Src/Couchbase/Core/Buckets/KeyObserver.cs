@@ -129,45 +129,45 @@ namespace Couchbase.Core.Buckets
             };
 
             //Used to terminate the loop at the specific timeout
-            var cancellationTokenSource = new CancellationTokenSource(_timeout);
-
-            //perform the observe operation at the set interval and terminate if not successful by the timeout
-            var task = ObserveEvery(p =>
+            using (var cancellationTokenSource = new CancellationTokenSource(_timeout))
             {
-                //check the master for persistence to disk
-                var master = p.VBucket.LocatePrimary();
-                var result = master.Send(new Observe(key, vBucket, new AutoByteConverter()));
-                Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
-                var state = result.Value;
-                if (state.KeyState == p.Criteria.PersistState)
+                //perform the observe operation at the set interval and terminate if not successful by the timeout
+                var task = ObserveEvery(p =>
                 {
-                    Interlocked.Increment(ref p.PersistedToCount);
-                }
+                    //check the master for persistence to disk
+                    var master = p.VBucket.LocatePrimary();
+                    var result = master.Send(new Observe(key, vBucket, new AutoByteConverter()));
+                    Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
+                    var state = result.Value;
+                    if (state.KeyState == p.Criteria.PersistState)
+                    {
+                        Interlocked.Increment(ref p.PersistedToCount);
+                    }
 
-                //Check if durability requirements have been met
-                if (p.IsDurabilityMet())
-                {
-                    return true;
-                }
+                    //Check if durability requirements have been met
+                    if (p.IsDurabilityMet())
+                    {
+                        return true;
+                    }
 
-                //Key mutation detected so fail
-                if (p.HasMutated(state.Cas))
-                {
-                    return false;
-                }
+                    //Key mutation detected so fail
+                    if (p.HasMutated(state.Cas))
+                    {
+                        return false;
+                    }
 
-                //Run the durability requirement check on each replica
-                var tasks = new List<Task<bool>>();
-                var replicas = GetReplicas(vBucket, replicateTo, persistTo);
-                replicas.ForEach(x => tasks.Add(CheckReplica(p, x)));
+                    //Run the durability requirement check on each replica
+                    var tasks = new List<Task<bool>>();
+                    var replicas = GetReplicas(vBucket, replicateTo, persistTo);
+                    replicas.ForEach(x => tasks.Add(CheckReplica(p, x)));
 
-                //Wait for all tasks to finish
-                Task.WaitAll(tasks.ToArray());
-                return tasks.All(subtask => subtask.Result);
-            }, observeParams, _interval, cancellationTokenSource.Token);
-            task.Wait(_timeout);
-
-            return task.Result;
+                    //Wait for all tasks to finish
+                    Task.WaitAll(tasks.ToArray());
+                    return tasks.All(subtask => subtask.Result);
+                }, observeParams, _interval, cancellationTokenSource.Token);
+                task.Wait(_timeout);
+                return task.Result;
+            }
         }
 
         /// <summary>
