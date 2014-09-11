@@ -141,6 +141,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var expDoc1 = new { Bar = "Bar1" };
                 var expDoc2 = new { Bar = "Bar2" };
 
+                bucket.Remove(key);
                 var result = bucket.Upsert(key, expDoc1);
                 Assert.IsTrue(result.Success);
 
@@ -148,7 +149,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result1.Success);
 
                 var actDoc1 = result1.Value;
-                Assert.AreEqual(expDoc1.Bar, actDoc1.Bar.Value);
+                Assert.AreEqual(expDoc1.Bar, actDoc1.bar.Value);
 
                 var result2 = bucket.Upsert(key, expDoc2);
                 Assert.IsTrue(result2.Success);
@@ -157,7 +158,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result3.Success);
 
                 var actDoc2 = result3.Value;
-                Assert.AreEqual(expDoc2.Bar, actDoc2.Bar.Value);
+                Assert.AreEqual(expDoc2.Bar, actDoc2.bar.Value);
             }
         }
 
@@ -199,8 +200,8 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(NotImplementedException))]
-        public void When_Query_Called_On_Memcached_Bucket_With_N1QL_NotImplementedException_Is_Thrown()
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_Query_Called_On_Memcached_Bucket_With_N1QL_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
@@ -210,8 +211,8 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(NotImplementedException))]
-        public void When_Query_Called_On_Memcached_Bucket_With_ViewQuery_NotImplementedException_Is_Thrown()
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_Query_Called_On_Memcached_Bucket_With_ViewQuery_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
@@ -221,8 +222,8 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(NotImplementedException))]
-        public void When_CreateQuery_Called_On_Memcached_Bucket_NotImplementedException_Is_Thrown()
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_CreateQuery_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
@@ -231,8 +232,8 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(NotImplementedException))]
-        public void When_CreateQuery2_Called_On_Memcached_Bucket_NotImplementedException_Is_Thrown()
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_CreateQuery2_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
@@ -241,8 +242,8 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(NotImplementedException))]
-        public void When_CreateQuery3_Called_On_Memcached_Bucket_NotImplementedException_Is_Thrown()
+        [ExpectedException(typeof(NotSupportedException))]
+        public void When_CreateQuery3_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {

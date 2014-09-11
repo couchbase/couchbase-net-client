@@ -85,7 +85,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void When_View_Dose_Not_Exist_Return_Failure()
+        public void When_View_Does_Not_Exist_Return_Failure()
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
@@ -98,7 +98,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var result = bucket.Query<dynamic>(query);
                 Assert.IsFalse(result.Success);
                 Assert.AreEqual("not_found", result.Error);
-                Assert.Greater(result.TotalRows, 0);
+                Assert.AreEqual(result.TotalRows, 0);
             }
         }
 
@@ -223,7 +223,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result1.Success);
 
                 var actDoc1 = result1.Value;
-                Assert.AreEqual(expDoc1.Bar, actDoc1.Bar.Value);
+                Assert.AreEqual(expDoc1.Bar, actDoc1.bar.Value);
 
                 var result2 = bucket.Upsert(key, expDoc2);
                 Assert.IsTrue(result2.Success);
@@ -232,7 +232,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result3.Success);
 
                 var actDoc2 = result3.Value;
-                Assert.AreEqual(expDoc2.Bar, actDoc2.Bar.Value);
+                Assert.AreEqual(expDoc2.Bar, actDoc2.bar.Value);
             }
         }
 
@@ -613,8 +613,8 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var result = bucket.GetDocument<dynamic>(id);
                 Assert.IsTrue(result.Success);
-                Assert.AreEqual(document.Value.Name, result.Value.Name.Value);
-                Assert.AreEqual(document.Value.Name, result.Document.Value.Name.Value);
+                Assert.AreEqual(document.Value.Name, result.Value.name.Value);
+                Assert.AreEqual(document.Value.Name, result.Document.Value.name.Value);
             }
         }
 
