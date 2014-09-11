@@ -90,11 +90,15 @@ namespace Couchbase.Core.Buckets
         private IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
             CheckDisposed();
-            IOperationResult<T> operationResult;
+            IOperationResult<T> operationResult = new OperationResult<T>{Success = false};
             do
             {
                 IVBucket vBucket;
                 var server = GetServer(operation.Key, out vBucket);
+                if (server == null)
+                {
+                    continue;
+                }
                 operation.VBucket = vBucket;
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
