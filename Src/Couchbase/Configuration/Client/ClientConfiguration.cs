@@ -4,6 +4,7 @@ using System.Linq;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.IO;
+using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Configuration.Client
 {
@@ -37,6 +38,8 @@ namespace Couchbase.Configuration.Client
             ObserveTimeout = 500; //ms
             MaxViewRetries = 2;
             ViewHardTimeout = 30000; //ms
+            SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
 
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -70,6 +73,8 @@ namespace Couchbase.Configuration.Client
             ObserveTimeout = couchbaseClientSection.ObserveTimeout;
             MaxViewRetries = couchbaseClientSection.MaxViewRetries;
             ViewHardTimeout = couchbaseClientSection.ViewHardTimeout;
+            SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -219,6 +224,10 @@ namespace Couchbase.Configuration.Client
                 _serversChanged = true;
             }
         }
+
+        public IContractResolver SerializationContractResolver { get; set; }
+
+        public IContractResolver DeserializationContractResolver { get; set; }
 
         /// <summary>
         /// A map of <see cref="BucketConfiguration"/>s and their names.

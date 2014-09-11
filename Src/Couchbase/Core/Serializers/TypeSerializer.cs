@@ -17,7 +17,7 @@ namespace Couchbase.Core.Serializers
         private readonly IContractResolver _incomingContractResolver;
 
         public TypeSerializer(IByteConverter converter)
-            : this(converter, new CamelCasePropertyNamesContractResolver(), new DefaultContractResolver())
+            : this(converter, new DefaultContractResolver(), new CamelCasePropertyNamesContractResolver())
         {
         }
 
