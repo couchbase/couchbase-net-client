@@ -25,10 +25,10 @@ namespace Couchbase.Core
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
         private bool _disposed;
-        
-        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration) : 
-            this(ioStrategy, 
-            new ViewClient(new HttpClient(), new JsonDataMapper()), 
+
+        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration) :
+            this(ioStrategy,
+            new ViewClient(new HttpClient(), new JsonDataMapper()),
             new QueryClient(new HttpClient(), new JsonDataMapper()),
             node, clientConfiguration)
         {
@@ -122,8 +122,23 @@ namespace Couchbase.Core
 
         IQueryResult<T> IServer.Send<T>(string query)
         {
-            var uri = new Uri(GetBaseQueryUri());
-            return QueryClient.Query<T>(uri, query);
+            IQueryResult<T> result;
+            try
+            {
+                var uri = new Uri(GetBaseQueryUri());
+                result = QueryClient.Query<T>(uri, query);
+            }
+            catch (Exception e)
+            {
+                result = new QueryResult<T>
+                {
+                    Exception = e,
+                    Message = e.Message,
+                    Success = false,
+                    Rows = new List<T>()
+                };
+            }
+            return result;
         }
 
         //note this should be cached
@@ -152,7 +167,7 @@ namespace Couchbase.Core
                     ToString(CultureInfo.InvariantCulture));
                 uri = uri.Replace("http", "https");
             }
-            
+
             return uri.Replace("$HOST", "localhost");
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using Common.Logging;
 using Couchbase.Views;
@@ -27,7 +28,7 @@ namespace Couchbase.N1QL
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
         public IQueryResult<T> Query<T>(Uri server, string query)
         {
-            IQueryResult<T> queryResult = new QueryResult<T>();
+            var queryResult = new QueryResult<T>();
 
             var content = new StringContent(query);
             var postTask = HttpClient.PostAsync(server, content);
@@ -40,16 +41,28 @@ namespace Couchbase.N1QL
                 readTask.Wait();
 
                 queryResult = DataMapper.Map<QueryResult<T>>(readTask.Result);
+                queryResult.Success = queryResult.Error == null;
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
                     Log.Error(e);
+                    ProcessError(e, queryResult);
                     return true;
                 });
             }
             return queryResult;
+        }
+
+        static void ProcessError<T>(Exception ex, QueryResult<T> queryResult)
+        {
+            const string message = "Check Exception and Error fields for details.";
+            queryResult.Success = false;
+            queryResult.Message = message;
+            queryResult.Error = new Error { Message = message };
+            queryResult.Exception = ex;
+            queryResult.Rows = new List<T>();
         }
 
         /// <summary>

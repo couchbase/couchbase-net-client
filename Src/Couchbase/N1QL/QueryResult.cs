@@ -16,7 +16,7 @@ namespace Couchbase.N1QL
         {
             Rows = new List<T>();
         }
-            /// <summary>
+        /// <summary>
         /// The resultset or rows that are returned in a query.
         /// </summary>
         [JsonProperty("resultset")]
@@ -31,10 +31,7 @@ namespace Couchbase.N1QL
         /// <summary>
         /// True if query was successful.
         /// </summary>
-        public bool Success
-        {
-            get { return Error == null; }
-        }
+        public bool Success { get; internal set; }
 
         /// <summary>
         /// Optional message returned by query engine or client
