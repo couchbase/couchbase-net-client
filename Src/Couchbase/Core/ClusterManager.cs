@@ -147,6 +147,7 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName, string password)
         {
+            var exceptions = new List<Exception>();
             lock (SyncObject)
             {
                 var success = false;
@@ -161,7 +162,8 @@ namespace Couchbase.Core
                         switch (config.NodeLocator)
                         {
                             case NodeLocatorEnum.VBucket:
-                                bucket = _buckets.GetOrAdd(bucketName, name => new CouchbaseBucket(this, bucketName, _converter, _serializer));
+                                bucket = _buckets.GetOrAdd(bucketName,
+                                    name => new CouchbaseBucket(this, bucketName, _converter, _serializer));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -170,7 +172,8 @@ namespace Couchbase.Core
                                 break;
 
                             case NodeLocatorEnum.Ketama:
-                                bucket = _buckets.GetOrAdd(bucketName, name => new MemcachedBucket(this, bucketName, _converter, _serializer));
+                                bucket = _buckets.GetOrAdd(bucketName,
+                                    name => new MemcachedBucket(this, bucketName, _converter, _serializer));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -182,7 +185,7 @@ namespace Couchbase.Core
                                 throw new ArgumentOutOfRangeException();
                         }
 
-                        var configObserver = (IConfigObserver)bucket;
+                        var configObserver = (IConfigObserver) bucket;
                         if (provider.ObserverExists(configObserver))
                         {
                             Log.DebugFormat("Using existing bootstrap {0}.", provider);
@@ -206,24 +209,16 @@ namespace Couchbase.Core
                         success = true;
                         break;
                     }
-                    catch (BucketNotFoundException e)
+                    catch (Exception e)
                     {
                         Log.Warn(e);
-                    }
-                    catch (ConfigException e)
-                    {
-                        Log.Warn(e);
-                    }
-                    catch (AuthenticationException e)
-                    {
-                        Log.Warn(e);
-                        break;
+                        exceptions.Add(e);
                     }
                 }
 
                 if (!success)
                 {
-                        throw new ConfigException("Could not bootstrap {0}. See log for details.", bucketName);
+                    throw new AggregateException("Could not bootstrap - check inner exceptions for details.", exceptions);
                 }
                 return bucket;
             }

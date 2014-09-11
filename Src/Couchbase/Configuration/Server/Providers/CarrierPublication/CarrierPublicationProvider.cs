@@ -1,4 +1,6 @@
-﻿using Couchbase.Authentication.SASL;
+﻿using System.Collections.Generic;
+using System.Security.Authentication;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Serializers;
@@ -32,6 +34,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 var bucketConfiguration = GetOrCreateConfiguration(bucketName);
                 password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
 
+                var exceptions = new List<Exception>();
                 CouchbaseConfigContext configInfo = null;
                 foreach (var endPoint in bucketConfiguration.GetEndPoints())
                 {
@@ -61,6 +64,11 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             Configs[bucketName] = configInfo;
                             break;
                         }
+                        var exception = operationResult.Exception;
+                        if (exception != null)
+                        {
+                            exceptions.Add(exception);
+                        }
 
                         //CCCP only supported for Couchbase Buckets
                         if (operationResult.Status == ResponseStatus.UnknownCommand)
@@ -68,13 +76,27 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                         }
                         Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
-                               bucketName,
-                               operationResult.Message));
+                            bucketName,
+                            operationResult.Message));
+                    }
+                    catch (ConfigException)
+                    {
+                        throw;
+                    }
+                    catch (AuthenticationException)
+                    {
+                        throw;
                     }
                     catch (Exception e)
                     {
                         Log.Warn(e);
                     }
+                }
+
+                //Client cannot bootstrap with this provider
+                if (configInfo == null)
+                {
+                    throw new AggregateException(exceptions);
                 }
 
                 return configInfo;
