@@ -23,7 +23,7 @@ namespace Couchbase.Core.Buckets
     /// Represents a persistent Couchbase Bucket and can be used for performing CRUD operations on documents,
     /// querying Views and executing N1QL queries.
     /// </summary>
-    public sealed class CouchbaseBucket : IBucket, IConfigObserver
+    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;

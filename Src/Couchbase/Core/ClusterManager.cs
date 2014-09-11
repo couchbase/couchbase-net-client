@@ -157,16 +157,25 @@ namespace Couchbase.Core
                     {
                         Log.DebugFormat("Trying to boostrap with {0}.", provider);
                         var config = provider.GetConfig(bucketName, password);
+                        IRefCountable refCountable = null;
                         switch (config.NodeLocator)
                         {
                             case NodeLocatorEnum.VBucket:
                                 bucket = _buckets.GetOrAdd(bucketName, name => new CouchbaseBucket(this, bucketName, _converter, _serializer));
-                                bucket.AddRef();
+                                refCountable = bucket as IRefCountable;
+                                if (refCountable != null)
+                                {
+                                    refCountable.AddRef();
+                                }
                                 break;
 
                             case NodeLocatorEnum.Ketama:
                                 bucket = _buckets.GetOrAdd(bucketName, name => new MemcachedBucket(this, bucketName, _converter, _serializer));
-                                bucket.AddRef();
+                                refCountable = bucket as IRefCountable;
+                                if (refCountable != null)
+                                {
+                                    refCountable.AddRef();
+                                }
                                 break;
 
                             default:

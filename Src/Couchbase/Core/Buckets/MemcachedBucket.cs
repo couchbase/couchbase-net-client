@@ -15,7 +15,7 @@ namespace Couchbase.Core.Buckets
     /// <summary>
     /// Represents an in-memory bucket for storing Key/Value pairs. Most often used as a distributed cache.
     /// </summary>
-    public class MemcachedBucket : IBucket, IConfigObserver
+    public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IClusterManager _clusterManager;

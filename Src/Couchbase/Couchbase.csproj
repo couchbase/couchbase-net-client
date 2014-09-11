@@ -157,6 +157,7 @@
     <Compile Include="IDocument%27.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IOperationResult%27.cs" />
+    <Compile Include="IRefCountable.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />

@@ -591,18 +591,6 @@ namespace Couchbase.Core
         IViewQuery CreateQuery(bool development, string designdoc, string view);
 
         /// <summary>
-        /// Increments the reference counter for this <see cref="IBucket"/> instance.
-        /// </summary>
-        /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
-        int AddRef();
-        
-        /// <summary>
-        /// Decrements the reference counter and calls <see cref="IDisposable.Dispose"/> if the count is zero.
-        /// </summary>
-        /// <returns></returns>
-        int Release();
-
-        /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.
         /// </summary>
         bool IsSecure { get; }
