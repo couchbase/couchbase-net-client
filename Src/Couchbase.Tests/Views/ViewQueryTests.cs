@@ -16,10 +16,11 @@ namespace Couchbase.Tests.Views
         {
             var expected = new Uri("http://localhost:8092/default/_design/dev_cities/_view/by_name?");
             const string baseUri = "http://localhost:8092";
-            var query = new ViewQuery(baseUri, true).
+            var query = new ViewQuery(baseUri).
                 Bucket("default").
                 DesignDoc("cities").
-                View("by_name");
+                View("by_name").
+                Development(true);
 
             Assert.AreEqual(expected, query.RawUri());
         }
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Views
         {
             var expected = new Uri("http://localhost:8092/default/_design/cities/_view/by_name?");
             const string baseUri = "http://localhost:8092";
-            var query = new ViewQuery(baseUri, false).
+            var query = new ViewQuery(baseUri).
                 Bucket("default").
                 DesignDoc("cities").
                 View("by_name");
@@ -42,9 +43,8 @@ namespace Couchbase.Tests.Views
         {
             var expected = new Uri("http://localhost:8092/default/_design/cities/_view/by_name?");
             const string baseUri = "http://localhost:8092";
-            var query = new ViewQuery(baseUri, false).
-                From("default", "cities").
-                View("by_name");
+            var query = new ViewQuery("default", baseUri).
+                From("cities", "by_name");
 
             Assert.AreEqual(expected, query.RawUri());
         }
@@ -54,9 +54,8 @@ namespace Couchbase.Tests.Views
         {
             var expected = new Uri("http://localhost:8092/default/_design/cities/_view/by_name?limit=10");
             const string baseUri = "http://localhost:8092";
-            var query = new ViewQuery(baseUri, false).
-                From("default", "cities").
-                View("by_name").
+            var query = new ViewQuery("default", baseUri).
+                From("cities", "by_name").
                 Limit(10);
 
             Assert.AreEqual(expected, query.RawUri());
@@ -68,9 +67,9 @@ namespace Couchbase.Tests.Views
             const string expected = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093/_design/beer/_view/brewery_beers?";
             const string baseUriWithUuid = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093";
 
-            var actual = new ViewQuery(baseUriWithUuid, false).
-                From("beer-sample", "beer").
-                View("brewery_beers");
+            var actual = new ViewQuery(baseUriWithUuid).
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
 
             Assert.AreEqual(new Uri(expected), actual.RawUri());
         }

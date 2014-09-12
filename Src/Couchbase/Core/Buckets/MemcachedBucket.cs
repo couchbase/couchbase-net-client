@@ -662,12 +662,12 @@ namespace Couchbase.Core.Buckets
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IViewQuery CreateQuery(bool development, string designdoc)
+        public IViewQuery CreateQuery(string designDoc, string view)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IViewQuery CreateQuery(bool development, string designdoc, string view)
+        public IViewQuery CreateQuery(string designdoc, string view, bool development)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

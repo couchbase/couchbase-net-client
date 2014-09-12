@@ -16,9 +16,9 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_Query_Is_Succesful_Rows_Are_Returned()
         {
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("brewery_beers");
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());
             var result = client.Execute<dynamic>(query);
@@ -29,9 +29,9 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_View_Is_Not_Found_404_Is_Returned()
         {
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("view_that_does_not_exist");
+            var query = new ViewQuery().
+                From("beer", "view_that_does_not_exist").
+                Bucket("beer-sample");
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());
             var result = client.Execute<dynamic>(query);
@@ -46,9 +46,9 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_View_Is_Called_With_Invalid_Parameters_Error_Is_Returned()
         {
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("brewery_beers").
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample").
                 Group(true);
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());
@@ -65,9 +65,9 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_Url_Is_Invalid_WebException_Is_Returned()
         {
-            var query = new ViewQuery(false).
-                From("beer-sample", "beer").
-                View("brewery_beers").
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample").
                 BaseUri("http://192.168.56.105:8092/");
 
             var client = new ViewClient(new HttpClient(), new JsonDataMapper());

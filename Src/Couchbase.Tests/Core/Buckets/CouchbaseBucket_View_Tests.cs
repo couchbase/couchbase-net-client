@@ -22,28 +22,11 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_CreateQuery()
-        {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
-            var bucket = _cluster.OpenBucket("beer-sample");
-
-            var query = bucket.CreateQuery(true).
-                DesignDoc("beer").
-                View("brewery_beers").
-                RawUri();
-
-            _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected.Scheme, query.Scheme);
-            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
-        }
-
-        [Test]
         public void Test_CreateQuery_Overload2()
         {
             var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery(true, "beer").
-                View("brewery_beers").
+            var query = bucket.CreateQuery("beer", "brewery_beers", true).
                 RawUri();
 
             _cluster.CloseBucket(bucket);
@@ -56,7 +39,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery(true, "beer", "brewery_beers").
+            var query = bucket.CreateQuery("beer", "brewery_beers", true).
                 RawUri();
 
             _cluster.CloseBucket(bucket);
@@ -69,7 +52,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket())
             {
-                var query = bucket.CreateQuery(true, "beer", "brewery_beers");
+                var query = bucket.CreateQuery("beer", "brewery_beers", true);
                 Assert.AreEqual(bucket.Name, query.BucketName);
             }
         }
@@ -79,17 +62,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket())
             {
-                var query = bucket.CreateQuery(true, "beer");
-                Assert.AreEqual(bucket.Name, query.BucketName);
-            }
-        }
-
-        [Test]
-        public void When_BucketName_Is_Not_Set_The_Buckets_Name_Is_Used3()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var query = bucket.CreateQuery(true);
+                var query = bucket.CreateQuery("beer", "brewery_beers");
                 Assert.AreEqual(bucket.Name, query.BucketName);
             }
         }

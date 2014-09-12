@@ -73,9 +73,9 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
-                var query = new ViewQuery(false).
-                    From("beer-sample", "beer").
-                    View("brewery_beers").
+                var query = new ViewQuery().
+                    From("beer", "brewery_beers").
+                    Bucket("beer-sample").
                     Limit(10);
 
                 Console.WriteLine(query.RawUri());
@@ -89,9 +89,9 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
-                var query = new ViewQuery(false).
-                    From("beer-sample", "beer").
-                    View("brewery_beers2").//does not exist
+                var query = new ViewQuery().
+                    From("beer-sample2", "beer").//does not exist
+                    Bucket("beer-sample").
                     Limit(10);
 
                 Console.WriteLine(query.RawUri());
@@ -107,9 +107,9 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
-                var query = new ViewQuery(false).
-                    From("beer-sample", "beer").
-                    View("brewery_beers");
+                var query = new ViewQuery().
+                    Bucket("beer-sample").
+                    From("beer", "brewery_beers");
 
                 var result = bucket.Query<dynamic>(query);
                 for (var i = 0; i < 10; i++)

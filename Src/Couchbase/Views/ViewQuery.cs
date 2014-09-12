@@ -66,44 +66,43 @@ namespace Couchbase.Views
             public const string ConnectionTimeout = "connection_timeout";
         }
 
-        public ViewQuery(bool development)
-            : this(null, DefaultHost, development)
+        public ViewQuery()
+            : this(null, DefaultHost)
         {
         }
 
-        public ViewQuery(string baseUri, bool development)
-            : this(null, baseUri, development)
+        public ViewQuery(string baseUri)
+            : this(null, baseUri)
         {
         }
 
-        public ViewQuery(string bucketName, string baseUri, bool development)
-            : this(bucketName, baseUri, null, development)
+        public ViewQuery(string bucketName, string baseUri)
+            : this(bucketName, baseUri, null)
         {
         }
 
-        public ViewQuery(string bucketName, string baseUri, string designDoc, bool development)
-            : this(bucketName, baseUri, designDoc, null, development)
+        public ViewQuery(string bucketName, string baseUri, string designDoc)
+            : this(bucketName, baseUri, designDoc, null)
         {
         }
 
-        public ViewQuery(string bucketName, string baseUri, string designDoc, string viewName, bool development)
+        public ViewQuery(string bucketName, string baseUri, string designDoc, string viewName)
         {
             _bucketName = bucketName;
             _baseUri = baseUri;
             _designDoc = designDoc;
             _viewName = viewName;
-            _development = development;
         }
 
         /// <summary>
         /// Specifies the bucket and design document to target for a query.
         /// </summary>
-        /// <param name="bucketName">The bucket to target</param>
-        /// <param name="designDoc">The design document to use</param>
+        /// <param name="designDoc">The bucket to target</param>
+        /// <param name="view">The design document to use</param>
         /// <returns></returns>
-        public IViewQuery From(string bucketName, string designDoc)
+        public IViewQuery From(string designDoc, string view)
         {
-            return Bucket(bucketName).DesignDoc(designDoc);
+            return DesignDoc(designDoc).View(view);
         }
 
         /// <summary>
@@ -343,6 +342,18 @@ namespace Couchbase.Views
         public IViewQuery BaseUri(string uri)
         {
             _baseUri = uri;
+            return this;
+        }
+
+        /// <summary>
+        /// Toggles the query between development or production dataset and View.
+        /// </summary>
+        /// <param name="development">If true the development View will be used</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        /// <remarks>The default is false; use the published, production view.</remarks>
+        public IViewQuery Development(bool development)
+        {
+            _development = development;
             return this;
         }
 

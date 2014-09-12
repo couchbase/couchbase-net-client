@@ -216,7 +216,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = new ViewQuery(true);
+                var query = new ViewQuery();
                 bucket.Query<dynamic>(query);
             }
         }
@@ -227,7 +227,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery(true);
+                var query = bucket.CreateQuery("designdoc", "view", true);
             }
         }
 
@@ -237,7 +237,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery(true, "designdoc");
+                var query = bucket.CreateQuery("designdoc", "view");
             }
         }
 
@@ -247,7 +247,7 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery(true, "designdoc", "view");
+                var query = bucket.CreateQuery("designdoc", "view", true);
             }
         }
 

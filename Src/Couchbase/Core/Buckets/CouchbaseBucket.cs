@@ -1182,46 +1182,34 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket.
-        /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
-        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        public IViewQuery CreateQuery(bool development)
-        {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(Name, baseUri, development);
-        }
-
-        /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
         /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
-        /// <param name="designdoc">The design document that the View belongs to.</param>
+        /// <param name="designDoc"></param>
+        /// <param name="view"></param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        public IViewQuery CreateQuery(bool development, string designdoc)
+        public IViewQuery CreateQuery(string designDoc, string view)
         {
             CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(Name, baseUri, designdoc, development);
+            return new ViewQuery(Name, baseUri, designDoc, view);
         }
 
         /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="viewname"></param>
+        /// <param name="development">True will execute on the development dataset.</param>
         /// >
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        public IViewQuery CreateQuery(bool development, string designdoc, string viewname)
+        public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
         {
             CheckDisposed();
             var server = _configInfo.GetServer();
             var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(Name, baseUri, designdoc, viewname, development);
+            return new ViewQuery(Name, baseUri, designdoc, viewname)
+                .Development(development);
         }
 
         /// <summary>

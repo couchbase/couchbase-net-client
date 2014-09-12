@@ -565,30 +565,23 @@ namespace Couchbase.Core
         /// <param name="query">An ad-hoc N1QL query.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         IQueryResult<T> Query<T>(string query);
-            
-        /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket.
-        /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
-        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        IViewQuery CreateQuery(bool development);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and a published view.
         /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
-        /// <param name="designdoc">The design document that the View belongs to.</param>
+        /// <param name="designDoc"></param>
+        /// <param name="view"></param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        IViewQuery CreateQuery(bool development, string designdoc);
+        IViewQuery CreateQuery(string designDoc, string view);
 
         /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>
-        /// <param name="development">True will execute on the development dataset.</param>
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="view">The View to query.</param>
+        /// <param name="development">True will execute on the development dataset.</param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        IViewQuery CreateQuery(bool development, string designdoc, string view);
+        IViewQuery CreateQuery(string designdoc, string view, bool development);
 
         /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.

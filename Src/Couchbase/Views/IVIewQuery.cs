@@ -13,10 +13,10 @@ namespace Couchbase.Views
         /// <summary>
         /// Specifies the bucket and design document to target for a query.
         /// </summary>
-        /// <param name="bucketName">The bucket to target</param>
-        /// <param name="designDoc">The design document to use</param>
+        /// <param name="designDoc">The bucket to target</param>
+        /// <param name="view">The design document to use</param>
         /// <returns></returns>
-        IViewQuery From(string bucketName, string designDoc);
+        IViewQuery From(string designDoc, string view);
 
         /// <summary>
         /// Sets the name of the Couchbase Bucket.
@@ -173,6 +173,13 @@ namespace Couchbase.Views
         /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
         /// </summary>
         string BucketName { get; }
+
+        /// <summary>
+        /// Toggles the query between development or production dataset and View.
+        /// </summary>
+        /// <param name="development">If true the development View will be used</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery Development(bool development);
 
         /// <summary>
         /// Returns the raw REST URI which can be executed in a browser or using curl.
