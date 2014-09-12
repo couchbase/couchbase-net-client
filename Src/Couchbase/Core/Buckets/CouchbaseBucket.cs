@@ -193,18 +193,25 @@ namespace Couchbase.Core.Buckets
             var exception = operation.Exception as IOException;
             if (exception != null)
             {
-                //Mark the current server as dead and force a reconfig
-                server.MarkDead();
-
-                var liveServer = _configInfo.GetServer();
-                var result = liveServer.Send(new Config(_converter));
-                if (result.Success)
+                try
                 {
-                    var config = result.Value;
-                    if (config != null)
+                    //Mark the current server as dead and force a reconfig
+                    server.MarkDead();
+
+                    var liveServer = _configInfo.GetServer();
+                    var result = liveServer.Send(new Config(_converter));
+                    if (result.Success)
                     {
-                        _clusterManager.NotifyConfigPublished(result.Value);
+                        var config = result.Value;
+                        if (config != null)
+                        {
+                            _clusterManager.NotifyConfigPublished(result.Value);
+                        }
                     }
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
                 }
             }
             return retry;
