@@ -99,6 +99,12 @@ namespace Couchbase.IO
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public System.Net.EndPoint EndPoint
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

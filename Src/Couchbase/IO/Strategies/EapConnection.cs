@@ -34,7 +34,7 @@ namespace Couchbase.IO.Strategies
                 operation.Reset();
                 var buffer = operation.Write();
                 var index = operation.VBucket == null ? 0 : operation.VBucket.Index;
-                Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, Socket.RemoteEndPoint));
+                Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, EndPoint));
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
 
                 if (!SendEvent.WaitOne(Configuration.OperationTimeout))

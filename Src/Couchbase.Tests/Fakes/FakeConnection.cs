@@ -40,5 +40,11 @@ namespace Couchbase.Tests.Fakes
         }
 
         public bool IsSecure { get; protected set; }
+
+
+        public System.Net.EndPoint EndPoint
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

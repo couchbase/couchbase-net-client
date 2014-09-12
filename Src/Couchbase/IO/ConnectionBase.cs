@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Deployment.Internal;
+using System.Net;
 using System.Net.Sockets;
 using System.ServiceModel.Channels;
 using System.Text;
@@ -38,6 +39,7 @@ namespace Couchbase.IO
             _state = asyncState;
             _converter = converter;
             BufferManager = bufferManager;
+            EndPoint = socket.RemoteEndPoint;
         }
 
         public OperationAsyncState State
@@ -135,6 +137,8 @@ namespace Couchbase.IO
             var bytes = Encoding.UTF8.GetBytes(errorMsg);
             operation.Read(bytes, offset, errorMsg.Length);
         }
+
+        public EndPoint EndPoint { get; private set; }
     }
 }
 

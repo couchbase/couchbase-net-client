@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies.Awaitable;
@@ -33,6 +34,8 @@ namespace Couchbase.IO
         IOperationResult<T> Send<T>(IOperation<T> operation); 
 
         OperationAsyncState State { get; }
+
+        EndPoint EndPoint { get; }
     }
 }
 
