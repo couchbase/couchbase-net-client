@@ -1130,17 +1130,35 @@ namespace Couchbase.Core.Buckets
 
         internal IViewResult<T> SendWithRetry<T>(ViewQuery query)
         {
-            using (var cancellationTokenSource = new CancellationTokenSource(_configInfo.ClientConfig.ViewHardTimeout))
+            IViewResult<T> viewResult = null;
+            try
             {
-                var task = RetryViewEvery((e, c) =>
+                using (var cancellationTokenSource = new CancellationTokenSource(_configInfo.ClientConfig.ViewHardTimeout))
                 {
-                    var server = c.GetServer();
-                    return server.Send<T>(query);
-                },
-                query, _configInfo, cancellationTokenSource.Token);
-                task.Wait(cancellationTokenSource.Token);
-                return task.Result;
+                    var task = RetryViewEvery((e, c) =>
+                    {
+                        var server = c.GetServer();
+                        return server.Send<T>(query);
+                    },
+                        query, _configInfo, cancellationTokenSource.Token);
+                    task.Wait(cancellationTokenSource.Token);
+                    viewResult = task.Result;
+                }
             }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                const string message = "View request failed, check Error and Exception fields for details.";
+                viewResult = new ViewResult<T>
+                {
+                    Message = message,
+                    Error = e.Message,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return viewResult;
         }
 
         static async Task<IViewResult<T>> RetryViewEvery<T>(Func<ViewQuery, IConfigInfo, IViewResult<T>> execute, ViewQuery query, IConfigInfo configInfo, CancellationToken cancellationToken)
