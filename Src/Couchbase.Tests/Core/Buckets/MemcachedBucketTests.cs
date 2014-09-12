@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,13 +34,26 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(ConfigException))]
-        public void Test_That_OpenBucket_Throws_ConfigException_If_Bucket_Does_Not_Exist()
+        [ExpectedException(typeof(AuthenticationException))]
+        public void Test_That_OpenBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {
-            using (var bucket = _cluster.OpenBucket("doesnotexist"))
+            try
             {
-                Assert.IsNotNull(bucket);
-            } 
+                using (var bucket = _cluster.OpenBucket("doesnotexist"))
+                {
+                    Assert.IsNotNull(bucket);
+                }
+            }
+            catch (AggregateException e)
+            {
+                foreach (var exception in e.InnerExceptions)
+                {
+                    if (exception.GetType() == typeof(AuthenticationException))
+                    {
+                        throw exception;
+                    }
+                }
+            }
         }
 
         [Test]

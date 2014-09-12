@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Security.Authentication;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
@@ -33,28 +35,44 @@ namespace Couchbase.Tests.Authentication
             cluster.CloseBucket(bucket);
         }
 
+        /// <summary>
+        /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
+        /// </summary>
         [Test]
-        [ExpectedException(typeof(ConfigException))]
+        [ExpectedException(typeof(AuthenticationException))]
         public void When_InValid_Credentials_Provided_Bucket_Created_UnSuccesfully()
         {
-            var config = new ClientConfiguration
+            try
             {
-                Servers = new List<Uri> { new Uri("http://127.0.0.1:8091") },
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                var config = new ClientConfiguration
                 {
+                    Servers = new List<Uri> { new Uri("http://127.0.0.1:8091") },
+                    BucketConfigs = new Dictionary<string, BucketConfiguration>
                     {
-                        "authenticated",
-                        new BucketConfiguration
                         {
-                            BucketName = "authenticated"
+                            "authenticated",
+                            new BucketConfiguration
+                            {
+                                BucketName = "authenticated"
+                            }
                         }
                     }
+                };
+                var cluster = new CouchbaseCluster(config);
+                var bucket = cluster.OpenBucket("authenticated", "secretw");
+                cluster.CloseBucket(bucket);
+                Assert.IsNotNull(bucket);
+            }
+            catch (AggregateException e)
+            {
+                foreach (var exception in e.InnerExceptions)
+                {
+                    if (exception.GetType() == typeof (AuthenticationException))
+                    {
+                        throw exception;
+                    }
                 }
-            };
-            var cluster = new CouchbaseCluster(config);
-            var bucket = cluster.OpenBucket("authenticated", "secretw"); 
-            cluster.CloseBucket(bucket);
-            Assert.IsNotNull(bucket);
+            }
         }
     }
 }

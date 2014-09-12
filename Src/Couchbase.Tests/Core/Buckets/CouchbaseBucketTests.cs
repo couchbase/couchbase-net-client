@@ -39,13 +39,29 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        /// <summary>
+        /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
+        /// </summary>
         [Test]
-        [ExpectedException(typeof(ConfigException))]
-        public void Test_That_GetBucket_Throws_ConfigException_If_Bucket_Does_Not_Exist()
+        [ExpectedException(typeof(AuthenticationException))]
+        public void Test_That_GetBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {
-            using (var bucket = _cluster.OpenBucket("doesnotexist"))
+            try
             {
-                Assert.AreEqual("doesnotexist", bucket.Name);
+                using (var bucket = _cluster.OpenBucket("doesnotexist"))
+                {
+                    Assert.AreEqual("doesnotexist", bucket.Name);
+                }
+            }
+            catch (AggregateException e)
+            {
+                foreach (var exception in e.InnerExceptions)
+                {
+                    if (exception.GetType() == typeof (AuthenticationException))
+                    {
+                        throw exception;
+                    }
+                }
             }
         }
 
@@ -59,7 +75,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        [ExpectedException(typeof(ConfigException))]
+        [ExpectedException(typeof(AggregateException))]
         public void Test_That_Bucket_That_Doesnt_Exist_Throws_ConfigException()
         {
             using (var bucket = _cluster.OpenBucket("authenicated", "secret"))
