@@ -1,4 +1,5 @@
-﻿using Couchbase.Configuration.Server.Serialization;
+﻿using System;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
@@ -8,6 +9,29 @@ namespace Couchbase.IO.Operations
         public Config(IByteConverter converter)
             : base(converter)
         {
+        }
+
+        public override byte[] CreateExtras()
+        {
+            Format = DataFormat.Json;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.Object
+            };
+            return new byte[0];
+        }
+
+        public override void ReadExtras(byte[] buffer)
+        {
+            Format = DataFormat.Json;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.Object
+            };
         }
 
         public override OperationCode OperationCode

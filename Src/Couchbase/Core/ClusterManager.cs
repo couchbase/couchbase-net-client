@@ -8,7 +8,7 @@ using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
@@ -32,7 +32,7 @@ namespace Couchbase.Core
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly IByteConverter _converter;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeTranscoder _transcoder;
         private static readonly object SyncObject = new object();
         private volatile bool _disposed;
 
@@ -58,7 +58,7 @@ namespace Couchbase.Core
             },
             SaslFactory.GetFactory3(),
             new AutoByteConverter(), 
-            new TypeSerializer(new AutoByteConverter(), clientConfig.DeserializationContractResolver, clientConfig.SerializationContractResolver))
+            new DefaultTranscoder(new AutoByteConverter(), clientConfig.DeserializationContractResolver, clientConfig.SerializationContractResolver))
         {
         }
 
@@ -79,7 +79,7 @@ namespace Couchbase.Core
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
             new AutoByteConverter(),
-            new TypeSerializer(new AutoByteConverter(), clientConfig.DeserializationContractResolver, clientConfig.SerializationContractResolver))
+            new DefaultTranscoder(new AutoByteConverter(), clientConfig.DeserializationContractResolver, clientConfig.SerializationContractResolver))
         {
         }
 
@@ -88,14 +88,14 @@ namespace Couchbase.Core
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter,
-            ITypeSerializer serializer)
+            ITypeTranscoder transcoder)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             _converter = converter;
-            _serializer = serializer;
+            _transcoder = transcoder;
             Initialize();
         }
 
@@ -109,14 +109,14 @@ namespace Couchbase.Core
                 _connectionPoolFactory,
                 _saslFactory,
                 _converter,
-                _serializer));
+                _transcoder));
 
             _configProviders.Add(new HttpStreamingProvider(_clientConfig,
                 _ioStrategyFactory,
                 _connectionPoolFactory,
                 _saslFactory,
                 _converter,
-                _serializer));
+                _transcoder));
         }
 
         public IConfigProvider GetProvider(string name)
@@ -163,7 +163,7 @@ namespace Couchbase.Core
                         {
                             case NodeLocatorEnum.VBucket:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new CouchbaseBucket(this, bucketName, _converter, _serializer));
+                                    name => new CouchbaseBucket(this, bucketName, _converter, _transcoder));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -173,7 +173,7 @@ namespace Couchbase.Core
 
                             case NodeLocatorEnum.Ketama:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new MemcachedBucket(this, bucketName, _converter, _serializer));
+                                    name => new MemcachedBucket(this, bucketName, _converter, _transcoder));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {

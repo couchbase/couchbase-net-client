@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -19,15 +20,15 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_Timed_Execution()
         {
             var converter = new AutoByteConverter();
-            var serializer = new TypeSerializer(converter);
+            var transcoder = new DefaultTranscoder(converter);
             var vbucket = GetVBucket();
             int n = 1000; //set to a higher # if needed
 
             using (new OperationTimer())
             {
                 var key = string.Format("key{0}", 111);
-                var set = new Set<int>(key, 111, vbucket, converter);
-                var get = new Get<int>(key, vbucket, converter, serializer);
+                var set = new Set<int?>(key, 111, vbucket, converter);
+                var get = new Get<int?>(key, vbucket, converter, transcoder);
 
                 for (var i = 0; i < n; i++)
                 {
@@ -46,7 +47,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var converter = new AutoByteConverter();
-            var serializer = new TypeSerializer(converter);
+            var transcoder = new DefaultTranscoder(converter);
             var vbucket = GetVBucket();
             var n = 1000;//set to a higher # if needed
 
@@ -55,11 +56,11 @@ namespace Couchbase.Tests.IO.Operations
                 Parallel.For(0, n, options, i =>
                 {
                     var key = string.Format("key{0}", i);
-                    var set = new Set<int>(key, i, vbucket, converter);
+                    var set = new Set<int?>(key, i, vbucket, converter);
                     var result = IOStrategy.Execute(set);
                     Assert.IsTrue(result.Success);
   
-                    var get = new Get<int>(key, vbucket, converter, serializer);
+                    var get = new Get<int?>(key, vbucket, converter, transcoder);
                     var result1 = IOStrategy.Execute(get);
                     Assert.IsTrue(result1.Success); 
                     Assert.AreEqual(i, result1.Value);
@@ -76,7 +77,7 @@ namespace Couchbase.Tests.IO.Operations
                 {
                     var key = string.Format("key{0}", 1);
                     var result = bucket.Get<int>(key);
-                    Console.WriteLine(result.Value);
+                    Assert.IsTrue(result.Success);
                 }
             }
         }
@@ -111,10 +112,11 @@ namespace Couchbase.Tests.IO.Operations
                         Parallel.For(0, n, options, i =>
                         {
                             var key = string.Format("key{0}", i);
-                            var result = temp.Upsert(key, i);
+                            var value = (int?) i;
+                            var result = temp.Upsert(key, value);
                             Assert.IsTrue(result.Success);
 
-                            var result1 = temp.Get<int>(key);
+                            var result1 = temp.Get<int?>(key);
                             Assert.IsTrue(result1.Success);
                             Assert.AreEqual(i, result1.Value);
                         });

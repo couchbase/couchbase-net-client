@@ -1,5 +1,5 @@
 ﻿using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -17,8 +17,8 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, vBucket, converter, serializer)
+        public Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : base(key, vBucket, converter, transcoder)
         {
         }
 

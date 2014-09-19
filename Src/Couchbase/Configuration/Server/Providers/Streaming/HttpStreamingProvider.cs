@@ -9,7 +9,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.Utils;
@@ -34,8 +34,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter, 
-            ITypeSerializer serializer)
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
+            ITypeTranscoder transcoder)
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
         }
 
@@ -206,7 +206,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             ConnectionPoolFactory,
                             SaslFactory,
                             Converter,
-                            Serializer);
+                            transcoder);
                         break;
                     case NodeLocatorEnum.Ketama:
                         configInfo = new MemcachedConfigContext(bucketConfig,
@@ -215,7 +215,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             ConnectionPoolFactory,
                             SaslFactory,
                             Converter,
-                            Serializer);
+                            transcoder);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();

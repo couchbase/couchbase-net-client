@@ -4,7 +4,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -20,10 +20,10 @@ namespace Couchbase.Tests.IO.Operations
             const string expected = "Hello!";
 
             //clean up old keys
-            var deleteOperation = new Delete(key, GetVBucket(), Converter, Serializer);
+            var deleteOperation = new Delete(key, GetVBucket(), Converter, transcoder);
             IOStrategy.Execute(deleteOperation);
 
-            deleteOperation = new Delete(key + "!", GetVBucket(),  Converter, Serializer);
+            deleteOperation = new Delete(key + "!", GetVBucket(),  Converter, transcoder);
             IOStrategy.Execute(deleteOperation);
 
             //create the key
@@ -31,14 +31,14 @@ namespace Couchbase.Tests.IO.Operations
             var addResult = IOStrategy.Execute(set);
             Assert.IsTrue(addResult.Success);
 
-            var append = new Append<string>(key, "!", Serializer, GetVBucket(), Converter);
+            var append = new Append<string>(key, "!", transcoder, GetVBucket(), Converter);
             var result = IOStrategy.Execute(append);
 
             
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
-            var get = new Get<string>(key, GetVBucket(),  Converter, Serializer);
+            var get = new Get<string>(key, GetVBucket(),  Converter, transcoder);
             var getResult = IOStrategy.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
         }

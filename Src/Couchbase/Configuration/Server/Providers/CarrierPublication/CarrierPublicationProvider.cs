@@ -3,13 +3,12 @@ using System.Security.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
-using Couchbase.Utils;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
@@ -19,10 +18,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
-            ITypeSerializer serializer) 
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
+            ITypeTranscoder transcoder)
+            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
         }
 
@@ -56,7 +55,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                                 ConnectionPoolFactory,
                                 SaslFactory,
                                 Converter,
-                                Serializer);
+                                transcoder);
 
                             Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
 

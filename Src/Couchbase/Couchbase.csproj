@@ -73,8 +73,8 @@
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
     <Compile Include="Core\Buckets\KeyObserver.cs" />
-    <Compile Include="Core\Serializers\ITypeSerializer.cs" />
-    <Compile Include="Core\Serializers\TypeSerializer.cs" />
+    <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
+    <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="CouchbaseCluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
@@ -157,6 +157,9 @@
     <Compile Include="IDocument%27.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IOperationResult%27.cs" />
+    <Compile Include="IO\Operations\Compression.cs" />
+    <Compile Include="IO\Operations\DataFormat.cs" />
+    <Compile Include="IO\Operations\Flags.cs" />
     <Compile Include="IRefCountable.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
     <Compile Include="Views\IViewResult%27.cs" />

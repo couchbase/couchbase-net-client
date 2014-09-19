@@ -10,7 +10,7 @@ using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -31,7 +31,7 @@ namespace Couchbase.Core.Buckets
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -44,11 +44,11 @@ namespace Couchbase.Core.Buckets
             public int Count;
         }
 
-        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
+        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
             _clusterManager = clusterManager;
             _converter = converter;
-            _serializer = serializer;
+            _transcoder = transcoder;
             Name = bucketName;
         }
 
@@ -494,7 +494,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _serializer);
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -508,7 +508,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _converter, _serializer);
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -522,7 +522,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _serializer)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -540,7 +540,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint cas, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _serializer)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder)
             {
                 Cas = cas,
                 Expires = expiration
@@ -612,7 +612,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _serializer);
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -628,7 +628,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value,cas, null, _converter, _serializer);
+            var operation = new Replace<T>(key, value,cas, null, _converter, _transcoder);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -645,7 +645,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, cas, null, _converter, _serializer)
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -673,7 +673,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -687,7 +687,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
-            var operation = new Add<T>(key, value, null, _converter, _serializer)
+            var operation = new Add<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -744,7 +744,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -760,7 +760,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Add<T>(key, value, null, _converter, _serializer)
+            var operation = new Add<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -797,7 +797,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            var operation = new Delete(key, null, _converter, _serializer)
+            var operation = new Delete(key, null, _converter, _transcoder)
             {
                 Cas = cas
             };
@@ -861,7 +861,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _converter, _serializer);
+            var operation = new Delete(key, null, _converter, _transcoder);
             return SendWithDurability(operation, true, replicateTo, persistTo);
         }
 
@@ -875,7 +875,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _converter, _serializer)
+            var operation = new Delete(key, null, _converter, _transcoder)
             {
                 Cas = cas
             };
@@ -902,7 +902,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var operation = new Get<T>(key, null, _converter, _serializer);
+            var operation = new Get<T>(key, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -967,7 +967,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _serializer);
+            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1038,7 +1038,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _serializer);
+            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1060,7 +1060,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<string>(key, value, _serializer , vBucket, _converter);
+            var operation = new Append<string>(key, value, _transcoder , vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1082,7 +1082,7 @@ namespace Couchbase.Core.Buckets
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<string>(key, value, _serializer, vBucket, _converter);
+            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))

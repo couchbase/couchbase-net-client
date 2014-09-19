@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Threading;
-using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.Utils;
@@ -22,12 +21,12 @@ namespace Couchbase.Configuration
     internal class MemcachedConfigContext : ConfigContextBase
     {
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
-            ITypeSerializer serializer) 
-            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, serializer)
+            ITypeTranscoder transcoder)
+            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
         }
 

@@ -1,5 +1,5 @@
 ﻿using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
@@ -16,8 +16,8 @@ namespace Couchbase.IO.Operations
             uint expiration,
             IVBucket vBucket,
             IByteConverter converter,
-            ITypeSerializer serializer)
-            : base(key, initial, serializer, vBucket, converter)
+            ITypeTranscoder transcoder)
+            : base(key, initial, transcoder, vBucket, converter)
         {
             _delta = delta;
             _initial = initial;

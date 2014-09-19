@@ -1,5 +1,5 @@
 ﻿using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
@@ -10,8 +10,8 @@ namespace Couchbase.IO.Operations
         private readonly uint _expiration;
         private readonly ulong _initial;
 
-        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, vBucket, converter, serializer)
+        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : base(key, vBucket, converter, transcoder)
         {
             _delta = delta;
             _initial = initial;

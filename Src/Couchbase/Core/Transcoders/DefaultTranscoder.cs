@@ -1,34 +1,72 @@
-﻿using System.Text;
-using Common.Logging;
-using Couchbase.IO;
+﻿using Common.Logging;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Newtonsoft.Json;
-using System;
-using System.IO;
 using Newtonsoft.Json.Serialization;
+using System;
+using System.Data.SqlTypes;
+using System.IO;
+using System.Text;
 
-namespace Couchbase.Core.Serializers
+namespace Couchbase.Core.Transcoders
 {
-    public sealed class TypeSerializer : ITypeSerializer
+    public class DefaultTranscoder : ITypeTranscoder
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IByteConverter _converter;
         private readonly IContractResolver _outgoingContractResolver;
         private readonly IContractResolver _incomingContractResolver;
 
-        public TypeSerializer(IByteConverter converter)
+        public DefaultTranscoder(IByteConverter converter)
             : this(converter, new DefaultContractResolver(), new CamelCasePropertyNamesContractResolver())
         {
         }
 
-        public TypeSerializer(IByteConverter converter, IContractResolver incomingContractResolver, IContractResolver outgoingContractResolver)
+        public DefaultTranscoder(IByteConverter converter, IContractResolver incomingContractResolver, IContractResolver outgoingContractResolver)
         {
             _converter = converter;
             _incomingContractResolver = incomingContractResolver;
             _outgoingContractResolver = outgoingContractResolver;
         }
 
-        public byte[] Serialize<T>(T value)
+        public byte[] Encode<T>(T value, Flags flags)
+        {
+            byte[] bytes;
+            switch (flags.DataFormat)
+            {
+                case DataFormat.Reserved:
+                case DataFormat.Private:
+                    bytes = Encode(value);
+                    break;
+
+                case DataFormat.Json:
+                    bytes = SerializeAsJson(value);
+                    break;
+
+                case DataFormat.Binary:
+                    if (typeof(T) == typeof(byte[]))
+                    {
+                        bytes = value as byte[];
+                    }
+                    else
+                    {
+                        var msg = string.Format("The value of T does not match the DataFormat provided: {0}",
+                            flags.DataFormat);
+                        throw new ArgumentException(msg);
+                    }
+                    break;
+
+                case DataFormat.String:
+                    bytes = Encode(value);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return bytes;
+        }
+
+        public byte[] Encode<T>(T value)
         {
             var bytes = new byte[] { };
             var typeCode = Type.GetTypeCode(typeof(T));
@@ -82,72 +120,124 @@ namespace Couchbase.Core.Serializers
             return bytes;
         }
 
-        public T Deserialize<T>(byte[] buffer, int offset, int length)
+        public T Decode<T>(byte[] buffer, int offset, int length, Flags flags)
+        {
+            object value = default(T);
+            switch (flags.DataFormat)
+            {
+                case DataFormat.Reserved:
+                case DataFormat.Private:
+                    value = Decode<T>(buffer, offset, length);
+                    break;
+
+                case DataFormat.Json:
+                    value = DeserializeAsJson<T>(buffer, offset, length);
+                    break;
+
+                case DataFormat.Binary:
+                    if (typeof(T) == typeof(byte[]))
+                    {
+                        value = buffer;
+                    }
+                    else
+                    {
+                        var msg = string.Format("The value of T does not match the DataFormat provided: {0}",
+                            flags.DataFormat);
+                        throw new ArgumentException(msg);
+                    }
+                    break;
+
+                case DataFormat.String:
+                    value = Decode(buffer, offset, length);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return (T)value;
+        }
+
+        public T Decode<T>(byte[] buffer, int offset, int length)
         {
             object value = default(T);
 
-            var typeCode = Type.GetTypeCode(typeof (T));
+            var typeCode = Type.GetTypeCode(typeof(T));
             switch (typeCode)
             {
                 case TypeCode.Empty:
                 case TypeCode.DBNull:
                 case TypeCode.String:
                 case TypeCode.Char:
-                    value = Deserialize(buffer, offset, length);
+                    value = Decode(buffer, offset, length);
                     break;
+
                 case TypeCode.Int16:
                     if (length > 0)
                     {
                         value = _converter.ToInt16(buffer, offset);
                     }
                     break;
+
                 case TypeCode.UInt16:
                     if (length > 0)
                     {
                         value = _converter.ToUInt16(buffer, offset);
                     }
                     break;
+
                 case TypeCode.Int32:
                     if (length > 0)
                     {
                         value = _converter.ToInt32(buffer, offset);
                     }
                     break;
+
                 case TypeCode.UInt32:
                     if (length > 0)
                     {
                         value = _converter.ToUInt32(buffer, offset);
                     }
                     break;
+
                 case TypeCode.Int64:
                     if (length > 0)
                     {
                         value = _converter.ToInt64(buffer, offset);
                     }
                     break;
+
                 case TypeCode.UInt64:
                     if (length > 0)
                     {
                         value = _converter.ToUInt64(buffer, offset);
                     }
                     break;
+
                 case TypeCode.Single:
                     break;
+
                 case TypeCode.Double:
                     break;
+
                 case TypeCode.Decimal:
                     break;
+
                 case TypeCode.DateTime:
                     break;
+
                 case TypeCode.Boolean:
                     break;
+
                 case TypeCode.SByte:
                     break;
+
                 case TypeCode.Byte:
                     break;
+
                 case TypeCode.Object:
                     value = DeserializeAsJson<T>(buffer, offset, length);
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -174,12 +264,12 @@ namespace Couchbase.Core.Serializers
             return value;
         }
 
-        public T Deserialize<T>(ArraySegment<byte> buffer, int offset, int length)
+        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags)
         {
-            return Deserialize<T>(buffer.Array, offset, length);
+            return Decode<T>(buffer.Array, offset, length, flags);
         }
 
-        public byte[] SerializeAsJson<T>(T value)
+        public byte[] SerializeAsJson(object value)
         {
             using (var ms = new MemoryStream())
             {
@@ -198,7 +288,7 @@ namespace Couchbase.Core.Serializers
             }
         }
 
-        string Deserialize(byte[] buffer, int offset, int length)
+        private string Decode(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
             if (buffer != null && buffer.Length > 0 && length > 0)

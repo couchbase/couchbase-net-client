@@ -1,6 +1,6 @@
 ﻿using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using System;
 using System.IO;
 
@@ -10,7 +10,7 @@ namespace Couchbase.IO.Operations
     {
         OperationCode OperationCode { get; }
 
-        ITypeSerializer Serializer { get; }
+        ITypeTranscoder Transcoder { get; }
 
         int SequenceId { get; }
 

@@ -1,6 +1,9 @@
-﻿using Couchbase.Configuration.Server.Serialization;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.ServiceModel;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using System;
@@ -20,21 +23,22 @@ namespace Couchbase.IO.Operations
         private static int _sequenceId;
 
         private readonly int _opaque;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeTranscoder _transcoder;
         private readonly T _value;
         protected readonly IByteConverter Converter;
+        protected Flags Flags = new Flags();
 
         protected OperationBase(IByteConverter converter)
             : this(string.Empty, null, converter)
         {
         }
 
-        protected OperationBase(string key, T value, ITypeSerializer serializer, IVBucket vBucket,
+        protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket,
             IByteConverter converter)
         {
             Key = key;
             _value = value;
-            _serializer = serializer;
+            _transcoder = transcoder;
             _opaque = Interlocked.Increment(ref _sequenceId);
             VBucket = vBucket;
             Converter = converter;
@@ -42,17 +46,17 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new TypeSerializer(converter), vBucket, converter)
+            : this(key, value, new DefaultTranscoder(converter), vBucket, converter)
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new TypeSerializer(converter), vBucket, converter)
+            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter)
         {
         }
 
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : this(key, default(T), serializer, vBucket, converter)
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : this(key, default(T), transcoder, vBucket, converter)
         {
         }
 
@@ -151,16 +155,96 @@ namespace Couchbase.IO.Operations
             return header;
         }
 
+        private DataFormat GetFormat()
+        {
+            var dataFormat = DataFormat.Json;
+            var typeCode = Type.GetTypeCode(typeof(T));
+            switch (typeCode)
+            {
+                case TypeCode.Object:
+                    if (typeof (T) == typeof (Byte[]))
+                    {
+                        dataFormat = DataFormat.Binary;
+                    }
+                    break;
+                case TypeCode.Boolean:
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Int16:
+                case TypeCode.UInt16:
+                case TypeCode.Int32:
+                case TypeCode.UInt32:
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
+                case TypeCode.Single:
+                case TypeCode.Double:
+                case TypeCode.Decimal:
+                case TypeCode.DateTime:
+                    dataFormat = DataFormat.Json;
+                    break;
+                case TypeCode.Char:
+                case TypeCode.String:
+                    dataFormat = DataFormat.String;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return dataFormat;
+        }
+
         public virtual byte[] CreateExtras()
         {
             var extras = new byte[8];
-            var typeCode = Type.GetTypeCode(typeof(T));
-            var flag = (uint)((int)typeCode | 0x0100);
+            var format = (byte)GetFormat();
+            const byte compression = (byte)Compression.None;
 
-            Converter.FromUInt32(flag, extras, 0);
+            Converter.SetBit(ref extras[0], 0, Converter.GetBit(format, 0));
+            Converter.SetBit(ref extras[0], 1, Converter.GetBit(format, 1));
+            Converter.SetBit(ref extras[0], 2, Converter.GetBit(format, 2));
+            Converter.SetBit(ref extras[0], 3, Converter.GetBit(format, 3));
+            Converter.SetBit(ref extras[0], 4, false);
+            Converter.SetBit(ref extras[0], 5, Converter.GetBit(compression, 0));
+            Converter.SetBit(ref extras[0], 6, Converter.GetBit(compression, 1));
+            Converter.SetBit(ref extras[0], 7, Converter.GetBit(compression, 2));
+
+            var typeCode = (ushort)Type.GetTypeCode(typeof(T));
+            Converter.FromUInt16(typeCode, extras, 2);
             Converter.FromUInt32(Expires, extras, 4);
 
+            Format = (DataFormat) format;
+            Compression = compression;
+
+            Flags.DataFormat = Format;
+            Flags.Compression = Compression;
+            Flags.TypeCode = (TypeCode)typeCode;
+
             return extras;
+        }
+
+        public virtual void ReadExtras(byte[] buffer)
+        {
+            if (buffer.Length > 24)
+            {
+                var format = new byte();
+                var flags = Converter.ToByte(buffer, 24);
+                Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
+                Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
+                Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
+                Converter.SetBit(ref format, 3, Converter.GetBit(flags, 3));
+
+                var compression = new byte();
+                Converter.SetBit(ref compression, 4, Converter.GetBit(flags, 4));
+                Converter.SetBit(ref compression, 5, Converter.GetBit(flags, 5));
+                Converter.SetBit(ref compression, 6, Converter.GetBit(flags, 6));
+
+                var typeCode = (TypeCode)(Converter.ToUInt16(buffer, 26) & 0xff);
+                Format = (DataFormat)format;
+                Compression = (Compression) compression;
+                Flags.DataFormat = Format;
+                Flags.Compression = Compression;
+                Flags.TypeCode = typeCode;
+                Expires = Converter.ToUInt32(buffer, 25);
+            }
         }
 
         public virtual byte[] CreateKey()
@@ -176,12 +260,12 @@ namespace Couchbase.IO.Operations
             byte[] bytes;
             if (typeof(T).IsValueType)
             {
-                bytes = _serializer.Serialize(RawValue);
+                bytes = _transcoder.Encode(RawValue, Flags);
             }
             else
             {
                 bytes = RawValue == null ? new byte[0] :
-                    _serializer.Serialize(RawValue);
+                    _transcoder.Encode(RawValue, Flags);
             }
 
             return bytes;
@@ -230,7 +314,8 @@ namespace Couchbase.IO.Operations
                 try
                 {
                     var buffer = Data.ToArray();
-                    result = Serializer.Deserialize<T>(buffer, BodyOffset, TotalLength - BodyOffset);
+                    ReadExtras(buffer);
+                    result = Transcoder.Decode<T>(buffer, BodyOffset, TotalLength - BodyOffset, Flags);
                 }
                 catch (Exception e)
                 {
@@ -295,7 +380,7 @@ namespace Couchbase.IO.Operations
             {
                 var offset = HeaderLength + Header.ExtrasLength;
                 var length = Header.BodyLength - Header.ExtrasLength;
-                config = Serializer.Deserialize<BucketConfig>(Data.ToArray(), offset, length);
+                config = Transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, Flags);
             }
             return config;
         }
@@ -306,9 +391,13 @@ namespace Couchbase.IO.Operations
 
         public OperationBody Body { get; set; }
 
-        public ITypeSerializer Serializer
+        public DataFormat Format { get; set; }
+
+        public Compression Compression { get; set; }
+
+        public ITypeTranscoder Transcoder
         {
-            get { return _serializer; }
+            get { return _transcoder; }
         }
 
         public int SequenceId

@@ -10,7 +10,7 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.Configuration
                 (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
-                new TypeSerializer(new AutoByteConverter()));
+                new DefaultTranscoder(new AutoByteConverter()));
             configInfo.LoadConfig();
 
 

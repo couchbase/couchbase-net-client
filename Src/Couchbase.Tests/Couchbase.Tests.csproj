@@ -74,7 +74,7 @@
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
-    <Compile Include="Core\Serializers\TypeSerializer2Tests.cs" />
+    <Compile Include="Core\Transcoders\TypeSerializer2Tests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
@@ -123,6 +123,7 @@
     <Compile Include="IO\Operations\GetTests.cs" />
     <Compile Include="IO\Operations\IncrementTests.cs" />
     <Compile Include="IO\Operations\ObserveTests.cs" />
+    <Compile Include="IO\Operations\OperationBaseTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
     <Compile Include="IO\Operations\ReplaceTests.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />

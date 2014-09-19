@@ -5,7 +5,7 @@
  using Couchbase.Annotations;
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
- using Couchbase.Core.Serializers;
+ using Couchbase.Core.Transcoders;
  using Couchbase.IO.Converters;
  using Couchbase.IO.Operations;
  using Couchbase.Views;
@@ -23,7 +23,7 @@ namespace Couchbase.Core.Buckets
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -37,11 +37,11 @@ namespace Couchbase.Core.Buckets
         }
 
 
-        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeSerializer serializer)
+        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
             _clusterManager = clusterManager;
             _converter = converter;
-            _serializer = serializer;
+            _transcoder = transcoder;
             Name = bucketName;
         }
 
@@ -239,7 +239,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -257,7 +257,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Replace<T>(key, value, null, _converter, _serializer);
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -276,7 +276,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Replace<T>(key, value, null, _converter, _serializer)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -334,7 +334,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Add<T>(key, value, null, _converter, _serializer);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -353,7 +353,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Add<T>(key, value, null, _converter, _serializer)
+            var operation = new Add<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -398,7 +398,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Delete(key, null, _converter, _serializer);
+            var operation = new Delete(key, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -415,7 +415,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Delete(key, null, _converter, _serializer)
+            var operation = new Delete(key, null, _converter, _transcoder)
             {
                 Cas = cas
             };
@@ -462,7 +462,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Get<T>(key, null, _converter, _serializer);
+            var operation = new Get<T>(key, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
             return operationResult;
         }
@@ -528,7 +528,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Increment(key, initial, delta, expiration, null, _converter, _serializer);
+            var operation = new Increment(key, initial, delta, expiration, null, _converter, _transcoder);
             var operationResult = server.Send(operation);
 
             return operationResult;
@@ -595,7 +595,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Decrement(key, initial, delta, expiration,  null, _converter, _serializer);
+            var operation = new Decrement(key, initial, delta, expiration,  null, _converter, _transcoder);
             var operationResult = server.Send(operation);
 
             return operationResult;
@@ -613,7 +613,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Append<string>(key, value, _serializer, null, _converter);
+            var operation = new Append<string>(key, value, _transcoder, null, _converter);
             var operationResult = server.Send(operation);
 
             return operationResult;
@@ -631,7 +631,7 @@ namespace Couchbase.Core.Buckets
             var bucket = keyMapper.MapKey(key);
             var server = bucket.LocatePrimary();
 
-            var operation = new Prepend<string>(key, value, _serializer, null, _converter);
+            var operation = new Prepend<string>(key, value, _transcoder, null, _converter);
             var operationResult = server.Send(operation);
 
             return operationResult;

@@ -365,10 +365,26 @@ namespace Couchbase.IO.Converters
             Buffer.BlockCopy(bytes, 0, buffer, offset, bytes.Length);
         }
 
-
         public void FromUInt642(ulong value, byte[] buffer, int offset)
         {
             throw new NotImplementedException();
+        }
+
+        public void SetBit(ref byte theByte, int position, bool value)
+        {
+            if (value)
+            {
+                theByte = (byte)(theByte | (1 << position));
+            }
+            else
+            {
+                theByte = (byte)(theByte & ~(1 << position));
+            }
+        }
+
+        public bool GetBit(byte theByte, int position)
+        {
+            return ((theByte & (1 << position)) != 0);
         }
     }
 }

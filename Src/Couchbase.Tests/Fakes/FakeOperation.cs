@@ -39,16 +39,6 @@ namespace Couchbase.Tests.Fakes
         {
             get { return OperationCode.Get; }
         }
-
-        public override void Read(byte[] buffer, int offset, int length)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override byte[] Write()
-        {
-            throw new NotImplementedException();
-        }
     }
 }
 

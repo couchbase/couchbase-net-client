@@ -7,7 +7,7 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 
@@ -30,14 +30,14 @@ namespace Couchbase.Configuration.Server.Providers
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
             IByteConverter converter,
-            ITypeSerializer serializer)
+            ITypeTranscoder transcoder)
         {
             _clientConfig = clientConfig;
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             Converter = converter;
-            Serializer = serializer;
+            transcoder = transcoder;
         }
 
         protected ClientConfiguration ClientConfig
@@ -72,7 +72,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         public IByteConverter Converter { get; set; }
 
-        public ITypeSerializer Serializer { get; set; }
+        public ITypeTranscoder transcoder { get; set; }
 
         public abstract IConfigInfo GetConfig(string name, string password);
 

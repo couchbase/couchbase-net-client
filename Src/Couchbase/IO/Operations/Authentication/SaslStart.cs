@@ -1,4 +1,5 @@
-﻿using Couchbase.IO.Converters;
+﻿using System;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations.Authentication
@@ -22,6 +23,29 @@ namespace Couchbase.IO.Operations.Authentication
         public override OperationCode OperationCode
         {
             get { return OperationCode.SaslStart; }
+        }
+
+        public override byte[] CreateExtras()
+        {
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
+            return new byte[0];
+        }
+
+        public override void ReadExtras(byte[] buffer)
+        {
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
         }
 
         public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)

@@ -5,7 +5,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.Utils;
@@ -31,7 +31,7 @@ namespace Couchbase.Configuration
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
         protected readonly IByteConverter Converter;
-        protected readonly ITypeSerializer Serializer;
+        protected readonly ITypeTranscoder transcoder;
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
@@ -41,7 +41,7 @@ namespace Couchbase.Configuration
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
-            ITypeSerializer serializer)
+            ITypeTranscoder transcoder)
         {
             _bucketConfig = bucketConfig;
             _clientConfig = clientConfig;
@@ -50,7 +50,7 @@ namespace Couchbase.Configuration
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Converter = converter;
-            Serializer = serializer;
+            transcoder = transcoder;
         }
 
         /// <summary>

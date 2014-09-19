@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -21,11 +21,11 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "keythatdoesntexist";
 
             //delete the value if it exists
-            var deleteOperation = new Delete(key, GetVBucket(), new AutoByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var deleteOperation = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
             var result1 = IOStrategy.Execute(deleteOperation);
             Console.WriteLine(result1.Message);
 
-            var operation = new Add<dynamic>(key, new {foo = "foo"}, GetVBucket(), new AutoByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var operation = new Add<dynamic>(key, new {foo = "foo"}, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
             var result = IOStrategy.Execute(operation);
             Assert.IsTrue(result.Success);
         }
@@ -33,7 +33,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void When_Key_Exists_Exist_Operation_Fails()
         {
-            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(), new TypeSerializer(new ManualByteConverter()));
+            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
             var result = IOStrategy.Execute(operation);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(ResponseStatus.KeyExists, result.Status);

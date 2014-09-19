@@ -191,5 +191,22 @@ namespace Couchbase.IO.Converters
         {
             FromByte(value, ref buffer, offset);
         }
+
+        public void SetBit(ref byte theByte, int position, bool value)
+        {
+            if (value)
+            {
+                theByte = (byte)(theByte | (1 << position));
+            }
+            else
+            {
+                theByte = (byte)(theByte & ~(1 << position));
+            }
+        }
+
+        public bool GetBit(byte theByte, int position)
+        {
+            return ((theByte & (1 << position)) != 0);
+        }
     }
 }

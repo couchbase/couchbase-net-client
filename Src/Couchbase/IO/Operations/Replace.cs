@@ -1,5 +1,5 @@
 ﻿using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
@@ -10,13 +10,13 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class Replace<T> : OperationBase<T>
     {
-        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, value, serializer, vBucket, converter)
+        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : base(key, value, transcoder, vBucket, converter)
         {
         }
 
-        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeSerializer serializer)
-            : base(key, value, serializer, vBucket, converter)
+        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : base(key, value, transcoder, vBucket, converter)
         {
             Cas = cas;
         }

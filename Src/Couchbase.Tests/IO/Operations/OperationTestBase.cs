@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Serializers;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
@@ -22,7 +22,7 @@ namespace Couchbase.Tests.IO.Operations
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         protected readonly AutoByteConverter Converter = new AutoByteConverter();
-        protected  ITypeSerializer Serializer;
+        protected  ITypeTranscoder transcoder;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [TestFixtureSetUp]
@@ -36,7 +36,7 @@ namespace Couchbase.Tests.IO.Operations
 
         internal IVBucket GetVBucket()
         {
-            var bucket = ConfigUtil.ServerConfig.Buckets.First();
+            var bucket = ConfigUtil.ServerConfig.Buckets.First(x => x.Name=="default");
             var vBucketServerMap = bucket.VBucketServerMap;
 
             var servers = vBucketServerMap.
@@ -62,7 +62,7 @@ namespace Couchbase.Tests.IO.Operations
         [SetUp]
         public void SetUp()
         {
-            Serializer = new TypeSerializer(Converter);
+            transcoder = new DefaultTranscoder(Converter);
         }
     }
 }

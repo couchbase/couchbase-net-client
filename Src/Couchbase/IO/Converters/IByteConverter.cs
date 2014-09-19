@@ -58,5 +58,9 @@ namespace Couchbase.IO.Converters
         void FromByte(byte value, ref byte[] buffer, int offset);
 
         void FromByte(byte value, byte[] buffer, int offset);
+
+        void SetBit(ref byte theByte, int position, bool value);
+
+        bool GetBit(byte theByte, int position);
     }
 }

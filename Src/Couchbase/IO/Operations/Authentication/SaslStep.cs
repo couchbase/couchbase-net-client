@@ -1,4 +1,5 @@
-﻿using Couchbase.IO.Converters;
+﻿using System;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations.Authentication
 {
@@ -10,6 +11,28 @@ namespace Couchbase.IO.Operations.Authentication
         public SaslStep(string key, string value, IByteConverter converter)
             : base(key, value, converter)
         {
+        }
+        public override byte[] CreateExtras()
+        {
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
+            return new byte[0];
+        }
+
+        public override void ReadExtras(byte[] buffer)
+        {
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
         }
 
         public override OperationCode OperationCode

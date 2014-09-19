@@ -10,7 +10,7 @@ namespace Couchbase
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    public sealed class CouchbaseCluster : ICouchbaseCluster 
+    public sealed class CouchbaseCluster : ICouchbaseCluster
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const string DefaultBucket = "default";
@@ -23,7 +23,7 @@ namespace Couchbase
         /// <remarks>
         /// This is the default configuration and will attempt to bootstrap off of localhost.
         /// </remarks>
-        public CouchbaseCluster() 
+        public CouchbaseCluster()
             : this(new ClientConfiguration())
         {
         }
@@ -35,14 +35,14 @@ namespace Couchbase
         /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
         public CouchbaseCluster(string configurationSectionName)
             : this(new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName)))
-        {  
+        {
         }
 
         /// <summary>
         /// Ctor for creating Cluster instance with a custom <see cref="ClientConfiguration"/> configuration.
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        public CouchbaseCluster(ClientConfiguration configuration) 
+        public CouchbaseCluster(ClientConfiguration configuration)
             : this(configuration, new ClusterManager(configuration))
         {
         }
