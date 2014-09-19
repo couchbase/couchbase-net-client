@@ -101,6 +101,20 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_View_Query2()
+        {
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                var query = new ViewQuery("empty", "empty_view").
+                    Limit(10);
+
+                Console.WriteLine(query.RawUri());
+                var result = bucket.Query<dynamic>(query);
+                Assert.AreEqual(result.TotalRows, 0);
+            }
+        }
+
+        [Test]
         public void When_View_Does_Not_Exist_Return_Failure()
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
