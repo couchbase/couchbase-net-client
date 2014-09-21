@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Buckets
+    public sealed class Buckets
     {
         [JsonProperty("uri")]
         public string Uri { get; set; }

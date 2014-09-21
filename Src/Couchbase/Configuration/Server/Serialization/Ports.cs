@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Ports
+    public sealed class Ports
     {
         [JsonProperty("proxy")]
         public int Proxy { get; set; }

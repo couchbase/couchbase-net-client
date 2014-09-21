@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Views;
 
@@ -27,7 +29,7 @@ namespace Couchbase.Core.Buckets
     public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly IClusterManager _clusterManager;
+        private readonly IClusterController _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
@@ -45,7 +47,7 @@ namespace Couchbase.Core.Buckets
             public int Count;
         }
 
-        internal CouchbaseBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
+        internal CouchbaseBucket(IClusterController clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
             _clusterManager = clusterManager;
             _converter = converter;
@@ -1382,11 +1384,16 @@ namespace Couchbase.Core.Buckets
                 .Development(development);
         }
 
+        public IBucketManager CreateManager(string username, string password)
+        {
+            return new BucketManager(Name, _configInfo.ClientConfig, _clusterManager, new HttpClient(), new JsonDataMapper(), username, password);
+        }
+
         /// <summary>
-        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterManager"/> instance.
+        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
         /// </summary>
         /// <param name="other">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
-        /// <returns>True if they have the same name and <see cref="ClusterManager"/> instance.</returns>
+        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
         private bool Equals(CouchbaseBucket other)
         {
             return Equals(_clusterManager, other._clusterManager) &&
@@ -1415,10 +1422,10 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterManager"/> instance.
+        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
         /// </summary>
         /// <param name="obj">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
-        /// <returns>True if they have the same name and <see cref="ClusterManager"/> instance.</returns>
+        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
@@ -1480,7 +1487,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
-        /// removing it from it's <see cref="ClusterManager"/> instance.
+        /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         public void Dispose()
         {
@@ -1490,7 +1497,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
-        /// removing it from it's <see cref="ClusterManager"/> instance.
+        /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         /// <param name="disposing">If true suppresses finalization.</param>
         void Dispose(bool disposing)

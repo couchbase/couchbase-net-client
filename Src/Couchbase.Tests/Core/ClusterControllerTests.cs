@@ -14,16 +14,16 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Core
 {
     [TestFixture]
-    public class ClusterManagerTests
+    public class ClusterControllerTests
     {
-        private IClusterManager _clusterManager;
+        private IClusterController _clusterManager;
         protected ClientConfiguration _clientConfig;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
             _clientConfig = new ClientConfiguration();
-            _clusterManager = new ClusterManager(_clientConfig);
+            _clusterManager = new ClusterController(_clientConfig);
         }
 
         [Test]

@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class RemoteClusters
+    public sealed class RemoteClusters
     {
         [JsonProperty("uri")]
         public string Uri { get; set; }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Operations;
+using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Views;
 
@@ -644,6 +645,14 @@ namespace Couchbase.Core
         /// <param name="development">True will execute on the development dataset.</param>
         /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
         IViewQuery CreateQuery(string designdoc, string view, bool development);
+
+        /// <summary>
+        /// Creates a <see cref="IBucketManager"/> instance for managing buckets.
+        /// </summary>
+        /// <param name="username">The administrators username</param>
+        /// <param name="password">The administrators username</param>
+        /// <returns>A <see cref="IBucketManager"/> instance.</returns>
+        IBucketManager CreateManager(string username, string password);
 
         /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.

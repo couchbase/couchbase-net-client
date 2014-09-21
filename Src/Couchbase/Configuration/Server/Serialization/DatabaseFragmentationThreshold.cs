@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class DatabaseFragmentationThreshold
+    public sealed class DatabaseFragmentationThreshold
     {
         [JsonProperty("percentage")]
         public int Percentage { get; set; }

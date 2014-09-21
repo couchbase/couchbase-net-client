@@ -21,7 +21,7 @@ using System.Security.Authentication;
 
 namespace Couchbase.Core
 {
-    internal sealed class ClusterManager : IClusterManager
+    internal sealed class ClusterController : IClusterController
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
@@ -36,7 +36,7 @@ namespace Couchbase.Core
         private static readonly object SyncObject = new object();
         private volatile bool _disposed;
 
-        public ClusterManager(ClientConfiguration clientConfig)
+        public ClusterController(ClientConfiguration clientConfig)
             : this(clientConfig,
                 pool =>
                 {
@@ -62,7 +62,7 @@ namespace Couchbase.Core
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
+        public ClusterController(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
             : this(clientConfig,
             ioStrategyFactory,
             (config, endpoint) =>
@@ -83,7 +83,7 @@ namespace Couchbase.Core
         {
         }
 
-        public ClusterManager(ClientConfiguration clientConfig, 
+        public ClusterController(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
             Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
@@ -280,7 +280,7 @@ namespace Couchbase.Core
             }
         }
 
-        ~ClusterManager()
+        ~ClusterController()
         {
             Dispose(false);
         }

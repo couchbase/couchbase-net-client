@@ -1,6 +1,4 @@
-﻿using Couchbase.IO;
-using Couchbase.IO.Operations;
-
+﻿
 namespace Couchbase
 {
     /// <summary>

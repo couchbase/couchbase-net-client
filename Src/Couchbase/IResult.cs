@@ -21,7 +21,7 @@ namespace Couchbase
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
-        Exception Exception { get; set; }
+        Exception Exception { get; }
     }
 }
 #region [ License information ]

@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class BasicStats
+    public sealed class BasicStats
     {
         [JsonProperty("quotaPercentUsed")]
         public double QuotaPercentUsed { get; set; }

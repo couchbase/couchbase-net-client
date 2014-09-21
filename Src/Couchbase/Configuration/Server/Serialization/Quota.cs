@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Quota
+    public sealed class Quota
     {
         [JsonProperty("ram")]
         public ulong Ram { get; set; }

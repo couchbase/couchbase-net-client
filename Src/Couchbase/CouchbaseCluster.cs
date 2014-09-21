@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Configuration;
+using System.Net.Http;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
+using Couchbase.Management;
+using Couchbase.Views;
 
 namespace Couchbase
 {
@@ -15,7 +18,7 @@ namespace Couchbase
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
-        private readonly IClusterManager _clusterManager;
+        private readonly IClusterController _clusterController;
 
         /// <summary>
         /// Ctor for creating Cluster instance using the default settings.
@@ -43,7 +46,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
         public CouchbaseCluster(ClientConfiguration configuration)
-            : this(configuration, new ClusterManager(configuration))
+            : this(configuration, new ClusterController(configuration))
         {
         }
 
@@ -51,14 +54,14 @@ namespace Couchbase
         /// Ctor for creating Cluster instance.
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        /// <param name="clusterManager">The ClusterManager instance use.</param>
+        /// <param name="clusterController">The ClusterManager instance use.</param>
         /// <remarks>
         /// This overload is primarly added for testing.
         /// </remarks>
-        internal CouchbaseCluster(ClientConfiguration configuration, IClusterManager clusterManager)
+        internal CouchbaseCluster(ClientConfiguration configuration, IClusterController clusterController)
         {
             _configuration = configuration;
-            _clusterManager = clusterManager;
+            _clusterController = clusterController;
         }
 
         /// <summary>
@@ -69,7 +72,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket()
         {
-            return _clusterManager.CreateBucket(DefaultBucket);
+            return _clusterController.CreateBucket(DefaultBucket);
         }
 
         /// <summary>
@@ -81,7 +84,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket(string bucketname, string password)
         {
-            return _clusterManager.CreateBucket(bucketname, password);
+            return _clusterController.CreateBucket(bucketname, password);
         }
 
         /// <summary>
@@ -102,7 +105,7 @@ namespace Couchbase
                 }
                 throw new ArgumentException("bucketname cannot be null, empty or whitespace.");
             }
-            return _clusterManager.CreateBucket(bucketname);
+            return _clusterController.CreateBucket(bucketname);
         }
 
         /// <summary>
@@ -115,7 +118,16 @@ namespace Couchbase
             {
                 throw new ArgumentNullException("bucket");
             }
-            _clusterManager.DestroyBucket(bucket);
+            _clusterController.DestroyBucket(bucket);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICouchbaseCluster"/> configuration settings.
+        /// </summary>
+        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICouchbaseCluster"/> configuration settings. </returns>
+        public IClusterManager CreateManager(string username, string password)
+        {
+            return new ClusterManager(Configuration, _clusterController, new HttpClient(), new JsonDataMapper(), username, password);
         }
 
         /// <summary>
@@ -146,10 +158,10 @@ namespace Couchbase
             //however, if you do not explicitly call Cluster.CloseBucket(bucket) in certain cases the HttpStreamingProvider
             //listener thread will hang indefinitly if Cluster.Dispose() is called. This is a definite bug that needs to be
             //resolved before developer preview.
-            if (_clusterManager != null)
+            if (_clusterController != null)
             {
                 Log.Debug(m => m("Disposing {0}", GetType().Name));
-                _clusterManager.Dispose();
+                _clusterController.Dispose();
             }
         }
 
@@ -160,9 +172,9 @@ namespace Couchbase
         ~CouchbaseCluster()
         {
             Log.Debug(m=>m("Finalizing {0}", GetType().Name));
-            if (_clusterManager != null)
+            if (_clusterController != null)
             {
-                _clusterManager.Dispose();
+                _clusterController.Dispose();
             }
         }
     }

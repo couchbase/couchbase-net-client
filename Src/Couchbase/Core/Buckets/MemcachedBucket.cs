@@ -12,6 +12,7 @@
  using Couchbase.Core.Transcoders;
  using Couchbase.IO.Converters;
  using Couchbase.IO.Operations;
+ using Couchbase.Management;
  using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
@@ -22,7 +23,7 @@ namespace Couchbase.Core.Buckets
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private readonly IClusterManager _clusterManager;
+        private readonly IClusterController _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
         private static readonly object SyncObj = new object();
@@ -41,7 +42,7 @@ namespace Couchbase.Core.Buckets
         }
 
 
-        internal MemcachedBucket(IClusterManager clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
+        internal MemcachedBucket(IClusterController clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
             _clusterManager = clusterManager;
             _converter = converter;
@@ -878,6 +879,11 @@ namespace Couchbase.Core.Buckets
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IBucketManager CreateManager(string username, string password)
+        {
+            throw new NotSupportedException();
+        }
+
         /// <summary>
         /// Increments the reference counter for this <see cref="IBucket"/> instance.
         /// </summary>
@@ -917,7 +923,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources, 
-        /// removing it from it's <see cref="ClusterManager"/> instance.
+        /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         public void Dispose()
         {
@@ -926,7 +932,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources, 
-        /// removing it from it's <see cref="ClusterManager"/> instance.
+        /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         /// <param name="disposing">If true suppresses finalization.</param>
         void Dispose(bool disposing)

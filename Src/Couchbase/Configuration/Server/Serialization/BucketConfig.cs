@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace Couchbase.Configuration.Server.Serialization
 {
     [JsonObject("bucket")]
-    internal sealed class BucketConfig : IBucketConfig
+    public sealed class BucketConfig : IBucketConfig
     {
         private string _surrogateHost = "127.0.0.1";
 

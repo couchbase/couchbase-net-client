@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class AutoCompactionSettings
+    public sealed class AutoCompactionSettings
     {
         [JsonProperty("parallelDBAndViewCompaction")]
 // ReSharper disable once InconsistentNaming

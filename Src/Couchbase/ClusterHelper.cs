@@ -20,7 +20,7 @@ namespace Couchbase
         private const string DefaultBucket = "default";
         private static Lazy<CouchbaseCluster> _instance;
         private readonly ClientConfiguration _configuration;
-        private readonly IClusterManager _clusterManager;
+        private readonly IClusterController _clusterManager;
         private static readonly object SyncObj = new object();
                 /// <summary>
         /// Ctor for creating Cluster instance.
@@ -38,7 +38,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
         public ClusterHelper(ClientConfiguration configuration) 
-            : this(configuration, new ClusterManager(configuration))
+            : this(configuration, new ClusterController(configuration))
         {
         }
 
@@ -50,7 +50,7 @@ namespace Couchbase
         /// <remarks>
         /// This overload is primarly added for testing.
         /// </remarks>
-        internal ClusterHelper(ClientConfiguration configuration, IClusterManager clusterManager)
+        internal ClusterHelper(ClientConfiguration configuration, IClusterController clusterManager)
         {
             _configuration = configuration;
             _clusterManager = clusterManager;
@@ -107,7 +107,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="clusterManager"></param>
-        internal static void Initialize(ClientConfiguration configuration, IClusterManager clusterManager)
+        internal static void Initialize(ClientConfiguration configuration, IClusterController clusterManager)
         {
             if (configuration == null || clusterManager == null)
             {
@@ -136,7 +136,7 @@ namespace Couchbase
             }
 
             configuration.Initialize();
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterManager(configuration)));
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterController(configuration)));
             Initialize(factory);
         }
 
@@ -163,7 +163,7 @@ namespace Couchbase
             var configuration = new ClientConfiguration(configurationSection);
             configuration.Initialize();
 
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterManager(configuration)));
+            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterController(configuration)));
             Initialize(factory);
         }
 

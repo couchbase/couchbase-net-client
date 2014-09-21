@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\AuthType.cs" />
     <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
@@ -70,7 +71,9 @@
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
+    <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
+    <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
     <Compile Include="Core\Buckets\KeyObserver.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
@@ -147,11 +150,12 @@
     <Compile Include="Core\Buckets\MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
-    <Compile Include="Core\ClusterManager.cs" />
-    <Compile Include="Core\IClusterManager.cs" />
+    <Compile Include="Core\ClusterController.cs" />
+    <Compile Include="Core\IClusterController.cs" />
     <Compile Include="Core\IKeyValueStore.cs" />
     <Compile Include="Core\IMappedNode.cs" />
     <Compile Include="Core\InitializationException.cs" />
+    <Compile Include="DefaultResult%27.cs" />
     <Compile Include="Document.cs" />
     <Compile Include="DocumentResult%27.cs" />
     <Compile Include="IDocument%27.cs" />
@@ -161,7 +165,15 @@
     <Compile Include="IO\Operations\DataFormat.cs" />
     <Compile Include="IO\Operations\Flags.cs" />
     <Compile Include="IRefCountable.cs" />
+    <Compile Include="IResult%27.cs" />
+    <Compile Include="Management\BucketManager.cs" />
+    <Compile Include="Management\ClusterManager.cs" />
+    <Compile Include="Management\IBucketManager.cs" />
+    <Compile Include="Management\IClusterManager.cs" />
+    <Compile Include="Management\ReplicaIndex.cs" />
+    <Compile Include="Management\ThreadNumber.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
+    <Compile Include="DefaultResult.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />
     <Compile Include="IOperationResult.cs" />

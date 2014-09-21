@@ -1,24 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using Couchbase.Configuration.Server.Providers;
-
-namespace Couchbase.Core
+﻿
+namespace Couchbase
 {
-    internal interface IClusterManager : IConfigPublisher, IDisposable 
+    /// <summary>
+    /// Default interface for all operation return types.
+    /// </summary>
+    public interface IResult<T> : IResult
     {
-        List<IConfigProvider> ConfigProviders { get; }
-
-        IConfigProvider GetProvider(string name);
-
-        IBucket CreateBucket(string bucketName);
-
-        IBucket CreateBucket(string bucketName, string password);
-
-        void DestroyBucket(IBucket bucket);
+        /// <summary>
+        /// The value returned by the operation
+        /// </summary>
+        T Value { get; }
     }
 }
-
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

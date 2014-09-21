@@ -2,10 +2,13 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Pools
+    public sealed class Pools
     {
         [JsonProperty("storageTotals")]
         public StorageTotals StorageTotals { get; set; }
+
+        [JsonProperty("serverGroupsUri")]
+        public string ServerGroupsUri { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }

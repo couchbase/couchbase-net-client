@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Controllers
+    public sealed class Controllers
     {
         [JsonProperty("compactAll")]
         public string CompactAll { get; set; }

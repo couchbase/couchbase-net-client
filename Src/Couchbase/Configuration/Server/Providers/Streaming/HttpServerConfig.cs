@@ -103,7 +103,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         {
             foreach (var bucketConfig in bucketConfigs)
             {
-                bucketConfig.UseSsl = _clientConfig.BucketConfigs[bucketConfig.Name].UseSsl;
+                if (_clientConfig.BucketConfigs.ContainsKey(bucketConfig.Name))
+                {
+                    bucketConfig.UseSsl = _clientConfig.BucketConfigs[bucketConfig.Name].UseSsl;
+                }
             }
         }
 

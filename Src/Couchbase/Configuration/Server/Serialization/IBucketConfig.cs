@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal interface IBucketConfig : IEquatable<BucketConfig>
+    public interface IBucketConfig : IEquatable<BucketConfig>
     {
         [JsonProperty("name")]
         string Name { get; set; }

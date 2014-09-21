@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal class Ddocs
+    public class Ddocs
     {
         [JsonProperty("uri")]
         public string Uri { get; set; }

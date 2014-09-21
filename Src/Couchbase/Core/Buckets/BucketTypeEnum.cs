@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents the Bucket types supported by Couchbase Server
     /// </summary>
-    internal enum BucketTypeEnum
+    public enum BucketTypeEnum
     {
         /// <summary>
         /// A persistent Bucket supporting replication and rebalancing.

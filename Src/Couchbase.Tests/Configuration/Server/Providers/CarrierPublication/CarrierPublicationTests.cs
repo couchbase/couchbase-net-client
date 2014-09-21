@@ -28,7 +28,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         public void SetUp()
         {
             var configuration = new ClientConfiguration();
-            var clusterManager = new ClusterManager(configuration, (p) =>
+            var clusterManager = new ClusterController(configuration, (p) =>
             {
                 var operation = new FakeOperation(new ManualByteConverter());
                 operation.SetOperationResult(new FakeOperationResult(operation)

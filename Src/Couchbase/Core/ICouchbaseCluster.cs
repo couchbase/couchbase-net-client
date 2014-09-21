@@ -1,6 +1,7 @@
 ﻿
 using System;
 using Couchbase.Configuration.Client;
+using Couchbase.Management;
 
 namespace Couchbase.Core
 {
@@ -35,6 +36,12 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="bucket">The object that implements IBucket that will be closed.</param>
         void CloseBucket(IBucket bucket);
+
+        /// <summary>
+        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICouchbaseCluster"/> configuration settings.
+        /// </summary>
+        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICouchbaseCluster"/> configuration settings. </returns>
+        IClusterManager CreateManager(string username, string password);
 
         /// <summary>
         /// Returns an object which implements IClusterInfo. This object contains various server

@@ -1,4 +1,6 @@
-﻿namespace Couchbase.N1QL
+﻿using System.Text;
+
+namespace Couchbase.N1QL
 {
     /// <summary>
     /// Represents additional information returned from a N1QL query when an error has occurred.
@@ -14,6 +16,18 @@
         public string Key { get; set; }
 
         public string Message { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat("Caller: {0}", Caller);
+            sb.AppendFormat("Code: {0}", Code);
+            sb.AppendFormat("Cause: {0}", Cause);
+            sb.AppendFormat("Key: {0}", Key);
+            sb.AppendFormat("Message: {0}", Message);
+
+            return sb.ToString();
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Counters
+    public sealed class Counters
     {
         [JsonProperty("rebalance_success")]
         public int RebalanceSuccess { get; set; }

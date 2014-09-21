@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Node : IEquatable<Node>
+    public sealed class Node : IEquatable<Node>
     {
         const string LocalHost = "127.0.0.1";
         private const string HostToken = "$HOST";
@@ -55,6 +55,9 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("os")]
         public string Os { get; set; }
+
+        [JsonProperty("otpNode")]
+        public string OtpNode { get; set; }
 
         [JsonProperty("ports")]
         public Ports Ports { get; set; }

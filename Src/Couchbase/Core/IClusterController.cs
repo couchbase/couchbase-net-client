@@ -1,14 +1,20 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using System.Collections.Generic;
+using Couchbase.Configuration.Server.Providers;
 
-namespace Couchbase.Configuration.Server.Serialization
+namespace Couchbase.Core
 {
-    public sealed class ViewFragmentationThreshold
+    internal interface IClusterController : IConfigPublisher, IDisposable
     {
-        [JsonProperty("percentage")]
-        public int Percentage { get; set; }
+        List<IConfigProvider> ConfigProviders { get; }
 
-        [JsonProperty("size")]
-        public string Size { get; set; }
+        IConfigProvider GetProvider(string name);
+
+        IBucket CreateBucket(string bucketName);
+
+        IBucket CreateBucket(string bucketName, string password);
+
+        void DestroyBucket(IBucket bucket);
     }
 }
 

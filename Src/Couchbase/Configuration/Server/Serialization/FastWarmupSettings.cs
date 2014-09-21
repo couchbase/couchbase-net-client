@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class FastWarmupSettings
+    public sealed class FastWarmupSettings
     {
         [JsonProperty("fastWarmupEnabled")]
         public bool FastWarmupEnabled { get; set; }

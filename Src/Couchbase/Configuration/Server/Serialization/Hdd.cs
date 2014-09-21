@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class Hdd
+    public sealed class Hdd
     {
         [JsonProperty("total")]
         public long Total { get; set; }

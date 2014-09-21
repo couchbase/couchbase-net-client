@@ -15,6 +15,11 @@ namespace Couchbase.Configuration.Server.Serialization
             return FixupUri(baseUri, bootstrap.Pools.First().Uri);
         }
 
+        public static Uri GetServersGroupUri(this Pools pools, Uri baseUri)
+        {
+            return FixupUri(baseUri, pools.ServerGroupsUri);
+        }
+
         public static Uri GetBucketUri(this Pools pools, Uri baseUri)
         {
             return FixupUri(baseUri, pools.Buckets.Uri);

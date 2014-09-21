@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class VBucketServerMap : IEquatable<VBucketServerMap>
+    public sealed class VBucketServerMap : IEquatable<VBucketServerMap>
     {
         public VBucketServerMap()
         {

@@ -2,7 +2,7 @@
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    internal sealed class StorageTotals
+    public sealed class StorageTotals
     {
         [JsonProperty("ram")]
         public Ram Ram { get; set; }
