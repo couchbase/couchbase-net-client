@@ -376,6 +376,45 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void Test_MultiGet()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var keys = new List<string>();
+                for (int i = 0; i < 1000; i++)
+                {
+                    var key = "key" + i;
+                    bucket.Upsert(key, key);
+                    keys.Add(key);
+                }
+                var multiget = bucket.Get<string>(keys);
+                Assert.AreEqual(1000, multiget.Count);
+            }
+        }
+
+        [Test]
+        public void Test_Multi_Upsert()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"MemcachedBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"MemcachedBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"MemcachedBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"MemcachedBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"MemcachedBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                var multiUpsert = bucket.Upsert(items);
+                Assert.AreEqual(multiUpsert.Count, items.Count);
+                foreach (var item in multiUpsert)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

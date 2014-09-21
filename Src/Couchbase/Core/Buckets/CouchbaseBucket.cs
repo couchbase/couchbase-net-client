@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,7 +11,6 @@ using Common.Logging;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -64,8 +65,8 @@ namespace Couchbase.Core.Buckets
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Log.Info(m => m("Updating CouchbaseBucket - old config rev#{0} new config rev#{1} on thread {2}",
-               _configInfo == null ? 0 : _configInfo.BucketConfig.Rev, 
-                configInfo.BucketConfig.Rev, 
+               _configInfo == null ? 0 : _configInfo.BucketConfig.Rev,
+                configInfo.BucketConfig.Rev,
                 Thread.CurrentThread.ManagedThreadId));
 
             lock (SyncObj)
@@ -471,6 +472,87 @@ namespace Couchbase.Core.Buckets
                 Cas = cas
             };
             return SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count());
+            Parallel.ForEach(partitionar, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options, int rangeSize)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
         }
 
         /// <summary>
@@ -907,8 +989,78 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+
+        /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
@@ -923,7 +1075,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -938,7 +1090,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -954,7 +1106,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -994,7 +1146,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -1009,7 +1161,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -1025,7 +1177,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -1327,7 +1479,7 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources, 
+        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
         /// removing it from it's <see cref="ClusterManager"/> instance.
         /// </summary>
         public void Dispose()
@@ -1337,7 +1489,7 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources, 
+        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
         /// removing it from it's <see cref="ClusterManager"/> instance.
         /// </summary>
         /// <param name="disposing">If true suppresses finalization.</param>

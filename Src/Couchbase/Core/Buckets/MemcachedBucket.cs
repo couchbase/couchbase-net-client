@@ -1,6 +1,10 @@
 ﻿ using System;
+ using System.Collections.Concurrent;
+ using System.Collections.Generic;
+ using System.Linq;
  using System.Runtime.CompilerServices;
  using System.Threading;
+ using System.Threading.Tasks;
  using Common.Logging;
  using Couchbase.Annotations;
  using Couchbase.Configuration;
@@ -211,6 +215,87 @@ namespace Couchbase.Core.Buckets
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count());
+            Parallel.ForEach(partitionar, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options, int rangeSize)
+        {
+            var keys = items.Keys.ToList();
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var value = items[key];
+                    var result = Upsert(key, value);
+                    results.Add(key, result);
+                }
+            });
+            return results;
         }
 
         /// <summary>
@@ -466,6 +551,77 @@ namespace Couchbase.Core.Buckets
             var operationResult = server.Send(operation);
             return operationResult;
         }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
+        /// <param name="rangeSize"></param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
+        {
+            var results = new Dictionary<string, IOperationResult<T>>();
+            var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Get<T>(key);
+                    results.Add(key, result);
+                }
+            });
+            return results;
+        }
+
 
         /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created

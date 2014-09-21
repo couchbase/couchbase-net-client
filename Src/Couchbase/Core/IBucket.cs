@@ -1,5 +1,6 @@
-﻿    
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -28,7 +29,7 @@ namespace Couchbase.Core
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An <see cref="ObserveResponse"/> value indicating if the durability requirement were or were not met.</returns>
         ObserveResponse Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
-            
+
         /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
@@ -55,7 +56,7 @@ namespace Couchbase.Core
         /// <param name="persistTo"></param>
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo);
-            
+
         /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
@@ -141,6 +142,38 @@ namespace Couchbase.Core
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items);
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options);
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options, int rangeSize);
 
         /// <summary>
         /// Replaces a document if it exists, otherwise fails.
@@ -441,6 +474,35 @@ namespace Couchbase.Core
         IOperationResult<T> Get<T>(string key);
 
         /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys);
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options);
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize);
+
+        /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with 1.
         /// </summary>
@@ -450,7 +512,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -459,7 +521,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -469,7 +531,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -488,7 +550,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -497,7 +559,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -507,7 +569,7 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>

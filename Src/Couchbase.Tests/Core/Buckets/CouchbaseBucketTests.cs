@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
 using System.Linq;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Client;
 using Couchbase.Core;
-using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Views;
+using Moq;
 using NUnit.Framework;
 using Wintellect;
 
@@ -443,7 +439,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(bucket.Insert(key, key).Success);
                 var result = bucket.Append(key, "!");
                 Assert.IsTrue(result.Success);
-                
+
                 result = bucket.Get<string>(key);
                 Assert.AreEqual(key+"!", result.Value);
             }
@@ -861,6 +857,166 @@ namespace Couchbase.Tests.Core.Buckets
                 var result = bucket.Remove(key, ReplicateTo.Three, PersistTo.Three);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
+        [Test]
+        public void Test_MultiGet()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = bucket.CreateQuery("beer", "brewery_beers");
+
+                var results = bucket.Query<dynamic>(query);
+                Assert.IsTrue(results.Success);
+                //Assert.AreEqual(10, results.Rows.Count);
+
+                var keys = results.
+                    Rows.
+                    ConvertAll(x => x.id.Value).
+                    Cast<string>();
+
+                using (new OperationTimer())
+                {
+                    var multiget = bucket.Get<dynamic>(keys.ToList());
+                    Assert.AreEqual(results.TotalRows, multiget.Count);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_MultiGet_With_MaxDegreeOfParallism_4()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = bucket.CreateQuery("beer", "brewery_beers");
+
+                var results = bucket.Query<dynamic>(query);
+                Assert.IsTrue(results.Success);
+                //Assert.AreEqual(10, results.Rows.Count);
+
+                var keys = results.
+                    Rows.
+                    ConvertAll(x => x.id.Value).
+                    Cast<string>();
+
+                using (new OperationTimer())
+                {
+                    var multiget = bucket.Get<dynamic>(keys.ToList(), new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = 4
+                    });
+                    Assert.AreEqual(results.TotalRows, multiget.Count);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_MultiGet_With_MaxDegreeOfParallism_2_And_RangeSize_1000()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = bucket.CreateQuery("beer", "brewery_beers");
+
+                var results = bucket.Query<dynamic>(query);
+                Assert.IsTrue(results.Success);
+                //Assert.AreEqual(10, results.Rows.Count);
+
+                var keys = results.
+                    Rows.
+                    ConvertAll(x => x.id.Value).
+                    Cast<string>();
+
+                using (new OperationTimer())
+                {
+                    var multiget = bucket.Get<dynamic>(keys.ToList(), new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = 2
+                    },
+                    100);
+                    Assert.AreEqual(results.TotalRows, multiget.Count);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_Multi_Upsert()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                foreach (var key in items.Keys)
+                {
+                    bucket.Remove(key);
+                }
+                var multiUpsert = bucket.Upsert(items);
+                Assert.AreEqual(multiUpsert.Count, items.Count);
+                foreach (var item in multiUpsert)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_Multi_Upsert_With_MaxDegreeOfParallelism_1()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                foreach (var key in items.Keys)
+                {
+                    bucket.Remove(key);
+                }
+                var multiUpsert = bucket.Upsert(items, new ParallelOptions{MaxDegreeOfParallelism = 1});
+                Assert.AreEqual(multiUpsert.Count, items.Count);
+                foreach (var item in multiUpsert)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_Multi_Upsert_With_MaxDegreeOfParallelism_1_RangeSize_2()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                foreach (var key in items.Keys)
+                {
+                    bucket.Remove(key);
+                }
+                var multiUpsert = bucket.Upsert(items, new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 1
+                },2);
+                Assert.AreEqual(multiUpsert.Count, items.Count);
+                foreach (var item in multiUpsert)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
             }
         }
 
