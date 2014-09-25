@@ -1,6 +1,7 @@
 ﻿ using System;
  using System.Collections.Concurrent;
  using System.Collections.Generic;
+ using System.IO;
  using System.Linq;
  using System.Runtime.CompilerServices;
  using System.Threading;
@@ -10,6 +11,7 @@
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
  using Couchbase.Core.Transcoders;
+ using Couchbase.IO;
  using Couchbase.IO.Converters;
  using Couchbase.IO.Operations;
  using Couchbase.Management;
@@ -41,7 +43,6 @@ namespace Couchbase.Core.Buckets
             public int Count;
         }
 
-
         internal MemcachedBucket(IClusterController clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
             _clusterManager = clusterManager;
@@ -62,9 +63,7 @@ namespace Couchbase.Core.Buckets
         {
             get
             {
-                var provider = _clusterManager.GetProvider(Name);
-                var config = provider.GetCached(Name);
-                var server = config.GetServer();
+                var server = _configInfo.GetServer();
                 return server.IsSecure;
             }
         }
@@ -95,6 +94,109 @@ namespace Couchbase.Core.Buckets
             }
         }
 
+        IServer GetServer(string key)
+        {
+            var keyMapper = _configInfo.GetKeyMapper();
+            var bucket = keyMapper.MapKey(key);
+            return bucket.LocatePrimary();
+        }
+
+        private IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
+        {
+            CheckDisposed();
+            IOperationResult<T> operationResult = new OperationResult<T>{Success = false};
+            do
+            {
+                var server = GetServer(operation.Key);
+                if (server == null)
+                {
+                    continue;
+                }
+                operationResult = server.Send(operation);
+                if (operationResult.Success)
+                {
+                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    break;
+                }
+                if (CanRetryOperation(operationResult, operation, server))
+                {
+                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                        operation.Key, operationResult.Message));
+                }
+                else
+                {
+                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    break;
+                }
+            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
+
+            if (!operationResult.Success)
+            {
+                Log.Debug(
+                    m =>
+                        m("Operation for key {0} failed after {1} retries. Reason: {2}", operation.Key,
+                            operation.Attempts, operationResult.Message));
+            }
+            return operationResult;
+        }
+
+        static bool OperationSupportsRetries<T>(IOperation<T>  operation)
+        {
+            var supportsRetry = false;
+            switch (operation.OperationCode)
+            {
+                case OperationCode.Get:
+                case OperationCode.Add:
+                    supportsRetry = true;
+                    break;
+                case OperationCode.Set:
+                case OperationCode.Replace:
+                case OperationCode.Delete:
+                case OperationCode.Append:
+                case OperationCode.Prepend:
+                    supportsRetry = operation.Cas > 0;
+                    break;
+                case OperationCode.Increment:
+                case OperationCode.Decrement:
+                case OperationCode.GAT:
+                case OperationCode.Touch:
+                    break;
+            }
+            return supportsRetry;
+        }
+
+        bool CanRetryOperation<T>(IOperationResult<T> operationResult, IOperation<T> operation, IServer server)
+        {
+            var supportsRetry = OperationSupportsRetries(operation);
+            var retry = false;
+            switch (operationResult.Status)
+            {
+                case ResponseStatus.Success:
+                case ResponseStatus.KeyNotFound:
+                case ResponseStatus.KeyExists:
+                case ResponseStatus.ValueTooLarge:
+                case ResponseStatus.InvalidArguments:
+                case ResponseStatus.ItemNotStored:
+                case ResponseStatus.IncrDecrOnNonNumericValue:
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                    break;
+                case ResponseStatus.AuthenticationError:
+                case ResponseStatus.AuthenticationContinue:
+                case ResponseStatus.InvalidRange:
+                case ResponseStatus.UnknownCommand:
+                case ResponseStatus.OutOfMemory:
+                case ResponseStatus.NotSupported:
+                case ResponseStatus.InternalError:
+                case ResponseStatus.Busy:
+                case ResponseStatus.TemporaryFailure:
+                    break;
+                case ResponseStatus.ClientFailure:
+                    retry = supportsRetry;
+                    break;
+            }
+            return retry;
+        }
+
         public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException();
@@ -121,13 +223,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Set<T>(key, value, null, _converter);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -140,16 +237,11 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Set<T>(key, value, null, _converter)
             {
                 Expires = expiration
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -162,16 +254,11 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Set<T>(key, value, null, _converter)
             {
                 Cas = cas
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -185,17 +272,12 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Set<T>(key, value, null, _converter)
             {
                 Cas = cas,
                 Expires = expiration
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
@@ -321,13 +403,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Add<T>(key, value, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -339,13 +416,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Replace<T>(key, value, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -358,16 +430,11 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Replace<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
@@ -416,13 +483,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Add<T>(key, value, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -435,16 +497,11 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Add<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
@@ -480,13 +537,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Delete(key, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -497,16 +549,11 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Delete(key, null, _converter, _transcoder)
             {
                 Cas = cas
             };
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
@@ -544,13 +591,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Get<T>(key, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -681,14 +723,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Increment(key, initial, delta, expiration, null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -748,14 +784,8 @@ namespace Couchbase.Core.Buckets
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Decrement(key, initial, delta, expiration,  null, _converter, _transcoder);
-            var operationResult = server.Send(operation);
-
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -766,14 +796,8 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Append(string key, string value)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Append<string>(key, value, _transcoder, null, _converter);
-            var operationResult = server.Send(operation);
-
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         /// <summary>
@@ -784,14 +808,8 @@ namespace Couchbase.Core.Buckets
         /// <returns></returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            var bucket = keyMapper.MapKey(key);
-            var server = bucket.LocatePrimary();
-
             var operation = new Prepend<string>(key, value, _transcoder, null, _converter);
-            var operationResult = server.Send(operation);
-
-            return operationResult;
+            return SendWithRetry(operation);
         }
 
         public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
@@ -919,6 +937,12 @@ namespace Couchbase.Core.Buckets
                 }
                 return refCount.Count;
             }
+        }
+
+        void CheckDisposed()
+        {
+            var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
+            if(_disposed) throw new ObjectDisposedException(message);
         }
 
         /// <summary>
