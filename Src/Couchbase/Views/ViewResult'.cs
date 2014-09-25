@@ -11,7 +11,13 @@ namespace Couchbase.Views
     /// implementation.</typeparam>
     public class ViewResult<T> : IViewResult<T>
     {
-        /// <summary>
+        public ViewResult()
+        {
+            Rows = new List<T>();
+            Error = string.Empty;
+            Message = string.Empty;
+        }
+            /// <summary>
         /// The total number of rows.
         /// </summary>
         [JsonProperty("total_rows")]
