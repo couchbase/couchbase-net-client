@@ -79,6 +79,7 @@ namespace Couchbase.Configuration.Client
             foreach (var server in couchbaseClientSection.Servers)
             {
                 Servers.Add(((UriElement)server).Uri);
+                _serversChanged = true;
             }
             foreach (var bucketElement in couchbaseClientSection.Buckets)
             {
@@ -96,7 +97,7 @@ namespace Couchbase.Configuration.Client
                         MinSize = bucket.ConnectionPool.MinSize,
                         WaitTimeout = bucket.ConnectionPool.WaitTimeout,
                         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
-                        UseSsl = bucket.ConnectionPool.UseSsl, 
+                        UseSsl = bucket.ConnectionPool.UseSsl,
                     }
                 };
                 BucketConfigs = new Dictionary<string, BucketConfiguration> {{bucket.Name, bucketConfiguration}};
@@ -302,7 +303,7 @@ namespace Couchbase.Configuration.Client
                         if (useSsl)
                         {
                             var oldUri = _servers[i];
-                            var newUri = new Uri(string.Concat("https://", _servers[i].Host, 
+                            var newUri = new Uri(string.Concat("https://", _servers[i].Host,
                                 ":", HttpsMgmtPort, oldUri.PathAndQuery));
                             _servers[i] = newUri;
 
