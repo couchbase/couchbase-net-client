@@ -86,7 +86,7 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Initializes the mapping of hashes to nodes. 
+        /// Initializes the mapping of hashes to nodes.
         /// </summary>
         public void Initialize()
         {

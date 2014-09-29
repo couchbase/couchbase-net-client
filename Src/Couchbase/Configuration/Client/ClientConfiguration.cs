@@ -9,7 +9,7 @@ using Newtonsoft.Json.Serialization;
 namespace Couchbase.Configuration.Client
 {
     /// <summary>
-    /// Represents the configuration of a <see cref="CouchbaseCluster"/> object. The <see cref="CouchbaseCluster"/> object
+    /// Represents the configuration of a <see cref="Cluster"/> object. The <see cref="Cluster"/> object
     /// will use this class to construct it's internals.
     /// </summary>
     public class ClientConfiguration

@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.AddNode("192.168.56.103");
@@ -39,7 +39,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveNode("192.168.56.103");
@@ -57,7 +57,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.FailoverNode("192.168.56.103");
@@ -75,7 +75,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var results = clusterManager.ListBuckets();
@@ -93,7 +93,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.Rebalance();
@@ -111,7 +111,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.ClusterInfo();
@@ -129,7 +129,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.CreateBucket("test");
@@ -147,7 +147,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveBucket("test");

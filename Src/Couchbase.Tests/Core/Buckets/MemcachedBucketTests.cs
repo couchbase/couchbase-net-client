@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void SetUp()
         {
-            _cluster = new CouchbaseCluster();
+            _cluster = new Cluster();
         }
 
         [Test]

@@ -17,13 +17,13 @@ namespace Couchbase.Tests.IO.Operations
     [TestFixture]
     public class IncrementTests : OperationTestBase
     {
-        private CouchbaseCluster _cluster;
+        private Cluster _cluster;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
-            _cluster = new CouchbaseCluster();
+            _cluster = new Cluster();
         }
 
         [Test]

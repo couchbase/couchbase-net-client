@@ -71,7 +71,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Get()
         {
-            using (var cluster = new CouchbaseCluster())
+            using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -85,7 +85,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Set()
         {
-            using (var cluster = new CouchbaseCluster())
+            using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -102,7 +102,7 @@ namespace Couchbase.Tests.IO.Operations
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var n = 1000;//set to a higher # if needed
 
-            using (var cluster = new CouchbaseCluster())
+            using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket())
                 {

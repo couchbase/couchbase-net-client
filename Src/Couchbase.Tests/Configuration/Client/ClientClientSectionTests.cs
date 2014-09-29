@@ -141,7 +141,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_Programmatic_Config_Construction_Using_Default_Settings()
         {
-            var cluster = new CouchbaseCluster("couchbaseClients/couchbase");
+            var cluster = new Cluster("couchbaseClients/couchbase");
             var configuration = cluster.Configuration;
             Assert.AreEqual(11207, configuration.SslPort);
             Assert.AreEqual(8091, configuration.MgmtPort);
@@ -171,7 +171,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void Test_Programmatic_Config_Construction_Using_Custom_Settings()
         {
-            using (var cluster = new CouchbaseCluster("couchbaseClients/couchbase_1"))
+            using (var cluster = new Cluster("couchbaseClients/couchbase_1"))
             {
                 var configuration = cluster.Configuration;
                 Assert.AreEqual(443, configuration.SslPort);
@@ -215,7 +215,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_Initialize_Called_With_AppConfig_Settings_Bucket_Can_Be_Opened()
         {
-            using (var cluster = new CouchbaseCluster("couchbaseClients/couchbase"))
+            using (var cluster = new Cluster("couchbaseClients/couchbase"))
             {
                 var bucket = cluster.OpenBucket();
                 Assert.AreEqual("default", bucket.Name);

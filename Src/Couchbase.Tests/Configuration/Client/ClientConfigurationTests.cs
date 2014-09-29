@@ -173,7 +173,7 @@ namespace Couchbase.Tests.Configuration.Client
                     new Uri(remoteHost)
                 }
             };
-            var cluster = new CouchbaseCluster(config);
+            var cluster = new Cluster(config);
             using (var bucket = cluster.OpenBucket())
             {
                 //all buckets opened with this configuration will use SSL
@@ -199,7 +199,7 @@ namespace Couchbase.Tests.Configuration.Client
                     new Uri(remoteHost)
                 }
             };
-            var cluster = new CouchbaseCluster(config);
+            var cluster = new Cluster(config);
             using (var bucket = cluster.OpenBucket("beer-sample"))
             {
                 //only the customers bucket will use SSL
@@ -219,7 +219,7 @@ namespace Couchbase.Tests.Configuration.Client
                     new Uri(remoteHost)
                 }
             };
-            var cluster = new CouchbaseCluster(config);
+            var cluster = new Cluster(config);
             using (var bucket = cluster.OpenBucket())
             {
                 //all buckets opened with this configuration will not use SSL
@@ -245,7 +245,7 @@ namespace Couchbase.Tests.Configuration.Client
                     new Uri(remoteHost)
                 }
             };
-            var cluster = new CouchbaseCluster(config);
+            var cluster = new Cluster(config);
             using (var bucket = cluster.OpenBucket("beer-sample"))
             {
                 //only the customers bucket will not use SSL

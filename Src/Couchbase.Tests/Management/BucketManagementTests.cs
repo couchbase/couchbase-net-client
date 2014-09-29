@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -44,7 +44,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -66,7 +66,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -87,7 +87,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -108,7 +108,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -129,7 +129,7 @@ namespace Couchbase.Tests.Management
                     new Uri("http://192.168.56.101:8091/pools")
                 }
             };
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {

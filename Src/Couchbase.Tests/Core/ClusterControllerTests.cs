@@ -48,7 +48,7 @@ namespace Couchbase.Tests.Core
             var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
             _clusterManager.ConfigProviders.Remove(cccp);
 
-            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+            var cluster = new Cluster(_clientConfig, _clusterManager);
             cluster.Dispose();
         }
 
@@ -59,7 +59,7 @@ namespace Couchbase.Tests.Core
             var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
             _clusterManager.ConfigProviders.Remove(cccp);
 
-            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+            var cluster = new Cluster(_clientConfig, _clusterManager);
 
             var bucket = cluster.OpenBucket();
             bucket.Dispose();
@@ -73,7 +73,7 @@ namespace Couchbase.Tests.Core
             var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
             _clusterManager.ConfigProviders.Remove(cccp);
 
-            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+            var cluster = new Cluster(_clientConfig, _clusterManager);
 
             var bucket = cluster.OpenBucket();
             bucket.Dispose();
@@ -87,7 +87,7 @@ namespace Couchbase.Tests.Core
             var cccp = _clusterManager.ConfigProviders.Find(x => x is CarrierPublicationProvider);
             _clusterManager.ConfigProviders.Remove(cccp);
 
-            var cluster = new CouchbaseCluster(_clientConfig, _clusterManager);
+            var cluster = new Cluster(_clientConfig, _clusterManager);
 
             var bucket = cluster.OpenBucket();
             cluster.CloseBucket(bucket);

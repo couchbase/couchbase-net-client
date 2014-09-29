@@ -70,7 +70,7 @@ namespace Couchbase.Tests.Core.Buckets
             var configInfo = provider.GetConfig("default");
 
             ulong cas = 0;
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -107,7 +107,7 @@ namespace Couchbase.Tests.Core.Buckets
             var configInfo = provider.GetConfig("default");
 
             ulong cas = 0;
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -143,7 +143,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var configInfo = provider.GetConfig("default");
 
-            using (var cluster = new CouchbaseCluster(configuration))
+            using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {

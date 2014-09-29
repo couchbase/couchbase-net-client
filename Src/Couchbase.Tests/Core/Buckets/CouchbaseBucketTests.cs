@@ -23,7 +23,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new CouchbaseCluster("couchbaseClients/couchbase");
+            _cluster = new Cluster("couchbaseClients/couchbase");
         }
 
         [Test]
@@ -689,7 +689,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_Dispose_On_Many_Threads()
         {
-            using (var cluster = new CouchbaseCluster())
+            using (var cluster = new Cluster())
             {
                 Random random = new Random(100);
                 int n = 100;

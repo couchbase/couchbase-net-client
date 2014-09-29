@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Servers = new List<Uri>{ new Uri(bootstrapUrl)},
                 UseSsl = true
             };
-            _cluster = new CouchbaseCluster(config);
+            _cluster = new Cluster(config);
         }
 
         [Test]

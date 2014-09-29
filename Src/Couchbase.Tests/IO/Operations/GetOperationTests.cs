@@ -5,12 +5,12 @@ namespace Couchbase.Tests.IO.Operations
     [TestFixture]
     public class GetOperationTests
     {
-        private CouchbaseCluster _cluster;
+        private Cluster _cluster;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new CouchbaseCluster();
+            _cluster = new Cluster();
 
             using (var bucket = _cluster.OpenBucket())
             {

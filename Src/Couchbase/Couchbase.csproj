@@ -78,7 +78,7 @@
     <Compile Include="Core\Buckets\KeyObserver.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
-    <Compile Include="CouchbaseCluster.cs" />
+    <Compile Include="Cluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
     <Compile Include="Configuration\Client\PoolConfiguration.cs" />

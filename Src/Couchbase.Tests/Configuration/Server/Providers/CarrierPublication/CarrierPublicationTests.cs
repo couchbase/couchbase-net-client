@@ -42,7 +42,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 return new FakeIOStrategy<FakeOperation>(operation);
             });
  
-            _cluster = new CouchbaseCluster(configuration, clusterManager);
+            _cluster = new Cluster(configuration, clusterManager);
         }
 
         [Test]

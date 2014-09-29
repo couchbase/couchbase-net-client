@@ -13,7 +13,7 @@ namespace Couchbase
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    public sealed class CouchbaseCluster : ICouchbaseCluster
+    public sealed class Cluster : ICouchbaseCluster
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const string DefaultBucket = "default";
@@ -26,7 +26,7 @@ namespace Couchbase
         /// <remarks>
         /// This is the default configuration and will attempt to bootstrap off of localhost.
         /// </remarks>
-        public CouchbaseCluster()
+        public Cluster()
             : this(new ClientConfiguration())
         {
         }
@@ -36,7 +36,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="configurationSectionName">The name of the configuration section to use.</param>
         /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
-        public CouchbaseCluster(string configurationSectionName)
+        public Cluster(string configurationSectionName)
             : this(new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName)))
         {
         }
@@ -45,7 +45,7 @@ namespace Couchbase
         /// Ctor for creating Cluster instance with a custom <see cref="ClientConfiguration"/> configuration.
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        public CouchbaseCluster(ClientConfiguration configuration)
+        public Cluster(ClientConfiguration configuration)
             : this(configuration, new ClusterController(configuration))
         {
         }
@@ -58,7 +58,7 @@ namespace Couchbase
         /// <remarks>
         /// This overload is primarly added for testing.
         /// </remarks>
-        internal CouchbaseCluster(ClientConfiguration configuration, IClusterController clusterController)
+        internal Cluster(ClientConfiguration configuration, IClusterController clusterController)
         {
             _configuration = configuration;
             _clusterController = clusterController;
@@ -139,7 +139,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// The current client configuration being used by the <see cref="CouchbaseCluster"/> object.
+        /// The current client configuration being used by the <see cref="Cluster"/> object.
         /// Set this by passing in a <see cref="ClientConfiguration"/> object into <see cref="Initialize(ClientConfiguration)" /> or by
         /// providing a <see cref="CouchbaseClientSection"/> in your App.config or Web.config and calling <see cref="Initialize(string)"/>
         /// </summary>
@@ -169,7 +169,7 @@ namespace Couchbase
         /// Cleans up any non-reclaimed resources.
         /// </summary>
         /// <remarks>will run if Dispose is not called on a Cluster instance.</remarks>
-        ~CouchbaseCluster()
+        ~Cluster()
         {
             Log.Debug(m=>m("Finalizing {0}", GetType().Name));
             if (_clusterController != null)

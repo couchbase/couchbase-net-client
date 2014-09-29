@@ -11,14 +11,14 @@ using Couchbase.Core;
 namespace Couchbase
 {
     /// <summary>
-    /// A helper object for working with a <see cref="CouchbaseCluster"/> instance. 
+    /// A helper object for working with a <see cref="Cluster"/> instance. 
     /// </summary>
-    /// <remarks>Creates a singleton instance of a <see cref="CouchbaseCluster"/> object.</remarks>
+    /// <remarks>Creates a singleton instance of a <see cref="Cluster"/> object.</remarks>
     /// <remarks>Call <see cref="Initialize()"/> before calling <see cref="Get()"/> to get the instance.</remarks>
     public class ClusterHelper
     {
         private const string DefaultBucket = "default";
-        private static Lazy<CouchbaseCluster> _instance;
+        private static Lazy<Cluster> _instance;
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterManager;
         private static readonly object SyncObj = new object();
@@ -65,7 +65,7 @@ namespace Couchbase
         /// </remarks>
         /// <returns>A Singleton instance of the Cluster class.</returns>
         /// <exception cref="Couchbase.Core.InitializationException">Thrown if Initialize is not called before accessing this method.</exception>
-        public static CouchbaseCluster Get()
+        public static Cluster Get()
         {
             if (_instance == null)
             {
@@ -83,7 +83,7 @@ namespace Couchbase
         /// scenarios where you explicitly want to reinitialize the current cluster instance.
         /// </remarks>
         /// <param name="factory">The factory Func that creates the instance.</param>
-        private static void Initialize(Func<CouchbaseCluster> factory)
+        private static void Initialize(Func<Cluster> factory)
         {
             lock (SyncObj)
             {
@@ -96,7 +96,7 @@ namespace Couchbase
                         _instance = null;
                     }
                 }
-                _instance = new Lazy<CouchbaseCluster>(factory);
+                _instance = new Lazy<Cluster>(factory);
             }
         }
 
@@ -115,7 +115,7 @@ namespace Couchbase
             }
             
             configuration.Initialize();
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, clusterManager));
+            var factory = new Func<Cluster>(() => new Cluster(configuration, clusterManager));
             Initialize(factory);
         }
 
@@ -136,7 +136,7 @@ namespace Couchbase
             }
 
             configuration.Initialize();
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterController(configuration)));
+            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
             Initialize(factory);
         }
 
@@ -148,7 +148,7 @@ namespace Couchbase
         /// </summary>
         public static void Initialize()
         {
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster());
+            var factory = new Func<Cluster>(() => new Cluster());
             Initialize(factory);
         }
 
@@ -163,12 +163,12 @@ namespace Couchbase
             var configuration = new ClientConfiguration(configurationSection);
             configuration.Initialize();
 
-            var factory = new Func<CouchbaseCluster>(() => new CouchbaseCluster(configuration, new ClusterController(configuration)));
+            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
             Initialize(factory);
         }
 
         /// <summary>
-        /// Disposes the current <see cref="CouchbaseCluster"/> instance and cleans up resources.
+        /// Disposes the current <see cref="Cluster"/> instance and cleans up resources.
         /// </summary>
         public static void Close()
         {
