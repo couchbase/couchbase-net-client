@@ -22,22 +22,22 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(delete);
             Console.WriteLine(result.Message);
 
             //add the new doc
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Converter, transcoder);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Converter, Transcoder);
             var result1 = IOStrategy.Execute(add);
             Assert.IsTrue(result1.Success);
 
             //replace it the old doc with a new one
-            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, transcoder);
+            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, Transcoder);
             var result2 = IOStrategy.Execute(replace);
             Assert.IsTrue(result2.Success);
 
             //check that doc has been updated
-            var get = new Get<dynamic>(key, GetVBucket(),  Converter, transcoder);
+            var get = new Get<dynamic>(key, GetVBucket(),  Converter, Transcoder);
             var result3 = IOStrategy.Execute(get);
             Assert.IsTrue(result.Success);
             Assert.AreEqual(result3.Value.bar.Value, "bar");
@@ -49,12 +49,12 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Does_Not_Exist_Replace_Fails";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(delete);
             Console.WriteLine(result.Message);
 
             //replace it the old doc with a new one
-            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, transcoder);
+            var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Converter, Transcoder);
             var result2 = IOStrategy.Execute(replace);
             Assert.IsFalse(result2.Success);
             Assert.AreEqual(ResponseStatus.KeyNotFound, result2.Status);

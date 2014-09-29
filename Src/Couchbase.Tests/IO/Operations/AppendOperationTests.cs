@@ -20,10 +20,10 @@ namespace Couchbase.Tests.IO.Operations
             const string expected = "Hello!";
 
             //clean up old keys
-            var deleteOperation = new Delete(key, GetVBucket(), Converter, transcoder);
+            var deleteOperation = new Delete(key, GetVBucket(), Converter, Transcoder);
             IOStrategy.Execute(deleteOperation);
 
-            deleteOperation = new Delete(key + "!", GetVBucket(),  Converter, transcoder);
+            deleteOperation = new Delete(key + "!", GetVBucket(),  Converter, Transcoder);
             IOStrategy.Execute(deleteOperation);
 
             //create the key
@@ -31,14 +31,14 @@ namespace Couchbase.Tests.IO.Operations
             var addResult = IOStrategy.Execute(set);
             Assert.IsTrue(addResult.Success);
 
-            var append = new Append<string>(key, "!", transcoder, GetVBucket(), Converter);
+            var append = new Append<string>(key, "!", Transcoder, GetVBucket(), Converter);
             var result = IOStrategy.Execute(append);
 
             
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
-            var get = new Get<string>(key, GetVBucket(),  Converter, transcoder);
+            var get = new Get<string>(key, GetVBucket(),  Converter, Transcoder);
             var getResult = IOStrategy.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
         }

@@ -17,7 +17,7 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             IOStrategy.Execute(delete);
 
             var set = new Set<string>(key, "boo", GetVBucket(), Converter);
@@ -31,10 +31,10 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             IOStrategy.Execute(delete);
 
-            var add = new Add<string>(key, "foo", GetVBucket(), Converter, transcoder);
+            var add = new Add<string>(key, "foo", GetVBucket(), Converter, Transcoder);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
             var set = new Set<string>(key, "boo", GetVBucket(), Converter);

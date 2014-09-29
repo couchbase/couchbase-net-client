@@ -22,16 +22,17 @@ namespace Couchbase.Tests.IO.Operations
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         protected readonly AutoByteConverter Converter = new AutoByteConverter();
-        protected  ITypeTranscoder transcoder;
+        protected  ITypeTranscoder Transcoder;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
-        [TestFixtureSetUp]
+        [SetUp]
         public virtual void TestFixtureSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            Transcoder = new DefaultTranscoder(Converter);
         }
 
         internal IVBucket GetVBucket()
@@ -53,17 +54,12 @@ namespace Couchbase.Tests.IO.Operations
 
         internal IOStrategy IOStrategy { get { return _ioStrategy; } }
 
-        [TestFixtureTearDown]
-        public virtual void TestFixtureTearDown()
+        [TearDown]
+        public virtual void TearDown()
         {
             _connectionPool.Dispose();
         }
 
-        [SetUp]
-        public void SetUp()
-        {
-            transcoder = new DefaultTranscoder(Converter);
-        }
     }
 }
 

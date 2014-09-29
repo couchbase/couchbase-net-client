@@ -28,13 +28,13 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_Observe2()
         {
             const string key = "Test_Observe2";
-            var remove = new Delete(key, GetVBucket(), Converter, transcoder);
+            var remove = new Delete(key, GetVBucket(), Converter, Transcoder);
 
-            var set = new Set<int>(key, 10, GetVBucket(), Converter);
+            var set = new Set<int?>(key, 10, GetVBucket(), Converter);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
 
-            var get = new Get<dynamic>(key, GetVBucket(), Converter, transcoder);
+            var get = new Get<dynamic>(key, GetVBucket(), Converter, Transcoder);
             var result1 = IOStrategy.Execute(get);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result.Cas, result1.Cas);

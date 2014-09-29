@@ -101,7 +101,8 @@ namespace Couchbase.Tests.Core.Buckets
         {
             using (var bucket = _cluster.OpenBucket("default"))
             {
-                var query = new ViewQuery("empty", "empty_view").
+                var query = new ViewQuery().
+                    From("empty", "empty_view").
                     Limit(10);
 
                 Console.WriteLine(query.RawUri());
@@ -562,7 +563,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsNullOrEmpty(result.Message);
 
                 var get = bucket.GetDocument<dynamic>(id);
-                Assert.AreEqual("Geoff", get.Value.Name.Value);//Name is a jsonobject, so use Value
+                Assert.AreEqual("Geoff", get.Value.name.Value);//Name is a jsonobject, so use Value
             }
         }
 

@@ -59,10 +59,10 @@ namespace Couchbase.Tests.IO.Operations
                     var set = new Set<int?>(key, i, vbucket, converter);
                     var result = IOStrategy.Execute(set);
                     Assert.IsTrue(result.Success);
-  
+
                     var get = new Get<int?>(key, vbucket, converter, transcoder);
                     var result1 = IOStrategy.Execute(get);
-                    Assert.IsTrue(result1.Success); 
+                    Assert.IsTrue(result1.Success);
                     Assert.AreEqual(i, result1.Value);
                 });
             }

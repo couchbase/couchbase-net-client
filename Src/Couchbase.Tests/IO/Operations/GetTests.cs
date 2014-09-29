@@ -26,7 +26,7 @@ namespace Couchbase.Tests.IO.Operations
             //Add the key
             var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
             Assert.IsTrue(IOStrategy.Execute(add).Success);
-            
+
             var get = new Get<dynamic>(key, GetVBucket(), new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
 
