@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))
