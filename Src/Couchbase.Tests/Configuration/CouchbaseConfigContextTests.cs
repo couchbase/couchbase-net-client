@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ namespace Couchbase.Tests.Configuration
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 },
                 PoolConfiguration = new PoolConfiguration
                 {

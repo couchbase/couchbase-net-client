@@ -42,7 +42,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))
@@ -64,7 +64,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))
@@ -85,7 +85,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))
@@ -106,7 +106,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))
@@ -127,7 +127,7 @@ namespace Couchbase.Tests.Management
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://192.168.56.101:8091/pools")
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
             using (var cluster = new Cluster(configuration))

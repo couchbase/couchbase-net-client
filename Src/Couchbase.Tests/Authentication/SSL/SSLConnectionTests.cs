@@ -73,9 +73,9 @@ namespace Couchbase.Tests.Authentication.SSL
         public void Test_ClientConnection_With_Ssl()
         {
             var bootstrapUrl = ConfigurationManager.AppSettings["bootstrapUrl"];
-            var config = new ClientConfiguration 
+            var config = new ClientConfiguration
             {
-                UseSsl = true, 
+                UseSsl = true,
                 Servers = new List<Uri>
             {
                 new Uri(bootstrapUrl)
