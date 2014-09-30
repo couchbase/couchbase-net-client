@@ -18,7 +18,7 @@ namespace Couchbase.Tests.Core.Buckets
     {
         private ICouchbaseCluster _cluster;
 
-        [TestFixtureSetUp]
+        [SetUp]
         public void SetUp()
         {
             _cluster = new Cluster();
@@ -415,7 +415,7 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
-        [TestFixtureTearDown]
+        [TearDown]
         public void TestFixtureTearDown()
         {
             _cluster.Dispose();

@@ -20,29 +20,12 @@ namespace Couchbase.Core.Buckets
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly List<IServer> _servers;
 
-        public VBucketKeyMapper(List<IServer> servers, VBucketServerMap vBucketServerMap) 
-            : this(new Crc32(), servers, vBucketServerMap)
+        public VBucketKeyMapper(List<IServer> servers, VBucketServerMap vBucketServerMap)
         {
-        }
-
-        public VBucketKeyMapper(HashAlgorithm algorithm, List<IServer> servers, VBucketServerMap vBucketServerMap)
-        {
-            HashAlgorithm = algorithm;
             _servers = servers;
             _vBucketServerMap = vBucketServerMap;
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();
-        }
- 
-        public VBucketKeyMapper(HashAlgorithm algorithm, Dictionary<int, IVBucket> vBuckets)
-        {
-            HashAlgorithm = algorithm;
-            _vBuckets = vBuckets;
-        }
-
-        public VBucketKeyMapper(Dictionary<int, IVBucket> vBuckets) 
-            : this(new Crc32(), vBuckets)
-        {
         }
 
         /// <summary>
@@ -57,17 +40,15 @@ namespace Couchbase.Core.Buckets
             return _vBuckets[index];
         }
 
-        /// <summary>
-        /// The alogrithm for hashing the keys. Couchbase Buckets use CRC32.
-        /// </summary>
-        public HashAlgorithm HashAlgorithm { get; set; }
-
         public int GetIndex(string key)
         {
-            var keyBytes = Encoding.UTF8.GetBytes(key);
-            var hashedKeyBytes = HashAlgorithm.ComputeHash(keyBytes);
-            var hash = BitConverter.ToUInt32(hashedKeyBytes, 0);
-            return (int)hash & Mask;
+            using (var crc32 = new Crc32())
+            {
+                var keyBytes = Encoding.UTF8.GetBytes(key);
+                var hashedKeyBytes = crc32.ComputeHash(keyBytes);
+                var hash = BitConverter.ToUInt32(hashedKeyBytes, 0);
+                return (int)hash & Mask;
+            }
         }
 
         /// <summary>
@@ -79,7 +60,7 @@ namespace Couchbase.Core.Buckets
             var vBuckets = new Dictionary<int, IVBucket>();
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
-            
+
             Log.Info(m => m("Creating VBuckets {0} and FMaps {1} for Rev#{2}", vBucketMap.Length,
                 vBucketForwardMap == null ? 0: vBucketForwardMap.Length, Rev));
 

@@ -15,19 +15,13 @@ namespace Couchbase.Core.Buckets
         private readonly int _totalWeight;
         private readonly SortedDictionary<long, IServer> _buckets = new SortedDictionary<long, IServer>();
 
-        public KetamaKeyMapper(List<IServer> servers) 
-            : this(servers, MD5.Create())
-        {
-        }
-
-        public KetamaKeyMapper(List<IServer> servers, HashAlgorithm algorithm)
+        public KetamaKeyMapper(List<IServer> servers)
         {
             _servers = servers;
             _totalWeight = _servers.Count;
-            HashAlgorithm = algorithm;
             Initialize();
         }
- 
+
         /// <summary>
         /// Maps a Key to a node in the cluster.
         /// </summary>
@@ -77,12 +71,15 @@ namespace Couchbase.Core.Buckets
         public long GetHash(string key)
         {
             var bytes = Encoding.UTF8.GetBytes(key);
-            var hash = HashAlgorithm.ComputeHash(bytes);
-            var result = ((long) (hash[3] & 0xFF) << 24)
-                | ((long)(hash[2] & 0xFF) << 16)
-                | ((long)(hash[1] & 0xFF) << 8)
-                | (uint)hash[0] & 0xFF;
-            return result;
+            using (var md5 = MD5.Create())
+            {
+                var hash = md5.ComputeHash(bytes);
+                var result = ((long) (hash[3] & 0xFF) << 24)
+                             | ((long) (hash[2] & 0xFF) << 16)
+                             | ((long) (hash[1] & 0xFF) << 8)
+                             | (uint) hash[0] & 0xFF;
+                return result;
+            }
         }
 
         /// <summary>
@@ -98,24 +95,22 @@ namespace Couchbase.Core.Buckets
                 for (long n = 0; n < factor; n++)
                 {
                     var bytes = Encoding.UTF8.GetBytes(server.EndPoint + "-" + n);
-                    var hash = HashAlgorithm.ComputeHash(bytes);
-                    for (var j = 0; j < 4; j++)
+                    using (var md5 = MD5.Create())
                     {
-                        var key = ((long) (hash[3 + j*4] & 0xFF) << 24)
-                                  | ((long) (hash[2 + j*4] & 0xFF) << 16)
-                                  | ((long) (hash[1 + j*4] & 0xFF) << 8)
-                                  | (uint) (hash[0 + j*4] & 0xFF);
+                        var hash = md5.ComputeHash(bytes);
+                        for (var j = 0; j < 4; j++)
+                        {
+                            var key = ((long) (hash[3 + j*4] & 0xFF) << 24)
+                                      | ((long) (hash[2 + j*4] & 0xFF) << 16)
+                                      | ((long) (hash[1 + j*4] & 0xFF) << 8)
+                                      | (uint) (hash[0 + j*4] & 0xFF);
 
-                        _buckets[key] = server;
+                            _buckets[key] = server;
+                        }
                     }
                 }
             }
         }
-
-        /// <summary>
-        /// The alogrithm for hashing the keys.
-        /// </summary>
-        public HashAlgorithm HashAlgorithm { get; set; }
 
         public int Rev { get; set; }
     }

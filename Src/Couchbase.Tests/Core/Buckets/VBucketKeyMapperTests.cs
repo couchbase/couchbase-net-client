@@ -42,27 +42,6 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.IsNotNull(vBucket);
         }
 
-        [Test]
-        public void Test_That_HashAlgorithm_Is_Not_Null()
-        {
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap);
-            Assert.IsNotNull(mapper.HashAlgorithm);
-        }
-
-        [Test]
-        public void Test_That_HashAlgorithm_Default_Type_Is_Crc32()
-        {
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap);
-            Assert.IsInstanceOf<Crc32>(mapper.HashAlgorithm);
-        }
-
-        [Test]
-        public void Test_That_HashAlgorithm_Default_Type_Can_Be_Overridden()
-        {
-            IKeyMapper mapper = new VBucketKeyMapper(new HMACMD5(), _servers, _vBucketServerMap);
-            Assert.IsInstanceOf<HMACMD5>(mapper.HashAlgorithm);
-        }
-
         [Test(Description = "Note, will probably only work on localhost")]
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
