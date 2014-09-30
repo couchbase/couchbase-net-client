@@ -604,9 +604,8 @@ namespace Couchbase.Core.Buckets
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
         {
             var results = new Dictionary<string, IOperationResult<T>>();
-            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var partitionar = Partitioner.Create(0, keys.Count());
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            Parallel.ForEach(partitionar, (range, loopstate) =>
             {
                 for (var i = range.Item1; i < range.Item2; i++)
                 {
