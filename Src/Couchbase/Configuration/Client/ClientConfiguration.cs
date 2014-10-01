@@ -24,6 +24,7 @@ namespace Couchbase.Configuration.Client
         private bool _useSslChanged;
         private int _maxViewRetries;
         private int _viewHardTimeout;
+        private double _configHeartbeatInterval;
 
         public ClientConfiguration()
         {
@@ -38,6 +39,8 @@ namespace Couchbase.Configuration.Client
             ObserveTimeout = 500; //ms
             MaxViewRetries = 2;
             ViewHardTimeout = 30000; //ms
+            ConfigHeartbeatInterval = 10000; //ms
+            EnableConfigHeartBeat = true;
             SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
 
@@ -75,6 +78,8 @@ namespace Couchbase.Configuration.Client
             ViewHardTimeout = couchbaseClientSection.ViewHardTimeout;
             SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
+            ConfigHeartbeatInterval = couchbaseClientSection.ConfigHeartbeatInterval;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -230,6 +235,7 @@ namespace Couchbase.Configuration.Client
 
         public IContractResolver DeserializationContractResolver { get; set; }
 
+
         /// <summary>
         /// A map of <see cref="BucketConfiguration"/>s and their names.
         /// </summary>
@@ -247,6 +253,29 @@ namespace Couchbase.Configuration.Client
                 _poolConfigurationChanged = true;
             }
         }
+
+        /// <summary>
+        /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 10000ms.</remarks>
+        public double ConfigHeartbeatInterval
+        {
+            get { return _configHeartbeatInterval; }
+            set
+            {
+                if (value > 0 && value < Int32.MaxValue)
+                {
+                    _configHeartbeatInterval = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enables configuration "heartbeat" checks.
+        /// </summary>
+        /// <remarks>The default is "enabled" or true.</remarks>
+        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="ConfigHeartbeatInterval"/> property.</remarks>
+        public bool EnableConfigHeartBeat { get; set; }
 
         internal void Initialize()
         {

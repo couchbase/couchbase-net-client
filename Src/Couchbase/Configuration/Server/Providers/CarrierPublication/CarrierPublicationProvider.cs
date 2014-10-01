@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Security.Authentication;
+using System.Timers;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -15,6 +16,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
     internal sealed class CarrierPublicationProvider : ConfigProviderBase
     {
+        private Timer _heartBeat;
+
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
@@ -23,6 +26,34 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             ITypeTranscoder transcoder)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
+            _heartBeat = new Timer
+            {
+                Interval = ClientConfig.ConfigHeartbeatInterval,
+                Enabled = ClientConfig.EnableConfigHeartBeat,
+                AutoReset = true
+            };
+            _heartBeat.Elapsed += _heartBeat_Elapsed;
+        }
+
+        void _heartBeat_Elapsed(object sender, ElapsedEventArgs args)
+        {
+            try
+            {
+                foreach (var configInfo in Configs)
+                {
+                    var value = configInfo.Value;
+                    var server = value.GetServer();
+                    var result = server.Send(new Config(Converter));
+                    if (result.Success)
+                    {
+                        UpdateConfig(result.Value);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
         }
 
         public override IConfigInfo GetConfig(string bucketName, string password)
@@ -176,6 +207,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 if (!Disposed && disposing)
                 {
                     GC.SuppressFinalize(this);
+                }
+                if (_heartBeat != null)
+                {
+                    _heartBeat.Dispose();
                 }
                 foreach (var configObserver in ConfigObservers)
                 {
