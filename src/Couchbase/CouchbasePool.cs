@@ -327,7 +327,15 @@ namespace Couchbase
 
             //Create URI and enable iriParsing per: https://connect.microsoft.com/VisualStudio/feedback/details/758479/system-uri-tostring-behaviour-change
             var uri = new Uri(couchApiBase);
-            uri.EnableIriParsing(true);
+
+            try
+            {
+                uri.EnableIriParsing(true);
+            }
+            catch (Exception e)
+            {
+                log.Warn("IriParsing not supported", e);
+            }
             return new CouchbaseNode(endpoint, uri, this.configuration, auth);
         }
 
