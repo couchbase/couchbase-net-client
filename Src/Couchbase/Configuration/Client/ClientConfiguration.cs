@@ -24,7 +24,7 @@ namespace Couchbase.Configuration.Client
         private bool _useSslChanged;
         private int _maxViewRetries;
         private int _viewHardTimeout;
-        private double _configHeartbeatInterval;
+        private double _heartbeatConfigInterval;
 
         public ClientConfiguration()
         {
@@ -39,7 +39,7 @@ namespace Couchbase.Configuration.Client
             ObserveTimeout = 500; //ms
             MaxViewRetries = 2;
             ViewHardTimeout = 30000; //ms
-            ConfigHeartbeatInterval = 10000; //ms
+            HeartbeatConfigInterval = 10000; //ms
             EnableConfigHeartBeat = true;
             SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -79,7 +79,7 @@ namespace Couchbase.Configuration.Client
             SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
             EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
-            ConfigHeartbeatInterval = couchbaseClientSection.ConfigHeartbeatInterval;
+            HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -258,14 +258,14 @@ namespace Couchbase.Configuration.Client
         /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
         /// <remarks>The default is 10000ms.</remarks>
-        public double ConfigHeartbeatInterval
+        public double HeartbeatConfigInterval
         {
-            get { return _configHeartbeatInterval; }
+            get { return _heartbeatConfigInterval; }
             set
             {
                 if (value > 0 && value < Int32.MaxValue)
                 {
-                    _configHeartbeatInterval = value;
+                    _heartbeatConfigInterval = value;
                 }
             }
         }
@@ -274,7 +274,7 @@ namespace Couchbase.Configuration.Client
         /// Enables configuration "heartbeat" checks.
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
-        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="ConfigHeartbeatInterval"/> property.</remarks>
+        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="HeartbeatConfigInterval"/> property.</remarks>
         public bool EnableConfigHeartBeat { get; set; }
 
         internal void Initialize()
