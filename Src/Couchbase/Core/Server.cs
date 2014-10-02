@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using Common.Logging;
 using Couchbase.Configuration;
@@ -32,6 +33,15 @@ namespace Couchbase.Core
             new QueryClient(new HttpClient(), new JsonDataMapper()),
             node, clientConfiguration)
         {
+        }
+
+        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
+            this(ioStrategy,
+            new ViewClient(new HttpClient(), new JsonDataMapper(), bucketConfig),
+            new QueryClient(new HttpClient(), new JsonDataMapper()),
+            node, clientConfiguration)
+        {
+
         }
 
         public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo, ClientConfiguration clientConfiguration)

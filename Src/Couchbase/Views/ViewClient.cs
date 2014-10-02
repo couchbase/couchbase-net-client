@@ -4,8 +4,11 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.Views
 {
@@ -16,10 +19,21 @@ namespace Couchbase.Views
     {
         const string Success = "Success";
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly IBucketConfig _bucketConfig;
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper)
         {
             HttpClient = httpClient;
+            Mapper = mapper;
+        }
+
+        public ViewClient(HttpClient httpClient, IDataMapper mapper,  IBucketConfig bucketConfig)
+        {
+            _bucketConfig = bucketConfig;
+            HttpClient = httpClient;
+            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic", Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password))));
             Mapper = mapper;
         }
 
@@ -36,7 +50,6 @@ namespace Couchbase.Views
             {
                 var result = await HttpClient.GetAsync(query.RawUri());
                 var content = result.Content;
-                
                 var stream = await content.ReadAsStreamAsync();
 
                 viewResult = Mapper.Map<ViewResult<T>>(stream);
@@ -68,17 +81,15 @@ namespace Couchbase.Views
             var viewResult = new ViewResult<T>();
             try
             {
-                var task = HttpClient.GetAsync(query.RawUri());
-                task.Wait();
-                var result = task.Result;
+                var requestAwaiter = HttpClient.GetAsync(query.RawUri()).ConfigureAwait(false).GetAwaiter();
+                var request = requestAwaiter.GetResult();
 
-                var content = result.Content;
-                var stream = content.ReadAsStreamAsync();
-                stream.Wait();
+                var responseAwaiter = request.Content.ReadAsStreamAsync().ConfigureAwait(false).GetAwaiter();
+                var response = responseAwaiter.GetResult();
+                viewResult = Mapper.Map<ViewResult<T>>(response);
 
-                viewResult = Mapper.Map<ViewResult<T>>(stream.Result);
-                viewResult.Success = result.IsSuccessStatusCode;
-                viewResult.StatusCode = result.StatusCode;
+                viewResult.Success = request.IsSuccessStatusCode;
+                viewResult.StatusCode = request.StatusCode;
             }
             catch (AggregateException ae)
             {

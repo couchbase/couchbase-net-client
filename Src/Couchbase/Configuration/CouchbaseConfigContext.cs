@@ -59,7 +59,7 @@ namespace Couchbase.Configuration
                             var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy,
                                 Converter);
                             ioStrategy.SaslMechanism = saslMechanism;
-                            var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);
+                            var server = new Core.Server(ioStrategy, nodes[i], ClientConfig, bucketConfig);
                             servers.Add(server);
                         }
                         catch (Exception e)
@@ -105,7 +105,7 @@ namespace Couchbase.Configuration
                         IServer server = null;
                         if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Length == 1)
                         {
-                            server = new Core.Server(ioStrategy, node, ClientConfig);
+                            server = new Core.Server(ioStrategy, node, ClientConfig, BucketConfig);
                         }
                         else
                         {
@@ -115,7 +115,7 @@ namespace Couchbase.Configuration
                             var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password,
                                 newIoStrategy, Converter);
                             newIoStrategy.SaslMechanism = saslMechanism;
-                            server = new Core.Server(newIoStrategy, nodes[i], ClientConfig);
+                            server = new Core.Server(ioStrategy, nodes[i], ClientConfig, BucketConfig);
                         }
                         servers.Add(server);
                     }
@@ -163,7 +163,7 @@ namespace Couchbase.Configuration
                         var ioStrategy = IOStrategyFactory(connectionPool);
                         var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
                         ioStrategy.SaslMechanism = saslMechanism;
-                        var server = new Core.Server(ioStrategy, nodes[i], ClientConfig);
+                        var server = new Core.Server(ioStrategy, nodes[i], ClientConfig, BucketConfig);
                             //this should be a Func factory...a functory
                         servers.Add(server);
                     }

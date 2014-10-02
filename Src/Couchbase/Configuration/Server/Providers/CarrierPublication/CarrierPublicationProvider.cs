@@ -28,7 +28,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         {
             _heartBeat = new Timer
             {
-                Interval = ClientConfig.ConfigHeartbeatInterval,
+                Interval = ClientConfig.HeartbeatConfigInterval,
                 Enabled = ClientConfig.EnableConfigHeartBeat,
                 AutoReset = true
             };
@@ -80,6 +80,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         {
                             var bucketConfig = operationResult.Value;
                             bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
+                            bucketConfig.Password = password;
                             configInfo = new CouchbaseConfigContext(bucketConfig,
                                 ClientConfig,
                                 IOStrategyFactory,

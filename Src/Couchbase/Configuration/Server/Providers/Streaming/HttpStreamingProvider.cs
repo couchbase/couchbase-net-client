@@ -70,7 +70,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             var body = webClient.DownloadString(uri);
                             newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
                         }
-
+                        newConfig.Password = password;
                         configInfo = CreateConfigInfo(newConfig);
                         Configs[bucketName] = configInfo;
                         break;

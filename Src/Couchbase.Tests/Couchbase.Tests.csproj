@@ -183,6 +183,9 @@
     <None Include="Data\Configuration\vbucket-forwardmap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\DesignDocs\docs.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\DesignDocs\by_field2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

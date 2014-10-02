@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
@@ -8,6 +9,7 @@ using Couchbase.Configuration;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Management;
 using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
@@ -77,6 +79,24 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket("authenicated", "secret"))
             {
                 Assert.IsNull(bucket);
+            }
+        }
+
+        [Test]
+        public void Test_View_Query_Authenticated()
+        {
+            using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
+            {
+                var manager = bucket.CreateManager("Administrator", "password");
+                manager.InsertDesignDocument("docs", File.ReadAllText(@"Data\\DesignDocs\\docs.json"));
+                var query = bucket.CreateQuery("docs", "all_docs").
+                    Development(false).
+                    Limit(10);
+
+                Console.WriteLine(query.RawUri());
+                var result = bucket.Query<dynamic>(query);
+                Assert.AreEqual("", result.Message);
+                Assert.Greater(result.TotalRows, 0);
             }
         }
 
