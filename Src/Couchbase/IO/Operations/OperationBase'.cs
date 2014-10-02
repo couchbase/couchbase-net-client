@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Configuration;
 using System.ServiceModel;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -380,7 +381,14 @@ namespace Couchbase.IO.Operations
             {
                 var offset = HeaderLength + Header.ExtrasLength;
                 var length = Header.BodyLength - Header.ExtrasLength;
-                config = Transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, Flags);
+
+                //Override any flags settings since the body of the response has changed to a config
+                config = Transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
+                {
+                    Compression = Compression.None,
+                    DataFormat = DataFormat.Json,
+                    TypeCode = TypeCode.Object
+                });
             }
             return config;
         }
