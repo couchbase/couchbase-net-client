@@ -821,6 +821,11 @@ namespace Couchbase.Core.Buckets
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         public IViewResult<T> Query<T>(IViewQuery query)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");

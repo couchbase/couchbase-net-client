@@ -12,6 +12,7 @@ using Common.Logging;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Providers.FileSystem;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -1282,6 +1283,19 @@ namespace Couchbase.Core.Buckets
             return SendWithRetry<T>((ViewQuery)query);
         }
 
+        /// <summary>
+        /// Asynchronously Executes a View query and returns the result.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
+        public async Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        {
+            var server = _configInfo.GetServer();
+            return await server.SendAsync<T>(query);
+        }
+
         internal IViewResult<T> SendWithRetry<T>(ViewQuery query)
         {
             IViewResult<T> viewResult = null;
@@ -1515,7 +1529,7 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Finalizer for this <see cref="CouchbaseBucket"/> instance if not shutdown and disposed gracefully. 
+        /// Finalizer for this <see cref="CouchbaseBucket"/> instance if not shutdown and disposed gracefully.
         /// </summary>
         ~CouchbaseBucket()
         {

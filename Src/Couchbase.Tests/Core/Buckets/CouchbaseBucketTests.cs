@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1038,6 +1039,19 @@ namespace Couchbase.Tests.Core.Buckets
                 {
                     Assert.IsTrue(item.Value.Success);
                 }
+            }
+        }
+
+        [Test]
+        public async void Test_QueryAsync()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                var query = bucket.CreateQuery("beer", "brewery_beers").Limit(10);
+
+                var result = await bucket.QueryAsync<dynamic>(query);
+                Assert.IsTrue(result.Success);
+                Assert.Greater(result.Rows.Count, 0);
             }
         }
 

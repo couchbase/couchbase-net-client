@@ -622,6 +622,15 @@ namespace Couchbase.Core
         IViewResult<T> Query<T>(IViewQuery query);
 
         /// <summary>
+        /// Asynchronously Executes a View query and returns the result.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
+        Task<IViewResult<T>> QueryAsync<T>(IViewQuery query);
+
+        /// <summary>
         /// Executes a N1QL query against the Couchbase Cluster.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>

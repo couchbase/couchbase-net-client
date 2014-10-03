@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -104,6 +105,11 @@ namespace Couchbase.Core
                 operation.HandleClientError(e.Message);
             }
             return result;
+        }
+
+        public async Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
+        {
+            return await ViewClient.ExecuteAsync<T>(query);
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)

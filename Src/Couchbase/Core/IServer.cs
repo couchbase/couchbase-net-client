@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading.Tasks;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -16,7 +17,7 @@ namespace Couchbase.Core
         uint ViewPort { get; set; }
 
         uint DirectPort { get; }
-        
+
         uint ProxyPort { get; }
 
         uint Replication { get; }
@@ -36,6 +37,8 @@ namespace Couchbase.Core
         IOperationResult<T> Send<T>(IOperation<T> operation);
 
         IViewResult<T> Send<T>(IViewQuery query);
+
+        Task<IViewResult<T>> SendAsync<T>(IViewQuery query);
 
         IQueryResult<T> Send<T>(string query);
 
