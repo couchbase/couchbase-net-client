@@ -100,6 +100,11 @@ namespace Couchbase.Views
                     return true;
                 });
             }
+            catch (HttpRequestException e)
+            {
+                ProcessError(e, viewResult);
+                Log.Error(e);
+            }
             return viewResult;
         }
 
