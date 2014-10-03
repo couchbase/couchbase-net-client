@@ -14,7 +14,7 @@ namespace Couchbase.Core.Buckets
     internal class VBucketKeyMapper : IKeyMapper
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        private const int Mask = 1023;
+        private readonly int _mask = 1023;
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
@@ -26,6 +26,7 @@ namespace Couchbase.Core.Buckets
             _vBucketServerMap = vBucketServerMap;
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();
+            _mask = _vBuckets.Count-1;
         }
 
         /// <summary>
@@ -47,7 +48,7 @@ namespace Couchbase.Core.Buckets
                 var keyBytes = Encoding.UTF8.GetBytes(key);
                 var hashedKeyBytes = crc32.ComputeHash(keyBytes);
                 var hash = BitConverter.ToUInt32(hashedKeyBytes, 0);
-                return (int)hash & Mask;
+                return (int)hash & _mask;
             }
         }
 
