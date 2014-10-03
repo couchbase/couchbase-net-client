@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
@@ -24,13 +25,14 @@ namespace Couchbase.Tests.IO.Operations
         protected readonly AutoByteConverter Converter = new AutoByteConverter();
         protected  ITypeTranscoder Transcoder;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
+        protected IPEndPoint EndPoint;
 
         [SetUp]
         public virtual void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            EndPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, EndPoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
             Transcoder = new DefaultTranscoder(Converter);
         }

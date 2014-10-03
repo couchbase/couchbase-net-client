@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
@@ -24,10 +25,12 @@ namespace Couchbase.Tests.Core
     {
         private const string Address = "127.0.0.1:11210";
         private IServer _server;
+        private IPEndPoint _endPoint;
 
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
+            _endPoint = UriExtensions.GetEndPoint(Address);
             var configuration = new ClientConfiguration();
             var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
@@ -49,7 +52,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_Send()
         {
-            var operation = new Config(new ManualByteConverter());
+            var operation = new Config(new ManualByteConverter(), _endPoint);
             var response = _server.Send(operation);
             Assert.IsTrue(response.Success);
             Assert.AreEqual(response.Cas, 0);

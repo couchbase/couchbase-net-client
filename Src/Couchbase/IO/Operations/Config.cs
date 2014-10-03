@@ -1,14 +1,19 @@
 ﻿using System;
+using System.Net;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Converters;
+using Newtonsoft.Json;
 
 namespace Couchbase.IO.Operations
 {
     internal sealed class Config : OperationBase<BucketConfig>
     {
-        public Config(IByteConverter converter)
+        private readonly IPEndPoint _endpoint;
+
+        public Config(IByteConverter converter, IPEndPoint endPoint)
             : base(converter)
         {
+            _endpoint = endPoint;
         }
 
         public override byte[] CreateExtras()
@@ -25,7 +30,7 @@ namespace Couchbase.IO.Operations
 
         public override void ReadExtras(byte[] buffer)
         {
-            Format = DataFormat.Json;
+            Format = DataFormat.String;
             Flags = new Flags
             {
                 Compression = Compression.None,
@@ -42,6 +47,33 @@ namespace Couchbase.IO.Operations
         public override int BodyOffset
         {
             get { return 24; }
+        }
+
+        public override BucketConfig GetValue()
+        {
+            BucketConfig bucketConfig = null;
+            if (Success && Data != null)
+            {
+                try
+                {
+                    var buffer = Data.ToArray();
+                    ReadExtras(buffer);
+                    var length = TotalLength - BodyOffset;
+                    var json = Transcoder.Decode<string>(buffer, BodyOffset, length, Flags);
+
+                    if (_endpoint != null)
+                    {
+                        json = json.Replace("$HOST", _endpoint.Address.ToString());
+                    }
+                    bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+                }
+                catch (Exception e)
+                {
+                    Exception = e;
+                    HandleClientError(e.Message);
+                }
+            }
+            return bucketConfig;
         }
     }
 }

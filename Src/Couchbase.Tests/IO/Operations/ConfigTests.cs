@@ -14,7 +14,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Config()
         {
-            var config = new Config(Converter);
+            var config = new Config(Converter, EndPoint);
             var result = IOStrategy.Execute(config);
             Assert.IsTrue(result.Success);
         }

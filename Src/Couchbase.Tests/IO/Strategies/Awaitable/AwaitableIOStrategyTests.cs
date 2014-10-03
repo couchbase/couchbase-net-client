@@ -1,4 +1,5 @@
-﻿using Couchbase.Configuration.Client;
+﻿using System.Net;
+using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -15,20 +16,21 @@ namespace Couchbase.Tests.IO.Strategies.Awaitable
         private AwaitableIOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
+        private IPEndPoint _endPoint;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            _endPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, _endPoint);
             _ioStrategy = new AwaitableIOStrategy(_connectionPool);
         }
 
         [Test]
         public void Test_ExecuteAsnyc()
         {
-            var operation = new Config(new AutoByteConverter());
+            var operation = new Config(new AutoByteConverter(), _endPoint);
             var task = _ioStrategy.ExecuteAsync(operation);
 
             try

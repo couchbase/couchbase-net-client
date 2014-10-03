@@ -150,6 +150,9 @@
     <None Include="Data\Configuration\bootstrap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Configuration\bucketconfig-host-placeholder.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Configuration\buckets.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -1,4 +1,5 @@
-﻿using Couchbase.Authentication.SASL;
+﻿using System.Net;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -17,17 +18,18 @@ namespace Couchbase.Tests.IO.Operations
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
+        private IPEndPoint _endPoint;
 
         [SetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            _endPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration
             {
                 MinSize = 1,
                 MaxSize = 1
             };
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, _endPoint);
 
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
@@ -35,7 +37,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig()
         {
-            var response = _ioStrategy.Execute(new Config(new AutoByteConverter()));
+            var response = _ioStrategy.Execute(new Config(new AutoByteConverter(), _endPoint));
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);
             Console.WriteLine(response.Value.ToString());
@@ -47,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
             var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new AutoByteConverter());
             _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
 
-            var response = _ioStrategy.Execute(new Config(new ManualByteConverter()));
+            var response = _ioStrategy.Execute(new Config(new ManualByteConverter(), _endPoint));
 
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);

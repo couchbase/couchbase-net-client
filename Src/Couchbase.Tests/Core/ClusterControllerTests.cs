@@ -1,14 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.Tests.Configuration.Client;
+using Couchbase.Utils;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core
@@ -18,10 +26,13 @@ namespace Couchbase.Tests.Core
     {
         private IClusterController _clusterManager;
         protected ClientConfiguration _clientConfig;
+        private const string Address = "127.0.0.1:11210";
+        private IPEndPoint _endPoint;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
+            _endPoint = UriExtensions.GetEndPoint(Address);
             _clientConfig = new ClientConfiguration();
             _clusterManager = new ClusterController(_clientConfig);
         }
@@ -92,6 +103,31 @@ namespace Couchbase.Tests.Core
             var bucket = cluster.OpenBucket();
             cluster.CloseBucket(bucket);
             cluster.Dispose();
+        }
+
+        [Test]
+        public void When_Config_Contains_HOST_UpdateBoostrapList_Succeeds()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\bucketconfig-host-placeholder.json");
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var totalBytes = new byte[24 + bytes.Length];
+            bytes.CopyTo(totalBytes, 24);
+
+            var op = new Config(new AutoByteConverter(), _endPoint)
+            {
+                Data = new MemoryStream(totalBytes)
+            };
+
+            op.Header = new OperationHeader
+            {
+                BodyLength = bytes.Length
+            };
+
+            var bucketConfig = op.GetResult().Value;
+
+            var controller = new ClusterController(new ClientConfiguration());
+            var updateBootstrapList = controller.GetType().GetMethod("UpdateBootstrapList", BindingFlags.NonPublic | BindingFlags.Instance);
+            updateBootstrapList.Invoke(controller, new [] {bucketConfig});
         }
     }
 }

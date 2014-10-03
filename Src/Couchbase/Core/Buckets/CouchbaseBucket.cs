@@ -202,7 +202,7 @@ namespace Couchbase.Core.Buckets
                     server.MarkDead();
 
                     var liveServer = _configInfo.GetServer();
-                    var result = liveServer.Send(new Config(_converter));
+                    var result = liveServer.Send(new Config(_converter, liveServer.EndPoint));
                     if (result.Success)
                     {
                         var config = result.Value;
@@ -243,7 +243,7 @@ namespace Couchbase.Core.Buckets
                             Log.Info(m => m("New config found {0}", bucketConfig.Rev));
                             var server = _configInfo.GetServer();
 
-                            var result = server.Send(new Config(_converter));
+                            var result = server.Send(new Config(_converter, server.EndPoint));
                             if (result.Success)
                             {
                                 var config = result.Value;
