@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Views;
 
@@ -17,6 +18,37 @@ namespace Couchbase.N1QL
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
+        }
+
+        /// <summary>
+        /// Executes an ad-hoc N1QL query against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="server">The <see cref="Uri"/> of the server.</param>
+        /// <param name="query">A string containing a N1QL query.</param>
+        /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
+        public async Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query)
+        {
+            var queryResult = new QueryResult<T>();
+            var content = new StringContent(query);
+            try
+            {
+                var request = await HttpClient.PostAsync(server, content);
+                var response = await request.Content.ReadAsStreamAsync();
+
+                queryResult = DataMapper.Map<QueryResult<T>>(response);
+                queryResult.Success = queryResult.Error == null;
+            }
+            catch (AggregateException ae)
+            {
+                ae.Flatten().Handle(e =>
+                {
+                    Log.Error(e);
+                    ProcessError(e, queryResult);
+                    return true;
+                });
+            }
+            return queryResult;
         }
 
         /// <summary>

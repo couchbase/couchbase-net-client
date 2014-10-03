@@ -171,21 +171,6 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_N1QL_Query()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
-
-                var result = bucket.Query<dynamic>(query);
-                foreach (var row in result.Rows)
-                {
-                    Console.WriteLine(row);
-                }
-            }
-        }
-
-        [Test]
         public void Test_Insert()
         {
             using (var bucket = _cluster.OpenBucket())

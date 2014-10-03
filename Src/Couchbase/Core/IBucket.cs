@@ -639,6 +639,15 @@ namespace Couchbase.Core
         IQueryResult<T> Query<T>(string query);
 
         /// <summary>
+        /// Asynchronously executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IQueryResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
+        Task<IQueryResult<T>> QueryAsync<T>(string query);
+
+        /// <summary>
         /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and a published view.
         /// </summary>
         /// <param name="designDoc"></param>

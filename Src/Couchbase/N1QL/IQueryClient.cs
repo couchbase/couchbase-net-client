@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Couchbase.Views;
 
 namespace Couchbase.N1QL
@@ -17,6 +18,15 @@ namespace Couchbase.N1QL
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
         IQueryResult<T> Query<T>(Uri server, string query);
+
+        /// <summary>
+        /// Executes an ad-hoc N1QL query against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="server">The <see cref="Uri"/> of the server.</param>
+        /// <param name="query">A string containing a N1QL query.</param>
+        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query);
 
         /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.

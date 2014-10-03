@@ -131,6 +131,7 @@
     <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
     <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
+    <Compile Include="N1QL\CouchbaseBucket_N1QL_Tests.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestKeys.cs" />

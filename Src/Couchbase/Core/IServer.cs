@@ -42,6 +42,8 @@ namespace Couchbase.Core
 
         IQueryResult<T> Send<T>(string query);
 
+        Task<IQueryResult<T>> SendAsync<T>(string query);
+
         string GetBaseViewUri(string name);
 
         string GetBaseQueryUri();

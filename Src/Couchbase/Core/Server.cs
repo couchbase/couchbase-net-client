@@ -157,6 +157,13 @@ namespace Couchbase.Core
             return result;
         }
 
+
+        public async Task<IQueryResult<T>> SendAsync<T>(string query)
+        {
+            var uri = new Uri(GetBaseQueryUri());
+            return await QueryClient.QueryAsync<T>(uri, query);
+        }
+
         //note this should be cached
         public string GetBaseViewUri()
         {

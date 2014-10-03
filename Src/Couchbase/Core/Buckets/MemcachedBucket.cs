@@ -15,6 +15,7 @@
  using Couchbase.IO.Converters;
  using Couchbase.IO.Operations;
  using Couchbase.Management;
+ using Couchbase.N1QL;
  using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
@@ -834,6 +835,11 @@ namespace Couchbase.Core.Buckets
         public N1QL.IQueryResult<T> Query<T>(string query)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IQueryResult<T>> QueryAsync<T>(string query)
+        {
+             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IViewQuery CreateQuery(bool development)
