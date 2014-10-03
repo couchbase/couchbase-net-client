@@ -115,7 +115,7 @@ namespace Couchbase.Configuration
                             var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password,
                                 newIoStrategy, Converter);
                             newIoStrategy.SaslMechanism = saslMechanism;
-                            server = new Core.Server(ioStrategy, nodes[i], ClientConfig, BucketConfig);
+                            server = new Core.Server(newIoStrategy, nodes[i], ClientConfig, BucketConfig);
                         }
                         servers.Add(server);
                     }
