@@ -30,11 +30,13 @@ namespace Couchbase.Core
             }
             if(server == null)
             {
-                var replicas = _replicas.Where(x => x > -1);
-                var enumerable = replicas as int[] ?? replicas.ToArray();
-                if (enumerable.Any())
+                if (_replicas.Any(x => x != -1))
                 {
-                    server = _cluster[enumerable.GetRandom()];
+                    var index = _replicas.GetRandom();
+                    if (index > -1 && index < _replicas.Length)
+                    {
+                        server = _cluster[index];
+                    }
                 }
             }
             return server ?? (_cluster.GetRandom());

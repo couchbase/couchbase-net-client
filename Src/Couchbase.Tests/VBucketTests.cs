@@ -23,7 +23,7 @@ namespace Couchbase.Tests
     {
         private IVBucket _vBucket;
         private List<IServer> _servers;
-            
+
         [TestFixtureSetUp]
         public void SetUp()
         {
@@ -171,6 +171,24 @@ namespace Couchbase.Tests
 
             var server = vBucket.LocatePrimary();
             Assert.IsNotNull(server);
+        }
+
+        [Test]
+        public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
+        {
+            var server = new Server(null, new Node {Hostname = "127.0.0.1"}, new ClientConfiguration());
+            var vbucket = new VBucket(new List<IServer> {server, server}, 100, -1, new [] {2});
+            var found = vbucket.LocatePrimary();
+            Assert.IsNotNull(found);
+        }
+
+        [Test]
+        public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
+        {
+            var server = new Server(null, new Node { Hostname = "127.0.0.1" }, new ClientConfiguration());
+            var vbucket = new VBucket(new List<IServer> { server, server }, 100, -1, new[] { -1 });
+            var found = vbucket.LocatePrimary();
+            Assert.IsNotNull(found);
         }
 
          [TestFixtureTearDown]
