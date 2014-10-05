@@ -97,7 +97,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                     var config1 = config;
                                     Log.Debug(m=>m("{0}", config1));
 
-                                    config = config.Replace("$HOST", node.Hostname);
+                                    config = config.Replace("$HOST", streamingUri.Host);
                                     var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
                                     bucketConfig.SurrogateHost = GetSurrogateHost(streamingUri);
                                     if (_configChangedDelegate != null)

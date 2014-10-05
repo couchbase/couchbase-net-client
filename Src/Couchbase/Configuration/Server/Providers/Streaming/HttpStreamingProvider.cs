@@ -24,7 +24,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     {
         private IServerConfig _serverConfig;
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
-        private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>(); 
+        private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>();
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
         private static readonly AutoResetEvent RegisterEvent = new AutoResetEvent(true);
         private volatile bool _disposed;
@@ -32,8 +32,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
-            IByteConverter converter, 
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
+            IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
@@ -68,6 +68,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         using (var webClient = new AuthenticatingWebClient(bucketName, password))
                         {
                             var body = webClient.DownloadString(uri);
+                            body = body.Replace("$HOST", uri.Host);
                             newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
                         }
                         newConfig.Password = password;
@@ -97,7 +98,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <summary>
         /// Registers an <see cref="IConfigObserver"/> object, which is notified when a configuration changes.
         /// </summary>
-        /// <param name="observer">The <see cref="IConfigObserver"/> that will be notified when a configuration 
+        /// <param name="observer">The <see cref="IConfigObserver"/> that will be notified when a configuration
         /// update occurs. These are Memcached and Couchbase Buckets.</param>
         /// <returns>True if the observer was registered without failure.</returns>
         public override bool RegisterObserver(IConfigObserver observer)
