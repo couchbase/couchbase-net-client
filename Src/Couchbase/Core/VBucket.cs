@@ -33,7 +33,7 @@ namespace Couchbase.Core
                 if (_replicas.Any(x => x != -1))
                 {
                     var index = _replicas.GetRandom();
-                    if (index > -1 && index < _replicas.Length)
+                    if (index > -1 && index < _cluster.Count)
                     {
                         server = _cluster[index];
                     }
