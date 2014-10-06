@@ -183,6 +183,14 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public void When_Replica_Index_1_LocatePrimary_Returns_Random_Server()
+        {
+            var vbucket = new VBucket(new List<IServer> { }, 100, -1, new[] { 0 });
+            var found = vbucket.LocatePrimary();
+            Assert.IsNull(found);//should be null
+        }
+
+        [Test]
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
             var server = new Server(null, new Node { Hostname = "127.0.0.1" }, new ClientConfiguration());
