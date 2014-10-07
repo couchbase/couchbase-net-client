@@ -18,7 +18,7 @@ namespace tester
     class Program
     {
         private static readonly AutoResetEvent ResetEvent = new AutoResetEvent(false);
-        private static CouchbaseCluster _cluster;
+        private static Cluster _cluster;
         static void Main(string[] args)
         {
             File.Delete(@"C:\temp\log.txt");
@@ -26,7 +26,7 @@ namespace tester
             {
                 Servers = new List<Uri>
                 {
-                    new Uri("http://127.0.0.1:8091/pools")
+                    new Uri("http://192.168.62.101:8091/pools")
                 },
                 PoolConfiguration = new PoolConfiguration
                 {
@@ -36,18 +36,19 @@ namespace tester
                 UseSsl = false
             };
 
-            using (_cluster = new CouchbaseCluster(config))
+            using (_cluster = new Cluster(config))
             {
-                using (var bucket = _cluster.OpenBucket("default"))
+                using (var bucket = _cluster.OpenBucket("beer-sample"))
                 {
-                    const int n = 100000;
+                    const int n = 10000000;
                     using (var timer = new OperationTimer())
                     {
                         //ThreadPoolInsert(bucket, n);
                         //ThreadPoolInsert(bucket, n);
                         //SynchronousInsert(bucket, n);
                         //ParallerInsert(bucket, n);
-                        MultiThreaded(8, n, bucket);
+                       // MultiThreaded(8, n, bucket);
+                        MultiThreadedViews(25, n, bucket);
                     }
                 }
             }
@@ -94,19 +95,19 @@ namespace tester
                 var key = "key" + i;
                 var value = "value" + i;
 
-               /* var result = bucket.Upsert(key, value);
-                if (result.Success)
+                /* var result = bucket.Upsert(key, value);
+                 if (result.Success)
+                 {
+                     Console.WriteLine("Write Key: {0} - Value: {1}", key, value);*/
+                var result2 = bucket.Get<string>(key);
+                if (result2.Success)
                 {
-                    Console.WriteLine("Write Key: {0} - Value: {1}", key, value);*/
-                    var result2 = bucket.Get<string>(key);
-                    if (result2.Success)
-                    {
-                        Console.WriteLine("Read Key: {0} - Value: {1}", key, result2.Value);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Read Error: {0} - {1}", key, result2.Message);
-                    }
+                    Console.WriteLine("Read Key: {0} - Value: {1}", key, result2.Value);
+                }
+                else
+                {
+                    Console.WriteLine("Read Error: {0} - {1}", key, result2.Message);
+                }
                 /*}
                 else
                 {
@@ -117,18 +118,18 @@ namespace tester
 
         static void ParallerInsert(IBucket bucket, int n)
         {
-            var options = new ParallelOptions {MaxDegreeOfParallelism = 4};
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             Parallel.For(0, n, options, i =>
             {
                 var key = "key" + i;
-                int value =  i;
+                int value = i;
 
-              var result = bucket.Upsert(key, value);
+                var result = bucket.Upsert(key, value);
 
                 if (result.Success)
                 {
                     Console.WriteLine("Write Key: {0} - Value: {1}", key, value);
-                   
+
                     var result2 = bucket.Get<int>(key);
                     if (result2.Success)
                     {
@@ -142,12 +143,12 @@ namespace tester
                     {
                         Console.WriteLine("Read Error: {0} - {1}", key, result2.Message);
                     }
-               }
+                }
                 else
                 {
                     Console.WriteLine("Write Error: {0} - {1}", key, result.Message);
                 }
-               
+
             });
         }
 
@@ -165,7 +166,7 @@ namespace tester
                     ThreadCount = threadCount
                 };
 
-                threads[i]= new Thread(ThreadProc);
+                threads[i] = new Thread(ThreadProc);
                 threads[i].Start(threadData);
             }
             ResetEvent.WaitOne();
@@ -183,7 +184,45 @@ namespace tester
                 Console.WriteLine("Upsert {0} - {1} on thread {2}", key, result.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId);
                 var result1 = threadData.Bucket.Get<string>(key);
                 Console.WriteLine("Get {0} - {1} on thread {2}: {3} reason: {4}", key, result1.Success ? "success" : "failure", Thread.CurrentThread.ManagedThreadId, result1.Value, result1.Message);
-                if(value != result1.Value) throw new Exception();
+                if (value != result1.Value) throw new Exception();
+            }
+
+            ThreadData.Processed += threadData.Keys;
+            if (ThreadData.Processed == threadData.NumberOfKeysToCreate)
+            {
+                ResetEvent.Set();
+            }
+        }
+
+        public static void MultiThreadedViews(int threadCount, int keys, IBucket bucket)
+        {
+            var threads = new Thread[threadCount];
+            for (var i = 0; i < threadCount; i++)
+            {
+                var threadData = new ThreadData
+                {
+                    NumberOfKeysToCreate = keys,
+                    Keys = keys / threadCount,
+                    Bucket = bucket,
+                    Part = i,
+                    ThreadCount = threadCount
+                };
+
+                threads[i] = new Thread(ThreadProcViews);
+                threads[i].Start(threadData);
+            }
+            ResetEvent.WaitOne();
+        }
+
+        static async void ThreadProcViews(object state)
+        {
+            var threadData = state as ThreadData;
+            for (var i = 0; i < threadData.Keys; i++)
+            {
+                var query = threadData.Bucket.CreateQuery("beer", "brewery_beers").Limit(10);
+
+                var result = await threadData.Bucket.QueryAsync<dynamic>(query);
+                Console.WriteLine("{0} {1} {2}", i, result.Success, result.Error);
             }
 
             ThreadData.Processed += threadData.Keys;
