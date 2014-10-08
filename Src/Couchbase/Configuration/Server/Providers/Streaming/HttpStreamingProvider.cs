@@ -144,40 +144,31 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <summary>
         /// Raised when a configuration update has occurred. All observers will be notified of the changes.
         /// </summary>
-        /// <param name="bucketConfig"></param>
-        private void ConfigChangedHandler(IBucketConfig bucketConfig)
+        /// <param name="bucketConfig">The new configuration.</param>
+        void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
-            lock (SyncObj)
+            IConfigObserver configObserver;
+            if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
-                var configObserver = ConfigObservers[bucketConfig.Name];
-
                 IConfigInfo configInfo;
-                if (Configs.ContainsKey(bucketConfig.Name))
+                if (Configs.TryGetValue(configObserver.Name, out configInfo))
                 {
-                    configInfo = Configs[bucketConfig.Name];
-                    if (configInfo.BucketConfig != null && configInfo.BucketConfig.Equals(bucketConfig))
+                    var staleBucketConfig = configInfo.BucketConfig;
+                    if (bucketConfig.Rev > staleBucketConfig.Rev)
                     {
-                        SignalCountdownEvent();
-                        return;
+                        configInfo.LoadConfig(bucketConfig);
                     }
-                    configInfo = CreateConfigInfo(bucketConfig);
                 }
                 else
                 {
                     configInfo = CreateConfigInfo(bucketConfig);
                     Configs.TryAdd(bucketConfig.Name, configInfo);
                 }
-                try
-                {
-                    UpdateBootstrapList(bucketConfig);
-                    configObserver.NotifyConfigChanged(configInfo);
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-                SignalCountdownEvent();
+
+                UpdateBootstrapList(bucketConfig);
+                configObserver.NotifyConfigChanged(configInfo);
             }
+            SignalCountdownEvent();
         }
 
         void SignalCountdownEvent()

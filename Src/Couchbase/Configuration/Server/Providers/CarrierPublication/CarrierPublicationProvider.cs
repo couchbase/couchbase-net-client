@@ -150,7 +150,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var oldBucketConfig = configInfo.BucketConfig;
                     if (bucketConfig.Rev > oldBucketConfig.Rev)
                     {
-                        Log.Info(m => m("New config has changed new Rev#{0} | old Rev#{1} CCCP: {2}", bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        Log.Debug(m => m("Config {0}|{1}: {2}", oldBucketConfig.Rev,bucketConfig.Rev,
+                            JsonConvert.SerializeObject(bucketConfig)));
+
                         configInfo.LoadConfig(bucketConfig);
                         UpdateBootstrapList(bucketConfig);
                         configObserver.NotifyConfigChanged(configInfo);

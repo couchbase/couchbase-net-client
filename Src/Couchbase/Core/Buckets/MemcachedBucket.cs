@@ -75,23 +75,18 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Updating MemcachedBucket - old config rev#{0} new config rev#{1} on thread {2}",
+            Log.Info(m => m("Updating MemcachedBucket: rev#{0} => rev#{1} on thread {2}",
                _configInfo == null ? 0 : _configInfo.BucketConfig.Rev,
                 configInfo.BucketConfig.Rev,
                 Thread.CurrentThread.ManagedThreadId));
 
             lock (SyncObj)
             {
-                var old = Interlocked.Exchange(ref _configInfo, configInfo);
-
-                var old1 = old;
-                Log.Info(m => m("Updated MemcachedBucket - old config rev#{0} new config rev#{1}",
-                    old1 == null ? 0 : old1.BucketConfig.Rev,
-                    _configInfo.BucketConfig.Rev));
-
-                if (old == null) return;
-                old.Dispose();
-                old = null;
+                Interlocked.Exchange(ref _configInfo, configInfo);
+                Log.Info(m => m("Updated MemcachedBucket: rev#{0} => rev#{1} on thread {2}",
+                    _configInfo == null ? 0 : _configInfo.BucketConfig.Rev,
+                    configInfo.BucketConfig.Rev,
+                    Thread.CurrentThread.ManagedThreadId));
             }
         }
 
