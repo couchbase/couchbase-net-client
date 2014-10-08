@@ -83,5 +83,34 @@ namespace Couchbase.Tests.Configuration
             Log.Debug(m=>m("CLEANUP!"));
             configInfo.Dispose();
         }
+
+        [Test]
+        public void Test_Server_With_FQDN_Is_Properly_Resolved()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://localhost:8091")
+                },
+                UseSsl = false
+            };
+            clientConfig.Initialize();
+
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-with-fqdn-servers.json"));
+            var configInfo = new CouchbaseConfigContext(bucketConfig,
+                clientConfig,
+                pool => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            Assert.DoesNotThrow(() => configInfo.LoadConfig());
+            Assert.IsNotNull(configInfo.GetKeyMapper());
+
+            Log.Debug(m => m("CLEANUP!"));
+            configInfo.Dispose();
+        }
     }
 }
