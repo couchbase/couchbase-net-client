@@ -248,20 +248,20 @@ namespace Couchbase
 
         private void Dispose(bool disposing)
         {
-            lock (_syncObj)
+            const int maxAttempts = 13;
+            _shutDownMode = true;
+            if (!_disposed)
             {
-                const int maxAttempts = 13;
-                _shutDownMode = true;
-                if (!_disposed)
+                var itemsDisposed = 0;
+                var i = 2;
+                do
                 {
-                    var itemsDisposed = 0;
-                    var i = 2;
-                    do
-                    {
-                        var timeout = (int)Math.Pow(2, i);
-                        Thread.Sleep(timeout);
+                    var timeout = (int)Math.Pow(2, i);
+                    Thread.Sleep(timeout);
 
-                        foreach (var socket in _refs.Where(x=>x.IsAlive && !x.IsInUse))
+                    lock (_syncObj)
+                    {
+                        foreach (var socket in _refs.Where(x => x.IsAlive && !x.IsInUse))
                         {
                             if (Log.IsInfoEnabled)
                             {
@@ -270,9 +270,13 @@ namespace Couchbase
                             socket.Close();
                             itemsDisposed++;
                         }
+                    }
 
-                        if (i != maxAttempts) continue;
-                        foreach (var socket in _refs.Where(x=>x.IsAlive))
+                    if (i != maxAttempts) continue;
+
+                    lock (_syncObj)
+                    {
+                        foreach (var socket in _refs.Where(x => x.IsAlive))
                         {
                             if (Log.IsInfoEnabled)
                             {
@@ -285,20 +289,20 @@ namespace Couchbase
                             }
                             itemsDisposed++;
                         }
-                    } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
-
-                    if (Log.IsDebugEnabled)
-                    {
-                        Log.DebugFormat("Disposed {0} of {1} items.", itemsDisposed, _refs.Count);
                     }
-                }
-                if (disposing && !_disposed)
+                } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
+
+                if (Log.IsDebugEnabled)
                 {
-                    GC.SuppressFinalize(this);
+                    Log.DebugFormat("Disposed {0} of {1} items.", itemsDisposed, _refs.Count);
                 }
-                _disposed = true;
-                _isAlive = false;
             }
+            if (disposing && !_disposed)
+            {
+                GC.SuppressFinalize(this);
+            }
+            _disposed = true;
+            _isAlive = false;
         }
 
         ~SocketPool()
