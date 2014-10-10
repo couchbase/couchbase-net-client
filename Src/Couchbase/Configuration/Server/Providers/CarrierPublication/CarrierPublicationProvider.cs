@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Security.Authentication;
+using System.Threading;
 using System.Timers;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -11,6 +12,7 @@ using Couchbase.IO.Operations;
 using System;
 using System.Net;
 using Newtonsoft.Json;
+using Timer = System.Timers.Timer;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
@@ -58,80 +60,77 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            lock (SyncObj)
+            Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
+            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+            password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
+
+            var exceptions = new List<Exception>();
+            CouchbaseConfigContext configInfo = null;
+            foreach (var endPoint in bucketConfiguration.GetEndPoints())
             {
-                Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
-                var bucketConfiguration = GetOrCreateConfiguration(bucketName);
-                password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
-
-                var exceptions = new List<Exception>();
-                CouchbaseConfigContext configInfo = null;
-                foreach (var endPoint in bucketConfiguration.GetEndPoints())
+                try
                 {
-                    try
-                    {
-                        var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
-                        var ioStrategy = IOStrategyFactory(connectionPool);
-                        var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
-                        ioStrategy.SaslMechanism = saslMechanism;
+                    var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
+                    var ioStrategy = IOStrategyFactory(connectionPool);
+                    var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
+                    ioStrategy.SaslMechanism = saslMechanism;
 
-                        var operationResult = ioStrategy.Execute(new Config(Converter, endPoint));
-                        if (operationResult.Success)
-                        {
-                            var bucketConfig = operationResult.Value;
-                            bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
-                            bucketConfig.Password = password;
-                            configInfo = new CouchbaseConfigContext(bucketConfig,
-                                ClientConfig,
-                                IOStrategyFactory,
-                                ConnectionPoolFactory,
-                                SaslFactory,
-                                Converter,
-                                transcoder);
-
-                            Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
-
-                            configInfo.LoadConfig(ioStrategy);
-                            Configs[bucketName] = configInfo;
-                            break;
-                        }
-                        var exception = operationResult.Exception;
-                        if (exception != null)
-                        {
-                            exceptions.Add(exception);
-                        }
-
-                        //CCCP only supported for Couchbase Buckets
-                        if (operationResult.Status == ResponseStatus.UnknownCommand)
-                        {
-                            throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
-                        }
-                        Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
-                            bucketName,
-                            operationResult.Message));
-                    }
-                    catch (ConfigException)
+                    var operationResult = ioStrategy.Execute(new Config(Converter, endPoint));
+                    if (operationResult.Success)
                     {
-                        throw;
+                        var bucketConfig = operationResult.Value;
+                        bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
+                        bucketConfig.Password = password;
+                        configInfo = new CouchbaseConfigContext(bucketConfig,
+                            ClientConfig,
+                            IOStrategyFactory,
+                            ConnectionPoolFactory,
+                            SaslFactory,
+                            Converter,
+                            transcoder);
+
+                        Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
+
+                        configInfo.LoadConfig(ioStrategy);
+                        Configs[bucketName] = configInfo;
+                        break;
                     }
-                    catch (AuthenticationException)
+                    var exception = operationResult.Exception;
+                    if (exception != null)
                     {
-                        throw;
+                        exceptions.Add(exception);
                     }
-                    catch (Exception e)
+
+                    //CCCP only supported for Couchbase Buckets
+                    if (operationResult.Status == ResponseStatus.UnknownCommand)
                     {
-                        Log.Warn(e);
+                        throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                     }
+                    Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
+                        bucketName,
+                        operationResult.Message));
                 }
-
-                //Client cannot bootstrap with this provider
-                if (configInfo == null)
+                catch (ConfigException)
                 {
-                    throw new AggregateException(exceptions);
+                    throw;
                 }
-
-                return configInfo;
+                catch (AuthenticationException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    Log.Warn(e);
+                }
             }
+
+            //Client cannot bootstrap with this provider
+            if (configInfo == null)
+            {
+                throw new AggregateException(exceptions);
+            }
+
+            return configInfo;
         }
 
         public override bool RegisterObserver(IConfigObserver observer)
@@ -150,11 +149,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var oldBucketConfig = configInfo.BucketConfig;
                     if (bucketConfig.Rev > oldBucketConfig.Rev)
                     {
-                        Log.Debug(m => m("Config {0}|{1}: {2}", oldBucketConfig.Rev,bucketConfig.Rev,
-                            JsonConvert.SerializeObject(bucketConfig)));
-
+                        Log.Info(m => m("Config changed new Rev#{0} | old Rev#{1} CCCP: {2}", bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
                         configInfo.LoadConfig(bucketConfig);
-                        UpdateBootstrapList(bucketConfig);
+                        ClientConfig.UpdateBootstrapList(bucketConfig);
                         configObserver.NotifyConfigChanged(configInfo);
                     }
                 }
@@ -171,29 +168,26 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public override void UnRegisterObserver(IConfigObserver observer)
         {
-            lock (SyncObj)
+            IConfigObserver observerToRemove;
+            if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
             {
-                IConfigObserver observerToRemove;
-                if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
-                {
-                    var temp = observerToRemove;
-                    Log.Info(m => m("Unregistering observer {0}", temp.Name));
+                var temp = observerToRemove;
+                Log.Info(m => m("Unregistering observer {0}", temp.Name));
 
-                    IConfigInfo configInfo;
-                    if (Configs.TryRemove(observer.Name, out configInfo))
-                    {
-                        configInfo.Dispose();
-                        Log.Info(m => m("Removing config for observer {0}", observer.Name));
-                    }
-                    else
-                    {
-                        Log.Warn(m => m("Could not remove config for {0}", observer.Name));
-                    }
+                IConfigInfo configInfo;
+                if (Configs.TryRemove(observer.Name, out configInfo))
+                {
+                    configInfo.Dispose();
+                    Log.Info(m => m("Removing config for observer {0}", observer.Name));
                 }
                 else
                 {
-                    Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
+                    Log.Warn(m => m("Could not remove config for {0}", observer.Name));
                 }
+            }
+            else
+            {
+                Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
             }
         }
 
@@ -205,8 +199,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void Dispose(bool disposing)
         {
-            lock (SyncObj)
+            try
             {
+                ConfigLock.EnterWriteLock();
                 if (!Disposed && disposing)
                 {
                     GC.SuppressFinalize(this);
@@ -221,6 +216,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 ConfigObservers.Clear();
                 Disposed = true;
+            }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
             }
         }
 

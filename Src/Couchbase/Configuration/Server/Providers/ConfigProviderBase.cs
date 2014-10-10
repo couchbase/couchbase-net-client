@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -24,6 +25,7 @@ namespace Couchbase.Configuration.Server.Providers
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         protected volatile bool Disposed;
         protected static object SyncObj = new object();
+        protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
 
         protected ConfigProviderBase(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
@@ -90,8 +92,9 @@ namespace Couchbase.Configuration.Server.Providers
         /// <returns>An <see cref="BucketConfiguration"/> instance.</returns>
         protected virtual BucketConfiguration GetOrCreateConfiguration(string bucketName)
         {
-            lock (SyncObj)
+            try
             {
+                ConfigLock.EnterWriteLock();
                 BucketConfiguration bucketConfiguration = null;
                 if (ClientConfig.BucketConfigs.ContainsKey(bucketName))
                 {
@@ -122,6 +125,10 @@ namespace Couchbase.Configuration.Server.Providers
                 }
                 ClientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
                 return bucketConfiguration;
+            }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
             }
         }
 
@@ -158,21 +165,6 @@ namespace Couchbase.Configuration.Server.Providers
         public virtual bool ObserverExists(IConfigObserver observer)
         {
             return ConfigObservers.ContainsKey(observer.Name);
-        }
-
-        protected void UpdateBootstrapList(IBucketConfig bucketConfig)
-        {
-            lock (SyncObj)
-            {
-                foreach (var node in bucketConfig.Nodes)
-                {
-                    var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
-                    if (!_clientConfig.Servers.Contains(uri))
-                    {
-                        _clientConfig.Servers.Add(uri);
-                    }
-                }
-            }
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Configuration.Client.Providers;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Newtonsoft.Json.Serialization;
@@ -14,6 +16,7 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public class ClientConfiguration
     {
+        protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
         private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
         private PoolConfiguration _poolConfiguration;
@@ -276,6 +279,30 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The default is "enabled" or true.</remarks>
         /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="HeartbeatConfigInterval"/> property.</remarks>
         public bool EnableConfigHeartBeat { get; set; }
+
+        /// <summary>
+        /// Updates the internal bootstrap url with the new list from a server configuration.
+        /// </summary>
+        /// <param name="bucketConfig">A new server configuration</param>
+        internal void UpdateBootstrapList(IBucketConfig bucketConfig)
+        {
+            foreach (var node in bucketConfig.Nodes)
+            {
+                var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
+                ConfigLock.EnterWriteLock();
+                try
+                {
+                    if (!Servers.Contains(uri))
+                    {
+                        Servers.Add(uri);
+                    }
+                }
+                finally
+                {
+                    ConfigLock.ExitWriteLock();
+                }
+            }
+        }
 
         internal void Initialize()
         {

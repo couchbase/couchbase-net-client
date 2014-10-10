@@ -17,7 +17,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Authentication;
 
 namespace Couchbase.Core
 {
@@ -26,7 +25,7 @@ namespace Couchbase.Core
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
-        private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>(); 
+        private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
@@ -57,7 +56,7 @@ namespace Couchbase.Core
                 return connectionPool;
             },
             SaslFactory.GetFactory3(),
-            new AutoByteConverter(), 
+            new AutoByteConverter(),
             new DefaultTranscoder(new AutoByteConverter(), clientConfig.DeserializationContractResolver, clientConfig.SerializationContractResolver))
         {
         }
@@ -84,9 +83,9 @@ namespace Couchbase.Core
         }
 
         public ClusterController(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory, 
-            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory, 
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
         {
@@ -126,16 +125,13 @@ namespace Couchbase.Core
 
         public void NotifyConfigPublished(IBucketConfig bucketConfig)
         {
-            lock (SyncObject)
+            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
+            if (provider != null)
             {
-                var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
-                if (provider != null)
+                var carrierPublicationProvider = provider as CarrierPublicationProvider;
+                if (carrierPublicationProvider != null)
                 {
-                    var carrierPublicationProvider = provider as CarrierPublicationProvider;
-                    if (carrierPublicationProvider != null)
-                    {
-                        carrierPublicationProvider.UpdateConfig(bucketConfig);
-                    }
+                    carrierPublicationProvider.UpdateConfig(bucketConfig);
                 }
             }
         }
@@ -189,7 +185,8 @@ namespace Couchbase.Core
                         if (provider.ObserverExists(configObserver))
                         {
                             Log.DebugFormat("Using existing bootstrap {0}.", provider);
-                            UpdateBootstrapList(config.BucketConfig);
+                            _clientConfig.UpdateBootstrapList(config.BucketConfig);
+
                             configObserver.NotifyConfigChanged(config);
                             success = true;
                             break;
@@ -199,12 +196,12 @@ namespace Couchbase.Core
                             _buckets.TryAdd(bucket.Name, bucket))
                         {
                             Log.DebugFormat("Successfully boostrap using {0}.", provider);
-                            UpdateBootstrapList(config.BucketConfig);
+                            _clientConfig.UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;
                             break;
                         }
-                        UpdateBootstrapList(config.BucketConfig);
+                        _clientConfig.UpdateBootstrapList(config.BucketConfig);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
@@ -221,21 +218,6 @@ namespace Couchbase.Core
                     throw new AggregateException("Could not bootstrap - check inner exceptions for details.", exceptions);
                 }
                 return bucket;
-            }
-        }
-
-        void UpdateBootstrapList(IBucketConfig bucketConfig)
-        {
-            lock (SyncObject)
-            {
-                foreach (var node in bucketConfig.Nodes)
-                {
-                    var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
-                    if (!_clientConfig.Servers.Contains(uri))
-                    {
-                        _clientConfig.Servers.Add(uri);
-                    }
-                }
             }
         }
 

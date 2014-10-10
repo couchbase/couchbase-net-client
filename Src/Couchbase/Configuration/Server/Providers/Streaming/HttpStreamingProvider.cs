@@ -47,12 +47,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            lock (SyncObj)
-            {
-                var bucketConfiguration = GetOrCreateConfiguration(bucketName);
-                StartProvider(bucketName, password);
-                var bucketConfig = GetBucketConfig(bucketName, password);
+            var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+            StartProvider(bucketName, password);
+            var bucketConfig = GetBucketConfig(bucketName, password);
 
+            try
+            {
+                ConfigLock.EnterWriteLock();
                 IConfigInfo configInfo = null;
                 var nodes = bucketConfig.Nodes.ToList();
                 while (nodes.Any())
@@ -92,6 +93,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     throw new BucketNotFoundException();
                 }
                 return configInfo;
+            }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
             }
         }
 
@@ -147,9 +152,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketConfig">The new configuration.</param>
         void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
-            IConfigObserver configObserver;
-            if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+            try
             {
+                ConfigLock.EnterWriteLock();
+                var configObserver = ConfigObservers[bucketConfig.Name];
+
                 IConfigInfo configInfo;
                 if (Configs.TryGetValue(configObserver.Name, out configInfo))
                 {
@@ -165,10 +172,21 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     Configs.TryAdd(bucketConfig.Name, configInfo);
                 }
 
-                UpdateBootstrapList(bucketConfig);
-                configObserver.NotifyConfigChanged(configInfo);
+                try
+                {
+                    ClientConfig.UpdateBootstrapList(bucketConfig);
+                    configObserver.NotifyConfigChanged(configInfo);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                SignalCountdownEvent();
             }
-            SignalCountdownEvent();
+            finally
+            {
+                ConfigLock.ExitWriteLock();
+            }
         }
 
         void SignalCountdownEvent()
@@ -186,36 +204,33 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <returns></returns>
         IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
         {
-            lock (SyncObj)
+            IConfigInfo configInfo;
+            switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
             {
-                IConfigInfo configInfo;
-                switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
-                {
-                    case NodeLocatorEnum.VBucket:
-                        configInfo = new CouchbaseConfigContext(bucketConfig,
-                            ClientConfig,
-                            IOStrategyFactory,
-                            ConnectionPoolFactory,
-                            SaslFactory,
-                            Converter,
-                            transcoder);
-                        break;
-                    case NodeLocatorEnum.Ketama:
-                        configInfo = new MemcachedConfigContext(bucketConfig,
-                            ClientConfig,
-                            IOStrategyFactory,
-                            ConnectionPoolFactory,
-                            SaslFactory,
-                            Converter,
-                            transcoder);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-
-                configInfo.LoadConfig();
-                return configInfo;
+                case NodeLocatorEnum.VBucket:
+                    configInfo = new CouchbaseConfigContext(bucketConfig,
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory,
+                        Converter,
+                        transcoder);
+                    break;
+                case NodeLocatorEnum.Ketama:
+                    configInfo = new MemcachedConfigContext(bucketConfig,
+                        ClientConfig,
+                        IOStrategyFactory,
+                        ConnectionPoolFactory,
+                        SaslFactory,
+                        Converter,
+                        transcoder);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
+
+            configInfo.LoadConfig();
+            return configInfo;
         }
 
         /// <summary>
@@ -225,18 +240,16 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="password"></param>
         void StartProvider(string username, string password)
         {
-            lock (SyncObj)
-            {
-                _serverConfig = new HttpServerConfig(ClientConfig, username, password);
-                _serverConfig.Initialize();
-                Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
-            }
+            _serverConfig = new HttpServerConfig(ClientConfig, username, password);
+            _serverConfig.Initialize();
+            Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
         }
 
         IBucketConfig GetBucketConfig(string bucketName, string password)
         {
-            lock (SyncObj)
+            try
             {
+                ConfigLock.EnterReadLock();
                 var bucketConfig = _serverConfig.Buckets.Find(x => x.Name == bucketName);
                 if (bucketConfig == null)
                 {
@@ -244,6 +257,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
                 bucketConfig.Password = password;
                 return bucketConfig;
+            }
+            finally
+            {
+                ConfigLock.ExitReadLock();
             }
         }
 
@@ -258,8 +275,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="observer"></param>
         public override void UnRegisterObserver(IConfigObserver observer)
         {
-            lock (SyncObj)
+            try
             {
+                ConfigLock.EnterWriteLock();
                 Thread thread;
                 if (_threads.TryRemove(observer.Name, out thread))
                 {
@@ -284,6 +302,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     }
                 }
             }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
+            }
         }
 
         public override void Dispose()
@@ -293,19 +315,26 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public void Dispose(bool disposing)
         {
-            lock (SyncObj)
+            try
             {
-                if (!_disposed && disposing)
+                ConfigLock.EnterWriteLock();
                 {
-                    GC.SuppressFinalize(this);
+                    if (!_disposed && disposing)
+                    {
+                        GC.SuppressFinalize(this);
+                    }
+                    foreach (var configObserver in ConfigObservers)
+                    {
+                        UnRegisterObserver(configObserver.Value);
+                    }
+                    ConfigObservers.Clear();
+                    _threads.Clear();
+                    _disposed = true;
                 }
-                foreach (var configObserver in ConfigObservers)
-                {
-                    UnRegisterObserver(configObserver.Value);
-                }
-                ConfigObservers.Clear();
-                _threads.Clear();
-                _disposed = true;
+            }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
             }
         }
 
