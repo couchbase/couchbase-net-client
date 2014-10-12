@@ -34,7 +34,7 @@ namespace Couchbase.Tests.Core
             var configuration = new ClientConfiguration();
             var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            _server = new Server(ioStrategy, new Node(), configuration);
+            _server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{ Name = "default"});
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace Couchbase.Tests.Core
 
             var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            using (var server = new Server(ioStrategy, new Node(), configuration))
+            using (var server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{Name="default"}))
             {
                 var uri = server.GetBaseViewUri("default");
                 Assert.AreEqual("https://localhost:18092/default", uri);
@@ -142,7 +142,7 @@ namespace Couchbase.Tests.Core
 
             var connectionPool = new ConnectionPool<EapConnection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            using (var server = new Server(ioStrategy, new Node(), configuration))
+            using (var server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{Name = "default"}))
             {
                 var uri = server.GetBaseViewUri("default");
                 Assert.AreEqual("http://localhost:8092/default", uri);

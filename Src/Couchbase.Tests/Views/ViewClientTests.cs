@@ -5,8 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Views;
 using NUnit.Framework;
+using Wintellect;
 
 namespace Couchbase.Tests.Views
 {
@@ -20,7 +23,7 @@ namespace Couchbase.Tests.Views
                 From("beer", "brewery_beers").
                 Bucket("beer-sample");
 
-            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig{Name = "beer-sample"}, new ClientConfiguration());
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);
             Assert.AreEqual(result.StatusCode, HttpStatusCode.OK);
@@ -33,9 +36,9 @@ namespace Couchbase.Tests.Views
                 From("beer", "view_that_does_not_exist").
                 Bucket("beer-sample");
 
-            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig { Name = "beer-sample" }, new ClientConfiguration());
             var result = client.Execute<dynamic>(query);
-            
+
             Assert.IsNotNull(result.Message);
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
             Assert.IsFalse(result.Success);
@@ -51,11 +54,10 @@ namespace Couchbase.Tests.Views
                 Bucket("beer-sample").
                 Group(true);
 
-            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig { Name = "beer-sample" }, new ClientConfiguration());
             var result = client.Execute<dynamic>(query);
-            
-            Assert.AreEqual("query_parse_error", result.Error);
-            Assert.AreEqual("Invalid URL parameter 'group' or  'group_level' for non-reduce view.", result.Message);
+
+            Assert.AreEqual("The remote server returned an error: (400) Bad Request.", result.Error);
             Assert.AreEqual(HttpStatusCode.BadRequest, result.StatusCode);
             Assert.IsFalse(result.Success);
 
@@ -70,12 +72,35 @@ namespace Couchbase.Tests.Views
                 Bucket("beer-sample").
                 BaseUri("http://192.168.56.105:8092/");
 
-            var client = new ViewClient(new HttpClient(), new JsonDataMapper());
+            var client = new ViewClient(new HttpClient(),
+                new JsonDataMapper(),
+                new BucketConfig { Name = "beer-sample" },
+                new ClientConfiguration{ViewRequestTimeout = 30000});
+
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
-            Assert.AreEqual(typeof(HttpRequestException), result.Exception.GetType());
+            Assert.AreEqual(typeof(WebException), result.Exception.GetType());
+        }
+
+        [Test]
+        public void Test_ExecuteAsync()
+        {
+            var query = new ViewQuery().
+                From("docs", "all_docs").
+                Bucket("default");
+
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig { Name = "beer-sample" }, new ClientConfiguration());
+
+            int n = 10000;
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4};
+
+            Parallel.For(0, n, options, async i =>
+            {
+                var result = await client.ExecuteAsync<dynamic>(query);
+                Console.WriteLine("{0} {1} {2}", i, result.Success, result.Message);
+            });
         }
     }
 }

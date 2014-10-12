@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
@@ -28,6 +29,7 @@ namespace Couchbase.Configuration.Client
         private int _maxViewRetries;
         private int _viewHardTimeout;
         private double _heartbeatConfigInterval;
+        private int _viewRequestTimeout;
 
         public ClientConfiguration()
         {
@@ -46,6 +48,8 @@ namespace Couchbase.Configuration.Client
             EnableConfigHeartBeat = true;
             SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            ViewRequestTimeout = 5000; //ms
+            DefaultConnectionLimit = 5; //connections
 
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -83,6 +87,7 @@ namespace Couchbase.Configuration.Client
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
             EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
             HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
+            ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -271,6 +276,44 @@ namespace Couchbase.Configuration.Client
                     _heartbeatConfigInterval = value;
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets the timeout for each HTTP View request.
+        /// </summary>
+        /// <remarks>The default is 5000ms.</remarks>
+        /// <remarks>The value must be greater than Zero and less than 60000ms.</remarks>
+        public int ViewRequestTimeout
+        {
+            get { return _viewRequestTimeout; }
+            set
+            {
+                if (value > 0 && value < 60000)
+                {
+                    _viewRequestTimeout = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum number of concurrent connections allowed by a ServicePoint object used for making View and N1QL requests.
+        /// </summary>
+        /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.defaultconnectionlimit.aspx</remarks>
+        /// <remarks>The default is set to 5 connections.</remarks>
+        public int DefaultConnectionLimit
+        {
+            get { return ServicePointManager.DefaultConnectionLimit; }
+            set { ServicePointManager.DefaultConnectionLimit = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum idle time of a ServicePoint object used for making View and N1QL requests.
+        /// </summary>
+        /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.maxservicepointidletime.aspx</remarks>
+        public int MaxServicePointIdleTime
+        {
+            get { return ServicePointManager.MaxServicePointIdleTime; }
+            set { ServicePointManager.MaxServicePointIdleTime = value; }
         }
 
         /// <summary>

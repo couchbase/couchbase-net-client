@@ -97,7 +97,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Console.WriteLine(query.RawUri());
                 var result = bucket.Query<dynamic>(query);
                 Assert.AreEqual("", result.Message);
-                Assert.Greater(result.TotalRows, 0);
+                Assert.GreaterOrEqual(result.TotalRows, 0);
             }
         }
 

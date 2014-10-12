@@ -65,7 +65,7 @@ namespace Couchbase.Configuration
                             ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration,
                                 endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
-                        var server = new Core.Server(ioStrategy, node, ClientConfig);
+                        var server = new Core.Server(ioStrategy, node, ClientConfig, bucketConfig);
                         var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                         ioStrategy.SaslMechanism = saslMechanism;
                         servers.Add(server);
@@ -97,7 +97,7 @@ namespace Couchbase.Configuration
                     var connectionPool =
                         ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
                     var ioStrategy = IOStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy, node, ClientConfig);
+                    var server = new Core.Server(ioStrategy, node, ClientConfig, BucketConfig);
                     var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
                     ioStrategy.SaslMechanism = saslMechanism;
                     servers.Add(server);

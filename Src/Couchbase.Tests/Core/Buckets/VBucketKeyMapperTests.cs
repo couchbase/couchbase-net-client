@@ -24,12 +24,12 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var bucket = ConfigUtil.ServerConfig.Buckets.First();
-            _vBucketServerMap = bucket.VBucketServerMap;
+            var bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
+            _vBucketServerMap = bucketConfig.VBucketServerMap;
 
             _servers = _vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration())).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration(), bucketConfig)).
                 Cast<IServer>().
                 ToList();
         }

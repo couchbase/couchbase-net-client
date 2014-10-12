@@ -3,7 +3,7 @@
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
-    /// Allows the Client Configuration to be set through an App.config or a Web.config. 
+    /// Allows the Client Configuration to be set through an App.config or a Web.config.
     /// </summary>
     public sealed class CouchbaseClientSection : ConfigurationSection
     {
@@ -30,7 +30,7 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (UriElementCollection) this["servers"]; }
             set { this["servers"] = value; }
-        } 
+        }
 
         /// <summary>
         /// Allows specific configurations of Bucket's to be defined, overriding the parent's settings.
@@ -186,6 +186,18 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (bool)this["enableConfigHeartBeat"]; }
             set { this["enableConfigHeartBeat"] = value; }
+        }
+
+        /// <summary>
+        /// Sets the timeout for each HTTP View request.
+        /// </summary>
+        /// <remarks>The default is 5000ms.</remarks>
+        /// <remarks>The value must be greater than Zero and less than 60000ms.</remarks>
+        [ConfigurationProperty("viewRequestTimeout", DefaultValue = 5000, IsRequired = false)]
+        public int ViewRequestTimeout
+        {
+            get { return (int)this["viewRequestTimeout"]; }
+            set { this["viewRequestTimeout"] = value; }
         }
     }
 }

@@ -39,12 +39,12 @@ namespace Couchbase.Tests.IO.Operations
 
         internal IVBucket GetVBucket()
         {
-            var bucket = ConfigUtil.ServerConfig.Buckets.First(x => x.Name=="default");
-            var vBucketServerMap = bucket.VBucketServerMap;
+            var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x => x.Name=="default");
+            var vBucketServerMap = bucketConfig.VBucketServerMap;
 
             var servers = vBucketServerMap.
                 ServerList.
-                Select(server => new Server(_ioStrategy, new Node(), new ClientConfiguration())).
+                Select(server => new Server(_ioStrategy, new Node(), new ClientConfiguration(), bucketConfig)).
                 Cast<IServer>().
                 ToList();
 

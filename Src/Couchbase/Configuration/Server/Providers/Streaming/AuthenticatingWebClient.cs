@@ -8,9 +8,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal class AuthenticatingWebClient : WebClient
     {
-        public AuthenticatingWebClient() 
+        public AuthenticatingWebClient()
             : this("default", string.Empty)
-        { 
+        {
         }
 
         public AuthenticatingWebClient(string username, string password)

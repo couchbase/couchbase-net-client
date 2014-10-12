@@ -28,21 +28,12 @@ namespace Couchbase.Core
         private uint _queryPort = 8093;
         private bool _disposed;
 
-        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration) :
-            this(ioStrategy,
-            new ViewClient(new HttpClient(), new JsonDataMapper()),
-            new QueryClient(new HttpClient(), new JsonDataMapper()),
-            node, clientConfiguration)
-        {
-        }
-
         public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
-            new ViewClient(new HttpClient(), new JsonDataMapper(), bucketConfig),
+            new ViewClient(new HttpClient(), new JsonDataMapper(), bucketConfig, clientConfiguration),
             new QueryClient(new HttpClient(), new JsonDataMapper()),
             node, clientConfiguration)
         {
-
         }
 
         public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo, ClientConfiguration clientConfiguration)

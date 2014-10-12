@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.Views
@@ -20,16 +21,12 @@ namespace Couchbase.Views
         const string Success = "Success";
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IBucketConfig _bucketConfig;
+        private readonly ClientConfiguration _clientConfig;
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper)
-        {
-            HttpClient = httpClient;
-            Mapper = mapper;
-        }
-
-        public ViewClient(HttpClient httpClient, IDataMapper mapper,  IBucketConfig bucketConfig)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper,  IBucketConfig bucketConfig, ClientConfiguration clientClientConfig)
         {
             _bucketConfig = bucketConfig;
+            _clientConfig = clientClientConfig;
             HttpClient = httpClient;
             HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic", Convert.ToBase64String(
@@ -45,30 +42,37 @@ namespace Couchbase.Views
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQuery query)
         {
+            var uri = query.RawUri();
             var viewResult = new ViewResult<T>();
             try
             {
-                var result = await HttpClient.GetAsync(query.RawUri());
+                var result = await HttpClient.GetAsync(uri);
                 var content = result.Content;
-                var stream = await content.ReadAsStreamAsync();
-
-                viewResult = Mapper.Map<ViewResult<T>>(stream);
-                viewResult.Success = result.IsSuccessStatusCode;
-                viewResult.StatusCode = result.StatusCode;
-                viewResult.Message = Success;
+                using (var stream = await content.ReadAsStreamAsync())
+                {
+                    viewResult = Mapper.Map<ViewResult<T>>(stream);
+                    viewResult.Success = result.IsSuccessStatusCode;
+                    viewResult.StatusCode = result.StatusCode;
+                    viewResult.Message = Success;
+                }
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
                     ProcessError(e, viewResult);
-                    Log.Error(e);
+                    Log.Error(uri, e);
                     return true;
                 });
             }
+            catch (TaskCanceledException e)
+            {
+                const string error = "The request has timed out.";
+                ProcessError(e, error, viewResult);
+                Log.Error(uri, e);
+            }
             return viewResult;
         }
-
 
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> synchronously against a View.
@@ -81,31 +85,44 @@ namespace Couchbase.Views
             var viewResult = new ViewResult<T>();
             try
             {
-                var requestAwaiter = HttpClient.GetAsync(query.RawUri()).ConfigureAwait(false).GetAwaiter();
-                var request = requestAwaiter.GetResult();
-
-                var responseAwaiter = request.Content.ReadAsStreamAsync().ConfigureAwait(false).GetAwaiter();
-                var response = responseAwaiter.GetResult();
-                viewResult = Mapper.Map<ViewResult<T>>(response);
-
-                viewResult.Success = request.IsSuccessStatusCode;
-                viewResult.StatusCode = request.StatusCode;
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
+                var request = WebRequest.Create(query.RawUri());
+                request.Timeout = _clientConfig.ViewRequestTimeout;
+                WriteAuthenticationHeaders(request, _bucketConfig.Name, _bucketConfig.Password);
+                using (var response = request.GetResponse() as HttpWebResponse)
                 {
-                    ProcessError(e, viewResult);
-                    Log.Error(e);
-                    return true;
-                });
+                    var stream = response.GetResponseStream();
+                    viewResult = Mapper.Map<ViewResult<T>>(stream);
+                    response.Close();
+
+                    viewResult.Success = response.StatusCode == HttpStatusCode.OK;
+                    viewResult.StatusCode = response.StatusCode;
+                }
             }
-            catch (HttpRequestException e)
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    viewResult = Mapper.Map<ViewResult<T>>(stream);
+                }
+                ProcessError(e, viewResult);
+                Log.Error(e);
+            }
+            catch (Exception e)
             {
                 ProcessError(e, viewResult);
                 Log.Error(e);
             }
             return viewResult;
+        }
+
+        static void WriteAuthenticationHeaders(WebRequest request, string username, string password)
+        {
+            const string authType = "Basic";
+            var bytes = Encoding.UTF8.GetBytes(string.Concat(username, ":", password));
+            var credentials = string.Concat(authType, " ", Convert.ToBase64String(bytes));
+            request.Headers[HttpRequestHeader.Authorization] = credentials;
+            request.Credentials = new NetworkCredential(username, password);
         }
 
         static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
@@ -115,6 +132,17 @@ namespace Couchbase.Views
             viewResult.StatusCode = GetStatusCode(ex.Message);
             viewResult.Message = message;
             viewResult.Error = ex.Message;
+            viewResult.Exception = ex;
+            viewResult.Rows = new List<T>();
+        }
+
+        static void ProcessError<T>(Exception ex, string error, ViewResult<T> viewResult)
+        {
+            const string message = "Check Exception and Error fields for details.";
+            viewResult.Success = false;
+            viewResult.StatusCode = GetStatusCode(ex.Message);
+            viewResult.Message = message;
+            viewResult.Error = error;
             viewResult.Exception = ex;
             viewResult.Rows = new List<T>();
         }
@@ -140,7 +168,7 @@ namespace Couchbase.Views
         public HttpClient HttpClient { get; set; }
 
         /// <summary>
-        /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/> 
+        /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/>
         /// and mapping then to the queries Type paramater.
         /// </summary>
         public IDataMapper Mapper { get; set; }
