@@ -144,10 +144,10 @@
     <Compile Include="Core\BucketAlreadyOpenException.cs" />
     <Compile Include="Core\BucketNotFoundException.cs" />
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
-    <Compile Include="Core\Buckets\CouchbaseBucket.cs" />
+    <Compile Include="CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
-    <Compile Include="Core\Buckets\MemcachedBucket.cs" />
+    <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
     <Compile Include="Core\ClusterController.cs" />

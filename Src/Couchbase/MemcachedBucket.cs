@@ -10,6 +10,7 @@
  using Couchbase.Annotations;
  using Couchbase.Configuration;
  using Couchbase.Configuration.Server.Providers;
+ using Couchbase.Core;
  using Couchbase.Core.Transcoders;
  using Couchbase.IO;
  using Couchbase.IO.Converters;
@@ -18,7 +19,7 @@
  using Couchbase.N1QL;
  using Couchbase.Views;
 
-namespace Couchbase.Core.Buckets
+namespace Couchbase
 {
     /// <summary>
     /// Represents an in-memory bucket for storing Key/Value pairs. Most often used as a distributed cache.
