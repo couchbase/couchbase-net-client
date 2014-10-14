@@ -123,7 +123,7 @@ namespace Couchbase.Core
             throw new NotImplementedException();
         }
 
-        public void NotifyConfigPublished(IBucketConfig bucketConfig)
+        public void NotifyConfigPublished(IBucketConfig bucketConfig, bool force = false)
         {
             var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
             if (provider != null)
@@ -131,7 +131,7 @@ namespace Couchbase.Core
                 var carrierPublicationProvider = provider as CarrierPublicationProvider;
                 if (carrierPublicationProvider != null)
                 {
-                    carrierPublicationProvider.UpdateConfig(bucketConfig);
+                    carrierPublicationProvider.UpdateConfig(bucketConfig, force);
                 }
             }
         }

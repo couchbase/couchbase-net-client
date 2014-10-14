@@ -50,10 +50,11 @@ namespace Couchbase.Configuration
         /// Loads the current configuration setting the internal state of this configuration context.
         /// </summary>
         /// <param name="bucketConfig"></param>
-        public override void LoadConfig(IBucketConfig bucketConfig)
+        /// <param name="force">True to force a reconfiguration.</param>
+        public override void LoadConfig(IBucketConfig bucketConfig, bool force = false)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes))
+            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || force)
             {
                 var servers = new List<IServer>();
                 foreach (var node in bucketConfig.Nodes)

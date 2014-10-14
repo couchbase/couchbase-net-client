@@ -67,7 +67,8 @@ namespace Couchbase.Core.Buckets
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Log.Info(m=>m("Config updated old/new: {0}, {1}",
-                _configInfo.BucketConfig.Rev, configInfo.BucketConfig.Rev));
+                _configInfo != null ? _configInfo.BucketConfig.Rev :
+                0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
         }
 
@@ -191,12 +192,13 @@ namespace Couchbase.Core.Buckets
 
                     var liveServer = _configInfo.GetServer();
                     var result = liveServer.Send(new Config(_converter, liveServer.EndPoint));
+                    Log.Info(m => m("Trying to reconfig with {0}: {1}", liveServer.EndPoint, result.Message));
                     if (result.Success)
                     {
                         var config = result.Value;
                         if (config != null)
                         {
-                            _clusterManager.NotifyConfigPublished(result.Value);
+                            _clusterManager.NotifyConfigPublished(result.Value, true);
                         }
                     }
                 }
@@ -226,21 +228,8 @@ namespace Couchbase.Core.Buckets
                     var bucketConfig = operation.GetConfig();
                     if (bucketConfig != null)
                     {
-                        if (bucketConfig.Rev > _configInfo.BucketConfig.Rev)
-                        {
-                            Log.Info(m => m("New config found {0}", bucketConfig.Rev));
-                            var server = _configInfo.GetServer();
-
-                            var result = server.Send(new Config(_converter, server.EndPoint));
-                            if (result.Success)
-                            {
-                                var config = result.Value;
-                                if (config != null)
-                                {
-                                    _clusterManager.NotifyConfigPublished(result.Value);
-                                }
-                            }
-                        }
+                        Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, _configInfo.BucketConfig.Rev));
+                        _clusterManager.NotifyConfigPublished(bucketConfig, true);
                     }
                 }
                 catch (Exception e)

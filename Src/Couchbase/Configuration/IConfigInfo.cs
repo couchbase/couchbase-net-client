@@ -57,7 +57,7 @@ namespace Couchbase.Configuration
         /// <summary>
         /// Loads the most updated configuration creating any resources as needed based upon the passed in  <see cref="IBucketConfig"/>.
         /// </summary>
-        void LoadConfig(IBucketConfig bucketConfig);
+        void LoadConfig(IBucketConfig bucketConfig, bool force=false);
     }
 }
 

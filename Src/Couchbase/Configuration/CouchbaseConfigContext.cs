@@ -35,13 +35,14 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/>
         /// that will drive the recreation if the configuration context.</param>
-        public override void LoadConfig(IBucketConfig bucketConfig)
+        public override void LoadConfig(IBucketConfig bucketConfig, bool force = false)
         {
             try
             {
                 Lock.EnterWriteLock();
                 if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-                if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any())
+                if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || !Servers.Any() ||
+                    force)
                 {
                     Log.Info(m => m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(), bucketConfig.Rev));
                     var servers = new List<IServer>();
@@ -52,13 +53,12 @@ namespace Couchbase.Configuration
                         var endpoint = GetEndPoint(ip, bucketConfig);
                         try
                         {
-                            var connectionPool =
-                                ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration,
-                                    endpoint);
+                            var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
+                            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
                             var ioStrategy = IOStrategyFactory(connectionPool);
-                            var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy,
-                                Converter);
+                            var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                             ioStrategy.SaslMechanism = saslMechanism;
+
                             var server = new Core.Server(ioStrategy, nodes[i], ClientConfig, bucketConfig);
                             servers.Add(server);
                         }
@@ -80,6 +80,10 @@ namespace Couchbase.Configuration
                 {
                     Rev = _bucketConfig.Rev
                 });
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
             finally
             {

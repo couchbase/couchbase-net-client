@@ -76,7 +76,7 @@ namespace Couchbase.Core.Buckets
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Log.Info(m => m("Config updated old/new: {0}, {1}",
-                _configInfo.BucketConfig.Rev, configInfo.BucketConfig.Rev));
+               _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
         }
 

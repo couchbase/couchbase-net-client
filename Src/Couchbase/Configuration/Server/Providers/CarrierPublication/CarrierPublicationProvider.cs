@@ -138,7 +138,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return ConfigObservers.TryAdd(observer.Name, observer);
         }
 
-        public void UpdateConfig(IBucketConfig bucketConfig)
+        public void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
         {
             IConfigObserver configObserver;
             if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
@@ -147,10 +147,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
                 {
                     var oldBucketConfig = configInfo.BucketConfig;
-                    if (bucketConfig.Rev > oldBucketConfig.Rev)
+                    if (bucketConfig.Rev > oldBucketConfig.Rev || force)
                     {
-                        Log.Info(m => m("Config changed new Rev#{0} | old Rev#{1} CCCP: {2}", bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
-                        configInfo.LoadConfig(bucketConfig);
+                        Log.Info(m => m("Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force, bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        configInfo.LoadConfig(bucketConfig, force);
                         ClientConfig.UpdateBootstrapList(bucketConfig);
                         configObserver.NotifyConfigChanged(configInfo);
                     }

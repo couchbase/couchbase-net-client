@@ -142,9 +142,10 @@ namespace Couchbase.Configuration
         /// <summary>
         /// Loads the most updated configuration creating any resources as needed.
         /// </summary>
-        /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/> 
+        /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/>
         /// that will drive the recreation if the configuration context.</param>
-        public abstract void LoadConfig(IBucketConfig bucketConfig);
+        /// <param name="force">True to force the reconfiguration.</param>
+        public abstract void LoadConfig(IBucketConfig bucketConfig, bool force = false);
 
         /// <summary>
         /// Loads the most updated configuration creating any resources as needed. The <see cref="IBucketConfig"/>
@@ -156,7 +157,6 @@ namespace Couchbase.Configuration
         /// <summary>
         /// Gets the <see cref="IKeyMapper"/> instance associated with this <see cref="IConfigInfo"/>.
         /// </summary>
-        /// <param name="bucketName"></param>
         /// <returns></returns>
         public IKeyMapper GetKeyMapper()
         {

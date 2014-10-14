@@ -129,6 +129,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             throw new NotImplementedException();
         }
 
+        public void LoadConfig(IBucketConfig bucketConfig, bool force = false)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public void LoadConfig(IBucketConfig bucketConfig)
         {
