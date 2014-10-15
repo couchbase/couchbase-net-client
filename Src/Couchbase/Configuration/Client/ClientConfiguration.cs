@@ -8,6 +8,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
 {
@@ -46,8 +47,8 @@ namespace Couchbase.Configuration.Client
             ViewHardTimeout = 30000; //ms
             HeartbeatConfigInterval = 10000; //ms
             EnableConfigHeartBeat = true;
-            SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
-            DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             ViewRequestTimeout = 5000; //ms
             DefaultConnectionLimit = 5; //connections
 
@@ -83,8 +84,8 @@ namespace Couchbase.Configuration.Client
             ObserveTimeout = couchbaseClientSection.ObserveTimeout;
             MaxViewRetries = couchbaseClientSection.MaxViewRetries;
             ViewHardTimeout = couchbaseClientSection.ViewHardTimeout;
-            SerializationContractResolver = new CamelCasePropertyNamesContractResolver();
-            DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
+            SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
             HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
             ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
@@ -239,9 +240,15 @@ namespace Couchbase.Configuration.Client
             }
         }
 
-        public IContractResolver SerializationContractResolver { get; set; }
+        /// <summary>
+        /// The incoming serializer settings for the JSON serializer.
+        /// </summary>
+        public JsonSerializerSettings SerializationSettings { get; set; }
 
-        public IContractResolver DeserializationContractResolver { get; set; }
+        /// <summary>
+        /// The outgoing serializer settings for the JSON serializer.
+        /// </summary>
+        public JsonSerializerSettings DeserializationSettings { get; set; }
 
 
         /// <summary>
