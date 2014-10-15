@@ -14,19 +14,19 @@ namespace Couchbase.Core.Transcoders
     {
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly IByteConverter _converter;
-        private readonly IContractResolver _outgoingContractResolver;
-        private readonly IContractResolver _incomingContractResolver;
+        private readonly JsonSerializerSettings _outgoingSerializerSettings;
+        private readonly JsonSerializerSettings _incomingSerializerSettings;
 
         public DefaultTranscoder(IByteConverter converter)
-            : this(converter, new DefaultContractResolver(), new CamelCasePropertyNamesContractResolver())
+            : this(converter, new JsonSerializerSettings(), new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() })
         {
         }
 
-        public DefaultTranscoder(IByteConverter converter, IContractResolver incomingContractResolver, IContractResolver outgoingContractResolver)
+        public DefaultTranscoder(IByteConverter converter, JsonSerializerSettings incomingSerializerSettings, JsonSerializerSettings outgoingSerializerSettings)
         {
             _converter = converter;
-            _incomingContractResolver = incomingContractResolver;
-            _outgoingContractResolver = outgoingContractResolver;
+            _incomingSerializerSettings = incomingSerializerSettings;
+            _outgoingSerializerSettings = outgoingSerializerSettings;
         }
 
         public byte[] Encode<T>(T value, Flags flags)
@@ -253,10 +253,7 @@ namespace Couchbase.Core.Transcoders
                 {
                     using (var jr = new JsonTextReader(sr))
                     {
-                        var serializer = new JsonSerializer
-                        {
-                            ContractResolver = _incomingContractResolver
-                        };
+                        var serializer = JsonSerializer.Create(_incomingSerializerSettings);
 
                         //use the following code block only for value types
                         //strangely enough Nullable<T> itself is a value type so we need to filter it out
@@ -290,10 +287,7 @@ namespace Couchbase.Core.Transcoders
                 {
                     using (var jr = new JsonTextWriter(sw))
                     {
-                        var serializer = new JsonSerializer
-                        {
-                            ContractResolver = _outgoingContractResolver
-                        };
+                        var serializer = JsonSerializer.Create(_outgoingSerializerSettings);
                         serializer.Serialize(jr, value);
                     }
                 }
