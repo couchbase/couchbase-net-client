@@ -284,5 +284,17 @@ namespace Couchbase.Tests.Core.Transcoders
         {
             public string Name { get; set; }
         }
+
+        [Test]
+        public void Test_Json_Deserialize_Int()
+        {
+            var transcoder = new DefaultTranscoder(new ManualByteConverter());
+            int value = 42;
+
+            var bytes = transcoder.SerializeAsJson(value);
+            var actual = transcoder.DeserializeAsJson<int>(bytes, 0, bytes.Length);
+
+            Assert.AreEqual(value, actual);
+        }
     }
 }
