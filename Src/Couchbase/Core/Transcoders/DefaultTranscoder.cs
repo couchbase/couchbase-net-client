@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+using Common.Logging;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json;
@@ -258,19 +258,19 @@ namespace Couchbase.Core.Transcoders
                             ContractResolver = _incomingContractResolver
                         };
 
-						//use the following code block only for value types
-						//strangely enough Nullable<T> itself is a value type so we need to filter it out
-						if (typeof(T).IsValueType && (!typeof(T).IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
-						{
-							//we can't declare Nullable<T> because T is not restricted to struct in this method scope
-							object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
-							//either we have a null or an instance of Nullabte<T> that can be cast directly to T
-							value = nullableVal == null ? default(T) : (T)nullableVal;
-						}
-						else
-						{
-							value = serializer.Deserialize<T>(jr);
-						}
+                        //use the following code block only for value types
+                        //strangely enough Nullable<T> itself is a value type so we need to filter it out
+                        if (typeof(T).IsValueType && (!typeof(T).IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
+                        {
+                            //we can't declare Nullable<T> because T is not restricted to struct in this method scope
+                            object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
+                            //either we have a null or an instance of Nullabte<T> that can be cast directly to T
+                            value = nullableVal == null ? default(T) : (T)nullableVal;
+                        }
+                        else
+                        {
+                            value = serializer.Deserialize<T>(jr);
+                        }
                     }
                 }
             }
