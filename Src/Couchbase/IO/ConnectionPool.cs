@@ -23,6 +23,7 @@ namespace Couchbase.IO
         private bool _disposed;
         private ConcurrentBag<T> _refs = new ConcurrentBag<T>();
         private Guid _identity = Guid.NewGuid();
+        private int _acquireFailedCount ;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new AutoByteConverter())
@@ -67,7 +68,7 @@ namespace Couchbase.IO
         }
 
         /// <summary>
-        /// Gets the number of <see cref="IConnection"/> within the pool, whether or not they are availabe or not.
+        /// Gets the number of <see cref="IConnection"/> within the pool, whether or not they are available or not.
         /// </summary>
         /// <returns></returns>
         public int Count()
@@ -82,14 +83,19 @@ namespace Couchbase.IO
         /// <remarks></remarks>
         public void Initialize()
         {
-            do
+            lock (_lock)
             {
-                var connection = _factory(this, _converter);
-                Log.Debug(m=>m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}", EndPoint, connection.Identity, _identity, _disposed));
-                _store.Enqueue(connection);
-                _refs.Add(connection);
-                Interlocked.Increment(ref _count);
-            } while (_store.Count < _configuration.MinSize);
+                _count = _configuration.MinSize;
+                do
+                {
+                    var connection = _factory(this, _converter);
+                    Log.Debug(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
+                        EndPoint, connection.Identity, _identity, _disposed));
+
+                    _store.Enqueue(connection);
+                    _refs.Add(connection);
+                } while (_store.Count < _count);
+            }
         }
 
         /// <summary>
@@ -97,13 +103,17 @@ namespace Couchbase.IO
         /// and the <see cref="PoolConfiguration.MaxSize"/> has not been reached.
         /// </summary>
         /// <returns>A TCP <see cref="IConnection"/> object to a Couchbase Server.</returns>
+        /// <exception cref="ConnectionUnavailableException">thrown if a thread waits more than the <see cref="PoolConfiguration.MaxAcquireIterationCount"/>.</exception>
         public T Acquire()
         {
             T connection;
 
             if (_store.TryDequeue(out connection))
             {
-                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}", connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
+                Interlocked.Exchange(ref _acquireFailedCount, 0);
+                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                    connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
+
                 return connection;
             }
 
@@ -114,15 +124,27 @@ namespace Couchbase.IO
                     connection = _factory(this, _converter);
                     _refs.Add(connection);
 
-                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}", connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
-                    Interlocked.Increment(ref _count);
+                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                        connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
+
+                        Interlocked.Increment(ref _count);
+                        Interlocked.Exchange(ref _acquireFailedCount, 0);
                     return connection;
                 }
             }
 
             _autoResetEvent.WaitOne(_configuration.WaitTimeout);
+            var acquireFailedCount = Interlocked.Increment(ref _acquireFailedCount);
+            if (acquireFailedCount >= _configuration.MaxAcquireIterationCount)
+            {
+                Interlocked.Exchange(ref _acquireFailedCount, 0);
+                const string msg = "Failed to acquire a connection after {0} tries.";
+                throw new ConnectionUnavailableException(msg, _acquireFailedCount);
+            }
 
-            Log.Debug(m => m("No connections currently available on {0} - {1}. Trying again. - Disposed: {2}", EndPoint, _identity, _disposed));
+            Log.Debug(m => m("No connections currently available on {0} - {1}. Trying again[{2}]. - Disposed: {3}",
+                EndPoint, _identity, _acquireFailedCount, _disposed));
+
             return Acquire();
         }
 
@@ -130,7 +152,7 @@ namespace Couchbase.IO
         /// Releases an acquired <see cref="IConnection"/> object back into the pool so that it can be reused by another operation.
         /// </summary>
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
-        public void Release(T connection) 
+        public void Release(T connection)
         {
             Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
 

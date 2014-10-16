@@ -161,6 +161,7 @@
     <Compile Include="IDocument%27.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IOperationResult%27.cs" />
+    <Compile Include="IO\ConnectionUnavailableException.cs" />
     <Compile Include="IO\Operations\Compression.cs" />
     <Compile Include="IO\Operations\DataFormat.cs" />
     <Compile Include="IO\Operations\Flags.cs" />
