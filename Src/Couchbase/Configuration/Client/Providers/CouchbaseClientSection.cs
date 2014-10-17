@@ -199,6 +199,17 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["viewRequestTimeout"]; }
             set { this["viewRequestTimeout"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
+        /// </summary>
+        /// <remarks>The default is false.</remarks>
+        [ConfigurationProperty("expect100Continue", DefaultValue = false, IsRequired = false)]
+        public bool Expect100Continue
+        {
+            get { return (bool)this["expect100Continue"]; }
+            set { this["expect100Continue"] = value; }
+        }
     }
 }
 
