@@ -140,29 +140,47 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
         {
-            IConfigObserver configObserver;
-            if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+            var lockTaken = false;
+            try
             {
-                IConfigInfo configInfo;
-                if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
+                Monitor.TryEnter(SyncObj, ref lockTaken);
+                if (!lockTaken) return;
+                IConfigObserver configObserver;
+                if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
                 {
-                    var oldBucketConfig = configInfo.BucketConfig;
-                    if (bucketConfig.Rev > oldBucketConfig.Rev || force)
+                    IConfigInfo configInfo;
+                    if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
                     {
-                        Log.Info(m => m("Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force, bucketConfig.Rev, oldBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
-                        configInfo.LoadConfig(bucketConfig, force);
-                        ClientConfig.UpdateBootstrapList(bucketConfig);
-                        configObserver.NotifyConfigChanged(configInfo);
+                        var oldBucketConfig = configInfo.BucketConfig;
+                        if (bucketConfig.Rev > oldBucketConfig.Rev || force)
+                        {
+                            Log.Info(
+                                m =>
+                                    m("Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force,
+                                        bucketConfig.Rev, oldBucketConfig.Rev,
+                                        JsonConvert.SerializeObject(bucketConfig)));
+
+                            configInfo.LoadConfig(bucketConfig, force);
+                            ClientConfig.UpdateBootstrapList(bucketConfig);
+                            configObserver.NotifyConfigChanged(configInfo);
+                        }
+                    }
+                    else
+                    {
+                        throw new ConfigNotFoundException(bucketConfig.Name);
                     }
                 }
                 else
                 {
-                    throw new ConfigNotFoundException(bucketConfig.Name);
+                    Log.Warn(m => m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
                 }
             }
-            else
+            finally
             {
-                Log.Warn(m=>m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
+                if (lockTaken)
+                {
+                    Monitor.Exit(SyncObj);
+                }
             }
         }
 
