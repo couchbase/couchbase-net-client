@@ -40,7 +40,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -54,7 +54,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_InValid_Credentials_Provided_Authenticate_Returns_False()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -68,7 +68,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True2()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secret", new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secret", new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -82,7 +82,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_InValid_Credentials_Provided_Authenticate_Returns_False2()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "wrongpass", new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "wrongpass", new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -96,7 +96,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Bucket_Has_No_Password_And_Password_Is_Null_Authenticate_Succeeds()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null, new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", null, new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
             _ioStrategy.SaslMechanism = authenticator;
 
@@ -110,7 +110,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Bucket_Has_No_Password_Authenticate_Succeeds()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
@@ -124,7 +124,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void Test_ComputeResponse()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "protected", "secret", new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "protected", "secret", new AutoByteConverter());
             const string challenge = "6382f3e79a804548"; //"15cedeaaf8b06c34";
             const string expected = "protected 3ca7b9f1b81bc7f6c2c9e5f48af3311d"; //"protected 06f8b68edb01c7b453f50429d4bfb195";
 
@@ -136,7 +136,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [ExpectedException(typeof(IOException))]
         public void When_IOException_Occurs_Authenticate_Throws_Exception()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new ManualByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new AutoByteConverter());
             _ioStrategy.ConnectionPool.Initialize();
 
             var connection = _ioStrategy.ConnectionPool.Acquire();

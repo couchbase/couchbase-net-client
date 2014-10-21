@@ -15,6 +15,7 @@ namespace Couchbase.Configuration.Client
     /// ReceiveTimeout = 2500;
     /// ShutdownTimeout = 10000;
     /// OperationTimeout = 2500;
+    /// MaxConnectionAcquireCount = 5;
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
@@ -26,10 +27,11 @@ namespace Couchbase.Configuration.Client
             RecieveTimeout = 2500;
             ShutdownTimeout = 10000;
             OperationTimeout = 2500;
+            MaxAcquireIterationCount = 5;
         }
 
         public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
-            int operationTimeout)
+            int operationTimeout, int maxAcquireIterationCount)
         {
             //todo enable app.configuration
             MaxSize = maxSize;
@@ -38,6 +40,7 @@ namespace Couchbase.Configuration.Client
             RecieveTimeout = receiveTimeout;
             ShutdownTimeout = shutdownTimeout;
             OperationTimeout = operationTimeout;
+            MaxAcquireIterationCount = maxAcquireIterationCount;
         }
 
         /// <summary>
@@ -54,6 +57,12 @@ namespace Couchbase.Configuration.Client
         /// The amount of time a thread will wait for a <see cref="IConnection"/> once the MaxSize of the pool has been reached.
         /// </summary>
         public int WaitTimeout { get; set; }
+
+        /// <summary>
+        /// The maximum number of iterations that a thread will wait for an available connection before throwing a <see cref="ConnectionUnavailableException"/>.
+        /// </summary>
+        /// <remarks>The default is 5 iterations.</remarks>
+        public int MaxAcquireIterationCount { get; set; }
 
         [Obsolete]
         public int RecieveTimeout { get; set; }

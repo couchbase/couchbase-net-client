@@ -12,6 +12,8 @@ using Common.Logging;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -20,7 +22,7 @@ using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Views;
 
-namespace Couchbase.Core.Buckets
+namespace Couchbase
 {
     /// <summary>
     /// Represents a persistent Couchbase Bucket and can be used for performing CRUD operations on documents,

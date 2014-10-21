@@ -71,7 +71,12 @@ namespace Couchbase.Utils
             IPAddress ipAddress;
             if (!IPAddress.TryParse(address[0], out ipAddress))
             {
-                throw new ArgumentException("ipAddress");
+                var uri = new Uri(String.Format("http://{0}", server));
+                ipAddress = uri.GetIpAddress();
+                if(ipAddress == null)
+                {
+                    throw new ArgumentException("ipAddress");
+                }
             }
             int port;
             if (!int.TryParse(address[1], out port))

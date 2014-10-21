@@ -84,7 +84,7 @@ namespace Couchbase.Authentication.SASL
             var authenticated = false;
             Username = username;
             Password = password ?? string.Empty;
-           
+
             var temp = connection;
             Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
 
@@ -99,6 +99,7 @@ namespace Couchbase.Authentication.SASL
                 result = _ioStrategy.Execute(operation, connection);
             }
 
+            //even if the request succeeded, if the body doesn't contain 'Authenticated' then auth failed.
             authenticated = result.Status == ResponseStatus.Success &&
                    result.Value.Equals("Authenticated");
 
@@ -110,9 +111,10 @@ namespace Couchbase.Authentication.SASL
             else if (result.Status != ResponseStatus.Success)
             {
                 var tempResult = result;
-                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message));
+                Log.Debug(m => m("Authentication for socket {0} failed for a non-auth related reason: {1} - {2}", temp.Identity, tempResult.Message, tempResult.Status));
                 if (operation.Exception != null)
                 {
+                    Log.Debug(m=>m("Throwing exception for connection {0}", temp.Identity));
                     throw operation.Exception;
                 }
             }

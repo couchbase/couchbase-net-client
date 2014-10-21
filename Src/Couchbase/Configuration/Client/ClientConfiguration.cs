@@ -50,6 +50,7 @@ namespace Couchbase.Configuration.Client
             DeserializationContractResolver = new CamelCasePropertyNamesContractResolver();
             ViewRequestTimeout = 5000; //ms
             DefaultConnectionLimit = 5; //connections
+            Expect100Continue = false;
 
             PoolConfiguration = new PoolConfiguration();
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -88,6 +89,7 @@ namespace Couchbase.Configuration.Client
             EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
             HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
             ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
+            Expect100Continue = couchbaseClientSection.Expect100Continue;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -214,6 +216,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// The maximum amount of time that a View will request take before timing out. Note this includes time for retries, etc.
         /// </summary>
+        /// <remarks>Default is 30000ms</remarks>
         public int ViewHardTimeout
         {
             get { return _viewHardTimeout; }
@@ -314,6 +317,17 @@ namespace Couchbase.Configuration.Client
         {
             get { return ServicePointManager.MaxServicePointIdleTime; }
             set { ServicePointManager.MaxServicePointIdleTime = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
+        /// </summary>
+        /// <remarks>The default is false, which overrides the <see cref="ServicePointManager"/>'s default of true.</remarks>
+        /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.expect100continue%28v=vs.110%29.aspx</remarks>
+        public bool Expect100Continue
+        {
+            get { return ServicePointManager.Expect100Continue; }
+            set { ServicePointManager.Expect100Continue = value; }
         }
 
         /// <summary>

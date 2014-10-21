@@ -24,13 +24,14 @@ namespace Couchbase.Tests.IO
         private const int RecieveTimeout = 1000;
         private const int SendTimeout = 1000;
         private const string Address = "127.0.0.1:11210";
+        private const int MaxConnectionAcquireCount = 10;
 
         [SetUp]
         public void SetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var factory = DefaultConnectionFactory.GetDefault();
-            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout);
+            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, MaxConnectionAcquireCount);
             _connectionPool = new DefaultConnectionPool(_configuration, ipEndpoint, factory);
             _connectionPool.Initialize();
         }
