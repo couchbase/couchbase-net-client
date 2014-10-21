@@ -1040,6 +1040,15 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void Test_Couchbase_BucketType()
+        {
+            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            {
+                Assert.AreEqual(Couchbase.Core.Buckets.BucketTypeEnum.Couchbase, bucket.BucketType);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

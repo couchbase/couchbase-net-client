@@ -21,6 +21,11 @@ namespace Couchbase.Core
         string Name { get; }
 
         /// <summary>
+        /// Returns type of the bucket (either Couchbase or Memcached)
+        /// </summary>
+        Couchbase.Core.Buckets.BucketTypeEnum BucketType { get; }
+
+        /// <summary>
         /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
         /// </summary>
         /// <param name="key">The key to 'observe'.</param>
