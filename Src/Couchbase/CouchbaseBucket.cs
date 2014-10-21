@@ -470,11 +470,11 @@ namespace Couchbase
         /// Inserts or replaces a range of items into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items)
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
         {
             var keys = items.Keys.ToList();
             var results = new Dictionary<string, IOperationResult<T>>();
@@ -496,12 +496,12 @@ namespace Couchbase
         /// Inserts or replaces a range of items into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
         /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options)
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
         {
             var keys = items.Keys.ToList();
             var results = new Dictionary<string, IOperationResult<T>>();
@@ -523,13 +523,13 @@ namespace Couchbase
         /// Inserts or replaces a range of items into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="Dictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
         /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
         /// <param name="rangeSize">The size of each subrange</param>
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(Dictionary<string, T> items, ParallelOptions options, int rangeSize)
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
         {
             var keys = items.Keys.ToList();
             var results = new Dictionary<string, IOperationResult<T>>();
