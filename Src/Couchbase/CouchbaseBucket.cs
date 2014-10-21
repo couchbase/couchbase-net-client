@@ -63,6 +63,17 @@ namespace Couchbase
         public string Name { get; set; }
 
         /// <summary>
+        /// Returns type of the bucket. In this implementation the value is constant: Couchbase.
+        /// </summary>
+        public BucketTypeEnum BucketType 
+        {
+            get
+            {
+                return BucketTypeEnum.Couchbase;
+            }
+        }
+
+        /// <summary>
         /// Called when a configuration update has occurred from the server.
         /// </summary>
         /// <param name="configInfo">The new configuration</param>

@@ -415,6 +415,15 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void Test_Memcached_BucketType()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                Assert.AreEqual(Couchbase.Core.Buckets.BucketTypeEnum.Memcached, bucket.BucketType);
+            }
+        }
+
         [TearDown]
         public void TestFixtureTearDown()
         {

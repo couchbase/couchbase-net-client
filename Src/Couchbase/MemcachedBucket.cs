@@ -59,6 +59,17 @@ namespace Couchbase
         public string Name { get; set; }
 
         /// <summary>
+        /// Returns type of the bucket. In this implementation the value is constant: Memcached.
+        /// </summary>
+        public Couchbase.Core.Buckets.BucketTypeEnum BucketType
+        {
+            get
+            {
+                return Couchbase.Core.Buckets.BucketTypeEnum.Memcached;
+            }
+        }
+
+        /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.
         /// </summary>
         public bool IsSecure
