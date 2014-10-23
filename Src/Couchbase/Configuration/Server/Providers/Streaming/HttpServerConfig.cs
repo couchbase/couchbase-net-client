@@ -112,7 +112,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         T DownLoadConfig<T>(Uri uri)
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
             ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
             var response = ReplaceHost(DownloadString(uri), uri);
             return JsonConvert.DeserializeObject<T>(response);
