@@ -146,7 +146,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 Monitor.TryEnter(SyncObj, ref lockTaken);
                 if (!lockTaken) return;
                 IConfigObserver configObserver;
-                if (ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+                if (ConfigObservers != null && ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
                 {
                     IConfigInfo configInfo;
                     if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
