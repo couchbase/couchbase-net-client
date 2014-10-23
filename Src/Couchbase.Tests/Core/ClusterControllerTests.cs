@@ -125,9 +125,9 @@ namespace Couchbase.Tests.Core
 
             var bucketConfig = op.GetResult().Value;
 
-            var controller = new ClusterController(new ClientConfiguration());
-            var updateBootstrapList = controller.GetType().GetMethod("UpdateBootstrapList", BindingFlags.NonPublic | BindingFlags.Instance);
-            updateBootstrapList.Invoke(controller, new [] {bucketConfig});
+            var config = new ClientConfiguration();
+            config.UpdateBootstrapList(bucketConfig);
+            Assert.IsFalse(config.Servers.Exists(x => x.Host == "$HOST"));
         }
     }
 }
