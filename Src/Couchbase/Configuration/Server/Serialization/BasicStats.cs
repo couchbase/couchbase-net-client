@@ -17,19 +17,19 @@ namespace Couchbase.Configuration.Server.Serialization
         public double DiskFetches { get; set; }
 
         [JsonProperty("itemCount")]
-        public int ItemCount { get; set; }
+        public long ItemCount { get; set; }
 
         [JsonProperty("diskUsed")]
-        public int DiskUsed { get; set; }
+        public ulong DiskUsed { get; set; }
 
         [JsonProperty("dataUsed")]
-        public int DataUsed { get; set; }
+        public ulong DataUsed { get; set; }
 
         [JsonProperty("memUsed")]
-        public int MemUsed { get; set; }
+        public ulong MemUsed { get; set; }
 
         [JsonProperty("hitRatio")]
-        public int? HitRatio { get; set; }
+        public uint? HitRatio { get; set; }
     }
 }
 
