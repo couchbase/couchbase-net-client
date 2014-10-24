@@ -63,19 +63,18 @@ namespace Couchbase.IO.Operations
 
         public virtual void Reset()
         {
+            Reset(ResponseStatus.Success);
+        }
+
+        public virtual void Reset(ResponseStatus status)
+        {
             if (Data != null)
             {
                 Data.Dispose();
             }
             LengthReceived = 0;
             Data = new MemoryStream();
-            LengthReceived = 0;
             Buffer = null;
-            Header = new OperationHeader();
-        }
-
-        public virtual void HandleClientError(string message)
-        {
             Header = new OperationHeader
             {
                 Magic = 0,
@@ -83,8 +82,13 @@ namespace Couchbase.IO.Operations
                 Cas = 0,
                 BodyLength = 0,
                 Key = Key,
-                Status = ResponseStatus.ClientFailure
+                Status = status
             };
+        }
+
+        public virtual void HandleClientError(string message)
+        {
+            Reset(ResponseStatus.ClientFailure);
             var msgBytes = Encoding.UTF8.GetBytes(message);
             LengthReceived += msgBytes.Length;
             if (Data == null)

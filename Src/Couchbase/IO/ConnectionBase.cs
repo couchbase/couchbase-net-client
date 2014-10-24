@@ -123,19 +123,13 @@ namespace Couchbase.IO
                     ConnectionPool.EndPoint);
 
                 Log.Warn(message, e);
-                WriteError("Failed. Check Exception property.", operation, 0);
+                operation.HandleClientError("Failed. Check Exception property.");
                 operation.Exception = e;
             }
             finally
             {
                 SendEvent.Set();
             }
-        }
-
-        private static void WriteError(string errorMsg, IOperation operation, int offset)
-        {
-            var bytes = Encoding.UTF8.GetBytes(errorMsg);
-            operation.Read(bytes, offset, errorMsg.Length);
         }
 
         public EndPoint EndPoint { get; private set; }
