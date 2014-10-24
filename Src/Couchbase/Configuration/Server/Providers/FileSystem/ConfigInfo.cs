@@ -139,6 +139,12 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             throw new NotImplementedException();
         }
+
+
+        public List<IServer> Servers
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

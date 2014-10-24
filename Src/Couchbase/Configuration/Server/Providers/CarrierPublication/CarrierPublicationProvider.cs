@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using System.Timers;
@@ -39,22 +40,29 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         void _heartBeat_Elapsed(object sender, ElapsedEventArgs args)
         {
-            try
+            foreach (var configInfo in Configs)
             {
-                foreach (var configInfo in Configs)
+                var value = configInfo.Value;
+                foreach (var server in value.Servers.Where(x=>!x.IsDead))
                 {
-                    var value = configInfo.Value;
-                    var server = value.GetServer();
-                    var result = server.Send(new Config(Converter, server.EndPoint));
-                    if (result.Success)
+                    try
                     {
-                        UpdateConfig(result.Value);
+                        var result = server.Send(new Config(Converter, server.EndPoint));
+                        if (result.Success && result.Status == ResponseStatus.Success)
+                        {
+                            var config = result.Value;
+                            if (config != null)
+                            {
+                                UpdateConfig(result.Value);
+                                break; //break on first success
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warn(e);
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
             }
         }
 

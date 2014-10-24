@@ -217,6 +217,22 @@ namespace Couchbase.Configuration
             }
         }
 
+        List<IServer> IConfigInfo.Servers
+        {
+            get
+            {
+                try
+                {
+                    Lock.EnterReadLock();
+                    return Servers.ToList();
+                }
+                finally
+                {
+                    Lock.ExitReadLock();
+                }
+            }
+        }
+
         /// <summary>
         /// Reclaims all resources and suppresses finalization.
         /// </summary>

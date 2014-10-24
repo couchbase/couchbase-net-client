@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -58,6 +60,8 @@ namespace Couchbase.Configuration
         /// Loads the most updated configuration creating any resources as needed based upon the passed in  <see cref="IBucketConfig"/>.
         /// </summary>
         void LoadConfig(IBucketConfig bucketConfig, bool force=false);
+
+        List<IServer> Servers { get; }
     }
 }
 
