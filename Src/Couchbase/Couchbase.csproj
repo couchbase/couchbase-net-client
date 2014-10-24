@@ -281,13 +281,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <None Include="ClassDiagram1.cd" />
-    <None Include="ClassDiagram2.cd" />
     <None Include="Couchbase.nuspec" />
-    <None Include="Diagrams\ClassDiagram1.cd" />
-    <None Include="Diagrams\ClassDiagram2.cd" />
-    <None Include="Diagrams\ClassDiagram3.cd" />
-    <None Include="Diagrams\document-crud.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
