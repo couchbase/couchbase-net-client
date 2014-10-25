@@ -33,36 +33,47 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             {
                 Interval = ClientConfig.HeartbeatConfigInterval,
                 Enabled = ClientConfig.EnableConfigHeartBeat,
-                AutoReset = true
+                AutoReset = false
             };
             _heartBeat.Elapsed += _heartBeat_Elapsed;
         }
 
         void _heartBeat_Elapsed(object sender, ElapsedEventArgs args)
         {
-            foreach (var configInfo in Configs)
+            try
             {
-                var value = configInfo.Value;
-                foreach (var server in value.Servers.Where(x=>!x.IsDead))
+                foreach (var configInfo in Configs)
                 {
-                    try
+                    var value = configInfo.Value;
+                    foreach (var server in value.Servers.Where(x => !x.IsDead))
                     {
-                        var result = server.Send(new Config(Converter, server.EndPoint));
-                        if (result.Success && result.Status == ResponseStatus.Success)
+                        try
                         {
-                            var config = result.Value;
-                            if (config != null)
+                            var result = server.Send(new Config(Converter, server.EndPoint));
+                            if (result.Success && result.Status == ResponseStatus.Success)
                             {
-                                UpdateConfig(result.Value);
-                                break; //break on first success
+                                var config = result.Value;
+                                if (config != null)
+                                {
+                                    UpdateConfig(result.Value);
+                                    break; //break on first success
+                                }
                             }
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Warn(e);
+                        catch (Exception e)
+                        {
+                            Log.Warn(e);
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+            finally
+            {
+                _heartBeat.Start();
             }
         }
 
