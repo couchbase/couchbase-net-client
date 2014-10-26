@@ -1454,7 +1454,7 @@ namespace Couchbase
         /// Increments the reference counter for this <see cref="IBucket"/> instance.
         /// </summary>
         /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
-        public int AddRef()
+        int IRefCountable.AddRef()
         {
             lock (RefCounts)
             {
@@ -1468,7 +1468,7 @@ namespace Couchbase
         /// Decrements the reference counter and calls <see cref="IDisposable.Dispose"/> if the count is zero.
         /// </summary>
         /// <returns></returns>
-        public int Release()
+        int IRefCountable.Release()
         {
             lock (RefCounts)
             {
@@ -1509,7 +1509,7 @@ namespace Couchbase
         public void Dispose()
         {
             Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
-            Release();
+            ((IRefCountable)this).Release();
         }
 
         /// <summary>
