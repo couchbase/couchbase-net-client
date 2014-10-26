@@ -24,7 +24,8 @@ namespace Couchbase.Core
         private readonly Node _nodeInfo;
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
-        private bool _disposed;
+        private volatile bool _disposed;
+        private volatile bool _isDead;
 
         public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
@@ -73,7 +74,11 @@ namespace Couchbase.Core
 
         public bool IsSecure { get { return _ioStrategy.IsSecure; } }
 
-        public bool IsDead { get; private set; }
+        public bool IsDead
+        {
+            get { return _isDead; }
+            set { _isDead = value; }
+        }
 
         public IQueryClient QueryClient { get; private set; }
 
@@ -211,6 +216,7 @@ namespace Couchbase.Core
         {
             if (!_disposed)
             {
+                MarkDead();
                 if (disposing)
                 {
                     GC.SuppressFinalize(this);
