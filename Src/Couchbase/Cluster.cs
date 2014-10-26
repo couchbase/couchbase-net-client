@@ -19,6 +19,7 @@ namespace Couchbase
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
+        private volatile bool _disposed;
 
         /// <summary>
         /// Ctor for creating Cluster instance using the default settings.
@@ -154,14 +155,26 @@ namespace Couchbase
         /// </summary>
         public void Dispose()
         {
-            //There is a bug here somewhere - note that when called this should close and cleanup _everything_
-            //however, if you do not explicitly call Cluster.CloseBucket(bucket) in certain cases the HttpStreamingProvider
-            //listener thread will hang indefinitly if Cluster.Dispose() is called. This is a definite bug that needs to be
-            //resolved before developer preview.
-            if (_clusterController != null)
+            Dispose(true);
+            Log.Debug(m => m("Disposing {0}", GetType().Name));
+        }
+
+        /// <summary>
+        /// Disposes the Cluster object, calling GC.SuppressFinalize(this) if it's not called on the finalization thread.
+        /// </summary>
+        /// <param name="disposing">True if called by an explicit call to Dispose by the consuming application; false if called via finalization.</param>
+        void Dispose(bool disposing)
+        {
+            if (!_disposed)
             {
-                Log.Debug(m => m("Disposing {0}", GetType().Name));
-                _clusterController.Dispose();
+                if (disposing)
+                {
+                    GC.SuppressFinalize(this);
+                }
+                if (_clusterController != null)
+                {
+                    _clusterController.Dispose();
+                }
             }
         }
 
@@ -171,11 +184,8 @@ namespace Couchbase
         /// <remarks>will run if Dispose is not called on a Cluster instance.</remarks>
         ~Cluster()
         {
+            Dispose(false);
             Log.Debug(m=>m("Finalizing {0}", GetType().Name));
-            if (_clusterController != null)
-            {
-                _clusterController.Dispose();
-            }
         }
     }
 }
