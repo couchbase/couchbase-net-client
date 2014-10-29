@@ -105,6 +105,19 @@ namespace Couchbase.IO
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public bool IsDead
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }
 

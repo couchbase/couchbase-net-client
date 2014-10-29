@@ -29,6 +29,16 @@ namespace Couchbase.IO.Operations
 
             return buffer;
         }
+
+        public override IOperation<object> Clone()
+        {
+            var cloned = new Delete(Key, VBucket, Converter, Transcoder)
+            {
+                Attempts = Attempts,
+                Cas = Cas
+            };
+            return cloned;
+        }
     }
 }
 

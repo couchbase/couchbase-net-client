@@ -51,7 +51,7 @@ namespace Couchbase.IO.Operations
 
         IVBucket VBucket { get; set; }
 
-        void HandleClientError(string message);
+        void HandleClientError(string message, ResponseStatus responseStatus);
 
         IBucketConfig GetConfig();
     }

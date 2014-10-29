@@ -25,6 +25,16 @@ namespace Couchbase.IO.Operations
         {
             get { return OperationCode.Replace; }
         }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new Replace<T>(Key, RawValue, VBucket, Converter, Transcoder)
+            {
+                Attempts = Attempts,
+                Cas = Cas
+            };
+            return cloned;
+        }
     }
 }
 #region [ License information ]

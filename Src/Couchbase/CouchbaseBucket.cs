@@ -65,7 +65,7 @@ namespace Couchbase
         /// <summary>
         /// Returns type of the bucket. In this implementation the value is constant: Couchbase.
         /// </summary>
-        public BucketTypeEnum BucketType 
+        public BucketTypeEnum BucketType
         {
             get
             {
@@ -108,13 +108,15 @@ namespace Couchbase
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    Log.Debug(m => m("Operation {0} succeeded {1} for key {2} : value", operation.GetType().Name, operation.Attempts, operation.Key));
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation, server))
                 {
                     Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
                         operation.Key, operationResult.Message));
+
+                    operation = operation.Clone();
                 }
                 else
                 {
@@ -186,7 +188,9 @@ namespace Couchbase
                 case ResponseStatus.TemporaryFailure:
                     break;
                 case ResponseStatus.ClientFailure:
-                    retry = HandleIOError(operation, server) || supportsRetry;
+                    retry = HandleIOError(operation, server);
+                    break;
+                case ResponseStatus.OperationTimeout:
                     break;
             }
             return retry;

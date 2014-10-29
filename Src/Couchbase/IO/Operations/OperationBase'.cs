@@ -44,6 +44,7 @@ namespace Couchbase.IO.Operations
             VBucket = vBucket;
             Converter = converter;
             MaxRetries = DefaultRetries;
+            Data = new MemoryStream();
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
@@ -72,9 +73,9 @@ namespace Couchbase.IO.Operations
             {
                 Data.Dispose();
             }
+            Exception = null;
             LengthReceived = 0;
             Data = new MemoryStream();
-            Buffer = null;
             Header = new OperationHeader
             {
                 Magic = 0,
@@ -86,9 +87,9 @@ namespace Couchbase.IO.Operations
             };
         }
 
-        public virtual void HandleClientError(string message)
+        public virtual void HandleClientError(string message, ResponseStatus responseStatus)
         {
-            Reset(ResponseStatus.ClientFailure);
+            Reset(responseStatus);
             var msgBytes = Encoding.UTF8.GetBytes(message);
             LengthReceived += msgBytes.Length;
             if (Data == null)
@@ -108,7 +109,7 @@ namespace Couchbase.IO.Operations
                     OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
                     KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
                     ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus)Converter.ToInt16(buffer, HeaderIndexFor.Status),
+                    Status = (ResponseStatus) Converter.ToInt16(buffer, HeaderIndexFor.Status),
                     BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
                     Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                     Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
@@ -314,7 +315,7 @@ namespace Couchbase.IO.Operations
         public virtual T GetValue()
         {
             var result = default(T);
-            if(Success && Data != null)
+            if(Success && Data != null && Data.Length > 0)
             {
                 try
                 {
@@ -325,7 +326,7 @@ namespace Couchbase.IO.Operations
                 catch (Exception e)
                 {
                     Exception = e;
-                    HandleClientError(e.Message);
+                    HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }
             return result;
@@ -461,6 +462,11 @@ namespace Couchbase.IO.Operations
         public int Attempts { get; set; }
 
         public int MaxRetries { get; set; }
+
+        public virtual IOperation<T> Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

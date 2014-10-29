@@ -1,4 +1,5 @@
 ﻿using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
@@ -14,6 +15,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        public Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
+            : base(key, value, transcoder, vBucket, converter)
+        {
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Set; }
@@ -22,6 +28,16 @@ namespace Couchbase.IO.Operations
         public override int BodyOffset
         {
             get { return 24; }
+        }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter)
+            {
+                Attempts = Attempts,
+                Cas = Cas
+            };
+            return cloned;
         }
     }
 }

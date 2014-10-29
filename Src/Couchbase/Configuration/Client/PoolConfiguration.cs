@@ -16,6 +16,7 @@ namespace Couchbase.Configuration.Client
     /// ShutdownTimeout = 10000;
     /// OperationTimeout = 2500;
     /// MaxConnectionAcquireCount = 5;
+    /// ConnectionTimeout = 15000;
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
@@ -28,6 +29,7 @@ namespace Couchbase.Configuration.Client
             ShutdownTimeout = 10000;
             OperationTimeout = 2500;
             MaxAcquireIterationCount = 5;
+            ConnectionTimeout = 15000;
         }
 
         public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
@@ -83,6 +85,11 @@ namespace Couchbase.Configuration.Client
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
         /// </summary>
         public bool UseSsl { get; set; }
+
+        /// <summary>
+        /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
+        /// </summary>
+        public int ConnectionTimeout { get; set; }
     }
 }
 

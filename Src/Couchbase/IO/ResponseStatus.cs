@@ -20,7 +20,7 @@ namespace Couchbase.IO
         /// The key exists in the database.
         /// </summary>
         KeyExists = 0x0002,
-       
+
         /// <summary>
         /// The value of the object stored was too large.
         /// </summary>
@@ -98,6 +98,12 @@ namespace Couchbase.IO
         /// <summary>
         /// A client error has occured before the operation could be sent to the server.
         /// </summary>
-        ClientFailure = 0x0199
+        ClientFailure = 0x0199,
+
+        /// <summary>
+        /// The operation exceeded the specified OperationTimeout configured for the client instance.
+        /// </summary>
+        /// <remarks>The default is 2500ms.</remarks>
+        OperationTimeout = 0x0200
     }
 }

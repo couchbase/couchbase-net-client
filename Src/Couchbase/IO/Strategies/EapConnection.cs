@@ -1,12 +1,7 @@
-﻿using System.IO;
-using Couchbase.Configuration.Client;
-using Couchbase.IO.Converters;
+﻿using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net.Sockets;
-using System.ServiceModel.Channels;
-using System.Text;
-using System.Threading;
 
 namespace Couchbase.IO.Strategies
 {
@@ -31,23 +26,19 @@ namespace Couchbase.IO.Strategies
         {
             try
             {
-                operation.Reset();
                 var buffer = operation.Write();
-                var index = operation.VBucket == null ? 0 : operation.VBucket.Index;
-                Log.Info(m=>m("Sending key {0} using {1} on {2}", operation.Key,index, EndPoint));
                 _networkStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-
-                if (!SendEvent.WaitOne(Configuration.OperationTimeout))
+                if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
                 {
-                    const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
-                    operation.HandleClientError(msg);
+                    const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                    operation.HandleClientError(msg, ResponseStatus.ClientFailure);
+                    IsDead = true;
                 }
             }
             catch (Exception e)
             {
                 HandleException(e, operation);
             }
-
             return operation.GetResult();
         }
 

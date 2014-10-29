@@ -156,7 +156,15 @@ namespace Couchbase.IO
         {
             Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
 
-            _store.Enqueue(connection);
+            if (connection.IsDead)
+            {
+                connection.Dispose();
+                Interlocked.Decrement(ref _count);
+            }
+            else
+            {
+                _store.Enqueue(connection);
+            }
             _autoResetEvent.Set();
         }
 

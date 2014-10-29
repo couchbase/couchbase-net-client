@@ -31,11 +31,13 @@ namespace Couchbase.IO
         /// </summary>
         bool IsSecure { get; }
 
-        IOperationResult<T> Send<T>(IOperation<T> operation); 
+        IOperationResult<T> Send<T>(IOperation<T> operation);
 
         OperationAsyncState State { get; }
 
         EndPoint EndPoint { get; }
+
+        bool IsDead { get; set; }
     }
 }
 

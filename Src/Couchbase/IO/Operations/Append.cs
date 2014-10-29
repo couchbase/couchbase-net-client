@@ -40,6 +40,16 @@ namespace Couchbase.IO.Operations
         {
             get { return OperationCode.Append; }
         }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new Append<T>(Key, RawValue, Transcoder, VBucket, Converter)
+            {
+                Attempts = Attempts,
+                Cas = Cas
+            };
+            return cloned;
+        }
     }
 }
 

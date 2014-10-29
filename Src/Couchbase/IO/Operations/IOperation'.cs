@@ -8,5 +8,7 @@ namespace Couchbase.IO.Operations
         Couchbase.IOperationResult<T> GetResult();
 
         T GetValue();
+
+        IOperation<T> Clone();
     }
 }

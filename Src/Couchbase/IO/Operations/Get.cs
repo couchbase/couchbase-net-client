@@ -34,6 +34,16 @@ namespace Couchbase.IO.Operations
         {
             get { return 28; }
         }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new Get<T>(Key, VBucket, Converter, Transcoder)
+            {
+                Attempts = Attempts,
+                Cas = Cas
+            };
+            return cloned;
+        }
     }
 }
 

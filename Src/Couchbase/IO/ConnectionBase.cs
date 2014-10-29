@@ -27,8 +27,9 @@ namespace Couchbase.IO
         protected IConnectionPool ConnectionPool;
         protected PoolConfiguration Configuration;
         protected volatile bool Disposed;
+        private volatile bool _isDead;
 
-        protected ConnectionBase(Socket socket, IByteConverter converter) 
+        protected ConnectionBase(Socket socket, IByteConverter converter)
             : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*1000, 1024))
         {
         }
@@ -40,6 +41,15 @@ namespace Couchbase.IO
             _converter = converter;
             BufferManager = bufferManager;
             EndPoint = socket.RemoteEndPoint;
+        }
+
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager, IPEndPoint endPoint)
+        {
+            _socket = socket;
+            _state = asyncState;
+            _converter = converter;
+            BufferManager = bufferManager;
+            EndPoint = endPoint;
         }
 
         public OperationAsyncState State
@@ -103,7 +113,7 @@ namespace Couchbase.IO
             {
                 state.Body = new OperationBody
                 {
-                  Extras =state.Header.ExtrasLength > 0 ?
+                    Extras =state.Header.ExtrasLength > 0 ?
                       new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength).Array :
                       new ArraySegment<byte>().Array,
                     Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength-state.Header.ExtrasLength).Array
@@ -123,7 +133,7 @@ namespace Couchbase.IO
                     ConnectionPool.EndPoint);
 
                 Log.Warn(message, e);
-                operation.HandleClientError("Failed. Check Exception property.");
+                operation.HandleClientError("Failed. Check Exception property.", ResponseStatus.ClientFailure);
                 operation.Exception = e;
             }
             finally
@@ -133,6 +143,13 @@ namespace Couchbase.IO
         }
 
         public EndPoint EndPoint { get; private set; }
+
+
+        public bool IsDead
+        {
+            get { return _isDead; }
+            set { _isDead = value; }
+        }
     }
 }
 

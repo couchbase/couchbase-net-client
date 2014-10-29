@@ -70,7 +70,7 @@ namespace Couchbase.IO.Operations
                 catch (Exception e)
                 {
                     Exception = e;
-                    HandleClientError(e.Message);
+                    HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }
             return bucketConfig;

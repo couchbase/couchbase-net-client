@@ -1,9 +1,7 @@
 ﻿using System;
-using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
-using System.Threading;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 
@@ -13,12 +11,12 @@ namespace Couchbase.IO.Strategies
     {
         private readonly SslStream _sslStream;
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter) 
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket)), converter)
         {
         }
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream, IByteConverter converter) 
+        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream, IByteConverter converter)
             : base(socket, converter)
         {
             ConnectionPool = connectionPool;
@@ -49,10 +47,11 @@ namespace Couchbase.IO.Strategies
                 var buffer = operation.Write();
 
                 _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
-                if (!SendEvent.WaitOne(Configuration.OperationTimeout))
+                if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
                 {
-                    const string msg = "Operation timed out: the timeout can be configured by changing the PoolConfiguration.OperationTimeout property. The default is 2500ms.";
-                    operation.HandleClientError(msg);
+                    const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                    operation.HandleClientError(msg, ResponseStatus.ClientFailure);
+                    IsDead = true;
                 }
             }
             catch (Exception e)

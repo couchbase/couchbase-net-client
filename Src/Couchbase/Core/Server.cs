@@ -96,7 +96,7 @@ namespace Couchbase.Core
             {
                 result = operation.GetResult();
                 operation.Exception = e;
-                operation.HandleClientError(e.Message);
+                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
             return result;
         }
