@@ -33,7 +33,7 @@ namespace Couchbase.IO.Operations
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
             Converter.FromInt32(body.Length, header, HeaderIndexFor.BodyLength);
-            Converter.FromInt32(Opaque, header, HeaderIndexFor.Opaque);
+            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
 
             var buffer = new byte[body.Length + header.Length];
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);

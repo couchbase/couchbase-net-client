@@ -19,11 +19,7 @@ namespace Couchbase.IO.Operations
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
-
-        //TODO needs to be resolved - note there will be an instance of the variable for every Type T!
-        private static int _sequenceId;
-
-        private readonly int _opaque;
+        private readonly uint _opaque;
         private readonly ITypeTranscoder _transcoder;
         private readonly T _value;
         protected readonly IByteConverter Converter;
@@ -35,12 +31,12 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket,
-            IByteConverter converter)
+            IByteConverter converter, uint opaque)
         {
             Key = key;
             _value = value;
             _transcoder = transcoder;
-            _opaque = Interlocked.Increment(ref _sequenceId);
+            _opaque = opaque;
             VBucket = vBucket;
             Converter = converter;
             MaxRetries = DefaultRetries;
@@ -48,17 +44,17 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new DefaultTranscoder(converter), vBucket, converter)
+            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext())
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter)
+            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext())
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : this(key, default(T), transcoder, vBucket, converter)
+            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext())
         {
         }
 
@@ -155,7 +151,7 @@ namespace Couchbase.IO.Operations
             }
 
             Converter.FromInt32(totalLength, header, HeaderIndexFor.BodyLength);
-            Converter.FromInt32(Opaque, header, HeaderIndexFor.Opaque);
+            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
             Converter.FromUInt64(Cas, header, HeaderIndexFor.Cas);
 
             return header;
@@ -413,11 +409,6 @@ namespace Couchbase.IO.Operations
             get { return _transcoder; }
         }
 
-        public int SequenceId
-        {
-            get { return _sequenceId + GetHashCode(); }
-        }
-
         public string Key { get; protected set; }
 
         public Exception Exception { get; set; }
@@ -438,7 +429,7 @@ namespace Couchbase.IO.Operations
             get { return _value; }
         }
 
-        public int Opaque
+        public uint Opaque
         {
             get { return _opaque; }
         }

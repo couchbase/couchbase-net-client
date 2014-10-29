@@ -147,6 +147,7 @@
     <Compile Include="CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
+    <Compile Include="IO\Operations\SequenceGenerator.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />

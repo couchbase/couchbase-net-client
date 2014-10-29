@@ -17,7 +17,7 @@ namespace Couchbase.IO.Operations
             IVBucket vBucket,
             IByteConverter converter,
             ITypeTranscoder transcoder)
-            : base(key, initial, transcoder, vBucket, converter)
+            : base(key, initial, transcoder, vBucket, converter, SequenceGenerator.GetNext())
         {
             _delta = delta;
             _initial = initial;

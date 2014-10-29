@@ -10,5 +10,7 @@ namespace Couchbase.IO.Operations
         T GetValue();
 
         IOperation<T> Clone();
+
+        uint Opaque { get; }
     }
 }

@@ -12,8 +12,6 @@ namespace Couchbase.IO.Operations
 
         ITypeTranscoder Transcoder { get; }
 
-        int SequenceId { get; }
-
         string Key { get; }
 
         Exception Exception { get; set; }
@@ -54,6 +52,8 @@ namespace Couchbase.IO.Operations
         void HandleClientError(string message, ResponseStatus responseStatus);
 
         IBucketConfig GetConfig();
+
+        uint Opaque { get; }
     }
 }
 

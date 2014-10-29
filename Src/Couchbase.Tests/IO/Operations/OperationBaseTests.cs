@@ -1,4 +1,7 @@
-﻿using Couchbase.Core.Transcoders;
+﻿using System;
+using System.ServiceModel.Channels;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -294,6 +297,26 @@ namespace Couchbase.Tests.IO.Operations
 
             Assert.AreEqual(expected[0], bytes[0]);
             Assert.AreEqual(DataFormat.Json, set.Format);
+        }
+
+        [Test]
+        public void When_Operation_Is_Created_Opaque_Is_Incremented()
+        {
+            var get1 = new Get<dynamic>("thekey", null, null, null);
+            var get2 = new Get<dynamic>("thekey", null, null, null);
+            Assert.Greater(get2.Opaque, get1.Opaque);
+
+            var set3 = new Set<dynamic>("thekey", "the value", null, null, null);
+            Assert.Greater(set3.Opaque, get2.Opaque);
+
+            var set4 = new Set<string>("thekey", "the value", null, null, null);
+            Assert.Greater(set4.Opaque, set3.Opaque);
+
+            var append5 = new Append<string>(null, null, null, null, null);
+            Assert.Greater(append5.Opaque, set4.Opaque);
+
+            var append6 = new Append<byte[]>(null, null, null, null, null);
+            Assert.Greater(append6.Opaque, append5.Opaque);
         }
     }
 }

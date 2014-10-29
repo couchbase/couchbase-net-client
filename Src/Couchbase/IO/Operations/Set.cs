@@ -16,7 +16,7 @@ namespace Couchbase.IO.Operations
         }
 
         public Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, transcoder, vBucket, converter)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext())
         {
         }
 
