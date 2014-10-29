@@ -105,7 +105,8 @@ namespace Couchbase.Views
                     var stream = e.Response.GetResponseStream();
                     viewResult = Mapper.Map<ViewResult<T>>(stream);
                 }
-                ProcessError(e, viewResult);
+                viewResult.Exception = e;
+                viewResult.StatusCode = GetStatusCode(e.Message);
                 Log.Error(e);
             }
             catch (Exception e)
