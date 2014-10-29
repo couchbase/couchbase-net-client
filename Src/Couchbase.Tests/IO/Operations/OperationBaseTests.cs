@@ -1,7 +1,4 @@
-﻿using System;
-using System.ServiceModel.Channels;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO;
+﻿using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
