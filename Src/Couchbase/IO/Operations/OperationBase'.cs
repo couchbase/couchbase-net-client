@@ -69,15 +69,15 @@ namespace Couchbase.IO.Operations
             {
                 Data.Dispose();
             }
-            Exception = null;
-            LengthReceived = 0;
             Data = new MemoryStream();
+            LengthReceived = 0;
+
             Header = new OperationHeader
             {
-                Magic = 0,
+                Magic = Header.Magic,
                 OperationCode = OperationCode,
-                Cas = 0,
-                BodyLength = 0,
+                Cas = Header.Cas,
+                BodyLength = Header.BodyLength,
                 Key = Key,
                 Status = status
             };
