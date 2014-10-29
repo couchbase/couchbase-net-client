@@ -40,6 +40,7 @@ namespace Couchbase.Tests.IO.Operations
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
 
+            increment.Reset();
             var result2 = IOStrategy.Execute(increment);
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(1, result2.Value);
