@@ -37,7 +37,7 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
-            Log.Info(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
+            Log.Debug(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
             return _vBuckets[index];
         }
 
