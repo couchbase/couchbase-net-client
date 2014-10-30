@@ -87,6 +87,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             CouchbaseConfigContext configInfo = null;
             foreach (var endPoint in bucketConfiguration.GetEndPoints())
             {
+                Log.Debug(m=>m("Bootstrapping with {0}", endPoint));
                 try
                 {
                     var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
@@ -131,14 +132,22 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 catch (ConfigException)
                 {
+                    Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     throw;
                 }
-                catch (AuthenticationException)
+                catch (AuthenticationException e)
                 {
-                    throw;
+                    const string msg =
+                        "A failure to authenticate may mean that the server has not joined the cluster" +
+                        " yet or that the Bucket does not exist. Please check that {0} has joined that" +
+                        " cluster and that the Bucket '{1}' exists.";
+
+                    Log.Warn(m => m(msg, endPoint, bucketName));
+                    Log.Warn(e);
                 }
                 catch (Exception e)
                 {
+                    Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     Log.Warn(e);
                 }
             }

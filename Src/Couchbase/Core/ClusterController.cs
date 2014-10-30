@@ -195,7 +195,7 @@ namespace Couchbase.Core
                         if (provider.RegisterObserver(configObserver) &&
                             _buckets.TryAdd(bucket.Name, bucket))
                         {
-                            Log.DebugFormat("Successfully boostrap using {0}.", provider);
+                            Log.DebugFormat("Successfully bootstrapped using {0}.", provider);
                             _clientConfig.UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;

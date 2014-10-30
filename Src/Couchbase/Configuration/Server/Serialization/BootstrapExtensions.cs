@@ -9,7 +9,7 @@ namespace Couchbase.Configuration.Server.Serialization
         {
             if (!bootstrap.Pools.Any())
             {
-                const string msg = "No servers returned by boostrap url. This may indicate that you are attempting to bootstrap to a server that has not yet joined a cluster yet.";
+                const string msg = "No servers returned by bootstrap url. This may indicate that you are attempting to bootstrap to a server that has not joined a cluster yet.";
                 throw new BootstrapException(msg);
             }
             return FixupUri(baseUri, bootstrap.Pools.First().Uri);

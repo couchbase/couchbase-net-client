@@ -71,7 +71,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             catch (BootstrapException e)
             {
                 Log.Error(e);
-                throw;
             }
             catch (WebException e)
             {
