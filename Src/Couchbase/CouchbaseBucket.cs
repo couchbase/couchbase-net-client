@@ -108,7 +108,7 @@ namespace Couchbase
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation {0} succeeded {1} for key {2} : value", operation.GetType().Name, operation.Attempts, operation.Key));
+                    Log.Debug(m => m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name, operation.Attempts, operation.Key, operationResult.Value));
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation, server))
@@ -131,6 +131,12 @@ namespace Couchbase
                     m =>
                         m("Operation for key {0} failed after {1} retries. Reason: {2}", operation.Key,
                             operation.Attempts, operationResult.Message));
+                if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                {
+                    const string msg = "The operation has timed out.";
+                    ((OperationResult) operationResult).Message = msg;
+                    ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                }
             }
             return operationResult;
         }
