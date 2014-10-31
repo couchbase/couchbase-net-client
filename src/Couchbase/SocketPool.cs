@@ -265,7 +265,7 @@ namespace Couchbase
                         {
                             if (Log.IsInfoEnabled)
                             {
-                                Log.InfoFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                Log.DebugFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
                             }
                             socket.Close();
                             itemsDisposed++;
@@ -280,12 +280,12 @@ namespace Couchbase
                         {
                             if (Log.IsInfoEnabled)
                             {
-                                Log.InfoFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                Log.DebugFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
                             }
                             socket.Close();
                             if (Log.IsInfoEnabled)
                             {
-                                Log.InfoFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                Log.DebugFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
                             }
                             itemsDisposed++;
                         }
@@ -309,7 +309,7 @@ namespace Couchbase
         {
             if(Log.IsDebugEnabled)
             {
-                Log.InfoFormat("Finalizing {0}", GetType().Name);
+                Log.DebugFormat("Finalizing {0}", GetType().Name);
             }
             Dispose(false);
         }

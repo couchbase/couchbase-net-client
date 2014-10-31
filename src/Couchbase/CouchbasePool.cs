@@ -99,7 +99,7 @@ namespace Couchbase
 
         private void InitNodes(ClusterConfig config)
         {
-            if (log.IsInfoEnabled) log.Info("Received new configuration.");
+            if (log.IsDebugEnabled) log.DebugFormat("Received new configuration.");
 
             // we cannot overwrite the config while the timer is is running
             lock (_syncObj)
@@ -125,7 +125,7 @@ namespace Couchbase
 
             if (config == null)
             {
-                if (log.IsInfoEnabled) log.Info("Config is empty, all nodes are down.");
+                if (log.IsDebugEnabled) log.DebugFormat("Config is empty, all nodes are down.");
                 return; //continue to use current state and wait for config update
             }
 
@@ -215,7 +215,7 @@ namespace Couchbase
             // so we we'll use this for initializing the locator
             var vbsm = config.vBucketServerMap;
 
-            if (log.IsInfoEnabled) log.Info("Has vbucket. Server count: " + (vbsm.serverList == null ? 0 : vbsm.serverList.Length));
+            if (log.IsDebugEnabled) log.DebugFormat("Has vbucket. Server count: " + (vbsm.serverList == null ? 0 : vbsm.serverList.Length));
 
             // parse the ip addresses of the servers in the vbucket map
             // make sure we have a proper vbucket map
@@ -270,7 +270,7 @@ namespace Couchbase
 
         private InternalState InitBasic(ClusterConfig config, ISaslAuthenticationProvider auth)
         {
-            if (log.IsInfoEnabled) log.Info("No vbucket. Server count: " + (config.nodes == null ? 0 : config.nodes.Length));
+            if (log.IsDebugEnabled) log.DebugFormat("No vbucket. Server count: " + (config.nodes == null ? 0 : config.nodes.Length));
 
             // the cluster can return host names in the server list, so
             // we ha ve to make sure they are converted to IP addresses
