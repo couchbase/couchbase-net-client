@@ -175,6 +175,7 @@ namespace Couchbase
                 {
                     _clusterController.Dispose();
                 }
+                _disposed = true;
             }
         }
 
@@ -185,7 +186,6 @@ namespace Couchbase
         ~Cluster()
         {
             Dispose(false);
-            Log.Debug(m=>m("Finalizing {0}", GetType().Name));
         }
     }
 }
