@@ -669,7 +669,7 @@ namespace Couchbase
         /// <returns></returns>
         public CasResult<T> GetWithLock<T>(string key)
         {
-            return GetWithLock<T>(key, TimeSpan.Zero);
+            return GetWithLock<T>(key, TimeSpan.FromSeconds(15));
         }
 
         /// <summary>
