@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using Enyim.Caching.Memcached;
@@ -132,6 +133,24 @@ namespace Couchbase.Tests
             var result2 = TestUtils.Store(Client, TimeSpan.FromSeconds(ttl), StoreMode.Add, "key_ttl_test", document);
             TestUtils.StoreAssertPass(result1);
             TestUtils.StoreAssertPass(result2);
+        }
+
+        [Test]
+        public void Store()
+        {
+            using (var client = new CouchbaseClient())
+            {
+                var result1 = client.ExecuteStore(StoreMode.Set, "a", 1, DateTime.UtcNow.AddMilliseconds(500));
+                var result2 = client.ExecuteStore(StoreMode.Set, "b", 1, TimeSpan.FromMilliseconds(500));
+
+                Assert.IsTrue(client.ExecuteGet("a").Success);
+                Assert.IsTrue(client.ExecuteGet("b").Success);
+
+                Thread.Sleep(2000);
+
+                Assert.IsFalse(client.ExecuteGet("a").Success);
+                Assert.IsFalse(client.ExecuteGet("b").Success);
+            }
         }
     }
 }
