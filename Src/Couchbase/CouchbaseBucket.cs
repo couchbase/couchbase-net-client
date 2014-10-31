@@ -1307,7 +1307,8 @@ namespace Couchbase
                         var server = c.GetServer();
                         return server.Send<T>(query);
                     },
-                        query, _configInfo, cancellationTokenSource.Token);
+                    query, _configInfo, cancellationTokenSource.Token);
+                    task.ConfigureAwait(false);
                     task.Wait(cancellationTokenSource.Token);
                     viewResult = task.Result;
                 }

@@ -46,9 +46,9 @@ namespace Couchbase.Views
             var viewResult = new ViewResult<T>();
             try
             {
-                var result = await HttpClient.GetAsync(uri);
+                var result = await HttpClient.GetAsync(uri).ConfigureAwait(false);
                 var content = result.Content;
-                using (var stream = await content.ReadAsStreamAsync())
+                using (var stream = await content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
                     viewResult = Mapper.Map<ViewResult<T>>(stream);
                     viewResult.Success = result.IsSuccessStatusCode;

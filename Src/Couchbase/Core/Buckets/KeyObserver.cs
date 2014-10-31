@@ -165,6 +165,7 @@ namespace Couchbase.Core.Buckets
                     Task.WaitAll(tasks.ToArray());
                     return tasks.All(subtask => subtask.Result);
                 }, observeParams, _interval, cancellationTokenSource.Token);
+                task.ConfigureAwait(false);
                 task.Wait(_timeout);
                 return task.Result;
             }
@@ -200,7 +201,8 @@ namespace Couchbase.Core.Buckets
             if (op.IsDurabilityMet()) return true;
 
             var replica = op.VBucket.LocateReplica(replicaIndex);
-            var result = await Task.Run(()=>replica.Send(new Observe(op.Key, op.VBucket, new AutoByteConverter())));
+            var result = await Task.Run(()=>replica.Send(new Observe(op.Key, op.VBucket, new AutoByteConverter())))
+                .ConfigureAwait(false);
 
             Log.Debug(m=>m("Replica {0} - {1} [0]", replica.EndPoint, result.Value, replicaIndex));
             var state = result.Value;
