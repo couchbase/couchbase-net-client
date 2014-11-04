@@ -19,9 +19,12 @@ namespace Couchbase.IO.Operations
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
+        public const int DefaultTimeout = 2500;//ms
         private readonly uint _opaque;
         private readonly ITypeTranscoder _transcoder;
         private readonly T _value;
+        private readonly DateTime _creationTime;
+        private bool _timedOut;
         protected readonly IByteConverter Converter;
         protected Flags Flags = new Flags();
 
@@ -31,12 +34,14 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket,
-            IByteConverter converter, uint opaque)
+            IByteConverter converter, uint opaque, uint timeout)
         {
             Key = key;
             _value = value;
             _transcoder = transcoder;
             _opaque = opaque;
+            _creationTime = DateTime.UtcNow;
+            Timeout = timeout;
             VBucket = vBucket;
             Converter = converter;
             MaxRetries = DefaultRetries;
@@ -44,17 +49,17 @@ namespace Couchbase.IO.Operations
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext())
+            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext())
+            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
         protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext())
+            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
@@ -454,9 +459,25 @@ namespace Couchbase.IO.Operations
 
         public int MaxRetries { get; set; }
 
+        public DateTime CreationTime { get; set; }
+
         public virtual IOperation<T> Clone()
         {
             throw new NotImplementedException();
+        }
+
+        public uint Timeout { get; set; }
+
+        public bool TimedOut()
+        {
+            if (_timedOut) return _timedOut;
+
+            var elasped = DateTime.UtcNow.Subtract(_creationTime).TotalMilliseconds;
+            if (elasped >= Timeout)
+            {
+                _timedOut = true;
+            }
+            return _timedOut;
         }
     }
 }

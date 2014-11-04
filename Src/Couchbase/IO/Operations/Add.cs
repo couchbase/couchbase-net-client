@@ -7,12 +7,12 @@ namespace Couchbase.IO.Operations
     internal sealed class Add<T> : OperationBase<T>
     {
         public Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext())
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
         public Add(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext())
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
             Cas = cas;
         }

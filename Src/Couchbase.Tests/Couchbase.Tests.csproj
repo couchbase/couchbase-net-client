@@ -95,6 +95,7 @@
     <Compile Include="Fakes\FakeConnectionPool.cs" />
     <Compile Include="Fakes\FakeOperation.cs" />
     <Compile Include="Fakes\FakeOperationResult.cs" />
+    <Compile Include="Fakes\SlowSet.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
     <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
     <Compile Include="IO\Converters\AutoByteConverterTests.cs" />

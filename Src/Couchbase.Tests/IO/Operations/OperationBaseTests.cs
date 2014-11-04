@@ -1,4 +1,5 @@
-﻿using Couchbase.Core.Transcoders;
+﻿using System.Threading;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -314,6 +315,44 @@ namespace Couchbase.Tests.IO.Operations
 
             var append6 = new Append<byte[]>(null, null, null, null, null);
             Assert.Greater(append6.Opaque, append5.Opaque);
+        }
+
+        [Test]
+        public void When_Default_Timeout_Is_Used_Operation_Times_Out_At_2500ms()
+        {
+            var set3 = new Set<dynamic>("thekey", "the value", null, null, null);
+            Thread.Sleep(2500);
+            Assert.IsTrue(set3.TimedOut());
+        }
+
+        [Test]
+        public void When_Default_Timeout_Is_Used_Operation_DoesNot_Time_Out_After_2000ms()
+        {
+            var set3 = new Set<dynamic>("thekey", "the value", null, null, null);
+            Thread.Sleep(2000);
+            Assert.IsFalse(set3.TimedOut());
+        }
+
+        [Test]
+        public void When_Custom_Timeout_Is_Used_Operation_Times_Out_After_Interval()
+        {
+            var set = new Set<dynamic>("thekey", "the value", null, null, null)
+            {
+                Timeout = 1000
+            };
+            Thread.Sleep(1001);
+            Assert.IsTrue(set.TimedOut());
+        }
+
+        [Test]
+        public void When_Custom_Timeout_Is_Used_Operation_Does_Not_Timeout_Before_Interval()
+        {
+            var set = new Set<dynamic>("thekey", "the value", null, null, null)
+            {
+                Timeout = 1000
+            };
+            Thread.Sleep(500);
+            Assert.IsFalse(set.TimedOut());
         }
     }
 }

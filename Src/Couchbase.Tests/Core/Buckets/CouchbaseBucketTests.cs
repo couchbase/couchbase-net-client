@@ -8,9 +8,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
+using Couchbase.Tests.Fakes;
 using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
@@ -1046,6 +1049,65 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
                 Assert.AreEqual(Couchbase.Core.Buckets.BucketTypeEnum.Couchbase, bucket.BucketType);
+            }
+        }
+
+        [Test]
+        public void When_Operation_Is_Successful_It_Does_Not_Timeout()
+        {
+            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
+            {
+                var slowSet = new SlowSet<object>(
+                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
+                    "When_Operation_Is_Slow_Operation_TimesOut",
+                    new DefaultTranscoder(new AutoByteConverter()),
+                    null,
+                    new AutoByteConverter())
+                {
+                    Timeout = 500,
+                    SleepTime = 1000
+                };
+
+                var result = bucket.SendWithRetry(slowSet);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+            }
+        }
+
+        [Test]
+        public void When_Operation_Is_Faster_Than_Timeout_Operation_Succeeds()
+        {
+            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
+            {
+                var slowSet = new SlowSet<object>(
+                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
+                    "When_Operation_Is_Slow_Operation_TimesOut",
+                    new DefaultTranscoder(new AutoByteConverter()),
+                    null,
+                    new AutoByteConverter())
+                {
+                    Timeout = 1000,
+                    SleepTime = 500
+                };
+
+                var result = bucket.SendWithRetry(slowSet);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+            }
+        }
+
+        [Test]
+        public void When_Timeout_Defaults_Are_Used_Operation_Succeeds()
+        {
+            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
+            {
+                var slowSet = new SlowSet<object>(
+                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
+                    "When_Operation_Is_Slow_Operation_TimesOut",
+                    new DefaultTranscoder(new AutoByteConverter()),
+                    null,
+                    new AutoByteConverter());
+
+                var result = bucket.SendWithRetry(slowSet);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System.Net.NetworkInformation;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
@@ -16,18 +17,13 @@ namespace Couchbase.IO.Operations
         }
 
         public Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext())
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
         public override OperationCode OperationCode
         {
             get { return OperationCode.Set; }
-        }
-
-        public override int BodyOffset
-        {
-            get { return 24; }
         }
 
         public override IOperation<T> Clone()

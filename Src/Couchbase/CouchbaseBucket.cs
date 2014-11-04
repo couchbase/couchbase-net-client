@@ -92,7 +92,7 @@ namespace Couchbase
             return vBucket.LocatePrimary();
         }
 
-        private IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
+        internal IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
             CheckDisposed();
             IOperationResult<T> operationResult = new OperationResult<T>{Success = false};
@@ -111,10 +111,12 @@ namespace Couchbase
                     Log.Debug(m => m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name, operation.Attempts, operation.Key, operationResult.Value));
                     break;
                 }
-                if (CanRetryOperation(operationResult, operation, server))
+                if (CanRetryOperation(operationResult, operation, server) && !operation.TimedOut())
                 {
-                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                        operation.Key, operationResult.Message));
+                    IOperation<T> operation1 = operation;
+                    IOperationResult<T> result = operationResult;
+                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}",
+                        operation1.Attempts, operation1.Key, result.Message));
 
                     operation = operation.Clone();
                 }
@@ -123,20 +125,19 @@ namespace Couchbase
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }
-            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
+            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success && !operation.TimedOut());
 
             if (!operationResult.Success)
             {
-                Log.Debug(
-                    m =>
-                        m("Operation for key {0} failed after {1} retries. Reason: {2}", operation.Key,
-                            operation.Attempts, operationResult.Message));
-                if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                if (operation.TimedOut())
                 {
                     const string msg = "The operation has timed out.";
                     ((OperationResult) operationResult).Message = msg;
                     ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
                 }
+
+                const string msg1 = "Operation for key {0} failed after {1} retries. Reason: {2}";
+                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operationResult.Message));
             }
             return operationResult;
         }

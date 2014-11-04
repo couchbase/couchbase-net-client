@@ -12,7 +12,7 @@ namespace Couchbase.IO.Operations
         }
 
         public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext())
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 

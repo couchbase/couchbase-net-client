@@ -54,6 +54,12 @@ namespace Couchbase.IO.Operations
         IBucketConfig GetConfig();
 
         uint Opaque { get; }
+
+        uint Timeout { get; set; }
+
+        bool TimedOut();
+
+        DateTime CreationTime { get; set; }
     }
 }
 
