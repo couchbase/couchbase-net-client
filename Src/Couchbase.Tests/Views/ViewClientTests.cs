@@ -85,6 +85,26 @@ namespace Couchbase.Tests.Views
         }
 
         [Test]
+        public void When_Url_Is_Invalid_WebException_Is_Returned_2()
+        {
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample").
+                BaseUri("http://192.168.62.104:8092/");
+
+            var client = new ViewClient(new HttpClient(),
+                new JsonDataMapper(),
+                new BucketConfig { Name = "beer-sample" },
+                new ClientConfiguration{ViewRequestTimeout = 30000});
+
+            var result = client.Execute<dynamic>(query);
+            Assert.IsNotNull(result.Rows);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
+            Assert.AreEqual(typeof(WebException), result.Exception.GetType());
+        }
+
+        [Test]
         public void Test_ExecuteAsync()
         {
             var query = new ViewQuery().
