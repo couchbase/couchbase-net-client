@@ -214,7 +214,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         ConnectionPoolFactory,
                         SaslFactory,
                         Converter,
-                        transcoder);
+                        Transcoder);
                     break;
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
@@ -223,7 +223,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         ConnectionPoolFactory,
                         SaslFactory,
                         Converter,
-                        transcoder);
+                        Transcoder);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

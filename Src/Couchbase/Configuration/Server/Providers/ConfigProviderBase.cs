@@ -39,7 +39,7 @@ namespace Couchbase.Configuration.Server.Providers
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             Converter = converter;
-            transcoder = transcoder;
+            Transcoder = transcoder;
         }
 
         protected ClientConfiguration ClientConfig
@@ -74,7 +74,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         public IByteConverter Converter { get; set; }
 
-        public ITypeTranscoder transcoder { get; set; }
+        public ITypeTranscoder Transcoder { get; set; }
 
         public abstract IConfigInfo GetConfig(string name, string password);
 

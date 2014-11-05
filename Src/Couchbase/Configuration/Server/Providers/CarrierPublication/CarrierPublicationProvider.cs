@@ -107,7 +107,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             ConnectionPoolFactory,
                             SaslFactory,
                             Converter,
-                            transcoder);
+                            Transcoder);
 
                         Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
 
