@@ -152,7 +152,7 @@ namespace Couchbase.Core
                 {
                     try
                     {
-                        Log.DebugFormat("Trying to boostrap with {0}.", provider);
+                        Log.DebugFormat("Trying to bootstrap with {0}.", provider);
                         var config = provider.GetConfig(bucketName, password);
                         IRefCountable refCountable = null;
                         switch (config.NodeLocator)

@@ -4,7 +4,7 @@ using System.Configuration;
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
-    /// Represents a collection of <see cref="Uri"/> for a Couchbase cluster. The client will use this list for boostrapping and communicating with the cluster.
+    /// Represents a collection of <see cref="Uri"/> for a Couchbase cluster. The client will use this list for bootstrapping and communicating with the cluster.
     /// </summary>
     public sealed class UriElementCollection : ConfigurationElementCollection
     {

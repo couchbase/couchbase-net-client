@@ -419,7 +419,7 @@ namespace Couchbase.Configuration.Client
                     for (var i = 0; i < _servers.Count(); i++)
                     {
                         var useSsl = UseSsl || bucketConfiguration.UseSsl;
-                        //Rewrite the URI's for boostrapping to use SSL.
+                        //Rewrite the URI's for bootstrapping to use SSL.
                         if (useSsl)
                         {
                             var oldUri = _servers[i];
