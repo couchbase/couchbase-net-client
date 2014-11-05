@@ -168,17 +168,18 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
         {
-            var lockTaken = false;
-            try
+            IConfigObserver configObserver;
+            if (ConfigObservers != null && ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {
-                Monitor.TryEnter(SyncObj, ref lockTaken);
-                if (!lockTaken) return;
-                IConfigObserver configObserver;
-                if (ConfigObservers != null && ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+                IConfigInfo configInfo;
+                if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
                 {
-                    IConfigInfo configInfo;
-                    if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
+                    var lockTaken = false;
+                    try
                     {
+                        Monitor.TryEnter(configInfo, ref lockTaken);
+                        if (!lockTaken) return;
+
                         var oldBucketConfig = configInfo.BucketConfig;
                         if (bucketConfig.Rev > oldBucketConfig.Rev || force)
                         {
@@ -193,22 +194,22 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             configObserver.NotifyConfigChanged(configInfo);
                         }
                     }
-                    else
+                    finally
                     {
-                        throw new ConfigNotFoundException(bucketConfig.Name);
+                        if (lockTaken)
+                        {
+                            Monitor.Exit(configInfo);
+                        }
                     }
                 }
                 else
                 {
-                    Log.Warn(m => m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
+                    throw new ConfigNotFoundException(bucketConfig.Name);
                 }
             }
-            finally
+            else
             {
-                if (lockTaken)
-                {
-                    Monitor.Exit(SyncObj);
-                }
+                Log.Warn(m => m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
             }
         }
 

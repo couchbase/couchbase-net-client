@@ -32,7 +32,7 @@ namespace Couchbase.Core
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly IByteConverter _converter;
         private readonly ITypeTranscoder _transcoder;
-        private static readonly object SyncObject = new object();
+        private readonly object _syncObject = new object();
         private volatile bool _disposed;
 
         public ClusterController(ClientConfiguration clientConfig)
@@ -144,7 +144,7 @@ namespace Couchbase.Core
         public IBucket CreateBucket(string bucketName, string password)
         {
             var exceptions = new List<Exception>();
-            lock (SyncObject)
+            lock (_syncObject)
             {
                 var success = false;
                 IBucket bucket = null;
@@ -241,7 +241,7 @@ namespace Couchbase.Core
 
         public void Dispose(bool disposing)
         {
-            lock (SyncObject)
+            lock (_syncObject)
             {
                 if (!_disposed)
                 {

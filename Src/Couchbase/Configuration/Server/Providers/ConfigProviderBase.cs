@@ -24,13 +24,13 @@ namespace Couchbase.Configuration.Server.Providers
         private readonly ConcurrentDictionary<string, IConfigInfo> _configs = new ConcurrentDictionary<string, IConfigInfo>();
         private readonly ConcurrentDictionary<string, IConfigObserver> _configObservers = new ConcurrentDictionary<string, IConfigObserver>();
         protected volatile bool Disposed;
-        protected static object SyncObj = new object();
+        protected object SyncObj = new object();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
 
         protected ConfigProviderBase(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory, 
+            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
         {
