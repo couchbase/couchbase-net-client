@@ -14,7 +14,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public long Used { get; set; }
 
         [JsonProperty("usedByData")]
-        public int UsedByData { get; set; }
+        public long UsedByData { get; set; }
 
         [JsonProperty("free")]
         public long Free { get; set; }
