@@ -124,6 +124,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     //CCCP only supported for Couchbase Buckets
                     if (operationResult.Status == ResponseStatus.UnknownCommand)
                     {
+                        ioStrategy.Dispose();
                         throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                     }
                     Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
