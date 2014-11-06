@@ -111,7 +111,6 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2, bucket.ConnectionPool.MaxSize);
             Assert.AreEqual(1, bucket.ConnectionPool.MinSize);
             Assert.AreEqual("default", bucket.ConnectionPool.Name);
-            
         }
 
         [Test]
@@ -190,6 +189,7 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.AreEqual("shhh!", bucketKvp.Value.Password);
                 Assert.IsTrue(bucketKvp.Value.UseSsl);
                 Assert.AreEqual("testbucket", bucketKvp.Value.BucketName);
+                Assert.AreEqual(2, configuration.BucketConfigs.Count);
 
                 var poolConfiguration = bucketKvp.Value.PoolConfiguration;
                 Assert.IsTrue(poolConfiguration.UseSsl);
@@ -204,10 +204,10 @@ namespace Couchbase.Tests.Configuration.Client
         public void When_Bucket_UseSsl_Is_True_In_AppConfig_UseSsl_Returns_True()
         {
             var section = (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
-            
+
             var buckets = new BucketElement[section.Buckets.Count];
             section.Buckets.CopyTo(buckets, 0);
-            
+
             Assert.IsFalse(section.UseSsl);
             Assert.IsTrue(buckets.First().UseSsl);
         }

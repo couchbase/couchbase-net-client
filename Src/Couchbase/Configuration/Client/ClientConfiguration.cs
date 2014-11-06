@@ -97,6 +97,7 @@ namespace Couchbase.Configuration.Client
                 Servers.Add(((UriElement)server).Uri);
                 _serversChanged = true;
             }
+            BucketConfigs = new Dictionary<string, BucketConfiguration>();
             foreach (var bucketElement in couchbaseClientSection.Buckets)
             {
                 var bucket = (BucketElement) bucketElement;
@@ -116,7 +117,7 @@ namespace Couchbase.Configuration.Client
                         UseSsl = bucket.ConnectionPool.UseSsl,
                     }
                 };
-                BucketConfigs = new Dictionary<string, BucketConfiguration> {{bucket.Name, bucketConfiguration}};
+                BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
         }
 

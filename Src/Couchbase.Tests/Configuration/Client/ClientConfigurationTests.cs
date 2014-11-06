@@ -135,7 +135,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(true, bucket.UseSsl);
             Assert.AreEqual("https://localhost:18091/pools", config.Servers.First().ToString());
 
-            Assert.AreEqual("127.0.0.1:11207", bucket.GetEndPoint().ToString());      
+            Assert.AreEqual("127.0.0.1:11207", bucket.GetEndPoint().ToString());
         }
 
         [Test]
