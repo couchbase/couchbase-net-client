@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
@@ -33,6 +34,16 @@ namespace Couchbase.IO.Operations
 
         public override byte[] CreateExtras()
         {
+            var format = (byte)GetFormat();
+            const byte compression = (byte)Compression.None;
+
+            var typeCode = (ushort)Type.GetTypeCode(typeof(T));
+            Format = (DataFormat)format;
+            Compression = compression;
+
+            Flags.DataFormat = Format;
+            Flags.Compression = Compression;
+            Flags.TypeCode = (TypeCode)typeCode;
             return new byte[0];
         }
 

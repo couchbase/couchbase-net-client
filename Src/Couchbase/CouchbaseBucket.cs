@@ -1208,7 +1208,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to append too.</param>
         /// <param name="value">The value to append to the key.</param>
-        /// <returns></returns>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Append(string key, string value)
         {
             CheckDisposed();
@@ -1226,11 +1226,33 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Append(string key, byte[] value)
+        {
+            CheckDisposed();
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
         /// Prepends a value to a give key.
         /// </summary>
         /// <param name="key">The key to Prepend too.</param>
         /// <param name="value">The value to prepend to the key.</param>
-        /// <returns></returns>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
             CheckDisposed();
@@ -1238,6 +1260,28 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Prepend(string key, byte[] value)
+        {
+            CheckDisposed();
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))

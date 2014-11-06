@@ -589,16 +589,32 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="key">The key to append too.</param>
         /// <param name="value">The value to append to the key.</param>
-        /// <returns></returns>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         IOperationResult<string> Append(string key, string value);
+
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        IOperationResult<byte[]> Append(string key, byte[] value);
 
         /// <summary>
         /// Prepends a value to a give key.
         /// </summary>
         /// <param name="key">The key to Prepend too.</param>
         /// <param name="value">The value to prepend to the key.</param>
-        /// <returns></returns>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         IOperationResult<string>Prepend(string key, string value);
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        IOperationResult<byte[]> Prepend(string key, byte[] value);
 
         /// <summary>
         /// Gets a Task that can be awaited on for a given Key and value.

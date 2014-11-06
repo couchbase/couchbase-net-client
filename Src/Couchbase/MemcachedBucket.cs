@@ -790,10 +790,35 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to append too.</param>
         /// <param name="value">The value to append to the key.</param>
-        /// <returns></returns>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Append(string key, string value)
         {
             var operation = new Append<string>(key, value, _transcoder, null, _converter);
+            return SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Append(string key, byte[] value)
+        {
+            var operation = new Append<byte[]>(key, value, _transcoder, null, _converter);
+            return SendWithRetry(operation);
+        }
+
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<string> Prepend(string key, string value)
+        {
+            var operation = new Prepend<string>(key, value, _transcoder, null, _converter);
             return SendWithRetry(operation);
         }
 
@@ -802,10 +827,10 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to Prepend too.</param>
         /// <param name="value">The value to prepend to the key.</param>
-        /// <returns></returns>
-        public IOperationResult<string> Prepend(string key, string value)
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Prepend(string key, byte[] value)
         {
-            var operation = new Prepend<string>(key, value, _transcoder, null, _converter);
+            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _converter);
             return SendWithRetry(operation);
         }
 

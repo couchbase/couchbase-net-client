@@ -137,7 +137,9 @@ namespace Couchbase.Core.Transcoders
                 case DataFormat.Binary:
                     if (typeof(T) == typeof(byte[]))
                     {
-                        value = buffer;
+                        var temp = new byte[length];
+                        Buffer.BlockCopy(buffer, offset, temp, 0, length);
+                        value = temp;
                     }
                     else
                     {

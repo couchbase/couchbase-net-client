@@ -456,6 +456,25 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_Append_ByteArray()
+        {
+            const string key = "CouchbaseBucket.Test_Append_ByteArray";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var bytes = new byte[]{0x00, 0x01};
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, bytes).Success);
+                var result2 = bucket.Get<byte[]>(key);
+                Assert.AreEqual(bytes, result2.Value);
+                var result = bucket.Append(key, new byte[]{0x02});
+                Assert.IsTrue(result.Success);
+
+                result = bucket.Get<byte[]>(key);
+                Assert.AreEqual(new byte[]{0x00, 0x01, 0x02}, result.Value);
+            }
+        }
+
+        [Test]
         public void Test_Prepend()
         {
             const string key = "CouchbaseBucket.Test_Prepend";
@@ -470,6 +489,24 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.AreEqual("!" +key, result.Value);
             }
         }
+
+        [Test]
+        public void Test_Prepend_ByteArray()
+        {
+            const string key = "CouchbaseBucket.Test_Prepend_ByteArray";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var bytes = new byte[] { 0x00, 0x01 };
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, bytes).Success);
+                var result = bucket.Prepend(key, new byte[] { 0x02 });
+                Assert.IsTrue(result.Success);
+
+                result = bucket.Get<byte[]>(key);
+                Assert.AreEqual(new byte[] {0x02, 0x00, 0x01,}, result.Value);
+            }
+        }
+
 
         [Test]
         public void When_Cas_Has_Changed_Replace_Fails()

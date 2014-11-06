@@ -162,7 +162,7 @@ namespace Couchbase.IO.Operations
             return header;
         }
 
-        private DataFormat GetFormat()
+        protected DataFormat GetFormat()
         {
             var dataFormat = DataFormat.Json;
             var typeCode = Type.GetTypeCode(typeof(T));
