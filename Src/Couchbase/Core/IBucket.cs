@@ -246,7 +246,7 @@ namespace Couchbase.Core
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        IOperationResult<T> Replace<T>(string key, T value, uint cas, uint expiration);
+        IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration);
 
         /// <summary>
         /// Replaces a document for a given key if it exists, otherwise fails.

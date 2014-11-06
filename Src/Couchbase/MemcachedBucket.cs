@@ -455,7 +455,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Replace<T>(string key, T value, uint cas, uint expiration)
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
