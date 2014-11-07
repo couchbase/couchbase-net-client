@@ -73,6 +73,36 @@ namespace Couchbase.Tests.Views
 
             Assert.AreEqual(new Uri(expected), actual.RawUri());
         }
+
+        [Test]
+        public void Test_Build_Basic_Query_Using_From_Limit_10_And_Start_and_EndKeys_With_Encode_False()
+        {
+            var expected = new Uri("http://localhost:8092/beer-sample/_design/beer/_view/brewery_beers?endkey=[\"aass_brewery\"]&limit=10&startkey=[\"21st_amendment_brewery_cafe\"]");
+            const string baseUri = "http://localhost:8092";
+            var query = new ViewQuery("beer-sample", baseUri).
+                From("beer", "brewery_beers").
+                StartKey("[\"21st_amendment_brewery_cafe\"]", false).
+                EndKey("[\"aass_brewery\"]", false).
+                Limit(10);
+            var uri = query.RawUri();
+            Assert.AreEqual(expected, uri);
+        }
+
+
+        [Test]
+        public void Test_Build_Basic_Query_Using_From_Limit_10_And_Start_and_EndKeys_2()
+        {
+            var expected = new Uri("http://localhost:8092/default/_design/test/_view/test_view?stale=update_after&endkey=\"doc3\"&limit=10&startkey=\"doc2\"");
+            const string baseUri = "http://localhost:8092";
+            var query = new ViewQuery("default", baseUri).
+                From("test", "test_view").
+                StartKey("doc2").
+                EndKey("doc3").
+                Stale(StaleState.UpdateAfter).
+                Limit(10);
+            var uri = query.RawUri();
+            Assert.AreEqual(expected, uri);
+        }
     }
 }
 

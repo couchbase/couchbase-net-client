@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Views
             var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig{Name = "beer-sample"}, new ClientConfiguration());
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);
-            Assert.AreEqual(result.StatusCode, HttpStatusCode.OK);
+            Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
         }
 
         [Test]

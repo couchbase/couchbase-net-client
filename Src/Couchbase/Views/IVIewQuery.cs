@@ -73,11 +73,19 @@ namespace Couchbase.Views
         IViewQuery EndKey(object endKey);
 
         /// <summary>
+        /// Stop returning records when the specified key is reached. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="endKey">The key to stop at</param>
+        /// <param name="encode">True to JSON encode the parameter.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery EndKey(object endKey, bool encode);
+
+        /// <summary>
         /// Stop returning records when the specified document ID is reached
         /// </summary>
         /// <param name="docId">The document Id to stop at.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery EndKeyDocId(int docId);
+        IViewQuery EndKeyDocId(object docId);
 
         /// <summary>
         /// Use the full cluster data set (development views only).
@@ -114,11 +122,27 @@ namespace Couchbase.Views
         IViewQuery Key(object key);
 
         /// <summary>
+        /// Return only documents that match the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="key">The key to retrieve</param>
+        /// <param name="encode">True to JSON encode the parameter.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery Key(object key, bool encode);
+
+        /// <summary>
         /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
         /// </summary>
         /// <param name="keys">The keys to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
         IViewQuery Keys(IEnumerable keys);
+
+        /// <summary>
+        /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve</param>
+        /// /// <param name="encode">True to JSON encode the parameter.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery Keys(IEnumerable keys, bool encode);
 
         /// <summary>
         /// Limit the number of the returned documents to the specified number
@@ -147,6 +171,14 @@ namespace Couchbase.Views
         /// <param name="endKey">The key to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         IViewQuery StartKey(object endKey);
+
+        /// <summary>
+        /// Return records with a value equal to or greater than the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="endKey">The key to return records greater than or equal to.</param>
+        /// <param name="encode">True to JSON encode the parameter.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        IViewQuery StartKey(object endKey, bool encode);
 
         /// <summary>
         /// Return records starting with the specified document ID.

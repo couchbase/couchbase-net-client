@@ -4,6 +4,7 @@ using System.Text;
 using Common.Logging;
 using Couchbase.Core;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 
 namespace Couchbase.Views
 {
@@ -187,18 +188,30 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery EndKey(object endKey)
         {
-            _endKey = endKey;
+            _endKey = EncodeParameter(endKey);
+            return this;
+        }
+
+        /// <summary>
+        /// Stop returning records when the specified key is reached. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="endKey">The key to stop at</param>
+        /// <param name="encode">True to JSON encode and URI escape the value.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        public IViewQuery EndKey(object endKey, bool encode)
+        {
+            _endKey = encode ? EncodeParameter(endKey) : endKey;
             return this;
         }
 
         /// <summary>
         /// Stop returning records when the specified document ID is reached
         /// </summary>
-        /// <param name="docId">The document Id to stop at.</param>
+        /// <param name="endDocId">The document Id to stop at.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery EndKeyDocId(int docId)
+        public IViewQuery EndKeyDocId(object endDocId)
         {
-            _endDocId = docId;
+            _endDocId = endDocId;
             return this;
         }
 
@@ -252,7 +265,19 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Key(object key)
         {
-            _key = key;
+            _key = EncodeParameter(key);
+            return this;
+        }
+
+        /// <summary>
+        /// Return only documents that match the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="key">The key to retrieve</param>
+        /// <param name="encode">True to JSON encode and URI escape the value.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        public IViewQuery Key(object key, bool encode)
+        {
+            _key = encode ? EncodeParameter(key) : key;
             return this;
         }
 
@@ -263,7 +288,19 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Keys(IEnumerable keys)
         {
-            _keys = keys;
+            _keys = EncodeParameter(keys);
+            return this;
+        }
+
+        /// <summary>
+        /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve</param>
+        /// <param name="encode">True to JSON encode and URI escape the value.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        public IViewQuery Keys(IEnumerable keys, bool encode)
+        {
+            _keys = encode ? EncodeParameter(keys) : keys;
             return this;
         }
 
@@ -307,18 +344,30 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery StartKey(object startKey)
         {
-            _startKey = startKey;
+            _startKey = EncodeParameter(startKey);
+            return this;
+        }
+
+        /// <summary>
+        /// Return records with a value equal to or greater than the specified key. Key must be specified as a JSON value.
+        /// </summary>
+        /// <param name="startKey">The key to return records greater than or equal to.</param>
+        /// <param name="encode">True to JSON encode and URI escape the value.</param>
+        /// <returns>An IViewQuery object for chaining</returns>
+        public IViewQuery StartKey(object startKey, bool encode)
+        {
+            _startKey = encode ? EncodeParameter(startKey) : startKey;
             return this;
         }
 
         /// <summary>
         /// Return records starting with the specified document ID.
         /// </summary>
-        /// <param name="docId">The docId to return records greater than or equal to.</param>
+        /// <param name="startKeyDocId">The docId to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery StartKeyDocId(object docId)
+        public IViewQuery StartKeyDocId(object startKeyDocId)
         {
-            _startKeyDocId = docId;
+            _startKeyDocId = startKeyDocId;
             return this;
         }
 
@@ -363,6 +412,16 @@ namespace Couchbase.Views
         public string BucketName
         {
             get { return _bucketName; }
+        }
+
+        /// <summary>
+        /// JSON encodes the parameter and URI escapes the input parameter.
+        /// </summary>
+        /// <param name="parameter">The parameter to encode.</param>
+        /// <returns>A JSON and URI escaped copy of the parameter.</returns>
+        static string EncodeParameter(object parameter)
+        {
+            return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
         }
 
         /// <summary>
