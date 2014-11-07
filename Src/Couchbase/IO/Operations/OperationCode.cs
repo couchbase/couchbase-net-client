@@ -39,7 +39,6 @@
 
         // SASL authentication op-codes
         SaslList = 0x20,
-
         SaslStart = 0x21,
         SaslStep = 0x22,
 
@@ -47,7 +46,11 @@
         GetClusterConfig = 0xb5,
 
         //Durability constraints
-        Observe = 0x92
+        Observe = 0x92,
+
+        //couchbase only
+        GetL = 0x94,
+        Unlock = 0x95
     };
 }
 

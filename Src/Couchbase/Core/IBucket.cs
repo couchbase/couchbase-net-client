@@ -509,6 +509,23 @@ namespace Couchbase.Core
         IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize);
 
         /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        IOperationResult<T> GetWithLock<T>(string key, uint expiration);
+
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/>.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
+        IOperationResult Unlock(string key, ulong cas);
+
+        /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with 1.
         /// </summary>

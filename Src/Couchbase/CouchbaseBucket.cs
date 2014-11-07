@@ -1060,6 +1060,44 @@ namespace Couchbase
             return results;
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
+        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
+        {
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _converter, _transcoder)
+            {
+                Expiration = expiration
+            };
+            return SendWithRetry(getl);
+        }
+
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/>.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
+        public IOperationResult Unlock(string key, ulong cas)
+        {
+            var unlock = new Unlock(key, null, _converter, _transcoder)
+            {
+                Cas = cas
+            };
+            return SendWithRetry(unlock);
+        }
 
         /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created

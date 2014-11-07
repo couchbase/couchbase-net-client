@@ -5,7 +5,7 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
-    internal sealed class Get<T> : OperationBase<T>
+    internal class Get<T> : OperationBase<T>
     {
         public Get(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
             : base(key, vBucket, converter, transcoder)

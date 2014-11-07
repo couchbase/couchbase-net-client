@@ -154,7 +154,8 @@ namespace Couchbase.Core.Transcoders
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    value = Decode(buffer, offset, length);
+                    break;
             }
             return (T)value;
         }

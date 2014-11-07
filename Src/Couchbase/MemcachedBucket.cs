@@ -662,10 +662,19 @@ namespace Couchbase
             return results;
         }
 
+        public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult Unlock(string key, ulong cas)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
 
         /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
