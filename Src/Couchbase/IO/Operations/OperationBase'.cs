@@ -48,6 +48,11 @@ namespace Couchbase.IO.Operations
             Data = new MemoryStream();
         }
 
+        protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
+            : this(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        {
+        }
+
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
             : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
@@ -322,7 +327,8 @@ namespace Couchbase.IO.Operations
                 {
                     var buffer = Data.ToArray();
                     ReadExtras(buffer);
-                    result = Transcoder.Decode<T>(buffer, BodyOffset, TotalLength - BodyOffset, Flags);
+                    var offset = 24 + Header.KeyLength + Header.ExtrasLength;
+                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags);
                 }
                 catch (Exception e)
                 {

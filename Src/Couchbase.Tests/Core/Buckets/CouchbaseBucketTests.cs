@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -7,6 +9,7 @@ using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -1167,7 +1170,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void When_Timeout_Defaults_Are_Used_Operation_Succeeds()
         {
-            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
+            using (var bucket = (CouchbaseBucket) _cluster.OpenBucket())
             {
                 var slowSet = new SlowSet<object>(
                     "When_Operation_Is_Slow_Operation_TimesOut_Key",
@@ -1178,6 +1181,38 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var result = bucket.SendWithRetry(slowSet);
                 Assert.AreEqual(ResponseStatus.Success, result.Status);
+            }
+        }
+
+        [Test]
+        public void Test_ReplicaRead()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKey";
+                    var value = bucket.Get<string>(key);
+
+                    if (value.Status == ResponseStatus.KeyNotFound)
+                    {
+                        Assert.IsTrue(bucket.Insert(key, "replicaval").Success);
+                        Thread.Sleep(100);
+                        value = bucket.Get<string>(key);
+                    }
+
+                    var result = bucket.GetFromReplica<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(value.Value, result.Value);
+                }
             }
         }
 

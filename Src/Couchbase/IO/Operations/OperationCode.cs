@@ -50,7 +50,10 @@
 
         //couchbase only
         GetL = 0x94,
-        Unlock = 0x95
+        Unlock = 0x95,
+
+        //"Dirty" reads
+        ReplicaRead = 0x83
     };
 }
 

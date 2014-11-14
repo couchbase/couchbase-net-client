@@ -593,6 +593,11 @@ namespace Couchbase
             return SendWithRetry(operation);
         }
 
+        public IOperationResult<T> GetFromReplica<T>(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         /// <summary>
         /// Gets a range of values for a given set of keys
         /// </summary>

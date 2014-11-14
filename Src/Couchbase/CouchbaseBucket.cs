@@ -991,6 +991,30 @@ namespace Couchbase
             return SendWithRetry(operation);
         }
 
+        public IOperationResult<T> GetFromReplica<T>(string key)
+        {
+            IVBucket vBucket = null;
+            var primary = GetServer(key, out vBucket);
+
+            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder);
+            var result = primary.Send(replicaRead);
+
+            if (result.Success) return result;
+            foreach (var replica in vBucket.Replicas)
+            {
+                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder);
+                var server = vBucket.LocateReplica(replica);
+                if (server == null) continue;
+                result = server.Send(replicaRead);
+                if (result.Success)
+                {
+                    return result;
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Gets a range of values for a given set of keys
         /// </summary>

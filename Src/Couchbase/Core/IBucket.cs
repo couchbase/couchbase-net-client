@@ -480,6 +480,14 @@ namespace Couchbase.Core
         IOperationResult<T> Get<T>(string key);
 
         /// <summary>
+        /// Returns a value for a
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        IOperationResult<T> GetFromReplica<T>(string key);
+
+        /// <summary>
         /// Gets a range of values for a given set of keys
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>

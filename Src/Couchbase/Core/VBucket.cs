@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Common.Logging;
 using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
     internal class VBucket : IVBucket
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly List<IServer> _cluster;
         private readonly int[] _replicas;
         public VBucket(List<IServer> cluster, int index, int primary, int[] replicas)
@@ -44,7 +46,15 @@ namespace Couchbase.Core
 
         public IServer LocateReplica(int replicaIndex)
         {
-            return _cluster[replicaIndex];
+            try
+            {
+                return _cluster[replicaIndex];
+            }
+            catch
+            {
+                Log.Debug(m=>m("No server found for replica with index of {0}.", replicaIndex));
+                return null;
+            }
         }
 
         public int[] Replicas
