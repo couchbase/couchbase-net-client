@@ -311,7 +311,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(1, result.Value);
                 Thread.Sleep(2000);
-                result = bucket.Get<long>(key);
+                result = bucket.Get<ulong>(key);
                 Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
             }
         }
@@ -412,6 +412,21 @@ namespace Couchbase.Tests.Core.Buckets
                 {
                     Assert.IsTrue(item.Value.Success);
                 }
+            }
+        }
+
+        [Test]
+        public void When_Increment_Overflows_Value_Wraps_To_Zero()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var key = "When_Increment_Overflows_Value_Wraps_To_Zero";
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, ulong.MaxValue.ToString()).Success);
+                var result = bucket.Increment(key);
+                Assert.AreEqual(0, result.Value);
+                result = bucket.Increment(key);
+                Assert.AreEqual(1, result.Value);
             }
         }
 

@@ -539,7 +539,7 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        IOperationResult<long> Increment(string key);
+        IOperationResult<ulong> Increment(string key);
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
@@ -548,7 +548,7 @@ namespace Couchbase.Core
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        IOperationResult<long> Increment(string key, ulong delta);
+        IOperationResult<ulong> Increment(string key, ulong delta);
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
@@ -558,7 +558,7 @@ namespace Couchbase.Core
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        IOperationResult<long> Increment(string key, ulong delta, ulong initial);
+        IOperationResult<ulong> Increment(string key, ulong delta, ulong initial);
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
@@ -569,7 +569,7 @@ namespace Couchbase.Core
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration);
+        IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration);
 
         /// <summary>
         /// Decrements the value of a key by one. If the key doesn't exist, it will be created

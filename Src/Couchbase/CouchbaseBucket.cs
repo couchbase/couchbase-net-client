@@ -1129,7 +1129,7 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<long> Increment(string key)
+        public IOperationResult<ulong> Increment(string key)
         {
             const ulong initial = 1;
             const ulong delta = 1;
@@ -1145,7 +1145,7 @@ namespace Couchbase
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<long> Increment(string key, ulong delta)
+        public IOperationResult<ulong> Increment(string key, ulong delta)
         {
             const ulong initial = 1;
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
@@ -1161,7 +1161,7 @@ namespace Couchbase
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<long> Increment(string key, ulong delta, ulong initial)
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial)
         {
             //infinite - there is also a 'special' value -1: 'don't create if missing'
             const uint expiration = 0;
@@ -1178,7 +1178,7 @@ namespace Couchbase
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<long> Increment(string key, ulong delta, ulong initial, uint expiration)
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
             IVBucket vBucket;

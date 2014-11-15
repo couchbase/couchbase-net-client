@@ -4,7 +4,7 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal class Increment : OperationBase<long>
+    internal class Increment : OperationBase<ulong>
     {
         private readonly ulong _delta;
         private readonly uint _expiration;
