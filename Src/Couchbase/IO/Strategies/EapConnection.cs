@@ -142,7 +142,6 @@ namespace Couchbase.IO.Strategies
 
         ~EapConnection()
         {
-            Log.Debug(m=>m("Finalizing connection for {0}", ConnectionPool.EndPoint));
             Dispose(false);
         }
     }

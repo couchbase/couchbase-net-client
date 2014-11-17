@@ -199,7 +199,6 @@ namespace Couchbase.IO
 
         ~ConnectionPool()
         {
-            Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
             Dispose(false);
         }
 
