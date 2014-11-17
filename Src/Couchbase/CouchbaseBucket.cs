@@ -1552,8 +1552,11 @@ namespace Couchbase
 
         void CheckDisposed()
         {
-            var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
-            if(_disposed) throw new ObjectDisposedException(message);
+            if (_disposed)
+            {
+                var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
+                throw new ObjectDisposedException(message);
+            }
         }
 
         /// <summary>
