@@ -1,4 +1,5 @@
 ﻿using System.Configuration;
+using Common.Logging;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -209,6 +210,18 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (bool)this["expect100Continue"]; }
             set { this["expect100Continue"] = value; }
+        }
+
+        /// <summary>
+        /// Writes the elasped time for an operation to the log appender. Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/>of DEBUG to be enabled as well.</remarks>
+        [ConfigurationProperty("enableOperationTiming", DefaultValue = false, IsRequired = false)]
+        public bool EnableOperationTiming
+        {
+            get { return (bool)this["enableOperationTiming"]; }
+            set { this["enableOperationTiming"] = value; }
         }
     }
 }

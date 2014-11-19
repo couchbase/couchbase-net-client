@@ -5,6 +5,7 @@ using System.ServiceModel;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -28,6 +29,7 @@ namespace Couchbase.IO.Operations
         private bool _timedOut;
         protected readonly IByteConverter Converter;
         protected Flags Flags = new Flags();
+        private Dictionary<TimingLevel, IOperationTimer> _timers;
 
         protected OperationBase(IByteConverter converter)
             : this(string.Empty, null, converter)
@@ -72,6 +74,39 @@ namespace Couchbase.IO.Operations
         public virtual void Reset()
         {
             Reset(ResponseStatus.Success);
+        }
+
+        public void BeginTimer(TimingLevel level)
+        {
+            IOperationTimer timer = null;
+            if (Timer != null)
+            {
+                timer = Timer(level, this);
+                if (_timers == null)
+                {
+                    _timers = new Dictionary<TimingLevel, IOperationTimer>();
+                }
+                if (!_timers.ContainsKey(level))
+                {
+                    _timers.Add(level, timer);
+                }
+            }
+        }
+
+        public void EndTimer(TimingLevel level)
+        {
+            if (_timers != null && _timers.ContainsKey(level))
+            {
+                IOperationTimer timer = null;
+                if(_timers.TryGetValue(level, out timer))
+                {
+                    if (timer != null)
+                    {
+                        timer.Dispose();
+                        _timers.Remove(level);
+                    }
+                }
+            }
         }
 
         public virtual void Reset(ResponseStatus status)
@@ -425,6 +460,8 @@ namespace Couchbase.IO.Operations
             }
             return config;
         }
+
+        public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         public abstract OperationCode OperationCode { get; }
 

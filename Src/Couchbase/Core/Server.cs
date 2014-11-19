@@ -9,6 +9,7 @@ using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -26,6 +27,7 @@ namespace Couchbase.Core
         private uint _queryPort = 8093;
         private volatile bool _disposed;
         private volatile bool _isDead;
+        private volatile bool _timingEnabled;
 
         public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
@@ -42,6 +44,7 @@ namespace Couchbase.Core
             QueryClient = queryClient;
             _nodeInfo = nodeInfo;
             _clientConfiguration = clientConfiguration;
+            _timingEnabled = _clientConfiguration.EnableOperationTiming;
         }
 
         public uint ViewPort
@@ -91,6 +94,11 @@ namespace Couchbase.Core
 
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.BeginTimer(TimingLevel.Two);
+            }
+
             IOperationResult<T> result;
             try
             {
@@ -102,6 +110,11 @@ namespace Couchbase.Core
                 result = operation.GetResult();
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+            }
+
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.EndTimer(TimingLevel.Two);
             }
             return result;
         }

@@ -53,6 +53,7 @@ namespace Couchbase.Core
                 {
                     connectionPool = new ConnectionPool<Connection>(config, endpoint);
                 }
+                connectionPool.Initialize();
                 return connectionPool;
             },
             SaslFactory.GetFactory3(),
@@ -75,6 +76,7 @@ namespace Couchbase.Core
                 {
                     connectionPool = new ConnectionPool<Connection>(config, endpoint);
                 }
+                connectionPool.Initialize();
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
             new AutoByteConverter(),
@@ -233,6 +235,8 @@ namespace Couchbase.Core
                 }
             }
         }
+
+        public ClientConfiguration Configuration { get { return _clientConfig; } }
 
         public void Dispose()
         {

@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Configuration;
+using Common.Logging;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
 {
@@ -20,7 +23,7 @@ namespace Couchbase.Configuration.Client
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
-        public PoolConfiguration()
+        public PoolConfiguration(ClientConfiguration clientConfiguration = null)
         {
             MaxSize = 2;
             MinSize = 1;
@@ -30,10 +33,11 @@ namespace Couchbase.Configuration.Client
             OperationTimeout = 2500;
             MaxAcquireIterationCount = 5;
             ConnectionTimeout = 15000;
+            ClientConfiguration = clientConfiguration;
         }
 
         public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
-            int operationTimeout, int maxAcquireIterationCount)
+            int operationTimeout, int maxAcquireIterationCount, ClientConfiguration clientConfiguration = null)
         {
             //todo enable app.configuration
             MaxSize = maxSize;
@@ -43,6 +47,7 @@ namespace Couchbase.Configuration.Client
             ShutdownTimeout = shutdownTimeout;
             OperationTimeout = operationTimeout;
             MaxAcquireIterationCount = maxAcquireIterationCount;
+            ClientConfiguration = clientConfiguration;
         }
 
         /// <summary>
@@ -90,6 +95,30 @@ namespace Couchbase.Configuration.Client
         /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
         /// </summary>
         public int ConnectionTimeout { get; set; }
+
+        /// <summary>
+        /// References the top level <see cref="ClientConfiguration"/> object.
+        /// </summary>
+        [JsonIgnore]
+        public ClientConfiguration ClientConfiguration { get; set; }
+
+        /// <summary>
+        /// Writes the elasped time for an operation to the log appender Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/>of DEBUG to be enabled as well.</remarks>
+        public bool EnableOperationTiming
+        {
+            get
+            {
+                var enabled = false;
+                if (ClientConfiguration != null)
+                {
+                    enabled = ClientConfiguration.EnableOperationTiming;
+                }
+                return enabled;
+            }
+        }
     }
 }
 

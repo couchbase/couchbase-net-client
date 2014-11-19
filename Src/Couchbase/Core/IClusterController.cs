@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 
 namespace Couchbase.Core
@@ -7,6 +8,7 @@ namespace Couchbase.Core
     internal interface IClusterController : IConfigPublisher, IDisposable
     {
         List<IConfigProvider> ConfigProviders { get; }
+        ClientConfiguration Configuration { get; }
 
         IConfigProvider GetProvider(string name);
 

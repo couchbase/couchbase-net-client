@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using Common.Logging;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -18,6 +21,7 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public class ClientConfiguration
     {
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
         private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
@@ -34,6 +38,9 @@ namespace Couchbase.Configuration.Client
 
         public ClientConfiguration()
         {
+            //For operation timing
+            Timer = TimingFactory.GetTimer(Log);
+
             UseSsl = false;
             SslPort = 11207;
             ApiPort = 8092;
@@ -52,8 +59,9 @@ namespace Couchbase.Configuration.Client
             ViewRequestTimeout = 5000; //ms
             DefaultConnectionLimit = 5; //connections
             Expect100Continue = false;
+            EnableOperationTiming = false;
 
-            PoolConfiguration = new PoolConfiguration();
+            PoolConfiguration = new PoolConfiguration(this);
             BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
                 {DefaultBucket, new BucketConfiguration
@@ -74,6 +82,9 @@ namespace Couchbase.Configuration.Client
         /// <param name="couchbaseClientSection"></param>
         internal ClientConfiguration(CouchbaseClientSection couchbaseClientSection)
         {
+            //For operation timing
+            Timer = TimingFactory.GetTimer(Log);
+
             UseSsl = couchbaseClientSection.UseSsl;
             SslPort = couchbaseClientSection.SslPort;
             ApiPort = couchbaseClientSection.ApiPort;
@@ -91,6 +102,7 @@ namespace Couchbase.Configuration.Client
             HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
             ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
             Expect100Continue = couchbaseClientSection.Expect100Continue;
+            EnableOperationTiming = couchbaseClientSection.EnableOperationTiming;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -115,11 +127,17 @@ namespace Couchbase.Configuration.Client
                         WaitTimeout = bucket.ConnectionPool.WaitTimeout,
                         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
                         UseSsl = bucket.ConnectionPool.UseSsl,
+                        ClientConfiguration = this
                     }
                 };
                 BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
         }
+
+        /// <summary>
+        /// A factory for creating <see cref="IOperationTimer"/>'s.
+        /// </summary>
+        public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
@@ -346,6 +364,13 @@ namespace Couchbase.Configuration.Client
         public bool EnableConfigHeartBeat { get; set; }
 
         /// <summary>
+        /// Writes the elasped time for an operation to the log appender Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/>of DEBUG to be enabled as well.</remarks>
+        public bool EnableOperationTiming { get; set; }
+
+        /// <summary>
         /// Updates the internal bootstrap url with the new list from a server configuration.
         /// </summary>
         /// <param name="bucketConfig">A new server configuration</param>
@@ -373,9 +398,12 @@ namespace Couchbase.Configuration.Client
         {
             if (_serversChanged)
             {
-                for(var i=0; i<_servers.Count(); i++)
+                for (var i = 0; i < _servers.Count(); i++)
                 {
-                    if (_servers[i].OriginalString.EndsWith("/pools")) { /*noop*/ }
+                    if (_servers[i].OriginalString.EndsWith("/pools"))
+                    {
+                        /*noop*/
+                    }
                     else
                     {
                         var newUri = _servers[i].ToString();
@@ -389,7 +417,7 @@ namespace Couchbase.Configuration.Client
             foreach (var keyValue in BucketConfigs)
             {
                 var bucketConfiguration = keyValue.Value;
-                if(string.IsNullOrEmpty(bucketConfiguration.BucketName))
+                if (string.IsNullOrEmpty(bucketConfiguration.BucketName))
                 {
                     if (string.IsNullOrWhiteSpace(keyValue.Key))
                     {
@@ -407,9 +435,9 @@ namespace Couchbase.Configuration.Client
                 }
                 if (bucketConfiguration.Servers.Count == 0)
                 {
-                    bucketConfiguration.Servers.AddRange(Servers.Select(x=>x).ToList());
+                    bucketConfiguration.Servers.AddRange(Servers.Select(x => x).ToList());
                 }
-                if (bucketConfiguration.Port == (int)DefaultPorts.Proxy)
+                if (bucketConfiguration.Port == (int) DefaultPorts.Proxy)
                 {
                     var message = string.Format("Proxy port {0} is not supported by the .NET client.",
                         bucketConfiguration.Port);

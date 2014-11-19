@@ -2,6 +2,8 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Common.Logging;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
@@ -14,6 +16,7 @@ namespace Couchbase.IO
     internal sealed class Connection : ConnectionBase
     {
         private readonly NetworkStream _stream;
+        private volatile bool _timingEnabled;
 
         internal Connection(ConnectionPool<Connection> connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new NetworkStream(socket), converter)
@@ -27,6 +30,7 @@ namespace Couchbase.IO
             ConnectionPool = connectionPool;
             _stream = networkStream;
             Configuration = ConnectionPool.Configuration;
+            _timingEnabled = Configuration.EnableOperationTiming;
         }
 
         public override async Task<uint> SendAsync(byte[] buffer)
@@ -63,6 +67,12 @@ namespace Couchbase.IO
             try
             {
                 var buffer = operation.Write();
+
+                if (Log.IsDebugEnabled && _timingEnabled)
+                {
+                    operation.BeginTimer(TimingLevel.One);
+                }
+
                 _stream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
                 if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
                 {
@@ -70,6 +80,11 @@ namespace Couchbase.IO
                         "The connection has timed out while an operation was in flight. The default is 15000ms.";
                     operation.HandleClientError(msg, ResponseStatus.ClientFailure);
                     IsDead = true;
+                }
+
+                if (Log.IsDebugEnabled && _timingEnabled)
+                {
+                    operation.EndTimer(TimingLevel.One);
                 }
             }
             catch (Exception e)

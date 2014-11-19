@@ -14,6 +14,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -37,6 +38,8 @@ namespace Couchbase
         private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
         private readonly ITypeTranscoder _transcoder;
+        private readonly Func<TimingLevel, object, IOperationTimer> Timer;
+        private volatile bool _timingEnabled;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -54,6 +57,8 @@ namespace Couchbase
             _clusterManager = clusterManager;
             _converter = converter;
             _transcoder = transcoder;
+            Timer = _clusterManager.Configuration.Timer;
+            _timingEnabled = _clusterManager.Configuration.EnableOperationTiming;
             Name = bucketName;
         }
 
@@ -94,8 +99,14 @@ namespace Couchbase
 
         internal IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.Timer = Timer;
+                operation.BeginTimer(TimingLevel.Three);
+            }
+
             CheckDisposed();
-            IOperationResult<T> operationResult = new OperationResult<T>{Success = false};
+            IOperationResult<T> operationResult = new OperationResult<T> {Success = false};
             do
             {
                 IVBucket vBucket;
@@ -108,7 +119,10 @@ namespace Couchbase
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name, operation.Attempts, operation.Key, operationResult.Value));
+                    Log.Debug(
+                        m =>
+                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                                operation.Attempts, operation.Key, operationResult.Value));
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation, server) && !operation.TimedOut())
@@ -125,7 +139,8 @@ namespace Couchbase
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }
-            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success && !operation.TimedOut());
+            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success &&
+                        !operation.TimedOut());
 
             if (!operationResult.Success)
             {
@@ -139,6 +154,12 @@ namespace Couchbase
                 const string msg1 = "Operation for key {0} failed after {1} retries. Reason: {2}";
                 Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operationResult.Message));
             }
+
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.EndTimer(TimingLevel.Three);
+            }
+
             return operationResult;
         }
 

@@ -76,6 +76,12 @@
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
     <Compile Include="Core\Buckets\KeyObserver.cs" />
+    <Compile Include="Core\Diagnostics\CommonLogStore.cs" />
+    <Compile Include="Core\Diagnostics\IOperationTimer.cs" />
+    <Compile Include="Core\Diagnostics\ITimingStore.cs" />
+    <Compile Include="Core\Diagnostics\OperationTimer.cs" />
+    <Compile Include="Core\Diagnostics\TimingFactory.cs" />
+    <Compile Include="Core\Diagnostics\TimingLevel.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Cluster.cs" />
