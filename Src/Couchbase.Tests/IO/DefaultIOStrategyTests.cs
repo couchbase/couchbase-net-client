@@ -29,7 +29,7 @@ namespace Couchbase.Tests.IO
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
             _ioStrategy = new DefaultIOStrategy(_connectionPool, null);
         }

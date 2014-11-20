@@ -1,22 +1,12 @@
-﻿using System;
-using System.CodeDom;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Authentication.SASL;
+﻿using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
-using Couchbase.Core;
-using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
@@ -34,7 +24,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
             _provider = new CarrierPublicationProvider(
                 configuration, 
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(), 
                 new ManualByteConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));

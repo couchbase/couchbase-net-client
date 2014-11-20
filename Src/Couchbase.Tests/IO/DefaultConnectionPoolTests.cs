@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -30,9 +31,9 @@ namespace Couchbase.Tests.IO
         public void SetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
-            var factory = DefaultConnectionFactory.GetDefault();
+            var factory = DefaultConnectionFactory.GetGeneric<Connection>();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, MaxConnectionAcquireCount);
-            _connectionPool = new DefaultConnectionPool(_configuration, ipEndpoint, factory);
+            _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factory, new AutoByteConverter());
             _connectionPool.Initialize();
         }
 

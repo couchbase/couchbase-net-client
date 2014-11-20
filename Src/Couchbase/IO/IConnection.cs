@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.IO
 {
@@ -38,6 +38,8 @@ namespace Couchbase.IO
         EndPoint EndPoint { get; }
 
         bool IsDead { get; set; }
+        Task<uint> SendAsync(byte[] buffer);
+        Task<byte[]> ReceiveAsync(uint opaque);
     }
 }
 

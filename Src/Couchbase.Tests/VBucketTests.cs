@@ -11,7 +11,6 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
-using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
 using Newtonsoft.Json;
 using NUnit.Framework;

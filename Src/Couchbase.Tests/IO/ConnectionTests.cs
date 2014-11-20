@@ -22,7 +22,7 @@ namespace Couchbase.Tests.IO
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new DefaultConnectionPool(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
         }
 
         [Test]

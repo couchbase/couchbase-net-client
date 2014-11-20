@@ -148,6 +148,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
+    <Compile Include="IO\OperationAsyncState.cs" />
     <Compile Include="IO\Operations\ReplicaRead.cs" />
     <Compile Include="IO\Operations\SequenceGenerator.cs" />
     <Compile Include="IO\Operations\Unlock.cs" />
@@ -208,22 +209,8 @@
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\Replace.cs" />
     <Compile Include="IO\Operations\Set.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncFactory.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="IO\Strategies\Async\SocketAsyncStrategy.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="IO\Strategies\Async\CompositeIOStrategy.cs" />
-    <Compile Include="IO\Strategies\Async\SocketAsyncPool.cs" />
-    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategy.cs" />
-    <Compile Include="IO\Strategies\Awaitable\SocketAwaitableFactory.cs" />
-    <Compile Include="IO\Strategies\Awaitable\SocketAwaitablePool.cs" />
-    <Compile Include="IO\Strategies\Awaitable\BufferAllocator.cs" />
     <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
-    <Compile Include="IO\Strategies\EapConnection.cs" />
-    <Compile Include="IO\Strategies\SaeaConnection.cs" />
-    <Compile Include="IO\Strategies\SslConnection.cs" />
+    <Compile Include="IO\SslConnection.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="IResult.cs" />
     <Compile Include="N1QL\QueryResult.cs" />
@@ -236,10 +223,8 @@
     <Compile Include="Core\IClusterInfo.cs" />
     <Compile Include="Core\IKeyMapper.cs" />
     <Compile Include="Configuration\IConfigInfo.cs" />
-    <Compile Include="IO\Strategies\Awaitable\OperationAsyncState.cs" />
-    <Compile Include="IO\DefaultConnection.cs" />
+    <Compile Include="IO\Connection.cs" />
     <Compile Include="IO\DefaultConnectionFactory.cs" />
-    <Compile Include="IO\DefaultConnectionPool.cs" />
     <Compile Include="IO\IConnection.cs" />
     <Compile Include="IO\IConnectionPool_T.cs" />
     <Compile Include="IO\IOStrategy.cs" />
@@ -252,8 +237,8 @@
     <Compile Include="IO\Operations\OperationBody.cs" />
     <Compile Include="IO\Operations\OperationHeader.cs" />
     <Compile Include="IO\ResponseStatus.cs" />
-    <Compile Include="IO\Strategies\Awaitable\SocketAwaitable.cs" />
-    <Compile Include="IO\Strategies\Awaitable\SocketExtensions.cs" />
+    <Compile Include="IO\SocketAwaitable.cs" />
+    <Compile Include="IO\Utils\SocketExtensions.cs" />
     <Compile Include="IO\Utils\HeaderIndexFor.cs" />
     <Compile Include="N1QL\QueryClient.cs" />
     <Compile Include="NullConfigException.cs" />

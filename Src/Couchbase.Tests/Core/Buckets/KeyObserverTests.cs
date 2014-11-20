@@ -35,7 +35,7 @@ namespace Couchbase.Tests.Core.Buckets
             var provider = new CarrierPublicationProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
@@ -62,7 +62,7 @@ namespace Couchbase.Tests.Core.Buckets
             var provider = new CarrierPublicationProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
@@ -99,7 +99,7 @@ namespace Couchbase.Tests.Core.Buckets
             var provider = new CarrierPublicationProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
@@ -136,7 +136,7 @@ namespace Couchbase.Tests.Core.Buckets
             var provider = new CarrierPublicationProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));

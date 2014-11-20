@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies.Awaitable;
 
 namespace Couchbase.Tests.Fakes
 {
@@ -10,7 +9,6 @@ namespace Couchbase.Tests.Fakes
     {
         private readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
-        private readonly OperationAsyncState _state;
 
         public Socket Socket
         {
@@ -27,11 +25,6 @@ namespace Couchbase.Tests.Fakes
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
-        }
-
-        public OperationAsyncState State
-        {
-            get { return _state; }
         }
 
         public void Dispose()
@@ -58,6 +51,23 @@ namespace Couchbase.Tests.Fakes
             {
                 throw new NotImplementedException();
             }
+        }
+
+
+        public System.Threading.Tasks.Task<uint> SendAsync(byte[] buffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public System.Threading.Tasks.Task<byte[]> ReceiveAsync(uint opaque)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public Couchbase.IO.OperationAsyncState State
+        {
+            get { throw new NotImplementedException(); }
         }
     }
 }

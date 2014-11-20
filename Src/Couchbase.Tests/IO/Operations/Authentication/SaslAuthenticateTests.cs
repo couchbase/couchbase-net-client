@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Authentication.SASL;
+﻿using System.Text;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
-using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -28,7 +21,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 
@@ -50,7 +43,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var response = _ioStrategy.Execute(operation);
 
             Assert.AreEqual("Authenticated", response.Value);
-            Assert.AreEqual(ResponseStatus.Success, response.Status);             
+            Assert.AreEqual(ResponseStatus.Success, response.Status);
             Assert.IsTrue(response.Success);
         }
 

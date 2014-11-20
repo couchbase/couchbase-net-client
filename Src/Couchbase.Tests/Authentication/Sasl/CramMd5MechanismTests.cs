@@ -1,21 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace Couchbase.Tests.Authentication.Sasl
 {
@@ -31,7 +21,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
             _ioStrategy = new DefaultIOStrategy(_connectionPool, null);
         }

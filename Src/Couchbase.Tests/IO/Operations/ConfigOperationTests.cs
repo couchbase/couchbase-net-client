@@ -5,7 +5,6 @@ using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
 using NUnit.Framework;
 using System;
@@ -29,7 +28,7 @@ namespace Couchbase.Tests.IO.Operations
                 MinSize = 1,
                 MaxSize = 1
             };
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, _endPoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, _endPoint);
 
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }

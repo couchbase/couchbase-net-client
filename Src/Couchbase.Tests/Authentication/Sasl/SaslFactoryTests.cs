@@ -17,7 +17,7 @@ namespace Couchbase.Tests.Authentication.Sasl
     public class SaslFactoryTests
     {
         private DefaultIOStrategy _ioStrategy;
-        private IConnectionPool<EapConnection> _connectionPool;
+        private IConnectionPool<Connection> _connectionPool;
         private const string Address = "127.0.0.1:11210";
 
         [TestFixtureSetUp]
@@ -25,7 +25,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration { UseSsl = false };
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, ipEndpoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
         }
 

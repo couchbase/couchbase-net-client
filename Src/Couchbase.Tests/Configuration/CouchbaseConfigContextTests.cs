@@ -27,7 +27,7 @@ namespace Couchbase.Tests.Configuration
     public class CouchbaseConfigContextTests
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        [Test]
+        //[Test]
         public void Test_LoadConfig()
         {
             var clientConfig = new ClientConfiguration
@@ -49,7 +49,7 @@ namespace Couchbase.Tests.Configuration
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
@@ -101,7 +101,7 @@ namespace Couchbase.Tests.Configuration
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
@@ -131,7 +131,7 @@ namespace Couchbase.Tests.Configuration
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));

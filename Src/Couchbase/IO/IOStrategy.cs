@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
 
@@ -13,18 +14,54 @@ namespace Couchbase.IO
         /// <summary>
         /// Executes an operation for a given key.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="operation"></param>
-        /// <param name="connection"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> being executed.</param>
+        /// <param name="connection">The <see cref="IConnection"/> the operation is using.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
+        /// <remarks>This overload is used to perform authentication on the connection if it has not already been authenticated.</remarks>
         IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection);
 
+        /// <summary>
+        /// Executes an operation for a given key.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> being executed.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
         IOperationResult<T> Execute<T>(IOperation<T> operation);
 
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> being executed.</param>
+        /// <param name="connection">The <see cref="IConnection"/> the operation is using.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
+        /// <remarks>This overload is used to perform authentication on the connection if it has not already been authenticated.</remarks>
+        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection);
+
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> being executed.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
+        /// <remarks>This overload is used to perform authentication on the connection if it has not already been authenticated.</remarks>
+        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation);
+
+        /// <summary>
+        /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy"/> instance is communicating with.
+        /// </summary>
         IPEndPoint EndPoint { get; }
 
+        /// <summary>
+        /// The <see cref="IConnectionPool"/> that this <see cref="IOStrategy"/> instance is using for acquiring <see cref="IConnection"/>s.
+        /// </summary>
         IConnectionPool ConnectionPool { get; }
 
+        /// <summary>
+        /// The SASL mechanism type the <see cref="IOStrategy"/> is using for authentication.
+        /// </summary>
+        /// <remarks>This could be PLAIN or CRAM-MD5 depending upon what the server supports.</remarks>
         ISaslMechanism SaslMechanism { set; }
 
         /// <summary>

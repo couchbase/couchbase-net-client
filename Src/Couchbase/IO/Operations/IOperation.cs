@@ -1,4 +1,5 @@
-﻿using Couchbase.Configuration.Server.Serialization;
+﻿using System.Threading.Tasks;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using System;
@@ -60,6 +61,8 @@ namespace Couchbase.IO.Operations
         bool TimedOut();
 
         DateTime CreationTime { get; set; }
+
+        Task ReadAsync(byte[] buffer, int offset, int length);
     }
 }
 

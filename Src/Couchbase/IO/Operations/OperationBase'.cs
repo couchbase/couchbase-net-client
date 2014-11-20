@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.ServiceModel;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
@@ -123,6 +124,26 @@ namespace Couchbase.IO.Operations
             }
             LengthReceived += length;
             Data.Write(buffer, offset, length);
+        }
+
+        public async virtual Task ReadAsync(byte[] buffer, int offset, int length)
+        {
+            if (Header.BodyLength == 0)
+            {
+                Header = new OperationHeader
+                {
+                    Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
+                    OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
+                    KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
+                    ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
+                    Status = (ResponseStatus)Converter.ToInt16(buffer, HeaderIndexFor.Status),
+                    BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
+                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
+                };
+            }
+            LengthReceived += length;
+            await Data.WriteAsync(buffer, offset, length);
         }
 
         public virtual byte[] Write()

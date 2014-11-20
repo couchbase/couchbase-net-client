@@ -5,12 +5,12 @@ using System.Net.Sockets;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO
@@ -21,7 +21,7 @@ namespace Couchbase.IO
         protected readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
-        private readonly IByteConverter _converter;
+        protected readonly IByteConverter Converter;
         protected readonly BufferManager BufferManager;
         protected readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         protected IConnectionPool ConnectionPool;
@@ -30,7 +30,7 @@ namespace Couchbase.IO
         private volatile bool _isDead;
 
         protected ConnectionBase(Socket socket, IByteConverter converter)
-            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024*1000, 1024))
+            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024 * 1000, 1024))
         {
         }
 
@@ -38,7 +38,7 @@ namespace Couchbase.IO
         {
             _socket = socket;
             _state = asyncState;
-            _converter = converter;
+            Converter = converter;
             BufferManager = bufferManager;
             EndPoint = socket.RemoteEndPoint;
         }
@@ -47,7 +47,7 @@ namespace Couchbase.IO
         {
             _socket = socket;
             _state = asyncState;
-            _converter = converter;
+            Converter = converter;
             BufferManager = bufferManager;
             EndPoint = endPoint;
         }
@@ -83,47 +83,11 @@ namespace Couchbase.IO
         /// </summary>
         public bool IsSecure { get; protected set; }
 
-        public abstract IOperationResult<T> Send<T>(IOperation<T> operation); 
-
-        [Obsolete]
-        protected void CreateHeader(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            if (buffer.Length > 0)
-            {
-                state.Header = new OperationHeader
-                {
-                    Magic = _converter.ToByte(buffer, HeaderIndexFor.Magic),
-                    OperationCode = _converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
-                    KeyLength = _converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
-                    ExtrasLength = _converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus)_converter.ToInt16(buffer, HeaderIndexFor.Status),
-                    BodyLength = _converter.ToInt32(buffer, HeaderIndexFor.Body),
-                    Opaque = _converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Cas = _converter.ToUInt64(buffer, HeaderIndexFor.Cas)
-                };
-            }
-        }
-
-        [Obsolete]
-        protected static void CreateBody(OperationAsyncState state)
-        {
-            var buffer = state.Data.GetBuffer();
-            if (buffer.Length > 0)
-            {
-                state.Body = new OperationBody
-                {
-                    Extras =state.Header.ExtrasLength > 0 ?
-                      new ArraySegment<byte>(buffer, OperationBase<object>.HeaderLength, state.Header.ExtrasLength).Array :
-                      new ArraySegment<byte>().Array,
-                    Data = new ArraySegment<byte>(buffer, state.Offset, state.Header.BodyLength-state.Header.ExtrasLength).Array
-                };
-            }
-        }
+        public abstract IOperationResult<T> Send<T>(IOperation<T> operation);
 
         public abstract void Dispose();
 
-        protected void HandleException(Exception e, IOperation operation)
+        protected virtual void HandleException(Exception e, IOperation operation)
         {
             try
             {
@@ -144,11 +108,20 @@ namespace Couchbase.IO
 
         public EndPoint EndPoint { get; private set; }
 
-
         public bool IsDead
         {
             get { return _isDead; }
             set { _isDead = value; }
+        }
+
+        public virtual Task<uint> SendAsync(byte[] buffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual Task<byte[]> ReceiveAsync(uint opaque)
+        {
+            throw new NotImplementedException();
         }
     }
 }

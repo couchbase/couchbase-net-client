@@ -8,7 +8,6 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
@@ -26,7 +25,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             _provider = new HttpStreamingProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
-                (config, endpoint) => new ConnectionPool<EapConnection>(config, endpoint),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(), 
                 new ManualByteConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));

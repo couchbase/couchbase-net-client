@@ -84,6 +84,11 @@ namespace Couchbase.Core
 
         public IViewClient ViewClient { get; private set; }
 
+        public Task<IOperationResult<T>> SendAsync<T>(IOperation<T> operation)
+        {
+            return _ioStrategy.ExecuteAsync(operation);
+        }
+
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             IOperationResult<T> result;

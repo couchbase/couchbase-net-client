@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
+﻿using System.Configuration;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -12,7 +8,6 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
-using Couchbase.IO.Strategies.Async;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -32,7 +27,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             EndPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
-            _connectionPool = new ConnectionPool<EapConnection>(connectionPoolConfig, EndPoint);
+            _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, EndPoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
             Transcoder = new DefaultTranscoder(Converter);
         }

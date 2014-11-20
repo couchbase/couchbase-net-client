@@ -130,8 +130,6 @@
     <Compile Include="IO\Operations\ReplaceTests.cs" />
     <Compile Include="IO\Operations\SetOperationTests.cs" />
     <Compile Include="IO\Operations\SetTests.cs" />
-    <Compile Include="IO\Strategies\Awaitable\AwaitableIOStrategyTests.cs" />
-    <Compile Include="IO\Strategies\Awaitable\BufferAllocatorTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
     <Compile Include="N1QL\CouchbaseBucket_N1QL_Tests.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
@@ -231,9 +229,7 @@
     </None>
     <None Include="Data\N1QL\HelloWorld.json" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="IO\Strategies\Async\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>

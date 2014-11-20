@@ -13,9 +13,9 @@ namespace Couchbase.IO
     public static class DefaultConnectionFactory
     {
         /// <summary>
-        /// Returns a functory for creating <see cref="DefaultConnection"/> objects.
+        /// Returns a functory for creating <see cref="Connection"/> objects.
         /// </summary>
-        /// <returns>A <see cref="DefaultConnection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
+        /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
         internal static Func<IConnectionPool, IConnection> GetDefault()
         {
             Func<IConnectionPool, IConnection> factory = p =>
@@ -30,15 +30,15 @@ namespace Couchbase.IO
                     var ssls = new SslStream(ns);
                     ssls.AuthenticateAsClient(p.EndPoint.Address.ToString());
                 }
-                return new DefaultConnection(p, socket);
+                return null;//new DefaultConnection(p, socket);
             };
             return factory;
         }
 
         /// <summary>
-        /// Returns a functory for creating <see cref="DefaultConnection"/> objects.
+        /// Returns a functory for creating <see cref="Connection"/> objects.
         /// </summary>
-        /// <returns>A <see cref="DefaultConnection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
+        /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
         internal static Func<ConnectionPool<T>, IByteConverter, T> GetGeneric<T>() where T : class, IConnection
         {
             Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) => 
@@ -58,8 +58,8 @@ namespace Couchbase.IO
                 else
                 {
                     //TODO this should be from T...
-                    var pool = p as ConnectionPool<EapConnection>;
-                    connection = new EapConnection(pool, socket, c);
+                    var pool = p as ConnectionPool<Connection>;
+                    connection = new Connection(pool, socket, c);
                 }
                 return connection as T;
             };

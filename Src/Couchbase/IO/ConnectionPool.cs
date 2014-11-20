@@ -127,8 +127,8 @@ namespace Couchbase.IO
                     Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                         connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
 
-                        Interlocked.Increment(ref _count);
-                        Interlocked.Exchange(ref _acquireFailedCount, 0);
+                    Interlocked.Increment(ref _count);
+                    Interlocked.Exchange(ref _acquireFailedCount, 0);
                     return connection;
                 }
             }
@@ -139,7 +139,7 @@ namespace Couchbase.IO
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
                 const string msg = "Failed to acquire a connection after {0} tries.";
-                throw new ConnectionUnavailableException(msg, _acquireFailedCount);
+                throw new ConnectionUnavailableException(msg, acquireFailedCount);
             }
 
             Log.Debug(m => m("No connections currently available on {0} - {1}. Trying again[{2}]. - Disposed: {3}",

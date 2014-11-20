@@ -5,7 +5,7 @@ using System.Security.Authentication;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 
-namespace Couchbase.IO.Strategies
+namespace Couchbase.IO
 {
     internal class SslConnection : ConnectionBase
     {

@@ -1,7 +1,8 @@
 ﻿// http://blogs.msdn.com/b/pfxteam/archive/2011/12/15/10248293.aspx
+
 using System.Net.Sockets;
 
-namespace Couchbase.IO.Strategies.Awaitable
+namespace Couchbase.IO.Utils
 {
     /// <summary>
     /// Extension methods for using <see cref="SocketAwaitable"/> instances for awaitable async IO.

@@ -1,11 +1,12 @@
 ﻿// http://blogs.msdn.com/b/pfxteam/archive/2011/12/15/10248293.aspx
+
 using System;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Couchbase.IO.Strategies.Awaitable
+namespace Couchbase.IO
 {
     /// <summary>
     /// A class wrapper for <see cref="SocketAsyncEventArgs"/> which supports await and async on <see cref="Socket"/> objects.

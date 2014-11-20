@@ -8,7 +8,6 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
-using Couchbase.IO.Strategies.Awaitable;
 using Couchbase.Tests.Helpers;
 using NUnit.Framework;
 

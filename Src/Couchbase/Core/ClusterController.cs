@@ -51,7 +51,7 @@ namespace Couchbase.Core
                 }
                 else
                 {
-                    connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
+                    connectionPool = new ConnectionPool<Connection>(config, endpoint);
                 }
                 return connectionPool;
             },
@@ -73,7 +73,7 @@ namespace Couchbase.Core
                 }
                 else
                 {
-                    connectionPool = new ConnectionPool<EapConnection>(config, endpoint);
+                    connectionPool = new ConnectionPool<Connection>(config, endpoint);
                 }
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
