@@ -186,6 +186,7 @@
     <Compile Include="Management\ThreadNumber.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
     <Compile Include="DefaultResult.cs" />
+    <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />
     <Compile Include="IOperationResult.cs" />

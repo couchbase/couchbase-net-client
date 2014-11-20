@@ -9,7 +9,6 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
-using Couchbase.IO.Operations;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -137,6 +136,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.
         /// </summary>
+        [JsonIgnore]
         public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         /// <summary>

@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Configuration;
 using System.Net.Http;
+using System.Reflection;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.Management;
+using Couchbase.Utils;
 using Couchbase.Views;
+using Newtonsoft.Json;
 
 namespace Couchbase
 {
@@ -63,6 +66,7 @@ namespace Couchbase
         {
             _configuration = configuration;
             _clusterController = clusterController;
+            LogConfigurationAndVersion(_configuration);
         }
 
         /// <summary>
@@ -157,6 +161,15 @@ namespace Couchbase
         {
             Dispose(true);
             Log.Debug(m => m("Disposing {0}", GetType().Name));
+        }
+
+        static void LogConfigurationAndVersion(ClientConfiguration configuration)
+        {
+            var version = CurrentAssembly.Version;
+            Log.Info(m=>m("Version: {0}", version));
+
+            var config = JsonConvert.SerializeObject(configuration);
+            Log.Info(m=>m("Configuration: {0}", config));
         }
 
         /// <summary>
