@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Core.Diagnostics;
@@ -62,18 +63,16 @@ namespace Couchbase.IO
             }
         }
 
-        public override IOperationResult<T> Send<T>(IOperation<T> operation)
+        public override void Send<T>(IOperation<T> operation)
         {
             try
             {
-                var buffer = operation.Write();
-
                 if (Log.IsDebugEnabled && _timingEnabled)
                 {
                     operation.BeginTimer(TimingLevel.One);
                 }
 
-                _stream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
+                _stream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
                 if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
                 {
                     const string msg =
@@ -91,7 +90,6 @@ namespace Couchbase.IO
             {
                 HandleException(e, operation);
             }
-            return operation.GetResult();
         }
 
         private void SendCallback(IAsyncResult asyncResult)
@@ -100,7 +98,7 @@ namespace Couchbase.IO
             try
             {
                 _stream.EndWrite(asyncResult);
-                operation.Buffer = BufferManager.TakeBuffer(512);
+                operation.Buffer = BufferManager.TakeBuffer(128);
                 _stream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
             }
             catch (Exception e)
@@ -125,7 +123,7 @@ namespace Couchbase.IO
 
                 if (operation.LengthReceived < operation.TotalLength)
                 {
-                    operation.Buffer = BufferManager.TakeBuffer(512);
+                    operation.Buffer = BufferManager.TakeBuffer(operation.TotalLength);
                     _stream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
                 }
                 else

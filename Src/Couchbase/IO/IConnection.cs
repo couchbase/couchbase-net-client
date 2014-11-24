@@ -31,14 +31,16 @@ namespace Couchbase.IO
         /// </summary>
         bool IsSecure { get; }
 
-        IOperationResult<T> Send<T>(IOperation<T> operation);
+        void Send<T>(IOperation<T> operation);
 
         OperationAsyncState State { get; }
 
         EndPoint EndPoint { get; }
 
         bool IsDead { get; set; }
+
         Task<uint> SendAsync(byte[] buffer);
+
         Task<byte[]> ReceiveAsync(uint opaque);
     }
 }

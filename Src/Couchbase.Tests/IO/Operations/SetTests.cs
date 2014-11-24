@@ -26,6 +26,20 @@ namespace Couchbase.Tests.IO.Operations
         }
 
         [Test]
+        public void When_Key_Does_Not_Exist_Set_Succeeds2()
+        {
+            const string key = "Replace.When_Document_Exists_Replace_Succeeds";
+
+            //delete the value if it exists
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
+            IOStrategy.Execute(delete);
+
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter);
+            var result = IOStrategy.Execute(set);
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
         public void When_Key_Exists_Set_Succeeds()
         {
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";

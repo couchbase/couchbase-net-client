@@ -79,12 +79,12 @@ namespace Couchbase.IO
         /// </summary>
         public bool IsAuthenticated { get; set; }
 
+        public byte[] WriteBuffer { get; set; }
+
         /// <summary>
         /// True if connection is using SSL
         /// </summary>
         public bool IsSecure { get; protected set; }
-
-        public abstract IOperationResult<T> Send<T>(IOperation<T> operation);
 
         public abstract void Dispose();
 
@@ -121,6 +121,11 @@ namespace Couchbase.IO
         }
 
         public virtual Task<byte[]> ReceiveAsync(uint opaque)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }

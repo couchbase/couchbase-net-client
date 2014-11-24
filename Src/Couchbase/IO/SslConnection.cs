@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 
@@ -10,6 +11,7 @@ namespace Couchbase.IO
     internal class SslConnection : ConnectionBase
     {
         private readonly SslStream _sslStream;
+        private volatile bool _timingEnabled;
 
         internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket)), converter)
@@ -22,6 +24,7 @@ namespace Couchbase.IO
             ConnectionPool = connectionPool;
             _sslStream = sslStream;
             Configuration = ConnectionPool.Configuration;
+            _timingEnabled = Configuration.EnableOperationTiming;
         }
 
         public void Authenticate()
@@ -39,17 +42,15 @@ namespace Couchbase.IO
             }
         }
 
-        public override IOperationResult<T> Send<T>(IOperation<T> operation)
+        public override void Send<T>(IOperation<T> operation)
         {
             try
             {
-                operation.Reset();
-                var buffer = operation.Write();
-
-                _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, operation);
+                _sslStream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
                 if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
                 {
-                    const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                    const string msg =
+                        "The connection has timed out while an operation was in flight. The default is 15000ms.";
                     operation.HandleClientError(msg, ResponseStatus.ClientFailure);
                     IsDead = true;
                 }
@@ -58,10 +59,7 @@ namespace Couchbase.IO
             {
                 HandleException(e, operation);
             }
-
-            return operation.GetResult();
         }
-
         private void SendCallback(IAsyncResult asyncResult)
         {
             var operation = (IOperation)asyncResult.AsyncState;

@@ -67,6 +67,7 @@ namespace Couchbase.IO.Operations
         Task ReadAsync(byte[] buffer, int offset, int length);
         void BeginTimer(TimingLevel level);
         void EndTimer(TimingLevel level);
+        byte[] WriteBuffer { get; set; }
     }
 }
 

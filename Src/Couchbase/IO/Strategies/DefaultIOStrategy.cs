@@ -57,7 +57,9 @@ namespace Couchbase.IO.Strategies
         /// </remarks>
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
-            return connection.Send(operation);
+            operation.WriteBuffer = operation.Write();
+            connection.Send(operation);
+            return operation.GetResult();
         }
 
         /// <summary>
@@ -70,14 +72,17 @@ namespace Couchbase.IO.Strategies
         /// </returns>
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
+            operation.WriteBuffer = operation.Write();
+
             var connection = _connectionPool.Acquire();
             if (!connection.IsAuthenticated)
             {
                Authenticate(connection);
             }
-            var result = Execute(operation, connection);
+            connection.Send(operation);
             _connectionPool.Release(connection);
-            return result;
+
+            return operation.GetResult();
         }
 
         /// <summary>
@@ -98,7 +103,6 @@ namespace Couchbase.IO.Strategies
             await connection.SendAsync(operation.Write()).ConfigureAwait(false);
             var buffer = await connection.ReceiveAsync(operation.Opaque).ConfigureAwait(false);
             await operation.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-
             return operation.GetResult();
         }
 

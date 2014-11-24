@@ -177,8 +177,9 @@ namespace Couchbase.IO.Operations
                     Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
                 };
             }
-            LengthReceived += length;
+
             await Data.WriteAsync(buffer, offset, length);
+            LengthReceived += length;
         }
 
         public virtual byte[] Write()
@@ -348,7 +349,7 @@ namespace Couchbase.IO.Operations
         public virtual Couchbase.IOperationResult<T> GetResult()
         {
             var value = GetValue();
-            return new OperationResult<T>
+            var result = new OperationResult<T>
             {
                 Success = GetSuccess(),
                 Message = GetMessage(),
@@ -357,6 +358,9 @@ namespace Couchbase.IO.Operations
                 Cas = Header.Cas,
                 Exception = Exception
             };
+
+            Data.Dispose();
+            return result;
         }
 
         public virtual bool GetSuccess()
@@ -543,6 +547,8 @@ namespace Couchbase.IO.Operations
             }
             return _timedOut;
         }
+
+        public byte[] WriteBuffer { get; set; }
     }
 }
 
