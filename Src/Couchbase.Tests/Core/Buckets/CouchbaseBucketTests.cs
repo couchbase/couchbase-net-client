@@ -1210,6 +1210,21 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_String_Is_JSON_Couchbase_Treats_It_As_JSON()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var jsonString = "{\"name\":\"bar\", \"age\":10}";
+                var insert = bucket.Upsert("JSON_KEY", jsonString);
+                Assert.IsTrue(insert.Success);
+
+                var get = bucket.Get<string>("JSON_KEY");
+                Assert.IsTrue(get.Success);
+                Assert.AreEqual(jsonString, get.Value);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
