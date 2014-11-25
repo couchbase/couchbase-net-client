@@ -38,7 +38,12 @@ namespace Couchbase.Core.Buckets
         {
             var index = GetIndex(key);
             Log.Debug(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
-            return _vBuckets[index];
+
+            var vBucket = _vForwardBuckets.Count > 0 ?
+                _vForwardBuckets[index] :
+                _vBuckets[index];
+
+            return vBucket;
         }
 
         public int GetIndex(string key)
