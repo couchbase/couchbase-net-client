@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Fakes
 
         public bool IsAuthenticated { get; set; }
 
-        public IOperationResult<T> Send<T>(IOperation<T> operation)
+        public void Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
