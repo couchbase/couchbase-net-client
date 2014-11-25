@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using Couchbase.Configuration.Client;
 using Newtonsoft.Json;
 
 namespace Couchbase.Views
@@ -9,11 +10,11 @@ namespace Couchbase.Views
     /// </summary>
     internal class JsonDataMapper : IDataMapper
     {
-        private readonly JsonSerializer _serializer;
+        private readonly ClientConfiguration _configuration;
 
-        public  JsonDataMapper()
+        public JsonDataMapper(ClientConfiguration configuration)
         {
-            _serializer = new JsonSerializer();
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -27,31 +28,10 @@ namespace Couchbase.Views
             T instance;
             using (var streamReader = new StreamReader(stream))
             {
-                using (var jsonReader = new JsonTextReader(streamReader))
-                {
-                    instance = _serializer.Deserialize<T>(jsonReader);
-                }
+                instance = JsonConvert.DeserializeObject<T>(streamReader.ReadToEnd(),
+                    _configuration.DeserializationSettings);
             }
             return instance;
-        }
-
-        /// <summary>
-        /// Maps the entire results
-        /// </summary>
-        /// <typeparam name="T">The <see cref="IViewResult{T}"/>'s Type paramater.</typeparam>
-        /// <param name="stream">The <see cref="Stream"/> results of the query.</param>
-        /// <returns>An collection typed to it's T Type value.</returns>
-        public List<T> MapAll<T>(Stream stream)
-        {
-            List<T> instances;
-            using (var streamReader = new StreamReader(stream))
-            {
-                using (var jsonReader = new JsonTextReader(streamReader))
-                {
-                    instances = _serializer.Deserialize<List<T>>(jsonReader);
-                }
-            }
-            return instances;
         }
     }
 }

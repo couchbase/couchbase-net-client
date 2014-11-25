@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.N1QL;
 using Couchbase.Tests.Documents;
 using Couchbase.Views;
@@ -18,10 +19,10 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void TestQuery_HelloWorld()
         {
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(new ClientConfiguration()));
             var uri = new Uri("http://localhost:8093/query");
             const string query = "SELECT 'Hello World' AS Greeting";
-            
+
             var result = client.Query<dynamic>(uri, query);
             Assert.IsNotNull(result);
             Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
@@ -30,7 +31,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void TestQuery_Incorrect_Syntax()
         {
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(new ClientConfiguration()));
             var uri = new Uri("http://localhost:8093/query");
             const string query = "SELECT 'Hello World' ASB Greeting";
 
@@ -44,7 +45,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void TestQuery_Select_Children_Dynamic()
         {
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(new ClientConfiguration()));
             var uri = new Uri("http://localhost:8093/query");
             const string query = "SELECT c.children FROM tutorial as c";
 
@@ -58,7 +59,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void TestQuery_Select_Children_Poco()
         {
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper());
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(new ClientConfiguration()));
             var uri = new Uri("http://localhost:8093/query");
             const string query = "SELECT c.children FROM tutorial as c";
 

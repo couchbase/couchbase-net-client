@@ -31,8 +31,8 @@ namespace Couchbase.Core
 
         public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
-            new ViewClient(new HttpClient(), new JsonDataMapper(), bucketConfig, clientConfiguration),
-            new QueryClient(new HttpClient(), new JsonDataMapper()),
+            new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
+            new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration)),
             node, clientConfiguration)
         {
         }

@@ -132,7 +132,12 @@ namespace Couchbase
         /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICouchbaseCluster"/> configuration settings. </returns>
         public IClusterManager CreateManager(string username, string password)
         {
-            return new ClusterManager(Configuration, _clusterController, new HttpClient(), new JsonDataMapper(), username, password);
+            return new ClusterManager(Configuration,
+                _clusterController,
+                new HttpClient(),
+                new JsonDataMapper(Configuration),
+                username,
+                password);
         }
 
         /// <summary>

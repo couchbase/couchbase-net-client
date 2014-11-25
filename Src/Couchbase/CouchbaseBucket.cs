@@ -1542,7 +1542,13 @@ namespace Couchbase
 
         public IBucketManager CreateManager(string username, string password)
         {
-            return new BucketManager(Name, _configInfo.ClientConfig, _clusterManager, new HttpClient(), new JsonDataMapper(), username, password);
+            return new BucketManager(Name,
+                _configInfo.ClientConfig,
+                _clusterManager,
+                new HttpClient(),
+                new JsonDataMapper(_configInfo.ClientConfig),
+                username,
+                password);
         }
 
         /// <summary>
