@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Newtonsoft.Json;
 
@@ -13,7 +14,7 @@ namespace Couchbase.Views
     {
         public ViewResult()
         {
-            Rows = new List<T>();
+            Rows = new List<ViewRow<T>>();
             Error = string.Empty;
             Message = string.Empty;
         }
@@ -24,10 +25,18 @@ namespace Couchbase.Views
         public uint TotalRows { get; internal set; }
 
         /// <summary>
-        /// The results of the query if successful.
+        /// The results of the query if successful as a <see cref="IEnumerable{T}"/>
         /// </summary>
         [JsonProperty("rows")]
-        public List<T> Rows { get; internal set; }
+        public IEnumerable<ViewRow<T>> Rows { get; internal set; }
+
+        /// <summary>
+        /// Returns the value of each element within the <see cref="Rows"/> property as a <see cref="IEnumerable{T}"/>.
+        /// </summary>
+        public IEnumerable<T> Values
+        {
+            get { return Rows.Select(x => x.Value); }
+        }
 
         /// <summary>
         /// An error message if one occured.

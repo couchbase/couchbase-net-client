@@ -1,21 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Tests.Core.Buckets;
+using Couchbase.Tests.Documents;
 using Couchbase.Views;
 using NUnit.Framework;
-using Wintellect;
 
 namespace Couchbase.Tests.Views
 {
     [TestFixture]
     public class ViewClientTests
     {
+        [Test]
+        public void When_Poco_Is_Supplied_Map_Results_To_It()
+        {
+            var query = new ViewQuery().
+              From("beer", "all_beers").
+              Bucket("beer-sample");
+
+            var client = new ViewClient(new HttpClient(), new JsonDataMapper(), new BucketConfig { Name = "beer-sample" }, new ClientConfiguration());
+            var result = client.Execute<Beer>(query);
+            Console.WriteLine(result.Error);
+            Assert.IsNotNull(result.Rows);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(result.Rows.Count(), result.Values.Count());
+        }
+
         [Test]
         public void When_Query_Is_Succesful_Rows_Are_Returned()
         {

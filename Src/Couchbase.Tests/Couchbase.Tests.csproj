@@ -90,8 +90,11 @@
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
+    <Compile Include="Documents\Beer.cs" />
+    <Compile Include="Documents\Brewery.cs" />
     <Compile Include="Documents\Child.cs" />
     <Compile Include="Documents\Contact.cs" />
+    <Compile Include="Documents\Geo.cs" />
     <Compile Include="Encryption\EffectiveConfigurationTests.cs" />
     <Compile Include="Fakes\FakeConnection.cs" />
     <Compile Include="Fakes\FakeConnectionPool.cs" />

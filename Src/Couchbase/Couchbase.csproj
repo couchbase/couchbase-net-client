@@ -274,6 +274,7 @@
     <Compile Include="Views\StaleState.cs" />
     <Compile Include="Views\ViewClient.cs" />
     <Compile Include="Views\ViewQuery.cs" />
+    <Compile Include="Views\ViewRow.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

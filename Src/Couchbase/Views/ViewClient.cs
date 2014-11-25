@@ -134,7 +134,7 @@ namespace Couchbase.Views
             viewResult.Message = message;
             viewResult.Error = ex.Message;
             viewResult.Exception = ex;
-            viewResult.Rows = new List<T>();
+            viewResult.Rows = new List<ViewRow<T>>();
         }
 
         static void ProcessError<T>(Exception ex, string error, ViewResult<T> viewResult)
@@ -145,7 +145,7 @@ namespace Couchbase.Views
             viewResult.Message = message;
             viewResult.Error = error;
             viewResult.Exception = ex;
-            viewResult.Rows = new List<T>();
+            viewResult.Rows = new List<ViewRow<T>>();
         }
 
         static HttpStatusCode GetStatusCode(string message)

@@ -25,11 +25,11 @@ namespace Couchbase.Views
         IViewResult<T> Execute<T>(IViewQuery query);
 
         /// <summary>
-        /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/> 
+        /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/>
         /// and mapping then to the queries Type paramater.
         /// </summary>
         IDataMapper Mapper { get; set; }
-            
+
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>

@@ -16,9 +16,9 @@ namespace Couchbase.Views
         uint TotalRows { get; }
 
         /// <summary>
-        /// The results of the query if successful as a <see cref="List{T}"/>.
+        /// The results of the query if successful as a <see cref="IEnumerable{T}"/>.
         /// </summary>
-        List<T> Rows { get; }
+        IEnumerable<ViewRow<T>> Rows { get; }
 
         /// <summary>
         /// A View engine specific error message if one occured.
@@ -30,6 +30,15 @@ namespace Couchbase.Views
         /// </summary>
         HttpStatusCode StatusCode { get; }
 
+        /// <summary>
+        /// Returns the value of each element within the <see cref="Rows"/> property as a <see cref="IEnumerable{T}"/>.
+        /// </summary>
+        IEnumerable<T> Values { get; }
+
+        /// <summary>
+        /// Returns false if the error that caused the View request to fail can result in a retry request.
+        /// </summary>
+        /// <returns></returns>
         bool CannotRetry();
     }
 }

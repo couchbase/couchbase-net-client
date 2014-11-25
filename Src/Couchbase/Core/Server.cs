@@ -142,7 +142,7 @@ namespace Couchbase.Core
                     Error = e.Message,
                     Success = false,
                     StatusCode = HttpStatusCode.BadRequest,
-                    Rows = new List<T>()
+                    Rows = new List<ViewRow<T>>()
                 };
             }
             return result;

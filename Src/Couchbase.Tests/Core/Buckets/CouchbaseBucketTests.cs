@@ -955,9 +955,7 @@ namespace Couchbase.Tests.Core.Buckets
                 //Assert.AreEqual(10, results.Rows.Count);
 
                 var keys = results.
-                    Rows.
-                    ConvertAll(x => x.id.Value).
-                    Cast<string>();
+                    Rows.Select(x => x.Id);
 
                 using (new OperationTimer())
                 {
@@ -979,9 +977,7 @@ namespace Couchbase.Tests.Core.Buckets
                 //Assert.AreEqual(10, results.Rows.Count);
 
                 var keys = results.
-                    Rows.
-                    ConvertAll(x => x.id.Value).
-                    Cast<string>();
+                    Rows.Select(x => x.Id);
 
                 using (new OperationTimer())
                 {
@@ -1006,9 +1002,7 @@ namespace Couchbase.Tests.Core.Buckets
                 //Assert.AreEqual(10, results.Rows.Count);
 
                 var keys = results.
-                    Rows.
-                    ConvertAll(x => x.id.Value).
-                    Cast<string>();
+                     Rows.Select(x => x.Id);
 
                 using (new OperationTimer())
                 {
@@ -1112,7 +1106,7 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var result = await bucket.QueryAsync<dynamic>(query);
                 Assert.IsTrue(result.Success);
-                Assert.Greater(result.Rows.Count, 0);
+                Assert.Greater(result.Rows.Count(), 0);
             }
         }
 
