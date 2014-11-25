@@ -8,7 +8,7 @@ namespace Couchbase.Core
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    internal interface ICouchbaseCluster : IDisposable
+    public interface ICluster : IDisposable
     {
         /// <summary>
         /// Opens a Couchbase Bucket instance.
@@ -38,9 +38,9 @@ namespace Couchbase.Core
         void CloseBucket(IBucket bucket);
 
         /// <summary>
-        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICouchbaseCluster"/> configuration settings.
+        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICluster"/> configuration settings.
         /// </summary>
-        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICouchbaseCluster"/> configuration settings. </returns>
+        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICluster"/> configuration settings. </returns>
         IClusterManager CreateManager(string username, string password);
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace Couchbase.Tests.Core.Buckets
     [TestFixture]
     public class CouchbaseBucketViewTests
     {
-        private ICouchbaseCluster _cluster;
+        private ICluster _cluster;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()

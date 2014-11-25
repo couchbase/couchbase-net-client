@@ -16,7 +16,7 @@ namespace Couchbase
     /// <summary>
     /// The client interface to a Couchbase Server Cluster.
     /// </summary>
-    public sealed class Cluster : ICouchbaseCluster
+    public sealed class Cluster : ICluster
     {
         private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private const string DefaultBucket = "default";
@@ -127,9 +127,9 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICouchbaseCluster"/> configuration settings.
+        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICluster"/> configuration settings.
         /// </summary>
-        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICouchbaseCluster"/> configuration settings. </returns>
+        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICluster"/> configuration settings. </returns>
         public IClusterManager CreateManager(string username, string password)
         {
             return new ClusterManager(Configuration,

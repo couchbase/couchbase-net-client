@@ -226,7 +226,7 @@
     <Compile Include="Core\InvalidBucketTypeException.cs" />
     <Compile Include="Cryptography\Crc32.cs" />
     <Compile Include="Core\IBucket.cs" />
-    <Compile Include="Core\ICouchbaseCluster.cs" />
+    <Compile Include="Core\ICluster.cs" />
     <Compile Include="Core\IClusterInfo.cs" />
     <Compile Include="Core\IKeyMapper.cs" />
     <Compile Include="Configuration\IConfigInfo.cs" />

@@ -27,7 +27,7 @@ namespace Couchbase.Tests.Core.Buckets
     [TestFixture]
     public class CouchbaseBucketTests
     {
-        private ICouchbaseCluster _cluster;
+        private ICluster _cluster;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()

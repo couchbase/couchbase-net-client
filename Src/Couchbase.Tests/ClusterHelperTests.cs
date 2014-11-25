@@ -14,7 +14,7 @@ namespace Couchbase.Tests
     [TestFixture]
     public class ClusterHelperTests
     {
-        private ICouchbaseCluster _cluster;
+        private ICluster _cluster;
 
         [TestFixtureSetUp]
         public void Setup()

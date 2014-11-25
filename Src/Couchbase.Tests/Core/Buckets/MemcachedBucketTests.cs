@@ -16,7 +16,7 @@ namespace Couchbase.Tests.Core.Buckets
     [TestFixture]
     public class MemcachedBucketTests
     {
-        private ICouchbaseCluster _cluster;
+        private ICluster _cluster;
 
         [SetUp]
         public void SetUp()

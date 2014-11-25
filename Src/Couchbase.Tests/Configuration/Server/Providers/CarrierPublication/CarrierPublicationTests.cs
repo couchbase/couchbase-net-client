@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
     [TestFixture]
     public class CarrierPublicationTests
     {
-        private ICouchbaseCluster _cluster;
+        private ICluster _cluster;
         private IBucket _bucket;
 
         [TestFixtureSetUp]
