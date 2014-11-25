@@ -87,7 +87,7 @@ namespace Couchbase.Tests.Views
 
             var result = client.Execute<dynamic>(query);
 
-            Assert.AreEqual("The remote server returned an error: (400) Bad Request.", result.Error);
+            Assert.AreEqual("query_parse_error", result.Error);
             Assert.AreEqual(HttpStatusCode.BadRequest, result.StatusCode);
             Assert.IsFalse(result.Success);
 
@@ -120,7 +120,7 @@ namespace Couchbase.Tests.Views
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
-                BaseUri("http://192.168.62.104:8092/");
+                BaseUri("http://192.168.62.200:8092/");
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
