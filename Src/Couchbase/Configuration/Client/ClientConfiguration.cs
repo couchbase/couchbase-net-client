@@ -79,7 +79,7 @@ namespace Couchbase.Configuration.Client
         /// For synchronization with App.config or Web.configs.
         /// </summary>
         /// <param name="couchbaseClientSection"></param>
-        internal ClientConfiguration(CouchbaseClientSection couchbaseClientSection)
+        public ClientConfiguration(CouchbaseClientSection couchbaseClientSection)
         {
             //For operation timing
             Timer = TimingFactory.GetTimer(Log);
