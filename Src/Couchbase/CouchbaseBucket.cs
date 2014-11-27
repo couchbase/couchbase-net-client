@@ -139,8 +139,7 @@ namespace Couchbase
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }
-            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success &&
-                        !operation.TimedOut());
+            } while (!operationResult.Success && !operation.TimedOut());
 
             if (!operationResult.Success)
             {
@@ -221,7 +220,7 @@ namespace Couchbase
                 case ResponseStatus.OperationTimeout:
                     break;
             }
-            return retry;
+            return retry && supportsRetry;
         }
 
         bool HandleIOError<T>(IOperation<T> operation, IServer server)
