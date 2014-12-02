@@ -25,7 +25,6 @@ namespace Couchbase.IO.Operations
         private readonly uint _opaque;
         private readonly ITypeTranscoder _transcoder;
         private readonly T _value;
-        private readonly DateTime _creationTime;
         private bool _timedOut;
         protected readonly IByteConverter Converter;
         protected Flags Flags = new Flags();
@@ -43,7 +42,7 @@ namespace Couchbase.IO.Operations
             _value = value;
             _transcoder = transcoder;
             _opaque = opaque;
-            _creationTime = DateTime.UtcNow;
+            CreationTime = DateTime.UtcNow;
             Timeout = timeout;
             VBucket = vBucket;
             Converter = converter;
@@ -540,7 +539,7 @@ namespace Couchbase.IO.Operations
         {
             if (_timedOut) return _timedOut;
 
-            var elasped = DateTime.UtcNow.Subtract(_creationTime).TotalMilliseconds;
+            var elasped = DateTime.UtcNow.Subtract(CreationTime).TotalMilliseconds;
             if (elasped >= Timeout)
             {
                 _timedOut = true;
