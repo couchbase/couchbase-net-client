@@ -1043,6 +1043,42 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_Multi_Upsert_And_Get_1000_Items()
+        {
+            var items = new Dictionary<string, string>();
+            for (int i = 0; i < 1000; i++)
+            {
+                items.Add("key"+ i, "Value" +i);
+            }
+            var config = new ClientConfiguration
+            {
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = 10,
+                    MinSize = 5
+                }
+            };
+            using(var cluster = new Cluster(config))
+            using (var bucket = cluster.OpenBucket())
+            {
+                var multiUpsert = bucket.Upsert(items);
+                Assert.AreEqual(items.Count, multiUpsert.Count);
+                foreach (var pair in multiUpsert)
+                {
+                    Assert.IsTrue(pair.Value.Success);
+                }
+
+                var multiGet = bucket.Get<string>(multiUpsert.Keys.ToList());
+                foreach (var pair in multiGet)
+                {
+                    Assert.IsTrue(pair.Value.Success);
+                    var expected = items[pair.Key];
+                    Assert.AreEqual(expected, pair.Value.Value);
+                }
+            }
+        }
+
+        [Test]
         public void Test_Multi_Upsert_With_MaxDegreeOfParallelism_1()
         {
             using (var bucket = _cluster.OpenBucket())
