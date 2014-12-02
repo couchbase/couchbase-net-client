@@ -18,6 +18,14 @@ namespace Couchbase.IO.Operations
             _expiration = expiration;
         }
 
+        private Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, initial, transcoder, vBucket, converter, opaque)
+        {
+            _delta = delta;
+            _initial = initial;
+            _expiration = expiration;
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Increment; }
@@ -40,6 +48,17 @@ namespace Couchbase.IO.Operations
         public override byte[] CreateBody()
         {
             return new byte[0];
+        }
+
+        public override IOperation<ulong> Clone()
+        {
+            var cloned = new Increment(Key, _initial, _delta, _expiration, VBucket, Converter, Transcoder, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

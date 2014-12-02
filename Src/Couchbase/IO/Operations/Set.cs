@@ -16,6 +16,12 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
+            : base(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        {
+        }
+
+
         public Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
             : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
@@ -28,10 +34,11 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter)
+            var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque)
             {
                 Attempts = Attempts,
-                Cas = Cas
+                Cas = Cas,
+                CreationTime = CreationTime
             };
             return cloned;
         }

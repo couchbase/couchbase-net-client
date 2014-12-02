@@ -17,8 +17,8 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public ReplicaRead(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque)
+        private ReplicaRead(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
+            : base(key, default(T), transcoder, vBucket, converter, opaque)
         {
         }
 
@@ -63,6 +63,17 @@ namespace Couchbase.IO.Operations
         public override int BodyOffset
         {
             get { return 28; }
+        }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Converter, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

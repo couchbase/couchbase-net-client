@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using Couchbase.IO.Operations;
+using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Operations
 {

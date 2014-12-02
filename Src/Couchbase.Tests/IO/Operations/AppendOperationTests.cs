@@ -34,13 +34,25 @@ namespace Couchbase.Tests.IO.Operations
             var append = new Append<string>(key, "!", Transcoder, GetVBucket(), Converter);
             var result = IOStrategy.Execute(append);
 
-            
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
             var get = new Get<string>(key, GetVBucket(),  Converter, Transcoder);
             var getResult = IOStrategy.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
+        }
+
+        [Test]
+        public void Test_Clone()
+        {
+            var operation = new Append<string>("Hello", "!", Transcoder, GetVBucket(), Converter);
+            var cloned = operation.Clone();
+            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
+            Assert.AreEqual(operation.Cas, cloned.Cas);
+            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
+            Assert.AreEqual(operation.Key, cloned.Key);
+            Assert.AreEqual(operation.Opaque, cloned.Opaque);
+            Assert.AreEqual(operation.RawValue, ((OperationBase<string>)cloned).RawValue);
         }
     }
 }

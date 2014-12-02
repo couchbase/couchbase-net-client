@@ -24,6 +24,21 @@ namespace Couchbase.IO.Operations
             _expiration = expiration;
         }
 
+        private Decrement(string key,
+            ulong initial,
+            ulong delta,
+            uint expiration,
+            IVBucket vBucket,
+            IByteConverter converter,
+            ITypeTranscoder transcoder,
+            uint opaque)
+            : base(key, initial, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        {
+            _delta = delta;
+            _initial = initial;
+            _expiration = expiration;
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Decrement; }
@@ -46,6 +61,17 @@ namespace Couchbase.IO.Operations
         public override byte[] CreateBody()
         {
             return new byte[0];
+        }
+
+        public override IOperation<ulong> Clone()
+        {
+            var cloned = new Decrement(Key, _initial,_delta, _expiration, VBucket, Converter, Transcoder, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

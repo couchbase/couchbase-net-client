@@ -122,5 +122,21 @@ namespace Couchbase.Tests.IO.Operations
 
             Assert.AreEqual(DataFormat.Binary, get.Format);
         }
+
+
+        [Test]
+        public void Test_Clone()
+        {
+            var operation = new Get<string>("key", GetVBucket(), Converter, Transcoder)
+            {
+                Cas = 1123
+            };
+            var cloned = operation.Clone();
+            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
+            Assert.AreEqual(operation.Cas, cloned.Cas);
+            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
+            Assert.AreEqual(operation.Key, cloned.Key);
+            Assert.AreEqual(operation.Opaque, cloned.Opaque);
+        }
     }
 }

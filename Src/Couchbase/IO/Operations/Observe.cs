@@ -22,6 +22,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, default(ObserveState), transcoder, vBucket, converter, opaque)
+        {
+        }
+
         public override byte[] Write()
         {
             var body = new byte[2 + 2 + Key.Length];
@@ -61,6 +66,17 @@ namespace Couchbase.IO.Operations
         public override OperationCode OperationCode
         {
             get { return OperationCode.Observe; }
+        }
+
+        public override IOperation<ObserveState> Clone()
+        {
+            var cloned = new Observe(Key, VBucket, Converter, Transcoder, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

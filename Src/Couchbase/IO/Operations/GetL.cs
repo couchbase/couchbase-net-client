@@ -11,6 +11,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private GetL(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, vBucket, converter, transcoder, opaque)
+        {
+        }
+
         public override byte[] CreateExtras()
         {
             var extras = new byte[4];
@@ -23,6 +28,17 @@ namespace Couchbase.IO.Operations
         public override OperationCode OperationCode
         {
             get { return OperationCode.GetL; }
+        }
+
+        public override IOperation<T> Clone()
+        {
+            var cloned = new GetL<T>(Key, VBucket, Converter, Transcoder, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

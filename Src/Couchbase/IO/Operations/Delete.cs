@@ -12,6 +12,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, null, transcoder, vBucket, converter, opaque)
+        {
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Delete; }
@@ -32,10 +37,11 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<object> Clone()
         {
-            var cloned = new Delete(Key, VBucket, Converter, Transcoder)
+            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Opaque)
             {
                 Attempts = Attempts,
-                Cas = Cas
+                Cas = Cas,
+                CreationTime = CreationTime
             };
             return cloned;
         }

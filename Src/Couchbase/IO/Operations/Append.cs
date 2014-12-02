@@ -32,6 +32,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private Append(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, value, transcoder, vBucket, converter, opaque)
+        {
+        }
+
         public override byte[] CreateExtras()
         {
             var format = (byte)GetFormat();
@@ -54,10 +59,11 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Append<T>(Key, RawValue, Transcoder, VBucket, Converter)
+            var cloned = new Append<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque)
             {
                 Attempts = Attempts,
-                Cas = Cas
+                Cas = Cas,
+                CreationTime = CreationTime
             };
             return cloned;
         }

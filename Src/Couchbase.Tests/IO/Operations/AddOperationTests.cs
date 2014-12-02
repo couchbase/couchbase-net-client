@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -37,6 +38,19 @@ namespace Couchbase.Tests.IO.Operations
             var result = IOStrategy.Execute(operation);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
+        }
+
+        [Test]
+        public void Test_Clone()
+        {
+            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
+            var cloned = operation.Clone();
+            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
+            Assert.AreEqual(operation.Cas, cloned.Cas);
+            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
+            Assert.AreEqual(operation.Key, cloned.Key);
+            Assert.AreEqual(operation.Opaque, cloned.Opaque);
+            Assert.AreEqual(operation.RawValue, ((OperationBase<dynamic>) cloned).RawValue);
         }
     }
 }

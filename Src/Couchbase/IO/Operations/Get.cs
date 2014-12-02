@@ -12,6 +12,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        protected Get(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, default(T), transcoder, vBucket, converter, opaque)
+        {
+        }
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Get; }
@@ -37,10 +42,11 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Get<T>(Key, VBucket, Converter, Transcoder)
+            var cloned = new Get<T>(Key, VBucket, Converter, Transcoder, Opaque)
             {
                 Attempts = Attempts,
-                Cas = Cas
+                Cas = Cas,
+                CreationTime = CreationTime
             };
             return cloned;
         }

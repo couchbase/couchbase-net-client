@@ -46,5 +46,20 @@ namespace Couchbase.Tests.IO.Operations
             Assert.AreEqual(KeyState.FoundPersisted, result2.Value.KeyState);
             Assert.IsTrue(result2.Success);
         }
+
+        [Test]
+        public void Test_Clone()
+        {
+            var operation = new Observe("key", GetVBucket(), Converter, Transcoder)
+            {
+                Cas = 1123
+            };
+            var cloned = operation.Clone();
+            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
+            Assert.AreEqual(operation.Cas, cloned.Cas);
+            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
+            Assert.AreEqual(operation.Key, cloned.Key);
+            Assert.AreEqual(operation.Opaque, cloned.Opaque);
+        }
     }
 }

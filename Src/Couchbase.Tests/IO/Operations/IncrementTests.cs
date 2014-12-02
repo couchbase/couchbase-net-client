@@ -51,6 +51,21 @@ namespace Couchbase.Tests.IO.Operations
             Assert.AreEqual(result2.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
         }
 
+        [Test]
+        public void Test_Clone()
+        {
+            var operation = new Increment("key", 1, 1, 0, GetVBucket(), Converter, Transcoder)
+            {
+                Cas = 1123
+            };
+            var cloned = operation.Clone();
+            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
+            Assert.AreEqual(operation.Cas, cloned.Cas);
+            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
+            Assert.AreEqual(operation.Key, cloned.Key);
+            Assert.AreEqual(operation.Opaque, cloned.Opaque);
+        }
+
         [TearDown]
         public override void TearDown()
         {

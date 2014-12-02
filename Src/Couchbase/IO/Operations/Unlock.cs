@@ -11,8 +11,8 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public Unlock(string key, string value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque)
+        private Unlock(string key,  ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
+            : base(key, default(string), transcoder, vBucket, converter, opaque)
         {
         }
 
@@ -44,6 +44,17 @@ namespace Couchbase.IO.Operations
         public override OperationCode OperationCode
         {
             get { return OperationCode.Unlock; }
+        }
+
+        public override IOperation<string> Clone()
+        {
+            var cloned = new Unlock(Key, Transcoder, VBucket, Converter, Opaque)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime
+            };
+            return cloned;
         }
     }
 }

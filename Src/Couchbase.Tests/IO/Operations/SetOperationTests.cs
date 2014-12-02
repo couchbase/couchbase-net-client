@@ -49,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
                     StringProperty="somestring",
                     IntProperty = 23
                 };
-                
+
                 var response = bucket.Upsert("dynamickey", obj);
                 Assert.IsTrue(response.Success);
             }

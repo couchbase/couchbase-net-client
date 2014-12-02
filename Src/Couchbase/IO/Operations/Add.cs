@@ -11,6 +11,11 @@ namespace Couchbase.IO.Operations
         {
         }
 
+        private Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
+            : base(key, value, transcoder, vBucket, converter, opaque)
+        {
+        }
+
         public Add(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
             : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
@@ -29,10 +34,11 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Add<T>(Key, RawValue, VBucket, Converter, Transcoder)
+            var cloned = new Add<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque)
             {
                 Attempts = Attempts,
-                Cas = Cas
+                Cas = Cas,
+                CreationTime = CreationTime
             };
             return cloned;
         }
