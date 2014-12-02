@@ -20,9 +20,9 @@ namespace Couchbase
             {
                 Cas = result.Cas,
                 Id = id,
-                Value = result.Value
+                Content = result.Value
             };
-            Value = Document.Value;
+            Content = Document.Content;
             Message = result.Message;
             Status = result.Status;
             Success = result.Success;
@@ -52,7 +52,7 @@ namespace Couchbase
         /// <summary>
         /// The actual value stored within Couchbase
         /// </summary>
-        public T Value { get; set; }
+        public T Content { get; set; }
 
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.

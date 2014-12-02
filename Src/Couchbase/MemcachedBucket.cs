@@ -208,7 +208,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Upsert<T>(IDocument<T> document)
         {
-            var result = Upsert(document.Id, document.Value);
+            var result = Upsert(document.Id, document.Content);
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -387,7 +387,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
-            var result = Replace(document.Id, document.Value);
+            var result = Replace(document.Id, document.Content);
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -468,7 +468,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
-            var result = Insert(document.Id, document.Value);
+            var result = Insert(document.Id, document.Content);
             return new DocumentResult<T>(result, document.Id);
         }
 

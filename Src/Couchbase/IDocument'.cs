@@ -4,7 +4,7 @@
     /// Provides an interface for interacting with documents within Couchbase Server
     /// </summary>
     /// <typeparam name="T">The type of document.</typeparam>
-    public interface IDocument<T>  
+    public interface IDocument<T>
     {
         /// <summary>
         /// The unique identifier for the document
@@ -25,7 +25,7 @@
         /// <summary>
         /// The value representing the document itself
         /// </summary>
-        T Value { get; set; }
+        T Content { get; set; }
     }
 }
 #region [ License information ]

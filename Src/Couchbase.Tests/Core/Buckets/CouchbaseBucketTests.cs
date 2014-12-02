@@ -186,7 +186,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new { Bar = "bar", Foo = "foo" }
+                    Content = new { Bar = "bar", Foo = "foo" }
                 };
                 var result = bucket.Insert(document);
                 Assert.IsTrue(result.Success);
@@ -561,7 +561,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Jeff", Age = 22
                     }
@@ -585,7 +585,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Jeff",
                         Age = 22
@@ -600,7 +600,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document2 = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Geoff",
                         Age = 22
@@ -612,7 +612,7 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsNullOrEmpty(result.Message);
 
                 var get = bucket.GetDocument<dynamic>(id);
-                Assert.AreEqual("Geoff", get.Value.name.Value);//Name is a jsonobject, so use Value
+                Assert.AreEqual("Geoff", get.Content.name.Value);//Name is a jsonobject, so use Value
             }
         }
 
@@ -626,7 +626,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Jeff",
                         Age = 22
@@ -653,7 +653,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Jeff",
                         Age = 22
@@ -711,7 +711,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<dynamic>
                 {
                     Id = id,
-                    Value = new
+                    Content = new
                     {
                         Name = "Jeff",
                         Age = 22
@@ -722,8 +722,8 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var result = bucket.GetDocument<dynamic>(id);
                 Assert.IsTrue(result.Success);
-                Assert.AreEqual(document.Value.Name, result.Value.name.Value);
-                Assert.AreEqual(document.Value.Name, result.Document.Value.name.Value);
+                Assert.AreEqual(document.Content.Name, result.Content.name.Value);
+                Assert.AreEqual(document.Content.Name, result.Document.Content.name.Value);
             }
         }
 
@@ -736,7 +736,7 @@ namespace Couchbase.Tests.Core.Buckets
                 var document = new Document<Poco>
                 {
                     Id = key,
-                    Value = new Poco
+                    Content = new Poco
                     {
                         Bar = "Foo",
                         Age = 12
@@ -747,7 +747,7 @@ namespace Couchbase.Tests.Core.Buckets
                 if (result.Success)
                 {
                     var doc = bucket.GetDocument<Poco>(key);
-                    var poco = doc.Value;
+                    var poco = doc.Content;
                     Console.WriteLine(poco.Bar);
                 }
             }
@@ -843,7 +843,7 @@ namespace Couchbase.Tests.Core.Buckets
                 for (int i = workState.Start; i < workState.Count+ workState.Start; i++)
                 {
                     var id = "id_" + i;
-                    bucket.Insert(new Document<int> {Id = id, Value = i});
+                    bucket.Insert(new Document<int> {Id = id, Content = i});
                     var result = bucket.GetDocument<int>(id);
                     Console.WriteLine("Doc: {0} [{1}] on thread {2}", result.Document.Id, result.Success, Thread.CurrentThread.ManagedThreadId);
                 }
@@ -915,7 +915,7 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var document = new Document<dynamic>
                 {
-                    Value = new {Ibu = 3.4},
+                    Content = new {Ibu = 3.4},
                     Id = id
                 };
 

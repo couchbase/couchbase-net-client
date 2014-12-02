@@ -21,7 +21,7 @@ namespace Couchbase
         /// <summary>
         /// The actual value stored within Couchbase
         /// </summary>
-        T Value { get; }
+        T Content { get; }
     }
 }
 

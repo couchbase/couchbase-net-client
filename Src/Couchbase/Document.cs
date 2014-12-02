@@ -31,7 +31,7 @@ namespace Couchbase
         /// <summary>
         /// The value representing the document itself
         /// </summary>
-        public T Value { get; set; }
+        public T Content { get; set; }
     }
 }
 #region [ License information ]
