@@ -117,6 +117,7 @@ namespace Couchbase
                 }
                 operation.VBucket = vBucket;
                 operationResult = server.Send(operation);
+
                 if (operationResult.Success)
                 {
                     Log.Debug(
@@ -202,8 +203,7 @@ namespace Couchbase
                 case ResponseStatus.IncrDecrOnNonNumericValue:
                     break;
                 case ResponseStatus.VBucketBelongsToAnotherServer:
-                    retry = CheckForConfigUpdates(operationResult, operation);
-                    break;
+                    return CheckForConfigUpdates(operationResult, operation);
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue:
                 case ResponseStatus.InvalidRange:
