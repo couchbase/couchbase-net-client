@@ -18,6 +18,7 @@
  using Couchbase.Management;
  using Couchbase.N1QL;
  using Couchbase.Views;
+ using Couchbase.Utils;
 
 namespace Couchbase
 {
@@ -248,6 +249,21 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration)
+        {
+            return Upsert(key, value, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
@@ -278,6 +294,22 @@ namespace Couchbase
             return SendWithRetry(operation);
         }
 
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            return Upsert(key, value, cas, expiration.ToTtl());
+        }
+
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
@@ -293,7 +325,18 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+
+        }
+
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -435,12 +478,32 @@ namespace Couchbase
             return SendWithRetry(operation);
         }
 
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, TimeSpan expiration)
+        {
+            return Replace(key, value, expiration.ToTtl());
+        }
+
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -456,6 +519,11 @@ namespace Couchbase
         }
 
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -502,6 +570,21 @@ namespace Couchbase
             return SendWithRetry(operation);
         }
 
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration)
+        {
+            return Insert(key, value, expiration.ToTtl());
+        }
+
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
@@ -513,6 +596,11 @@ namespace Couchbase
         }
 
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -672,6 +760,11 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         public IOperationResult Unlock(string key, ulong cas)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
@@ -739,6 +832,22 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            return Increment(key, delta, initial, expiration.ToTtl());
+        }
+
+        /// <summary>
         /// Decrements the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with 1.
         /// </summary>
@@ -797,6 +906,22 @@ namespace Couchbase
         {
             var operation = new Decrement(key, initial, delta, expiration,  null, _converter, _transcoder);
             return SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            return Decrement(key, delta, initial, expiration.ToTtl());
         }
 
         /// <summary>

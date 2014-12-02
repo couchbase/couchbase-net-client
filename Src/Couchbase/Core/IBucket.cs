@@ -88,6 +88,16 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration);
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Upsert<T>(string key, T value, ulong cas);
@@ -102,6 +112,17 @@ namespace Couchbase.Core
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration);
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration);
 
         /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
@@ -148,6 +169,31 @@ namespace Couchbase.Core
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
         /// Inserts or replaces a range of items into Couchbase Server.
@@ -233,6 +279,16 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Replace<T>(string key, T value, TimeSpan expiration);
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Replace<T>(string key, T value, ulong cas);
@@ -247,6 +303,17 @@ namespace Couchbase.Core
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration);
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration);
 
         /// <summary>
         /// Replaces a document for a given key if it exists, otherwise fails.
@@ -306,6 +373,19 @@ namespace Couchbase.Core
         IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -357,6 +437,16 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration);
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="replicateTo"></param>
         /// <param name="persistTo"></param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
@@ -384,6 +474,18 @@ namespace Couchbase.Core
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
         /// Removes a document from the database.
@@ -526,6 +628,15 @@ namespace Couchbase.Core
         IOperationResult<T> GetWithLock<T>(string key, uint expiration);
 
         /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration);
+
+        /// <summary>
         /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/>.
         /// </summary>
         /// <param name="key">The key of the document to unlock.</param>
@@ -572,6 +683,17 @@ namespace Couchbase.Core
         IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration);
 
         /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration);
+
+        /// <summary>
         /// Decrements the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with 1.
         /// </summary>
@@ -608,6 +730,17 @@ namespace Couchbase.Core
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration);
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration);
 
         /// <summary>
         /// Appends a value to a give key.

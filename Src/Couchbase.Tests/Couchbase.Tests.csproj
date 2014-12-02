@@ -143,6 +143,7 @@
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
     <Compile Include="Utils\BoolExtensionTests.cs" />
+    <Compile Include="Utils\TimeSpanExtensionsTests.cs" />
     <Compile Include="Utils\BufferExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
     <Compile Include="Utils\UriExtensionTests.cs" />
