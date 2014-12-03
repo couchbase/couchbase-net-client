@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -48,19 +49,31 @@ namespace Couchbase.IO.Operations
 
         public override ObserveState GetValue()
         {
-            var buffer = Data.ToArray();
-            var keylength = Converter.ToInt16(buffer, 26);
-
-            return new ObserveState
+            if (Success && Data != null && Data.Length > 0)
             {
-                PersistStat = Converter.ToUInt32(buffer, 16),
-                ReplState = Converter.ToUInt32(buffer, 20),
-                VBucket = Converter.ToInt16(buffer, 24),
-                KeyLength = keylength,
-                Key = Converter.ToString(buffer, 28, keylength),
-                KeyState = (KeyState)Converter.ToByte(buffer, 28 + keylength),
-                Cas = Converter.ToUInt64(buffer, 28 + keylength + 1)
-            };
+                try
+                {
+                    var buffer = Data.ToArray();
+                    var keylength = Converter.ToInt16(buffer, 26);
+
+                    return new ObserveState
+                    {
+                        PersistStat = Converter.ToUInt32(buffer, 16),
+                        ReplState = Converter.ToUInt32(buffer, 20),
+                        VBucket = Converter.ToInt16(buffer, 24),
+                        KeyLength = keylength,
+                        Key = Converter.ToString(buffer, 28, keylength),
+                        KeyState = (KeyState) Converter.ToByte(buffer, 28 + keylength),
+                        Cas = Converter.ToUInt64(buffer, 28 + keylength + 1)
+                    };
+                }
+                catch (Exception e)
+                {
+                    Exception = e;
+                    HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                }
+            }
+            return new ObserveState();
         }
 
         public override OperationCode OperationCode
