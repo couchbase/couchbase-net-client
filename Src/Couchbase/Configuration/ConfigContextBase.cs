@@ -269,6 +269,7 @@ namespace Couchbase.Configuration
             }
         }
 
+#if DEBUG
         /// <summary>
         /// Reclaims all un-reclaimed resources.
         /// </summary>
@@ -277,6 +278,7 @@ namespace Couchbase.Configuration
             Log.Debug(m => m("Finalizing ConfigContext for Rev#{0}", BucketConfig.Rev));
             Dispose(false);
         }
+#endif
     }
 }
 

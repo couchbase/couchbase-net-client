@@ -219,10 +219,12 @@ namespace Couchbase.IO.Strategies
             _disposed = true;
         }
 
+#if DEBUG
         ~DefaultIOStrategy()
         {
             Log.Debug(m => m("Finalizing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
             Dispose(false);
         }
+#endif
     }
 }

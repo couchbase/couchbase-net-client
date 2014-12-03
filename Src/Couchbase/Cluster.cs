@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Reflection;
 using Common.Logging;
@@ -193,9 +194,11 @@ namespace Couchbase
                 {
                     _clusterController.Dispose();
                 }
+                _disposed = true;
             }
         }
 
+#if DEBUG
         /// <summary>
         /// Cleans up any non-reclaimed resources.
         /// </summary>
@@ -205,6 +208,7 @@ namespace Couchbase
             Dispose(false);
             Log.Debug(m=>m("Finalizing {0}", GetType().Name));
         }
+#endif
     }
 }
 

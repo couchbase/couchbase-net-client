@@ -338,10 +338,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
+#if DEBUG
         ~HttpStreamingProvider()
         {
             Dispose(true);
         }
+#endif
     }
 }
 

@@ -247,11 +247,13 @@ namespace Couchbase.Core
             }
         }
 
+#if DEBUG
         ~Server()
         {
             Log.Debug(m => m("Finalizing Server for {0}", EndPoint));
             Dispose(false);
         }
+#endif
     }
 }
 

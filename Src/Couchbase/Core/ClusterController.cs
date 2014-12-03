@@ -266,10 +266,12 @@ namespace Couchbase.Core
             }
         }
 
+#if DEBUG
         ~ClusterController()
         {
             Dispose(false);
         }
+#endif
     }
 }
 

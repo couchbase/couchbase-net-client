@@ -271,11 +271,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
         }
 
+#if DEBUG
         ~CarrierPublicationProvider()
         {
             Log.Debug(m => m("Finalizing ConfigurationProvider: {0}", GetType().Name));
             Dispose(false);
         }
+#endif
     }
 }
 

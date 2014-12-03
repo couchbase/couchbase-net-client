@@ -197,11 +197,13 @@ namespace Couchbase.IO
             }
         }
 
+#if DEBUG
         ~ConnectionPool()
         {
             Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
             Dispose(false);
         }
+#endif
 
         IConnection IConnectionPool.Acquire()
         {

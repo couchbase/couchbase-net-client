@@ -1146,6 +1146,7 @@ namespace Couchbase
             }
         }
 
+#if DEBUG
         /// <summary>
         /// Finalizer for this <see cref="MemcachedBucket"/> instance if not shutdown and disposed gracefully. 
         /// </summary>
@@ -1153,6 +1154,7 @@ namespace Couchbase
         {
             Dispose(false);
         }
+#endif
     }
 }
 

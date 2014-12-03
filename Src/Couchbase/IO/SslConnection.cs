@@ -157,10 +157,11 @@ namespace Couchbase.IO
             }
             Disposed = true;
         }
-
+#if DEBUG
         ~SslConnection()
         {
             Dispose(false);
         }
+#endif
     }
 }
