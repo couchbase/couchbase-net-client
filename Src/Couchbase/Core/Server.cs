@@ -107,9 +107,9 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                result = operation.GetResult();
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                result = operation.GetResult();
             }
 
             if (Log.IsDebugEnabled && _timingEnabled)
