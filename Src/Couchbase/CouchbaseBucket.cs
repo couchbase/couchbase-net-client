@@ -378,6 +378,9 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
@@ -408,6 +411,9 @@ namespace Couchbase
         /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
@@ -496,6 +502,9 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
@@ -533,6 +542,9 @@ namespace Couchbase
         /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
@@ -691,6 +703,9 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
@@ -724,6 +739,9 @@ namespace Couchbase
         /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
@@ -843,6 +861,9 @@ namespace Couchbase
         /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
@@ -905,6 +926,9 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
@@ -991,6 +1015,9 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
@@ -1365,7 +1392,9 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
         {
-            return GetWithLock<T>(key, expiration.ToTtl());
+            //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
+            //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
+            return GetWithLock<T>(key, (uint) expiration.TotalSeconds);
         }
 
         /// <summary>
@@ -1437,6 +1466,9 @@ namespace Couchbase
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
@@ -1524,6 +1556,9 @@ namespace Couchbase
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
         /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {

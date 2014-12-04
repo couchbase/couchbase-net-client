@@ -12,11 +12,22 @@ namespace Couchbase.Utils
         /// <summary>
         /// Converts a <see cref="TimeSpan" /> into an uint correctly representing a Time-To-Live,
         /// that is expressed in seconds.
+        /// Durations bigger than 30 days are converted to a unix-syle timestamp (seconds since the Epoch),
+        /// as described in the couchbase TTL documentation.
         /// </summary>
         /// <returns>The TTL, expressed as a suitable uint.</returns>
         public static uint ToTtl(this TimeSpan duration)
         {
-            return (uint)duration.TotalSeconds;
+            if (duration < TimeSpan.FromDays(30))
+            {
+                return (uint)duration.TotalSeconds;
+            }
+            else
+            {
+                var dateExpiry = DateTime.UtcNow + duration;
+                var unixTimeStamp = (uint) (dateExpiry.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                return unixTimeStamp;
+            }
         }
     }
 }

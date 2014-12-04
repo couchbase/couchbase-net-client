@@ -231,7 +231,7 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
@@ -281,7 +281,7 @@ namespace Couchbase
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
@@ -466,7 +466,7 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
@@ -558,7 +558,7 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
@@ -900,7 +900,7 @@ namespace Couchbase
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
@@ -977,7 +977,7 @@ namespace Couchbase
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
         /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds. See <see cref="IBucket"/> doc section on TTL.</param>
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
