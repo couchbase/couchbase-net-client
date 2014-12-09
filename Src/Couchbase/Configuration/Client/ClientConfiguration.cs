@@ -443,6 +443,13 @@ namespace Couchbase.Configuration.Client
                         bucketConfiguration.Port);
                     throw new NotSupportedException(message);
                 }
+                if (UseSsl)
+                {
+                    //Setting ssl to true at parent level overrides child level ssl settings
+                    bucketConfiguration.UseSsl = true;
+                    bucketConfiguration.Port = SslPort;
+                    bucketConfiguration.PoolConfiguration.UseSsl = true;
+                }
                 if (_useSslChanged)
                 {
                     for (var i = 0; i < _servers.Count(); i++)
@@ -455,14 +462,6 @@ namespace Couchbase.Configuration.Client
                             var newUri = new Uri(string.Concat("https://", _servers[i].Host,
                                 ":", HttpsMgmtPort, oldUri.PathAndQuery));
                             _servers[i] = newUri;
-
-                            //Setting ssl to true at parent level overrides child level ssl settings
-                            foreach (var bucketConfig in BucketConfigs.Values)
-                            {
-                                bucketConfig.UseSsl = useSsl;
-                                bucketConfig.Port = SslPort;
-                                bucketConfig.PoolConfiguration.UseSsl = useSsl;
-                            }
                         }
                     }
                 }

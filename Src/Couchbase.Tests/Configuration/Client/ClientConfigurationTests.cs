@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Views;
 using NUnit.Framework;
 
@@ -136,6 +137,32 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual("https://localhost:18091/pools", config.Servers.First().ToString());
 
             Assert.AreEqual("127.0.0.1:11207", bucket.GetEndPoint().ToString());
+        }
+
+        [Test]
+        public void Test_UseSslOnBucketDontCascade()
+        {
+            const string name = "IAmProtected";
+            var config = new ClientConfiguration
+            {
+                UseSsl = false
+            };
+            config.BucketConfigs.Add(name, new BucketConfiguration()
+            {
+                BucketName = name,
+                UseSsl = true
+            });
+            config.Initialize();
+
+
+            var bucket = config.BucketConfigs.First().Value;
+            Assert.AreNotEqual(name, bucket.BucketName);
+            Assert.AreEqual(false, bucket.UseSsl);
+            Assert.AreEqual("127.0.0.1:"+config.DirectPort, bucket.GetEndPoint().ToString());
+
+            var protectedBucket = config.BucketConfigs[name];
+            Assert.AreEqual(true, protectedBucket.UseSsl);
+            Assert.AreEqual("127.0.0.1:"+config.SslPort, protectedBucket.GetEndPoint().ToString());
         }
 
         [Test]
