@@ -1,8 +1,17 @@
 ﻿
+using System.Collections.Generic;
+using Couchbase.Configuration.Server.Serialization;
+using Newtonsoft.Json.Linq;
+
 namespace Couchbase.Core
 {
+    /// <summary>
+    /// Client interface for getting information about the cluster.
+    /// </summary>
     public interface IClusterInfo
     {
+        Pools Pools();
+        List<IBucketConfig> BucketConfigs();
     }
 }
 

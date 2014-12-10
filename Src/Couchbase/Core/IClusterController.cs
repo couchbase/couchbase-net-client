@@ -17,6 +17,8 @@ namespace Couchbase.Core
         IBucket CreateBucket(string bucketName, string password);
 
         void DestroyBucket(IBucket bucket);
+
+        IClusterInfo Info();
     }
 }
 

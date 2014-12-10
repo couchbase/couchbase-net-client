@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -128,6 +129,24 @@ namespace Couchbase.Tests.Core
             var config = new ClientConfiguration();
             config.UpdateBootstrapList(bucketConfig);
             Assert.IsFalse(config.Servers.Exists(x => x.Host == "$HOST"));
+        }
+
+        [Test]
+        public void ShouldLoadConfigInfoFromHttpProvider()
+        {
+            var cluster = new Cluster(_clientConfig, _clusterManager);
+            var bucket = cluster.OpenBucket("default", "");
+            var info = cluster.Info;
+            cluster.CloseBucket(bucket);
+            cluster.Dispose();
+
+            Assert.NotNull(info);
+            Assert.NotNull(info.Pools());
+            Assert.NotNull(info.BucketConfigs());
+            Assert.Greater(info.BucketConfigs().Count, 0);
+            Assert.NotNull(info.BucketConfigs().ElementAt(0));
+
+            //TODO test that the clusterinfo is a copy and that sets don't impact internal configuration
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Reflection;
 using Common.Logging;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
@@ -146,7 +147,7 @@ namespace Couchbase
         /// </summary>
         public IClusterInfo Info
         {
-            get { throw new NotImplementedException(); }
+            get { return _clusterController.Info(); }
         }
 
         /// <summary>

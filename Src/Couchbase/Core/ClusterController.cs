@@ -1,4 +1,8 @@
-﻿using System.Threading;
+﻿using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
@@ -17,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core
 {
@@ -234,6 +239,20 @@ namespace Couchbase.Core
                     configProvider.UnRegisterObserver(configObserver);
                 }
             }
+        }
+
+        /// <summary>
+        /// Retrieve Information for this cluster, see <see cref="ICluster.Info">ICluster.Info</see>.
+        /// </summary>
+        /// <returns></returns>
+        public IClusterInfo Info()
+        {
+            var httpProvider = ConfigProviders.Find(x => x is HttpStreamingProvider) as HttpStreamingProvider;
+            if (httpProvider != null && httpProvider.GetCachedServerConfig() != null)
+            {
+                return new ClusterInfo(httpProvider.GetCachedServerConfig());
+            }
+            throw new InvalidOperationException("Cannot get Info if HttpProvider has not been initialized");
         }
 
         public ClientConfiguration Configuration { get { return _clientConfig; } }

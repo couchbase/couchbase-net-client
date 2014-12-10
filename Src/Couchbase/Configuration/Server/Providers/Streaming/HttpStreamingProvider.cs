@@ -245,6 +245,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
         }
 
+        public IServerConfig GetCachedServerConfig()
+        {
+            return _serverConfig;
+        }
+
         IBucketConfig GetBucketConfig(string bucketName, string password)
         {
             try
