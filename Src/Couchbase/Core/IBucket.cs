@@ -566,6 +566,32 @@ namespace Couchbase.Core
         IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        IDictionary<string, IOperationResult> Remove(IList<string> keys);
+
+        /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options);
+
+        /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize);
+
+        /// <summary>
         /// Gets a document by it's given id.
         /// </summary>
         /// <typeparam name="T">The type T to convert the value to.</typeparam>

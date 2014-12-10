@@ -1,7 +1,6 @@
 ﻿ using System;
  using System.Collections.Concurrent;
  using System.Collections.Generic;
- using System.IO;
  using System.Linq;
  using System.Runtime.CompilerServices;
  using System.Threading;
@@ -640,6 +639,84 @@ namespace Couchbase
                 Cas = cas
             };
             return SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <returns>
+        /// A <see cref="Dictionary{k, v}" /> of the keys sent and the <see cref="IOperationResult{T}" /> result.
+        /// </returns>
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult>();
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Remove(key);
+                    results.TryAdd(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <param name="options">A <see cref="ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <returns>
+        /// A <see cref="Dictionary{k, v}" /> of the keys sent and the <see cref="IOperationResult{T}" /> result.
+        /// </returns>
+        /// <remarks>
+        /// Use the <see cref="ParallelOptions" /> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken" /> with the operation.
+        /// </remarks>
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult>();
+            var partitionar = Partitioner.Create(0, keys.Count());
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Remove(key);
+                    results.TryAdd(key, result);
+                }
+            });
+            return results;
+        }
+
+        /// <summary>
+        /// Removes a range of documents for a given set of keys
+        /// </summary>
+        /// <param name="keys">The keys to remove</param>
+        /// <param name="options">A <see cref="ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>
+        /// A <see cref="Dictionary{k, v}" /> of the keys sent and the <see cref="IOperationResult{T}" /> result.
+        /// </returns>
+        /// <remarks>
+        /// Use the <see cref="ParallelOptions" /> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken" /> with the operation.
+        /// </remarks>
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult>();
+            var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
+            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            {
+                for (var i = range.Item1; i < range.Item2; i++)
+                {
+                    var key = keys[i];
+                    var result = Remove(key);
+                    results.TryAdd(key, result);
+                }
+            });
+            return results;
         }
 
         public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)

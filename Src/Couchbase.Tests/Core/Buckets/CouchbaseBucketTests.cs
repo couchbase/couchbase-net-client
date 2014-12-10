@@ -1,24 +1,19 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Couchbase.Management;
 using Couchbase.Tests.Fakes;
 using Couchbase.Views;
-using Moq;
 using NUnit.Framework;
 using Wintellect;
 
@@ -1258,6 +1253,99 @@ namespace Couchbase.Tests.Core.Buckets
                 var get = bucket.Get<string>("JSON_KEY");
                 Assert.IsTrue(get.Success);
                 Assert.AreEqual(jsonString, get.Value);
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        public void Test_Multi_Remove()
+        {
+            var items = new Dictionary<string, string>();
+            for (int i = 0; i < 1000; i++)
+            {
+                items.Add("key" + i, "Value" + i);
+            }
+            var config = new ClientConfiguration
+            {
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = 10,
+                    MinSize = 5
+                }
+            };
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var multiUpsert = bucket.Upsert(items);
+                Assert.AreEqual(items.Count, multiUpsert.Count);
+                foreach (var pair in multiUpsert)
+                {
+                    Assert.IsTrue(pair.Value.Success);
+                }
+
+                var multiRemove = bucket.Remove(multiUpsert.Keys.ToList());
+                foreach (var pair in multiRemove)
+                {
+                    Assert.IsTrue(pair.Value.Success);
+                }
+
+                var multiGet = bucket.Get<string>(multiUpsert.Keys.ToList());
+                foreach (var pair in multiGet)
+                {
+                    Assert.IsFalse(pair.Value.Success);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        public void Test_Multi_Remove_With_MaxDegreeOfParallelism_2()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                bucket.Upsert(items);
+
+                var multiRemove = bucket.Remove(items.Keys.ToList(), new ParallelOptions { MaxDegreeOfParallelism = 2 });
+                Assert.AreEqual(multiRemove.Count, items.Count);
+                foreach (var item in multiRemove)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        public void Test_Multi_Remove_With_MaxDegreeOfParallelism_2_RangeSize_2()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var items = new Dictionary<string, dynamic>
+                {
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+                };
+                bucket.Upsert(items);
+
+                var multiRemove = bucket.Remove(items.Keys.ToList(), new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 2
+                }, 2);
+                Assert.AreEqual(multiRemove.Count, items.Count);
+                foreach (var item in multiRemove)
+                {
+                    Assert.IsTrue(item.Value.Success);
+                }
             }
         }
 
