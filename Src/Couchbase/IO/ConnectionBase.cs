@@ -129,6 +129,11 @@ namespace Couchbase.IO
         {
             throw new NotImplementedException();
         }
+
+        public virtual byte[] Send(byte[] request)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

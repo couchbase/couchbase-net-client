@@ -2,7 +2,6 @@
 using System.Configuration;
 using Common.Logging;
 using Couchbase.Core;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
 using Newtonsoft.Json;
 
@@ -33,10 +32,14 @@ namespace Couchbase.Configuration.Client
             OperationTimeout = 2500;
             MaxAcquireIterationCount = 5;
             ConnectionTimeout = 15000;
+            BufferSize = 1024 * 16;
+
+            //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
+            BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize);
         }
 
-        public PoolConfiguration(int maxSize , int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
+        public PoolConfiguration(int maxSize, int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
             int operationTimeout, int maxAcquireIterationCount, ClientConfiguration clientConfiguration = null)
         {
             //todo enable app.configuration
@@ -48,6 +51,7 @@ namespace Couchbase.Configuration.Client
             OperationTimeout = operationTimeout;
             MaxAcquireIterationCount = maxAcquireIterationCount;
             ClientConfiguration = clientConfiguration;
+            BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize);
         }
 
         /// <summary>
@@ -119,6 +123,16 @@ namespace Couchbase.Configuration.Client
                 return enabled;
             }
         }
+
+        /// <summary>
+        /// The size of each buffer to allocate per TCP connection for sending and recieving Memcached operations
+        /// </summary>
+        /// <remarks>The default is 16K</remarks>
+        /// <remarks>The total buffer size is BufferSize * PoolConfiguration.MaxSize</remarks>
+        public int BufferSize { get; set; }
+
+        [JsonIgnore]
+        internal Func<PoolConfiguration, BufferAllocator> BufferAllocator { get; set; }
     }
 }
 

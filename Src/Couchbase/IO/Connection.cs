@@ -2,170 +2,201 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
-using Common.Logging;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO
 {
-    /// <summary>
-    /// Represents a TCP connection to a CouchbaseServer.
-    /// </summary>
-    internal sealed class Connection : ConnectionBase
+    internal class Connection : ConnectionBase
     {
-        private readonly NetworkStream _stream;
-        private volatile bool _timingEnabled;
+        private readonly SocketAsyncEventArgs _eventArgs;
+        private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
+        private readonly BufferAllocator _allocator;
 
-        internal Connection(ConnectionPool<Connection> connectionPool, Socket socket, IByteConverter converter)
-            : this(connectionPool, socket, new NetworkStream(socket), converter)
+        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
+            : this(connectionPool, socket, new SocketAsyncEventArgs(), converter)
         {
         }
 
-        internal Connection(ConnectionPool<Connection> connectionPool, Socket socket, NetworkStream networkStream,
-            IByteConverter converter)
+        internal Connection(IConnectionPool connectionPool, Socket socket, SocketAsyncEventArgs eventArgs, IByteConverter converter)
             : base(socket, converter)
         {
+            //set the configuration info
             ConnectionPool = connectionPool;
-            _stream = networkStream;
             Configuration = ConnectionPool.Configuration;
-            _timingEnabled = Configuration.EnableOperationTiming;
+
+            //Since the config can be changed on the fly create allocator late in the cycle
+            _allocator = Configuration.BufferAllocator(Configuration);
+
+            //create a seae with an accept socket and completed event
+            _eventArgs = eventArgs;
+            _eventArgs.AcceptSocket = socket;
+            _eventArgs.Completed += OnCompleted;
+
+            //set the buffer to use with this saea instance
+            _allocator.SetBuffer(_eventArgs);
         }
 
-        public override async Task<uint> SendAsync(byte[] buffer)
+        /// <summary>
+        /// Sends a memcached operation as a buffer to a the server.
+        /// </summary>
+        /// <param name="buffer">A memcached request buffer</param>
+        /// <returns>A memcached response buffer.</returns>
+        public override byte[] Send(byte[] buffer)
         {
-            var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
-            await _stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-            return opaque;
-        }
-
-        public override async Task<byte[]> ReceiveAsync(uint opaque)
-        {
-            var bytesRead = 0;
-            var buffer = new byte[24];
-            var bodyLength = 0;
-
-            using (var dataRead = new MemoryStream())
+            //create the state object and set it
+            var state = new SocketAsyncState
             {
-                do
+                Data = new MemoryStream(),
+                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
+            };
+            _eventArgs.UserToken = state;
+
+            //set the buffer
+            _eventArgs.SetBuffer(0, buffer.Length);
+            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, buffer.Length);
+
+            //Send the request
+            if (!Socket.SendAsync(_eventArgs))
+            {
+                //TODO refactor logic
+                IsDead = true;
+                throw new IOException("Failed to send operation!");
+            }
+
+            //wait for completion
+            if (!_requestCompleted.WaitOne(Configuration.ConnectionTimeout))
+            {
+                //TODO refactor logic
+                IsDead = true;
+                const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                throw new IOException(msg);
+            }
+
+            //return the response bytes
+            return state.Data.ToArray();
+        }
+
+        /// <summary>
+        /// Raised when an asynchronous operation is completed
+        /// </summary>
+        /// <param name="sender">The <see cref="Socket"/> which the asynchronous operation is associated with.</param>
+        /// <param name="e"></param>
+        private void OnCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            var socket = (Socket)sender;
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Send:
+                    Send(socket, e);
+                    break;
+                case SocketAsyncOperation.Receive:
+                    Receive(socket, e);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        /// <summary>
+        /// Receives an asynchronous send operation
+        /// </summary>
+        /// <param name="socket">The <see cref="Socket"/> which the asynchronous operation is associated with.</param>
+        /// <param name="e">The <see cref="SocketAsyncEventArgs"/> that is being used for the operation.</param>
+        private void Send(Socket socket, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success)
+            {
+                _eventArgs.UserToken = e.UserToken;
+                var willRaiseCompletedEvent = socket.ReceiveAsync(_eventArgs);
+                if (!willRaiseCompletedEvent)
                 {
-                    bytesRead += await _stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-                    if (dataRead.Length == 0)
+                    OnCompleted(socket, e);
+                }
+            }
+            else
+            {
+                throw new SocketException((int)e.SocketError);
+            }
+        }
+
+        /// <summary>
+        /// Recieves an asynchronous recieve operation and loops until the response body has been read.
+        /// </summary>
+        /// <param name="socket">The <see cref="Socket"/> which the asynchronous operation is associated with.</param>
+        /// <param name="e">The <see cref="SocketAsyncEventArgs"/> that is being used for the operation.</param>
+        public void Receive(Socket socket, SocketAsyncEventArgs e)
+        {
+            while (true)
+            {
+                if (e.SocketError == SocketError.Success)
+                {
+                    var state = (SocketAsyncState)e.UserToken;
+
+                    //socket was closed on recieving side
+                    if (e.BytesTransferred == 0)
                     {
-                        bodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body);
+                        _requestCompleted.Set();
+                        return;
                     }
-                    dataRead.Write(buffer, 0, buffer.Length);
-                    buffer = new byte[bodyLength];
-                } while (bytesRead < bodyLength + 24);
-                return dataRead.ToArray();
-            }
-        }
+                    state.BytesReceived += e.BytesTransferred;
+                    state.Data.Write(e.Buffer, 0, e.BytesTransferred);
 
-        public override void Send<T>(IOperation<T> operation)
-        {
-            try
-            {
-                if (Log.IsDebugEnabled && _timingEnabled)
-                {
-                    operation.BeginTimer(TimingLevel.One);
-                }
-
-                _stream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
-                if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
-                {
-                    const string msg =
-                        "The connection has timed out while an operation was in flight. The default is 15000ms.";
-                    operation.HandleClientError(msg, ResponseStatus.ClientFailure);
-                    IsDead = true;
-                }
-
-                if (Log.IsDebugEnabled && _timingEnabled)
-                {
-                    operation.EndTimer(TimingLevel.One);
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(e, operation);
-            }
-        }
-
-        private void SendCallback(IAsyncResult asyncResult)
-        {
-            var operation = (IOperation)asyncResult.AsyncState;
-            try
-            {
-                _stream.EndWrite(asyncResult);
-                operation.Buffer = BufferManager.TakeBuffer(128);
-                _stream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
-            }
-            catch (Exception e)
-            {
-                HandleException(e, operation);
-            }
-        }
-
-        private void ReceiveCallback(IAsyncResult asyncResult)
-        {
-            var operation = (IOperation)asyncResult.AsyncState;
-            try
-            {
-                var bytesRead = _stream.EndRead(asyncResult);
-                if (bytesRead == 0)
-                {
-                    SendEvent.Set();
-                    return;
-                }
-                operation.Read(operation.Buffer, 0, bytesRead);
-                BufferManager.ReturnBuffer(operation.Buffer);
-
-                if (operation.LengthReceived < operation.TotalLength)
-                {
-                    operation.Buffer = BufferManager.TakeBuffer(operation.TotalLength);
-                    _stream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
-                }
-                else
-                {
-                    SendEvent.Set();
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(e, operation);
-            }
-        }
-
-        public override void Dispose()
-        {
-            Log.Debug(m => m("Disposing connection for {0} - {1}", ConnectionPool.EndPoint, _identity));
-            if (!Disposed)
-            {
-                GC.SuppressFinalize(this);
-                if (Socket != null)
-                {
-                    if (Socket.Connected)
+                    //if first loop get the length of the body from the header
+                    if (state.BodyLength == 0)
                     {
-                        Socket.Shutdown(SocketShutdown.Both);
-                        Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
+                        state.BodyLength = Converter.ToInt32(state.Data.GetBuffer(), HeaderIndexFor.Body);
+                    }
+                    if (state.BytesReceived < state.BodyLength + 24)
+                    {
+                        var willRaiseCompletedEvent = socket.ReceiveAsync(e);
+                        if (!willRaiseCompletedEvent)
+                        {
+                            continue;
+                        }
                     }
                     else
                     {
-                        Socket.Close();
-                        Socket.Dispose();
+                        _requestCompleted.Set();
                     }
                 }
-                if (_stream != null)
+                else
                 {
-                    _stream.Dispose();
+                    IsDead = true;
+                    _requestCompleted.Set();
+                    throw new SocketException((int)e.SocketError);
+                }
+                break;
+            }
+        }
+
+        /// <summary>
+        /// Diposes the underlying socket and other objects used by this instance.
+        /// </summary>
+        public override void Dispose()
+        {
+            IsDead = true;
+            if (Socket != null)
+            {
+                if (Socket.Connected)
+                {
+                    Socket.Shutdown(SocketShutdown.Both);
+                    Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
+                }
+                else
+                {
+                    Socket.Close();
+                    Socket.Dispose();
                 }
             }
+            _allocator.ReleaseBuffer(_eventArgs);
+            _eventArgs.Dispose();
+            _requestCompleted.Dispose();
         }
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

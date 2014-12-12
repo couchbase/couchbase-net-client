@@ -154,11 +154,14 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IO\BufferAllocator.cs" />
+    <Compile Include="IO\Connection.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
     <Compile Include="IO\Operations\ReplicaRead.cs" />
     <Compile Include="IO\Operations\SequenceGenerator.cs" />
     <Compile Include="IO\Operations\Unlock.cs" />
+    <Compile Include="IO\SocketAsyncState.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
@@ -232,7 +235,6 @@
     <Compile Include="Core\IClusterInfo.cs" />
     <Compile Include="Core\IKeyMapper.cs" />
     <Compile Include="Configuration\IConfigInfo.cs" />
-    <Compile Include="IO\Connection.cs" />
     <Compile Include="IO\DefaultConnectionFactory.cs" />
     <Compile Include="IO\IConnection.cs" />
     <Compile Include="IO\IConnectionPool_T.cs" />

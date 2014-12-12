@@ -57,8 +57,12 @@ namespace Couchbase.IO.Strategies
         /// </remarks>
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
-            operation.WriteBuffer = operation.Write();
-            connection.Send(operation);
+            //Get the request buffer and send it
+            var request = operation.Write();
+            var response = connection.Send(request);
+
+            //Read the response and return the completed operation
+            operation.Read(response, 0, response.Length);
             return operation.GetResult();
         }
 
@@ -72,16 +76,22 @@ namespace Couchbase.IO.Strategies
         /// </returns>
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
-            operation.WriteBuffer = operation.Write();
-
+            //Get the buffer and a connection
+            var request = operation.Write();
             var connection = _connectionPool.Acquire();
+
+            //A new connection will have to be authenticated
             if (!connection.IsAuthenticated)
             {
-               Authenticate(connection);
+                Authenticate(connection);
             }
-            connection.Send(operation);
+
+            //Send the request buffer and release the connection
+            var response = connection.Send(request);
             _connectionPool.Release(connection);
 
+            //Read the response and return the completed operation
+            operation.Read(response, 0, response.Length);
             return operation.GetResult();
         }
 

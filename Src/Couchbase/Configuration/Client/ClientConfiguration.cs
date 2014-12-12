@@ -9,6 +9,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -60,7 +61,10 @@ namespace Couchbase.Configuration.Client
             Expect100Continue = false;
             EnableOperationTiming = false;
 
-            PoolConfiguration = new PoolConfiguration(this);
+            PoolConfiguration = new PoolConfiguration(this)
+            {
+                BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize)
+            };
             BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
                 {DefaultBucket, new BucketConfiguration
@@ -102,16 +106,18 @@ namespace Couchbase.Configuration.Client
             ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
             Expect100Continue = couchbaseClientSection.Expect100Continue;
             EnableOperationTiming = couchbaseClientSection.EnableOperationTiming;
+            PoolConfiguration = new PoolConfiguration(this);
 
             foreach (var server in couchbaseClientSection.Servers)
             {
                 Servers.Add(((UriElement)server).Uri);
                 _serversChanged = true;
             }
+
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
             foreach (var bucketElement in couchbaseClientSection.Buckets)
             {
-                var bucket = (BucketElement) bucketElement;
+                var bucket = (BucketElement)bucketElement;
                 var bucketConfiguration = new BucketConfiguration
                 {
                     BucketName = bucket.Name,
@@ -181,12 +187,12 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Management REST API port.</remarks>
         public int MgmtPort { get; set; }
 
-            /// <summary>
-            /// Overrides the default and sets the direct port to use for Key/Value operations using the Binary Memcached protocol.
-            /// </summary>
-            /// <remarks>The default and suggested direct port is 11210.</remarks>
-            /// <remarks>Only set if you wish to override the default behavior.</remarks>
-            /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom direct port.</remarks>
+        /// <summary>
+        /// Overrides the default and sets the direct port to use for Key/Value operations using the Binary Memcached protocol.
+        /// </summary>
+        /// <remarks>The default and suggested direct port is 11210.</remarks>
+        /// <remarks>Only set if you wish to override the default behavior.</remarks>
+        /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom direct port.</remarks>
         public int DirectPort { get; set; }
 
         /// <summary>
@@ -271,7 +277,6 @@ namespace Couchbase.Configuration.Client
         /// The outgoing serializer settings for the JSON serializer.
         /// </summary>
         public JsonSerializerSettings DeserializationSettings { get; set; }
-
 
         /// <summary>
         /// A map of <see cref="BucketConfiguration"/>s and their names.
@@ -417,6 +422,15 @@ namespace Couchbase.Configuration.Client
 
         internal void Initialize()
         {
+            if (PoolConfiguration == null)
+            {
+                PoolConfiguration = new PoolConfiguration(this);
+            }
+            if (PoolConfiguration.ClientConfiguration == null)
+            {
+                PoolConfiguration.ClientConfiguration = this;
+            }
+
             if (_serversChanged)
             {
                 for (var i = 0; i < _servers.Count(); i++)
@@ -458,7 +472,7 @@ namespace Couchbase.Configuration.Client
                 {
                     bucketConfiguration.Servers.AddRange(Servers.Select(x => x).ToList());
                 }
-                if (bucketConfiguration.Port == (int) DefaultPorts.Proxy)
+                if (bucketConfiguration.Port == (int)DefaultPorts.Proxy)
                 {
                     var message = string.Format("Proxy port {0} is not supported by the .NET client.",
                         bucketConfiguration.Port);
@@ -491,7 +505,7 @@ namespace Couchbase.Configuration.Client
     }
 }
 
-#region [ License information          ]
+#region [ License information ]
 
 /* ************************************************************
  *

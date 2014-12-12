@@ -42,6 +42,8 @@ namespace Couchbase.IO
         Task<uint> SendAsync(byte[] buffer);
 
         Task<byte[]> ReceiveAsync(uint opaque);
+
+        byte[] Send(byte[] request);
     }
 }
 

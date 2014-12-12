@@ -69,5 +69,11 @@ namespace Couchbase.Tests.Fakes
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public byte[] Send(byte[] request)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
