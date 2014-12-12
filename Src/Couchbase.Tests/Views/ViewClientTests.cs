@@ -16,11 +16,11 @@ namespace Couchbase.Tests.Views
     public class ViewClientTests
     {
         [Test]
-        public void When_Poco_Is_Supplied_Map_Results_To_It()
+        public void When_Row_Is_Dynamic_Query_By_Key_Succeeds()
         {
             var query = new ViewQuery().
-              From("beer", "all_beers").
-              Bucket("beer-sample");
+             From("beer", "all_beers").
+             Bucket("beer-sample").Limit(1);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -28,6 +28,32 @@ namespace Couchbase.Tests.Views
                 new ClientConfiguration());
 
             var result = client.Execute<Beer>(query);
+
+            var query2 = new ViewQuery().
+             From("beer", "all_beers").
+             Bucket("beer-sample").Key(result.Rows.First().Id);
+
+            var result2 = client.Execute<Beer>(query2);
+            Assert.AreEqual(result.Rows.First().Id, result2.Rows.First().Id);
+        }
+
+        [Test]
+        public void When_Poco_Is_Supplied_Map_Results_To_It()
+        {
+            var query = new ViewQuery().
+              From("beer", "all_beers").
+              Bucket("beer-sample").Limit(10);
+
+            var client = new ViewClient(new HttpClient(),
+                new JsonDataMapper(new ClientConfiguration()),
+                new BucketConfig { Name = "beer-sample" },
+                new ClientConfiguration());
+
+            var result = client.Execute<Beer>(query);
+            foreach (var viewRow in result.Rows)
+            {
+                Assert.IsNotNull(viewRow.Id);
+            }
             Console.WriteLine(result.Error);
             Assert.IsNotNull(result.Rows);
             Assert.IsTrue(result.Success);
@@ -39,7 +65,8 @@ namespace Couchbase.Tests.Views
         {
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
-                Bucket("beer-sample");
+                Bucket("beer-sample").
+                Limit(10);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -48,6 +75,10 @@ namespace Couchbase.Tests.Views
 
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);
+            foreach (var viewRow in result.Rows)
+            {
+                Assert.IsNotNull(viewRow.Id);
+            }
             Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
         }
 

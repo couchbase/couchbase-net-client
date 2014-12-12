@@ -18,7 +18,7 @@ namespace Couchbase.Views
         /// The key emitted by the View Map function
         /// </summary>
         [JsonProperty("key")]
-        public object Key { get; set; }
+        public dynamic Key { get; set; }
 
         /// <summary>
         /// The value emitted by the View Map function or if a Reduce view, the value of the Reduce
