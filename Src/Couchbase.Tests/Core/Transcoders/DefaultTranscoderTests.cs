@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,12 +8,15 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Documents;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Transcoders
 {
     [TestFixture]
-    public class TypeTranscoder2Tests
+    public class DefaultTranscoderTests
     {
         [Test]
         public void Test_Serialize_Int16()
@@ -295,6 +299,58 @@ namespace Couchbase.Tests.Core.Transcoders
             var actual = transcoder.DeserializeAsJson<int>(bytes, 0, bytes.Length);
 
             Assert.AreEqual(value, actual);
+        }
+
+        [Test]
+        public void Should_Hydrate_Poco_In_PascalCase_Whatever_The_Case_In_Json()
+        {
+            byte[] jsonData = Encoding.UTF8.GetBytes("{ \"SomeProperty\": \"SOME\", \"someIntProperty\": 12345, \"haspAscalCASE\": true }");
+            var transcoder = new DefaultTranscoder(new ManualByteConverter());
+            var hydrated = transcoder.DeserializeAsJson<Pascal>(jsonData, 0, jsonData.Length);
+
+            Assert.AreEqual("SOME", hydrated.SomeProperty);
+            Assert.AreEqual(12345, hydrated.SomeIntProperty);
+            Assert.AreEqual(true, hydrated.HasPascalCase);
+        }
+
+        [Test]
+        public void Should_Convert_To_CamelCase_Json_With_Default_Serialization_Settings()
+        {
+            var transcoder = new DefaultTranscoder(new ManualByteConverter());
+            var data = new Pascal
+            {
+                SomeProperty = "SOME",
+                SomeIntProperty = 12345,
+                HasPascalCase = true
+            };
+            var expectedJsonBytes = Encoding.UTF8.GetBytes("{\"someProperty\":\"SOME\",\"someIntProperty\":12345,\"hasPascalCase\":true}");
+            var actualJsonBytes = transcoder.SerializeAsJson(data);
+            var actualJsonEncoded = transcoder.Encode(data, new Flags());
+
+            Assert.AreEqual(expectedJsonBytes, actualJsonBytes);
+            Assert.AreEqual(expectedJsonBytes, actualJsonEncoded);
+        }
+
+        [Test]
+        public void Should_Convert_To_PascalCase_Json_With_Altered_Serialization_Settings()
+        {
+            var transcoder = new DefaultTranscoder(new ManualByteConverter(),
+                new JsonSerializerSettings(), new JsonSerializerSettings
+                {
+                    ContractResolver = new DefaultContractResolver()
+                });
+            var data = new Pascal
+            {
+                SomeProperty = "SOME",
+                SomeIntProperty = 12345,
+                HasPascalCase = true
+            };
+            var expectedJsonBytes = Encoding.UTF8.GetBytes("{\"SomeProperty\":\"SOME\",\"SomeIntProperty\":12345,\"HasPascalCase\":true}");
+            var actualJsonBytes = transcoder.SerializeAsJson(data);
+            var actualJsonEncoded = transcoder.Encode(data);
+
+            Assert.AreEqual(expectedJsonBytes, actualJsonBytes);
+            Assert.AreEqual(expectedJsonBytes, actualJsonEncoded);
         }
     }
 }
