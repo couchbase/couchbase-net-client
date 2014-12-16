@@ -394,6 +394,27 @@ namespace Couchbase.Configuration.Client
             }
         }
 
+        /// <summary>
+        /// Checks for mutations of the Server collection
+        /// </summary>
+        /// <returns></returns>
+        internal bool HasServersChanged()
+        {
+            //The list has already been modified via initializer
+            if (_serversChanged)  return true;
+
+            //The list has changed via Add()
+            if (Servers.Count > 1) return true;
+
+            var uri = Servers.FirstOrDefault();
+            if (uri == null)
+            {
+                const string msg = "One server is required for bootstrapping!";
+                throw new ArgumentNullException(msg);
+            }
+            return uri.OriginalString != "http://localhost:8091/pools";
+        }
+
         internal void Initialize()
         {
             if (_serversChanged)
@@ -429,7 +450,7 @@ namespace Couchbase.Configuration.Client
                 {
                     bucketConfiguration.PoolConfiguration = PoolConfiguration;
                 }
-                if (bucketConfiguration.Servers == null || _serversChanged)
+                if (bucketConfiguration.Servers == null || HasServersChanged())
                 {
                     bucketConfiguration.Servers = Servers.Select(x => x).ToList();
                 }

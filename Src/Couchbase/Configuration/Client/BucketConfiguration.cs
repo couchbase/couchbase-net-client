@@ -21,7 +21,7 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public BucketConfiguration()
         {
-            Servers = new List<Uri> {new Uri("http://127.0.0.1") };
+            Servers = new List<Uri> { new Uri("http://localhost:8091/pools") };
             Port = 11210;
             Password = string.Empty;
             Username = string.Empty;

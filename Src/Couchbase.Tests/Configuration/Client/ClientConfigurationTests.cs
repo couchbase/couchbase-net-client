@@ -279,6 +279,70 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.IsFalse(bucket.IsSecure);
             }
         }
+
+        [Test]
+        public void When_Servers_List_Does_Not_Change_The_BucketConfig_Is_Not_Updated()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            couchbaseConfiguration.Initialize();
+
+            Assert.AreEqual(1, couchbaseConfiguration.Servers.Count);
+
+            var bucketConfig = couchbaseConfiguration.BucketConfigs.First().Value;
+            Assert.AreEqual(1, bucketConfig.Servers.Count);
+            Assert.Contains(new Uri("http://localhost:8091/pools"), bucketConfig.Servers);
+        }
+
+        [Test]
+        public void When_Servers_List_Changes_The_BucketConfig_Is_Updated()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            couchbaseConfiguration.Servers.Clear();
+            couchbaseConfiguration.Servers.Add(new Uri("http://192.168.37.2"));
+            couchbaseConfiguration.Servers.Add(new Uri("http://192.168.37.101"));
+            couchbaseConfiguration.Initialize();
+
+            Assert.AreEqual(2, couchbaseConfiguration.Servers.Count);
+
+            var bucketConfig = couchbaseConfiguration.BucketConfigs.First().Value;
+            Assert.AreEqual(2, bucketConfig.Servers.Count);
+            Assert.Contains(new Uri("http://192.168.37.2"), bucketConfig.Servers);
+            Assert.Contains(new Uri("http://192.168.37.101"), bucketConfig.Servers);
+        }
+
+        [Test]
+        public void When_Servers_Changes_HasServerChanged_Returns_True()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            couchbaseConfiguration.Servers.Clear();
+            couchbaseConfiguration.Servers.Add(new Uri("http://192.168.37.2"));
+            couchbaseConfiguration.Servers.Add(new Uri("http://192.168.37.101"));
+            Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
+        }
+
+        [Test]
+        public void When_Servers_Has_Not_Changed_HasServerChanged_Returns_False()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            Assert.IsFalse(couchbaseConfiguration.HasServersChanged());
+        }
+
+        [Test]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void When_Servers_Is_Empty_ArgumentNullException_Is_Thrown()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            couchbaseConfiguration.Servers.Clear();
+            Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
+        }
+
+        [Test]
+        public void When_Default_Item_has_Changed_HasServerChanged_Returns_True()
+        {
+            var couchbaseConfiguration = new ClientConfiguration();
+            couchbaseConfiguration.Servers[0]= new Uri("http://localhost2:8091");
+            Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
+        }
     }
 }
 
