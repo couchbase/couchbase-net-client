@@ -76,7 +76,7 @@
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
-    <Compile Include="Core\Transcoders\TypeSerializer2Tests.cs" />
+    <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
