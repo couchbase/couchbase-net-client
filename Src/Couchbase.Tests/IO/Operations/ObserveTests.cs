@@ -30,7 +30,7 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Test_Observe2";
             var remove = new Delete(key, GetVBucket(), Converter, Transcoder);
 
-            var set = new Set<int?>(key, 10, GetVBucket(), Converter);
+            var set = new Set<int?>(key, 10, GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
 

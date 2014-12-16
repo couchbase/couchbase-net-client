@@ -7,13 +7,16 @@ using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Documents;
 using Couchbase.Tests.Fakes;
 using Couchbase.Views;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using Wintellect;
 
@@ -267,6 +270,36 @@ namespace Couchbase.Tests.Core.Buckets
 
                 var actDoc2 = result3.Value;
                 Assert.AreEqual(expDoc2.Bar, actDoc2.bar.Value);
+            }
+        }
+
+        [Test]
+        public void when_custom_Transcoder_Upsert_uses_it()
+        {
+            const string key = "when_custom_Transcoder_Upsert_uses_it";
+            var clientConfiguration = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"))
+            {
+                SerializationSettings = new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.Objects
+                }
+            };
+            using (var cluster = new Cluster(clientConfiguration))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var doc = new Pascal
+                    {
+                        HasPascalCase = true,
+                        SomeIntProperty = 9999,
+                        SomeProperty = "when_custom_Transcoder_Upsert_uses_it"
+                    };
+                    var result = bucket.Upsert(key, doc);
+                    Assert.IsTrue(result.Success);
+                    var readBack = bucket.Get<string>(key);
+                    Assert.IsTrue(readBack.Success);
+                    Assert.IsTrue(readBack.Value.Contains("Couchbase.Tests.Documents.Pascal"));
+                }
             }
         }
 

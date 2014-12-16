@@ -27,7 +27,7 @@ namespace Couchbase.Tests.IO.Operations
             IOStrategy.Execute(deleteOperation);
 
             //create the key
-            var set = new Set<string>(key, "Hello", GetVBucket(), Converter);
+            var set = new Set<string>(key, "Hello", GetVBucket(), Converter, Transcoder);
             var addResult = IOStrategy.Execute(set);
             Assert.IsTrue(addResult.Success);
 

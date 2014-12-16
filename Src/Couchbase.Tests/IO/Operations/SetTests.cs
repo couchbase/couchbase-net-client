@@ -20,7 +20,7 @@ namespace Couchbase.Tests.IO.Operations
             var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             IOStrategy.Execute(delete);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }
@@ -34,7 +34,7 @@ namespace Couchbase.Tests.IO.Operations
             var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
             IOStrategy.Execute(delete);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.IO.Operations
             var add = new Add<string>(key, "foo", GetVBucket(), Converter, Transcoder);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }

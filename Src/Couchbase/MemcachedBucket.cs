@@ -221,7 +221,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var operation = new Set<T>(key, value, null, _converter);
+            var operation = new Set<T>(key, value, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -235,7 +235,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -267,7 +267,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Cas = cas
             };
@@ -285,7 +285,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Cas = cas,
                 Expires = expiration
@@ -864,7 +864,7 @@ namespace Couchbase
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -879,7 +879,7 @@ namespace Couchbase
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -895,7 +895,7 @@ namespace Couchbase
 
         /// <summary>
         /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -941,7 +941,7 @@ namespace Couchbase
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -956,7 +956,7 @@ namespace Couchbase
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -972,7 +972,7 @@ namespace Couchbase
 
         /// <summary>
         /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.  
+        /// and seeded with the defaut initial value 1.
         /// </summary>
         /// <param name="key">The key to us for the counter.</param>
         /// <param name="delta">The number to increment the key by.</param>
@@ -1197,7 +1197,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources, 
+        /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources,
         /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         public void Dispose()
@@ -1206,7 +1206,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources, 
+        /// Closes this <see cref="MemcachedBucket"/> instance, shutting down and releasing all resources,
         /// removing it from it's <see cref="ClusterController"/> instance.
         /// </summary>
         /// <param name="disposing">If true suppresses finalization.</param>
@@ -1225,7 +1225,7 @@ namespace Couchbase
 
 #if DEBUG
         /// <summary>
-        /// Finalizer for this <see cref="MemcachedBucket"/> instance if not shutdown and disposed gracefully. 
+        /// Finalizer for this <see cref="MemcachedBucket"/> instance if not shutdown and disposed gracefully.
         /// </summary>
         ~MemcachedBucket()
         {

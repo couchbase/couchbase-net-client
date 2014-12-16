@@ -31,7 +31,7 @@ namespace Couchbase.Configuration
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
         protected readonly IByteConverter Converter;
-        protected readonly ITypeTranscoder transcoder;
+        protected readonly ITypeTranscoder _transcoder;
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
@@ -50,7 +50,7 @@ namespace Couchbase.Configuration
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Converter = converter;
-            transcoder = transcoder;
+            _transcoder = transcoder;
         }
 
         /// <summary>

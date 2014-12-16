@@ -11,19 +11,13 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The value to insert.</typeparam>
     internal sealed class Set<T> : OperationBase<T>
     {
-        public Set(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, vBucket, converter)
+        public Set(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
         private Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
             : base(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
-        {
-        }
-
-
-        public Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
         {
         }
 
@@ -44,6 +38,7 @@ namespace Couchbase.IO.Operations
         }
     }
 }
+
 #region [ License information ]
 
 /* ************************************************************

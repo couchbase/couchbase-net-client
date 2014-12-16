@@ -13,7 +13,8 @@ namespace Couchbase.Tests.IO.Operations
         public void When_Type_Is_Int_DateFormat_Is_Json()
         {
             const string key = "OperationBaseTests.When_Type_Is_Int_DateFormat_Is_Json";
-            var set = new Set<int?>(key, 100, GetVBucket(), new AutoByteConverter());
+            var set = new Set<int?>(key, 100, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var result = IOStrategy.Execute(set);
 
             Assert.IsTrue(result.Success);
@@ -32,7 +33,8 @@ namespace Couchbase.Tests.IO.Operations
         public void When_Type_Is_String_DateFormat_Is_String()
         {
             const string key = "OperationBaseTests.When_Type_Is_String_DateFormat_Is_String";
-            var set = new Set<string>(key, "somestring", GetVBucket(), new AutoByteConverter());
+            var set = new Set<string>(key, "somestring", GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var result = IOStrategy.Execute(set);
 
             Assert.IsTrue(result.Success);
@@ -57,7 +59,8 @@ namespace Couchbase.Tests.IO.Operations
                 Foo = "foo"
             };
 
-            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var result = IOStrategy.Execute(set);
 
             Assert.IsTrue(result.Success);
@@ -96,7 +99,8 @@ namespace Couchbase.Tests.IO.Operations
             };
 
             var value = new byte[] { 1, 2, 3, 4 };
-            var set = new Set<byte[]>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<byte[]>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var bytes = set.CreateExtras();
 
             Assert.AreEqual(expected[0], bytes[0]);
@@ -109,7 +113,8 @@ namespace Couchbase.Tests.IO.Operations
             var key = "binkey";
 
             var value = new byte[] {1, 2, 3, 4};
-            var set = new Set<byte[]>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<byte[]>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var setResult = IOStrategy.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Binary, set.Format);
@@ -127,7 +132,8 @@ namespace Couchbase.Tests.IO.Operations
             var key = "jsonkey";
 
             var value = new { x = "hi", y = 14 };
-            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var setResult = IOStrategy.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
@@ -144,7 +150,8 @@ namespace Couchbase.Tests.IO.Operations
             var key = "stringkey";
 
             var value = "hiho";
-            var set = new Set<string>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<string>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var setResult = IOStrategy.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.String, set.Format);
@@ -161,7 +168,8 @@ namespace Couchbase.Tests.IO.Operations
             var key = "intkey";
 
             var value = 14;
-            var set = new Set<int?>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<int?>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var setResult = IOStrategy.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
@@ -178,7 +186,8 @@ namespace Couchbase.Tests.IO.Operations
             var key = "intkey";
 
             var value = 14.666m;
-            var set = new Set<decimal?>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<decimal?>(key, value, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
             var setResult = IOStrategy.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
@@ -213,7 +222,7 @@ namespace Couchbase.Tests.IO.Operations
             };
 
             var value = new {x="hi",y=14};
-            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<dynamic>(key, value, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new AutoByteConverter()));
             var bytes = set.CreateExtras();
 
             Assert.AreEqual(expected[0], bytes[0]);
@@ -244,7 +253,7 @@ namespace Couchbase.Tests.IO.Operations
             };
 
             var value = "hiho";
-            var set = new Set<string>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<string>(key, value, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new AutoByteConverter()));
             var bytes = set.CreateExtras();
 
             Assert.AreEqual(expected[0], bytes[0]);
@@ -290,7 +299,7 @@ namespace Couchbase.Tests.IO.Operations
             };
 
             var value = 14;
-            var set = new Set<int?>(key, value, GetVBucket(), new AutoByteConverter());
+            var set = new Set<int?>(key, value, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new AutoByteConverter()));
             var bytes = set.CreateExtras();
 
             Assert.AreEqual(expected[0], bytes[0]);

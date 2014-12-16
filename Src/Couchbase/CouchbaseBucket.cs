@@ -353,7 +353,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var operation = new Set<T>(key, value, null, _converter);
+            var operation = new Set<T>(key, value, null, _converter, _transcoder);
             return SendWithRetry(operation);
         }
 
@@ -417,7 +417,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Cas = cas,
                 Expires = expiration
@@ -491,7 +491,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter);
+            var operation = new Set<T>(key, value, null, _converter, _transcoder);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -510,7 +510,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration
             };
@@ -550,7 +550,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder)
             {
                 Expires = expiration,
                 Cas = cas
