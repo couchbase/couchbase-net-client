@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
     public sealed class DatabaseFragmentationThreshold
     {
         [JsonProperty("percentage")]
-        public int Percentage { get; set; }
+        public string Percentage { get; set; }
 
         [JsonProperty("size")]
         public string Size { get; set; }
