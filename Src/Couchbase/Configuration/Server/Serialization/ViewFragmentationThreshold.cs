@@ -5,7 +5,7 @@ namespace Couchbase.Configuration.Server.Serialization
     public sealed class ViewFragmentationThreshold
     {
         [JsonProperty("percentage")]
-        public int Percentage { get; set; }
+        public string Percentage { get; set; }
 
         [JsonProperty("size")]
         public string Size { get; set; }
