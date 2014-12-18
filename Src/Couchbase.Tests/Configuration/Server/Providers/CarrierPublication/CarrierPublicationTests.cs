@@ -41,20 +41,16 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 });
                 return new FakeIOStrategy<FakeOperation>(operation);
             });
- 
             _cluster = new Cluster(configuration, clusterManager);
         }
 
         [Test]
-        public void Test_That_A_NMV_Response_Will_Force_A_Config_Update()
+        public void Test_That_A_NMV_Response_Will_Result_In_A_OperationTimeout()
         {
-            //TODO this test needs to be rewritten along with fake/mock
             _bucket = _cluster.OpenBucket("default");
             var operationResult = _bucket.Upsert("test", "value");
 
-            //note that the client should be retrying the operation. Once that is in place, this 
-            //test will need to be refactored.
-            Assert.AreEqual(ResponseStatus.VBucketBelongsToAnotherServer, operationResult.Status);
+            Assert.AreEqual(ResponseStatus.OperationTimeout, operationResult.Status);
         }
 
         [TestFixtureTearDown]

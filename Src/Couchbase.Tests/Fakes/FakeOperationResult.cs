@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Tests.Fakes
 {
-    internal class FakeOperationResult : IOperationResult<string>
+    internal class FakeOperationResult : OperationResult, IOperationResult<string>
     {
         public FakeOperationResult()
         {
@@ -22,28 +22,13 @@ namespace Couchbase.Tests.Fakes
 
         }
 
-        public bool Success { get; set; }
-
-        public string Value { get; set; }
-
-        public string Message { get; set; }
-
-        public ResponseStatus Status { get; set; }
-
-        public ulong Cas { get; set; }
-
-
         public IBucketConfig GetConfig()
         {
             string text = File.ReadAllText(@"Data\\Configuration\\carrier-publication-config.json");
             return JsonConvert.DeserializeObject<BucketConfig>(text);
         }
 
-
-        public Durability Durability { get; set; }
-
-
-        public Exception Exception { get; set; }
+        public string Value { get; set; }
     }
 }
 
