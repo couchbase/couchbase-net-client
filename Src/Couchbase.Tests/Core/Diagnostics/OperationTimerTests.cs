@@ -30,7 +30,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         [Test]
         public void When_TimingLevel_Is_One_Log_Message_Contains_One()
         {
-            var log = new FakeLog("mylogger", LogLevel.Info, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
+            var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
             var op = new Get<string>("key", null, null, null);
             using (new OperationTimer(TimingLevel.One, op, new CommonLogStore(log)))
             {
@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         [Test]
         public void When_TimingLevel_Is_Two_Log_Message_Contains_Two()
         {
-            var log = new FakeLog("mylogger", LogLevel.Info, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
+            var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
             var op = new Get<string>("key", null, null, null);
             using (new OperationTimer(TimingLevel.Two, op, new CommonLogStore(log)))
             {
@@ -56,7 +56,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         [Test]
         public void When_TimingLevel_Is_Three_Log_Message_Contains_Three()
         {
-            var log = new FakeLog("mylogger", LogLevel.Info, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
+            var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
             var op = new Get<string>("key", null, null, null);
             using (new OperationTimer(TimingLevel.Three, op, new CommonLogStore(log)))
             {
