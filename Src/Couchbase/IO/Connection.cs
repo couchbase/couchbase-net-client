@@ -12,6 +12,7 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
+        private volatile bool _disposed;
 
         internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new SocketAsyncEventArgs(), converter)
@@ -176,6 +177,9 @@ namespace Couchbase.IO
         public override void Dispose()
         {
             IsDead = true;
+            if (_disposed) return;
+
+            _disposed = true;
             if (Socket != null)
             {
                 if (Socket.Connected)
