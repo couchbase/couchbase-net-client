@@ -69,34 +69,6 @@ namespace Couchbase.Tests.IO.Operations
         }
 
         [Test]
-        public void Get()
-        {
-            using (var cluster = new Cluster())
-            {
-                using (var bucket = cluster.OpenBucket())
-                {
-                    var key = string.Format("key{0}", 1);
-                    var result = bucket.Get<int>(key);
-                    Assert.IsTrue(result.Success);
-                }
-            }
-        }
-
-        [Test]
-        public void Set()
-        {
-            using (var cluster = new Cluster())
-            {
-                using (var bucket = cluster.OpenBucket())
-                {
-                    var key = string.Format("key{0}", 1);
-                    var result = bucket.Upsert(key, 12);
-                    Console.WriteLine(result.Value);
-                }
-            }
-        }
-
-        [Test]
         public void Test_Timed_Execution_Parallel_Client()
         {
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
