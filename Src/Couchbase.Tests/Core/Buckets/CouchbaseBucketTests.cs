@@ -1273,25 +1273,29 @@ namespace Couchbase.Tests.Core.Buckets
                     MinSize = 5
                 }
             };
-            using (var bucket = _cluster.OpenBucket())
+
+            using (var cluster = new Cluster(config))
             {
-                var multiUpsert = bucket.Upsert(items);
-                Assert.AreEqual(items.Count, multiUpsert.Count);
-                foreach (var pair in multiUpsert)
+                using (var bucket = cluster.OpenBucket())
                 {
-                    Assert.IsTrue(pair.Value.Success);
-                }
+                    var multiUpsert = bucket.Upsert(items);
+                    Assert.AreEqual(items.Count, multiUpsert.Count);
+                    foreach (var pair in multiUpsert)
+                    {
+                        Assert.IsTrue(pair.Value.Success);
+                    }
 
-                var multiRemove = bucket.Remove(multiUpsert.Keys.ToList());
-                foreach (var pair in multiRemove)
-                {
-                    Assert.IsTrue(pair.Value.Success);
-                }
+                    var multiRemove = bucket.Remove(multiUpsert.Keys.ToList());
+                    foreach (var pair in multiRemove)
+                    {
+                        Assert.IsTrue(pair.Value.Success);
+                    }
 
-                var multiGet = bucket.Get<string>(multiUpsert.Keys.ToList());
-                foreach (var pair in multiGet)
-                {
-                    Assert.IsFalse(pair.Value.Success);
+                    var multiGet = bucket.Get<string>(multiUpsert.Keys.ToList());
+                    foreach (var pair in multiGet)
+                    {
+                        Assert.IsFalse(pair.Value.Success);
+                    }
                 }
             }
         }
