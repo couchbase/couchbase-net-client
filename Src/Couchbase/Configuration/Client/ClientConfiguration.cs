@@ -137,6 +137,9 @@ namespace Couchbase.Configuration.Client
                 };
                 BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
+
+            //Set back to default
+            _poolConfigurationChanged = false;
         }
 
         /// <summary>
