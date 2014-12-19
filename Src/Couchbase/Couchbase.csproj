@@ -62,6 +62,7 @@
     <Compile Include="Authentication\SASL\SaslFactory.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
     <Compile Include="ClusterHelper.cs" />
+    <Compile Include="ClusterInfo.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElement.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElementCollection.cs" />
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
@@ -153,7 +154,6 @@
     <Compile Include="CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
-    <Compile Include="CouchbaseClusterInfo.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
     <Compile Include="IO\Operations\ReplicaRead.cs" />
