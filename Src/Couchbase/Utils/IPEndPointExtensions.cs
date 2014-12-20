@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 
 namespace Couchbase.Utils
 {
@@ -25,6 +28,58 @@ namespace Couchbase.Utils
             {
                 throw new ArgumentException("port");
             }
+            return new IPEndPoint(ipAddress, port);
+        }
+
+        public static IPEndPoint GetEndPoint(INodeAdapter adapter, BucketConfiguration clientConfig, IBucketConfig serverConfig)
+        {
+            var address = adapter.Hostname.Split(':').First();
+            IPAddress ipAddress;
+            if (!IPAddress.TryParse(address, out ipAddress))
+            {
+                var uri = new Uri(String.Format("http://{0}", address));
+                ipAddress = uri.GetIpAddress();
+                if (ipAddress == null)
+                {
+                    throw new ArgumentException("ipAddress");
+                }
+            }
+            var port = clientConfig.UseSsl ? adapter.KeyValueSsl : adapter.KeyValue;
+            return new IPEndPoint(ipAddress, port);
+        }
+
+
+        public static IPEndPoint GetEndPoint(Node node, BucketConfiguration clientConfig, IBucketConfig serverConfig)
+        {
+            var address = node.Hostname.Split(':').First();
+            IPAddress ipAddress;
+            if (!IPAddress.TryParse(address, out ipAddress))
+            {
+                var uri = new Uri(String.Format("http://{0}", address));
+                ipAddress = uri.GetIpAddress();
+                if (ipAddress == null)
+                {
+                    throw new ArgumentException("ipAddress");
+                }
+            }
+            var port = clientConfig.UseSsl ? node.Ports.SslDirect : node.Ports.Direct;
+            return new IPEndPoint(ipAddress, port);
+        }
+
+        public static IPEndPoint GetEndPoint(NodeExt nodeExt, BucketConfiguration bucketConfig, IBucketConfig serverConfig)
+        {
+            var address = nodeExt.Hostname.Split(':').First();
+            IPAddress ipAddress;
+            if (!IPAddress.TryParse(address, out ipAddress))
+            {
+                var uri = new Uri(String.Format("http://{0}", address));
+                ipAddress = uri.GetIpAddress();
+                if (ipAddress == null)
+                {
+                    throw new ArgumentException("ipAddress");
+                }
+            }
+            var port = bucketConfig.UseSsl ? nodeExt.Services.KvSSL : nodeExt.Services.KV;
             return new IPEndPoint(ipAddress, port);
         }
     }

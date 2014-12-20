@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Authentication\BucketAuthenticationTests.cs" />
+    <Compile Include="Authentication\Sasl\SslConnection_CramMd5MechanismTests.cs" />
     <Compile Include="Authentication\Sasl\CramMd5MechanismTests.cs" />
     <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
     <Compile Include="Authentication\Sasl\SaslFactoryTests.cs" />
@@ -144,6 +145,7 @@
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
     <Compile Include="Utils\BoolExtensionTests.cs" />
+    <Compile Include="Utils\IPEndpointExtensionsTests.cs" />
     <Compile Include="Utils\TimeSpanExtensionsTests.cs" />
     <Compile Include="Utils\BufferExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />

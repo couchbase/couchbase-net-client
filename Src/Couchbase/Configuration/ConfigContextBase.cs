@@ -120,26 +120,6 @@ namespace Couchbase.Configuration
         }
 
         /// <summary>
-        /// Gets an <see cref="IPEndPoint"/> for a given hostname and bucketconfig.
-        /// </summary>
-        /// <param name="hostName">The specified hostname.</param>
-        /// <param name="bucketConfig">The <see cref="IBucketConfig"/> to use if replacement is required.</param>
-        /// <returns></returns>
-        protected virtual IPEndPoint GetEndPoint(string hostName, IBucketConfig bucketConfig)
-        {
-            const string blah = "$HOST";
-            var address = hostName.Replace(blah, bucketConfig.SurrogateHost);
-
-            var bucket = _clientConfig.BucketConfigs[bucketConfig.Name];
-            if (bucket.UseSsl)
-            {
-                var splits = address.Split(':');
-                address = string.Concat(splits[0], ":", bucket.Port);
-            }
-            return UriExtensions.GetEndPoint(address);
-        }
-
-        /// <summary>
         /// Loads the most updated configuration creating any resources as needed.
         /// </summary>
         /// <param name="bucketConfig">The latest <see cref="IBucketConfig"/>

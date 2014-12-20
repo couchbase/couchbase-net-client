@@ -22,27 +22,27 @@ namespace Couchbase.Core
         private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfiguration;
         private readonly IOStrategy _ioStrategy;
-        private readonly Node _nodeInfo;
+        private readonly INodeAdapter _nodeAdapter;
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
         private volatile bool _disposed;
         private volatile bool _isDead;
         private volatile bool _timingEnabled;
 
-        public Server(IOStrategy ioStrategy, Node node, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
+        public Server(IOStrategy ioStrategy,  INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
             new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
             new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration)),
-            node, clientConfiguration)
+            nodeAdapter, clientConfiguration)
         {
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, Node nodeInfo, ClientConfiguration clientConfiguration)
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration)
         {
             _ioStrategy = ioStrategy;
             ViewClient = viewClient;
             QueryClient = queryClient;
-            _nodeInfo = nodeInfo;
+            _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
         }
@@ -179,14 +179,14 @@ namespace Couchbase.Core
         //note this should be cached
         public string GetBaseViewUri()
         {
-            var uri = _nodeInfo.CouchApiBase;
+            var uri = _nodeAdapter.CouchbaseApiBase;
             return uri.Replace("$HOST", "localhost");
         }
 
         //TODO refactor to use CouchbaseApiHttps element when stabilized
         public string GetBaseViewUri(string bucketName)
         {
-            var uri = _nodeInfo.CouchApiBase;
+            var uri = _nodeAdapter.CouchbaseApiBase;
             var index = uri.LastIndexOf("%", StringComparison.Ordinal);
             if (index > 0)
             {
@@ -196,8 +196,8 @@ namespace Couchbase.Core
             var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
             if (bucketConfig.UseSsl)
             {
-                var port = _nodeInfo.Ports.HttpsCapi;
-                uri = uri.Replace(((int)DefaultPorts.RestApi).
+                var port = _nodeAdapter.ViewsSsl;
+                uri = uri.Replace(((int)DefaultPorts.CApi).
                     ToString(CultureInfo.InvariantCulture), port.
                     ToString(CultureInfo.InvariantCulture));
                 uri = uri.Replace("http", "https");

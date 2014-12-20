@@ -39,7 +39,7 @@ namespace Couchbase.Tests.IO.Operations
 
             var servers = vBucketServerMap.
                 ServerList.
-                Select(server => new Server(_ioStrategy, new Node(), new ClientConfiguration(), bucketConfig)).
+                Select(server => new Server(_ioStrategy, new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                 Cast<IServer>().
                 ToList();
 

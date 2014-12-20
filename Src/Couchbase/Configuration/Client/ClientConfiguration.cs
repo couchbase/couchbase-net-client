@@ -481,6 +481,10 @@ namespace Couchbase.Configuration.Client
                         bucketConfiguration.Port);
                     throw new NotSupportedException(message);
                 }
+                if (bucketConfiguration.UseSsl)
+                {
+                    bucketConfiguration.PoolConfiguration.UseSsl = true;
+                }
                 if (UseSsl)
                 {
                     //Setting ssl to true at parent level overrides child level ssl settings

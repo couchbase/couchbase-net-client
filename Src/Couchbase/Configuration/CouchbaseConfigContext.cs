@@ -45,12 +45,12 @@ namespace Couchbase.Configuration
                     force)
                 {
                     Log.Info(m => m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(), bucketConfig.Rev));
+                    var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                     var servers = new List<IServer>();
-                    var nodes = bucketConfig.Nodes;
-                    for (var i = 0; i < nodes.Length; i++)
+                    var nodes = bucketConfig.GetNodes();
+                    foreach (var adapter in nodes)
                     {
-                        var ip = bucketConfig.VBucketServerMap.ServerList[i];
-                        var endpoint = GetEndPoint(ip, bucketConfig);
+                        var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
                         try
                         {
                             var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
@@ -59,12 +59,12 @@ namespace Couchbase.Configuration
                             var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                             ioStrategy.SaslMechanism = saslMechanism;
 
-                            var server = new Core.Server(ioStrategy, nodes[i], ClientConfig, bucketConfig);
+                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
                             servers.Add(server);
                         }
                         catch (Exception e)
                         {
-                            Log.ErrorFormat("Could not add server {0}. Exception: {1}", ip, e);
+                            Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                         }
                     }
                     var old = Interlocked.Exchange(ref Servers, servers);
@@ -97,35 +97,34 @@ namespace Couchbase.Configuration
             {
                 Lock.EnterWriteLock();
                 Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
+
+                var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var servers = new List<IServer>();
-                var nodes = BucketConfig.Nodes;
-                for (var i = 0; i < nodes.Length; i++)
+                var nodes = BucketConfig.GetNodes();
+                foreach (var adapter in nodes)
                 {
-                    var node = nodes[i];
-                    var ip = BucketConfig.VBucketServerMap.ServerList[i];
-                    var endpoint = GetEndPoint(ip, BucketConfig);
+                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
                     try
                     {
                         IServer server = null;
-                        if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Length == 1)
+                        if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Count() == 1)
                         {
-                            server = new Core.Server(ioStrategy, node, ClientConfig, BucketConfig);
+                            server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
                         }
                         else
                         {
                             var poolConfig = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                             var connectionPool = ConnectionPoolFactory(poolConfig, endpoint);
                             var newIoStrategy = IOStrategyFactory(connectionPool);
-                            var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password,
-                                newIoStrategy, Converter);
+                            var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, newIoStrategy, Converter);
                             newIoStrategy.SaslMechanism = saslMechanism;
-                            server = new Core.Server(newIoStrategy, nodes[i], ClientConfig, BucketConfig);
+                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig);
                         }
                         servers.Add(server);
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", ip, e);
+                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
 
@@ -153,27 +152,24 @@ namespace Couchbase.Configuration
             try
             {
                 Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
+                var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var servers = new List<IServer>();
-                var nodes = BucketConfig.Nodes;
-                for (var i = 0; i < nodes.Length; i++)
+                var nodes = BucketConfig.GetNodes();
+                foreach (var adapter in nodes)
                 {
-                    var ip = BucketConfig.VBucketServerMap.ServerList[i];
-                    var endpoint = GetEndPoint(ip, BucketConfig);
+                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
                     try
                     {
-                        var connectionPool =
-                            ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration,
-                                endpoint);
+                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration,endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
                         var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
                         ioStrategy.SaslMechanism = saslMechanism;
-                        var server = new Core.Server(ioStrategy, nodes[i], ClientConfig, BucketConfig);
-                            //this should be a Func factory...a functory
+                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
                         servers.Add(server);
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", ip, e);
+                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
                 var old = Interlocked.Exchange(ref Servers, servers);

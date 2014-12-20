@@ -18,6 +18,9 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("kv")]
         public int KV { get; set; }
 
+        [JsonProperty("capi")]
+        public int Capi { get; set; }
+
         [JsonProperty("kvSSL")]
         public int KvSSL { get; set; }
 

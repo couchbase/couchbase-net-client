@@ -137,8 +137,8 @@ namespace Couchbase.IO
                     //socket was closed on recieving side
                     if (e.BytesTransferred == 0)
                     {
-                        _requestCompleted.Set();
-                        return;
+                       _requestCompleted.Set();
+                       return;
                     }
                     state.BytesReceived += e.BytesTransferred;
                     state.Data.Write(e.Buffer, 0, e.BytesTransferred);

@@ -1,10 +1,14 @@
 ﻿using System;
+using System.IO;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.IO
 {
@@ -25,6 +29,13 @@ namespace Couchbase.IO
             _sslStream = sslStream;
             Configuration = ConnectionPool.Configuration;
             _timingEnabled = Configuration.EnableOperationTiming;
+            ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
+        }
+
+        private bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
+            return true;
         }
 
         public void Authenticate()
@@ -40,6 +51,27 @@ namespace Couchbase.IO
             {
                 Log.Error(e);
             }
+        }
+
+        public override byte[] Send(byte[] buffer)
+        {
+            var state = new SocketAsyncState
+            {
+                Data = new MemoryStream(),
+                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
+            };
+
+            _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, state);
+            if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
+            {
+                //TODO refactor logic
+                IsDead = true;
+                const string msg =
+                    "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                throw new IOException(msg);
+            }
+
+            return state.Data.ToArray();
         }
 
         public override void Send<T>(IOperation<T> operation)
@@ -60,49 +92,63 @@ namespace Couchbase.IO
                 HandleException(e, operation);
             }
         }
+
         private void SendCallback(IAsyncResult asyncResult)
         {
-            var operation = (IOperation)asyncResult.AsyncState;
+            var state = (SocketAsyncState)asyncResult.AsyncState;
             try
             {
                 _sslStream.EndWrite(asyncResult);
-                operation.Buffer = BufferManager.TakeBuffer(512);
-                _sslStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+                state.Buffer = BufferManager.TakeBuffer(1024);
+                _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
             catch (Exception e)
             {
-                HandleException(e, operation);
+                if (state.Buffer != null)
+                {
+                    BufferManager.ReturnBuffer(state.Buffer);
+                }
+                throw;
             }
         }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
-            var operation = (IOperation)asyncResult.AsyncState;
-
+            var state = (SocketAsyncState)asyncResult.AsyncState;
             try
             {
-                var bytesRead = _sslStream.EndRead(asyncResult);
-                if (bytesRead == 0)
+                var bytesRecieved = _sslStream.EndRead(asyncResult);
+                state.BytesReceived += bytesRecieved;
+                if (state.BytesReceived == 0)
                 {
+                    BufferManager.ReturnBuffer(state.Buffer);
                     SendEvent.Set();
                     return;
                 }
-                operation.Read(operation.Buffer, 0, bytesRead);
-                BufferManager.ReturnBuffer(operation.Buffer);
-
-                if (operation.LengthReceived < operation.TotalLength)
+                if (state.BodyLength == 0)
                 {
-                    operation.Buffer = BufferManager.TakeBuffer(512);
-                    _sslStream.BeginRead(operation.Buffer, 0, operation.Buffer.Length, ReceiveCallback, operation);
+                    state.BodyLength = Converter.ToInt32(state.Buffer, HeaderIndexFor.Body);
+                }
+
+                state.Data.Write(state.Buffer, 0, bytesRecieved);
+
+                if (state.BytesReceived < state.BodyLength + 24)
+                {
+                    _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
                 }
                 else
                 {
+                    BufferManager.ReturnBuffer(state.Buffer);
                     SendEvent.Set();
                 }
             }
             catch (Exception e)
             {
-                HandleException(e, operation);
+                if (state.Buffer != null)
+                {
+                    BufferManager.ReturnBuffer(state.Buffer);
+                }
+                throw;
             }
         }
 

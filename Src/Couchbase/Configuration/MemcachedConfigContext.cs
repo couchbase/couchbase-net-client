@@ -56,17 +56,17 @@ namespace Couchbase.Configuration
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
             if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || force)
             {
+                var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                 var servers = new List<IServer>();
-                foreach (var node in bucketConfig.Nodes)
+                var nodes = BucketConfig.GetNodes();
+                foreach (var adapter in nodes)
                 {
-                    var endpoint = GetEndPoint(node, bucketConfig);
+                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
                     try
                     {
-                        var connectionPool =
-                            ConnectionPoolFactory(ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration,
-                                endpoint);
+                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
-                        var server = new Core.Server(ioStrategy, node, ClientConfig, bucketConfig);
+                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
                         var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
                         ioStrategy.SaslMechanism = saslMechanism;
                         servers.Add(server);
@@ -90,15 +90,16 @@ namespace Couchbase.Configuration
         public override void LoadConfig()
         {
             var servers = new List<IServer>();
-            foreach (var node in BucketConfig.Nodes)
+            var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
+            var nodes = BucketConfig.GetNodes();
+            foreach (var adapter in nodes)
             {
-                var endpoint = GetEndPoint(node, BucketConfig);
+                var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
                 try
                 {
-                    var connectionPool =
-                        ConnectionPoolFactory(ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration, endpoint);
+                    var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                     var ioStrategy = IOStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy, node, ClientConfig, BucketConfig);
+                    var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
                     var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
                     ioStrategy.SaslMechanism = saslMechanism;
                     servers.Add(server);

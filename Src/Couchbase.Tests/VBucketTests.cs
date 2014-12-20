@@ -31,7 +31,7 @@ namespace Couchbase.Tests
 
             _servers = vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration(), bucketConfig)).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                 Cast<IServer>().
                 ToList();
 
@@ -69,7 +69,7 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
             var servers = bucketConfig.VBucketServerMap.
                ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration(), bucketConfig)).
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                Cast<IServer>().
                ToList();
 
@@ -87,7 +87,7 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
             var servers = bucketConfig.VBucketServerMap.
                ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration(), bucketConfig)).
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                Cast<IServer>().
                ToList();
 
@@ -109,7 +109,7 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
             var servers = bucketConfig.VBucketServerMap.
                ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new Node(), new ClientConfiguration(), bucketConfig)).
+               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                Cast<IServer>().
                ToList();
 
@@ -133,7 +133,7 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
             var servers = bucketConfig.VBucketServerMap.
                ServerList.
-               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new Node(), new ClientConfiguration(), bucketConfig)).
+               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                Cast<IServer>().
                ToList();
 
@@ -155,7 +155,7 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
             var servers = bucketConfig.VBucketServerMap.
                ServerList.
-               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new Node(), new ClientConfiguration(), bucketConfig)).
+               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
                Cast<IServer>().
                ToList();
 
@@ -175,7 +175,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
         {
-            var server = new Server(null, new Node {Hostname = "127.0.0.1"}, new ClientConfiguration(), new BucketConfig{Name = "default"});
+            var server = new Server(null, new NodeAdapter(new Node {Hostname = "127.0.0.1"}, new NodeExt()), new ClientConfiguration(), new BucketConfig{Name = "default"});
             var vbucket = new VBucket(new List<IServer> {server, server}, 100, -1, new [] {2});
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
@@ -192,7 +192,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
-            var server = new Server(null, new Node { Hostname = "127.0.0.1" }, new ClientConfiguration(), new BucketConfig{Name ="default"});
+            var server = new Server(null, new NodeAdapter(new Node { Hostname = "127.0.0.1" }, new NodeExt()), new ClientConfiguration(), new BucketConfig{Name ="default"});
             var vbucket = new VBucket(new List<IServer> { server, server }, 100, -1, new[] { -1 });
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);

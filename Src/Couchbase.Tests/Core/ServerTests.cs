@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Core
             var configuration = new ClientConfiguration();
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            _server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{ Name = "default"});
+            _server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{ Name = "default"});
         }
 
         [Test]
@@ -74,7 +74,7 @@ namespace Couchbase.Tests.Core
 
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            using (var server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{Name="default"}))
+            using (var server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{Name="default"}))
             {
                 var uri = server.GetBaseViewUri("default");
                 Assert.AreEqual("https://localhost:18092/default", uri);
@@ -95,7 +95,7 @@ namespace Couchbase.Tests.Core
             {
                 CouchApiBase = "http://192.168.56.104:8092/beer-sample%2Ba6f9e23c32a4fd07278459e40e91f90a"
             };
-            using (var server = new Server(null, null, null, node, configuration))
+            using (var server = new Server(null, null, null, new NodeAdapter(node, new NodeExt()), configuration))
             {
                 var uri = server.GetBaseViewUri("beer-sample");
                 Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
@@ -116,7 +116,7 @@ namespace Couchbase.Tests.Core
             {
                 CouchApiBase = "http://192.168.56.104:8092/beer-sample"
             };
-            using (var server = new Server(null, null, null, node, configuration))
+            using (var server = new Server(null, null, null, new NodeAdapter(node, new NodeExt()), configuration))
             {
                 var uri = server.GetBaseViewUri("beer-sample");
                 Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
@@ -134,7 +134,7 @@ namespace Couchbase.Tests.Core
 
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
-            using (var server = new Server(ioStrategy, new Node(), configuration, new BucketConfig{Name = "default"}))
+            using (var server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{Name = "default"}))
             {
                 var uri = server.GetBaseViewUri("default");
                 Assert.AreEqual("http://localhost:8092/default", uri);

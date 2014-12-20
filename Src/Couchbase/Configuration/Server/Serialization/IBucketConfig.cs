@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Couchbase.Core;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
@@ -37,6 +39,9 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("nodes")]
         Node[] Nodes { get; set; }
+
+        [JsonProperty("nodesExt")]
+        NodeExt[] NodesExt { get; set; }
 
         [JsonProperty("stats")]
         Stats Stats { get; set; }

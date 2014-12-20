@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
@@ -23,7 +24,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void SetUp()
         {
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.Find(x => x.BucketType == "memcached");
-            _servers = bucketConfig.Nodes.
+            _servers = bucketConfig.GetNodes().
                 Select(node => new Server(ObjectFactory.CreateIOStrategy(node), node, new ClientConfiguration(), bucketConfig)).
                 Cast<IServer>().
                 ToList();

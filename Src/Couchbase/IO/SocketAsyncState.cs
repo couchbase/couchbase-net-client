@@ -11,6 +11,8 @@ namespace Couchbase.IO
         public int BodyLength { get; set; }
 
         public uint Opaque { get; set; }
+
+        public byte[] Buffer { get; set; }
     }
 
     #region [ License information ]

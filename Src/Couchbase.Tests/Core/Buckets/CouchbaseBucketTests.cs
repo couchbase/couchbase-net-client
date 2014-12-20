@@ -996,7 +996,6 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
                 var query = bucket.CreateQuery("beer", "brewery_beers");
-
                 var results = bucket.Query<dynamic>(query);
                 Assert.IsTrue(results.Success);
                 //Assert.AreEqual(10, results.Rows.Count);

@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Strategies;
 using Couchbase.Utils;
@@ -19,6 +20,14 @@ namespace Couchbase.Tests.Helpers
         internal static IOStrategy CreateIOStrategy(Node node)
         {
             var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString(CultureInfo.InvariantCulture));
+            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(server));
+            var ioStrategy = new DefaultIOStrategy(connectionPool);
+            return ioStrategy;
+        }
+
+        internal static IOStrategy CreateIOStrategy(INodeAdapter node)
+        {
+            var server = node.Hostname.Replace("8091", node.KeyValue.ToString(CultureInfo.InvariantCulture));
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(server));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             return ioStrategy;

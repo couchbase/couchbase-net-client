@@ -71,6 +71,7 @@
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
+    <Compile Include="Configuration\Server\Serialization\BucketConfigExtensions.cs" />
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
@@ -82,6 +83,8 @@
     <Compile Include="Core\Diagnostics\OperationTimer.cs" />
     <Compile Include="Core\Diagnostics\TimingFactory.cs" />
     <Compile Include="Core\Diagnostics\TimingLevel.cs" />
+    <Compile Include="Core\INodeAdapter.cs" />
+    <Compile Include="Core\NodeAdapter.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Cluster.cs" />

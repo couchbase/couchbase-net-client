@@ -13,7 +13,7 @@
         /// <summary>
         /// The Views REST API port.
         /// </summary>
-        RestApi = 8092,
+        CApi = 8092,
 
         /// <summary>
         /// The port used for Binary Memcached TCP operations.
