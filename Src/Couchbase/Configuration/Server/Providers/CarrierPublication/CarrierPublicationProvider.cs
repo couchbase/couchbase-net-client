@@ -145,11 +145,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
                     Log.Warn(m => m(msg, endPoint, bucketName));
                     Log.Warn(e);
+                    exceptions.Add(e);
                 }
                 catch (Exception e)
                 {
                     Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     Log.Warn(e);
+                    exceptions.Add(e);
                 }
             }
 
