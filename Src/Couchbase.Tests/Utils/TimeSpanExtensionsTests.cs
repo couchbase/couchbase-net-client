@@ -24,7 +24,7 @@ namespace Couchbase.Tests.Utils
         {
             Assert.AreEqual(1, TimeSpan.FromSeconds(1).ToTtl());
             Assert.AreEqual(30 * 24 * 60 * 60, TimeSpan.FromDays(30).ToTtl());
-            Assert.Greater(30 * 24 * 60 * 60, TimeSpan.FromDays(60).ToTtl());
+            Assert.Less(30 * 24 * 60 * 60, TimeSpan.FromDays(60).ToTtl());
         }
     }
 }
