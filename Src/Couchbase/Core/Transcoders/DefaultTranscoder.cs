@@ -131,7 +131,14 @@ namespace Couchbase.Core.Transcoders
                     break;
 
                 case DataFormat.Json:
-                    value = DeserializeAsJson<T>(buffer, offset, length);
+                    if (typeof (T) == typeof (string))
+                    {
+                        value = Decode(buffer, offset, length);
+                    }
+                    else
+                    {
+                        value = DeserializeAsJson<T>(buffer, offset, length);
+                    }
                     break;
 
                 case DataFormat.Binary:

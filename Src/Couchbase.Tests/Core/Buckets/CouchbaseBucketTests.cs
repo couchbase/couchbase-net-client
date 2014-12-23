@@ -723,7 +723,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_Poco()
+        public void When_Poco_Inserted_As_Document_It_Succeeds()
         {
             var key = "poco_moco";
             using (var bucket = _cluster.OpenBucket())
@@ -749,17 +749,36 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void Test_Poco2()
+        public void When_Poco_Inserted_As_Key_Value_Pair_It_Succeeds()
         {
             var key = "poco_moco2";
             using (var bucket = _cluster.OpenBucket())
             {
+                bucket.Remove(key);
                 var result = bucket.Insert(key, new Poco { Bar = "Foo", Age = 12});
                 if (result.Success)
                 {
                     var result1 = bucket.Get<Poco>(key);
                     var poco = result1.Value;
-                    Console.WriteLine(poco.Bar);
+                    Assert.AreEqual(12, poco.Age);
+                    Assert.AreEqual("Foo", poco.Bar);
+                }
+            }
+        }
+
+        [Test]
+        public void Test_That_JSON_Can_Be_Retrieved_As_String()
+        {
+            var key = "poco_moco2";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result = bucket.Insert(key, new Poco { Bar = "Foo", Age = 12 });
+                if (result.Success)
+                {
+                    var result1 = bucket.Get<string>(key);
+                    var poco = result1.Value;
+                    Assert.AreEqual("{\"bar\":\"Foo\",\"age\":12}", result1.Value);
                 }
             }
         }
