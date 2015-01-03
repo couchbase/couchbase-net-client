@@ -427,7 +427,7 @@ namespace Couchbase.IO.Operations
                                 }
                                 else
                                 {
-                                    message = Converter.ToString(buffer, 24, TotalLength - 24);
+                                    message = Converter.ToString(buffer, 24, Math.Min(buffer.Length - 24, TotalLength - 24));
                                 }
                             }
                         }
