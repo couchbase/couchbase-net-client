@@ -81,7 +81,6 @@ namespace Couchbase.Authentication.SASL
         /// <returns>True if succesful.</returns>
         public bool Authenticate(IConnection connection, string username, string password)
         {
-            var authenticated = false;
             Username = username;
             Password = password ?? string.Empty;
 
@@ -98,10 +97,6 @@ namespace Couchbase.Authentication.SASL
                 operation = new SaslStep(MechanismType, reply, _converter);
                 result = _ioStrategy.Execute(operation, connection);
             }
-
-            //even if the request succeeded, if the body doesn't contain 'Authenticated' then auth failed.
-            authenticated = result.Status == ResponseStatus.Success &&
-                   result.Value.Equals("Authenticated");
 
             if (result.Status == ResponseStatus.AuthenticationError)
             {
@@ -123,7 +118,7 @@ namespace Couchbase.Authentication.SASL
                 Log.Debug(m => m("Authentication for socket {0} succeeded.", temp.Identity));
             }
 
-            return authenticated;
+            return result.Status == ResponseStatus.Success;
         }
 
         /// <summary>
