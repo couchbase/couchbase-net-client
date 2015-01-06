@@ -144,16 +144,16 @@ namespace Couchbase.Core.Buckets
                         Interlocked.Increment(ref p.PersistedToCount);
                     }
 
-                    //Check if durability requirements have been met
-                    if (p.IsDurabilityMet())
-                    {
-                        return true;
-                    }
-
                     //Key mutation detected so fail
                     if (p.HasMutated(state.Cas))
                     {
                         return false;
+                    }
+
+                    //Check if durability requirements have been met
+                    if (p.IsDurabilityMet())
+                    {
+                        return true;
                     }
 
                     //Run the durability requirement check on each replica

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
+using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -987,6 +988,38 @@ namespace Couchbase.Tests.Core.Buckets
                 var result = bucket.Remove(key, ReplicateTo.Three, PersistTo.Three);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
+            }
+        }
+
+        [Test]
+        public void When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied()
+        {
+            var key = "When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied";
+            var value = "Test_Observe_Remove_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result1 = bucket.Insert(key, value);
+                var result2 = bucket.Upsert(key, "modified");
+                Assert.AreNotEqual(result1.Cas, result2.Cas);
+                var result3 = bucket.Observe(key, result1.Cas, false, ReplicateTo.Zero, PersistTo.Zero);
+                Assert.AreEqual(ObserveResponse.DurabilityNotSatisfied, result3);
+            }
+        }
+
+        [Test]
+        public void When_CAS_Changed_Observe_Returns_DurabilitySatisfied()
+        {
+            var key = "When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied";
+            var value = "Test_Observe_Remove_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result1 = bucket.Insert(key, value);
+                var result2 = bucket.Upsert(key, "modified");
+                Assert.AreNotEqual(result1.Cas, result2.Cas);
+                var result3 = bucket.Observe(key, result2.Cas, false, ReplicateTo.Zero, PersistTo.Zero);
+                Assert.AreEqual(ObserveResponse.DurabilitySatisfied, result3);
             }
         }
 
