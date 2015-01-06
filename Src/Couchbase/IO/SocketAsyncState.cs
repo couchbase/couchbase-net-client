@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Couchbase.IO
 {
@@ -13,6 +14,8 @@ namespace Couchbase.IO
         public uint Opaque { get; set; }
 
         public byte[] Buffer { get; set; }
+
+        public Exception Exception { get; set; }
     }
 
     #region [ License information ]

@@ -60,7 +60,6 @@ namespace Couchbase.IO
             //Send the request
             if (!Socket.SendAsync(_eventArgs))
             {
-                //TODO refactor logic
                 IsDead = true;
                 throw new IOException("Failed to send operation!");
             }
@@ -68,10 +67,15 @@ namespace Couchbase.IO
             //wait for completion
             if (!_requestCompleted.WaitOne(Configuration.ConnectionTimeout))
             {
-                //TODO refactor logic
                 IsDead = true;
                 const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
                 throw new IOException(msg);
+            }
+
+            //Check if an IO error occurred
+            if (state.Exception != null)
+            {
+                throw state.Exception;
             }
 
             //return the response bytes
@@ -82,20 +86,32 @@ namespace Couchbase.IO
         /// Raised when an asynchronous operation is completed
         /// </summary>
         /// <param name="sender">The <see cref="Socket"/> which the asynchronous operation is associated with.</param>
-        /// <param name="e"></param>
-        private void OnCompleted(object sender, SocketAsyncEventArgs e)
+        /// <param name="args"></param>
+        private void OnCompleted(object sender, SocketAsyncEventArgs args)
         {
-            var socket = (Socket)sender;
-            switch (e.LastOperation)
+            try
             {
-                case SocketAsyncOperation.Send:
-                    Send(socket, e);
-                    break;
-                case SocketAsyncOperation.Receive:
-                    Receive(socket, e);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                var socket = (Socket) sender;
+                switch (args.LastOperation)
+                {
+                    case SocketAsyncOperation.Send:
+                        Send(socket, args);
+                        break;
+                    case SocketAsyncOperation.Receive:
+                        Receive(socket, args);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+            catch (Exception e)
+            {
+                var state = args.UserToken as SocketAsyncState;
+                if (state != null && state.Exception == null)
+                {
+                    state.Exception = e;
+                }
+                Log.Warn(e);
             }
         }
 
@@ -106,10 +122,10 @@ namespace Couchbase.IO
         /// <param name="e">The <see cref="SocketAsyncEventArgs"/> that is being used for the operation.</param>
         private void Send(Socket socket, SocketAsyncEventArgs e)
         {
+            var state = (SocketAsyncState)e.UserToken;
             if (e.SocketError == SocketError.Success)
             {
-                _eventArgs.UserToken = e.UserToken;
-                var willRaiseCompletedEvent = socket.ReceiveAsync(_eventArgs);
+                var willRaiseCompletedEvent = socket.ReceiveAsync(e);
                 if (!willRaiseCompletedEvent)
                 {
                     OnCompleted(socket, e);
@@ -117,7 +133,9 @@ namespace Couchbase.IO
             }
             else
             {
-                throw new SocketException((int)e.SocketError);
+                IsDead = true;
+                _requestCompleted.Set();
+                state.Exception = new SocketException((int) e.SocketError);
             }
         }
 
@@ -130,10 +148,9 @@ namespace Couchbase.IO
         {
             while (true)
             {
+                var state = (SocketAsyncState)e.UserToken;
                 if (e.SocketError == SocketError.Success)
                 {
-                    var state = (SocketAsyncState)e.UserToken;
-
                     //socket was closed on recieving side
                     if (e.BytesTransferred == 0)
                     {
@@ -165,7 +182,7 @@ namespace Couchbase.IO
                 {
                     IsDead = true;
                     _requestCompleted.Set();
-                    throw new SocketException((int)e.SocketError);
+                    state.Exception = new SocketException((int)e.SocketError);
                 }
                 break;
             }

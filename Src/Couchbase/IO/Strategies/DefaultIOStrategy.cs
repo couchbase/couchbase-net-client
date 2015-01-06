@@ -79,19 +79,28 @@ namespace Couchbase.IO.Strategies
             //Get the buffer and a connection
             var request = operation.Write();
             var connection = _connectionPool.Acquire();
-
-            //A new connection will have to be authenticated
-            if (!connection.IsAuthenticated)
+            byte[] response;
+            try
             {
-                Authenticate(connection);
+                //A new connection will have to be authenticated
+                if (!connection.IsAuthenticated)
+                {
+                    Authenticate(connection);
+                }
+
+                //Send the request buffer and release the connection
+                response = connection.Send(request);
+            }
+            finally
+            {
+                _connectionPool.Release(connection);
             }
 
-            //Send the request buffer and release the connection
-            var response = connection.Send(request);
-            _connectionPool.Release(connection);
-
             //Read the response and return the completed operation
-            operation.Read(response, 0, response.Length);
+            if (response != null)
+            {
+                operation.Read(response, 0, response.Length);
+            }
             return operation.GetResult();
         }
 
