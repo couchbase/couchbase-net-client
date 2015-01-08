@@ -53,12 +53,6 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("maxBucketCount")]
         public int MaxBucketCount { get; set; }
 
-        [JsonProperty("autoCompactionSettings")]
-        public AutoCompactionSettings AutoCompactionSettings { get; set; }
-
-        [JsonProperty("fastWarmupSettings")]
-        public FastWarmupSettings FastWarmupSettings { get; set; }
-
         [JsonProperty("tasks")]
         public Tasks Tasks { get; set; }
 
