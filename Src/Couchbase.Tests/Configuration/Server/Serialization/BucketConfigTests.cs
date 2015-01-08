@@ -186,6 +186,14 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
             var url = _bucket1.GetTerseUri(node, useSsl);
             Assert.AreEqual(new Uri("http://192.168.56.101:8091/pools/default/b/default"), url);
         }
+
+        [Test]
+        public void When_AutoCompaction_Enabled_Undefined_Values_Serialization_Succeeds()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\config-with-autocompaction.json");
+            var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
+            Assert.IsNotNull(bucket);
+        }
     }
 }
 

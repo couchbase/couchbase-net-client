@@ -69,10 +69,10 @@ namespace Couchbase.Configuration.Server.Serialization
         public string NodeLocator { get; set; }
 
         [JsonProperty("autoCompactionSettings")]
-        public bool AutoCompactionSettings { get; set; }
+        public AutoCompactionSettings AutoCompactionSettings { get; set; }
 
         [JsonProperty("fastWarmupSettings")]
-        public bool FastWarmupSettings { get; set; }
+        public FastWarmupSettings FastWarmupSettings { get; set; }
 
         [JsonProperty("uuid")]
         public string Uuid { get; set; }
