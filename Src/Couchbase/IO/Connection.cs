@@ -134,8 +134,8 @@ namespace Couchbase.IO
             else
             {
                 IsDead = true;
-                _requestCompleted.Set();
                 state.Exception = new SocketException((int) e.SocketError);
+                _requestCompleted.Set();
             }
         }
 
@@ -181,8 +181,8 @@ namespace Couchbase.IO
                 else
                 {
                     IsDead = true;
-                    _requestCompleted.Set();
                     state.Exception = new SocketException((int)e.SocketError);
+                    _requestCompleted.Set();
                 }
                 break;
             }
@@ -197,22 +197,30 @@ namespace Couchbase.IO
             if (_disposed) return;
 
             _disposed = true;
-            if (Socket != null)
+
+            try
             {
-                if (Socket.Connected)
+                if (Socket != null)
                 {
-                    Socket.Shutdown(SocketShutdown.Both);
-                    Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
+                    if (Socket.Connected)
+                    {
+                        Socket.Shutdown(SocketShutdown.Both);
+                        Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
+                    }
+                    else
+                    {
+                        Socket.Close();
+                        Socket.Dispose();
+                    }
                 }
-                else
-                {
-                    Socket.Close();
-                    Socket.Dispose();
-                }
+                _allocator.ReleaseBuffer(_eventArgs);
+                _eventArgs.Dispose();
+                _requestCompleted.Dispose();
             }
-            _allocator.ReleaseBuffer(_eventArgs);
-            _eventArgs.Dispose();
-            _requestCompleted.Dispose();
+            catch (Exception e)
+            {
+                Log.Info(e);
+            }
         }
     }
 }

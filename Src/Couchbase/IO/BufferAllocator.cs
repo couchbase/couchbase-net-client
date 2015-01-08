@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
+using Common.Logging;
 
 namespace Couchbase.IO
 {
@@ -10,6 +12,7 @@ namespace Couchbase.IO
     /// <remarks>Near identical to implementation found in MSDN documentation: http://msdn.microsoft.com/en-us/library/bb517542%28v=vs.110%29.aspx</remarks>
     internal sealed class BufferAllocator
     {
+        protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly int _numberOfBytes;
         private readonly byte[] _buffer;
         private readonly Stack<int> _freeIndexPool;
@@ -63,8 +66,15 @@ namespace Couchbase.IO
         {
             lock (_freeIndexPool)
             {
-                _freeIndexPool.Push(eventArgs.Offset);
-                eventArgs.SetBuffer(null, 0, 0);
+                try
+                {
+                    _freeIndexPool.Push(eventArgs.Offset);
+                    eventArgs.SetBuffer(null, 0, 0);
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                }
             }
         }
     }
