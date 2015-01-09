@@ -81,7 +81,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         {
             Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
+
+            //if the client is using a password make sure the client configuration references it
             password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
+            if (string.IsNullOrEmpty(bucketConfiguration.Password))
+            {
+                bucketConfiguration.Password = password;
+            }
 
             var exceptions = new List<Exception>();
             CouchbaseConfigContext configInfo = null;
@@ -191,6 +197,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                                     m("Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force,
                                         bucketConfig.Rev, oldBucketConfig.Rev,
                                         JsonConvert.SerializeObject(bucketConfig)));
+
+                            //Set the password on the new server configuration
+                            var clientBucketConfig = GetOrCreateConfiguration(bucketConfig.Name);
+                            bucketConfig.Password = clientBucketConfig.Password;
 
                             configInfo.LoadConfig(bucketConfig, force);
                             ClientConfig.UpdateBootstrapList(bucketConfig);
