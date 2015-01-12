@@ -132,9 +132,13 @@ namespace Couchbase.Tests.Core
         }
 
         [Test]
-        public void ShouldLoadConfigInfoFromHttpProvider()
+        public void When_HttpConfigProvider_Used_ClusterInfo_Accessible()
         {
-            var cluster = new Cluster(_clientConfig, _clusterManager);
+            var clusterManager = new ClusterController(_clientConfig);
+            //force use of StreamingHttpProvider by removing other providers
+            clusterManager.ConfigProviders.Remove(
+                clusterManager.ConfigProviders.Find(provider => !(provider is HttpStreamingProvider)));
+            var cluster = new Cluster(_clientConfig, clusterManager);
             var bucket = cluster.OpenBucket("default", "");
             var info = cluster.Info;
             cluster.CloseBucket(bucket);
