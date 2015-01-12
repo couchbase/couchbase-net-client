@@ -149,8 +149,6 @@ namespace Couchbase.Tests.Core
             Assert.NotNull(info.BucketConfigs());
             Assert.Greater(info.BucketConfigs().Count, 0);
             Assert.NotNull(info.BucketConfigs().ElementAt(0));
-
-            //TODO test that the clusterinfo is a copy and that sets don't impact internal configuration
         }
     }
 }

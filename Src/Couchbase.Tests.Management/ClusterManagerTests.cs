@@ -117,6 +117,13 @@ namespace Couchbase.Tests.Management
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.ClusterInfo();
                 Assert.NotNull(result.Success);
+                Assert.That(result.Success);
+                var info = result.Value;
+                Assert.NotNull(info);
+                Assert.NotNull(info.Pools());
+                Assert.NotNull(info.BucketConfigs());
+                Assert.Greater(info.BucketConfigs().Count, 0);
+                Assert.NotNull(info.BucketConfigs().ElementAt(0));
             }
         }
 

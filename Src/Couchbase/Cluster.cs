@@ -145,6 +145,7 @@ namespace Couchbase
         /// <summary>
         /// Returns an object representing cluster status information.
         /// </summary>
+        [Obsolete("Use CreateManager(user, password).ClusterInfo() instead")]
         public IClusterInfo Info
         {
             get { return _clusterController.Info(); }

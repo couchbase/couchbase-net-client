@@ -47,6 +47,7 @@ namespace Couchbase.Core
         /// Returns an object which implements IClusterInfo. This object contains various server
         /// stats and information.
         /// </summary>
+        [Obsolete("Use CreateManager(user, password).ClusterInfo() instead")]
         IClusterInfo Info { get; }
 
         ClientConfiguration Configuration { get; }

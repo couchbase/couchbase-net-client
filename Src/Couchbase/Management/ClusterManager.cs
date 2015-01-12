@@ -417,20 +417,20 @@ namespace Couchbase.Management
         /// Returns the current state of the cluster.
         /// </summary>
         /// <returns></returns>
-        public IResult<Pools> ClusterInfo()
+        public IResult<IClusterInfo> ClusterInfo()
         {
-            IResult<Pools> result;
+            IResult<IClusterInfo> result;
             try
             {
                 var config = GetConfig(_username, _password);
-                result = new DefaultResult<Pools>(true, "success", null)
+                result = new DefaultResult<IClusterInfo>(true, "success", null)
                 {
-                    Value = config.Pools
+                    Value = new ClusterInfo(config)
                 };
             }
             catch (Exception e)
             {
-                result = new DefaultResult<Pools>(false, e.Message, e);
+                result = new DefaultResult<IClusterInfo>(false, e.Message, e);
             }
             return result;
         }

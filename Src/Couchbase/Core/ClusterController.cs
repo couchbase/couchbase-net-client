@@ -245,6 +245,7 @@ namespace Couchbase.Core
         /// Retrieve Information for this cluster, see <see cref="ICluster.Info">ICluster.Info</see>.
         /// </summary>
         /// <returns></returns>
+        [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         public IClusterInfo Info()
         {
             var httpProvider = ConfigProviders.Find(x => x is HttpStreamingProvider) as HttpStreamingProvider;

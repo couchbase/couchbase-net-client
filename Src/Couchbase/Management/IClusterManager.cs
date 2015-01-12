@@ -2,6 +2,7 @@
 using System.Net;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Buckets;
 
 namespace Couchbase.Management
@@ -36,7 +37,7 @@ namespace Couchbase.Management
         /// Returns the current state of the cluster.
         /// </summary>
         /// <returns></returns>
-        IResult<Pools> ClusterInfo();
+        IResult<IClusterInfo> ClusterInfo();
 
         /// <summary>
         /// List all current buckets in this cluster.

@@ -18,6 +18,7 @@ namespace Couchbase.Core
 
         void DestroyBucket(IBucket bucket);
 
+        [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         IClusterInfo Info();
     }
 }
