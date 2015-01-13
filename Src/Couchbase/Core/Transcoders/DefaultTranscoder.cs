@@ -4,7 +4,6 @@ using Couchbase.IO.Operations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
-using System.Data.SqlTypes;
 using System.IO;
 using System.Text;
 
@@ -127,7 +126,14 @@ namespace Couchbase.Core.Transcoders
             {
                 case DataFormat.Reserved:
                 case DataFormat.Private:
-                    value = Decode<T>(buffer, offset, length);
+                    if (typeof (T) == typeof (byte[]))
+                    {
+                        value = DecodeBinary(buffer, offset, length);
+                    }
+                    else
+                    {
+                        value = Decode<T>(buffer, offset, length);
+                    }
                     break;
 
                 case DataFormat.Json:
@@ -144,9 +150,7 @@ namespace Couchbase.Core.Transcoders
                 case DataFormat.Binary:
                     if (typeof(T) == typeof(byte[]))
                     {
-                        var temp = new byte[length];
-                        Buffer.BlockCopy(buffer, offset, temp, 0, length);
-                        value = temp;
+                        value = DecodeBinary(buffer, offset, length);
                     }
                     else
                     {
@@ -313,6 +317,13 @@ namespace Couchbase.Core.Transcoders
                 result = Encoding.UTF8.GetString(buffer, offset, length);
             }
             return result;
+        }
+
+        private byte[] DecodeBinary(byte[] buffer, int offset, int length)
+        {
+            var temp = new byte[length];
+            Buffer.BlockCopy(buffer, offset, temp, 0, length);
+            return temp;
         }
     }
 }

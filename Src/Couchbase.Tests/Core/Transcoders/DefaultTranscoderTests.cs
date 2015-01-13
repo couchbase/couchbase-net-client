@@ -352,5 +352,41 @@ namespace Couchbase.Tests.Core.Transcoders
             Assert.AreEqual(expectedJsonBytes, actualJsonBytes);
             Assert.AreEqual(expectedJsonBytes, actualJsonEncoded);
         }
+
+        [Test]
+        public void When_ByteArray_Is_Stored_With_Legacy_Flags_It_Is_Decoded_As_A_ByteArray()
+        {
+            var legacyByteArray = new byte[]
+            {
+                129, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 8, 0,
+                0, 0, 5, 19, 185, 8, 248, 3, 104, 208, 188, 0,
+                0, 250, 82, 116, 101, 115, 116
+            };
+
+            var converter = new ManualByteConverter();
+            var format = new byte();
+
+            var temp = converter.ToByte(legacyByteArray, 24);
+            converter.SetBit(ref format, 0, converter.GetBit(temp, 0));
+            converter.SetBit(ref format, 1, converter.GetBit(temp, 1));
+            converter.SetBit(ref format, 2, converter.GetBit(temp, 2));
+            converter.SetBit(ref format, 3, converter.GetBit(temp, 3));
+
+            var compression = new byte();
+            converter.SetBit(ref compression, 4, converter.GetBit(temp, 4));
+            converter.SetBit(ref compression, 5, converter.GetBit(temp, 5));
+            converter.SetBit(ref compression, 6, converter.GetBit(temp, 6));
+
+            var flags = new Flags
+            {
+                DataFormat = (DataFormat)format,
+                Compression = (Compression)compression,
+                TypeCode = (TypeCode)(converter.ToUInt16(legacyByteArray, 26) & 0xff),
+            };
+
+            var transcoder = new DefaultTranscoder(new ManualByteConverter());
+            var result = transcoder.Decode<byte[]>(legacyByteArray, 28, 4, flags);
+            Assert.AreEqual("test", Encoding.UTF8.GetString(result));
+        }
     }
 }
