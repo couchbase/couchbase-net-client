@@ -78,6 +78,7 @@
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
+    <Compile Include="Core\Buckets\MemcachedBucketTests_Isolated.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />

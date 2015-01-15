@@ -124,7 +124,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                 var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler,
                     cancellationTokenSource.Token);
-                var thread = new Thread(configThreadState.ListenForConfigChanges);
+                var thread = new Thread(configThreadState.ListenForConfigChanges)
+                {
+                    IsBackground = true
+                };
 
                 if (_threads.TryAdd(observer.Name, thread) && ConfigObservers.TryAdd(observer.Name, observer))
                 {
