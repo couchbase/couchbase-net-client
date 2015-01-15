@@ -143,17 +143,18 @@ namespace Couchbase.Tests.Core.Buckets
 
             var configInfo = provider.GetConfig("default");
 
+            IOperationResult result;
             using (var cluster = new Cluster(configuration))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
                     bucket.Remove("Test_Timeout_Add_PersistTo_Master");
-                    bucket.Insert("Test_Timeout_Add_PersistTo_Master", "");
+                    result=bucket.Insert("Test_Timeout_Add_PersistTo_Master", "");
                 }
             }
 
             var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = observer.ObserveAdd("Test_Timeout_Add_PersistTo_Master", 0, ReplicateTo.Zero, PersistTo.Zero);
+            var constraintReached = observer.ObserveAdd("Test_Timeout_Add_PersistTo_Master", result.Cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);
         }
 
