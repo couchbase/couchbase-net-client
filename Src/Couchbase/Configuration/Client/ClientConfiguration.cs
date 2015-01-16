@@ -60,9 +60,11 @@ namespace Couchbase.Configuration.Client
             DefaultConnectionLimit = 5; //connections
             Expect100Continue = false;
             EnableOperationTiming = false;
+            BufferSize = 1024 * 16;
 
             PoolConfiguration = new PoolConfiguration(this)
             {
+                BufferSize = BufferSize,
                 BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize)
             };
             BucketConfigs = new Dictionary<string, BucketConfiguration>
@@ -132,6 +134,8 @@ namespace Couchbase.Configuration.Client
                         WaitTimeout = bucket.ConnectionPool.WaitTimeout,
                         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
                         UseSsl = bucket.ConnectionPool.UseSsl,
+                        BufferSize = bucket.ConnectionPool.BufferSize,
+                        BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
                         ClientConfiguration = this
                     }
                 };
@@ -377,6 +381,13 @@ namespace Couchbase.Configuration.Client
         /// <remarks>When enabled will cause severe performance degradation.</remarks>
         /// <remarks>Requires a <see cref="LogLevel"/>of DEBUG to be enabled as well.</remarks>
         public bool EnableOperationTiming { get; set; }
+
+        /// <summary>
+        /// The size of each buffer to allocate per TCP connection for sending and recieving Memcached operations
+        /// </summary>
+        /// <remarks>The default is 16K</remarks>
+        /// <remarks>The total buffer size is BufferSize * PoolConfiguration.MaxSize</remarks>
+        public int BufferSize { get; set; }
 
         /// <summary>
         /// Updates the internal bootstrap url with the new list from a server configuration.

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -167,6 +168,11 @@ namespace Couchbase.IO
                     }
                     if (state.BytesReceived < state.BodyLength + 24)
                     {
+                        var bufferSize = state.BodyLength < Configuration.BufferSize
+                            ? state.BodyLength
+                            : Configuration.BufferSize;
+
+                        e.SetBuffer(0, bufferSize);
                         var willRaiseCompletedEvent = socket.ReceiveAsync(e);
                         if (!willRaiseCompletedEvent)
                         {

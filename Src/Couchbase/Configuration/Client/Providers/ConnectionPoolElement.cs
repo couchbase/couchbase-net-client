@@ -76,6 +76,18 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (bool)this["useSsl"]; }
             set { this["useSsl"] = value; }
         }
+
+        /// <summary>
+        /// The size of each buffer to allocate per TCP connection for sending and recieving Memcached operations
+        /// </summary>
+        /// <remarks>The default is 16K</remarks>
+        /// <remarks>The total buffer size is BufferSize * PoolConfiguration.MaxSize</remarks>
+        [ConfigurationProperty("bufferSize", DefaultValue = 1024 * 16, IsRequired = false)]
+        public int BufferSize
+        {
+            get { return (int)this["bufferSize"]; }
+            set { this["bufferSize"] = value; }
+        }
     }
 }
 

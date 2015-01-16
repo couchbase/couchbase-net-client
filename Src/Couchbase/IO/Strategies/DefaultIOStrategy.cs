@@ -4,6 +4,7 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Operations;
 
 namespace Couchbase.IO.Strategies
