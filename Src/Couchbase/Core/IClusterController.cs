@@ -8,6 +8,7 @@ namespace Couchbase.Core
     internal interface IClusterController : IConfigPublisher, IDisposable
     {
         List<IConfigProvider> ConfigProviders { get; }
+
         ClientConfiguration Configuration { get; }
 
         IConfigProvider GetProvider(string name);
@@ -17,6 +18,8 @@ namespace Couchbase.Core
         IBucket CreateBucket(string bucketName, string password);
 
         void DestroyBucket(IBucket bucket);
+
+        bool IsObserving(string bucketName);
 
         [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         IClusterInfo Info();

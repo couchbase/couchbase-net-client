@@ -51,6 +51,13 @@ namespace Couchbase.Core
         IClusterInfo Info { get; }
 
         ClientConfiguration Configuration { get; }
+
+        /// <summary>
+        /// Returns a response indicating whether or not the <see cref="IBucket"/> instance has been opened and this <see cref="Cluster"/> instance is observing it.
+        /// </summary>
+        /// <param name="bucketName">The name of the bucket to check.</param>
+        /// <returns>True if the <see cref="IBucket"/> has been opened and the cluster is registered as an observer.</returns>
+        bool IsOpen(string bucketName);
     }
 }
 

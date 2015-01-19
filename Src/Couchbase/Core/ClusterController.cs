@@ -256,6 +256,16 @@ namespace Couchbase.Core
             throw new InvalidOperationException("Cannot get Info if HttpProvider has not been initialized");
         }
 
+        /// <summary>
+        /// Returns a boolean indicating whether or not the bucket has been opened with this cluster instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the bucket.</param>
+        /// <returns>True if the bucket exists</returns>
+        public bool IsObserving(string bucketName)
+        {
+            return _buckets.ContainsKey(bucketName);
+        }
+
         public ClientConfiguration Configuration { get { return _clientConfig; } }
 
         public void Dispose()
