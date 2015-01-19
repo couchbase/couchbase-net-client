@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using NUnit.Framework;
@@ -20,7 +17,6 @@ namespace Couchbase.Tests
         public void Setup()
         {
         }
-
 
         [Test]
         [ExpectedException(typeof(InitializationException))]
@@ -87,7 +83,80 @@ namespace Couchbase.Tests
             var bucket1 = _cluster.OpenBucket("default");
             var bucket2 = _cluster.OpenBucket("default");
 
+            Assert.AreSame(bucket1, bucket2);
+        }
+
+        [Test]
+        public void When_GetBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
+        {
+            ClusterHelper.Initialize();
+
+            var bucket1 = ClusterHelper.GetBucket("default");
+            var bucket2 = ClusterHelper.GetBucket("default");
+
             Assert.AreEqual(bucket1, bucket2);
+        }
+
+        [Test]
+        public void When_Close_Called_Bucket_Count_Is_Zero()
+        {
+            ClusterHelper.Initialize();
+
+            Assert.AreEqual(0, ClusterHelper.Count());
+            var bucket1 = ClusterHelper.GetBucket("default");
+            var bucket2 = ClusterHelper.GetBucket("default");
+            Assert.AreEqual(1, ClusterHelper.Count());
+            ClusterHelper.Close();
+            Assert.AreEqual(0, ClusterHelper.Count());
+        }
+
+        [Test]
+        public void When_RemoveBucket_Is_Called_Bucket_Count_Is_Zero()
+        {
+            ClusterHelper.Initialize();
+
+            //open a bucket and get the reference
+            var bucket1 = ClusterHelper.GetBucket("default");
+            var bucket2 = ClusterHelper.GetBucket("default");
+
+            Assert.AreEqual(1, ClusterHelper.Count());
+            ClusterHelper.RemoveBucket("default");
+            Assert.AreEqual(0, ClusterHelper.Count());
+        }
+
+        static readonly CountdownEvent TwoThreadsCompleted = new CountdownEvent(2);
+        [Test]
+        public void When_Bucket_Is_Opened_On_Two_Seperate_Threads_And_RemoveBucket_Is_Called_Count_Is_Zero()
+        {
+            ClusterHelper.Initialize();
+            var t1 = new Thread(OpenBucket);
+            var t2 = new Thread(OpenBucket);
+
+            t1.Start();
+            t2.Start();
+
+            TwoThreadsCompleted.Wait();
+            Assert.AreEqual(1, ClusterHelper.Count());
+            ClusterHelper.RemoveBucket("default");
+            Assert.AreEqual(0, ClusterHelper.Count());
+        }
+
+        static void OpenBucket()
+        {
+            var bucket1 = ClusterHelper.GetBucket("default");
+            TwoThreadsCompleted.Signal();
+        }
+
+        [Test]
+        public void When_A_Bucket_Instance_Is_Nulled_Its_Reference_Still_Exists()
+        {
+            ClusterHelper.Initialize();
+
+            var bucket1 = ClusterHelper.GetBucket("default");
+            bucket1 = null;
+            bucket1 = ClusterHelper.GetBucket("default");
+            Assert.IsNotNull(bucket1);
+
         }
 
         [Test]

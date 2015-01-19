@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -11,7 +12,7 @@ using Couchbase.Core;
 namespace Couchbase
 {
     /// <summary>
-    /// A helper object for working with a <see cref="Cluster"/> instance. 
+    /// A helper object for working with a <see cref="Cluster"/> instance.
     /// </summary>
     /// <remarks>Creates a singleton instance of a <see cref="Cluster"/> object.</remarks>
     /// <remarks>Call <see cref="Initialize()"/> before calling <see cref="Get()"/> to get the instance.</remarks>
@@ -22,22 +23,23 @@ namespace Couchbase
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterManager;
         private static readonly object SyncObj = new object();
+        private static readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
                 /// <summary>
         /// Ctor for creating Cluster instance.
         /// </summary>
         /// <remarks>
         /// This is the default configuration and will attempt to bootstrap off of localhost.
         /// </remarks>
-        public ClusterHelper() 
+        public ClusterHelper()
             : this(new ClientConfiguration())
         {
         }
 
         /// <summary>
-        /// Ctor for creating Cluster instance. 
+        /// Ctor for creating Cluster instance.
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        public ClusterHelper(ClientConfiguration configuration) 
+        public ClusterHelper(ClientConfiguration configuration)
             : this(configuration, new ClusterController(configuration))
         {
         }
@@ -72,6 +74,51 @@ namespace Couchbase
                 throw new InitializationException("Call Cluster.Initialize() before calling this method.");
             }
             return _instance.Value;
+        }
+
+        /// <summary>
+        /// Opens or gets an <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
+        /// The <see cref="IBucket"/> will be cached and subsquent requests for a <see cref="IBucket"/> of the same name will return the
+        /// cached instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <returns>An <see cref="IBucket"/>instance</returns>
+        /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
+        public static IBucket GetBucket(string bucketName)
+        {
+            return Buckets.GetOrAdd(bucketName, (name =>
+            {
+                var cluster = _instance.Value;
+                var bucket = cluster.OpenBucket(name);
+                return bucket;
+            }));
+        }
+
+        /// <summary>
+        /// Opens or gets <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
+        /// The <see cref="IBucket"/> will be cached and subsquent requests for a <see cref="IBucket"/> of the same name will return the
+        /// cached instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <param name="password">The password if required by the bucket instance.</param>
+        /// <returns>An <see cref="IBucket"/>instance</returns>
+        public static IBucket GetBucket(string bucketName, string password)
+        {
+            return Buckets.GetOrAdd(bucketName, (name =>
+            {
+                var cluster = _instance.Value;
+                var bucket = cluster.OpenBucket(name, password);
+                return bucket;
+            }));
+        }
+
+        public static void RemoveBucket(string bucketName)
+        {
+            IBucket bucket;
+            if (Buckets.TryRemove(bucketName, out bucket))
+            {
+                bucket.Dispose();
+            }
         }
 
         /// <summary>
@@ -113,7 +160,7 @@ namespace Couchbase
             {
                 throw new ArgumentNullException(configuration == null ? "configuration" : "clusterManager");
             }
-            
+
             configuration.Initialize();
             var factory = new Func<Cluster>(() => new Cluster(configuration, clusterManager));
             Initialize(factory);
@@ -143,7 +190,7 @@ namespace Couchbase
         /// <summary>
         /// Creates a Cluster instance using the default configuration. This is overload is suitable
         /// for development only as it will use localhost (127.0.0.1) and the default Couchbase REST
-        /// and Memcached ports. 
+        /// and Memcached ports.
         /// <see cref="http://docs.couchbase.com/couchbase-manual-2.5/cb-install/#network-ports" />
         /// </summary>
         public static void Initialize()
@@ -168,6 +215,15 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Returns the number of <see cref="IBucket"/> instances internally cached by the <see cref="ClusterHelper"/>.
+        /// </summary>
+        /// <returns></returns>
+        public static int Count()
+        {
+            return Buckets.Count;
+        }
+
+        /// <summary>
         /// Disposes the current <see cref="Cluster"/> instance and cleans up resources.
         /// </summary>
         public static void Close()
@@ -175,6 +231,11 @@ namespace Couchbase
             lock (SyncObj)
             {
                 if (_instance == null || !_instance.IsValueCreated) return;
+                foreach (var bucket in Buckets.Values)
+                {
+                    bucket.Dispose();
+                }
+                Buckets.Clear();
                 var cluster = _instance.Value;
                 if (cluster == null) return;
                 cluster.Dispose();
