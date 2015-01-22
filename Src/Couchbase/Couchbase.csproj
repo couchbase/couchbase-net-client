@@ -162,8 +162,11 @@
     <Compile Include="ClusterInfo.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
+    <Compile Include="IO\Operations\GetK.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
+    <Compile Include="IO\Operations\GetQ.cs" />
+    <Compile Include="IO\Operations\Noop.cs" />
     <Compile Include="IO\Operations\ReplicaRead.cs" />
     <Compile Include="IO\Operations\SequenceGenerator.cs" />
     <Compile Include="IO\Operations\Unlock.cs" />

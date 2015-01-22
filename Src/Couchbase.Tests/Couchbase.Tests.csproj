@@ -130,11 +130,14 @@
     <Compile Include="IO\DefaultConnectionPoolTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
     <Compile Include="IO\Operations\ConfigTests.cs" />
+    <Compile Include="IO\Operations\GetQOperationTests.cs" />
+    <Compile Include="IO\Operations\GetKOperationTests.cs" />
     <Compile Include="IO\Operations\GetOperationTests.cs" />
     <Compile Include="IO\Operations\DecrementTests.cs" />
     <Compile Include="IO\Operations\GetSetPerformanceTests.cs" />
     <Compile Include="IO\Operations\GetTests.cs" />
     <Compile Include="IO\Operations\IncrementTests.cs" />
+    <Compile Include="IO\Operations\NoopOperationTests.cs" />
     <Compile Include="IO\Operations\ObserveTests.cs" />
     <Compile Include="IO\Operations\OperationBaseTests.cs" />
     <Compile Include="IO\Operations\OperationTestBase.cs" />
