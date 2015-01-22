@@ -50,13 +50,18 @@ namespace Couchbase.IO
             var state = new SocketAsyncState
             {
                 Data = new MemoryStream(),
-                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
+                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                Buffer = buffer
             };
             _eventArgs.UserToken = state;
 
             //set the buffer
-            _eventArgs.SetBuffer(0, buffer.Length);
-            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, buffer.Length);
+            var bufferLength = buffer.Length < Configuration.BufferSize
+                ? buffer.Length
+                : Configuration.BufferSize;
+
+            _eventArgs.SetBuffer(0, bufferLength);
+            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
 
             //Send the request
             if (!Socket.SendAsync(_eventArgs))
@@ -126,10 +131,31 @@ namespace Couchbase.IO
             var state = (SocketAsyncState)e.UserToken;
             if (e.SocketError == SocketError.Success)
             {
-                var willRaiseCompletedEvent = socket.ReceiveAsync(e);
-                if (!willRaiseCompletedEvent)
+                state.BytesSent += e.BytesTransferred;
+                if (state.BytesSent < state.Buffer.Length)
                 {
-                    OnCompleted(socket, e);
+                    //set the buffer length to send, but don't exceed the saea buffer size
+                    var bufferLength = state.Buffer.Length - state.BytesSent < Configuration.BufferSize
+                        ? state.Buffer.Length - state.BytesSent
+                        : Configuration.BufferSize;
+
+                    //reset the saea buffer
+                    _eventArgs.SetBuffer(0, bufferLength);
+
+                    //copy and send the remaining portion of the buffer
+                    Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, 0, bufferLength);
+                    if (!Socket.SendAsync(_eventArgs))
+                    {
+                        OnCompleted(socket, e);
+                    }
+                }
+                else
+                {
+                    var willRaiseCompletedEvent = socket.ReceiveAsync(e);
+                    if (!willRaiseCompletedEvent)
+                    {
+                        OnCompleted(socket, e);
+                    }
                 }
             }
             else

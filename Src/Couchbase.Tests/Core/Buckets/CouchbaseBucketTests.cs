@@ -1437,6 +1437,19 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Message_Size_Exceeds_BufferSize_Set_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Upsert("longstring", new string('a', 40000));
+                Assert.IsTrue(result.Success);
+
+                result = bucket.Get<string>("longstring");
+                Assert.IsTrue(result.Success);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
