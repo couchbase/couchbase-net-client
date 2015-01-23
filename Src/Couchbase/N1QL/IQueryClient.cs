@@ -29,6 +29,22 @@ namespace Couchbase.N1QL
         Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query);
 
         /// <summary>
+        /// Synchronously executes an a N1QL query request against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="request">The <see cref="IQueryRequest"/> to execute.</param>
+        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        IQueryResult<T> Query<T>(IQueryRequest request);
+
+        /// <summary>
+        /// Asynchronously executes an a N1QL query request against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="request">The <see cref="IQueryRequest"/> to execute.</param>
+        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest request);
+
+        /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
         /// </summary>
         IDataMapper DataMapper { get; set; }

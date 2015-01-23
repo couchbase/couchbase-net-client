@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Couchbase.N1QL;
+using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
 {
@@ -9,15 +11,21 @@ namespace Couchbase.N1QL
     /// <typeparam name="T"></typeparam>
     public interface IQueryResult<T> : IResult
     {
-        /// <summary>
-        /// The resultset of the N1QL query.
-        /// </summary>
+        Guid RequestId { get; }
+
+        string ClientContextId { get; }
+
+        dynamic Signature { get; }
+
         List<T> Rows { get; }
 
-        /// <summary>
-        /// The error message returned by the N1QL engine if the query failed.
-        /// </summary>
-        Error Error { get; }
+        QueryStatus Status { get; }
+
+        List<Error> Errors { get; }
+
+        List<Warning> Warnings { get; }
+
+        Metrics Metrics { get; }
     }
 }
 #region [ License information ]

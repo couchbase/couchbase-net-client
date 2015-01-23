@@ -32,7 +32,7 @@ namespace Couchbase.Core
         public Server(IOStrategy ioStrategy,  INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
             new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-            new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration)),
+            new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
             nodeAdapter, clientConfiguration)
         {
         }
@@ -119,9 +119,9 @@ namespace Couchbase.Core
             return result;
         }
 
-        public async Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
+        public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
         {
-            return await ViewClient.ExecuteAsync<T>(query);
+            return ViewClient.ExecuteAsync<T>(query);
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)
@@ -148,6 +148,40 @@ namespace Couchbase.Core
             return result;
         }
 
+        IQueryResult<T> IServer.Send<T>(IQueryRequest queryRequest)
+        {
+            IQueryResult<T> result;
+            try
+            {
+                if (queryRequest.GetBaseUri() == null)
+                {
+                    var uri = new Uri(GetBaseQueryUri());
+                    queryRequest.BaseUri(uri);
+                }
+                result = QueryClient.Query<T>(queryRequest);
+            }
+            catch (Exception e)
+            {
+                result = new QueryResult<T>
+                {
+                    Exception = e,
+                    Message = e.Message,
+                    Success = false,
+                };
+            }
+            return result;
+        }
+
+        Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
+        {
+            if (queryRequest.GetBaseUri() == null)
+            {
+                var uri = new Uri(GetBaseQueryUri());
+                queryRequest.BaseUri(uri);
+            }
+            return QueryClient.QueryAsync<T>(queryRequest);
+        }
+
         IQueryResult<T> IServer.Send<T>(string query)
         {
             IQueryResult<T> result;
@@ -163,17 +197,16 @@ namespace Couchbase.Core
                     Exception = e,
                     Message = e.Message,
                     Success = false,
-                    Rows = new List<T>()
                 };
             }
             return result;
         }
 
-
-        public async Task<IQueryResult<T>> SendAsync<T>(string query)
+        public Task<IQueryResult<T>> SendAsync<T>(string query)
         {
             var uri = new Uri(GetBaseQueryUri());
-            return await QueryClient.QueryAsync<T>(uri, query);
+            var task = QueryClient.QueryAsync<T>(uri, query);
+            return task;
         }
 
         //note this should be cached

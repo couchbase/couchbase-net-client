@@ -147,6 +147,7 @@
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
     <Compile Include="N1QL\CouchbaseBucket_N1QL_Tests.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
+    <Compile Include="N1QL\QueryRequestTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestKeys.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
@@ -217,6 +218,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\DesignDocs\by_field2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\N1QL\prepared-statement.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />

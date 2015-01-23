@@ -1107,6 +1107,17 @@ namespace Couchbase
              throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+
         public IViewQuery CreateQuery(bool development)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");

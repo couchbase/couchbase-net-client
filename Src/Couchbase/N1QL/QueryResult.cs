@@ -14,19 +14,10 @@ namespace Couchbase.N1QL
     {
         public QueryResult()
         {
-            Rows = new List<T>();
+           Rows = new List<T>();
+           Errors = new List<Error>();
+            Warnings = new List<Warning>();
         }
-        /// <summary>
-        /// The resultset or rows that are returned in a query.
-        /// </summary>
-        [JsonProperty("resultset")]
-        public List<T> Rows { get; set; }
-
-        /// <summary>
-        /// Additional information returned by the query.
-        /// </summary>
-        [JsonProperty("error")]
-        public Error Error { get; set; }
 
         /// <summary>
         /// True if query was successful.
@@ -42,6 +33,30 @@ namespace Couchbase.N1QL
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
         public Exception Exception { get; set; }
+
+        [JsonProperty("request_id")]
+        public Guid RequestId { get; internal set; }
+
+        [JsonProperty("client_context_id")]
+        public string ClientContextId { get; internal set; }
+
+        [JsonProperty("signature")]
+        public dynamic Signature { get; internal set; }
+
+        [JsonProperty("results")]
+        public List<T> Rows { get; internal set; }
+
+        [JsonProperty("status")]
+        public QueryStatus Status { get; internal set; }
+
+        [JsonProperty("errors")]
+        public List<Error> Errors { get; internal set; }
+
+        [JsonProperty("warnings")]
+        public List<Warning> Warnings { get; internal set; }
+
+        [JsonProperty("metrics")]
+        public Metrics Metrics { get; internal set; }
     }
 }
 #region [ License information ]

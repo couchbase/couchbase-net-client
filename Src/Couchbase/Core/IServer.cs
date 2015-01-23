@@ -42,6 +42,10 @@ namespace Couchbase.Core
 
         Task<IViewResult<T>> SendAsync<T>(IViewQuery query);
 
+        IQueryResult<T> Send<T>(IQueryRequest queryRequest);
+
+        Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest);
+
         IQueryResult<T> Send<T>(string query);
 
         Task<IQueryResult<T>> SendAsync<T>(string query);
