@@ -208,7 +208,7 @@ namespace Couchbase.IO.Operations
 
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
-            Converter.FromInt16((short)key.Length, header, HeaderIndexFor.KeyLength);
+            Converter.FromInt16((short)key.GetLengthSafe(), header, HeaderIndexFor.KeyLength);
             Converter.FromByte((byte)extras.GetLengthSafe(), header, HeaderIndexFor.ExtrasLength);
 
             if (VBucket != null)
