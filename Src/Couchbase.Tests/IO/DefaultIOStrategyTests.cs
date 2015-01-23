@@ -22,7 +22,7 @@ namespace Couchbase.Tests.IO
     {
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
-        private const string Address = "192.168.62.101:11210";
+        private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
