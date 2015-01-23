@@ -527,6 +527,45 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public void When_Keys_For_MultiGet_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var keys = new List<string>();
+                var results = bucket.Get<dynamic>(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public void When_Keys_For_MultiRemove_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var keys = new List<string>();
+                var results = bucket.Remove(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public void When_Keys_For_MultiUpsert_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var keys = new Dictionary<string, object>();
+                var results = bucket.Upsert(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
         [TearDown]
         public void TestFixtureTearDown()
         {

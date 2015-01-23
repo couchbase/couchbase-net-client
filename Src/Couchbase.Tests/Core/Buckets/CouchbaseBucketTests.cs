@@ -1450,6 +1450,39 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Keys_For_MultiGet_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var keys = new List<string>();
+                var results = bucket.Get<dynamic>(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
+        [Test]
+        public void When_Keys_For_MultiRemove_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var keys = new List<string>();
+                var results = bucket.Remove(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
+        [Test]
+        public void When_Keys_For_MultiUpsert_Are_Empty_Exception_Is_Not_Thrown()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var keys = new Dictionary<string, object>();
+                var results = bucket.Upsert(keys);
+                Assert.AreEqual(0, results.Count);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

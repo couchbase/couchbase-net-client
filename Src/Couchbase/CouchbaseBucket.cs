@@ -586,19 +586,22 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
         {
-            var keys = items.Keys.ToList();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, items.Count());
-            Parallel.ForEach(partitionar, (range, loopstate) =>
+            if (items != null && items.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count());
+                Parallel.ForEach(partitionar, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var value = items[key];
-                    var result = Upsert(key, value);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -613,19 +616,22 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
         {
-            var keys = items.Keys.ToList();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, items.Count());
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (items != null && items.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count());
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var value = items[key];
-                    var result = Upsert(key, value);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -641,19 +647,22 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
         {
-            var keys = items.Keys.ToList();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (items != null && items.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var value = items[key];
-                    var result = Upsert(key, value);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1172,16 +1181,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult> Remove(IList<string> keys)
         {
             var results = new ConcurrentDictionary<string, IOperationResult>();
-            var partitionar = Partitioner.Create(0, keys.Count());
-            Parallel.ForEach(partitionar, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count());
+                Parallel.ForEach(partitionar, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Remove(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Remove(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1199,16 +1211,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options)
         {
             var results = new ConcurrentDictionary<string, IOperationResult>();
-            var partitionar = Partitioner.Create(0, keys.Count());
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count());
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Remove(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Remove(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1227,16 +1242,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize)
         {
             var results = new ConcurrentDictionary<string, IOperationResult>();
-            var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Remove(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Remove(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1297,16 +1315,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, keys.Count());
-            Parallel.ForEach(partitionar, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count());
+                Parallel.ForEach(partitionar, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Get<T>(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Get<T>(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1320,16 +1341,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, keys.Count());
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count());
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Get<T>(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Get<T>(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
@@ -1344,16 +1368,19 @@ namespace Couchbase
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
-            Parallel.ForEach(partitionar, options, (range, loopstate) =>
+            if (keys != null && keys.Count > 0)
             {
-                for (var i = range.Item1; i < range.Item2; i++)
+                var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
-                    var key = keys[i];
-                    var result = Get<T>(key);
-                    results.TryAdd(key, result);
-                }
-            });
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var result = Get<T>(key);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
             return results;
         }
 
