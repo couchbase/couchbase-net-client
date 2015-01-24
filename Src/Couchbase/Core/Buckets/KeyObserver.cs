@@ -20,7 +20,7 @@ namespace Couchbase.Core.Buckets
         private readonly IConfigInfo _configInfo;
         private readonly int _interval;
         private readonly int _timeout;
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
 
         /// <summary>
         /// The durability requirements that must be met.

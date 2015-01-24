@@ -13,7 +13,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal class CramMd5Mechanism : ISaslMechanism
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<CramMd5Mechanism>();
         private readonly IByteConverter _converter;
         private IOStrategy _ioStrategy;
 

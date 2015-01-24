@@ -9,7 +9,7 @@ namespace Couchbase.Tests.Core.Diagnostics
     [TestFixture]
     public class TimerFactoryTests
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<TimerFactoryTests>();
 
         [Test]
         public void Test_GetFactory()

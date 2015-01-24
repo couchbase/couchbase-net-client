@@ -21,7 +21,7 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public class ClientConfiguration
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<ClientConfiguration>();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
         private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");

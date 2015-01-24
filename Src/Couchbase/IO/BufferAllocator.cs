@@ -12,7 +12,7 @@ namespace Couchbase.IO
     /// <remarks>Near identical to implementation found in MSDN documentation: http://msdn.microsoft.com/en-us/library/bb517542%28v=vs.110%29.aspx</remarks>
     internal sealed class BufferAllocator
     {
-        protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        protected readonly static ILog Log = LogManager.GetLogger<BufferAllocator>();
         private readonly int _numberOfBytes;
         private readonly byte[] _buffer;
         private readonly Stack<int> _freeIndexPool;

@@ -12,7 +12,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal sealed class PlainTextMechanism : ISaslMechanism
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<PlainTextMechanism>();
         private IOStrategy _strategy;
         private readonly IByteConverter _converter;
 

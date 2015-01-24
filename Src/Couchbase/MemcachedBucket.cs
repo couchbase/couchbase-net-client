@@ -26,7 +26,7 @@ namespace Couchbase
     /// </summary>
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<MemcachedBucket>();
         private readonly IClusterController _clusterManager;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;

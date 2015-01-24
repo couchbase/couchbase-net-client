@@ -19,7 +19,7 @@ namespace Couchbase.Core
 {
     internal class Server : IServer
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<Server>();
         private readonly ClientConfiguration _clientConfiguration;
         private readonly IOStrategy _ioStrategy;
         private readonly INodeAdapter _nodeAdapter;

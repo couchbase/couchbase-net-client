@@ -19,8 +19,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// Represents a long-lived comet style connection to an HTTP service.
     /// </summary>
     internal sealed class ConfigThreadState 
-    { 
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+    {
+        private readonly static ILog Log = LogManager.GetLogger<ConfigThreadState>();
         private readonly BucketConfig _bucketConfig;
         private readonly ConfigChanged _configChangedDelegate;
         private readonly ErrorOccurred _errorOccurredDelegate;

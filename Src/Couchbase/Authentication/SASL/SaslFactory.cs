@@ -11,7 +11,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal static class SaslFactory
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger("SaslFactory");
 
         public static Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> GetFactory3()
         {
@@ -40,6 +40,6 @@ namespace Couchbase.Authentication.SASL
                 }
                 return saslMechanism;
             };
-        } 
+        }
     }
 }

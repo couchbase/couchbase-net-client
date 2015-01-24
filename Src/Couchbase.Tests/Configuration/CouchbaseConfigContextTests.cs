@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Configuration
     [TestFixture]
     public class CouchbaseConfigContextTests
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<CouchbaseConfigContextTests>();
         //[Test]
         public void Test_LoadConfig()
         {

@@ -20,7 +20,7 @@ namespace Couchbase
     /// </summary>
     public sealed class Cluster : ICluster
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<Cluster>();
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
