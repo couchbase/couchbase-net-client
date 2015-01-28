@@ -15,6 +15,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Views;
+using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
@@ -49,7 +50,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult AddNode(string ipAddress)
+        public async Task<IResult> AddNode(string ipAddress)
         {
             IResult result;
             try
@@ -83,12 +84,12 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
                         var message = task.Result;
                         var content = message.Content;
                         var stream = content.ReadAsStreamAsync();
-                        stream.Wait();
+                        await stream;
 
                         var response = GetString(stream.Result);
                         result = new DefaultResult(message.IsSuccessStatusCode, response, null);
@@ -110,7 +111,7 @@ namespace Couchbase.Management
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
         /// <remarks>The node must have been failed over before removing or else this operation will fail.</remarks>
-        public IResult RemoveNode(string ipAddress)
+        public async Task<IResult> RemoveNode(string ipAddress)
         {
             IResult result;
             try
@@ -144,7 +145,7 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
                         result = GetResult(task.Result);
                     }
@@ -163,7 +164,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="hostname">The name of the node to remove.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult FailoverNode(string hostname)
+        public async Task<IResult> FailoverNode(string hostname)
         {
             IResult result;
             try
@@ -197,7 +198,7 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
                         result = GetResult(task.Result);
                     }
@@ -215,7 +216,7 @@ namespace Couchbase.Management
         /// Initiates a rebalance across the cluster.
         /// </summary>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult Rebalance()
+        public async Task<IResult> Rebalance()
         {
             IResult result;
             try
@@ -258,7 +259,7 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
                         result = GetResult(task.Result);
                     }
@@ -276,7 +277,7 @@ namespace Couchbase.Management
         /// List all current buckets in this cluster.
         /// </summary>
         /// <returns>A list of buckets and their properties.</returns>
-        public IResult<IList<BucketConfig>> ListBuckets()
+        public Task<IResult<IList<BucketConfig>>> ListBuckets()
         {
             IResult<IList<BucketConfig>> result;
             try
@@ -291,7 +292,7 @@ namespace Couchbase.Management
             {
                 result = new DefaultResult<IList<BucketConfig>>(false, e.Message, e);
             }
-            return result;
+            return Task.FromResult(result);
         }
 
         /// <summary>
@@ -308,9 +309,9 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
+        public async Task<IResult> CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
             ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
-            bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber =ThreadNumber.Two)
+            bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two)
         {
             IResult result;
             try
@@ -353,10 +354,11 @@ namespace Couchbase.Management
                         });
                         request.Content.Headers.ContentType = contentType;
 
-                        var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        var task=client.PostAsync(uri, request.Content); 
+                         
+                        var postResult = await task;
 
-                        result = GetResult(task.Result);
+                        result = GetResult(postResult);
                     }
                 }
             }
@@ -373,7 +375,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="name">The name of the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult RemoveBucket(string name)
+        public async Task<IResult> RemoveBucket(string name)
         {
             IResult result;
             try
@@ -399,7 +401,7 @@ namespace Couchbase.Management
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         var task = client.DeleteAsync(uri);
-                        task.Wait();
+                        await task;
 
                         result = GetResult(task.Result);
                     }
@@ -417,7 +419,7 @@ namespace Couchbase.Management
         /// Returns the current state of the cluster.
         /// </summary>
         /// <returns></returns>
-        public IResult<IClusterInfo> ClusterInfo()
+        public Task<IResult<IClusterInfo>> ClusterInfo()
         {
             IResult<IClusterInfo> result;
             try
@@ -432,7 +434,7 @@ namespace Couchbase.Management
             {
                 result = new DefaultResult<IClusterInfo>(false, e.Message, e);
             }
-            return result;
+            return Task.FromResult(result);
         }
 
         HttpServerConfig GetConfig(string name, string password)
