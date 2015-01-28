@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <configSections>
+        <section name="Couchbase" type="Couchbase.Configuration.CouchbaseClientSection, Couchbase" />
+    </configSections>
+
+    <Couchbase>
+        <!-- 
+            Please read the documentation first:
+                http://github.com/enyim/EnyimMemcached/wiki/CouchbaseClient-configuration
+
+            Use this section as a template if you're connecting to Couchbase Servers.
+            Note: you must have the top-level Couchbase section if you're using the parameterless constructor of CouchbaseClient.
+        -->
+        <servers bucket="enyim" bucketPassword="password" retryCount="2" retryTimeout="00:00:02">
+            <!--
+                Provide at least 2-3 urls from your cluster. 
+                Usually you only need to change the host, except when connecting to older versions.
+                Couchbase uses port 8091
+            -->
+            <add uri="http://192.168.2.202:8091/pools/default" />
+            <add uri="http://192.168.2.200:8091/pools/default" />
+        </servers>
+        <!-- the client waits deadTmimeout time to reconnect to the pool when all the specified urls are down -->
+        <socketPool connectionTimeout="00:00:10" deadTimeout="00:00:02" />
+    </Couchbase>
+
+</configuration>

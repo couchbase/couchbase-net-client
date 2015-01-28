@@ -1,0 +1,417 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{71F2CD4F-BB3F-4B5A-B211-78F441C4F4DA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Couchbase</RootNamespace>
+    <AssemblyName>Couchbase</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NET35</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;NET35</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>1591</NoWarn>
+    <DocumentationFile>bin\Release\Couchbase.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net35\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Couchbase\Extensions\InterfaceContractResolver.cs">
+      <Link>Extensions\InterfaceContractResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Extensions\CouchbaseClientConfigurationExtensions.cs">
+      <Link>Extensions\CouchbaseClientConfigurationExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Extensions\ArrayExtensions.cs">
+      <Link>Extensions\ArrayExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Exceptions\BootstrapConfigurationException.cs">
+      <Link>Exceptions\BootstrapConfigurationException.cs</Link>
+    </Compile>
+		<Compile Include="..\Couchbase\Exceptions\NodeShutdownException.cs">
+			<Link>Exceptions\NodeShutdownException.cs</Link>
+		</Compile>
+		<Compile Include="..\Couchbase\Exceptions\OperationTimeoutException.cs">
+			<Link>Exceptions\OperationTimeoutException.cs</Link>
+		</Compile>
+		<Compile Include="..\Couchbase\Exceptions\QueueTimeoutException.cs">
+			<Link>Exceptions\QueueTimeoutException.cs</Link>
+		</Compile>
+    <Compile Include="..\Couchbase\ICouchbaseNode.cs">
+      <Link>ICouchbaseNode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseNode.cs">
+      <Link>CouchbaseNode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\SocketPool.cs">
+      <Link>SocketPool.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbasePooledSocket.cs">
+      <Link>CouchbasePooledSocket.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\AsyncSocketHelper2.cs">
+      <Link>AsyncSocketHelper2.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\BasicCouchbaseOperationFactory.cs">
+      <Link>BasicCouchbaseOperationFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\BucketConfigListener.cs">
+      <Link>BucketConfigListener.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\BucketConfigSettings.cs">
+      <Link>BucketConfigSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ConfigHelper.cs">
+      <Link>ConfigHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\BucketPortType.cs">
+      <Link>Configuration\BucketPortType.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\CouchbaseClientConfiguration.cs">
+      <Link>Configuration\CouchbaseClientConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\CouchbaseClientSection.cs">
+      <Link>Configuration\CouchbaseClientSection.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\DefaultPerformanceMonitorFactory.cs">
+      <Link>Configuration\DefaultPerformanceMonitorFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\DevelopmentModeNameTransformer.cs">
+      <Link>Configuration\DevelopmentModeNameTransformer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\HeartbeatMonitorElement.cs">
+      <Link>Configuration\HeartbeatMonitorElement.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\HttpClientElement.cs">
+      <Link>Configuration\HttpClientElement.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\ICouchbaseClientConfiguration.cs">
+      <Link>Configuration\ICouchbaseClientConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\ICouchbasePerformanceMonitorFactory.cs">
+      <Link>Configuration\ICouchbasePerformanceMonitorFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\IHeartbeatMonitorConfiguration.cs">
+      <Link>Configuration\IHeartbeatMonitorConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\IHttpClientConfiguration.cs">
+      <Link>Configuration\IHttpClientConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\INameTransformer.cs">
+      <Link>Configuration\INameTransformer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\ProductionModeNameTransformer.cs">
+      <Link>Configuration\ProductionModeNameTransformer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\ServersElement.cs">
+      <Link>Configuration\ServersElement.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\UriElement.cs">
+      <Link>Configuration\UriElement.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\UriElementCollection.cs">
+      <Link>Configuration\UriElementCollection.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\UriValidator.cs">
+      <Link>Configuration\UriValidator.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Constants\ClientErrors.cs">
+      <Link>Constants\ClientErrors.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseClient.cs">
+      <Link>CouchbaseClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbasePool.cs">
+      <Link>CouchbasePool.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseSpatialView.cs">
+      <Link>CouchbaseSpatialView.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseSpatialViewBase.cs">
+      <Link>CouchbaseSpatialViewBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseSpatialView`1.cs">
+      <Link>CouchbaseSpatialView`1.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseView.cs">
+      <Link>CouchbaseView.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseViewBase.cs">
+      <Link>CouchbaseViewBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseViewHandler.cs">
+      <Link>CouchbaseViewHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\CouchbaseView`1.cs">
+      <Link>CouchbaseView`1.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\DefaultHttpClient.cs">
+      <Link>DefaultHttpClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Deserialization.cs">
+      <Link>Deserialization.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\DictionaryEx.cs">
+      <Link>DictionaryEx.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Exceptions\ViewExceptions.cs">
+      <Link>Exceptions\ViewExceptions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Exceptions\ViewNotFoundException.cs">
+      <Link>Exceptions\ViewNotFoundException.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Extensions\CouchbaseClientExtensions.cs">
+      <Link>Extensions\CouchbaseClientExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\GenericViewRowTransformer.cs">
+      <Link>GenericViewRowTransformer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\HeartbeatSettings.cs">
+      <Link>HeartbeatSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Helpers\DocHelper.cs">
+      <Link>Helpers\DocHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Helpers\HttpHelper.cs">
+      <Link>Helpers\HttpHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Helpers\JsonHelper.cs">
+      <Link>Helpers\JsonHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Helpers\UriHelper.cs">
+      <Link>Helpers\UriHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseClient.cs">
+      <Link>ICouchbaseClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseOperationFactory.cs">
+      <Link>ICouchbaseOperationFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseResultsClient.cs">
+      <Link>ICouchbaseResultsClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseServerPool.cs">
+      <Link>ICouchbaseServerPool.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseView.cs">
+      <Link>ICouchbaseView.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseViewRow.cs">
+      <Link>ICouchbaseViewRow.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ICouchbaseView`1.cs">
+      <Link>ICouchbaseView`1.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IHttpClient.cs">
+      <Link>IHttpClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IHttpClientLocator.cs">
+      <Link>IHttpClientLocator.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IPagedView.cs">
+      <Link>IPagedView.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ISpatialViewRow.cs">
+      <Link>ISpatialViewRow.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ISpatialView`1.cs">
+      <Link>ISpatialView`1.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Json.cs">
+      <Link>Json.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\BasicStats.cs">
+      <Link>Management\BasicStats.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Bucket.cs">
+      <Link>Management\Bucket.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\BucketEnums.cs">
+      <Link>Management\BucketEnums.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\ClusterConfigParser.cs">
+      <Link>Management\ClusterConfigParser.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Controllers.cs">
+      <Link>Management\Controllers.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\CouchbaseCluster.cs">
+      <Link>Management\CouchbaseCluster.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\DDocs.cs">
+      <Link>Management\DDocs.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\ICouchbaseCluster.cs">
+      <Link>Management\ICouchbaseCluster.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\InterestingStats.cs">
+      <Link>Management\InterestingStats.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Node.cs">
+      <Link>Management\Node.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Ports.cs">
+      <Link>Management\Ports.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Quota.cs">
+      <Link>Management\Quota.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\Stats.cs">
+      <Link>Management\Stats.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\SystemStats.cs">
+      <Link>Management\SystemStats.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\VBucketServerMap.cs">
+      <Link>Management\VBucketServerMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\MessageStreamListener.cs">
+      <Link>MessageStreamListener.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ObservedNode.cs">
+      <Link>ObservedNode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ObserveHandler.cs">
+      <Link>ObserveHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\OperationInterfaces.cs">
+      <Link>OperationInterfaces.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\Constants\ObserveOperationConstants.cs">
+      <Link>Operations\Constants\ObserveOperationConstants.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\GetAndTouchOperation.cs">
+      <Link>Operations\GetAndTouchOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\GetWithLockOperation.cs">
+      <Link>Operations\GetWithLockOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\ObserveKeyState.cs">
+      <Link>Operations\ObserveKeyState.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\ObserveOperation.cs">
+      <Link>Operations\ObserveOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\PersistTo.cs">
+      <Link>Operations\PersistTo.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\ReplicateTo.cs">
+      <Link>Operations\ReplicateTo.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\SyncOperation.cs">
+      <Link>Operations\SyncOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\TouchOperation.cs">
+      <Link>Operations\TouchOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Operations\UnlockOperation.cs">
+      <Link>Operations\UnlockOperation.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\PagedView.cs">
+      <Link>PagedView.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Protocol\CouchbaseOpCode.cs">
+      <Link>Protocol\CouchbaseOpCode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Protocol\CouchbaseStatusCodeEnums.cs">
+      <Link>Protocol\CouchbaseStatusCodeEnums.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Protocol\ObserveRequest.cs">
+      <Link>Protocol\ObserveRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Protocol\ObserveResponse.cs">
+      <Link>Protocol\ObserveResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Results\IObserveOperationResult.cs">
+      <Link>Results\IObserveOperationResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Results\IUnlockOperationResult.cs">
+      <Link>Results\IUnlockOperationResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Results\ObserveOperationResult.cs">
+      <Link>Results\ObserveOperationResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Results\UnlockOperationResult.cs">
+      <Link>Results\UnlockOperationResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Settings\ObserveSettings.cs">
+      <Link>Settings\ObserveSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\SpatialViewGeometry.cs">
+      <Link>SpatialViewGeometry.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\SpatialViewRow.cs">
+      <Link>SpatialViewRow.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\VBucketAwareOperationFactory.cs">
+      <Link>VBucketAwareOperationFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\ViewParamsBuilder.cs">
+      <Link>ViewParamsBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\WebClientWithTimeout.cs">
+      <Link>WebClientWithTimeout.cs</Link>
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Enyim.Caching.Net35\Enyim.Caching.Net35.csproj">
+      <Project>{E544CD12-437A-488A-9A6E-7FED5C15F9E9}</Project>
+      <Name>Enyim.Caching.Net35</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

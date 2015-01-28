@@ -1,0 +1,7 @@
+﻿{
+    "views": {
+        "all": {
+            "map": "function (doc, meta) { emit([123, \"a+b\"], null); }"
+        }
+    }
+}

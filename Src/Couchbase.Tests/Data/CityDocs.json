@@ -1,0 +1,22 @@
+﻿{ "name" : "Hartford", "state" : "CT", "type" : "city", "loc" : [-72.67408, 41.763309] }
+{ "name" : "Bridgeport", "state" : "CT", "type" : "city", "loc" : [-73.191269, 41.181881] }
+{ "name" : "Stamford", "state" : "CT", "type" : "city", "loc" : [-73.542229, 41.051819] }
+{ "name" : "New Haven", "state" : "CT", "type" : "city", "loc" : [-72.92498, 41.307129] }
+{ "name" : "New London", "state" : "CT", "type" : "city", "loc" : [-72.096474, 41.356441] }
+{ "name" : "Norwalk", "state" : "CT", "type" : "city", "loc" : [-73.407654, 41.113659] }
+{ "name" : "Boston", "state" : "MA", "type" : "city", "loc" : [-71.056702, 42.358631] }
+{ "name" : "Cambridge", "state" : "MA", "type" : "city", "loc" : [-71.10601, 42.366791] }
+{ "name" : "Somerville", "state" : "MA", "type" : "city", "loc" : [-71.098259, 42.386681] }
+{ "name" : "Springfield", "state" : "MA", "type" : "city", "loc" : [-72.589287, 42.10125] }
+{ "name" : "Worcester", "state" : "MA", "type" : "city", "loc" : [-71.802193, 42.263409] }
+{ "name" : "Portsmouth", "state" : "NH", "type" : "city", "loc" : [-70.772118, 43.070621] }
+{ "name" : "Concord", "state" : "NH", "type" : "city", "loc" : [-71.536598, 43.207249] }
+{ "name" : "Manchester", "state" : "NH", "type" : "city", "loc" : [-71.463089, 42.991169] }
+{ "name" : "Burlington", "state" : "VT", "type" : "city", "loc" : [-73.213226, 44.475922] }
+{ "name" : "Montpelier", "state" : "VT", "type" : "city", "loc" : [-72.576263, 44.260288] }
+{ "name" : "Newport", "state" : "VT", "type" : "city", "loc" : [-72.210617, 44.935341] }
+{ "name" : "Providence", "state" : "RI", "type" : "city", "loc" : [-71.411987, 41.823872] }
+{ "name" : "Warwick", "state" : "RI", "type" : "city", "loc" : [-71.461678, 41.698589] }
+{ "name" : "Newport", "state" : "RI", "type" : "city", "loc" :  [-71.311333, 41.492161] }
+{ "name" : "Bangor", "state" : "ME", "type" : "city", "loc" :  [-68.770767, 44.801708] }
+{ "name" : "Portland", "state" : "ME", "type" : "city", "loc" : [-70.256653, 43.659142] }

@@ -1,0 +1,7 @@
+﻿# Couchbase Client Version History
+
+## Pre-Release
+
+ * Former Membase client refactored to reflect product namechange to Couchbase.
+ * CBS 2.0 support temporarily removed.  This release of the client library will support CBS 1.8 only.
+
