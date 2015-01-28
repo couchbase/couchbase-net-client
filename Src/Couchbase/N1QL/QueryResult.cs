@@ -16,7 +16,7 @@ namespace Couchbase.N1QL
         {
            Rows = new List<T>();
            Errors = new List<Error>();
-            Warnings = new List<Warning>();
+           Warnings = new List<Warning>();
         }
 
         /// <summary>

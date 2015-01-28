@@ -47,6 +47,15 @@ namespace Couchbase.N1QL
             {N1QL.ScanConsistency.StatementPlus, "statement_plus"}
         };
 
+        public QueryRequest()
+        {
+        }
+
+        public QueryRequest(string statement)
+        {
+            _statement = statement;
+        }
+
         private struct QueryParameters
         {
             public const string Statement = "statement";
