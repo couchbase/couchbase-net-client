@@ -147,7 +147,7 @@ namespace Couchbase.Management
                         var task = client.PostAsync(uri, request.Content);
                         await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -200,7 +200,7 @@ namespace Couchbase.Management
                         var task = client.PostAsync(uri, request.Content);
                         await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -261,7 +261,7 @@ namespace Couchbase.Management
                         var task = client.PostAsync(uri, request.Content);
                         await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -354,11 +354,11 @@ namespace Couchbase.Management
                         });
                         request.Content.Headers.ContentType = contentType;
 
-                        var task=client.PostAsync(uri, request.Content); 
-                         
+                        var task = client.PostAsync(uri, request.Content);
+
                         var postResult = await task;
 
-                        result = GetResult(postResult);
+                        result = await GetResult(postResult);
                     }
                 }
             }
@@ -403,7 +403,7 @@ namespace Couchbase.Management
                         var task = client.DeleteAsync(uri);
                         await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -452,11 +452,11 @@ namespace Couchbase.Management
             }
         }
 
-        IResult GetResult(HttpResponseMessage httpResponseMessage)
+        async Task<IResult> GetResult(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
             var stream = content.ReadAsStreamAsync();
-            stream.Wait();
+            await stream;
 
             var body = GetString(stream.Result);
             var result = new DefaultResult
