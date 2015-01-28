@@ -160,6 +160,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
     <Compile Include="IO\Operations\GetK.cs" />
@@ -183,7 +184,7 @@
     <Compile Include="Document.cs" />
     <Compile Include="DocumentResult%27.cs" />
     <Compile Include="IDocument%27.cs" />
-    <Compile Include="IDocumentResult.cs" />
+    <Compile Include="IDocumentResult%27.cs" />
     <Compile Include="IOperationResult%27.cs" />
     <Compile Include="IO\ConnectionUnavailableException.cs" />
     <Compile Include="IO\Operations\Compression.cs" />
