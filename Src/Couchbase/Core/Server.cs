@@ -29,11 +29,11 @@ namespace Couchbase.Core
         private volatile bool _isDead;
         private volatile bool _timingEnabled;
 
-        public Server(IOStrategy ioStrategy,  INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
+        public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
             this(ioStrategy,
-            new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-            new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
-            nodeAdapter, clientConfiguration)
+           new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
+           new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
+           nodeAdapter, clientConfiguration)
         {
         }
 
