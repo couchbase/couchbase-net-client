@@ -307,7 +307,7 @@ namespace Couchbase.N1QL
             }
             if (_scanConsistency.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanConsistency, _scanConsistency);
+                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanConsistency, ScanConsistencyResolver[_scanConsistency.Value]);
             }
             if (_scanVector != null)
             {
@@ -315,7 +315,7 @@ namespace Couchbase.N1QL
             }
             if (_scanWait.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanWait, _scanWait);
+                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanWait, "" + ((uint)_scanWait.Value.TotalMilliseconds));
             }
             if (_pretty)
             {
@@ -380,19 +380,19 @@ namespace Couchbase.N1QL
             }
             if (_arguments.Count > 0)
             {
-                formValues.Add(QueryParameters.Args, JsonConvert.SerializeObject(_arguments));
+                formValues.Add(QueryParameters.Args, EncodeParameter(_arguments));
             }
             if (_format.HasValue)
             {
-                formValues.Add(QueryParameters.Format, EncodeParameter(_format));
+                formValues.Add(QueryParameters.Format, _format.Value.ToString());
             }
             if (_encoding.HasValue)
             {
-                formValues.Add(QueryParameters.Encoding, EncodeParameter(_encoding));
+                formValues.Add(QueryParameters.Encoding, _encoding.Value.ToString());
             }
             if (_compression.HasValue)
             {
-                formValues.Add(QueryParameters.Compression, EncodeParameter(_compression.ToString()));
+                formValues.Add(QueryParameters.Compression, _compression.Value.ToString());
             }
             if (_includeSignature.HasValue)
             {
@@ -400,7 +400,7 @@ namespace Couchbase.N1QL
             }
             if (_scanConsistency.HasValue)
             {
-                formValues.Add(QueryParameters.ScanConsistency, EncodeParameter(ScanConsistencyResolver[_scanConsistency.Value]));
+                formValues.Add(QueryParameters.ScanConsistency, ScanConsistencyResolver[_scanConsistency.Value]);
             }
             if (_scanVector != null)
             {
@@ -408,7 +408,7 @@ namespace Couchbase.N1QL
             }
             if (_scanWait.HasValue)
             {
-                formValues.Add(QueryParameters.ScanWait, EncodeParameter((uint)_scanWait.Value.TotalMilliseconds));
+                formValues.Add(QueryParameters.ScanWait, "" + ((uint) _scanWait.Value.TotalMilliseconds));
             }
             if (_pretty)
             {
@@ -433,9 +433,14 @@ namespace Couchbase.N1QL
         public string GetQueryParameters()
         {
             var sb = new StringBuilder();
+            var formValues = GetFormValues();
             foreach (var formValue in GetFormValues())
             {
                 sb.AppendFormat(QueryArgPattern, formValue.Key, formValue.Value);
+            }
+            if (formValues.Count > 0)
+            {
+                sb.Remove(sb.Length - 1, 1);
             }
             return sb.ToString();
         }
