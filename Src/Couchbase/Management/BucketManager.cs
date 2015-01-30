@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
@@ -51,7 +52,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult InsertDesignDocument(string designDocName, string designDoc)
+        public async Task<IResult> InsertDesignDocument(string designDocName, string designDoc)
         {
             IResult result;
             try
@@ -81,9 +82,9 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PutAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -101,7 +102,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult UpdateDesignDocument(string designDocName, string designDoc)
+        public Task<IResult> UpdateDesignDocument(string designDocName, string designDoc)
         {
             return InsertDesignDocument(designDocName, designDoc);
         }
@@ -111,7 +112,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A design document object.</returns>
-        public IResult<string> GetDesignDocument(string designDocName)
+        public async Task<IResult<string>> GetDesignDocument(string designDocName)
         {
             IResult<string> result;
             try
@@ -137,14 +138,14 @@ namespace Couchbase.Management
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         var task = client.GetAsync(uri);
-                        task.Wait();
+                        await task;
 
                         var taskResult = task.Result;
                         var content = taskResult.Content;
                         var stream = content.ReadAsStreamAsync();
-                        stream.Wait();
+                        await stream;
 
-                        result = GetResultAsString(task.Result);
+                        result = await GetResultAsString(task.Result);
                     }
                 }
             }
@@ -161,7 +162,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult RemoveDesignDocument(string designDocName)
+        public async Task<IResult> RemoveDesignDocument(string designDocName)
         {
             IResult result;
             try
@@ -187,14 +188,14 @@ namespace Couchbase.Management
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         var task = client.DeleteAsync(uri);
-                        task.Wait();
+                        await task;
 
                         var taskResult = task.Result;
                         var content = taskResult.Content;
                         var stream = content.ReadAsStreamAsync();
-                        stream.Wait();
+                        await stream;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -211,7 +212,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
         /// <returns>The design document as a string.</returns>
-        public IResult<string> GetDesignDocuments(bool includeDevelopment = false)
+        public async Task<IResult<string>> GetDesignDocuments(bool includeDevelopment = false)
         {
             IResult<string> result;
             try
@@ -237,9 +238,9 @@ namespace Couchbase.Management
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         var task = client.GetAsync(uri);
-                        task.Wait();
+                        await task;
 
-                        result = GetResultAsString(task.Result);
+                        result = await GetResultAsString(task.Result);
                     }
                 }
             }
@@ -255,7 +256,7 @@ namespace Couchbase.Management
         /// Destroys all documents stored within a bucket.  This functionality must also be enabled within the server-side bucket settings for safety reasons.
         /// </summary>
         /// <returns>A <see cref="bool"/> indicating success.</returns>
-        public IResult Flush()
+        public async Task<IResult> Flush()
         {
             IResult result;
             try
@@ -288,9 +289,9 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        task.Wait();
+                        await task;
 
-                        result = GetResult(task.Result);
+                        result = await GetResult(task.Result);
                     }
                 }
             }
@@ -310,11 +311,11 @@ namespace Couchbase.Management
             }
         }
 
-        private IResult<string> GetResultAsString(HttpResponseMessage httpResponseMessage)
+        private async Task<IResult<string>> GetResultAsString(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
             var stream = content.ReadAsStreamAsync();
-            stream.Wait();
+            await stream;
 
             var body = GetString(stream.Result);
             var result = new DefaultResult<string>
@@ -327,11 +328,11 @@ namespace Couchbase.Management
             return result;
         }
 
-        private IResult GetResult(HttpResponseMessage httpResponseMessage)
+        private async Task<IResult> GetResult(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
             var stream = content.ReadAsStreamAsync();
-            stream.Wait();
+            await stream;
 
             var body = GetString(stream.Result);
             var result = new DefaultResult

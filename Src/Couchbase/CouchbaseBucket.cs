@@ -85,7 +85,7 @@ namespace Couchbase
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m=>m("Config updated old/new: {0}, {1}",
+            Log.Info(m => m("Config updated old/new: {0}, {1}",
                 _configInfo != null ? _configInfo.BucketConfig.Rev :
                 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
@@ -94,7 +94,7 @@ namespace Couchbase
         IServer GetServer(string key, out IVBucket vBucket)
         {
             var keyMapper = _configInfo.GetKeyMapper();
-            vBucket = (IVBucket) keyMapper.MapKey(key);
+            vBucket = (IVBucket)keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
         }
 
@@ -107,7 +107,7 @@ namespace Couchbase
             }
 
             CheckDisposed();
-            IOperationResult<T> operationResult = new OperationResult<T> {Success = false};
+            IOperationResult<T> operationResult = new OperationResult<T> { Success = false };
             do
             {
                 IVBucket vBucket;
@@ -148,8 +148,8 @@ namespace Couchbase
                 if (operation.TimedOut())
                 {
                     const string msg = "The operation has timed out.";
-                    ((OperationResult) operationResult).Message = msg;
-                    ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                    ((OperationResult)operationResult).Message = msg;
+                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                 }
 
                 const string msg1 = "Operation for key {0} failed after {1} retries. Reason: {2}";
@@ -164,7 +164,7 @@ namespace Couchbase
             return operationResult;
         }
 
-        static bool OperationSupportsRetries<T>(IOperation<T>  operation)
+        static bool OperationSupportsRetries<T>(IOperation<T> operation)
         {
             var supportsRetry = false;
             switch (operation.OperationCode)
@@ -858,7 +858,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value,cas, null, _converter, _transcoder);
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -1421,7 +1421,7 @@ namespace Couchbase
         {
             //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
             //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
-            return GetWithLock<T>(key, (uint) expiration.TotalSeconds);
+            return GetWithLock<T>(key, (uint)expiration.TotalSeconds);
         }
 
         /// <summary>
@@ -1631,7 +1631,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<string>(key, value, _transcoder , vBucket, _converter);
+            var operation = new Append<string>(key, value, _transcoder, vBucket, _converter);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1801,7 +1801,7 @@ namespace Couchbase
                 {
                     return result;
                 }
-                Log.Debug(m=>m("trying again: {0}", query.RetryAttempts));
+                Log.Debug(m => m("trying again: {0}", query.RetryAttempts));
                 var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
                 var task = Task.Delay(sleepTime, cancellationToken);
                 try
@@ -1837,9 +1837,9 @@ namespace Couchbase
         /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
         public Task<IQueryResult<T>> QueryAsync<T>(string query)
         {
-             CheckDisposed();
-             var server = _configInfo.GetServer();
-             return server.SendAsync<T>(query);
+            CheckDisposed();
+            var server = _configInfo.GetServer();
+            return server.SendAsync<T>(query);
         }
 
         /// <summary>
@@ -1954,7 +1954,7 @@ namespace Couchbase
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj is CouchbaseBucket && Equals((CouchbaseBucket) obj);
+            return obj is CouchbaseBucket && Equals((CouchbaseBucket)obj);
         }
 
         /// <summary>
