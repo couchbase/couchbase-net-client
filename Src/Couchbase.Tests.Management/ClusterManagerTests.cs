@@ -25,7 +25,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.AddNode("192.168.56.103");
+                var result = clusterManager.AddNode("192.168.56.103").Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveNode("192.168.56.103");
+                var result = clusterManager.RemoveNode("192.168.56.103").Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -61,7 +61,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.FailoverNode("192.168.56.103");
+                var result = clusterManager.FailoverNode("192.168.56.103").Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -79,7 +79,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var results = clusterManager.ListBuckets();
+                var results = clusterManager.ListBuckets().Result;
                 Assert.Greater(results.Value.Count, 0);
             }
         }
@@ -97,7 +97,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.Rebalance();
+                var result = clusterManager.Rebalance().Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -115,7 +115,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.ClusterInfo();
+                var result = clusterManager.ClusterInfo().Result;
                 Assert.NotNull(result.Success);
                 Assert.That(result.Success);
                 var info = result.Value;
@@ -140,7 +140,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.CreateBucket("test");
+                var result = clusterManager.CreateBucket("test").Result;
                 Assert.NotNull(result.Success);
             }
         }
@@ -158,7 +158,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveBucket("test");
+                var result = clusterManager.RemoveBucket("test").Result;
                 Assert.IsTrue(result.Success);
             }
         }

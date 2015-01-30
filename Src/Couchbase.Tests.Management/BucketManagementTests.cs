@@ -29,7 +29,7 @@ namespace Couchbase.Tests.Management
                 {
                     var manager = bucket.CreateManager("Administrator", "");
                     var designDoc = File.ReadAllText(@"Data\\DesignDocs\\by_field.json");
-                    var result = manager.InsertDesignDocument("by_field", designDoc);
+                    var result = manager.InsertDesignDocument("by_field", designDoc).Result;
                     Assert.IsTrue(result.Success);
                 }
             }
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.Management
                 {
                     var manager = bucket.CreateManager("Administrator", "");
                     var designDoc = File.ReadAllText(@"Data\\DesignDocs\\by_field2.json");
-                    var result = manager.InsertDesignDocument("by_field", designDoc);
+                    var result = manager.InsertDesignDocument("by_field", designDoc).Result;
                     Assert.IsTrue(result.Success);
                 }
             }
@@ -72,7 +72,7 @@ namespace Couchbase.Tests.Management
                 using (var bucket = cluster.OpenBucket())
                 {
                     var manager = bucket.CreateManager("Administrator", "");
-                    var result = manager.GetDesignDocument("by_field");
+                    var result = manager.GetDesignDocument("by_field").Result;
                     Assert.IsNotNull(result.Success);
                 }
             }
@@ -93,7 +93,7 @@ namespace Couchbase.Tests.Management
                 using (var bucket = cluster.OpenBucket())
                 {
                     var manager = bucket.CreateManager("Administrator", "");
-                    var result = manager.GetDesignDocuments();
+                    var result = manager.GetDesignDocuments().Result;
                     Assert.IsTrue(result.Success);
                 }
             }
@@ -114,7 +114,7 @@ namespace Couchbase.Tests.Management
                 using (var bucket = cluster.OpenBucket())
                 {
                     var manager = bucket.CreateManager("Administrator", "");
-                    var result = manager.RemoveDesignDocument("by_field");
+                    var result = manager.RemoveDesignDocument("by_field").Result;
                     Assert.IsTrue(result.Success);
                 }
             }
@@ -135,7 +135,7 @@ namespace Couchbase.Tests.Management
                 using (var bucket = cluster.OpenBucket())
                 {
                     var manager = bucket.CreateManager("Administrator", "");
-                    var result = manager.Flush();
+                    var result = manager.Flush().Result;
                     Assert.IsTrue(result.Success);
                 }
             }

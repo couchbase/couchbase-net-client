@@ -4,6 +4,7 @@ using Couchbase.Authentication;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
@@ -17,7 +18,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        IResult AddNode(string ipAddress);
+        Task<IResult> AddNode(string ipAddress);
 
         /// <summary>
         /// Removes a failed over node from the cluster.
@@ -25,25 +26,25 @@ namespace Couchbase.Management
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
         /// <remarks>The node must have been failed over before removing or else this operation will fail.</remarks>
-        IResult RemoveNode(string ipAddress);
+        Task<IResult> RemoveNode(string ipAddress);
 
         /// <summary>
         /// Initiates a rebalance across the cluster.
         /// </summary>
         /// <returns>A boolean value indicating the result.</returns>
-        IResult Rebalance();
+        Task<IResult> Rebalance();
 
         /// <summary>
         /// Returns the current state of the cluster.
         /// </summary>
         /// <returns></returns>
-        IResult<IClusterInfo> ClusterInfo();
+        Task<IResult<IClusterInfo>> ClusterInfo();
 
         /// <summary>
         /// List all current buckets in this cluster.
         /// </summary>
         /// <returns>A list of buckets and their properties.</returns>
-         IResult<IList<BucketConfig>> ListBuckets();
+        Task<IResult<IList<BucketConfig>>> ListBuckets();
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -59,20 +60,20 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-         IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber=ThreadNumber.Two);
+        Task<IResult> CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two);
 
         /// <summary>
         /// Removes a bucket from the cluster permamently.
         /// </summary>
         /// <param name="name">The name of the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-         IResult RemoveBucket(string name);
+        Task<IResult> RemoveBucket(string name);
 
         /// <summary>
         /// Fails over a given node
         /// </summary>
         /// <param name="hostname">The name of the node to remove.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        IResult FailoverNode(string hostname);
+        Task<IResult> FailoverNode(string hostname);
     }
 }
