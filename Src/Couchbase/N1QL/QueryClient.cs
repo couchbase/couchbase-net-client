@@ -73,27 +73,37 @@ namespace Couchbase.N1QL
         {
             var queryResult = new QueryResult<T>();
 
-            var content = new StringContent(query);
-            var postTask = HttpClient.PostAsync(server, content);
             try
             {
-                postTask.Wait();
-                var postResult = postTask.Result;
+                var request = WebRequest.Create(server);
+                request.Timeout = _clientConfig.ViewRequestTimeout;
+                request.Method = "POST";
+                request.ContentType = "application/x-www-form-urlencoded";
 
-                var readTask = postResult.Content.ReadAsStreamAsync();
-                readTask.Wait();
+                var bytes = System.Text.Encoding.UTF8.GetBytes(query);
+                request.ContentLength = bytes.Length;
 
-                queryResult = DataMapper.Map<QueryResult<T>>(readTask.Result);
-                queryResult.Success = queryResult.Status == QueryStatus.Success;
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
+                using (var stream = request.GetRequestStream())
                 {
-                    Log.Error(e);
-                    ProcessError(e, queryResult);
-                    return true;
-                });
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                var response = request.GetResponse();
+                using (var stream = response.GetResponseStream())
+                {
+                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                    queryResult.Success = queryResult.Status == QueryStatus.Success;
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                }
+                queryResult.Exception = e;
+                Log.Error(e);
             }
             catch (Exception e)
             {
