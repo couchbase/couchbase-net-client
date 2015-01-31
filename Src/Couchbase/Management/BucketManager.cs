@@ -52,7 +52,64 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> InsertDesignDocument(string designDocName, string designDoc)
+        public IResult InsertDesignDocument(string designDocName, string designDoc)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "PUT";
+                request.Accept = request.ContentType = "application/json";
+                request.Credentials = new NetworkCredential(_username, _password);
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(designDoc);
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var res = (HttpWebResponse)e.Response;
+                    var stream = e.Response.GetResponseStream();
+                    result = GetResultAsString(res.StatusCode, stream);
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Inserts a design document containing a number of views.
+        /// </summary>
+        /// <param name="designDocName">The name of the design document.</param>
+        /// <param name="designDoc">A design document JSON string.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> InsertDesignDocumentAsync(string designDocName, string designDoc)
         {
             IResult result;
             try
@@ -102,9 +159,20 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public Task<IResult> UpdateDesignDocument(string designDocName, string designDoc)
+        public IResult UpdateDesignDocument(string designDocName, string designDoc)
         {
             return InsertDesignDocument(designDocName, designDoc);
+        }
+
+        /// <summary>
+        /// Updates a design document containing a number of views.
+        /// </summary>
+        /// <param name="designDocName">The name of the design document.</param>
+        /// <param name="designDoc">A design document JSON string.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public Task<IResult> UpdateDesignDocumentAsync(string designDocName, string designDoc)
+        {
+            return InsertDesignDocumentAsync(designDocName, designDoc);
         }
 
         /// <summary>
@@ -112,7 +180,55 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A design document object.</returns>
-        public async Task<IResult<string>> GetDesignDocument(string designDocName)
+        public IResult<string> GetDesignDocument(string designDocName)
+        {
+            IResult<string> result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+
+                var request = WebRequest.Create(uri);
+                request.Method = "GET";
+                request.ContentType = "application/json";
+                request.Credentials = new NetworkCredential(_username, _password);
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResultAsString(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var res = (HttpWebResponse)e.Response;
+                    var stream = e.Response.GetResponseStream();
+                    result = GetResultAsString(res.StatusCode, stream);
+                }
+                else result = new DefaultResult<string>(false, e.Message, e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = new DefaultResult<string>(false, e.Message, e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Retrieves the contents of a design document.
+        /// </summary>
+        /// <param name="designDocName">The name of the design document.</param>
+        /// <returns>A design document object.</returns>
+        public async Task<IResult<string>> GetDesignDocumentAsync(string designDocName)
         {
             IResult<string> result;
             try
@@ -162,7 +278,55 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> RemoveDesignDocument(string designDocName)
+        public IResult RemoveDesignDocument(string designDocName)
+        {
+            IResult result;
+            try
+            {
+
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "DELETE";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        var message = GetString(reqStream);
+                        result = new DefaultResult(response.StatusCode == HttpStatusCode.OK, message, null);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var res = (HttpWebResponse)e.Response;
+                    var stream = e.Response.GetResponseStream();
+                    result = GetResultAsString(res.StatusCode, stream);
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+        /// <summary>
+        /// Removes a design document.
+        /// </summary>
+        /// <param name="designDocName">The name of the design document.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> RemoveDesignDocumentAsync(string designDocName)
         {
             IResult result;
             try
@@ -212,7 +376,55 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
         /// <returns>The design document as a string.</returns>
-        public async Task<IResult<string>> GetDesignDocuments(bool includeDevelopment = false)
+        public IResult<string> GetDesignDocuments(bool includeDevelopment = false)
+        {
+            IResult<string> result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+
+                var request = WebRequest.Create(uri);
+                request.Method = "GET";
+                request.ContentType = "application/json";
+                request.Credentials = new NetworkCredential(_username, _password);
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResultAsString(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var res = (HttpWebResponse)e.Response;
+                    var stream = e.Response.GetResponseStream();
+                    result = GetResultAsString(res.StatusCode, stream);
+                }
+                else result = new DefaultResult<string>(false, e.Message, e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = new DefaultResult<string>(false, e.Message, e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Lists all existing design documents.
+        /// </summary>
+        /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
+        /// <returns>The design document as a string.</returns>
+        public async Task<IResult<string>> GetDesignDocumentsAsync(bool includeDevelopment = false)
         {
             IResult<string> result;
             try
@@ -256,7 +468,67 @@ namespace Couchbase.Management
         /// Destroys all documents stored within a bucket.  This functionality must also be enabled within the server-side bucket settings for safety reasons.
         /// </summary>
         /// <returns>A <see cref="bool"/> indicating success.</returns>
-        public async Task<IResult> Flush()
+        public IResult Flush()
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> 
+                              { 
+                                  {"user", _username},
+                                  {"password", _password}
+                              };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        var message = GetString(reqStream);
+                        result = new DefaultResult(response.StatusCode == HttpStatusCode.OK, message, null);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// Destroys all documents stored within a bucket.  This functionality must also be enabled within the server-side bucket settings for safety reasons.
+        /// </summary>
+        /// <returns>A <see cref="bool"/> indicating success.</returns>
+        public async Task<IResult> FlushAsync()
         {
             IResult result;
             try
@@ -328,6 +600,19 @@ namespace Couchbase.Management
             return result;
         }
 
+        private IResult<string> GetResultAsString(HttpStatusCode statusCode, Stream stream)
+        {
+            var body = GetString(stream);
+            var result = new DefaultResult<string>
+            {
+                Message = IsSuccessStatusCode(statusCode) ? "success" : body,
+                Success = IsSuccessStatusCode(statusCode),
+                Value = IsSuccessStatusCode(statusCode) ? body : null
+            };
+            Log.Debug(m => m("{0}", body));
+            return result;
+        }
+
         private async Task<IResult> GetResult(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
@@ -344,6 +629,23 @@ namespace Couchbase.Management
             return result;
         }
 
+        private IResult GetResult(HttpStatusCode statusCode, Stream stream)
+        {
+            var body = GetString(stream);
+            var result = new DefaultResult
+            {
+                Message = IsSuccessStatusCode(statusCode) ? "success" : body,
+                Success = IsSuccessStatusCode(statusCode),
+            };
+            Log.Debug(m => m("{0}", body));
+            return result;
+        }
+
+        private bool IsSuccessStatusCode(HttpStatusCode statusCode)
+        {
+            return statusCode >= HttpStatusCode.OK && statusCode <= (HttpStatusCode)299;
+        }
+
         private bool UseSsl()
         {
             if (_clientConfig.BucketConfigs.ContainsKey(BucketName))
@@ -351,6 +653,26 @@ namespace Couchbase.Management
                 return _clientConfig.BucketConfigs[BucketName].UseSsl;
             }
             return _clientConfig.UseSsl;
+        }
+
+        private IResult WebRequestError(Exception ex, string message = "")
+        {
+            return new DefaultResult(false, string.IsNullOrEmpty(message) ? ex.Message : message, ex);
+        }
+
+        private string PostDataDicToString(IDictionary<string, object> postDataDictionary)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var key in postDataDictionary.Keys)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.Append("&");
+                }
+
+                sb.Append(Uri.EscapeDataString(key) + "=" + Uri.EscapeDataString(postDataDictionary[key].ToString()));
+            }
+            return sb.ToString();
         }
     }
 }

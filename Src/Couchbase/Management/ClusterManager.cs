@@ -50,7 +50,63 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> AddNode(string ipAddress)
+        public IResult AddNode(string ipAddress)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/controller/addNode";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> { { "hostname", ipAddress }, { "user", _username }, { "password", _password } };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        var message = GetString(reqStream);
+                        result = new DefaultResult(response.StatusCode == HttpStatusCode.OK, message, null);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Adds a node to the cluster.
+        /// </summary>
+        /// <param name="ipAddress">The IPAddress of the node.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> AddNodeAsync(string ipAddress)
         {
             IResult result;
             try
@@ -73,7 +129,7 @@ namespace Couchbase.Management
                         client.DefaultRequestHeaders.Host = uri.Authority;
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -111,7 +167,67 @@ namespace Couchbase.Management
         /// <param name="ipAddress">The IPAddress of the node.</param>
         /// <returns>A boolean value indicating the result.</returns>
         /// <remarks>The node must have been failed over before removing or else this operation will fail.</remarks>
-        public async Task<IResult> RemoveNode(string ipAddress)
+        public IResult RemoveNode(string ipAddress)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/controller/ejectNode";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> 
+                              { 
+                                 {"otpNode", string.Format("ns_1@{0}", ipAddress)},
+                                 {"user", _username},
+                                 {"password", _password}
+                              };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+        /// <summary>
+        /// Removes a failed over node from the cluster.
+        /// </summary>
+        /// <param name="ipAddress">The IPAddress of the node.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        /// <remarks>The node must have been failed over before removing or else this operation will fail.</remarks>
+        public async Task<IResult> RemoveNodeAsync(string ipAddress)
         {
             IResult result;
             try
@@ -134,7 +250,7 @@ namespace Couchbase.Management
                         client.DefaultRequestHeaders.Host = uri.Authority;
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -164,7 +280,67 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="hostname">The name of the node to remove.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> FailoverNode(string hostname)
+        public IResult FailoverNode(string hostname)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/controller/failOver";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> 
+                              { 
+                                   {"otpNode", string.Format("ns_1@{0}", hostname)},
+                                   {"user", _username},
+                                   {"password", _password}
+                              };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Fails over a given node
+        /// </summary>
+        /// <param name="hostname">The name of the node to remove.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> FailoverNodeAsync(string hostname)
         {
             IResult result;
             try
@@ -187,7 +363,7 @@ namespace Couchbase.Management
                         client.DefaultRequestHeaders.Host = uri.Authority;
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -216,7 +392,75 @@ namespace Couchbase.Management
         /// Initiates a rebalance across the cluster.
         /// </summary>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> Rebalance()
+        public IResult Rebalance()
+        {
+            IResult result;
+            try
+            {
+                var config = GetConfig(_username, _password);
+                var knownNodes = config.Pools.Nodes.
+                    Select(x => x.OtpNode);
+
+                var ejectedNodes = config.Pools.Nodes.
+                    Where(x => x.ClusterMembership.Equals("inactiveFailed")).
+                    Select(x => x.OtpNode);
+
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/controller/rebalance";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> 
+                              { 
+                                   {"ejectedNodes", string.Join(",", ejectedNodes)},
+                                   {"knownNodes", string.Join(",", knownNodes)},
+                                   {"user", _username},
+                                   {"password", _password}
+                              };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Initiates a rebalance across the cluster.
+        /// </summary>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> RebalanceAsync()
         {
             IResult result;
             try
@@ -247,7 +491,7 @@ namespace Couchbase.Management
                         client.DefaultRequestHeaders.Host = uri.Authority;
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -277,7 +521,7 @@ namespace Couchbase.Management
         /// List all current buckets in this cluster.
         /// </summary>
         /// <returns>A list of buckets and their properties.</returns>
-        public Task<IResult<IList<BucketConfig>>> ListBuckets()
+        public IResult<IList<BucketConfig>> ListBuckets()
         {
             IResult<IList<BucketConfig>> result;
             try
@@ -292,6 +536,18 @@ namespace Couchbase.Management
             {
                 result = new DefaultResult<IList<BucketConfig>>(false, e.Message, e);
             }
+
+            return result;
+        }
+
+        /// <summary>
+        /// List all current buckets in this cluster.
+        /// </summary>
+        /// <returns>A list of buckets and their properties.</returns>
+        public Task<IResult<IList<BucketConfig>>> ListBucketsAsync()
+        {
+            var result = this.ListBuckets();
+
             return Task.FromResult(result);
         }
 
@@ -309,7 +565,86 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
+        public IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/pools/default/buckets";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "POST";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+                var formData = new Dictionary<string, object> 
+                              { 
+                                    {"user", _username},
+                                    {"password", _password},
+                                    {"name", name},
+                                    {"authType", authType.ToString().ToLowerInvariant()},
+                                    {"bucketType", bucketType.ToString().ToLowerInvariant()},
+                                    {"flushEnabled", flushEnabled ? "0" : "1"},
+                                    {"proxyPort", 0.ToString(CultureInfo.InvariantCulture)},
+                                    {"parallelDBAndViewCompaction", parallelDbAndViewCompaction.ToString().ToLowerInvariant()},
+                                    {"ramQuotaMB", ramQuota.ToString(CultureInfo.InvariantCulture)},
+                                    {"replicaIndex", indexReplicas ? "0" : "1"},
+                                    {"replicaNumber", ((int) replicaNumber).ToString(CultureInfo.InvariantCulture)},
+                                    {"saslPassword", saslPassword},
+                                    {"threadsNumber", ((int)threadNumber).ToString(CultureInfo.InvariantCulture)}
+                              };
+                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                request.ContentLength = bytes.Length;
+
+                using (var stream = request.GetRequestStream())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a new bucket on the cluster
+        /// </summary>
+        /// <param name="name">Required parameter. Name for new bucket.</param>
+        /// <param name="ramQuota">The RAM quota in megabytes. The default is 100.</param>
+        /// <param name="bucketType">Required parameter. Type of bucket to be created. “Memcached” configures as Memcached bucket. “Couchbase” configures as Couchbase bucket</param>
+        /// <param name="replicaNumber">The number of replicas of each document: minimum 0, maximum 3.</param>
+        /// <param name="authType">The authentication type.</param>
+        /// <param name="indexReplicas">Disable or enable indexes for bucket replicas.</param>
+        /// <param name="flushEnabled">Enables the flush functionality on the specified bucket.</param>
+        /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
+        /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
+        /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
             ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
             bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two)
         {
@@ -334,7 +669,7 @@ namespace Couchbase.Management
                         client.DefaultRequestHeaders.Host = uri.Authority;
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -375,7 +710,54 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="name">The name of the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> RemoveBucket(string name)
+        public IResult RemoveBucket(string name)
+        {
+            IResult result;
+            try
+            {
+                var server = _clientConfig.Servers.First();
+                var protocol = _clientConfig.UseSsl ? "https" : "http";
+                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}";
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, name));
+
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.Method = "DELETE";
+                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
+                request.Credentials = new NetworkCredential(_username, _password);
+
+                using (var response = request.GetResponse() as HttpWebResponse)
+                {
+                    using (var reqStream = response.GetResponseStream())
+                    {
+                        result = GetResult(response.StatusCode, reqStream);
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                if (e.Response != null)
+                {
+                    var stream = e.Response.GetResponseStream();
+                    result = WebRequestError(e, GetString(stream));
+                }
+                else result = WebRequestError(e);
+                Log.Error(e);
+            }
+            catch (Exception e)
+            {
+                result = WebRequestError(e);
+                Log.Error(e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Removes a bucket from the cluster permamently.
+        /// </summary>
+        /// <param name="name">The name of the bucket.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public async Task<IResult> RemoveBucketAsync(string name)
         {
             IResult result;
             try
@@ -419,7 +801,7 @@ namespace Couchbase.Management
         /// Returns the current state of the cluster.
         /// </summary>
         /// <returns></returns>
-        public Task<IResult<IClusterInfo>> ClusterInfo()
+        public IResult<IClusterInfo> ClusterInfo()
         {
             IResult<IClusterInfo> result;
             try
@@ -434,6 +816,17 @@ namespace Couchbase.Management
             {
                 result = new DefaultResult<IClusterInfo>(false, e.Message, e);
             }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Returns the current state of the cluster.
+        /// </summary>
+        /// <returns></returns>
+        public Task<IResult<IClusterInfo>> ClusterInfoAsync()
+        {
+            var result = this.ClusterInfo();
             return Task.FromResult(result);
         }
 
@@ -466,6 +859,43 @@ namespace Couchbase.Management
             };
             Log.Debug(m => m("{0}", body));
             return result;
+        }
+
+        private IResult GetResult(HttpStatusCode statusCode, Stream stream)
+        {
+            var body = GetString(stream);
+            var result = new DefaultResult
+            {
+                Message = IsSuccessStatusCode(statusCode) ? "success" : body,
+                Success = IsSuccessStatusCode(statusCode),
+            };
+            Log.Debug(m => m("{0}", body));
+            return result;
+        }
+
+        private bool IsSuccessStatusCode(HttpStatusCode statusCode)
+        {
+            return statusCode >= HttpStatusCode.OK && statusCode <= (HttpStatusCode)299;
+        }
+
+        private string PostDataDicToString(IDictionary<string, object> postDataDictionary)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var key in postDataDictionary.Keys)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.Append("&");
+                }
+
+                sb.Append(Uri.EscapeDataString(key) + "=" + Uri.EscapeDataString(postDataDictionary[key].ToString()));
+            }
+            return sb.ToString();
+        }
+
+        private IResult WebRequestError(Exception ex, string message = "")
+        {
+            return new DefaultResult(false, string.IsNullOrEmpty(message) ? ex.Message : message, ex);
         }
     }
 }

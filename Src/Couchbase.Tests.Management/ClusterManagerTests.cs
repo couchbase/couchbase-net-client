@@ -25,7 +25,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.AddNode("192.168.56.103").Result;
+                var result = clusterManager.AddNode("192.168.56.103");
                 Assert.IsTrue(result.Success);
             }
         }
@@ -43,7 +43,43 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveNode("192.168.56.103").Result;
+                var result = clusterManager.RemoveNode("192.168.56.103");
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_AddNodeAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.AddNodeAsync("192.168.56.103").Result;
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_RemoveNodeAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.RemoveNodeAsync("192.168.56.103").Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -61,7 +97,25 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.FailoverNode("192.168.56.103").Result;
+                var result = clusterManager.FailoverNode("192.168.56.103");
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_FailoverNodeAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.FailoverNodeAsync("192.168.56.103").Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -79,7 +133,25 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var results = clusterManager.ListBuckets().Result;
+                var results = clusterManager.ListBuckets();
+                Assert.Greater(results.Value.Count, 0);
+            }
+        }
+
+        [Test]
+        public void Test_ListBucketsAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var results = clusterManager.ListBucketsAsync().Result;
                 Assert.Greater(results.Value.Count, 0);
             }
         }
@@ -97,7 +169,25 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.Rebalance().Result;
+                var result = clusterManager.Rebalance();
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_RebalanceAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.RebalanceAsync().Result;
                 Assert.IsTrue(result.Success);
             }
         }
@@ -115,7 +205,7 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.ClusterInfo().Result;
+                var result = clusterManager.ClusterInfo();
                 Assert.NotNull(result.Success);
                 Assert.That(result.Success);
                 var info = result.Value;
@@ -127,6 +217,30 @@ namespace Couchbase.Tests.Management
             }
         }
 
+        [Test]
+        public void Test_ClusterInfoAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.ClusterInfoAsync().Result;
+                Assert.NotNull(result.Success);
+                Assert.That(result.Success);
+                var info = result.Value;
+                Assert.NotNull(info);
+                Assert.NotNull(info.Pools());
+                Assert.NotNull(info.BucketConfigs());
+                Assert.Greater(info.BucketConfigs().Count, 0);
+                Assert.NotNull(info.BucketConfigs().ElementAt(0));
+            }
+        }
         [Test]
         public void Test_CreateBucket()
         {
@@ -140,7 +254,8 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.CreateBucket("test").Result;
+
+                var result = clusterManager.CreateBucket("test1");
                 Assert.NotNull(result.Success);
             }
         }
@@ -158,7 +273,43 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveBucket("test").Result;
+                var result = clusterManager.RemoveBucket("test1");
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_CreateBucketAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.CreateBucketAsync("test").Result;
+                Assert.NotNull(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_RemoveBucketAsync()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.RemoveBucketAsync("test").Result;
                 Assert.IsTrue(result.Success);
             }
         }
