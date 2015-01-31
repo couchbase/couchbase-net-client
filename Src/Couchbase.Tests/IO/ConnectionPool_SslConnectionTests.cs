@@ -28,6 +28,7 @@ namespace Couchbase.Tests.IO
         private const int SendTimeout = 1000;
         private  string _address;
         private const int MaxConnectionAcquireCount = 10;
+        private const int ConnectTimeout = 5000;
 
         [SetUp]
         public void SetUp()
@@ -36,7 +37,7 @@ namespace Couchbase.Tests.IO
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<SslConnection>();
             var converter = new AutoByteConverter();
-            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, MaxConnectionAcquireCount)
+            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount)
             {
                 UseSsl = true
             };

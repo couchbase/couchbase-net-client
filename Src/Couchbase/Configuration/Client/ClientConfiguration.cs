@@ -136,6 +136,7 @@ namespace Couchbase.Configuration.Client
                         UseSsl = bucket.ConnectionPool.UseSsl,
                         BufferSize = bucket.ConnectionPool.BufferSize,
                         BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
+                        ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
                         ClientConfiguration = this
                     }
                 };

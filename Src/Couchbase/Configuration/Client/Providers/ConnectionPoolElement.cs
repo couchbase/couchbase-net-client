@@ -9,7 +9,7 @@ namespace Couchbase.Configuration.Client.Providers
     public class ConnectionPoolElement : ConfigurationElement
     {
         /// <summary>
-        /// The name for the connection pool. 
+        /// The name for the connection pool.
         /// </summary>
         /// <remarks>This is used internally and does not need to be set or customized.</remarks>
         [ConfigurationProperty("name", DefaultValue = "default", IsRequired = false, IsKey = true)]
@@ -87,6 +87,17 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (int)this["bufferSize"]; }
             set { this["bufferSize"] = value; }
+        }
+
+        /// <summary>
+        /// The amount time allotted for the client to establish a TCP connection with a server before failing
+        /// </summary>
+        /// <remarks>The default value is 10000ms.</remarks>
+        [ConfigurationProperty("connectTimeout", DefaultValue = 10000, IsRequired = false)]
+        public int ConnectTimeout
+        {
+            get { return (int)this["connectTimeout"]; }
+            set { this["connectTimeout"] = value; }
         }
     }
 }

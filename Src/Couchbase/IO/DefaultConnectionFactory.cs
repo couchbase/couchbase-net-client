@@ -41,11 +41,24 @@ namespace Couchbase.IO
         /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
         internal static Func<ConnectionPool<T>, IByteConverter, T> GetGeneric<T>() where T : class, IConnection
         {
-            Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) => 
+            Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) =>
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                socket.Connect(p.EndPoint);
+                var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
+                var waitHandle = asyncResult.AsyncWaitHandle;
+
+                if (waitHandle.WaitOne(p.Configuration.ConnectTimeout, true)
+                     && socket.Connected)
+                {
+                    socket.EndConnect(asyncResult);
+                }
+                else
+                {
+                    socket.Close();
+                    const int connectionTimedOut = 10060;
+                    throw new SocketException(connectionTimedOut);
+                }
 
                 //TODO refactor
                 IConnection connection;

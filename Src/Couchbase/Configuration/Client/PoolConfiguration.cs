@@ -19,6 +19,7 @@ namespace Couchbase.Configuration.Client
     /// OperationTimeout = 2500;
     /// MaxConnectionAcquireCount = 5;
     /// ConnectionTimeout = 15000;
+    /// ConnectTimeout = 10000;
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
@@ -33,6 +34,7 @@ namespace Couchbase.Configuration.Client
             MaxAcquireIterationCount = 5;
             ConnectionTimeout = 15000;
             BufferSize = 1024 * 16;
+            ConnectTimeout = 10000;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
@@ -40,7 +42,7 @@ namespace Couchbase.Configuration.Client
         }
 
         public PoolConfiguration(int maxSize, int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
-            int operationTimeout, int maxAcquireIterationCount, ClientConfiguration clientConfiguration = null)
+            int operationTimeout, int maxAcquireIterationCount, int connectTimeout, ClientConfiguration clientConfiguration = null)
         {
             //todo enable app.configuration
             MaxSize = maxSize;
@@ -51,6 +53,7 @@ namespace Couchbase.Configuration.Client
             OperationTimeout = operationTimeout;
             MaxAcquireIterationCount = maxAcquireIterationCount;
             ClientConfiguration = clientConfiguration;
+            ConnectTimeout = connectTimeout;
             BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize);
         }
 
@@ -99,6 +102,12 @@ namespace Couchbase.Configuration.Client
         /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
         /// </summary>
         public int ConnectionTimeout { get; set; }
+
+        /// <summary>
+        /// The amount time allotted for the client to establish a TCP connection with a server before failing
+        /// </summary>
+        /// <remarks>The default is 10000ms</remarks>
+        public int ConnectTimeout { get; set; }
 
         /// <summary>
         /// References the top level <see cref="ClientConfiguration"/> object.

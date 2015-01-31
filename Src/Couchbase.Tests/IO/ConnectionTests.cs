@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
@@ -53,6 +56,67 @@ namespace Couchbase.Tests.IO
             var connection = _connectionPool.Acquire();
             connection.Dispose();
             Assert.IsFalse(connection.Socket.Connected);
+        }
+
+        [Test]
+        public void When_Connecting_To_Dead_IP_Connection_Fails_After_n_Seconds()
+        {
+            const int connectionTimedOut = 10060;
+            const string ipThatDoesNotExist = "198.0.0.1:11210";
+            var ipEndpoint = UriExtensions.GetEndPoint(ipThatDoesNotExist);
+            var connectionPoolConfig = new PoolConfiguration
+            {
+                ConnectTimeout = 1000 //set really low for test
+            };
+            var connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
+
+            var stopWatch = new Stopwatch();
+            try
+            {
+                stopWatch.Start();
+                var connection = connectionPool.Acquire();
+            }
+            catch (SocketException e)
+            {
+                Assert.AreEqual(connectionTimedOut, e.ErrorCode);
+            }
+            finally
+            {
+                stopWatch.Stop();
+                Assert.AreEqual(1.0d, Math.Round((double)stopWatch.Elapsed.Seconds));
+            }
+        }
+
+        [Test]
+        public void When_Connecting_To_Good_IP_Connection_Succeeds_Before_ConnectTimeout()
+        {
+            const int connectionTimedOut = 10060;
+            const string ipThatDoesNotExist = "127.0.0.1:11210";
+            var ipEndpoint = UriExtensions.GetEndPoint(ipThatDoesNotExist);
+            var connectionPoolConfig = new PoolConfiguration
+            {
+                ConnectTimeout = 5000 //set really low for test
+            };
+            var connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
+
+            IConnection connection = null;
+            var stopWatch = new Stopwatch();
+            try
+            {
+                stopWatch.Start();
+                connection = connectionPool.Acquire();
+            }
+            catch (SocketException e)
+            {
+                Assert.AreEqual(connectionTimedOut, e.ErrorCode);
+            }
+            finally
+            {
+                stopWatch.Stop();
+                Assert.IsNotNull(connection);
+                Assert.IsTrue(connection.Socket.Connected);
+                connection.Dispose();
+            }
         }
 
         [TearDown]
