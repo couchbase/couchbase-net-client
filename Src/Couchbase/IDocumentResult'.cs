@@ -3,19 +3,26 @@
 namespace Couchbase
 {
     /// <summary>
-    /// The return type for "document" centric operation requests that do not return documents - e.g. remove
+    /// The return type for "document" centric operation requests.
     /// </summary>
-    public interface IDocumentResult : IResult
+    /// <typeparam name="T">The type the value of the document will be.</typeparam>
+    public interface IDocumentResult<T> : IDocumentResult
     {
         /// <summary>
-        /// The response status returned by the server when fulfilling the request.
+        /// The Document object
         /// </summary>
-        ResponseStatus Status { get; }
+        Document<T> Document { get; }
+
+        /// <summary>
+        /// The actual value stored within Couchbase
+        /// </summary>
+        T Content { get; }
     }
+}
 
-    #region [ License information ]
+#region [ License information ]
 
-    /* ************************************************************
+/* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
  *    @copyright 2014 Couchbase, Inc.
@@ -34,6 +41,4 @@ namespace Couchbase
  *
  * ************************************************************/
 
-    #endregion
-
-}
+#endregion

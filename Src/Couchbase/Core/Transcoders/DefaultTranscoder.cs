@@ -11,7 +11,7 @@ namespace Couchbase.Core.Transcoders
 {
     public class DefaultTranscoder : ITypeTranscoder
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<DefaultTranscoder>();
         private readonly IByteConverter _converter;
         private readonly JsonSerializerSettings _outgoingSerializerSettings;
         private readonly JsonSerializerSettings _incomingSerializerSettings;

@@ -157,37 +157,73 @@ namespace Couchbase.Tests.N1QL
             Assert.That(ex.Message, Is.EqualTo("cannot be null, empty or whitespace.\r\nParameter name: username"));
         }
 
-        [Test]
-        public void Test_GetFormValues()
+        private IQueryRequest CreateFullQueryRequest()
         {
-            var request = new QueryRequest()
+            return new QueryRequest()
+                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
                 .Metrics(true)
                 .HttpMethod(Method.Post)
                 .Statement("SELECT * from Who WHERE $1")
                 .Pretty(true)
                 .ReadOnly(false)
                 .ScanConsistency(ScanConsistency.RequestPlus)
-                .ScanVector("100")
+                .ScanVector("100") //TODO JSON object for sparse or array for full
                 .ScanWait(new TimeSpan(0, 0, 0, 0, 100))
                 .Signature(true)
-                .Timeout(new TimeSpan(0, 0, 0,0, 10000))
+                .Timeout(new TimeSpan(0, 0, 0, 0, 10000))
                 .Compression(Compression.RLE)
                 .AddCredentials("authenticated", "secret", false)
                 .AddPositionalParameter("boo");
+        }
+
+        [Test]
+        public void Test_GetFormValues()
+        {
+            var request = CreateFullQueryRequest();
 
             var values = request.GetFormValues();
             Assert.AreEqual("true", values["metrics"]);
             Assert.AreEqual("SELECT * from Who WHERE $1", values["statement"]);
             Assert.AreEqual("true", values["pretty"]);
             Assert.AreEqual("false", values["readonly"]);
-            Assert.AreEqual(Uri.EscapeDataString(JsonConvert.SerializeObject("request_plus")), values["scan_consistency"]);
+            Assert.AreEqual("request_plus", values["scan_consistency"]);
             Assert.AreEqual("100", values["scan_vector"]);
             Assert.AreEqual("100", values["scan_wait"]);
             Assert.AreEqual("true", values["signature"]);
-            Assert.AreEqual(Uri.EscapeDataString(JsonConvert.SerializeObject("RLE")), values["compression"]);
+            Assert.AreEqual("RLE", values["compression"]);
             Assert.AreEqual(Uri.EscapeDataString("[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}]"), values["creds"]);
-            Assert.AreEqual("[\"boo\"]", values["args"]);
+            Assert.AreEqual(Uri.EscapeDataString("[\"boo\"]"), values["args"]);
             Assert.AreEqual("10000ms", values["timeout"]);
+        }
+
+        [Test]
+        public void GetQueryParameters_Should_Correspond_To_GetFormValues()
+        {
+            var request = CreateFullQueryRequest();
+
+            var parameterPairs = request.GetFormValues();
+            var expectedParameterString = new StringBuilder();
+            foreach (var formValue in parameterPairs)
+            {
+                expectedParameterString.Append('&').Append(formValue.Key).Append('=').Append(formValue.Value);
+            }
+            expectedParameterString.Remove(0, 1);
+
+            Assert.AreEqual(expectedParameterString.ToString(), request.GetQueryParameters());
+        }
+
+        [Test]
+        public void Request_Url_Parameter_Section_Should_Correspond_To_GetQueryParameters()
+        {
+            var request = CreateFullQueryRequest();
+            var expected = request.GetQueryParameters();
+
+            var uri = request.GetRequestUri();
+            var uriString = uri.OriginalString;
+            Console.WriteLine(uriString);
+            var actualParameterSection = uriString.Substring(uriString.IndexOf("?", StringComparison.Ordinal) + 1);
+
+            Assert.AreEqual(expected, actualParameterSection);
         }
 
         [Test]

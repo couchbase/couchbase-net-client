@@ -19,7 +19,7 @@ namespace Couchbase.Views
     internal class ViewClient : IViewClient
     {
         const string Success = "Success";
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<ViewClient>();
         private readonly IBucketConfig _bucketConfig;
         private readonly ClientConfiguration _clientConfig;
 

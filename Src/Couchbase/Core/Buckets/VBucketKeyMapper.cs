@@ -13,7 +13,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class VBucketKeyMapper : IKeyMapper
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<VBucketKeyMapper>();
         private readonly int _mask = 1023;
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;

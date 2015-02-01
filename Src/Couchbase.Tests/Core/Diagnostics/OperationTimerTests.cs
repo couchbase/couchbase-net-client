@@ -15,7 +15,7 @@ namespace Couchbase.Tests.Core.Diagnostics
     [TestFixture]
     public class OperationTimerTests
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<OperationTimerTests>();
 
         [Test]
         public void Test_Integrated_With_Common_Log()

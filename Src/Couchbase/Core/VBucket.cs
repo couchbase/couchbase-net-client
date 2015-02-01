@@ -7,7 +7,7 @@ namespace Couchbase.Core
 {
     internal class VBucket : IVBucket
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<VBucket>();
         private readonly List<IServer> _cluster;
         private readonly int[] _replicas;
         public VBucket(List<IServer> cluster, int index, int primary, int[] replicas)

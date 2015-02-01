@@ -18,7 +18,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal class HttpServerConfig : AuthenticatingWebClient, IServerConfig
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<HttpServerConfig>();
         private readonly ClientConfiguration _clientConfig;
 
         public HttpServerConfig(ClientConfiguration clientConfig) 

@@ -15,7 +15,7 @@ namespace Couchbase.IO.Strategies
     /// </summary>
     internal class DefaultIOStrategy : IOStrategy
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<DefaultIOStrategy>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;

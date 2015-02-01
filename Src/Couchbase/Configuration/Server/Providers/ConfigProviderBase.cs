@@ -16,7 +16,7 @@ namespace Couchbase.Configuration.Server.Providers
 {
     internal abstract class ConfigProviderBase : IConfigProvider
     {
-        protected readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        protected readonly static ILog Log = LogManager.GetLogger<ConfigProviderBase>();
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;

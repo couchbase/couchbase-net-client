@@ -24,7 +24,7 @@ namespace Couchbase.Management
     /// </summary>
     public class ClusterManager : IClusterManager
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<ClusterManager>();
         private readonly IClusterController _clusterController;
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;

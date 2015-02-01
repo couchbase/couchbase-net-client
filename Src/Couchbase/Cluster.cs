@@ -20,7 +20,7 @@ namespace Couchbase
     /// </summary>
     public sealed class Cluster : ICluster
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<Cluster>();
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
@@ -186,8 +186,16 @@ namespace Couchbase
             var version = CurrentAssembly.Version;
             Log.Info(m=>m("Version: {0}", version));
 
-            var config = JsonConvert.SerializeObject(configuration);
-            Log.Info(m=>m("Configuration: {0}", config));
+            try
+            {
+                var config = JsonConvert.SerializeObject(configuration);
+                Log.Info(m => m("Configuration: {0}", config));
+            }
+            catch (Exception e)
+            {
+                //NCBC-797
+                Log.Info("Could not serialize ClientConfiguration.", e);
+            }
         }
 
         /// <summary>

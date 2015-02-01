@@ -27,7 +27,7 @@ namespace Couchbase.Core
 {
     internal sealed class ClusterController : IClusterController
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<ClusterController>();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>();

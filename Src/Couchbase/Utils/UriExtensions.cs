@@ -11,8 +11,8 @@ namespace Couchbase.Utils
     /// </summary>
     public static class UriExtensions
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
-        
+        private readonly static ILog Log = LogManager.GetLogger("UriExtensions");
+
         /// <summary>
         /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.
         /// </summary>
