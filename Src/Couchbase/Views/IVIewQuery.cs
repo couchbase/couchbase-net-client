@@ -207,6 +207,11 @@ namespace Couchbase.Views
         string BucketName { get; }
 
         /// <summary>
+        /// When true, the generated url will contain 'https' and use port 18092
+        /// </summary>
+        bool UseSsl { get; set; }
+
+        /// <summary>
         /// Toggles the query between development or production dataset and View.
         /// </summary>
         /// <param name="development">If true the development View will be used</param>

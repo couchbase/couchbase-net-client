@@ -9,7 +9,7 @@ using Couchbase.Core.Buckets;
 namespace Couchbase.Configuration
 {
     /// <summary>
-    /// Provides an interface for implementing an object responsible for maintaining a 
+    /// Provides an interface for implementing an object responsible for maintaining a
     /// list of nodes in cluster and the mapping between keys and nodes.
     /// </summary>
     internal interface IConfigInfo : IDisposable
@@ -62,6 +62,11 @@ namespace Couchbase.Configuration
         void LoadConfig(IBucketConfig bucketConfig, bool force=false);
 
         List<IServer> Servers { get; }
+
+        /// <summary>
+        /// Returns true if the bucket is configured to use SSL
+        /// </summary>
+        bool SslConfigured { get; }
     }
 }
 

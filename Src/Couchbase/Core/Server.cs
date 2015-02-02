@@ -121,7 +121,28 @@ namespace Couchbase.Core
 
         public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
         {
-            return ViewClient.ExecuteAsync<T>(query);
+            Task<IViewResult<T>> result;
+            try
+            {
+                var baseUri = GetBaseViewUri(query.BucketName);
+                query.BaseUri(baseUri);
+                result = ViewClient.ExecuteAsync<T>(query);
+            }
+            catch (Exception e)
+            {
+                var tcs = new TaskCompletionSource<IViewResult<T>>();
+                tcs.SetResult(new ViewResult<T>
+                {
+                    Exception = e,
+                    Message = e.Message,
+                    Error = e.Message,
+                    Success = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Rows = new List<ViewRow<T>>()
+                });
+                result = tcs.Task;
+            }
+            return result;
         }
 
         public IViewResult<T> Send<T>(IViewQuery query)

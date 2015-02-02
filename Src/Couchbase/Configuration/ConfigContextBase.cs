@@ -259,6 +259,11 @@ namespace Couchbase.Configuration
             Dispose(false);
         }
 #endif
+
+        public bool SslConfigured
+        {
+            get { return _bucketConfig.UseSsl || _clientConfig.UseSsl; }
+        }
     }
 }
 

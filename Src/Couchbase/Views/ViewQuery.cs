@@ -21,7 +21,11 @@ namespace Couchbase.Views
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         const string QueryArgPattern = "{0}={1}&";
-        private const string DefaultHost = "http://localhost:8092/";
+        private const string DefaultHost = "{0}://localhost:{1}/";
+        private const uint DefaultPort = 8092;
+        private const uint DefaultSslPort = 18092;
+        private const string Http = "http";
+        private const string Https = "https";
 
         private string _baseUri;
         private string _bucketName;
@@ -90,10 +94,15 @@ namespace Couchbase.Views
         public ViewQuery(string bucketName, string baseUri, string designDoc, string viewName)
         {
             _bucketName = bucketName;
-            _baseUri = baseUri;
+            _baseUri = baseUri ?? DefaultHost;
             _designDoc = designDoc;
             _viewName = viewName;
         }
+
+        /// <summary>
+        /// When true, the generated url will contain 'https' and use port 18092
+        /// </summary>
+        public bool UseSsl { get; set; }
 
         /// <summary>
         /// Specifies the bucket and design document to target for a query.
@@ -431,14 +440,19 @@ namespace Couchbase.Views
         public Uri RawUri()
         {
             var sb = new StringBuilder();
-            sb.Append(_baseUri);
 
-            if (!_baseUri.EndsWith(ForwardSlash))
+            var baseUri = string.Format(_baseUri,
+                UseSsl ? Https : Http,
+                UseSsl ? DefaultSslPort : DefaultPort);
+
+            sb.Append(baseUri);
+
+            if (!baseUri.EndsWith(ForwardSlash))
             {
                 sb.Append(ForwardSlash);
             }
 
-            if (!string.IsNullOrWhiteSpace(_bucketName) && !_baseUri.Contains(_bucketName))
+            if (!string.IsNullOrWhiteSpace(_bucketName) && !baseUri.Contains(_bucketName))
             {
                 sb.Append(_bucketName);
                 sb.Append(ForwardSlash);

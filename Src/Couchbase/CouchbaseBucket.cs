@@ -1877,9 +1877,10 @@ namespace Couchbase
         public IViewQuery CreateQuery(string designDoc, string view)
         {
             CheckDisposed();
-            var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(Name, baseUri, designDoc, view);
+            return new ViewQuery(Name, null, designDoc, view)
+            {
+                UseSsl = _configInfo.SslConfigured
+            };
         }
 
         /// <summary>
@@ -1893,10 +1894,11 @@ namespace Couchbase
         public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
         {
             CheckDisposed();
-            var server = _configInfo.GetServer();
-            var baseUri = server.GetBaseViewUri(Name);
-            return new ViewQuery(Name, baseUri, designdoc, viewname)
-                .Development(development);
+            return new ViewQuery(Name, null, designdoc, viewname)
+            {
+                UseSsl = _configInfo.SslConfigured
+            }
+            .Development(development);
         }
 
         public IBucketManager CreateManager(string username, string password)

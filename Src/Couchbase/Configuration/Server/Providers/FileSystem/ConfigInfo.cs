@@ -145,6 +145,12 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public bool SslConfigured
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 
