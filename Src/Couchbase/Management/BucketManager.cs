@@ -211,6 +211,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
         /// <returns>The design document as a string.</returns>
+        [Obsolete("Note that the overload which takes an 'includeDevelopment' is obsolete; the method will ignore the parameter value if passed.")]
         public IResult<string> GetDesignDocuments(bool includeDevelopment = false)
         {
             IResult<string> result;
