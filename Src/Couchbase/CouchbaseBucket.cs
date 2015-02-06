@@ -23,6 +23,7 @@ using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Views;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 
 namespace Couchbase
 {
@@ -243,7 +244,7 @@ namespace Couchbase
                         var config = result.Value;
                         if (config != null)
                         {
-                            _clusterManager.NotifyConfigPublished(result.Value, true);
+                            _clusterManager.NotifyConfigPublished(result.Value);
                         }
                     }
                 }
@@ -273,8 +274,8 @@ namespace Couchbase
                     var bucketConfig = operation.GetConfig();
                     if (bucketConfig != null)
                     {
-                        Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, _configInfo.BucketConfig.Rev));
-                        _clusterManager.NotifyConfigPublished(bucketConfig, true);
+                        Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        _clusterManager.NotifyConfigPublished(bucketConfig);
                     }
                 }
                 catch (Exception e)

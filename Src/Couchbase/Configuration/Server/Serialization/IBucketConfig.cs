@@ -89,13 +89,17 @@ namespace Couchbase.Configuration.Server.Serialization
 
         string Password { get; set; }
 
+        bool UseSsl { get; set; }
+
         Node GetRandomNode();
 
         Uri GetTerseStreamingUri(Node node, bool useSsl);
 
         Uri GetTerseUri(Node node, bool useSsl);
 
-        bool UseSsl { get; set; }
+        bool AreNodesEqual(IBucketConfig other);
+
+        bool IsVBucketServerMapEqual(IBucketConfig other);
     }
 }
 

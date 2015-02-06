@@ -17,6 +17,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Strategies;
 using Couchbase.Tests.IO.Operations.Authentication;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -142,6 +143,24 @@ namespace Couchbase.Tests.Configuration
 
             Log.Debug(m => m("CLEANUP!"));
             configInfo.Dispose();
+        }
+
+        [Test]
+        public void When_VBucketMap_Is_Different_And_Nodes_AreEqual_Return_false_true()
+        {
+            //same config versions but vbucketmap is different
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-rev4456-v1.json"));
+            var bucketConfig2 = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-rev4456-v2.json"));
+
+            //the configs are not equal, but what is different?
+            Assert.IsFalse(bucketConfig2.Equals(bucketConfig));
+
+            //the nodes are same
+            Assert.IsTrue(bucketConfig2.Nodes.AreEqual(bucketConfig.Nodes));
+
+            //but, the vbucket maps are different
+            var areEqual = bucketConfig2.VBucketServerMap.Equals(bucketConfig.VBucketServerMap);
+            Assert.IsFalse(areEqual);
         }
     }
 }

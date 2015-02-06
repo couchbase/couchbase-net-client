@@ -180,6 +180,16 @@ namespace Couchbase.Configuration.Server.Serialization
             }
             return new Uri(string.Concat(protocol, hostName, streamingUri));
         }
+
+        public bool AreNodesEqual(IBucketConfig other)
+        {
+            return Nodes.AreEqual(other.Nodes);
+        }
+
+        public bool IsVBucketServerMapEqual(IBucketConfig other)
+        {
+            return VBucketServerMap.Equals(other.VBucketServerMap);
+        }
     }
 }
 

@@ -213,6 +213,7 @@
     <Compile Include="N1QL\Severity.cs" />
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
+    <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />

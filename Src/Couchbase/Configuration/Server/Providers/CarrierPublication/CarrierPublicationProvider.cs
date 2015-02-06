@@ -190,7 +190,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         if (!lockTaken) return;
 
                         var oldBucketConfig = configInfo.BucketConfig;
-                        if (bucketConfig.Rev > oldBucketConfig.Rev || force)
+                        if (bucketConfig.Rev > oldBucketConfig.Rev || !bucketConfig.Equals(oldBucketConfig) || force)
                         {
                             Log.Info(
                                 m =>

@@ -179,6 +179,12 @@
     <None Include="Data\Configuration\carrier-publication-config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Configuration\config-rev4456-v1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-rev4456-v2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Configuration\config-revision-8934.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
