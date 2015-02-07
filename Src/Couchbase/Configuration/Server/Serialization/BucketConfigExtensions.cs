@@ -12,8 +12,8 @@ namespace Couchbase.Configuration.Server.Serialization
         public static List<INodeAdapter> GetNodes(this IBucketConfig bucketConfig)
         {
             var nodeAdapters = new List<INodeAdapter>();
-            var nodes = bucketConfig.Nodes;
-            var nodesExt = bucketConfig.NodesExt;
+            var nodes = bucketConfig.Nodes.ReorderToServerList(bucketConfig.VBucketServerMap);
+            var nodesExt = bucketConfig.NodesExt.ReorderToServerList(bucketConfig.VBucketServerMap);
 
             if (nodesExt == null)
             {

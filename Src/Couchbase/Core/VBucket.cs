@@ -10,6 +10,16 @@ namespace Couchbase.Core
         private readonly static ILog Log = LogManager.GetLogger<VBucket>();
         private readonly List<IServer> _cluster;
         private readonly int[] _replicas;
+
+        public VBucket(List<IServer> cluster, int index, int primary, int[] replicas, int rev)
+        {
+            _cluster = cluster;
+            Index = index;
+            Primary = primary;
+            _replicas = replicas;
+            Rev = rev;
+        }
+
         public VBucket(List<IServer> cluster, int index, int primary, int[] replicas)
         {
             _cluster = cluster;
@@ -65,6 +75,8 @@ namespace Couchbase.Core
         public int Index { get; private set; }
 
         public int Primary { get; private set; }
+
+        public int Rev { get; internal set; }
     }
 }
 

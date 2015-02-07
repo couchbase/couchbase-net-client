@@ -1,4 +1,7 @@
-﻿namespace Couchbase.Core
+﻿using System.Collections.Generic;
+using Couchbase.Configuration.Server.Serialization;
+
+namespace Couchbase.Core
 {
     internal interface IKeyMapper
     {

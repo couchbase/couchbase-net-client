@@ -71,7 +71,7 @@ namespace Couchbase.Tests.Utils
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
-            const string expected = "192.168.56.101:11207";
+            const string expected = "192.168.56.102:11207";
             var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0], clientConfig, serverConfig);
             Assert.AreEqual(expected, actual.ToString());
         }
@@ -83,7 +83,7 @@ namespace Couchbase.Tests.Utils
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
-            const string expected = "192.168.56.101:11210";
+            const string expected = "192.168.56.102:11210";
             var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0], clientConfig, serverConfig);
             Assert.AreEqual(expected, actual.ToString());
         }

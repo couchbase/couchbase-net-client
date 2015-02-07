@@ -84,6 +84,18 @@ namespace Couchbase.Utils
 
         public static bool AreEqual(this int[][] array, int[][] other)
         {
+            if (array == null && other == null)
+            {
+                return true;
+            }
+            if (array != null && other == null)
+            {
+                return false;
+            }
+            if (array == null && other != null)
+            {
+                return false;
+            }
             if (array.Length != other.Length)
             {
                 return false;

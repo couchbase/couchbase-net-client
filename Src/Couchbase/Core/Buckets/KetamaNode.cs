@@ -15,12 +15,14 @@
         /// <summary>
         /// Gets the primary node for a key.
         /// </summary>
-        /// <returns>An object implementing the <see cref="IServer"/> interface, 
+        /// <returns>An object implementing the <see cref="IServer"/> interface,
         /// which is the node that a key is mapped to within a cluster.</returns>
         public IServer LocatePrimary()
         {
             return _server;
         }
+
+        public int Rev { get; internal set; }
     }
 }
 

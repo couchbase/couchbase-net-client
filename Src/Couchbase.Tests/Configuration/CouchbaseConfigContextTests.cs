@@ -162,5 +162,40 @@ namespace Couchbase.Tests.Configuration
             var areEqual = bucketConfig2.VBucketServerMap.Equals(bucketConfig.VBucketServerMap);
             Assert.IsFalse(areEqual);
         }
+
+        [Test]
+        public void When_BucketConfig_Contains_VBucketMapForwards_The_Context_Is_Updated()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://localhost:8091")
+                },
+                UseSsl = false
+            };
+            clientConfig.Initialize();
+
+            var json1070 = File.ReadAllText(@"Data\\Configuration\\config-1070.json");
+            var bucket1070 = JsonConvert.DeserializeObject<BucketConfig>(json1070);
+
+            //same config but has vbucketforwardmaps
+            var json1071 = File.ReadAllText(@"Data\\Configuration\\config-1071.json");
+            var bucket1071 = JsonConvert.DeserializeObject<BucketConfig>(json1071);
+
+            var configInfo = new CouchbaseConfigContext(bucket1070,
+                clientConfig,
+                pool => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            configInfo.LoadConfig();
+            Assert.AreEqual(1070, configInfo.BucketConfig.Rev);
+
+            configInfo.LoadConfig(bucket1071);
+            Assert.AreEqual(1071, configInfo.BucketConfig.Rev);
+        }
     }
 }

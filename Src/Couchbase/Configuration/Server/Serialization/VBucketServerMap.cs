@@ -12,6 +12,7 @@ namespace Couchbase.Configuration.Server.Serialization
             NumReplicas = 0;
             ServerList = new string[0];
             VBucketMap = new int[0][];
+            VBucketMapForward = new int[0][];
         }
 
         [JsonProperty("hashAlgorithm")]
@@ -31,9 +32,10 @@ namespace Couchbase.Configuration.Server.Serialization
 
         public bool Equals(VBucketServerMap other)
         {
-            return (other != null && 
-                ServerList.AreEqual<string>(other.ServerList) &&
-                VBucketMap.AreEqual(other.VBucketMap));
+            return (other != null
+                    && ServerList.AreEqual<string>(other.ServerList)
+                    && VBucketMap.AreEqual(other.VBucketMap))
+                    && VBucketMapForward.AreEqual(other.VBucketMapForward);
         }
 
         public override bool Equals(object obj)

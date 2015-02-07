@@ -29,5 +29,54 @@ namespace Couchbase.Configuration.Server.Serialization
             }
             return true;
         }
+
+        public static Node[] ReorderToServerList(this Node[] nodes, VBucketServerMap serverMap)
+        {
+            var reordered = new Node[nodes.Length];
+            var serversList = serverMap.ServerList;
+
+            if (serversList == null || serversList.Length == 0)
+            {
+                reordered = nodes;
+            }
+            else
+            {
+                for (var i = 0; i < serversList.Length; i++)
+                {
+                    var host = serversList[i].Split(':')[0];
+                    foreach (var n in nodes.Where(n => n.Hostname.Split(':')[0].Equals(host)))
+                    {
+                        reordered[i] = n;
+                        break;
+                    }
+                }
+            }
+            return reordered;
+        }
+
+        public static NodeExt[] ReorderToServerList(this NodeExt[] nodes, VBucketServerMap serverMap)
+        {
+            if (nodes == null) return null;
+            var reordered = new NodeExt[nodes.Length];
+            var serversList = serverMap.ServerList;
+
+            if (serversList == null || serversList.Length == 0)
+            {
+                reordered = nodes;
+            }
+            else
+            {
+                for (var i = 0; i < serversList.Length; i++)
+                {
+                    var host = serversList[i].Split(':')[0];
+                    foreach (var n in nodes.Where(n => n.Hostname != null && n.Hostname.Split(':')[0].Equals(host)))
+                    {
+                        reordered[i] = n;
+                        break;
+                    }
+                }
+            }
+            return reordered;
+        }
     }
 }

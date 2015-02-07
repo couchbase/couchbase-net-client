@@ -73,7 +73,7 @@ namespace Couchbase.Tests
                Cast<IServer>().
                ToList();
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             const int expected = 3;
@@ -91,7 +91,7 @@ namespace Couchbase.Tests
                Cast<IServer>().
                ToList();
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             var index = mapper.GetIndex("somekey");
@@ -113,7 +113,7 @@ namespace Couchbase.Tests
                Cast<IServer>().
                ToList();
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             foreach (var index in vBucket.Replicas)
@@ -137,7 +137,7 @@ namespace Couchbase.Tests
                Cast<IServer>().
                ToList();
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
 
             //maps to -1 primary
             const string key = "somekey0";
@@ -162,7 +162,7 @@ namespace Couchbase.Tests
             //remove one server
             servers.RemoveAt(1);
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
 
             //maps to -1 primary
             const string key = "somekey23";

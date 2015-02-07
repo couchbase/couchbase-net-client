@@ -20,8 +20,9 @@ namespace Couchbase.Core.Buckets
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly List<IServer> _servers;
 
-        public VBucketKeyMapper(List<IServer> servers, VBucketServerMap vBucketServerMap)
+        public VBucketKeyMapper(List<IServer> servers, VBucketServerMap vBucketServerMap, int revision)
         {
+            Rev = revision;
             _servers = servers;
             _vBucketServerMap = vBucketServerMap;
             _vBuckets = CreateVBucketMap();
@@ -74,7 +75,7 @@ namespace Couchbase.Core.Buckets
                 {
                     replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas));
+                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev));
             }
             return vBuckets;
         }
@@ -100,7 +101,7 @@ namespace Couchbase.Core.Buckets
                     {
                         replicas[r - 1] = vBucketMapForward[i][r];
                     }
-                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas));
+                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas, Rev));
                 }
             }
             return vBucketMapForwards;

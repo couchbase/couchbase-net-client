@@ -77,11 +77,8 @@ namespace Couchbase.Configuration
                 if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
                 {
                     Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                    Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev));
                     Interlocked.Exchange(ref _bucketConfig, bucketConfig);
-                    Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, _bucketConfig.VBucketServerMap)
-                    {
-                        Rev = _bucketConfig.Rev
-                    });
                 }
             }
             catch (Exception e)
@@ -90,7 +87,7 @@ namespace Couchbase.Configuration
             }
             finally
             {
-                Lock.ExitWriteLock();
+               Lock.ExitWriteLock();
             }
         }
 
@@ -138,10 +135,7 @@ namespace Couchbase.Configuration
                     old.ForEach(x => x.Dispose());
                     old.Clear();
                 }
-                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap)
-                {
-                    Rev = BucketConfig.Rev
-                });
+                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
             }
             finally
             {
@@ -181,7 +175,7 @@ namespace Couchbase.Configuration
                     old.ForEach(x => x.Dispose());
                     old.Clear();
                 }
-                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap));
+                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
             }
             finally
             {

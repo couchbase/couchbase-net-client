@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Serialization
@@ -55,6 +58,20 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         {
             Assert.IsTrue(_vBucketServerMap1.Equals(_vBucketServerMap2));
             Assert.IsFalse(_vBucketServerMap1.Equals(_vBucketServerMap3));
+        }
+
+        [Test]
+        public void When_VBucketForwardMaps_Exists_Equality_Is_Compared()
+        {
+            var json1070 = File.ReadAllText(@"Data\\Configuration\\config-1070.json");
+            var bucket1070 = JsonConvert.DeserializeObject<BucketConfig>(json1070);
+
+            //same config but has vbucketforwardmaps
+            var json1071 = File.ReadAllText(@"Data\\Configuration\\config-1071.json");
+            var bucket1071 = JsonConvert.DeserializeObject<BucketConfig>(json1071);
+
+            Assert.IsFalse(bucket1070.Equals(bucket1071));
+            Assert.IsFalse(bucket1070.VBucketServerMap.Equals(bucket1071.VBucketServerMap));
         }
     }
 }

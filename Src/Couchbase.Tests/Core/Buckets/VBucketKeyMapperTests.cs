@@ -20,16 +20,17 @@ namespace Couchbase.Tests.Core.Buckets
         const string Key = "XXXXX";
         private List<IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
+        private IBucketConfig _bucketConfig;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
-            _vBucketServerMap = bucketConfig.VBucketServerMap;
+            _bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
+            _vBucketServerMap = _bucketConfig.VBucketServerMap;
 
             _servers = _vBucketServerMap.
                 ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
+                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), _bucketConfig)).
                 Cast<IServer>().
                 ToList();
         }
@@ -37,7 +38,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void TestMapKey()
         {
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap);
+            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev);
             var vBucket = mapper.MapKey(Key);
             Assert.IsNotNull(vBucket);
         }
@@ -46,7 +47,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
             const int actual = 389;
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap);
+            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey(Key);
             Assert.AreEqual(vBucket.Index, actual);
         }

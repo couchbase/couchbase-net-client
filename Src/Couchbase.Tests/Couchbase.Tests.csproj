@@ -76,6 +76,7 @@
     <Compile Include="ClusterTests.cs" />
     <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests_Isolated.cs" />
@@ -177,6 +178,15 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\carrier-publication-config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-1070.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-1071.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\config-nodes-and-serverslist-out-of-order.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\config-rev4456-v1.json">

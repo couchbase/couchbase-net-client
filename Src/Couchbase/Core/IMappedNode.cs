@@ -3,6 +3,8 @@
     internal interface IMappedNode
     {
         IServer LocatePrimary();
+
+        int Rev { get; }
     }
 }
 
