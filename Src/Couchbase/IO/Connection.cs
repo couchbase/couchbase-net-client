@@ -81,6 +81,7 @@ namespace Couchbase.IO
             //Check if an IO error occurred
             if (state.Exception != null)
             {
+                IsDead = true;
                 throw state.Exception;
             }
 
