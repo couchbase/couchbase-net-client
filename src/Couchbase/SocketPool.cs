@@ -252,56 +252,75 @@ namespace Couchbase
             _shutDownMode = true;
             if (!_disposed)
             {
-                var itemsDisposed = 0;
-                var i = 2;
-                do
+                if (disposing)
                 {
-                    var timeout = (int)Math.Pow(2, i);
-                    Thread.Sleep(timeout);
-
-                    lock (_syncObj)
+                    GC.SuppressFinalize(this);
+                    var itemsDisposed = 0;
+                    var i = 2;
+                    do
                     {
-                        foreach (var socket in _refs.Where(x => x.IsAlive && !x.IsInUse))
+                        var timeout = (int) Math.Pow(2, i);
+                        Thread.Sleep(timeout);
+
+                        lock (_syncObj)
                         {
-                            if (Log.IsInfoEnabled)
+                            foreach (var socket in _refs.Where(x => x.IsAlive && !x.IsInUse))
                             {
-                                Log.DebugFormat("Gracefully closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                if (Log.IsInfoEnabled)
+                                {
+                                    Log.DebugFormat("Gracefully closing {0} on server {1}", socket.InstanceId,
+                                        _node.EndPoint);
+                                }
+                                socket.Close();
+                                itemsDisposed++;
                             }
-                            socket.Close();
-                            itemsDisposed++;
+                        }
+
+                        if (i != maxAttempts) continue;
+
+                        lock (_syncObj)
+                        {
+                            foreach (var socket in _refs.Where(x => x.IsAlive))
+                            {
+                                if (Log.IsInfoEnabled)
+                                {
+                                    Log.DebugFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                }
+                                socket.Close();
+                                if (Log.IsInfoEnabled)
+                                {
+                                    Log.DebugFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
+                                }
+                                itemsDisposed++;
+                            }
+                        }
+                    } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
+
+                    if (Log.IsDebugEnabled)
+                    {
+                        Log.DebugFormat("Disposed {0} of {1} items.", itemsDisposed, _refs.Count);
+                    }
+                }
+                _disposed = true;
+            }
+            else
+            {
+                foreach (var pooledSocket in _refs)
+                {
+                    try
+                    {
+                        if (pooledSocket.IsAlive)
+                        {
+                            pooledSocket.Dispose();
                         }
                     }
-
-                    if (i != maxAttempts) continue;
-
-                    lock (_syncObj)
+                    catch
                     {
-                        foreach (var socket in _refs.Where(x => x.IsAlive))
-                        {
-                            if (Log.IsInfoEnabled)
-                            {
-                                Log.DebugFormat("Force closing {0} on server {1}", socket.InstanceId, _node.EndPoint);
-                            }
-                            socket.Close();
-                            if (Log.IsInfoEnabled)
-                            {
-                                Log.DebugFormat("Force closed {0} on server {1}", socket.InstanceId, _node.EndPoint);
-                            }
-                            itemsDisposed++;
-                        }
+                        //we want to catch any exceptions thrown during finalization
+                        //we could log, but that could fail as well
                     }
-                } while ((itemsDisposed < _refs.Count) && i++ < maxAttempts);
-
-                if (Log.IsDebugEnabled)
-                {
-                    Log.DebugFormat("Disposed {0} of {1} items.", itemsDisposed, _refs.Count);
                 }
             }
-            if (disposing && !_disposed)
-            {
-                GC.SuppressFinalize(this);
-            }
-            _disposed = true;
             _isAlive = false;
         }
 
