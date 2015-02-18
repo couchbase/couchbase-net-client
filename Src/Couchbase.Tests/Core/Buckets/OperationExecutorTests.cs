@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +24,7 @@ namespace Couchbase.Tests.Core.Buckets
     {
         private CouchbaseRequestExecuter _requestExecuter;
         private string _bucketName = "default";
+        private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
 
         [SetUp]
         public void SetUp()
@@ -41,24 +43,7 @@ namespace Couchbase.Tests.Core.Buckets
             var clusterController = new Mock<IClusterController>();
             clusterController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
 
-            var converter = new AutoByteConverter();
-            _requestExecuter = new CouchbaseRequestExecuter(clusterController.Object, configInfo.Object, converter, _bucketName);
-        }
-
-        [Test]
-        public void When_Operation_Is_Get_Operation_Allow_Retries()
-        {
-            var operation = new Get<string>("key", null, null, null, 1000);
-            var result= _requestExecuter.OperationSupportsRetries(operation);
-            Assert.AreEqual(true, result);
-        }
-
-        [Test]
-        public void When_Operation_Is_Set_Operation_DoNot_Allow_Retries()
-        {
-            var operation = new Set<string>("key", "value", null, null, null, 1000);
-            var result = _requestExecuter.OperationSupportsRetries(operation);
-            Assert.AreEqual(false, result);
+            _requestExecuter = new CouchbaseRequestExecuter(clusterController.Object, configInfo.Object,  _bucketName, _pending);
         }
 
         [Test]

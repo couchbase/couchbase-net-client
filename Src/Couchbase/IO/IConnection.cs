@@ -39,9 +39,7 @@ namespace Couchbase.IO
 
         bool IsDead { get; set; }
 
-        Task<uint> SendAsync(byte[] buffer);
-
-        Task<byte[]> ReceiveAsync(uint opaque);
+        void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback);
 
         byte[] Send(byte[] request);
     }

@@ -1,4 +1,7 @@
+using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Views;
@@ -11,6 +14,8 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal interface IRequestExecuter
     {
+        IConfigInfo ConfigInfo { get; }
+
         /// <summary>
         /// Sends a <see cref="IOperation{T}"/> to the Couchbase Server using the Memcached protocol.
         /// </summary>
@@ -80,5 +85,20 @@ namespace Couchbase.Core.Buckets
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
         Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
+        /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
+        /// </summary>
+        /// <typeparam name="T">The Type of the <see cref="IOperation"/>'s value.</typeparam>
+        /// <param name="execute">A delegate that contains the send logic.</param>
+        /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> for timing out the request.</param>
+        /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        Task<IOperationResult<T>> RetryOperationEveryAsync<T>(
+            Func<IOperation<T>, IConfigInfo, Task<IOperationResult<T>>> execute,
+            IOperation<T> operation,
+            IConfigInfo configInfo,
+            CancellationToken cancellationToken);
     }
 }

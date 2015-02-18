@@ -115,22 +115,17 @@ namespace Couchbase.IO
             set { _isDead = value; }
         }
 
-        public virtual Task<uint> SendAsync(byte[] buffer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Task<byte[]> ReceiveAsync(uint opaque)
-        {
-            throw new NotImplementedException();
-        }
-
         public virtual void Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
 
         public virtual byte[] Send(byte[] request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
         {
             throw new NotImplementedException();
         }

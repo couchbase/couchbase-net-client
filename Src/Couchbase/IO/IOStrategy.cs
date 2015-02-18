@@ -37,7 +37,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> the operation is using.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
         /// <remarks>This overload is used to perform authentication on the connection if it has not already been authenticated.</remarks>
-        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection);
+        Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection);
 
         /// <summary>
         /// Asynchrounously executes an operation for a given key.
@@ -46,7 +46,7 @@ namespace Couchbase.IO
         /// <param name="operation">The <see cref="IOperation{T}"/> being executed.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> representing the result of operation.</returns>
         /// <remarks>This overload is used to perform authentication on the connection if it has not already been authenticated.</remarks>
-        Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation);
+        Task ExecuteAsync<T>(IOperation<T> operation);
 
         /// <summary>
         /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy"/> instance is communicating with.

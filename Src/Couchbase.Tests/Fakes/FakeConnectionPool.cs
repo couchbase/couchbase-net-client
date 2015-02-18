@@ -1,8 +1,9 @@
-﻿using System.Linq;
-using Couchbase.Core;
-using Couchbase.IO;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using Couchbase.Configuration.Client;
+using Couchbase.IO;
 using Couchbase.Utils;
 
 namespace Couchbase.Tests.Fakes
@@ -16,6 +17,25 @@ namespace Couchbase.Tests.Fakes
             EndPoint = UriExtensions.GetEndPoint("127.0.01:8091");
         }
 
+        public PoolConfiguration Configuration { get; private set; }
+
+        public IPEndPoint EndPoint { get; set; }
+
+        public IEnumerable<IConnection> Connections
+        {
+            get { return _connections; }
+        }
+
+        public void AddConnection(IConnection connection)
+        {
+            _connections.Add(connection);
+        }
+
+        public void Clear()
+        {
+            _connections.Clear();
+        }
+
         public IConnection Acquire()
         {
             if (!_connections.Any())
@@ -27,32 +47,15 @@ namespace Couchbase.Tests.Fakes
 
         public void Release(IConnection connection)
         {
-            
         }
 
         public int Count()
         {
-            throw new NotImplementedException();
-        }
-
-        public Couchbase.Configuration.Client.PoolConfiguration Configuration
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public System.Net.IPEndPoint EndPoint
-        {
-            get;
-            set;
+            return _connections.Count;
         }
 
         public void Initialize()
         {
-        }
-
-        public IEnumerable<IConnection> Connections
-        {
-            get { return _connections; }
         }
 
         public void Dispose()

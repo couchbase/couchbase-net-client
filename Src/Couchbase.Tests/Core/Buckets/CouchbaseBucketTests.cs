@@ -8,14 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
-using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Documents;
-using Couchbase.Tests.Fakes;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -213,6 +209,25 @@ namespace Couchbase.Tests.Core.Buckets
                 };
                 var result = bucket.Insert(document);
                 Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Insert_Fails()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string id = "When_Key_Exists_Insert_Fails(";
+                bucket.Remove(id);
+                bucket.Insert(id, new {Bar = "bar", Foo = "foo"});
+                var document = new Document<dynamic>
+                {
+                    Id = id,
+                    Content = new { Bar = "bar", Foo = "foo" }
+                };
+                var result = bucket.Insert(document);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
             }
         }
 

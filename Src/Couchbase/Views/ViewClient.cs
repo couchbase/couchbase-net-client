@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Utils;
 
 namespace Couchbase.Views
 {
@@ -46,9 +47,9 @@ namespace Couchbase.Views
             var viewResult = new ViewResult<T>();
             try
             {
-                var result = await HttpClient.GetAsync(uri).ConfigureAwait(false);
+                var result = await HttpClient.GetAsync(uri).ContinueOnAnyContext();
                 var content = result.Content;
-                using (var stream = await content.ReadAsStreamAsync().ConfigureAwait(false))
+                using (var stream = await content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {
                     viewResult = Mapper.Map<ViewResult<T>>(stream);
                     viewResult.Success = result.IsSuccessStatusCode;

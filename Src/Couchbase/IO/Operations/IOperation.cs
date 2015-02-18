@@ -26,6 +26,8 @@ namespace Couchbase.IO.Operations
 
         byte[] Write();
 
+        Task<byte[]> WriteAsync();
+
         MemoryStream Data { get; set; }
 
         byte[] Buffer { get; set; }
@@ -41,9 +43,6 @@ namespace Couchbase.IO.Operations
         OperationHeader Header { get; set; }
 
         OperationBody Body { get; set; }
-
-        [Obsolete("remove after refactoring async stuff")]
-        byte[] GetBuffer();
 
         int Attempts { get; set; }
 
@@ -62,12 +61,20 @@ namespace Couchbase.IO.Operations
         bool TimedOut();
 
         DateTime CreationTime { get; set; }
+
         Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         Task ReadAsync(byte[] buffer, int offset, int length);
+
         void BeginTimer(TimingLevel level);
+
         void EndTimer(TimingLevel level);
+
         byte[] WriteBuffer { get; set; }
+
+        Func<SocketAsyncState, Task> Completed { get; set; }
+
+        bool CanRetry();
     }
 }
 

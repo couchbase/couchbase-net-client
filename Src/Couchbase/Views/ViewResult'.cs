@@ -134,6 +134,12 @@ namespace Couchbase.Views
         {
             return (Error.Contains("not_found") && Error.Contains("missing")) || Error.Contains("deleted");
         }
+
+
+        public bool ShouldRetry()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }
 

@@ -1,18 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Utils;
 using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
@@ -21,37 +19,39 @@ namespace Couchbase.Core.Buckets
     /// An implementation of <see cref="IRequestExecuter"/> for executing Couchbase bucket operations (Memcached, Views, N1QL, etc)
     /// against a persistent, Couchbase Bucket on a Couchbase cluster.
     /// </summary>
-    internal class CouchbaseRequestExecuter : IRequestExecuter
+    internal class CouchbaseRequestExecuter : RequestExecuterBase
     {
-        private const uint OperationLifeSpan = 2500;
-        private static readonly ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
-        private readonly string _bucketName;
-        private readonly IClusterController _clusterController;
-        private readonly IConfigInfo _configInfo;
-        private readonly IByteConverter _converter;
-        private readonly Func<TimingLevel, object, IOperationTimer> Timer;
-        private volatile bool _timingEnabled;
+        protected static readonly new ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
 
-        public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo, IByteConverter converter, string bucketName)
+        public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
+            string bucketName, ConcurrentDictionary<uint, IOperation> pending)
+            : base(clusterController, configInfo, bucketName, pending)
         {
-            _clusterController = clusterController;
-            _configInfo = configInfo;
-            _converter = converter;
-            _bucketName = bucketName;
-            Timer = _clusterController.Configuration.Timer;
-            _timingEnabled = _clusterController.Configuration.EnableOperationTiming;
         }
 
-        public bool CanRetryOperation<T>(IOperationResult<T> operationResult, IOperation<T> operation)
+        /// <summary>
+        /// Checks the <see cref="IOperation"/> to see if it supports retries and then checks the <see cref="IOperationResult"/>
+        ///  to see if the error or server response supports retries.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operationResult">The <see cref="IOperationResult"/> to check from the server.</param>
+        /// <param name="operation">The <see cref="IOperation"/> to check to see if it supports retries. Not all operations support retries.</param>
+        /// <returns></returns>
+        public bool CanRetryOperation<T>(IOperationResult operationResult, IOperation<T> operation)
         {
             var responseStatus = operationResult.Status;
             if (responseStatus == ResponseStatus.VBucketBelongsToAnotherServer)
             {
                 return CheckForConfigUpdates(operation);
             }
-            return IsResponseRetryable(responseStatus) && OperationSupportsRetries(operation);
+            return operation.CanRetry() && operationResult.ShouldRetry();
         }
 
+        /// <summary>
+        /// Updates the configuration if the <see cref="IOperation"/> returns a <see cref="IBucketConfig"/>
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> with the <see cref="IBucketConfig"/> to check for.</param>
+        /// <returns></returns>
         public bool CheckForConfigUpdates(IOperation operation)
         {
             var requiresRetry = false;
@@ -60,8 +60,8 @@ namespace Couchbase.Core.Buckets
                 var bucketConfig = operation.GetConfig();
                 if (bucketConfig != null)
                 {
-                    Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, _configInfo.BucketConfig.Rev));
-                    _clusterController.NotifyConfigPublished(bucketConfig);
+                    Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev));
+                    ClusterController.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
                 }
             }
@@ -80,108 +80,29 @@ namespace Couchbase.Core.Buckets
         /// <returns>The <see cref="IServer"/> that the key is mapped to.</returns>
         public IServer GetServer(string key, out IVBucket vBucket)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
-            vBucket = (IVBucket)keyMapper.MapKey(key);
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            vBucket = (IVBucket) keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
         }
 
-        public bool HandleIOError<T>(IOperation<T> operation, IServer server)
-        {
-            var retry = false;
-            var exception = operation.Exception as IOException;
-            if (exception != null)
-            {
-                try
-                {
-                    //Mark the current server as dead and force a reconfig
-                    server.MarkDead();
-
-                    var liveServer = _configInfo.GetServer();
-                    var result = liveServer.Send(new Config(_converter, liveServer.EndPoint, OperationLifeSpan));
-                    Log.Info(m => m("Trying to reconfig with {0}: {1}", liveServer.EndPoint, result.Message));
-                    if (result.Success)
-                    {
-                        var config = result.Value;
-                        if (config != null)
-                        {
-                            _clusterController.NotifyConfigPublished(result.Value);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.Info(e);
-                }
-            }
-            return retry;
-        }
-
-        public bool IsResponseRetryable(ResponseStatus responseStatus)
-        {
-            var retryResponse = false;
-            switch (responseStatus)
-            {
-                //client responses
-                case ResponseStatus.ClientFailure:
-                case ResponseStatus.OperationTimeout:
-                    break;
-
-                //server responses
-                case ResponseStatus.Success:
-                case ResponseStatus.KeyNotFound:
-                case ResponseStatus.KeyExists:
-                case ResponseStatus.ValueTooLarge:
-                case ResponseStatus.InvalidArguments:
-                case ResponseStatus.ItemNotStored:
-                case ResponseStatus.IncrDecrOnNonNumericValue:
-                case ResponseStatus.AuthenticationError:
-                case ResponseStatus.AuthenticationContinue:
-                case ResponseStatus.InvalidRange:
-                case ResponseStatus.UnknownCommand:
-                case ResponseStatus.OutOfMemory:
-                case ResponseStatus.NotSupported:
-                case ResponseStatus.InternalError:
-                case ResponseStatus.Busy:
-                case ResponseStatus.TemporaryFailure:
-                    break;
-                case ResponseStatus.VBucketBelongsToAnotherServer:
-                    retryResponse = true;
-                    break;
-            }
-            return retryResponse;
-        }
-
-        public bool OperationSupportsRetries<T>(IOperation<T> operation)
-        {
-            var supportsRetry = false;
-            switch (operation.OperationCode)
-            {
-                case OperationCode.Get:
-                case OperationCode.Add:
-                    supportsRetry = true;
-                    break;
-                case OperationCode.Set:
-                case OperationCode.Replace:
-                case OperationCode.Delete:
-                case OperationCode.Append:
-                case OperationCode.Prepend:
-                    supportsRetry = operation.Cas > 0;
-                    break;
-                case OperationCode.Increment:
-                case OperationCode.Decrement:
-                case OperationCode.GAT:
-                case OperationCode.Touch:
-                    break;
-            }
-            Log.Debug(m=>m("{0} supports retries: {1}", operation.OperationCode, supportsRetry));
-            return supportsRetry;
-        }
-
-        static async Task<IViewResult<T>> RetryViewEvery<T>(Func<IViewQuery, IConfigInfo, Task<IViewResult<T>>> execute, IViewQuery query, IConfigInfo configInfo, CancellationToken cancellationToken)
+        /// <summary>
+        /// Executes an <see cref="IViewQuery"/> asynchronously. If it fails, the response is checked and
+        ///  if certain criteria are met the request is retried until it times out.
+        /// </summary>
+        /// <typeparam name="T">The Type of View result body.</typeparam>
+        /// <param name="execute">A delegate with the send logic that is executed on each attempt. </param>
+        /// <param name="query">The <see cref="IViewQuery"/> to execute.</param>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
+        /// <param name="cancellationToken">For canceling the async operation.</param>
+        /// <returns>A <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
+        static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQuery, IConfigInfo, Task<IViewResult<T>>> execute,
+            IViewQuery query,
+            IConfigInfo configInfo,
+            CancellationToken cancellationToken)
         {
             while (true)
             {
-                var result = await execute(query, configInfo);
+                var result = await execute(query, configInfo).ContinueOnAnyContext();
                 if (query.RetryAttempts++ >= configInfo.ClientConfig.MaxViewRetries ||
                     result.Success ||
                     result.CannotRetry())
@@ -190,7 +111,7 @@ namespace Couchbase.Core.Buckets
                 }
                 Log.Debug(m => m("trying again: {0}", query.RetryAttempts));
                 var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
-                var task = Task.Delay(sleepTime, cancellationToken);
+                var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
                 {
                     await task;
@@ -211,13 +132,13 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="IOperationResult{T}"/> with it's <see cref="Durability"/> status.</returns>
-        public IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = SendWithRetry(operation);
             if (result.Success)
             {
-                var config = _configInfo.ClientConfig.BucketConfigs[_bucketName];
-                var observer = new KeyObserver(_configInfo, config.ObserveInterval, config.ObserveTimeout);
+                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
                 var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
                 result.Durability = observed
                     ? Durability.Satisfied
@@ -239,7 +160,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
-        public Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public override Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -250,19 +171,19 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T of the <see cref="ViewRow{T}"/> value.</typeparam>
         /// <param name="viewQuery">The view query.</param>
         /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
-        public IViewResult<T> SendWithRetry<T>(IViewQuery viewQuery)
+        public override IViewResult<T> SendWithRetry<T>(IViewQuery viewQuery)
         {
             IViewResult<T> viewResult = null;
             try
             {
                 do
                 {
-                    var server = _configInfo.GetServer();
+                    var server = ConfigInfo.GetServer();
                     viewResult = server.Send<T>(viewQuery);
                 } while (
                     !viewResult.Success &&
                     !viewResult.CannotRetry() &&
-                    viewQuery.RetryAttempts++ <= _configInfo.ClientConfig.MaxViewRetries);
+                    viewQuery.RetryAttempts++ <= ConfigInfo.ClientConfig.MaxViewRetries);
             }
             catch (Exception e)
             {
@@ -288,9 +209,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="IOperationResult" /> with the status of the request.
         /// </returns>
-        public IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
+        public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
-            if (Log.IsDebugEnabled && _timingEnabled)
+            if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.Timer = Timer;
                 operation.BeginTimer(TimingLevel.Three);
@@ -316,7 +237,7 @@ namespace Couchbase.Core.Buckets
                                 operation.Attempts, operation.Key, operationResult.Value));
                     break;
                 }
-                if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
                 {
                     IOperation<T> operation1 = operation;
                     IOperationResult<T> result = operationResult;
@@ -345,7 +266,7 @@ namespace Couchbase.Core.Buckets
                 Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.VBucket.Index, operation.VBucket.Rev, operation.Opaque, operationResult.Message));
             }
 
-            if (Log.IsDebugEnabled && _timingEnabled)
+            if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.EndTimer(TimingLevel.Three);
             }
@@ -361,20 +282,20 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
         /// </returns>
-        public async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query)
+        public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query)
         {
             IViewResult<T> viewResult = null;
             try
             {
-                using (var cancellationTokenSource = new CancellationTokenSource(_configInfo.ClientConfig.ViewHardTimeout))
+                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewHardTimeout))
                 {
-                    var task = RetryViewEvery(async (e, c) =>
+                    var task = RetryViewEveryAsync(async (e, c) =>
                     {
                         var server = c.GetServer();
                         return await server.SendAsync<T>(query);
                     },
-                    query, _configInfo, cancellationTokenSource.Token);
-                    task.ConfigureAwait(false);
+                    query, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+
                     viewResult = await task;
                 }
             }
@@ -400,12 +321,25 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}" /> to send.</param>
         /// <returns>
-        /// An <see cref="Task{IOperationResult}" /> with the status of the request to be awaited on.
+        /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
+        public override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
         {
-            throw new NotImplementedException();
+            var tcs = new TaskCompletionSource<IOperationResult<T>>();
+            var cts = new CancellationTokenSource(OperationLifeSpan);
+            cts.CancelAfter(OperationLifeSpan);
+
+
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+            operation.VBucket = vBucket;
+
+            operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(this, Pending, ClusterController, tcs, cts.Token);
+            Pending.TryAdd(operation.Opaque, operation);
+
+            var server = vBucket.LocatePrimary();
+            server.SendAsync(operation).ConfigureAwait(false);
+            return tcs.Task;
         }
 
         /// <summary>
@@ -416,10 +350,27 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="IQueryResult{T}" /> object that is the result of the query.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
+        public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
-            throw new NotImplementedException();
+            IQueryResult<T> queryResult = null;
+            try
+            {
+                var server = ConfigInfo.GetServer();
+                queryResult = server.Send<T>(queryRequest);
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                const string message = "View request failed, check Error and Exception fields for details.";
+                queryResult = new QueryResult<T>
+                {
+                    Message = message,
+                    Status = QueryStatus.Fatal,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return queryResult;
         }
 
         /// <summary>
@@ -428,9 +379,30 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
         /// <param name="queryRequest">The <see cref="IQueryRequest"/> object to send to the server.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
-        public Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
+        public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
         {
-            throw new NotImplementedException();
+            var tcs = new TaskCompletionSource<IQueryResult<T>>();
+            IQueryResult<T> queryResult = null;
+            try
+            {
+                var server = ConfigInfo.GetServer();
+                queryResult = await server.SendAsync<T>(queryRequest).ConfigureAwait(false);
+                tcs.TrySetResult(queryResult);
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                const string message = "View request failed, check Error and Exception fields for details.";
+                queryResult = new QueryResult<T>
+                {
+                    Message = message,
+                    Status = QueryStatus.Fatal,
+                    Success = false,
+                    Exception = e
+                };
+                tcs.SetResult(queryResult);
+            }
+            return queryResult;;
         }
     }
 }

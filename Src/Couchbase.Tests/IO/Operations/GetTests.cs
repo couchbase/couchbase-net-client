@@ -138,5 +138,13 @@ namespace Couchbase.Tests.IO.Operations
             Assert.AreEqual(operation.Key, cloned.Key);
             Assert.AreEqual(operation.Opaque, cloned.Opaque);
         }
+
+        [Test]
+        public void When_Operation_Is_Get_Operation_Allow_Retries()
+        {
+            var operation = new Get<string>("key", null, null, null, 1000);
+            var result = operation.CanRetry();
+            Assert.AreEqual(true, result);
+        }
     }
 }

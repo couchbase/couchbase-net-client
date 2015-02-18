@@ -88,11 +88,6 @@ namespace Couchbase.Core
 
         public IViewClient ViewClient { get; private set; }
 
-        public Task<IOperationResult<T>> SendAsync<T>(IOperation<T> operation)
-        {
-            return _ioStrategy.ExecuteAsync(operation);
-        }
-
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             if (Log.IsDebugEnabled && _timingEnabled)
@@ -118,6 +113,11 @@ namespace Couchbase.Core
                 operation.EndTimer(TimingLevel.Two);
             }
             return result;
+        }
+
+        public Task SendAsync<T>(IOperation<T> operation)
+        {
+            return _ioStrategy.ExecuteAsync(operation);
         }
 
         public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)

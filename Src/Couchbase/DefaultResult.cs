@@ -32,5 +32,10 @@ namespace Couchbase
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
         public Exception Exception { get; internal set; }
+
+        public bool ShouldRetry()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

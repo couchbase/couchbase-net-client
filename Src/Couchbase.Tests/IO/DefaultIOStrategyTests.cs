@@ -66,5 +66,31 @@ namespace Couchbase.Tests.IO
             }
             Assert.Pass();
         }
+
+        [Test]
+        public void Test_ExecuteAsync()
+        {
+            var tcs = new TaskCompletionSource<object>();
+            var operation = new Noop(new AutoByteConverter(), OperationLifespan);
+            operation.Completed = s =>
+            {
+                Assert.IsNull(s.Exception);
+
+                var buffer = s.Data.ToArray();
+                operation.Read(buffer, 0, buffer.Length);
+                var result = operation.GetResult();
+                Assert.IsTrue(result.Success);
+                Assert.IsNull(result.Exception);
+                Assert.IsNullOrEmpty(result.Message);
+                tcs.SetResult(result);
+                return tcs.Task;
+            };
+        }
+
+        [TestFixtureTearDown]
+        public void TestFixtureTearDown()
+        {
+            _ioStrategy.Dispose();
+        }
     }
 }

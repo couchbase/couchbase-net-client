@@ -34,7 +34,7 @@ namespace Couchbase.Core
 
         IPEndPoint EndPoint { get; }
 
-        Task<IOperationResult<T>> SendAsync<T>(IOperation<T> operation);
+        Task SendAsync<T>(IOperation<T> operation);
 
         IOperationResult<T> Send<T>(IOperation<T> operation);
 

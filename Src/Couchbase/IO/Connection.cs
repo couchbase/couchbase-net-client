@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -37,6 +37,37 @@ namespace Couchbase.IO
 
             //set the buffer to use with this saea instance
             _allocator.SetBuffer(_eventArgs);
+        }
+
+        public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        {
+            if (callback == null)
+            {
+                throw new ArgumentNullException("callback", "Must be provided for async IO.");
+            }
+            var state = new SocketAsyncState
+            {
+                Data = new MemoryStream(),
+                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                Buffer = buffer,
+                Completed = callback
+            };
+            _eventArgs.UserToken = state;
+            Log.Debug(m => m("Sending {0}", state.Opaque));
+
+            //set the buffer
+            var bufferLength = buffer.Length < Configuration.BufferSize
+                ? buffer.Length
+                : Configuration.BufferSize;
+
+            _eventArgs.SetBuffer(0, bufferLength);
+            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
+
+            //Send the request
+            if (!Socket.SendAsync(_eventArgs))
+            {
+                IsDead = true;
+            }
         }
 
         /// <summary>
@@ -163,7 +194,17 @@ namespace Couchbase.IO
             {
                 IsDead = true;
                 state.Exception = new SocketException((int) e.SocketError);
-                _requestCompleted.Set();
+
+                //if the callback is null we are in blocking mode
+                if (state.Completed == null)
+                {
+                    _requestCompleted.Set();
+                }
+                else
+                {
+                    ConnectionPool.Release(this);
+                    state.Completed(state);
+                }
             }
         }
 
@@ -208,14 +249,33 @@ namespace Couchbase.IO
                     }
                     else
                     {
-                        _requestCompleted.Set();
+                        //if the callback is null we are in blocking mode
+                        if (state.Completed == null)
+                        {
+                            _requestCompleted.Set();
+                        }
+                        else
+                        {
+                            ConnectionPool.Release(this);
+                            state.Completed(state);
+                        }
                     }
                 }
                 else
                 {
                     IsDead = true;
                     state.Exception = new SocketException((int)e.SocketError);
-                    _requestCompleted.Set();
+
+                    //if the callback is null we are in blocking mode
+                    if (state.Completed == null)
+                    {
+                        _requestCompleted.Set();
+                    }
+                    else
+                    {
+                        ConnectionPool.Release(this);
+                        state.Completed(state);
+                    }
                 }
                 break;
             }

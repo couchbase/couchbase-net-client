@@ -85,6 +85,7 @@
     <Compile Include="Core\Buckets\IRequestExecuter.cs" />
     <Compile Include="Core\Buckets\KeyObserver.cs" />
     <Compile Include="Core\Buckets\MemcachedRequestExecuter.cs" />
+    <Compile Include="Core\Buckets\RequestExecuterBase.cs" />
     <Compile Include="Core\Diagnostics\CommonLogStore.cs" />
     <Compile Include="Core\Diagnostics\IOperationTimer.cs" />
     <Compile Include="Core\Diagnostics\ITimingStore.cs" />
@@ -167,6 +168,7 @@
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
+    <Compile Include="IO\Operations\CallbackFactory.cs" />
     <Compile Include="IO\Operations\GetK.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
@@ -221,6 +223,7 @@
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
+    <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />
@@ -270,7 +273,6 @@
     <Compile Include="IO\IConnectionPool_T.cs" />
     <Compile Include="IO\IOStrategy.cs" />
     <Compile Include="IO\Operations\IOperation.cs" />
-    <Compile Include="IO\Operations\IOperationResult.cs" />
     <Compile Include="Core\IServer.cs" />
     <Compile Include="Core\IVBucket.cs" />
     <Compile Include="IO\Operations\Magic.cs" />

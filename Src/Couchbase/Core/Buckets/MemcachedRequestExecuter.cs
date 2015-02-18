@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 
 namespace Couchbase.Core.Buckets
@@ -14,26 +15,14 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     /// <remarks>Note that the only methods which Memcached buckets support are implemented.
     /// Methods that are not implemented may throw a <see cref="NotSupportedException"/>.</remarks>
-    internal class MemcachedRequestExecuter : IRequestExecuter
+    internal class MemcachedRequestExecuter : RequestExecuterBase
     {
-        private static readonly ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
-        private readonly IClusterController _clusterController;
-        private readonly IConfigInfo _configInfo;
-        private readonly IByteConverter _converter;
-        private readonly string _bucketName;
-        private const uint operationLifeSpan = 2500;
-        private volatile bool _timingEnabled;
-        private readonly Func<TimingLevel, object, IOperationTimer> Timer;
+        protected static readonly new ILog Log = LogManager.GetLogger<MemcachedRequestExecuter>();
 
-        public MemcachedRequestExecuter(IClusterController clusterController, IConfigInfo configInfo, IByteConverter converter, string bucketName)
+        public MemcachedRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
+            string bucketName, ConcurrentDictionary<uint, IOperation> pending)
+            : base(clusterController, configInfo, bucketName, pending)
         {
-            _clusterController = clusterController;
-            _configInfo = configInfo;
-            _converter = converter;
-            _bucketName = bucketName;
-            Timer = _clusterController.Configuration.Timer;
-            _timingEnabled = _clusterController.Configuration.EnableOperationTiming;
-
         }
 
         /// <summary>
@@ -43,7 +32,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>The <see cref="IServer"/> where the key lives.</returns>
         IServer GetServer(string key)
         {
-            var keyMapper = _configInfo.GetKeyMapper();
+            var keyMapper = ConfigInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
             return bucket.LocatePrimary();
         }
@@ -54,7 +43,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
-        public IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
+        public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
             IOperationResult<T> operationResult = new OperationResult<T> { Success = false };
             do
@@ -155,39 +144,26 @@ namespace Couchbase.Core.Buckets
             return retry;
         }
 
-        public System.Threading.Tasks.Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
+        /// <summary>
+        /// Sends a <see cref="IOperation{T}" /> to the Couchbase Server using the Memcached protocol using async/await.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}" /> to send.</param>
+        /// <returns>
+        /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
         {
-            throw new NotImplementedException();
-        }
+            var tcs = new TaskCompletionSource<IOperationResult<T>>();
+            var cts = new CancellationTokenSource(OperationLifeSpan);
+            cts.CancelAfter(OperationLifeSpan);
 
-        public Views.IViewResult<T> SendWithRetry<T>(Views.IViewQuery query)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
-        }
+            operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(this, Pending, ClusterController, tcs, cts.Token);
+            Pending.TryAdd(operation.Opaque, operation);
 
-        public System.Threading.Tasks.Task<Views.IViewResult<T>> SendWithRetryAsync<T>(Views.IViewQuery query)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
-        }
-
-        public N1QL.IQueryResult<T> SendWithRetry<T>(N1QL.IQueryRequest queryRequest)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
-        }
-
-        public System.Threading.Tasks.Task<N1QL.IQueryResult<T>> SendWithRetryAsync<T>(N1QL.IQueryRequest queryRequest)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
-        }
-
-        public IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
-        }
-
-        public System.Threading.Tasks.Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            throw new NotSupportedException("This method is not supported by Memcached buckets.");
+            var server = GetServer(operation.Key);
+            server.SendAsync(operation).ConfigureAwait(false);
+            return tcs.Task;
         }
     }
 }

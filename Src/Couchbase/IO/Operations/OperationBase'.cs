@@ -13,6 +13,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Couchbase.Views;
 
 namespace Couchbase.IO.Operations
 {
@@ -195,6 +196,20 @@ namespace Couchbase.IO.Operations
             return buffer;
         }
 
+        public virtual Task<byte[]> WriteAsync()
+        {
+            var tcs = new TaskCompletionSource<byte[]>();
+            try
+            {
+                tcs.SetResult(Write());
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return tcs.Task;
+        }
+
         public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
             var header = new byte[24];
@@ -331,12 +346,6 @@ namespace Couchbase.IO.Operations
             }
 
             return bytes;
-        }
-
-        [Obsolete("remove after refactoring async")]
-        public byte[] GetBuffer()
-        {
-            throw new NotImplementedException();
         }
 
         public virtual Couchbase.IOperationResult<T> GetResult()
@@ -522,6 +531,11 @@ namespace Couchbase.IO.Operations
 
         public DateTime CreationTime { get; set; }
 
+        public virtual bool CanRetry()
+        {
+            return Cas > 0;
+        }
+
         public virtual IOperation<T> Clone()
         {
             throw new NotImplementedException();
@@ -542,6 +556,8 @@ namespace Couchbase.IO.Operations
         }
 
         public byte[] WriteBuffer { get; set; }
+
+        public Func<SocketAsyncState, Task> Completed { get; set; }
     }
 }
 

@@ -1,4 +1,8 @@
-﻿using Couchbase.IO;
+﻿using System;
+using System.IO;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using Couchbase.IO;
 using Couchbase.IO.Operations;
 
 namespace Couchbase
@@ -42,6 +46,46 @@ namespace Couchbase
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
         public System.Exception Exception { get; set; }
+
+        public bool ShouldRetry()
+        {
+            switch (Status)
+            {
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                    return true;
+                case ResponseStatus.ClientFailure:
+                    return IsClientFailureRetriable();
+                case ResponseStatus.Success:
+                case ResponseStatus.KeyNotFound:
+                case ResponseStatus.KeyExists:
+                case ResponseStatus.ValueTooLarge:
+                case ResponseStatus.InvalidArguments:
+                case ResponseStatus.ItemNotStored:
+                case ResponseStatus.IncrDecrOnNonNumericValue:
+                case ResponseStatus.AuthenticationError:
+                case ResponseStatus.AuthenticationContinue:
+                case ResponseStatus.InvalidRange:
+                case ResponseStatus.UnknownCommand:
+                case ResponseStatus.OutOfMemory:
+                case ResponseStatus.NotSupported:
+                case ResponseStatus.InternalError:
+                case ResponseStatus.Busy:
+                case ResponseStatus.TemporaryFailure:
+                case ResponseStatus.OperationTimeout:
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        bool IsClientFailureRetriable()
+        {
+            if (Exception is SocketException)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }
 

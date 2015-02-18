@@ -4,8 +4,8 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Strategies
 {
@@ -118,12 +118,10 @@ namespace Couchbase.IO.Strategies
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public async Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        public async Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
-            await connection.SendAsync(operation.Write()).ConfigureAwait(false);
-            var buffer = await connection.ReceiveAsync(operation.Opaque).ConfigureAwait(false);
-            await operation.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-            return operation.GetResult();
+            var request = await operation.WriteAsync().ContinueOnAnyContext();
+            connection.SendAsync(request, operation.Completed);
         }
 
         /// <summary>
@@ -138,17 +136,16 @@ namespace Couchbase.IO.Strategies
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public Task<IOperationResult<T>> ExecuteAsync<T>(IOperation<T> operation)
+        public Task ExecuteAsync<T>(IOperation<T> operation)
         {
             var connection = _connectionPool.Acquire();
             if (!connection.IsAuthenticated)
             {
                 Authenticate(connection);
             }
-            var result = ExecuteAsync(operation, connection);
-            _connectionPool.Release(connection);
-            return result;
+            return ExecuteAsync(operation, connection);
         }
+
 
         /// <summary>
         /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy" /> instance is communicating with.

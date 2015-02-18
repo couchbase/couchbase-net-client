@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Couchbase.IO
 {
@@ -18,6 +19,8 @@ namespace Couchbase.IO
         public byte[] Buffer { get; set; }
 
         public Exception Exception { get; set; }
+
+        public Func<SocketAsyncState, Task> Completed { get; set; }
     }
 
     #region [ License information ]

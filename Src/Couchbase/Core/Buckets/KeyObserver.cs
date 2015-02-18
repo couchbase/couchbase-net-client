@@ -9,6 +9,7 @@ using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {
@@ -167,7 +168,7 @@ namespace Couchbase.Core.Buckets
                     Task.WaitAll(tasks.ToArray());
                     return tasks.All(subtask => subtask.Result);
                 }, observeParams, _interval, cancellationTokenSource.Token);
-                task.ConfigureAwait(false);
+                task.ContinueOnAnyContext();
                 task.Wait(_timeout);
                 return task.Result;
             }
@@ -204,7 +205,7 @@ namespace Couchbase.Core.Buckets
 
             var replica = op.VBucket.LocateReplica(replicaIndex);
             var result = await Task.Run(()=>replica.Send(new Observe(op.Key, op.VBucket, new AutoByteConverter(), ObserveOperationTimeout)))
-                .ConfigureAwait(false);
+                .ContinueOnAnyContext();
 
             Log.Debug(m=>m("Replica {0} - {1} [0]", replica.EndPoint, result.Value, replicaIndex));
             var state = result.Value;

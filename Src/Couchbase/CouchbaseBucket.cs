@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -14,6 +14,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -40,11 +41,13 @@ namespace Couchbase
         private readonly ITypeTranscoder _transcoder;
         private readonly uint _operationLifespanTimeout;
         private CouchbaseRequestExecuter _requestExecuter;
+        private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
         /// </summary>
         private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
+
 
         [UsedImplicitly]
         private sealed class RefCount
@@ -67,11 +70,6 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// The Bucket's name. You can view this from the Couchbase Management Console.
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
         /// Returns type of the bucket. In this implementation the value is constant: Couchbase.
         /// </summary>
         public BucketTypeEnum BucketType
@@ -83,17 +81,22 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// The Bucket's name. You can view this from the Couchbase Management Console.
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
         /// Called when a configuration update has occurred from the server.
         /// </summary>
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m=>m("Config updated old/new: {0}, {1}",
+            Log.Info(m => m("Config updated old/new: {0}, {1}",
                 _configInfo != null ? _configInfo.BucketConfig.Rev :
                 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
-                new CouchbaseRequestExecuter(_clusterController, _configInfo, _converter, Name));
+                new CouchbaseRequestExecuter(_clusterController, _configInfo, Name, _pending));
         }
 
         IServer GetServer(string key, out IVBucket vBucket)
@@ -101,6 +104,28 @@ namespace Couchbase
             var keyMapper = _configInfo.GetKeyMapper();
             vBucket = (IVBucket)keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
+        }
+
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<string> Append(string key, string value)
+        {
+            CheckDisposed();
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Append<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
         }
 
         /// <summary>
@@ -126,22 +151,45 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
+        /// Appends a value to a give key.
         /// </summary>
-        /// <param name="key">The key to 'observe'.</param>
-        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
-        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>A <see cref="ObserveResponse"/> value indicating if the durability requirement were or were not met.</returns>
-        public ObserveResponse Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Append(string key, byte[] value)
         {
             CheckDisposed();
-            var config = _configInfo.ClientConfig.BucketConfigs[Name];
-            var observer = new KeyObserver(_configInfo, config.ObserveInterval, config.ObserveTimeout);
-            return observer.Observe(key, cas, deletion, replicateTo, persistTo)
-                ? ObserveResponse.DurabilitySatisfied
-                : ObserveResponse.DurabilityNotSatisfied;
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        public Task<IOperationResult<string>> AppendAsync(string key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IBucketManager CreateManager(string username, string password)
+        {
+            return new BucketManager(Name,
+                _configInfo.ClientConfig,
+                new HttpClient(),
+                new JsonDataMapper(_configInfo.ClientConfig),
+                username,
+                password);
         }
 
         /// <summary>
@@ -175,276 +223,206 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
         /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Upsert<T>(IDocument<T> document)
+        /// <param name="designDoc"></param>
+        /// <param name="view"></param>
+        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
+        public IViewQuery CreateQuery(string designDoc, string view)
         {
-            var result = Upsert(document.Id, document.Content);
-            return new DocumentResult<T>(result, document.Id);
+            CheckDisposed();
+            return new ViewQuery(Name, null, designDoc, view)
+            {
+                UseSsl = _configInfo.SslConfigured
+            };
+        }
+        /// <summary>
+        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
+        /// </summary>
+        /// <param name="designdoc">The design document that the View belongs to.</param>
+        /// <param name="viewname"></param>
+        /// <param name="development">True will execute on the development dataset.</param>
+        /// >
+        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
+        public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
+        {
+            CheckDisposed();
+            return new ViewQuery(Name, null, designdoc, viewname)
+            {
+                UseSsl = _configInfo.SslConfigured
+            }
+            .Development(development);
         }
 
         /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
+        /// Decrements the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with 1.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value)
+        /// <param name="key">The key to us for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<ulong> Decrement(string key)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta)
+        {
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial)
+        {
+            //infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0;
+
+            return Decrement(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            return Decrement(key, delta, initial, expiration.ToTtl());
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key)
+        {
+
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
+        /// removing it from it's <see cref="ClusterController"/> instance.
+        /// </summary>
+        public void Dispose()
+        {
+            Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
+            ((IRefCountable)this).Release();
+
+        }
+
+        /// <summary>
+        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
+        /// </summary>
+        /// <param name="obj">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
+        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj is CouchbaseBucket && Equals((CouchbaseBucket)obj);
+        }
+
+        /// <summary>
+        /// Gets a value for a given key.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
+        /// <param name="key">The unique Key to use to lookup the value.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Get<T>(string key)
+        {
+            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
+        /// Gets a range of values for a given set of keys
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
-        {
-            const int expiration = 0;
-            return Upsert(key, value, cas, expiration);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
-        {
-            const int cas = 0;
-            return Upsert(key, value, cas, expiration);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration)
-        {
-            return Upsert(key, value, expiration.ToTtl());
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
-        {
-            CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas,
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration)
-        {
-            return Upsert(key, value, cas, expiration.ToTtl());
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
-        {
-            return Upsert(document, replicateTo, PersistTo.Zero);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo)
-        {
-            return Upsert(key, value, replicateTo, PersistTo.Zero);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            var result = Upsert(document.Id, document.Content, replicateTo, persistTo);
-            return new DocumentResult<T>(result, document.Id);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            return Upsert(key, value, expiration.ToTtl(), replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                Cas = cas
-            };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Inserts or replaces an existing document into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            return Upsert(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Inserts or replaces a range of items into Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
-        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
-        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
-        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (items != null && items.Count > 0)
+            if (keys != null && keys.Count > 0)
             {
-                var keys = items.Keys.ToList();
-                var partitionar = Partitioner.Create(0, items.Count());
+                var partitionar = Partitioner.Create(0, keys.Count());
                 Parallel.ForEach(partitionar, (range, loopstate) =>
                 {
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var value = items[key];
-                        var result = Upsert(key, value);
+                        var result = Get<T>(key);
                         results.TryAdd(key, result);
                     }
                 });
@@ -453,28 +431,24 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Inserts or replaces a range of items into Couchbase Server.
+        /// Gets a range of values for a given set of keys
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
-        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
-        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
-        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
-        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (items != null && items.Count > 0)
+            if (keys != null && keys.Count > 0)
             {
-                var keys = items.Keys.ToList();
-                var partitionar = Partitioner.Create(0, items.Count());
+                var partitionar = Partitioner.Create(0, keys.Count());
                 Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var value = items[key];
-                        var result = Upsert(key, value);
+                        var result = Get<T>(key);
                         results.TryAdd(key, result);
                     }
                 });
@@ -483,29 +457,25 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Inserts or replaces a range of items into Couchbase Server.
+        /// Gets a range of values for a given set of keys
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
-        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options"></param>
         /// <param name="rangeSize">The size of each subrange</param>
-        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
-        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
-        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
+        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (items != null && items.Count > 0)
+            if (keys != null && keys.Count > 0)
             {
-                var keys = items.Keys.ToList();
-                var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+                var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
                 Parallel.ForEach(partitionar, options, (range, loopstate) =>
                 {
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var value = items[key];
-                        var result = Upsert(key, value);
+                        var result = Get<T>(key);
                         results.TryAdd(key, result);
                     }
                 });
@@ -514,247 +484,242 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Replaces a document if it exists, otherwise fails.
+        /// Gets a Task that can be awaited on for a given Key and value.
         /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Replace<T>(IDocument<T> document)
-        {
-            var result = Replace(document.Id, document.Content, document.Cas);
-            return new DocumentResult<T>(result, document.Id);
-        }
-
-        /// <summary>
-        /// Replaces a value for a key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value)
+        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
+        /// <param name="key">The unique Key to use to lookup the value.</param>
+        /// <returns>A Task that can be awaited on for it's <see cref="IOperationResult{T}"/> value.</returns>
+        public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
+            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// Gets a document by it's given id.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
+        public IDocumentResult<T> GetDocument<T>(string id)
         {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
+            var result = Get<T>(id);
+            return new DocumentResult<T>(result, id);
+        }
+
+        public Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult<T> GetFromReplica<T>(string key)
+        {
+            IVBucket vBucket = null;
+            var primary = GetServer(key, out vBucket);
+
+            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
+            var result = primary.Send(replicaRead);
+
+            if (result.Success) return result;
+            foreach (var replica in vBucket.Replicas)
+            {
+                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
+                var server = vBucket.LocateReplica(replica);
+                if (server == null) continue;
+                result = server.Send(replicaRead);
+                if (result.Success)
+                {
+                    return result;
+                }
+            }
+
+            return result;
+        }
+
+        public Task<IOperationResult<T>> GetFromReplicAsync<T>(string key)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// Gets the hashcode for the CouchbaseBucket instance.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>The hashcode of the instance</returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (_clusterController != null ? _clusterController.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
+        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
+        {
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expiration = expiration
+            };
+            return _requestExecuter.SendWithRetry(getl);
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult{T}" /> with the value.
+        /// </returns>
+        public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
+        {
+            //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
+            //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
+            return GetWithLock<T>(key, (uint)expiration.TotalSeconds);
+        }
+
+        public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /// <summary>
+        /// Increments the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<ulong> Increment(string key)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta)
+        {
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial)
+        {
+            //infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0;
+
+            return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
         /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
         /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
         /// </remarks>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
+        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
             {
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithRetry(operation);
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
         }
 
         /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
         /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
         /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
         /// </returns>
-        public IOperationResult<T> Replace<T>(string key, T value, TimeSpan expiration)
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
-            return Replace(key, value, expiration.ToTtl());
+            return Increment(key, delta, initial, expiration.ToTtl());
         }
 
-        /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
+        public Task<IOperationResult<ulong>> IncrementAsync(string key)
         {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas,
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithRetry(operation);
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration)
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta)
         {
-            return Replace(key, value, cas, expiration.ToTtl());
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Replaces a document if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial)
         {
-            return Replace(document, replicateTo, PersistTo.Zero);
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Replaces a value for a key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo)
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
-            return Replace(key, value, replicateTo, PersistTo.Zero);
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Replaces a value for a key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas"></param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
-            return Replace(key, value, cas, replicateTo, PersistTo.Zero);
-        }
-
-        /// <summary>
-        /// Replaces a document if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
-        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
-        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            var result = Replace(document.Id, document.Content, document.Cas, replicateTo, persistTo);
-            return new DocumentResult<T>(result, document.Id);
-        }
-
-        /// <summary>
-        /// Replaces a value for a key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
-        }
-
-        /// <summary>
-        /// Replaces a document for a given key if it exists, otherwise fails.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
-        /// <param name="key">The unique key for indexing.</param>
-        /// <param name="value">The value for the key.</param>
-        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>
-        /// An object implementing the <see cref="IOperationResult{T}" />interface.
-        /// </returns>
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            return Replace(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -915,6 +880,309 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <returns>A Task that can be awaited on for it's <see cref="IOperationResult{T}"/> value.</returns>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
+        {
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Increments the reference counter for this <see cref="IBucket"/> instance.
+        /// </summary>
+        /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
+        int IRefCountable.AddRef()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
+                return Interlocked.Increment(ref refCount.Count);
+            }
+        }
+
+        /// <summary>
+        /// Decrements the reference counter and calls <see cref="IDisposable.Dispose"/> if the count is zero.
+        /// </summary>
+        /// <returns></returns>
+        int IRefCountable.Release()
+        {
+            lock (RefCounts)
+            {
+                var refCount = RefCounts.GetOrCreateValue(this);
+                if (refCount.Count > 0)
+                {
+                    Log.DebugFormat("Current bucket refCount# {0}", refCount.Count);
+                    Interlocked.Decrement(ref refCount.Count);
+                    if (refCount.Count != 0) return refCount.Count;
+                    Log.DebugFormat("Removing bucket refCount# {0}", refCount.Count);
+                    RefCounts.Remove(this);
+                    Dispose(true);
+                }
+                else
+                {
+                    Dispose(true);
+                }
+                return refCount.Count;
+            }
+        }
+
+        /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>A <see cref="ObserveResponse"/> value indicating if the durability requirement were or were not met.</returns>
+        public ObserveResponse Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            CheckDisposed();
+            var config = _configInfo.ClientConfig.BucketConfigs[Name];
+            var observer = new KeyObserver(_configInfo, config.ObserveInterval, config.ObserveTimeout);
+            return observer.Observe(key, cas, deletion, replicateTo, persistTo)
+                ? ObserveResponse.DurabilitySatisfied
+                : ObserveResponse.DurabilityNotSatisfied;
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<string> Prepend(string key, string value)
+        {
+            CheckDisposed();
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
+        public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration)
+        {
+            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration)
+        {
+            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IDocumentResult{T}"/> with the key's document.</returns>
+        public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration)
+        {
+            var result = GetAndTouch<T>(key, expiration);
+            return new DocumentResult<T>(result, key);
+        }
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        public Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            var result = GetAndTouchAsync<T>(key, expiration);
+            tcs.SetResult(new DocumentResult<T>(result.Result, key));
+            return tcs.Task;
+        }
+
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
+        public IOperationResult<byte[]> Prepend(string key, byte[] value)
+        {
+            CheckDisposed();
+            IVBucket vBucket;
+            var server = GetServer(key, out vBucket);
+
+            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
+            var operationResult = server.Send(operation);
+
+            if (CheckForConfigUpdates(operationResult, operation))
+            {
+                Log.Info(m => m("Requires retry {0}", key));
+            }
+            return operationResult;
+        }
+
+        public Task<IOperationResult<string>> PrependAsync(string key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Executes a View query and returns the result.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
+        /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
+        public IViewResult<T> Query<T>(IViewQuery query)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetry<T>((ViewQuery)query);
+        }
+
+        /// <summary>
+        /// Executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public IQueryResult<T> Query<T>(string query)
+        {
+            CheckDisposed();
+            var server = _configInfo.GetServer();
+            return server.Send<T>(query);
+        }
+
+        /// <summary>
+        /// Executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetry<T>(queryRequest);
+        }
+
+        /// <summary>
+        /// Asynchronously Executes a View query and returns the result.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
+        public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(query);
+        }
+
+        /// <summary>
+        /// Asynchronously executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
+        public Task<IQueryResult<T>> QueryAsync<T>(string query)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(new QueryRequest(query));
+        }
+
+        /// <summary>
+        /// Asynchronously executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(queryRequest);
+        }
+
+        /// <summary>
         /// Removes a document from the database.
         /// </summary>
         /// <typeparam name="T">The type T of the object.</typeparam>
@@ -944,7 +1212,6 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
@@ -1009,7 +1276,6 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
         }
@@ -1024,7 +1290,6 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
@@ -1119,229 +1384,365 @@ namespace Couchbase
             return results;
         }
 
-        /// <summary>
-        /// Gets a document by it's given id.
-        /// </summary>
-        /// <typeparam name="T">The type T to convert the value to.</typeparam>
-        /// <param name="id">The documents primary key.</param>
-        /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
-        public IDocumentResult<T> GetDocument<T>(string id)
-        {
-            var result = Get<T>(id);
-            return new DocumentResult<T>(result, id);
-        }
-
-        /// <summary>
-        /// Gets a value for a given key.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
-        /// <param name="key">The unique Key to use to lookup the value.</param>
-        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
-        public IOperationResult<T> Get<T>(string key)
+        public Task<IOperationResult<object>> RemoveAsync(string key)
         {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Retrieves a value by key and additionally updates the expiry with a new value.
-        /// </summary>
-        /// <param name="key">The key to "touch".</param>
-        /// <param name="expiration">The expiration to extend.</param>
-        /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
-        public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration)
-        {
-            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration.ToTtl()
-            };
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Retrieves a value by key and additionally updates the expiry with a new value as an asynchronous operation.
-        /// </summary>
-        /// <param name="key">The key to "touch".</param>
-        /// <param name="expiration">The expiration to extend.</param>
-        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration)
-        {
-            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration.ToTtl()
-            };
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
-        /// <summary>
-        /// Retrieves a document by key and additionally updates the expiry with a new value.
-        /// </summary>
-        /// <param name="key">The key to "touch".</param>
-        /// <param name="expiration">The expiration to extend.</param>
-        /// <returns>An <see cref="IDocumentResult{T}"/> with the key's document.</returns>
-        public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration)
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
         {
-            var result = GetAndTouch<T>(key, expiration);
-            return new DocumentResult<T>(result, key);
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
-        /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// Replaces a document if it exists, otherwise fails.
         /// </summary>
-        /// <param name="key">The key to "touch".</param>
-        /// <param name="expiration">The expiration to extend.</param>
-        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        public Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            var result = GetAndTouchAsync<T>(key, expiration);
-            tcs.SetResult(new DocumentResult<T>(result.Result, key));
-            return tcs.Task;
-        }
-
-        public IOperationResult<T> GetFromReplica<T>(string key)
-        {
-            CheckDisposed();
-            IVBucket vBucket = null;
-            var primary = GetServer(key, out vBucket);
-
-            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            var result = primary.Send(replicaRead);
-
-            if (result.Success) return result;
-            foreach (var replica in vBucket.Replicas)
-            {
-                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-                var server = vBucket.LocateReplica(replica);
-                if (server == null) continue;
-                result = server.Send(replicaRead);
-                if (result.Success)
-                {
-                    return result;
-                }
-            }
-
-            return result;
+            var result = Replace(document.Id, document.Content, document.Cas);
+            return new DocumentResult<T>(result, document.Id);
         }
 
         /// <summary>
-        /// Gets a range of values for a given set of keys
+        /// Replaces a value for a key if it exists, otherwise fails.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
-        /// <param name="keys">The keys to get</param>
-        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
-        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (keys != null && keys.Count > 0)
-            {
-                var partitionar = Partitioner.Create(0, keys.Count());
-                Parallel.ForEach(partitionar, (range, loopstate) =>
-                {
-                    for (var i = range.Item1; i < range.Item2; i++)
-                    {
-                        var key = keys[i];
-                        var result = Get<T>(key);
-                        results.TryAdd(key, result);
-                    }
-                });
-            }
-            return results;
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Gets a range of values for a given set of keys
+        /// Replaces a document for a given key if it exists, otherwise fails.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
-        /// <param name="keys">The keys to get</param>
-        /// <param name="options"></param>
-        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
-        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (keys != null && keys.Count > 0)
-            {
-                var partitionar = Partitioner.Create(0, keys.Count());
-                Parallel.ForEach(partitionar, options, (range, loopstate) =>
-                {
-                    for (var i = range.Item1; i < range.Item2; i++)
-                    {
-                        var key = keys[i];
-                        var result = Get<T>(key);
-                        results.TryAdd(key, result);
-                    }
-                });
-            }
-            return results;
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Gets a range of values for a given set of keys
+        /// Replaces a document for a given key if it exists, otherwise fails.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
-        /// <param name="keys">The keys to get</param>
-        /// <param name="options"></param>
-        /// <param name="rangeSize">The size of each subrange</param>
-        /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
-        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (keys != null && keys.Count > 0)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
-                var partitionar = Partitioner.Create(0, keys.Count(), rangeSize);
-                Parallel.ForEach(partitionar, options, (range, loopstate) =>
-                {
-                    for (var i = range.Item1; i < range.Item2; i++)
-                    {
-                        var key = keys[i];
-                        var result = Get<T>(key);
-                        results.TryAdd(key, result);
-                    }
-                });
-            }
-            return results;
-        }
-
-        /// <summary>
-        /// Gets a document and locks it for a specified time period.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
-        /// <param name="key">The key of the document to retrieve.</param>
-        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
-        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
-        /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
-        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
-        public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
-        {
-            CheckDisposed();
-            const uint defaultExpiration = 15;
-            const uint maxExpiration = 30;
-            if (expiration > maxExpiration)
-            {
-                expiration = defaultExpiration;
-            }
-            var getl = new GetL<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
-            {
-                Expiration = expiration
+                Expires = expiration
             };
-            return _requestExecuter.SendWithRetry(getl);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Gets a document and locks it for a specified time period.
+        /// Replaces a document for a given key if it exists, otherwise fails.
         /// </summary>
-        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
-        /// <param name="key">The key of the document to retrieve.</param>
-        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
         /// <returns>
-        /// An <see cref="IOperationResult{T}" /> with the value.
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
         /// </returns>
-        public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
+        public IOperationResult<T> Replace<T>(string key, T value, TimeSpan expiration)
         {
-            //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
-            //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
-            return GetWithLock<T>(key, (uint) expiration.TotalSeconds);
+            return Replace(key, value, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
+        {
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Cas = cas,
+                Expires = expiration
+            };
+            return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            return Replace(key, value, cas, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            return Replace(document, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            return Replace(key, value, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas"></param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
+        {
+            return Replace(key, value, cas, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var result = Replace(document.Id, document.Content, document.Cas, replicateTo, persistTo);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Replaces a value for a key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration
+            };
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            return Replace(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
+        {
+            CheckDisposed();
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1352,7 +1753,6 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
         public IOperationResult Unlock(string key, ulong cas)
         {
-            CheckDisposed();
             var unlock = new Unlock(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
@@ -1360,371 +1760,118 @@ namespace Couchbase
             return _requestExecuter.SendWithRetry(unlock);
         }
 
-        /// <summary>
-        /// Increments the value of a key by one. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<ulong> Increment(string key)
-        {
-            const ulong initial = 1;
-            const ulong delta = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
-
-            return Increment(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<ulong> Increment(string key, ulong delta)
-        {
-            const ulong initial = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
-
-            return Increment(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial)
-        {
-            //infinite - there is also a 'special' value -1: 'don't create if missing'
-            const uint expiration = 0;
-
-            return Increment(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
-        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
-        /// <returns>
-        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
-        /// </returns>
-        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration)
-        {
-            return Increment(key, delta, initial, expiration.ToTtl());
-        }
-
-        /// <summary>
-        /// Decrements the value of a key by one. If the key doesn't exist, it will be created
-        /// and seeded with 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<ulong> Decrement(string key)
-        {
-            const ulong initial = 1;
-            const ulong delta = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
-
-            return Decrement(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<ulong> Decrement(string key, ulong delta)
-        {
-            const ulong initial = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
-
-            return Decrement(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial)
-        {
-            //infinite - there is also a 'special' value -1: 'don't create if missing'
-            const uint expiration = 0;
-
-            return Decrement(key, delta, initial, expiration);
-        }
-
-        /// <summary>
-        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
-        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
-        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
-        /// </remarks>
-        /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
-        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
-        /// and seeded with the defaut initial value 1.
-        /// </summary>
-        /// <param name="key">The key to us for the counter.</param>
-        /// <param name="delta">The number to increment the key by.</param>
-        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
-        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
-        /// <returns>
-        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
-        /// </returns>
-        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration)
-        {
-            return Decrement(key, delta, initial, expiration.ToTtl());
-        }
-
-        /// <summary>
-        /// Appends a value to a give key.
-        /// </summary>
-        /// <param name="key">The key to append too.</param>
-        /// <param name="value">The value to append to the key.</param>
-        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
-        public IOperationResult<string> Append(string key, string value)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Append<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Appends a value to a give key.
-        /// </summary>
-        /// <param name="key">The key to append too.</param>
-        /// <param name="value">The value to append to the key.</param>
-        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
-        public IOperationResult<byte[]> Append(string key, byte[] value)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Prepends a value to a give key.
-        /// </summary>
-        /// <param name="key">The key to Prepend too.</param>
-        /// <param name="value">The value to prepend to the key.</param>
-        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
-        public IOperationResult<string> Prepend(string key, string value)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Prepends a value to a give key.
-        /// </summary>
-        /// <param name="key">The key to Prepend too.</param>
-        /// <param name="value">The value to prepend to the key.</param>
-        /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
-        public IOperationResult<byte[]> Prepend(string key, byte[] value)
-        {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetry(operation);
-        }
-
-        /// <summary>
-        /// Gets a Task that can be awaited on for a given Key and value.
-        /// </summary>
-        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
-        /// <param name="key">The unique Key to use to lookup the value.</param>
-        /// <returns>A Task that can be awaited on for it's <see cref="IOperationResult{T}"/> value.</returns>
-        public Task<IOperationResult<T>> GetAsync<T>(string key)
+        public Task<IOperationResult> UnlockAsync(string key, ulong cas)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document)
+        {
+            var result = Upsert(document.Id, document.Content);
+            return new DocumentResult<T>(result, document.Id);
         }
 
         /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        /// <returns>A Task that can be awaited on for it's <see cref="IOperationResult{T}"/> value.</returns>
-        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            throw new NotImplementedException();
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Executes a View query and returns the result.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
-        /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
-        /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
-        public IViewResult<T> Query<T>(IViewQuery query)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
         {
-            CheckDisposed();
-            return _requestExecuter.SendWithRetry<T>((ViewQuery)query);
+            const int expiration = 0;
+            return Upsert(key, value, cas, expiration);
         }
 
         /// <summary>
-        /// Asynchronously Executes a View query and returns the result.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
-        /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
-        /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
-        public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
-            CheckDisposed();
-            return _requestExecuter.SendWithRetryAsync<T>(query);
+            const int cas = 0;
+            return Upsert(key, value, cas, expiration);
         }
 
         /// <summary>
-        /// Executes a N1QL query against the Couchbase Cluster.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">An ad-hoc N1QL query.</param>
-        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        public IQueryResult<T> Query<T>(string query)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration)
         {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Send<T>(query);
+            return Upsert(key, value, expiration.ToTtl());
         }
 
         /// <summary>
-        /// Asynchronously executes a N1QL query against the Couchbase Cluster.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">An ad-hoc N1QL query.</param>
-        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
-        public Task<IQueryResult<T>> QueryAsync<T>(string query)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-             CheckDisposed();
-             var server = _configInfo.GetServer();
-             return server.SendAsync<T>(query);
-        }
-
-        /// <summary>
-        /// Executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
-        /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
-        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
-        {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Send<T>(queryRequest);
-        }
-
-        /// <summary>
-        /// Asynchronously executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
-        /// </summary>
-        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
-        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
-        {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.SendAsync<T>(queryRequest);
-        }
-
-        /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
-        /// </summary>
-        /// <param name="designDoc"></param>
-        /// <param name="view"></param>
-        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        public IViewQuery CreateQuery(string designDoc, string view)
-        {
-            CheckDisposed();
-            return new ViewQuery(Name, null, designDoc, view)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
-                UseSsl = _configInfo.SslConfigured
+                Cas = cas,
+                Expires = expiration
             };
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <param name="designdoc">The design document that the View belongs to.</param>
-        /// <param name="viewname"></param>
-        /// <param name="development">True will execute on the development dataset.</param>
-        /// >
-        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
-        public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration)
         {
-            CheckDisposed();
-            return new ViewQuery(Name, null, designdoc, viewname)
-            {
-                UseSsl = _configInfo.SslConfigured
-            }
-            .Development(development);
+            return Upsert(key, value, cas, expiration.ToTtl());
         }
 
         /// <summary>
@@ -1756,102 +1903,305 @@ namespace Couchbase
             return server.Prepare(toPrepare);
         }
 
-
-        public IBucketManager CreateManager(string username, string password)
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            return new BucketManager(Name,
-                _configInfo.ClientConfig,
-                new HttpClient(),
-                new JsonDataMapper(_configInfo.ClientConfig),
-                username,
-                password);
+            return Upsert(document, replicateTo, PersistTo.Zero);
         }
 
         /// <summary>
-        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <param name="other">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
-        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
-        private bool Equals(CouchbaseBucket other)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            return Equals(_clusterController, other._clusterController) &&
-                _disposed.Equals(other._disposed) &&
-                string.Equals(Name, other.Name);
+            return Upsert(key, value, replicateTo, PersistTo.Zero);
         }
 
         /// <summary>
-        /// Gets the hashcode for the CouchbaseBucket instance.
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
-        /// <returns>The hashcode of the instance</returns>
-        public override int GetHashCode()
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}"/> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            unchecked
+            var result = Upsert(document.Id, document.Content, replicateTo, persistTo);
+            return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
-                var hashCode = (_clusterController != null ? _clusterController.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
-                return hashCode;
-            }
-        }
-
-        void CheckDisposed()
-        {
-            if (_disposed)
-            {
-                var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
-                throw new ObjectDisposedException(message);
-            }
+                Expires = expiration
+            };
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
-        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <param name="obj">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
-        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
-        public override bool Equals(object obj)
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj is CouchbaseBucket && Equals((CouchbaseBucket) obj);
+            return Upsert(key, value, expiration.ToTtl(), replicateTo, persistTo);
         }
 
         /// <summary>
-        /// Increments the reference counter for this <see cref="IBucket"/> instance.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
-        int IRefCountable.AddRef()
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            lock (RefCounts)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
-                var refCount = RefCounts.GetOrCreateValue(this);
-                Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
-                return Interlocked.Increment(ref refCount.Count);
-            }
+                Expires = expiration,
+                Cas = cas
+            };
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
-        /// Decrements the reference counter and calls <see cref="IDisposable.Dispose"/> if the count is zero.
+        /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
-        /// <returns></returns>
-        int IRefCountable.Release()
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            lock (RefCounts)
+            return Upsert(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
+            if (items != null && items.Count > 0)
             {
-                var refCount = RefCounts.GetOrCreateValue(this);
-                if (refCount.Count > 0)
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count());
+                Parallel.ForEach(partitionar, (range, loopstate) =>
                 {
-                    Log.DebugFormat("Current bucket refCount# {0}", refCount.Count);
-                    Interlocked.Decrement(ref refCount.Count);
-                    if (refCount.Count != 0) return refCount.Count;
-                    Log.DebugFormat("Removing bucket refCount# {0}", refCount.Count);
-                    RefCounts.Remove(this);
-                    Dispose(true);
-                }
-                else
-                {
-                    Dispose(true);
-                }
-                return refCount.Count;
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
             }
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
+            if (items != null && items.Count > 0)
+            {
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count());
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
+                {
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
+            return results;
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
+        /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
+        {
+            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
+            if (items != null && items.Count > 0)
+            {
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
+                {
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
+            return results;
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
+        {
+            CheckDisposed();
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1875,14 +2225,45 @@ namespace Couchbase
             }
         }
 
-        /// <summary>
-        /// Closes this <see cref="CouchbaseBucket"/> instance, shutting down and releasing all resources,
-        /// removing it from it's <see cref="ClusterController"/> instance.
-        /// </summary>
-        public void Dispose()
+        void CheckDisposed()
         {
-            Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
-            ((IRefCountable)this).Release();
+            if (_disposed)
+            {
+                var message = string.Format("This bucket [{0}] has been disposed! Performing operations on a disposed bucket is not supported!", Name);
+                throw new ObjectDisposedException(message);
+
+            }
+        }
+
+        /// <summary>
+        /// Performs a CCCP request for the latest server configuration if the passed in operationResult
+        /// results in a NMV response.
+        /// </summary>
+        /// <typeparam name="T">The Type parameter of the passed in operation.</typeparam>
+        /// <param name="operationResult">The <see cref="IOperationResult{T}"/> to check.</param>
+        /// <param name="operation"></param>
+        /// <returns>True if the operation should be retried again with the new config.</returns>
+        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult, IOperation operation)
+        {
+            var requiresRetry = false;
+            if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+            {
+                try
+                {
+                    var bucketConfig = operation.GetConfig();
+                    if (bucketConfig != null)
+                    {
+                        Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        _clusterController.NotifyConfigPublished(bucketConfig);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                requiresRetry = true;
+            }
+            return requiresRetry;
         }
 
         /// <summary>
@@ -1903,6 +2284,19 @@ namespace Couchbase
                 _disposed = true;
             }
         }
+
+        /// <summary>
+        /// Compares for equality which is the Name of the Bucket and it's <see cref="ClusterController"/> instance.
+        /// </summary>
+        /// <param name="other">The other <see cref="CouchbaseBucket"/> reference to compare against.</param>
+        /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
+        private bool Equals(CouchbaseBucket other)
+        {
+            return Equals(_clusterController, other._clusterController) &&
+                _disposed.Equals(other._disposed) &&
+                string.Equals(Name, other.Name);
+        }
+
 
 #if DEBUG
         /// <summary>

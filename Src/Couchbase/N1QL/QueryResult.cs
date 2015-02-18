@@ -57,6 +57,12 @@ namespace Couchbase.N1QL
 
         [JsonProperty("metrics")]
         public Metrics Metrics { get; internal set; }
+
+
+        public bool ShouldRetry()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 #region [ License information ]

@@ -50,6 +50,11 @@ namespace Couchbase.IO.Operations
             };
             return cloned;
         }
+
+        public override bool CanRetry()
+        {
+            return true;
+        }
     }
 }
 

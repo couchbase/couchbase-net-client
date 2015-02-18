@@ -35,6 +35,7 @@ namespace Couchbase
         private readonly ITypeTranscoder _transcoder;
         private readonly uint _operationLifespanTimeout;
         private MemcachedRequestExecuter _requestExecuter;
+        private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -109,7 +110,7 @@ namespace Couchbase
                _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
-                new MemcachedRequestExecuter(_clusterController, _configInfo, _converter, Name));
+                new MemcachedRequestExecuter(_clusterController, _configInfo,  Name, _pending));
         }
 
         /// <summary>
@@ -722,6 +723,13 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public Task<IOperationResult<object>> RemoveAsync(string key)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
         /// <summary>
         /// Gets a document by it's given id.
         /// </summary>
@@ -1103,14 +1111,18 @@ namespace Couchbase
             return _requestExecuter.SendWithRetry(operation);
         }
 
-        public System.Threading.Tasks.Task<IOperationResult<T>> GetAsync<T>(string key)
+        public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            CheckDisposed();
+            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
-        public System.Threading.Tasks.Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
@@ -1222,6 +1234,340 @@ namespace Couchbase
         public IBucketManager CreateManager(string username, string password)
         {
             throw new NotSupportedException();
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
+        {
+            CheckDisposed();
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
+        {
+            CheckDisposed();
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> GetFromReplicAsync<T>(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult> UnlockAsync(string key, ulong cas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> IncrementAsync(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<string>> AppendAsync(string key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<string>> PrependAsync(string key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

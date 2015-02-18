@@ -1,77 +1,80 @@
-﻿using System;
-using System.Net.Sockets;
-using Couchbase.IO;
+﻿using Couchbase.IO;
 using Couchbase.IO.Operations;
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using Couchbase.IO.Converters;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.Tests.Fakes
 {
     internal class FakeConnection : IConnection
     {
-        private readonly Guid _identity = Guid.NewGuid();
-        private readonly Socket _socket;
+        private byte[] _responseBytes;
 
-        public Socket Socket
+        public FakeConnection()
         {
-            get { return _socket; }
+            Converter = new AutoByteConverter();
         }
 
-        public Guid Identity
+        public FakeConnection(Socket socket) : this()
         {
-            get { return _identity; }
+            Socket = socket;
+            Identity = Guid.NewGuid();
         }
+
+        public FakeConnection(OperationAsyncState state, EndPoint endPoint, Socket socket) : this()
+        {
+            Identity = Guid.NewGuid();
+            State = state;
+            EndPoint = endPoint;
+            Socket = socket;
+        }
+
+        protected IByteConverter Converter { get; set; }
+
+        public Socket Socket { get; private set; }
+
+        public Guid Identity { get; private set; }
+
+        public bool IsSecure { get; protected set; }
+
+        public EndPoint EndPoint { get; private set; }
+
+        public bool IsDead { get; set; }
+
+        public OperationAsyncState State { get; private set; }
 
         public bool IsAuthenticated { get; set; }
+
+        public void SetResponse(byte[] reponseBytes)
+        {
+            _responseBytes = reponseBytes;
+        }
 
         public void Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsSecure { get; protected set; }
-
-
-        public System.Net.EndPoint EndPoint
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-
-        public bool IsDead
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-
-        public System.Threading.Tasks.Task<uint> SendAsync(byte[] buffer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public System.Threading.Tasks.Task<byte[]> ReceiveAsync(uint opaque)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        public Couchbase.IO.OperationAsyncState State
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-
         public byte[] Send(byte[] request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        {
+            var state = new SocketAsyncState
+            {
+                Data = new MemoryStream(_responseBytes),
+                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
+            };
+            callback(state);
+        }
+
+        public void Dispose()
         {
             throw new NotImplementedException();
         }

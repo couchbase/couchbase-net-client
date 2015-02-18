@@ -58,6 +58,12 @@ namespace Couchbase
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
         public System.Exception Exception { get; set; }
+
+
+        public bool ShouldRetry()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 #region [ License information ]
