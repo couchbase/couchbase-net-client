@@ -137,6 +137,7 @@ namespace Couchbase.Configuration.Client
                         BufferSize = bucket.ConnectionPool.BufferSize,
                         BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
                         ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
+                        SendTimeout = bucket.ConnectionPool.SendTimeout,
                         ClientConfiguration = this
                     }
                 };

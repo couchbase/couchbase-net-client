@@ -91,6 +91,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsNotNull(bucket.ConnectionPool);
             Assert.AreEqual(5000, bucket.ConnectionPool.WaitTimeout);
             Assert.AreEqual(3000, bucket.ConnectionPool.ShutdownTimeout);
+            Assert.AreEqual(12000, bucket.ConnectionPool.SendTimeout);
             Assert.AreEqual(10, bucket.ConnectionPool.MaxSize);
             Assert.AreEqual(5, bucket.ConnectionPool.MinSize);
             Assert.AreEqual("custom", bucket.ConnectionPool.Name);
@@ -197,6 +198,7 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.AreEqual(5, poolConfiguration.MinSize);
                 Assert.AreEqual(5000, poolConfiguration.WaitTimeout);
                 Assert.AreEqual(3000, poolConfiguration.ShutdownTimeout);
+                Assert.AreEqual(12000, poolConfiguration.SendTimeout);
             }
         }
 

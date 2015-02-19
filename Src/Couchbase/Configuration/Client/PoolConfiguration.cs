@@ -18,11 +18,13 @@ namespace Couchbase.Configuration.Client
     /// ShutdownTimeout = 10000;
     /// OperationTimeout = 2500;
     /// MaxConnectionAcquireCount = 5;
-    /// ConnectionTimeout = 15000;
+    /// SendTimeout = 15000;
     /// ConnectTimeout = 10000;
     /// </remarks>
     public sealed class PoolConfiguration : ConfigurationElement
     {
+        public const int DefaultSendTimeout = 15000;
+
         public PoolConfiguration(ClientConfiguration clientConfiguration = null)
         {
             MaxSize = 2;
@@ -32,7 +34,7 @@ namespace Couchbase.Configuration.Client
             ShutdownTimeout = 10000;
             OperationTimeout = 2500;
             MaxAcquireIterationCount = 5;
-            ConnectionTimeout = 15000;
+            SendTimeout = DefaultSendTimeout;
             BufferSize = 1024 * 16;
             ConnectTimeout = 10000;
 
@@ -101,7 +103,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
         /// </summary>
-        public int ConnectionTimeout { get; set; }
+        public int SendTimeout { get; set; }
 
         /// <summary>
         /// The amount time allotted for the client to establish a TCP connection with a server before failing

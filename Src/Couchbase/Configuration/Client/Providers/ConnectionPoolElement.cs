@@ -65,6 +65,17 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
+        /// </summary>
+        /// <remarks>The default value is 15000ms</remarks>
+        [ConfigurationProperty("sendTimeout", DefaultValue = 15000, IsRequired = false)]
+        public int SendTimeout
+        {
+            get { return (int) this["sendTimeout"]; }
+            set { this["sendTimeout"] = value; }
+        }
+
+        /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
         /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>

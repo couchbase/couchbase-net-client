@@ -71,7 +71,7 @@ namespace Couchbase.IO
             }
 
             //wait for completion
-            if (!_requestCompleted.WaitOne(Configuration.ConnectionTimeout))
+            if (!_requestCompleted.WaitOne(Configuration.SendTimeout))
             {
                 IsDead = true;
                 const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";

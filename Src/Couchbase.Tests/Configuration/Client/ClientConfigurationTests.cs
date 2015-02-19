@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Views;
 using NUnit.Framework;
@@ -49,7 +50,8 @@ namespace Couchbase.Tests.Configuration.Client
                 PoolConfiguration = new PoolConfiguration
                 {
                     MaxSize = 10,
-                    MinSize = 10
+                    MinSize = 10,
+                    SendTimeout = 12000
                 }
             };
             config.Initialize();
@@ -73,6 +75,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
+            Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
         }
 
         [Test]
@@ -95,7 +98,8 @@ namespace Couchbase.Tests.Configuration.Client
                         PoolConfiguration = new PoolConfiguration
                         {
                             MaxSize = 6,
-                            MinSize = 4
+                            MinSize = 4,
+                            SendTimeout = 12000
                         },
                         Password = "password",
                         Username = "username",
@@ -124,6 +128,34 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
+
+            //test the second configuration was taken into account as well
+            bucketConfig = config.BucketConfigs.Last().Value;
+            Assert.AreEqual("password", bucketConfig.Password);
+            Assert.AreEqual("username", bucketConfig.Username);
+            Assert.AreEqual("authenticated", bucketConfig.BucketName);
+
+            Assert.AreEqual(6, bucketConfig.PoolConfiguration.MaxSize);
+            Assert.AreEqual(4, bucketConfig.PoolConfiguration.MinSize);
+            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
+            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
+            Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
+            Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
+        }
+
+        [Test]
+        public void When_AppConfig_Used_PoolConfiguration_Reflects_Tuning()
+        {
+            var config = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase_1"));
+            config.Initialize();
+
+            var bucketConfig = config.BucketConfigs["testbucket"];
+            var bucketPoolConfig = bucketConfig.PoolConfiguration;
+            Assert.AreEqual(10, bucketPoolConfig.MaxSize);
+            Assert.AreEqual(5, bucketPoolConfig.MinSize);
+            Assert.AreEqual(5000, bucketPoolConfig.WaitTimeout);
+            Assert.AreEqual(3000, bucketPoolConfig.ShutdownTimeout);
+            Assert.AreEqual(12000, bucketPoolConfig.SendTimeout);
         }
 
         [Test]

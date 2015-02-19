@@ -62,7 +62,7 @@ namespace Couchbase.IO
             };
 
             _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, state);
-            if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
+            if (!SendEvent.WaitOne(Configuration.SendTimeout))
             {
                 //TODO refactor logic
                 IsDead = true;
@@ -79,7 +79,7 @@ namespace Couchbase.IO
             try
             {
                 _sslStream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
-                if (!SendEvent.WaitOne(Configuration.ConnectionTimeout))
+                if (!SendEvent.WaitOne(Configuration.SendTimeout))
                 {
                     const string msg =
                         "The connection has timed out while an operation was in flight. The default is 15000ms.";
