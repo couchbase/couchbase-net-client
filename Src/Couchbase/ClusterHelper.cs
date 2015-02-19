@@ -23,8 +23,11 @@ namespace Couchbase
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterManager;
         private static readonly object SyncObj = new object();
-        private static readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
-                /// <summary>
+
+        private static readonly ConcurrentDictionary<string, IBucket> Buckets =
+            new ConcurrentDictionary<string, IBucket>();
+
+        /// <summary>
         /// Ctor for creating Cluster instance.
         /// </summary>
         /// <remarks>
@@ -89,8 +92,14 @@ namespace Couchbase
             return Buckets.GetOrAdd(bucketName, (name =>
             {
                 var cluster = _instance.Value;
-                var bucket = cluster.OpenBucket(name);
-                return bucket;
+                //try to find a password in configuration
+                BucketConfiguration bucketConfig;
+                if (cluster.Configuration.BucketConfigs.TryGetValue(name, out bucketConfig)
+                    && bucketConfig.Password != null)
+                {
+                    return cluster.OpenBucket(name, bucketConfig.Password);
+                }
+                return cluster.OpenBucket(name);
             }));
         }
 
@@ -206,7 +215,8 @@ namespace Couchbase
         /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
         public static void Initialize(string configurationSectionName)
         {
-            var configurationSection = (CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName);
+            var configurationSection =
+                (CouchbaseClientSection) ConfigurationManager.GetSection(configurationSectionName);
             var configuration = new ClientConfiguration(configurationSection);
             configuration.Initialize();
 

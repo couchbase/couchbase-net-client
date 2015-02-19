@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Security.Authentication;
 using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 
 namespace Couchbase.Tests
 {
@@ -177,6 +179,48 @@ namespace Couchbase.Tests
 
             ClusterHelper.Initialize(config);
             _cluster = ClusterHelper.Get();
+        }
+
+        [Test]
+        [Category("Integration")]
+        public void When_Configuration_Has_Password_For_Bucket_It_Is_Used()
+        {
+            //first check that without password default one is used (which should work)
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+
+            ClusterHelper.Initialize(config);
+            var bucket = ClusterHelper.GetBucket("beer-sample");
+            Assert.NotNull(bucket);
+
+            //then check that putting a password in configuration fails the same test
+            ClusterHelper.RemoveBucket("beer-sample");
+            config.BucketConfigs["beer-sample"] = new BucketConfiguration()
+            {
+                BucketName = "beer-sample",
+                Password = "testpwd"
+            };
+            ClusterHelper.Initialize(config);
+
+            try
+            {
+                bucket = ClusterHelper.GetBucket("beer-sample");
+                Assert.Fail("Unexpected GetBucket success");
+            }
+            catch (AggregateException e)
+            {
+                e = e.Flatten();
+                if (!(e.InnerException is AuthenticationException))
+                {
+                    Assert.Fail("Expected authentication exception, got " + e.InnerException);
+                }
+                //success
+            }
         }
 
 
