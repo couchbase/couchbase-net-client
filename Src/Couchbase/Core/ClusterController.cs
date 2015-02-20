@@ -145,6 +145,13 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName)
         {
+            //try to find a password in configuration
+            BucketConfiguration bucketConfig;
+            if (_clientConfig.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
+                && bucketConfig.Password != null)
+            {
+                return CreateBucket(bucketName, bucketConfig.Password);
+            }
             return CreateBucket(bucketName, string.Empty);
         }
 
