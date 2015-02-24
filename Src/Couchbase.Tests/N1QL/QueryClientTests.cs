@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
@@ -14,14 +15,14 @@ namespace Couchbase.Tests.N1QL
     [TestFixture]
     public class QueryClientTests
     {
-        private string server = "192.168.30.101";
+        private readonly string _server = ConfigurationManager.AppSettings["serverIp"];
 
         [Test]
         public void Test_Create_Index()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
 
             var indexes = client.Query<dynamic>(uri, "SELECT name FROM system:keyspaces");
             foreach (var row in indexes.Rows)
@@ -44,7 +45,7 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string query = "SELECT 'Hello World' AS Greeting";
 
             var result = client.Query<dynamic>(uri, query);
@@ -57,7 +58,7 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string query = "SELECT 'Hello World' ASB Greeting";
 
             var result = client.Query<dynamic>(uri, query);
@@ -71,7 +72,7 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string query = "SELECT abv, brewery_id, category, description, ibu, name, srm, style, type, upc, updated " +
                 "FROM `beer-sample` as beer " +
                 "WHERE beer.type='beer' LIMIT 10";
@@ -90,7 +91,7 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string query = "SELECT * FROM `beer-sample` as d LIMIT 10";
 
             var result = client.Query<dynamic>(uri, query);
@@ -104,7 +105,7 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var uri = new Uri(string.Format("http://{0}:8093/query", server));
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string query = "SELECT type, meta FROM `beer-sample` as d WHERE d.type='beer' LIMIT 10";
 
             var result = client.Query<dynamic>(uri, query);
@@ -118,8 +119,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddPositionalParameter("beer").
                 HttpMethod(Method.Post);
@@ -138,8 +139,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddNamedParameter("type", "beer").
                 HttpMethod(Method.Post);
@@ -158,8 +159,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddPositionalParameter("beer").
                 HttpMethod(Method.Get);
@@ -178,8 +179,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddNamedParameter("type", "beer").
                 HttpMethod(Method.Get);
@@ -198,8 +199,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddNamedParameter("type", "beer").
                 HttpMethod(Method.Post);
@@ -218,8 +219,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddPositionalParameter("beer").
                 HttpMethod(Method.Get);
@@ -238,8 +239,8 @@ namespace Couchbase.Tests.N1QL
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddNamedParameter("type", "beer").
                 HttpMethod(Method.Get);
@@ -254,41 +255,55 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
-        public void When_Prepared_Is_True_Client_Caches_And_Uses_Prepared_Statement()
+        public void When_Prepared_Is_True_Client_Uses_Prepared_Statement()
         {
             var config = new ClientConfiguration();
+            var serverUri = new Uri(string.Format("http://{0}:8093/query", _server));
+            const string statement = "SELECT * from `beer-sample` LIMIT 100";
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` LIMIT 100", true).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var normalRequest = QueryRequest.Create(statement).
+                BaseUri(serverUri).
+                Pretty(false);
+            var preparedRequest = QueryRequest.Create(). //will set the plan later
+                BaseUri(serverUri).
                 Pretty(false);
 
             var stopWatch = new Stopwatch();
             stopWatch.Start();
-            var result = client.Query<dynamic>(request);
+            var resultNormal = client.Query<dynamic>(normalRequest);
             stopWatch.Stop();
-            Console.WriteLine("Elasped time 1:{0}", stopWatch.ElapsedMilliseconds);
+            Console.WriteLine("Elasped time normal request:{0}", stopWatch.ElapsedMilliseconds);
 
             stopWatch = new Stopwatch();
             stopWatch.Restart();
-            result = client.Query<dynamic>(request);
+            var plan = client.Prepare(serverUri, statement).Rows.First();
+            preparedRequest.Prepared(plan).
+                BaseUri(serverUri).
+                Pretty(false);
+            var resultPrepareExecute = client.Query<dynamic>(preparedRequest);
             stopWatch.Stop();
-            Console.WriteLine("Elasped time 2:{0}", stopWatch.ElapsedMilliseconds);
+            Console.WriteLine("Elasped time prepare statement + execute 1:{0}", stopWatch.ElapsedMilliseconds);
 
             stopWatch = new Stopwatch();
             stopWatch.Restart();
-            result = client.Query<dynamic>(request);
+            var resultExecute = client.Query<dynamic>(preparedRequest);
             stopWatch.Stop();
-            Console.WriteLine("Elasped time 3:{0}", stopWatch.ElapsedMilliseconds);
-            Assert.AreEqual(QueryStatus.Success, result.Status);
+            Console.WriteLine("Elasped time execute 2:{0}", stopWatch.ElapsedMilliseconds);
+
+            Assert.IsTrue(preparedRequest.IsPrepared);
+            Assert.IsFalse(normalRequest.IsPrepared);
+            Assert.AreEqual(QueryStatus.Success, resultNormal.Status);
+            Assert.AreEqual(QueryStatus.Success, resultPrepareExecute.Status);
+            Assert.AreEqual(QueryStatus.Success, resultExecute.Status);
         }
 
         [Test]
-        public void When_Prepared_Is_True_Client_Caches_And_Uses_Prepared_Statement2()
+        public void When_Prepared_Is_False_Client_Doesnt_Cache()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` LIMIT 100", false).
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", server))).
+            var request = QueryRequest.Create("SELECT * from `beer-sample` LIMIT 100").
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false);
 
             var stopWatch = new Stopwatch();

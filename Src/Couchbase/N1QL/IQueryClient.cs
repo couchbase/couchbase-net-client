@@ -29,6 +29,15 @@ namespace Couchbase.N1QL
         Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query);
 
         /// <summary>
+        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
+        /// </summary>
+        /// <param name="server">The <see cref="Uri"/> of the server.</param>
+        /// <param name="statement">A string containing a N1QL statement.</param>
+        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
+        /// and cachable execution plan for the statement.</returns>
+        IQueryResult<IQueryPlan> Prepare(Uri server, string statement);
+
+        /// <summary>
         /// Synchronously executes an a N1QL query request against a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>

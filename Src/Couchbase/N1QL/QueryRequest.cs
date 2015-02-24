@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
 {
-    public class QueryRequest : IQueryRequest, IPreparable
+    public class QueryRequest : IQueryRequest
     {
         private Method _method;
         private string _statement;
@@ -37,8 +37,6 @@ namespace Couchbase.N1QL
         private const string LowerCaseFalse = "false";
         public const string TimeoutArgPattern = "{0}={1}ms&";
 
-        public static readonly ConcurrentDictionary<string, string> PreparedStatementCache = new ConcurrentDictionary<string, string>();
-
         public static readonly Dictionary<ScanConsistency, string> ScanConsistencyResolver = new Dictionary<ScanConsistency, string>
         {
             {N1QL.ScanConsistency.AtPlus, "at_plus"},
@@ -54,6 +52,13 @@ namespace Couchbase.N1QL
         public QueryRequest(string statement)
         {
             _statement = statement;
+            _prepared = false;
+        }
+
+        public QueryRequest(IQueryPlan plan)
+        {
+            _statement = plan.ToN1ql();
+            _prepared = true;
         }
 
         private struct QueryParameters
@@ -83,14 +88,19 @@ namespace Couchbase.N1QL
             get { return _method == N1QL.Method.Post; }
         }
 
-        /// <summary>
-        /// Returns true if the request is a prepared statement
-        /// </summary>
-        public bool IsPrepared { get { return _prepared; } }
-
-        public IQueryRequest Prepared(bool prepared)
+        public bool IsPrepared
         {
-            _prepared = prepared;
+            get { return _prepared; }
+        }
+
+        public IQueryRequest Prepared(IQueryPlan preparedPlan)
+        {
+            if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.ToN1ql()))
+            {
+                throw new ArgumentNullException("preparedPlan");
+            }
+            _statement = preparedPlan.ToN1ql();
+            _prepared = true;
             return this;
         }
 
@@ -107,6 +117,7 @@ namespace Couchbase.N1QL
                 throw new ArgumentNullException("statement");
             }
             _statement = statement;
+            _prepared = false;
             return this;
         }
 
@@ -252,7 +263,7 @@ namespace Couchbase.N1QL
         {
             if (string.IsNullOrWhiteSpace(_statement))
             {
-                throw new ArgumentException("A statement must be provided.");
+                throw new ArgumentException("A statement or prepared plan must be provided.");
             }
             CheckMethod();
 
@@ -260,9 +271,14 @@ namespace Couchbase.N1QL
             var sb = new StringBuilder();
             sb.Append(_baseUri + "?");
 
-            string statement;
-            var prepared = GetStatement(out statement);
-            sb.AppendFormat(QueryArgPattern, prepared ? QueryParameters.Prepared : QueryParameters.Statement, statement);
+            if (_prepared)
+            {
+                sb.AppendFormat(QueryArgPattern, QueryParameters.Prepared, _statement);
+            }
+            else
+            {
+                sb.AppendFormat(QueryArgPattern, QueryParameters.Statement, _statement);
+            }
             if (_timeOut.HasValue && _timeOut.Value > TimeSpan.Zero)
             {
                 sb.AppendFormat(TimeoutArgPattern, QueryParameters.Timeout,
@@ -346,16 +362,21 @@ namespace Couchbase.N1QL
         {
             if (string.IsNullOrWhiteSpace(_statement))
             {
-                throw new ArgumentException("A statement must be provided.");
+                throw new ArgumentException("A statement or prepared plan must be provided.");
             }
             CheckMethod();
 
             //build the request query starting with the base uri- e.g. http://localhost:8093/query
             IDictionary<string, string> formValues = new Dictionary<string, string>();
 
-            string statement;
-            var prepared = GetStatement(out statement);
-            formValues.Add(prepared ? QueryParameters.Prepared : QueryParameters.Statement, statement);
+            if (_prepared)
+            {
+                formValues.Add(QueryParameters.Prepared, _statement);
+            }
+            else
+            {
+                formValues.Add(QueryParameters.Statement, _statement);
+            }
 
             if (_timeOut.HasValue && _timeOut.Value > TimeSpan.Zero)
             {
@@ -460,9 +481,14 @@ namespace Couchbase.N1QL
             return new QueryRequest();
         }
 
-        public static IQueryRequest Create(string statement, bool isPrepared)
+        public static IQueryRequest Create(string statement)
         {
-            return new QueryRequest().Statement(statement).Prepared(isPrepared);
+            return new QueryRequest(statement);
+        }
+
+        public static IQueryRequest Create(IQueryPlan plan)
+        {
+            return new QueryRequest(plan);
         }
 
         public override string ToString()
@@ -477,76 +503,6 @@ namespace Couchbase.N1QL
                 request = string.Empty;
             }
             return request;
-        }
-
-        /// <summary>
-        /// Gets the statement to send to the server which could be a prepared statement, a request for a prepared statement or the statement itself.
-        /// </summary>
-        /// <returns></returns>
-        bool GetStatement(out string statement)
-        {
-            var prepared = false;
-            if (_prepared && HasPrepared)
-            {
-                if (!PreparedStatementCache.TryGetValue(_statement, out statement))
-                {
-                    //Something went wrong use the regular statement
-                    statement = _statement;
-                }
-                else
-                {
-                    prepared = true;
-                }
-            }
-            else
-            {
-                if (_prepared && !_statement.Contains("PREPARE "))
-                {
-                    statement = string.Concat("PREPARE ", _statement);
-                }
-                else
-                {
-                    statement = _statement;
-                }
-            }
-            return prepared;
-        }
-
-        /// <summary>
-        /// Returns true if the statement exists and an entry exists for it's prepared statment in the internal cache.
-        /// </summary>
-        public bool HasPrepared
-        {
-            get
-            {
-                return !string.IsNullOrWhiteSpace(_statement) &&
-                    PreparedStatementCache.ContainsKey(_statement);
-            }
-        }
-
-        /// <summary>
-        /// Caches a prepared statement locally updating it if a key exists for the statement.
-        /// </summary>
-        /// <param name="preparedStatement">The prepared statement to cache.</param>
-        public void CachePreparedStatement(string preparedStatement)
-        {
-            if (string.IsNullOrWhiteSpace(_statement))
-            {
-                throw new ArgumentException("A statement must be provided.");
-            }
-            if (string.IsNullOrWhiteSpace(preparedStatement))
-            {
-                throw new ArgumentException("A prepared statement must be provided.");
-            }
-            PreparedStatementCache.AddOrUpdate(_statement, preparedStatement, (key, oldvalue) => preparedStatement);
-        }
-
-        /// <summary>
-        /// Clears all cached prepared statements
-        /// </summary>
-        public void ClearCache()
-        {
-            PreparedStatementCache.Clear();
         }
     }
 }

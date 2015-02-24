@@ -103,35 +103,42 @@ namespace Couchbase.N1QL
             return queryResult;
         }
 
-        void CachePreparedStatement(IQueryRequest queryRequest)
-        {
-            var preparable = queryRequest as IPreparable;
-            if (preparable != null)
-            {
-                if (!preparable.HasPrepared)
-                {
-                    var queryResult = Post<dynamic>(queryRequest);
-                    if (queryResult.Success)
-                    {
-                        var statement = queryResult.Rows.First();
-                        statement = EncodeParameter(statement);
-                        preparable.CachePreparedStatement(statement);
-                    }
-                }
-            }
-        }
-
         static string EncodeParameter(object parameter)
         {
-            return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
+           return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
+        }
+
+        public IQueryResult<IQueryPlan> Prepare(Uri server, string statement)
+        {
+            if (!statement.Contains("PREPARE "))
+            {
+                statement = string.Concat("PREPARE ", statement);
+            }
+            IQueryResult<dynamic> planResult = Query<dynamic>(server, statement);
+            IQueryResult<IQueryPlan> result = new QueryResult<IQueryPlan>()
+            {
+                Message = planResult.Message,
+                ClientContextId = planResult.ClientContextId,
+                Errors = planResult.Errors,
+                Exception = planResult.Exception,
+                Metrics = planResult.Metrics,
+                RequestId = planResult.RequestId,
+                Signature = planResult.Signature,
+                Status = planResult.Status,
+                Rows = new List<IQueryPlan>(1),
+                Success = planResult.Success
+            };
+            if (planResult.Success)
+            {
+                var rawPlan = planResult.Rows.First();
+                string encodedPlan = EncodeParameter(rawPlan);
+                result.Rows.Add(new QueryPlan(encodedPlan));
+            }
+            return result;
         }
 
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
         {
-            if (queryRequest.IsPrepared)
-            {
-                CachePreparedStatement(queryRequest);
-            }
             var requestUri = queryRequest.GetRequestUri();
 
             var queryResult = queryRequest.IsPost ?

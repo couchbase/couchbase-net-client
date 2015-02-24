@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,16 +14,14 @@ namespace Couchbase.Tests.N1QL
     [TestFixture]
     public class QueryRequestTests
     {
-        [SetUp]
-        public void SetUp()
-        {
-            new QueryRequest().ClearCache();
-        }
+
+        private readonly string _server = ConfigurationManager.AppSettings["serverIp"];
+
         [Test]
         public void Test_Statement()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default");
 
             var uri = query.GetRequestUri();
@@ -34,7 +33,7 @@ namespace Couchbase.Tests.N1QL
         public void Test_Statement_ClientContextId()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default").
                 ClientContextId("somecontextlessthanorequalto64chars");
 
@@ -47,7 +46,7 @@ namespace Couchbase.Tests.N1QL
         public void Test_Statement_ClientContextId_Pretty()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default").
                 ClientContextId("somecontextlessthanorequalto64chars").
                 Pretty(true);
@@ -61,7 +60,7 @@ namespace Couchbase.Tests.N1QL
         public void Test_Positional_Parameters()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default WHERE type=$1").
                 AddPositionalParameter("dog");
 
@@ -74,7 +73,7 @@ namespace Couchbase.Tests.N1QL
         public void Test_Positional_Parameters_Two_Arguments()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default WHERE type=$1 OR type=$2").
                 AddPositionalParameter("dog").
                 AddPositionalParameter("cat");
@@ -88,7 +87,7 @@ namespace Couchbase.Tests.N1QL
         public void Test_Named_Parameters_Two_Arguments()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default WHERE type=$canine OR type=$feline").
                 AddNamedParameter("canine", "dog").
                 AddNamedParameter("feline", "cat");
@@ -102,7 +101,7 @@ namespace Couchbase.Tests.N1QL
         public void When_isAdmin_Is_True_Credentials_Contains_admin()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("authenticated", "secret", true);
 
@@ -115,7 +114,7 @@ namespace Couchbase.Tests.N1QL
         public void When_isAdmin_Is_False_Credentials_Contains_local()
         {
             var query = new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("authenticated", "secret", false);
 
@@ -128,7 +127,7 @@ namespace Couchbase.Tests.N1QL
         public void When_Username_Is_Empty_AddCredentials_Throws_AOOE()
         {
            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new QueryRequest().
-                BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("", "secret", false));
 
@@ -139,7 +138,7 @@ namespace Couchbase.Tests.N1QL
         public void When_Username_Is_Whitespace_AddCredentials_Throws_AOOE()
         {
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new QueryRequest().
-                 BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                  Statement("SELECT * FROM authenticated").
                  AddCredentials(" ", "secret", false));
 
@@ -150,7 +149,7 @@ namespace Couchbase.Tests.N1QL
         public void When_Username_Is_Null_AddCredentials_Throws_AOOE()
         {
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new QueryRequest().
-                 BaseUri(new Uri("http://192.168.30.101:8093/query")).
+                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                  Statement("SELECT * FROM authenticated").
                  AddCredentials(null, "secret", false));
 
@@ -160,7 +159,7 @@ namespace Couchbase.Tests.N1QL
         private IQueryRequest CreateFullQueryRequest()
         {
             return new QueryRequest()
-                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
+                .BaseUri(new Uri(string.Format("http://{0}:8093/query", _server)))
                 .Metrics(true)
                 .HttpMethod(Method.Post)
                 .Statement("SELECT * from Who WHERE $1")
@@ -174,6 +173,25 @@ namespace Couchbase.Tests.N1QL
                 .Compression(Compression.RLE)
                 .AddCredentials("authenticated", "secret", false)
                 .AddPositionalParameter("boo");
+        }
+
+        [Test]
+        public void Test_Using_Prepared_Is_Detected()
+        {
+            var request = CreateFullQueryRequest();
+            request.Prepared(new QueryPlan("{ \"test\": \"yes\" }"));
+
+            var values = request.GetFormValues();
+            Assert.AreEqual("{ \"test\": \"yes\" }", values["prepared"]);
+            try
+            {
+                var statement = values["statement"];
+                Assert.Fail("statement should not be present, was " + statement);
+            }
+            catch (KeyNotFoundException e)
+            {
+                //expected
+            }
         }
 
         [Test]
@@ -230,7 +248,7 @@ namespace Couchbase.Tests.N1QL
         public void When_Timeout_Set_Query_Contains_Milliseconds_With_Unit()
         {
             var query = new QueryRequest()
-                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
+                .BaseUri(new Uri(string.Format("http://{0}:8093/query", _server)))
                 .Statement("SELECT * FROM `beer-sample`")
                 .Timeout(new TimeSpan(0, 0, 0, 0, 5));
 
@@ -238,56 +256,6 @@ namespace Couchbase.Tests.N1QL
             Console.WriteLine(uri);
 
             Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM `beer-sample`&timeout=5ms"));
-        }
-
-        [Test]
-        public void When_Prepared_True_And_No_Cached_Prepared_Statement_Exists_Return_Append_Prepare()
-        {
-            var query = new QueryRequest()
-                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
-                .Statement("SELECT * FROM `beer-sample`")
-                .Prepared(true);
-
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=PREPARE SELECT * FROM `beer-sample`"));
-        }
-
-        [Test]
-        public void When_Prepared_True_And_No_Cached_Prepared_Statement_Exists_IPreparable_HasPrepared_Is_False()
-        {
-            var query = new QueryRequest()
-                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
-                .Statement("SELECT * FROM `beer-sample`")
-                .Prepared(true);
-
-            //need to run this once
-            var uri = query.GetRequestUri();
-
-            var preparable = query as IPreparable;
-            Assert.IsNotNull(preparable);
-            Assert.IsFalse(preparable.HasPrepared);
-        }
-
-        [Test]
-        public void When_Prepared_True_And_Cached_Prepared_Statement_Exists_IPreparable_HasPrepared_Is_True()
-        {
-            var query = new QueryRequest()
-                .BaseUri(new Uri("http://192.168.30.101:8093/query"))
-                .Statement("SELECT * FROM `beer-sample`")
-                .Prepared(true);
-
-            //need to run this once
-            var uri = query.GetRequestUri();
-
-            var response = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"Data\\N1QL\\prepared-statement.json"));
-            var preparedStatement = response.results[0].ToString().Replace("\r\n", "");
-            var preparable = query as IPreparable;
-
-            Assert.IsNotNull(preparable);
-            preparable.CachePreparedStatement(preparedStatement);
-            Assert.IsTrue(preparable.HasPrepared);
         }
     }
 }

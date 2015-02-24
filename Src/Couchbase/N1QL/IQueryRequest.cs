@@ -28,12 +28,12 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         IQueryRequest HttpMethod(Method method);
 
-        /// <summary>
-        /// When true, the client will make a request for a prepared statement, cache it, and use it on subsequent calls with the same statement.
-        /// </summary>
-        /// <param name="prepared">True to make client make a request for the prepared statement, cache it, and use it on subsequent requests.</param>
-        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-        IQueryRequest Prepared(bool prepared);
+//        /// <summary>
+//        /// When true, the client will make a request for a prepared statement, cache it, and use it on subsequent calls with the same statement.
+//        /// </summary>
+//        /// <param name="prepared">True to make client make a request for the prepared statement, cache it, and use it on subsequent requests.</param>
+//        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+//        IQueryRequest Prepared(bool prepared);
 
         /// <summary>
         ///  Sets a N1QL statement to be executed.
@@ -43,6 +43,17 @@ namespace Couchbase.N1QL
         /// <remarks>If both prepared and statement are present and non-empty, an error is returned.</remarks>
         /// <remarks>Required if prepared not provided.</remarks>
         IQueryRequest Statement(string statement);
+
+        /// <summary>
+        ///  Sets a N1QL statement to be executed.
+        /// </summary>
+        /// <param name="queryPlan">The <see cref="IQueryPlan"/> that was prepared beforehand.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+        /// <remarks>If both prepared and statement are present and non-empty, an error is returned.</remarks>
+        /// <remarks>Required if statement not provided.</remarks>
+        IQueryRequest Prepared(IQueryPlan queryPlan);
+
+
 
         /// <summary>
         /// Sets the maximum time to spend on the request.
