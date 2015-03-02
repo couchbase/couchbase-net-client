@@ -17,6 +17,7 @@ namespace Couchbase.Tests.IO.Operations
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
+        private const uint OperationLifespan = 2500; //ms
         private IPEndPoint _endPoint;
 
         [SetUp]
@@ -36,7 +37,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig()
         {
-            var response = _ioStrategy.Execute(new Config(new AutoByteConverter(), _endPoint));
+            var response = _ioStrategy.Execute(new Config(new AutoByteConverter(), _endPoint, OperationLifespan));
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);
             Console.WriteLine(response.Value.ToString());
@@ -48,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
             var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new AutoByteConverter());
             _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
 
-            var response = _ioStrategy.Execute(new Config(new ManualByteConverter(), _endPoint));
+            var response = _ioStrategy.Execute(new Config(new ManualByteConverter(), _endPoint, OperationLifespan));
 
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);

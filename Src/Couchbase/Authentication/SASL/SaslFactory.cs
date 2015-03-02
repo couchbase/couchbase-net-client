@@ -13,6 +13,11 @@ namespace Couchbase.Authentication.SASL
     {
         private readonly static ILog Log = LogManager.GetLogger("SaslFactory");
 
+        /// <summary>
+        /// The default timeout for SASL-related operations.
+        /// </summary>
+        public const uint DefaultTimeout = 2500; //2.5sec
+
         public static Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> GetFactory3()
         {
             return (username, password, strategy, converter) =>
@@ -21,7 +26,7 @@ namespace Couchbase.Authentication.SASL
                 var connection = strategy.ConnectionPool.Acquire();
                 try
                 {
-                    var saslListResult = strategy.Execute(new SaslList(converter), connection);
+                    var saslListResult = strategy.Execute(new SaslList(converter, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
                         if (saslListResult.Value.Contains("CRAM-MD5"))

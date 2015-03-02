@@ -35,6 +35,8 @@ namespace Couchbase.Configuration.Client
         private int _viewHardTimeout;
         private double _heartbeatConfigInterval;
         private int _viewRequestTimeout;
+        private uint _operationLifespan;
+        private bool _operationLifespanChanged;
 
         public ClientConfiguration()
         {
@@ -61,6 +63,7 @@ namespace Couchbase.Configuration.Client
             Expect100Continue = false;
             EnableOperationTiming = false;
             BufferSize = 1024 * 16;
+            DefaultOperationLifespan = 2500;//ms
 
             PoolConfiguration = new PoolConfiguration(this)
             {
@@ -71,12 +74,13 @@ namespace Couchbase.Configuration.Client
             {
                 {DefaultBucket, new BucketConfiguration
                 {
-                    PoolConfiguration = PoolConfiguration
+                    PoolConfiguration = PoolConfiguration,
                 }}
             };
             Servers = new List<Uri> { _defaultServer };
 
             //Set back to default
+            _operationLifespanChanged = false;
             _serversChanged = false;
             _poolConfigurationChanged = false;
         }
@@ -109,6 +113,7 @@ namespace Couchbase.Configuration.Client
             Expect100Continue = couchbaseClientSection.Expect100Continue;
             EnableOperationTiming = couchbaseClientSection.EnableOperationTiming;
             PoolConfiguration = new PoolConfiguration(this);
+            DefaultOperationLifespan = couchbaseClientSection.OperationLifespan;
 
             foreach (var server in couchbaseClientSection.Servers)
             {
@@ -126,6 +131,7 @@ namespace Couchbase.Configuration.Client
                     UseSsl = bucket.UseSsl,
                     Password = bucket.Password,
                     ObserveInterval = bucket.ObserveInterval,
+                    DefaultOperationLifespan = bucket.OperationLifespan ??(uint) DefaultOperationLifespan,
                     ObserveTimeout = bucket.ObserveTimeout,
                     PoolConfiguration = new PoolConfiguration
                     {
@@ -145,6 +151,7 @@ namespace Couchbase.Configuration.Client
             }
 
             //Set back to default
+            _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
 
@@ -392,6 +399,23 @@ namespace Couchbase.Configuration.Client
         public int BufferSize { get; set; }
 
         /// <summary>
+        /// The maximum time allowed for an operation to live, in milliseconds. This servers as the default
+        /// for buckets where the lifespan is not explicitely specified.
+        /// </summary>
+        /// <remarks>The default is 2500 (2.5 seconds)</remarks>
+        /// <remarks>When getting the value, prefer looking in <see cref="BucketConfiguration.DefaultOperationLifespan"/>
+        /// since it will inherit and possibly overwrite this value.</remarks>
+        public uint DefaultOperationLifespan
+        {
+            get { return _operationLifespan; }
+            set
+            {
+                _operationLifespan = value;
+                _operationLifespanChanged = true;
+            }
+        }
+
+        /// <summary>
         /// Updates the internal bootstrap url with the new list from a server configuration.
         /// </summary>
         /// <param name="bucketConfig">A new server configuration</param>
@@ -519,6 +543,11 @@ namespace Couchbase.Configuration.Client
                             _servers[i] = newUri;
                         }
                     }
+                }
+                //operation lifespan: if it has changed at bucket level, use bucket level, else use global level
+                if (_operationLifespanChanged)
+                {
+                    bucketConfiguration.UpdateOperationLifespanDefault(_operationLifespan);
                 }
             }
         }

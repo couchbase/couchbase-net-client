@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
@@ -42,6 +43,7 @@ namespace Couchbase
         private readonly ITypeTranscoder _transcoder;
         private readonly Func<TimingLevel, object, IOperationTimer> Timer;
         private volatile bool _timingEnabled;
+        private readonly uint _operationLifespanTimeout;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -62,6 +64,12 @@ namespace Couchbase
             Timer = _clusterManager.Configuration.Timer;
             _timingEnabled = _clusterManager.Configuration.EnableOperationTiming;
             Name = bucketName;
+            
+            //extract the default operation lifespan timeout from configuration.
+            BucketConfiguration bucketConfig;
+            _operationLifespanTimeout = _clusterManager.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
+                ? bucketConfig.DefaultOperationLifespan
+                : _clusterManager.Configuration.DefaultOperationLifespan;
         }
 
         /// <summary>
@@ -237,7 +245,7 @@ namespace Couchbase
                     server.MarkDead();
 
                     var liveServer = _configInfo.GetServer();
-                    var result = liveServer.Send(new Config(_converter, liveServer.EndPoint));
+                    var result = liveServer.Send(new Config(_converter, liveServer.EndPoint, _operationLifespanTimeout));
                     Log.Info(m => m("Trying to reconfig with {0}: {1}", liveServer.EndPoint, result.Message));
                     if (result.Success)
                     {
@@ -354,7 +362,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder);
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithRetry(operation);
         }
 
@@ -418,7 +426,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
                 Expires = expiration
@@ -492,7 +500,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder);
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -511,7 +519,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -551,7 +559,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder)
+            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
                 Cas = cas
@@ -688,7 +696,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder);
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithRetry(operation);
         }
 
@@ -702,7 +710,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder);
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithRetry(operation);
         }
 
@@ -719,7 +727,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -755,7 +763,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder)
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
                 Expires = expiration
@@ -843,7 +851,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder);
+            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -859,7 +867,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value,cas, null, _converter, _transcoder);
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -879,7 +887,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder)
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -925,7 +933,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithRetry(operation);
         }
 
@@ -942,7 +950,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder)
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -1014,7 +1022,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder);
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -1033,7 +1041,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder)
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -1087,7 +1095,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            var operation = new Delete(key, null, _converter, _transcoder)
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -1151,7 +1159,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _converter, _transcoder);
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithDurability(operation, true, replicateTo, persistTo);
         }
 
@@ -1165,7 +1173,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _converter, _transcoder)
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -1279,7 +1287,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var operation = new Get<T>(key, null, _converter, _transcoder);
+            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return SendWithRetry(operation);
         }
 
@@ -1288,13 +1296,13 @@ namespace Couchbase
             IVBucket vBucket = null;
             var primary = GetServer(key, out vBucket);
 
-            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder);
+            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
             var result = primary.Send(replicaRead);
 
             if (result.Success) return result;
             foreach (var replica in vBucket.Replicas)
             {
-                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder);
+                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
                 var server = vBucket.LocateReplica(replica);
                 if (server == null) continue;
                 result = server.Send(replicaRead);
@@ -1402,7 +1410,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _converter, _transcoder)
+            var getl = new GetL<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expiration = expiration
             };
@@ -1433,7 +1441,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
         public IOperationResult Unlock(string key, ulong cas)
         {
-            var unlock = new Unlock(key, null, _converter, _transcoder)
+            var unlock = new Unlock(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -1504,7 +1512,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder);
+            var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1594,7 +1602,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder);
+            var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1632,7 +1640,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<string>(key, value, _transcoder , vBucket, _converter);
+            var operation = new Append<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1654,7 +1662,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter);
+            var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1676,7 +1684,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter);
+            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1698,7 +1706,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter);
+            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))

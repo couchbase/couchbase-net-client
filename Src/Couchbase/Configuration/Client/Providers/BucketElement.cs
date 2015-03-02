@@ -72,6 +72,16 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["observeTimeout"]; }
             set { this["observeTimeout"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets the operation lifespan, maximum time in milliseconds allowed for an operation to run.
+        /// </summary>
+        [ConfigurationProperty("operationLifespan", DefaultValue = null, IsRequired = false)]
+        public uint? OperationLifespan
+        {
+            get { return (uint?)this["operationLifespan"]; }
+            set { this["operationLifespan"] = value; }
+        }
     }
 }
 

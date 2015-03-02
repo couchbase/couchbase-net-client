@@ -30,8 +30,8 @@ namespace Couchbase.Tests.IO.Operations
 
                 for (var i = 0; i < n; i++)
                 {
-                    var set = new Set<int?>(key, 111, vbucket, converter, transcoder);
-                    var get = new Get<int?>(key, vbucket, converter, transcoder);
+                    var set = new Set<int?>(key, 111, vbucket, converter, transcoder, OperationLifespanTimeout);
+                    var get = new Get<int?>(key, vbucket, converter, transcoder, OperationLifespanTimeout);
 
                     var result = IOStrategy.Execute(set);
                     Assert.IsTrue(result.Success);
@@ -57,11 +57,11 @@ namespace Couchbase.Tests.IO.Operations
                 Parallel.For(0, n, options, i =>
                 {
                     var key = string.Format("key{0}", i);
-                    var set = new Set<int?>(key, i, vbucket, converter, transcoder);
+                    var set = new Set<int?>(key, i, vbucket, converter, transcoder, OperationLifespanTimeout);
                     var result = IOStrategy.Execute(set);
                     Assert.IsTrue(result.Success);
 
-                    var get = new Get<int?>(key, vbucket, converter, transcoder);
+                    var get = new Get<int?>(key, vbucket, converter, transcoder, OperationLifespanTimeout);
                     var result1 = IOStrategy.Execute(get);
                     Assert.IsTrue(result1.Success);
                     Assert.AreEqual(i, result1.Value);

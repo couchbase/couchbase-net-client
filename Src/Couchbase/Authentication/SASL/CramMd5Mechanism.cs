@@ -87,14 +87,14 @@ namespace Couchbase.Authentication.SASL
             var temp = connection;
             Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
 
-            var operation = new SaslStart(MechanismType, null, _converter);
+            var operation = new SaslStart(MechanismType, null, _converter, SaslFactory.DefaultTimeout);
             var result = _ioStrategy.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
                 var challenge = result.Message;
                 var reply = ComputeResponse(challenge);
 
-                operation = new SaslStep(MechanismType, reply, _converter);
+                operation = new SaslStep(MechanismType, reply, _converter, SaslFactory.DefaultTimeout);
                 result = _ioStrategy.Execute(operation, connection);
             }
 

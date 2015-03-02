@@ -11,6 +11,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Management
 {
     [TestFixture]
+    [Category("Integration")]
     public class BucketManagementTests
     {
         private const string DATA_PATH = "..\\..\\..\\Couchbase.Tests\\Data";

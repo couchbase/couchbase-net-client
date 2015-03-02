@@ -223,6 +223,17 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (bool)this["enableOperationTiming"]; }
             set { this["enableOperationTiming"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets an uint value that determines the maximum lifespan of an operation before it is abandonned.
+        /// </summary>
+        /// <remarks>The default is 2500 (2.5 seconds).</remarks>
+        [ConfigurationProperty("operationLifespan", DefaultValue = (uint) 2500, IsRequired = false)]
+        public uint OperationLifespan
+        {
+            get { return (uint)this["operationLifespan"]; }
+            set { this["operationLifespan"] = value; }
+        }
     }
 }
 

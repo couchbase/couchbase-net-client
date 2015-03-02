@@ -10,8 +10,8 @@ namespace Couchbase.IO.Operations
     {
         private readonly IPEndPoint _endpoint;
 
-        public Config(IByteConverter converter, IPEndPoint endPoint)
-            : base(converter)
+        public Config(IByteConverter converter, IPEndPoint endPoint, uint timeout)
+            : base(converter, timeout)
         {
             _endpoint = endPoint;
         }

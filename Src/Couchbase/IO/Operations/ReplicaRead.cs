@@ -12,28 +12,28 @@ namespace Couchbase.IO.Operations
 {
     internal class ReplicaRead<T> : OperationBase<T>
     {
-        public ReplicaRead(IByteConverter converter)
-            : base(converter)
+        public ReplicaRead(IByteConverter converter, uint timeout)
+            : base(converter, timeout)
         {
         }
 
-        private ReplicaRead(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : base(key, default(T), transcoder, vBucket, converter, opaque)
+        private ReplicaRead(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
+            : base(key, default(T), transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
-        public ReplicaRead(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, vBucket, converter)
+        public ReplicaRead(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, value, vBucket, converter, timeout)
         {
         }
 
-        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter)
-            : base(key, vBucket, converter)
+        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, vBucket, converter, timeout)
         {
         }
 
-        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, vBucket, converter, transcoder)
+        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, converter, transcoder, timeout)
         {
         }
 
@@ -67,7 +67,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Converter, Opaque)
+            var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Converter, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

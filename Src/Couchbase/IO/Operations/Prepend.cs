@@ -7,33 +7,33 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Prepend<T> : OperationBase<T>
     {
-        public Prepend(IByteConverter converter)
-            : base(converter)
+        public Prepend(IByteConverter converter, uint timeout)
+            : base(converter, timeout)
         {
         }
 
-        public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        public Prepend(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, vBucket, converter)
+        public Prepend(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, value, vBucket, converter, timeout)
         {
         }
 
-        public Prepend(string key, IVBucket vBucket, IByteConverter converter)
-            : base(key, vBucket, converter)
+        public Prepend(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, vBucket, converter, timeout)
         {
         }
 
-        public Prepend(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, vBucket, converter, transcoder)
+        public Prepend(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, converter, transcoder, timeout)
         {
         }
 
-        private Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        private Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
@@ -59,7 +59,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Prepend<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque)
+            var cloned = new Prepend<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

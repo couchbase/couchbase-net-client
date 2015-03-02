@@ -1243,9 +1243,9 @@ namespace Couchbase.Tests.Core.Buckets
                     "When_Operation_Is_Slow_Operation_TimesOut",
                     new DefaultTranscoder(new AutoByteConverter()),
                     null,
-                    new AutoByteConverter())
+                    new AutoByteConverter(),
+                    500)
                 {
-                    Timeout = 500,
                     SleepTime = 1000
                 };
 
@@ -1264,9 +1264,9 @@ namespace Couchbase.Tests.Core.Buckets
                     "When_Operation_Is_Slow_Operation_TimesOut",
                     new DefaultTranscoder(new AutoByteConverter()),
                     null,
-                    new AutoByteConverter())
+                    new AutoByteConverter(),
+                    1000)
                 {
-                    Timeout = 1000,
                     SleepTime = 500
                 };
 
@@ -1285,7 +1285,8 @@ namespace Couchbase.Tests.Core.Buckets
                     "When_Operation_Is_Slow_Operation_TimesOut",
                     new DefaultTranscoder(new AutoByteConverter()),
                     null,
-                    new AutoByteConverter());
+                    new AutoByteConverter(),
+                    _cluster.Configuration.DefaultOperationLifespan); //use lifespan in configuration
 
                 var result = bucket.SendWithRetry(slowSet);
                 Assert.AreEqual(ResponseStatus.Success, result.Status);

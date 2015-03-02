@@ -40,6 +40,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
+            Assert.AreEqual(2500, bucketConfig.DefaultOperationLifespan);
         }
 
         [Test]
@@ -47,6 +48,7 @@ namespace Couchbase.Tests.Configuration.Client
         {
             var config = new ClientConfiguration
             {
+                DefaultOperationLifespan = 123,
                 PoolConfiguration = new PoolConfiguration
                 {
                     MaxSize = 10,
@@ -76,6 +78,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
+            Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
         }
 
         [Test]
@@ -101,6 +104,7 @@ namespace Couchbase.Tests.Configuration.Client
                             MinSize = 4,
                             SendTimeout = 12000
                         },
+                        DefaultOperationLifespan = 123,
                         Password = "password",
                         Username = "username",
                         BucketName = "authenticated"
@@ -128,6 +132,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
+            Assert.AreEqual(2500, bucketConfig.DefaultOperationLifespan);
 
             //test the second configuration was taken into account as well
             bucketConfig = config.BucketConfigs.Last().Value;
@@ -141,6 +146,25 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
+            Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
+        }
+
+        [Test]
+        public void When_AppConfig_Used_OperationLifespan_Priority_Is_Respected()
+        {
+            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_1"));
+            config.Initialize();
+
+            //check the global value
+            Assert.AreEqual(1000, config.DefaultOperationLifespan);
+
+            //check that if a bucket specific value is set, it supersedes global value
+            var bucketConfig = config.BucketConfigs["testbucket"];
+            Assert.AreEqual(2000, bucketConfig.DefaultOperationLifespan);
+
+            //check that leaving the bucket's value to its default results in using global value
+            bucketConfig = config.BucketConfigs["beer-sample"];
+            Assert.AreEqual(1000, bucketConfig.DefaultOperationLifespan);
         }
 
         [Test]

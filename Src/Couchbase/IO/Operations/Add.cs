@@ -6,18 +6,18 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Add<T> : OperationBase<T>
     {
-        public Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        private Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque)
+        private Add(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
-        public Add(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Add(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
             Cas = cas;
         }
@@ -34,7 +34,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Add<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque)
+            var cloned = new Add<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

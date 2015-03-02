@@ -11,13 +11,13 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T">The value to insert.</typeparam>
     internal sealed class Set<T> : OperationBase<T>
     {
-        public Set(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Set(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        private Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        private Set(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
@@ -28,7 +28,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque)
+            var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

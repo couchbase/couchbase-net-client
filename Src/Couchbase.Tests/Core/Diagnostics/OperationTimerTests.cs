@@ -17,10 +17,12 @@ namespace Couchbase.Tests.Core.Diagnostics
     {
         private static readonly ILog Log = LogManager.GetLogger<OperationTimerTests>();
 
+        private const uint OperationLifespan = 2500; //ms
+
         [Test]
         public void Test_Integrated_With_Common_Log()
         {
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.One, op, new CommonLogStore(Log)))
             {
                 Thread.Sleep(1000);
@@ -31,7 +33,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         public void When_TimingLevel_Is_One_Log_Message_Contains_One()
         {
             var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.One, op, new CommonLogStore(log)))
             {
                 Thread.Sleep(100);
@@ -44,7 +46,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         public void When_TimingLevel_Is_Two_Log_Message_Contains_Two()
         {
             var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.Two, op, new CommonLogStore(log)))
             {
                 Thread.Sleep(100);
@@ -57,7 +59,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         public void When_TimingLevel_Is_Three_Log_Message_Contains_Three()
         {
             var log = new FakeLog("mylogger", LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.Three, op, new CommonLogStore(log)))
             {
                 Thread.Sleep(100);
@@ -70,7 +72,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         public void When_TimingLevel_Is_None_Log_Message_Contains_No_Level()
         {
             var log = new FakeLog("mylogger", LogLevel.Info, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.None, op, new CommonLogStore(log)))
             {
                 Thread.Sleep(100);
@@ -83,7 +85,7 @@ namespace Couchbase.Tests.Core.Diagnostics
         public void When_LogLevel_Is_Off_Nothing_Is_Logged()
         {
             var log = new FakeLog("mylogger", LogLevel.Off, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
-            var op = new Get<string>("key", null, null, null);
+            var op = new Get<string>("key", null, null, null, OperationLifespan);
             using (new OperationTimer(TimingLevel.None, op, new CommonLogStore(log)))
             {
                 Thread.Sleep(100);

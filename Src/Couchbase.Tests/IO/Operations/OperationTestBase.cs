@@ -21,6 +21,7 @@ namespace Couchbase.Tests.IO.Operations
         protected  ITypeTranscoder Transcoder;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
         protected IPEndPoint EndPoint;
+        protected static readonly uint OperationLifespanTimeout = 2500; //2.5sec
 
         [SetUp]
         public virtual void TestFixtureSetUp()

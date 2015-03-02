@@ -16,6 +16,7 @@ namespace Couchbase.Tests.Core
     public class ServerTests
     {
         private const string Address = "127.0.0.1:11210";
+        private const uint OperationLifespan = 2500; //ms
         private IServer _server;
         private IPEndPoint _endPoint;
 
@@ -44,7 +45,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_Send()
         {
-            var operation = new Config(new ManualByteConverter(), _endPoint);
+            var operation = new Config(new ManualByteConverter(), _endPoint, OperationLifespan);
             var response = _server.Send(operation);
             Assert.IsTrue(response.Success);
             Assert.AreEqual(response.Cas, 0);

@@ -4,7 +4,7 @@ namespace Couchbase.IO.Operations
 {
     internal class Noop : OperationBase<object>
     {
-        public Noop(IByteConverter converter) : base(converter)
+        public Noop(IByteConverter converter, uint timeout) : base(converter, timeout)
         {
         }
 

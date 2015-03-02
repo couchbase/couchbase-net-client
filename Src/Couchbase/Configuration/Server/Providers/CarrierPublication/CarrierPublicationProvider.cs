@@ -49,7 +49,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         try
                         {
-                            var result = server.Send(new Config(Converter, server.EndPoint));
+                            var result = server.Send(new Config(Converter, server.EndPoint, ClientConfig.DefaultOperationLifespan));
                             if (result.Success && result.Status == ResponseStatus.Success)
                             {
                                 var config = result.Value;
@@ -101,7 +101,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
                     ioStrategy.SaslMechanism = saslMechanism;
 
-                    var operationResult = ioStrategy.Execute(new Config(Converter, endPoint));
+                    var operationResult = ioStrategy.Execute(new Config(Converter, endPoint, ClientConfig.DefaultOperationLifespan));
                     if (operationResult.Success)
                     {
                         var bucketConfig = operationResult.Value;

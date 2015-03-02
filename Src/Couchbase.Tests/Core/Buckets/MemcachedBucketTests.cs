@@ -396,7 +396,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_Multi_Upsert()
         {
-            using (var bucket = _cluster.OpenBucket("beer-sample"))
+            using (var bucket = _cluster.OpenBucket("beer-sample")) //TODO fix this to "memcached"
             {
                 var items = new Dictionary<string, dynamic>
                 {

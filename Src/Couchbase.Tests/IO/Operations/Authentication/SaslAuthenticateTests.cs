@@ -15,6 +15,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
+        private const uint OperationLifespan = 2500; //ms
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -28,7 +29,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_AuthFailure_With_InvalidCredentials()
         {
-            var operation = new SaslStart("PLAIN",  GetAuthData("foo", "bar"), new ManualByteConverter());
+            var operation = new SaslStart("PLAIN", GetAuthData("foo", "bar"), new ManualByteConverter(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.AreEqual("Auth failure", response.Message);
@@ -39,7 +40,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_Succuss_With_ValidCredentials()
         {
-            var operation = new SaslStart("PLAIN",  GetAuthData("authenticated", "secret"), new ManualByteConverter());
+            var operation = new SaslStart("PLAIN", GetAuthData("authenticated", "secret"), new ManualByteConverter(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.AreEqual("Authenticated", response.Value);
@@ -50,7 +51,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void When_CRAM_MD5_Used_SaslStart_Returns_AuthenticationContinue()
         {
-            var operation = new SaslStart("CRAM-MD5", null, new ManualByteConverter());
+            var operation = new SaslStart("CRAM-MD5", null, new ManualByteConverter(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.IsNotNullOrEmpty(response.Message);

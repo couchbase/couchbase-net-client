@@ -21,7 +21,6 @@ namespace Couchbase.IO.Operations
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
-        public const int DefaultTimeout = 2500;//ms
         private readonly uint _opaque;
         private readonly ITypeTranscoder _transcoder;
         private readonly T _value;
@@ -30,8 +29,8 @@ namespace Couchbase.IO.Operations
         protected Flags Flags = new Flags();
         private Dictionary<TimingLevel, IOperationTimer> _timers;
 
-        protected OperationBase(IByteConverter converter)
-            : this(string.Empty, null, converter)
+        protected OperationBase(IByteConverter converter, uint timeout)
+            : this(string.Empty, null, converter, timeout)
         {
         }
 
@@ -50,23 +49,18 @@ namespace Couchbase.IO.Operations
             Data = new MemoryStream();
         }
 
-        protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque)
-            : this(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter)
-            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
-        {
-        }
-
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 

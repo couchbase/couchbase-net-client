@@ -15,6 +15,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private const string Address = "127.0.0.1:11210";
+        private const uint OperationLifespan = 2500; //ms
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -28,7 +29,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslListMechanism()
         {
-            var response = _ioStrategy.Execute(new SaslList(new ManualByteConverter()));
+            var response = _ioStrategy.Execute(new SaslList(new ManualByteConverter(), OperationLifespan));
             Assert.IsNotNullOrEmpty(response.Value);
             Console.WriteLine(response.Value);
             Assert.IsTrue(response.Success);

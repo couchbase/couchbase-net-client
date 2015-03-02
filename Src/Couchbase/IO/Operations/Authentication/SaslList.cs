@@ -9,8 +9,8 @@ namespace Couchbase.IO.Operations.Authentication
     /// </summary>
     internal sealed class SaslList : OperationBase<string>
     {
-        public SaslList(IByteConverter converter)
-            : base(converter)
+        public SaslList(IByteConverter converter, uint timeout)
+            : base(converter, timeout)
         {
         }
 

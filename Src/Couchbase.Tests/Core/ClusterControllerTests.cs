@@ -28,6 +28,7 @@ namespace Couchbase.Tests.Core
         private IClusterController _clusterManager;
         protected ClientConfiguration _clientConfig;
         private const string Address = "127.0.0.1:11210";
+        private const uint OperationLifespan = 2500; //ms
         private IPEndPoint _endPoint;
 
         [TestFixtureSetUp]
@@ -114,7 +115,7 @@ namespace Couchbase.Tests.Core
             var totalBytes = new byte[24 + bytes.Length];
             bytes.CopyTo(totalBytes, 24);
 
-            var op = new Config(new AutoByteConverter(), _endPoint)
+            var op = new Config(new AutoByteConverter(), _endPoint, OperationLifespan)
             {
                 Data = new MemoryStream(totalBytes)
             };

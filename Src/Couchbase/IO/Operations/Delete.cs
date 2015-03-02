@@ -7,13 +7,13 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Delete : OperationBase<object>
     {
-        public Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, vBucket, converter, transcoder)
+        public Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, converter, transcoder, timeout)
         {
         }
 
-        private Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
-            : base(key, null, transcoder, vBucket, converter, opaque)
+        private Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, null, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
@@ -37,7 +37,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<object> Clone()
         {
-            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Opaque)
+            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

@@ -10,6 +10,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests.Management
 {
     [TestFixture]
+    [Category("Integration")]
     public class ClusterManagerTests
     {
         [Test]

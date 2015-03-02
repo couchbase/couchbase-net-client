@@ -23,6 +23,7 @@ namespace Couchbase.Tests.IO
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
+        private const uint OperationLifespan = 2500; //ms
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
@@ -48,7 +49,7 @@ namespace Couchbase.Tests.IO
                 count++;
                 try
                 {
-                    var config = new Config(new AutoByteConverter(), UriExtensions.GetEndPoint(Address));
+                    var config = new Config(new AutoByteConverter(), UriExtensions.GetEndPoint(Address), OperationLifespan);
                     var result = _ioStrategy.Execute(config);
                     Console.WriteLine(result.Success);
                 }

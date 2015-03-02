@@ -8,8 +8,8 @@ namespace Couchbase.IO.Operations.Authentication
     /// </summary>
     internal class SaslStep : SaslStart
     {
-        public SaslStep(string key, string value, IByteConverter converter)
-            : base(key, value, converter)
+        public SaslStep(string key, string value, IByteConverter converter, uint timeout)
+            : base(key, value, converter, timeout)
         {
         }
         public override byte[] CreateExtras()

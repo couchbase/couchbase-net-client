@@ -16,7 +16,8 @@ namespace Couchbase.Tests.Fakes
     {
         private FakeOperationResult _operationResult;
 
-        public FakeOperation(IByteConverter converter) : base(converter)
+        public FakeOperation(IByteConverter converter)
+            : base(converter, 500)
         {
         }
 

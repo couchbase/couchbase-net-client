@@ -10,16 +10,16 @@ namespace Couchbase.IO.Operations
         private readonly uint _expiration;
         private readonly ulong _initial;
 
-        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, vBucket, converter, transcoder)
+        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, converter, transcoder, timeout)
         {
             _delta = delta;
             _initial = initial;
             _expiration = expiration;
         }
 
-        private Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
-            : base(key, initial, transcoder, vBucket, converter, opaque)
+        private Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, initial, transcoder, vBucket, converter, opaque, timeout)
         {
             _delta = delta;
             _initial = initial;
@@ -52,7 +52,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<ulong> Clone()
         {
-            var cloned = new Increment(Key, _initial, _delta, _expiration, VBucket, Converter, Transcoder, Opaque)
+            var cloned = new Increment(Key, _initial, _delta, _expiration, VBucket, Converter, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

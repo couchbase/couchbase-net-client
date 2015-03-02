@@ -10,18 +10,18 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class Replace<T> : OperationBase<T>
     {
-        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        private Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
-            : base(key, value, transcoder, vBucket, converter, opaque, DefaultTimeout)
+        private Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
-        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), DefaultTimeout)
+        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
         {
             Cas = cas;
         }
@@ -33,7 +33,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<T> Clone()
         {
-            var cloned = new Replace<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque)
+            var cloned = new Replace<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
@@ -43,6 +43,7 @@ namespace Couchbase.IO.Operations
         }
     }
 }
+
 #region [ License information ]
 
 /* ************************************************************

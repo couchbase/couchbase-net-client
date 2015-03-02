@@ -22,11 +22,13 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "keythatdoesntexist";
 
             //delete the value if it exists
-            var deleteOperation = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
+            var deleteOperation = new Delete(key, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
             var result1 = IOStrategy.Execute(deleteOperation);
             Console.WriteLine(result1.Message);
 
-            var operation = new Add<dynamic>(key, new {foo = "foo"}, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
+            var operation = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(),
+                new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
             var result = IOStrategy.Execute(operation);
             Assert.IsTrue(result.Success);
         }
@@ -34,7 +36,8 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void When_Key_Exists_Exist_Operation_Fails()
         {
-            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
+            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(),
+                new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
             var result = IOStrategy.Execute(operation);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
@@ -43,7 +46,8 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(), new DefaultTranscoder(new ManualByteConverter()));
+            var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), new ManualByteConverter(),
+                new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
             var cloned = operation.Clone();
             Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
             Assert.AreEqual(operation.Cas, cloned.Cas);

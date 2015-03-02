@@ -16,6 +16,9 @@ namespace Couchbase.Configuration.Client
         private int _observeTimeout;
         private int _observeInterval;
         public const int SslPort = 11207;
+        private uint _operationLifespan;
+        private bool _operationLifespanChanged;
+
         /// <summary>
         /// Default CTOR for localhost.
         /// </summary>
@@ -28,6 +31,7 @@ namespace Couchbase.Configuration.Client
             BucketName = "default";
             ObserveInterval = 10; //ms
             ObserveTimeout = 500; //ms
+            _operationLifespan = 2500; //ms, work around property that flags as changed
         }
 
         /// <summary>
@@ -97,6 +101,40 @@ namespace Couchbase.Configuration.Client
                     throw new ArgumentOutOfRangeException("value", msg);
                 }
                 _observeInterval = value;
+            }
+        }
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live, in milliseconds, for this specific bucket.
+        /// <remarks>Default value is 2500 (2.5 seconds)</remarks>
+        /// </summary>
+        public uint DefaultOperationLifespan {
+            get { return _operationLifespan; }
+            set
+            {
+                _operationLifespan = value;
+                _operationLifespanChanged = true;
+            }
+         }
+
+
+        /// <summary>
+        /// Conditionally change the DefaultOperationLifespan property value, if and only if it wasn't already changed
+        /// from its default value.
+        /// <remarks>Calling this method doesn't count as a changed from default value. That is, calling it twice will return true both times.</remarks>
+        /// </summary>
+        /// <param name="newDefault">The new value to be affected to DefaultOperationLifespan if it hasn't been changed since construction.</param>
+        /// <returns>true if the value was applied, false otherwise (denoting that a custom value had already been applied)</returns>
+        public bool UpdateOperationLifespanDefault(uint newDefault)
+        {
+            if (!_operationLifespanChanged)
+            {
+                _operationLifespan = newDefault;
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 

@@ -17,10 +17,10 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }
@@ -31,10 +31,10 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }
@@ -45,13 +45,13 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Replace.When_Document_Exists_Replace_Succeeds";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), Converter, Transcoder);
+            var delete = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
-            var add = new Add<string>(key, "foo", GetVBucket(), Converter, Transcoder);
+            var add = new Add<string>(key, "foo", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder);
+            var set = new Set<string>(key, "boo", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
         }
@@ -59,7 +59,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Replace<string>("key", "somevalue", GetVBucket(), Converter, Transcoder)
+            var operation = new Replace<string>("key", "somevalue", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };

@@ -8,23 +8,23 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        public Observe(IByteConverter converter)
-            : base(converter)
+        public Observe(IByteConverter converter, uint timeout)
+            : base(converter, timeout)
         {
         }
 
-        public Observe(string key, IVBucket vBucket, IByteConverter converter)
-            : base(key, vBucket, converter)
+        public Observe(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
+            : base(key, vBucket, converter, timeout)
         {
         }
 
-        public Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder)
-            : base(key, vBucket, converter, transcoder)
+        public Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, converter, transcoder, timeout)
         {
         }
 
-        private Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque)
-            : base(key, default(ObserveState), transcoder, vBucket, converter, opaque)
+        private Observe(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, default(ObserveState), transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
@@ -83,7 +83,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation<ObserveState> Clone()
         {
-            var cloned = new Observe(Key, VBucket, Converter, Transcoder, Opaque)
+            var cloned = new Observe(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

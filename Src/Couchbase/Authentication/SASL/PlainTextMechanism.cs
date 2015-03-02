@@ -88,7 +88,7 @@ namespace Couchbase.Authentication.SASL
 
             try
             {
-                var operation = new SaslStart(MechanismType, GetAuthData(username, password), _converter);
+                var operation = new SaslStart(MechanismType, GetAuthData(username, password), _converter, SaslFactory.DefaultTimeout);
                 var result = _strategy.Execute(operation, connection);
 
                 if (!result.Success &&

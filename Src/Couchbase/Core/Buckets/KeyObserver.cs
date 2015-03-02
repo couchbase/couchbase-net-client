@@ -22,6 +22,8 @@ namespace Couchbase.Core.Buckets
         private readonly int _timeout;
         private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
 
+        private const uint ObserveOperationTimeout = 2500; //2.5sec
+
         /// <summary>
         /// The durability requirements that must be met.
         /// </summary>
@@ -136,7 +138,7 @@ namespace Couchbase.Core.Buckets
                 {
                     //check the master for persistence to disk
                     var master = p.VBucket.LocatePrimary();
-                    var result = master.Send(new Observe(key, vBucket, new AutoByteConverter()));
+                    var result = master.Send(new Observe(key, vBucket, new AutoByteConverter(), ObserveOperationTimeout));
                     Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
                     var state = result.Value;
                     if (state.KeyState == p.Criteria.PersistState)
@@ -201,7 +203,7 @@ namespace Couchbase.Core.Buckets
             if (op.IsDurabilityMet()) return true;
 
             var replica = op.VBucket.LocateReplica(replicaIndex);
-            var result = await Task.Run(()=>replica.Send(new Observe(op.Key, op.VBucket, new AutoByteConverter())))
+            var result = await Task.Run(()=>replica.Send(new Observe(op.Key, op.VBucket, new AutoByteConverter(), ObserveOperationTimeout)))
                 .ConfigureAwait(false);
 
             Log.Debug(m=>m("Replica {0} - {1} [0]", replica.EndPoint, result.Value, replicaIndex));
