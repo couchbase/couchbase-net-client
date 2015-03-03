@@ -20,17 +20,15 @@ namespace Couchbase.Management
     /// </summary>
     public sealed class BucketManager : IBucketManager
     {
-        private readonly static ILog Log = LogManager.GetLogger<BucketManager>();
-        private readonly IClusterController _clusterController;
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;
         private readonly string _password;
 
-        internal BucketManager(string bucketName, ClientConfiguration clientConfig, IClusterController clusterController, HttpClient httpClient, IDataMapper mapper, string username, string password)
+        internal BucketManager(string bucketName, ClientConfiguration clientConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
         {
             BucketName = bucketName;
             _clientConfig = clientConfig;
-            _clusterController = clusterController;
             Mapper = mapper;
             HttpClient = httpClient;
             _password = password;

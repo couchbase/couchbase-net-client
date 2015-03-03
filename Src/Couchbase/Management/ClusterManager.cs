@@ -16,6 +16,8 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Views;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Server;
+
 
 namespace Couchbase.Management
 {
@@ -24,16 +26,16 @@ namespace Couchbase.Management
     /// </summary>
     public class ClusterManager : IClusterManager
     {
-        private readonly static ILog Log = LogManager.GetLogger<ClusterManager>();
-        private readonly IClusterController _clusterController;
+        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
+        private readonly IServerConfig _serverConfig;
         private readonly string _username;
         private readonly string _password;
 
-        internal ClusterManager(ClientConfiguration clientConfig, IClusterController clusterController, HttpClient httpClient, IDataMapper mapper, string username, string password)
+        internal ClusterManager(ClientConfiguration clientConfig, IServerConfig serverConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
         {
             _clientConfig = clientConfig;
-            _clusterController = clusterController;
+            _serverConfig = serverConfig;
             Mapper = mapper;
             HttpClient = httpClient;
             _password = password;
@@ -55,18 +57,16 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/controller/addNode";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                var uri = GetAPIUri("addNode");
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "POST";
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
+
+
                 var formData = new Dictionary<string, object> { { "hostname", ipAddress }, { "user", _username }, { "password", _password } };
-                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+                var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
                 request.ContentLength = bytes.Length;
 
                 using (var stream = request.GetRequestStream())
@@ -118,15 +118,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        const string api = "{0}://{1}:{2}/controller/addNode";
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                        var uri = GetAPIUri("addNode");
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -172,23 +169,21 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/controller/ejectNode";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                var uri = GetAPIUri("ejectNode");
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "POST";
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
+
                 var formData = new Dictionary<string, object>
                               {
                                  {"otpNode", string.Format("ns_1@{0}", ipAddress)},
                                  {"user", _username},
                                  {"password", _password}
                               };
-                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+
+                var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
                 request.ContentLength = bytes.Length;
 
                 using (var stream = request.GetRequestStream())
@@ -239,15 +234,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/controller/ejectNode";
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                        var uri = GetAPIUri("ejectNode");
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -285,23 +277,21 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/controller/failOver";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                var uri = GetAPIUri("failOver");
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "POST";
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
+
                 var formData = new Dictionary<string, object>
                               {
                                    {"otpNode", string.Format("ns_1@{0}", hostname)},
                                    {"user", _username},
                                    {"password", _password}
                               };
-                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
+
+                var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
                 request.ContentLength = bytes.Length;
 
                 using (var stream = request.GetRequestStream())
@@ -352,15 +342,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/controller/failOver";
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                        var uri = GetAPIUri("failOver");
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -405,16 +392,13 @@ namespace Couchbase.Management
                     Where(x => x.ClusterMembership.Equals("inactiveFailed")).
                     Select(x => x.OtpNode);
 
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/controller/rebalance";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                var uri = GetAPIUri("rebalance");
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "POST";
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
+
                 var formData = new Dictionary<string, object>
                               {
                                    {"ejectedNodes", string.Join(",", ejectedNodes)},
@@ -480,15 +464,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/controller/rebalance";
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                        var uri = GetAPIUri("rebalance");
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -570,11 +551,7 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/pools/default/buckets";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                var uri = GetBucketAPIUri();
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "POST";
@@ -658,15 +635,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/pools/default/buckets";
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port));
+                        var uri = GetBucketAPIUri();
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Post, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -715,11 +689,7 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                var server = _clientConfig.Servers.First();
-                var protocol = _clientConfig.UseSsl ? "https" : "http";
-                var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}";
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, name));
+                var uri = GetBucketAPIUri(name);
 
                 var request = WebRequest.Create(uri) as HttpWebRequest;
                 request.Method = "DELETE";
@@ -769,15 +739,12 @@ namespace Couchbase.Management
                 {
                     using (var client = new HttpClient(handler))
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/pools/default/buckets/{3}";
-                        var protocol = _clientConfig.UseSsl ? "https" : "http";
-                        var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, name));
+                        var uri = GetBucketAPIUri(name);
 
                         var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
                         client.DefaultRequestHeaders.Accept.Add(contentType);
                         client.DefaultRequestHeaders.Host = uri.Authority;
+
                         var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
@@ -896,6 +863,29 @@ namespace Couchbase.Management
         private IResult WebRequestError(Exception ex, string message = "")
         {
             return new DefaultResult(false, string.IsNullOrEmpty(message) ? ex.Message : message, ex);
+        }
+
+        Uri GetAPIUri(string apiKey)
+        {
+            var server = _clientConfig.Servers.First();
+            var protocol = _clientConfig.UseSsl ? "https" : "http";
+            var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+            var api = _serverConfig.Pools.Controllers[apiKey].Uri;
+            return new Uri(string.Format("{0}://{1}:{2}{3}", protocol, server.Host, port, api));
+        }
+
+        Uri GetBucketAPIUri(string bucketName=null)
+        {
+            var server = _clientConfig.Servers.First();
+            var protocol = _clientConfig.UseSsl ? "https" : "http";
+            var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+
+            var api = string.Format("{0}://{1}:{2}/pools/default/buckets", protocol, server.Host, port);
+            if (!string.IsNullOrEmpty(bucketName))
+            {
+                api = string.Concat(api, "/", bucketName);
+            }
+            return new Uri(string.Format(api));
         }
     }
 }

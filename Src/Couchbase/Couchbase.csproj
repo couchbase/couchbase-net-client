@@ -75,6 +75,8 @@
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
     <Compile Include="Configuration\Server\Serialization\BucketConfigExtensions.cs" />
+    <Compile Include="Configuration\Server\Serialization\Controller.cs" />
+    <Compile Include="Configuration\Server\Serialization\Controllers.cs" />
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
@@ -122,7 +124,6 @@
     <Compile Include="Configuration\Server\Serialization\BucketConfig.cs" />
     <Compile Include="Configuration\Server\Serialization\Buckets.cs" />
     <Compile Include="Configuration\Server\Serialization\ComponentsVersion.cs" />
-    <Compile Include="Configuration\Server\Serialization\Controllers.cs" />
     <Compile Include="Configuration\Server\Serialization\Counters.cs" />
     <Compile Include="Configuration\Server\Serialization\DatabaseFragmentationThreshold.cs" />
     <Compile Include="Configuration\Server\Serialization\Ddocs.cs" />

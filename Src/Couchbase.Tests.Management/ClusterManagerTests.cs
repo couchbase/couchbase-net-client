@@ -13,6 +13,9 @@ namespace Couchbase.Tests.Management
     [Category("Integration")]
     public class ClusterManagerTests
     {
+        private static readonly string SecondaryIp = ConfigurationManager.AppSettings["SecondaryIp"];
+        private static readonly string PrimaryIp = ConfigurationManager.AppSettings["serverIp"];
+
         [Test]
         public void Test_AddNode()
         {
@@ -26,7 +29,55 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.AddNode("192.168.56.103");
+                var result = clusterManager.AddNode(SecondaryIp);
+                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+
+        [Test]
+        public void Test_AddNodeAsync()
+        {
+            if (SecondaryIp.Equals(PrimaryIp))
+            {
+                Assert.Ignore();
+            }
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.AddNodeAsync(SecondaryIp).Result;
+                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_RemoveNodeAsync()
+        {
+            if (SecondaryIp.Equals(PrimaryIp))
+            {
+                Assert.Ignore();
+            }
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("Administrator", "password");
+                var result = clusterManager.RemoveNodeAsync(SecondaryIp).Result;
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
@@ -44,50 +95,20 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveNode("192.168.56.103");
+                var result = clusterManager.RemoveNode(SecondaryIp);
+                Console.WriteLine(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
 
-        [Test]
-        public void Test_AddNodeAsync()
-        {
-            var configuration = new ClientConfiguration
-            {
-                Servers = new List<Uri>
-                {
-                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
-                }
-            };
-            using (var cluster = new Cluster(configuration))
-            {
-                var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.AddNodeAsync("192.168.56.103").Result;
-                Assert.IsTrue(result.Success);
-            }
-        }
-
-        [Test]
-        public void Test_RemoveNodeAsync()
-        {
-            var configuration = new ClientConfiguration
-            {
-                Servers = new List<Uri>
-                {
-                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
-                }
-            };
-            using (var cluster = new Cluster(configuration))
-            {
-                var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.RemoveNodeAsync("192.168.56.103").Result;
-                Assert.IsTrue(result.Success);
-            }
-        }
 
         [Test]
         public void Test_FailoverNode()
         {
+            if (SecondaryIp.Equals(PrimaryIp))
+            {
+                Assert.Ignore();
+            }
             var configuration = new ClientConfiguration
             {
                 Servers = new List<Uri>
@@ -98,7 +119,8 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.FailoverNode("192.168.56.103");
+                var result = clusterManager.FailoverNode(SecondaryIp);
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
@@ -106,6 +128,10 @@ namespace Couchbase.Tests.Management
         [Test]
         public void Test_FailoverNodeAsync()
         {
+            if (SecondaryIp.Equals(PrimaryIp))
+            {
+                Assert.Ignore();
+            }
             var configuration = new ClientConfiguration
             {
                 Servers = new List<Uri>
@@ -116,7 +142,8 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-                var result = clusterManager.FailoverNodeAsync("192.168.56.103").Result;
+                var result = clusterManager.FailoverNodeAsync(SecondaryIp).Result;
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
@@ -171,9 +198,11 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.Rebalance();
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
+
 
         [Test]
         public void Test_RebalanceAsync()
@@ -232,6 +261,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.ClusterInfoAsync().Result;
+
                 Assert.NotNull(result.Success);
                 Assert.That(result.Success);
                 var info = result.Value;
@@ -257,7 +287,8 @@ namespace Couchbase.Tests.Management
                 var clusterManager = cluster.CreateManager("Administrator", "password");
 
                 var result = clusterManager.CreateBucket("test1");
-                Assert.NotNull(result.Success);
+                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(result.Success);
             }
         }
 
@@ -275,6 +306,8 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveBucket("test1");
+
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }
@@ -293,7 +326,9 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.CreateBucketAsync("test").Result;
-                Assert.NotNull(result.Success);
+
+                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(result.Success);
             }
         }
 
@@ -311,6 +346,8 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveBucketAsync("test").Result;
+
+                Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);
             }
         }

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
@@ -30,7 +31,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public RemoteClusters RemoteClusters { get; set; }
 
         [JsonProperty("controllers")]
-        public Controllers Controllers { get; set; }
+        public Dictionary<string, Controller> Controllers { get; set; }
 
         [JsonProperty("balanced")]
         public bool Balanced { get; set; }

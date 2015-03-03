@@ -7,6 +7,7 @@ using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
+using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core;
 using Couchbase.Management;
 using Couchbase.Utils;
@@ -134,8 +135,11 @@ namespace Couchbase
         /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICluster"/> configuration settings. </returns>
         public IClusterManager CreateManager(string username, string password)
         {
+            var serverConfig = new HttpServerConfig(Configuration);
+            serverConfig.Initialize();
+
             return new ClusterManager(Configuration,
-                _clusterController,
+                serverConfig,
                 new HttpClient(),
                 new JsonDataMapper(Configuration),
                 username,

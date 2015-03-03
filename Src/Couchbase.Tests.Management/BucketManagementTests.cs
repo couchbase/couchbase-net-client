@@ -224,6 +224,7 @@ namespace Couchbase.Tests.Management
                 {
                     var manager = bucket.CreateManager("Administrator", "");
                     var result = manager.Flush();
+                    Console.WriteLine(result.Message);
                     Assert.IsTrue(result.Success);
                 }
             }

@@ -13,6 +13,7 @@ using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Diagnostics;
@@ -1914,7 +1915,6 @@ namespace Couchbase
         {
             return new BucketManager(Name,
                 _configInfo.ClientConfig,
-                _clusterManager,
                 new HttpClient(),
                 new JsonDataMapper(_configInfo.ClientConfig),
                 username,
