@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
@@ -18,12 +19,12 @@ namespace Couchbase.Tests.IO
     public class ConnectionTests
     {
         private IConnectionPool _connectionPool;
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [SetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
         }
@@ -91,8 +92,8 @@ namespace Couchbase.Tests.IO
         public void When_Connecting_To_Good_IP_Connection_Succeeds_Before_ConnectTimeout()
         {
             const int connectionTimedOut = 10060;
-            const string ipThatDoesNotExist = "127.0.0.1:11210";
-            var ipEndpoint = UriExtensions.GetEndPoint(ipThatDoesNotExist);
+            string ipThatDoesExist = ConfigurationManager.AppSettings["OperationTestAddress"];
+            var ipEndpoint = UriExtensions.GetEndPoint(ipThatDoesExist);
             var connectionPoolConfig = new PoolConfiguration
             {
                 ConnectTimeout = 5000 //set really low for test

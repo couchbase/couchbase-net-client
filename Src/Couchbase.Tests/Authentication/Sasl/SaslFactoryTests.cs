@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,12 +19,12 @@ namespace Couchbase.Tests.Authentication.Sasl
     {
         private DefaultIOStrategy _ioStrategy;
         private IConnectionPool<Connection> _connectionPool;
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration { UseSsl = false };
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);

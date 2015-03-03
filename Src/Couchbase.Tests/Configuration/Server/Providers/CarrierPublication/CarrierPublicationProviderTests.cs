@@ -1,6 +1,8 @@
-﻿using Couchbase.Authentication.SASL;
+﻿using System.Configuration;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core.Transcoders;
@@ -22,10 +24,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         {
             var configuration = new ClientConfiguration();
             _provider = new CarrierPublicationProvider(
-                configuration, 
+                configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(), 
+                SaslFactory.GetFactory3(),
                 new ManualByteConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));
         }

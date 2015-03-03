@@ -13,5 +13,6 @@ namespace Couchbase.Tests.Encryption
     [TestFixture]
     public class EffectiveConfigurationTests
     {
+        //TODO empty test
     }
 }

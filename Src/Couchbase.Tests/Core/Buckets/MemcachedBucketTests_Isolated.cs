@@ -17,7 +17,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_Bucket_Goes_Out_of_Scope_Process_Will_Not_Hang()
         {
             //if the configuration thread is a foreground thread, this would hang indefinitly
-            new Cluster().OpenBucket("memcached");
+            new Cluster("couchbaseClients/couchbase").OpenBucket("memcached");
         }
     }
 }

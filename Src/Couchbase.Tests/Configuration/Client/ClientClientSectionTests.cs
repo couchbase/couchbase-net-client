@@ -30,13 +30,14 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
-        public void Test_That_CouchbaseClientSection_Has_Localhost_Uri()
+        public void Test_That_CouchbaseClientSection_Has_ServerIp_Uri()
         {
             var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
+            var serverIp = ConfigurationManager.AppSettings["serverIp"];
             var servers = new UriElement[section.Servers.Count];
 // ReSharper disable once CoVariantArrayConversion
             section.Servers.CopyTo(servers, 0);
-            Assert.AreEqual("http://localhost:8091", servers[0].Uri.OriginalString);
+            Assert.AreEqual(string.Format("http://{0}:8091", serverIp), servers[0].Uri.OriginalString);
         }
 
         [Test]
@@ -142,6 +143,7 @@ namespace Couchbase.Tests.Configuration.Client
         public void Test_Programmatic_Config_Construction_Using_Default_Settings()
         {
             var cluster = new Cluster("couchbaseClients/couchbase");
+            var serverIp = ConfigurationManager.AppSettings["serverIp"];
             var configuration = cluster.Configuration;
             Assert.AreEqual(11207, configuration.SslPort);
             Assert.AreEqual(8091, configuration.MgmtPort);
@@ -152,7 +154,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsFalse(configuration.UseSsl);
 
             var server = configuration.Servers.First();
-            Assert.AreEqual(new Uri("http://localhost:8091/pools"), server);
+            Assert.AreEqual(new Uri(string.Format("http://{0}:8091/pools", serverIp)), server);
 
             var bucketKvp = configuration.BucketConfigs.First();
             Assert.AreEqual("default", bucketKvp.Key);

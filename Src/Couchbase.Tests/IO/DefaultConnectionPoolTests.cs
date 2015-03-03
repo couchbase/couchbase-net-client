@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -24,14 +25,14 @@ namespace Couchbase.Tests.IO
         private const int ShutdownTimeout = 10000;
         private const int RecieveTimeout = 1000;
         private const int SendTimeout = 1000;
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const int MaxConnectionAcquireCount = 10;
         private const int ConnectTimeout = 5000;
 
         [SetUp]
         public void SetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<Connection>();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount);
             _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factory, new AutoByteConverter());

@@ -103,7 +103,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void Test_GetRandom()
         {
-            var array1 = new List<char> { 'a', 'b', 'c', 'd' };
+            var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
             var random1 = array1.GetRandom();
             var random2 = array1.GetRandom();
 
@@ -114,7 +114,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void Test_GetRandom_IEnumerable()
         {
-            var array1 = new List<char> { 'a', 'b', 'c', 'd' };
+            var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
             var random1 = array1.Where(x=>x !='c').GetRandom();
             var random2 = array1.Where(x => x != 'c').GetRandom();
 

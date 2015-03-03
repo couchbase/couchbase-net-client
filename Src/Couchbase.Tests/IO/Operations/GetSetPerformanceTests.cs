@@ -75,7 +75,7 @@ namespace Couchbase.Tests.IO.Operations
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
             var n = 1000;//set to a higher # if needed
 
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster("couchbaseClients/couchbase"))
             {
                 using (var bucket = cluster.OpenBucket())
                 {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,6 +10,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
@@ -27,15 +29,15 @@ namespace Couchbase.Tests.Core
     {
         private IClusterController _clusterManager;
         protected ClientConfiguration _clientConfig;
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
         private IPEndPoint _endPoint;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
-            _endPoint = UriExtensions.GetEndPoint(Address);
-            _clientConfig = new ClientConfiguration();
+            _endPoint = UriExtensions.GetEndPoint(_address);
+            _clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
             _clusterManager = new ClusterController(_clientConfig);
         }
 

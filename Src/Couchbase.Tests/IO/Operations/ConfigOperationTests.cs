@@ -8,6 +8,7 @@ using Couchbase.IO.Strategies;
 using Couchbase.Utils;
 using NUnit.Framework;
 using System;
+using System.Configuration;
 
 namespace Couchbase.Tests.IO.Operations
 {
@@ -16,14 +17,14 @@ namespace Couchbase.Tests.IO.Operations
     {
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
         private IPEndPoint _endPoint;
 
         [SetUp]
         public void TestFixtureSetUp()
         {
-            _endPoint = UriExtensions.GetEndPoint(Address);
+            _endPoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration
             {
                 MinSize = 1,

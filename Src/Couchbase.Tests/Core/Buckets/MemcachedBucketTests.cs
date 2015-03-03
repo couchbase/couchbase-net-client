@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Core.Buckets
         [SetUp]
         public void SetUp()
         {
-            _cluster = new Cluster();
+            _cluster = new Cluster("couchbaseClients/couchbase");
         }
 
         [Test]

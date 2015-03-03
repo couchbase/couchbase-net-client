@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Configuration;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core.Transcoders;
@@ -26,7 +28,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(), 
+                SaslFactory.GetFactory3(),
                 new ManualByteConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));
         }
@@ -56,15 +58,15 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
 
            _provider.RegisterObserver(this);
            var exists = _provider.ObserverExists(this);
-           
+
            Assert.IsTrue(exists);
 
            //if this isn't unregistered, the thread will continue forever
            _provider.UnRegisterObserver(this);
-    
+
         }
 
-        [Test] 
+        [Test]
         public void Test_UnRegisterListener()
         {
             //we need to initialize the internal collections

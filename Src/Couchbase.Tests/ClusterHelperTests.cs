@@ -10,6 +10,9 @@ using NUnit.Framework.Constraints;
 
 namespace Couchbase.Tests
 {
+    /// <summary>
+    /// This test fixture needs a localhost couchbase instance
+    /// </summary>
     [TestFixture]
     public class ClusterHelperTests
     {

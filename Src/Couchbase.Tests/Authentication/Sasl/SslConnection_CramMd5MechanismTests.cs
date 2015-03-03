@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.IO;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -16,12 +17,12 @@ namespace Couchbase.Tests.Authentication.Sasl
     {
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
-        private const string Address = "127.0.0.1:11207";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [SetUp]
         public void TestFixtureSetUp()
         {
-            var ipEndpoint = UriExtensions.GetEndPoint(Address);
+            var ipEndpoint = UriExtensions.GetEndPoint(_address.Replace("11210", "11207"));
             var connectionPoolConfig = new PoolConfiguration
             {
                 UseSsl = true

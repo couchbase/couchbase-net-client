@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,12 +16,14 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
     {
         private ClientConfiguration _clientConfig;
         private IServerConfig _serverConfig;
+        private string _serverIp;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
+            _serverIp = ConfigurationManager.AppSettings["serverIp"];
             _clientConfig = new ClientConfiguration();
-            _clientConfig.Servers.Add(new Uri("http://127.0.0.1:8091/pools/"));
+            _clientConfig.Servers.Add(new Uri(string.Format("http://{0}:8091/pools/", _serverIp)));
 
             _serverConfig = new HttpServerConfig(_clientConfig);
             _serverConfig.Initialize();

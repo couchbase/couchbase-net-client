@@ -11,11 +11,12 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster();
+            _cluster = new Cluster("couchbaseClients/couchbase");
 
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Upsert(TestKeys.KeyWithInt32Value.Key, TestKeys.KeyWithInt32Value.Value);
+                bucket.Upsert(TestKeys.KeyWithStringValue.Key, TestKeys.KeyWithStringValue.Value);
             }
         }
 

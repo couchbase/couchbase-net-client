@@ -17,7 +17,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Bucket_Is_Open_IsOpen_Returns_True()
         {
-            var cluster = new Cluster("CouchbaseClients/couchbase");
+            var cluster = new Cluster("couchbaseClients/couchbase");
             var bucket = cluster.OpenBucket("default");
             Assert.IsTrue(cluster.IsOpen("default"));
         }
@@ -25,7 +25,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Bucket_Is_Not_Open_IsOpen_Returns_False()
         {
-            var cluster = new Cluster();
+            var cluster = new Cluster("couchbaseClients/couchbase");
             var bucket = cluster.OpenBucket("default");
             cluster.CloseBucket(bucket);
             Assert.IsFalse(cluster.IsOpen("default"));
@@ -34,7 +34,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Bucket_Is_Closed_By_Dispose_IsOpen_Returns_False()
         {
-            var cluster = new Cluster();
+            var cluster = new Cluster("couchbaseClients/couchbase");
             var bucket = cluster.OpenBucket("default");
             bucket.Dispose();
             Assert.IsFalse(cluster.IsOpen("default"));

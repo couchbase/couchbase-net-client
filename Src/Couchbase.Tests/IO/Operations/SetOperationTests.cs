@@ -16,7 +16,7 @@ namespace Couchbase.Tests.IO.Operations
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster();
+            _cluster = new Cluster("couchbaseClients/couchbase");
         }
 
         [Test]

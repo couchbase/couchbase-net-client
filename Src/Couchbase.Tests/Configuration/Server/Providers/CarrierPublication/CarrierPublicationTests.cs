@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
@@ -27,7 +29,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var configuration = new ClientConfiguration();
+            var configuration = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
             var clusterManager = new ClusterController(configuration, (p) =>
             {
                 var operation = new FakeOperation(new ManualByteConverter());

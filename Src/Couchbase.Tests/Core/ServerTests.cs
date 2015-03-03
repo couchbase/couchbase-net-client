@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -15,7 +16,7 @@ namespace Couchbase.Tests.Core
     [TestFixture]
     public class ServerTests
     {
-        private const string Address = "127.0.0.1:11210";
+        private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
         private IServer _server;
         private IPEndPoint _endPoint;
@@ -23,9 +24,9 @@ namespace Couchbase.Tests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            _endPoint = UriExtensions.GetEndPoint(Address);
+            _endPoint = UriExtensions.GetEndPoint(_address);
             var configuration = new ClientConfiguration();
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             _server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{ Name = "default"});
         }
@@ -73,7 +74,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{Name="default"}))
             {
@@ -133,7 +134,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(Address));
+            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
             var ioStrategy = new DefaultIOStrategy(connectionPool);
             using (var server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig{Name = "default"}))
             {

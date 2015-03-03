@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,17 +15,19 @@ namespace Couchbase.Tests.Core.Buckets
     public class CouchbaseBucketViewTests
     {
         private ICluster _cluster;
+        private string _serverIp;
 
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster();
+            _cluster = new Cluster("couchbaseClients/couchbase");
+            _serverIp = ConfigurationManager.AppSettings["serverIp"];
         }
 
         [Test]
         public void Test_CreateQuery_Overload2()
         {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri(string.Format("http://{0}:8092/beer-sample/_design/dev_beer/_view/brewery_beers?", _serverIp));
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery("beer", "brewery_beers", true).
                 RawUri();
@@ -37,7 +40,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_CreateQuery_Overload3()
         {
-            var expected = new Uri("http://localhost:8092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri(string.Format("http://{0}:8092/beer-sample/_design/dev_beer/_view/brewery_beers?", _serverIp));
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery("beer", "brewery_beers", true).
                 RawUri();

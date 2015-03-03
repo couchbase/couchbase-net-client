@@ -819,7 +819,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void Test_Dispose_On_Many_Threads()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster("couchbaseClients/couchbase"))
             {
                 Random random = new Random(100);
                 int n = 100;
