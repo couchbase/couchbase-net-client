@@ -185,5 +185,49 @@ namespace Couchbase.Tests.N1QL
                 Assert.IsNotEmpty(result.Errors);
             }
         }
+
+        [Test]
+        public void When_Prepare_A_Plan_Is_Returned()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Prepare("SELECT * FROM `beer-sample` LIMIT 10");
+
+                Assert.AreEqual(QueryStatus.Success, result.Status);
+                Assert.AreEqual(1, result.Rows.Count);
+            }
+        }
+
+        [Test]
+        public void When_Possessing_A_Plan_It_Can_Be_Executed()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var planResult = bucket.Prepare("SELECT * FROM `beer-sample` LIMIT 10");
+                var plan = planResult.Rows.First();
+
+                Assert.AreEqual(QueryStatus.Success, planResult.Status);
+                Assert.AreEqual(1, planResult.Rows.Count);
+
+                var executionRequest = new QueryRequest(plan); //can also be constructed via Create factory method
+                var executionResult = bucket.Query<dynamic>(executionRequest);
+
+                Assert.AreEqual(QueryStatus.Success, executionResult.Status);
+                Assert.AreEqual(10, executionResult.Rows.Count);
+            }
+        }
+
+        [Test]
+        public void When_Preparing_An_Invalid_Statement_An_Error_Is_Returned()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Prepare("SELECT * FRO `beer-sample` LIMIT 10");
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(0, result.Rows.Count);
+                Assert.AreEqual(QueryStatus.Fatal, result.Status);
+                Assert.IsNotEmpty(result.Errors);
+            }
+        }
     }
 }

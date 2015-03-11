@@ -50,6 +50,10 @@ namespace Couchbase.Core
 
         Task<IQueryResult<T>> SendAsync<T>(string query);
 
+        IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare);
+
+        IQueryResult<IQueryPlan> Prepare(string statementToPrepare);
+
         string GetBaseViewUri(string name);
 
         string GetBaseQueryUri();

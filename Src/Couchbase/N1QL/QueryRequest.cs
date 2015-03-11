@@ -358,6 +358,11 @@ namespace Couchbase.N1QL
             return _baseUri;
         }
 
+        public string GetStatement()
+        {
+            return _statement;
+        }
+
         public IDictionary<string, string> GetFormValues()
         {
             if (string.IsNullOrWhiteSpace(_statement))

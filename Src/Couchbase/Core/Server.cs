@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -228,6 +229,19 @@ namespace Couchbase.Core
             var uri = new Uri(GetBaseQueryUri());
             var task = QueryClient.QueryAsync<T>(uri, query);
             return task;
+        }
+
+        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        {
+            var uri = new Uri(GetBaseQueryUri());
+            toPrepare.BaseUri(uri);
+            return QueryClient.Prepare(toPrepare);
+        }
+
+        public IQueryResult<IQueryPlan> Prepare(string statementToPrepare)
+        {
+            IQueryRequest query = new QueryRequest(statementToPrepare);
+            return Prepare(query);
         }
 
         //note this should be cached

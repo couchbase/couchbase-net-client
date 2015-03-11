@@ -28,13 +28,6 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         IQueryRequest HttpMethod(Method method);
 
-//        /// <summary>
-//        /// When true, the client will make a request for a prepared statement, cache it, and use it on subsequent calls with the same statement.
-//        /// </summary>
-//        /// <param name="prepared">True to make client make a request for the prepared statement, cache it, and use it on subsequent requests.</param>
-//        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-//        IQueryRequest Prepared(bool prepared);
-
         /// <summary>
         ///  Sets a N1QL statement to be executed.
         /// </summary>
@@ -220,6 +213,8 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <returns>The <see cref="Uri"/> for the Query service</returns>
         Uri GetBaseUri();
+
+        string GetStatement();
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}"/> of the name/value pairs to be POSTed to the service if <see cref="Method.Post"/> is used.

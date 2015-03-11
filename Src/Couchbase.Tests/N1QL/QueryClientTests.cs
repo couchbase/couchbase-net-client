@@ -281,7 +281,7 @@ namespace Couchbase.Tests.N1QL
 
             stopWatch = new Stopwatch();
             stopWatch.Restart();
-            var plan = client.Prepare(serverUri, statement).Rows.First();
+            var plan = client.Prepare(normalRequest).Rows.First();
             preparedRequest.Prepared(plan).
                 BaseUri(serverUri).
                 Pretty(false);

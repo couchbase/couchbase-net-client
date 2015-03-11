@@ -1142,6 +1142,16 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IQueryResult<IQueryPlan> Prepare(string statement)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");

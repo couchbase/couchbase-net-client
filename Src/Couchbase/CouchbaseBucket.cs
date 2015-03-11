@@ -1911,6 +1911,36 @@ namespace Couchbase
             .Development(development);
         }
 
+        /// <summary>
+        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
+        /// </summary>
+        /// <param name="statement">A string containing a N1QL statement.</param>
+        /// <returns>
+        /// A <see cref="IQueryResult{T}" /> containing  the <see cref="IQueryPlan" /> representing the reusable
+        /// and cachable execution plan for the statement.
+        /// </returns>
+        public IQueryResult<IQueryPlan> Prepare(string statement)
+        {
+            CheckDisposed();
+            var server = _configInfo.GetServer();
+            return server.Prepare(statement);
+        }
+
+        /// <summary>
+        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
+        /// </summary>
+        /// <param name="toPrepare">A <see cref="IQueryRequest"/> containing a N1QL statement to be prepared for later execution.</param>
+        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
+        /// and cachable execution plan for the statement.</returns>
+        /// <remarks>Only the Statement and BaseUri properties of the request are relevant and used.</remarks>
+        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        {
+            CheckDisposed();
+            var server = _configInfo.GetServer();
+            return server.Prepare(toPrepare);
+        }
+
+
         public IBucketManager CreateManager(string username, string password)
         {
             return new BucketManager(Name,
