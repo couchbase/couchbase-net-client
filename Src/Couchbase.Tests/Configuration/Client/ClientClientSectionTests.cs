@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,11 +34,10 @@ namespace Couchbase.Tests.Configuration.Client
         public void Test_That_CouchbaseClientSection_Has_ServerIp_Uri()
         {
             var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
-            var serverIp = ConfigurationManager.AppSettings["serverIp"];
             var servers = new UriElement[section.Servers.Count];
 // ReSharper disable once CoVariantArrayConversion
             section.Servers.CopyTo(servers, 0);
-            Assert.AreEqual(string.Format("http://{0}:8091", serverIp), servers[0].Uri.OriginalString);
+            Assert.IsNotNullOrEmpty(servers[0].Uri.OriginalString);
         }
 
         [Test]
@@ -154,7 +154,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsFalse(configuration.UseSsl);
 
             var server = configuration.Servers.First();
-            Assert.AreEqual(new Uri(string.Format("http://{0}:8091/pools", serverIp)), server);
+            Assert.AreEqual(new Uri(string.Format("http://{0}:8091/pools", serverIp)).PathAndQuery, server.PathAndQuery);
 
             var bucketKvp = configuration.BucketConfigs.First();
             Assert.AreEqual("default", bucketKvp.Key);

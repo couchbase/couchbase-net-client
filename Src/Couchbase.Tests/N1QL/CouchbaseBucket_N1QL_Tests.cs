@@ -51,7 +51,7 @@ namespace Couchbase.Tests.N1QL
         {
             using (var bucket = _cluster.OpenBucket())
             {
-                const string query = "SELECT * FROM `beer-sample` LIMIT 10";
+                var query = new QueryRequest("SELECT * FROM `beer-sample` LIMIT 10");
 
                 var result = bucket.Query<dynamic>(query);
                 Assert.IsTrue(result.Success);

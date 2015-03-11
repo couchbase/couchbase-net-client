@@ -25,7 +25,7 @@ namespace Couchbase.Tests.IO.Operations
         }
 
         [Test]
-        public void Test_Observe2()
+        public async void Test_Observe2()
         {
             const string key = "Test_Observe2";
             var remove = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
@@ -39,8 +39,10 @@ namespace Couchbase.Tests.IO.Operations
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result.Cas, result1.Cas);
 
+            await Task.Delay(100);
             var operation = new Observe(key, GetVBucket(), new AutoByteConverter(), OperationLifespanTimeout);
             var result2 = IOStrategy.Execute(operation);
+
             Assert.AreEqual(result1.Cas, result2.Value.Cas);
 
             Assert.AreEqual(KeyState.FoundPersisted, result2.Value.KeyState);

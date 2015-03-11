@@ -39,7 +39,7 @@ namespace Couchbase.Tests.IO.Operations
             //check that doc has been updated
             var get = new Get<dynamic>(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
             var result3 = IOStrategy.Execute(get);
-            Assert.IsTrue(result.Success);
+            Assert.IsTrue(result3.Success);
             Assert.AreEqual(result3.Value.bar.Value, "bar");
         }
 
