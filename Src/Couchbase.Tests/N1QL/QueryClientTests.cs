@@ -24,17 +24,20 @@ namespace Couchbase.Tests.N1QL
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
 
-            var indexes = client.Query<dynamic>(uri, "SELECT name FROM system:keyspaces");
+            var indexes = client.Query<dynamic>(new QueryRequest("SELECT name FROM system:keyspaces").BaseUri(uri));
             foreach (var row in indexes.Rows)
             {
                 if (row.name == "beer-sample")
                 {
-                    client.Query<dynamic>(uri, "DROP PRIMARY INDEX ON `beer-sample`");
+                    client.Query<dynamic>(new QueryRequest("DROP PRIMARY INDEX ON `beer-sample`").BaseUri(uri));
                 }
             }
-            const string query = "CREATE PRIMARY INDEX ON `beer-sample`";
 
-            var result = client.Query<dynamic>(uri, query);
+            var query = new QueryRequest("CREATE PRIMARY INDEX ON `beer-sample`")
+                .BaseUri(uri)
+                .Timeout(new TimeSpan(0, 0, 0, 60));
+
+            var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Success);
             Assert.IsNotNull(result.Rows);
@@ -46,9 +49,9 @@ namespace Couchbase.Tests.N1QL
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
-            const string query = "SELECT 'Hello World' AS Greeting";
+            var query = new QueryRequest("SELECT 'Hello World' AS Greeting").BaseUri(uri);
 
-            var result = client.Query<dynamic>(uri, query);
+            var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
             Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
         }
@@ -59,9 +62,9 @@ namespace Couchbase.Tests.N1QL
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
-            const string query = "SELECT 'Hello World' ASB Greeting";
+            var query = new QueryRequest("SELECT 'Hello World' ASB Greeting").BaseUri(uri);
 
-            var result = client.Query<dynamic>(uri, query);
+            var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
             Assert.IsFalse(result.Success);
             Assert.IsEmpty(result.Rows);
@@ -73,11 +76,12 @@ namespace Couchbase.Tests.N1QL
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
-            const string query = "SELECT abv, brewery_id, category, description, ibu, name, srm, style, type, upc, updated " +
+            var query = new QueryRequest(
+                "SELECT abv, brewery_id, category, description, ibu, name, srm, style, type, upc, updated " +
                 "FROM `beer-sample` as beer " +
-                "WHERE beer.type='beer' LIMIT 10";
+                "WHERE beer.type='beer' LIMIT 10").BaseUri(uri);
 
-            var result = client.Query<Beer>(uri, query);
+            var result = client.Query<Beer>(query);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Success);
             Assert.IsNotNull(result.Rows);
@@ -92,9 +96,9 @@ namespace Couchbase.Tests.N1QL
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
-            const string query = "SELECT * FROM `beer-sample` as d LIMIT 10";
+            var query = new QueryRequest("SELECT * FROM `beer-sample` as d LIMIT 10").BaseUri(uri);
 
-            var result = client.Query<dynamic>(uri, query);
+            var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Success);
             Assert.IsNotNull(result.Rows);
@@ -106,9 +110,10 @@ namespace Couchbase.Tests.N1QL
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
-            const string query = "SELECT type, meta FROM `beer-sample` as d WHERE d.type='beer' LIMIT 10";
+            var query = new QueryRequest("SELECT type, meta FROM `beer-sample` as d WHERE d.type='beer' LIMIT 10")
+                .BaseUri(uri);
 
-            var result = client.Query<dynamic>(uri, query);
+            var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Success);
             Assert.IsNotNull(result.Rows);
