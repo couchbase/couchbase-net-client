@@ -2041,12 +2041,21 @@ namespace Couchbase
         /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.
         /// </summary>
+        /// <remarks>If the server is not available (<see cref="ServerUnavailableException"/>), will default to false.</remarks>
         public bool IsSecure
         {
             get
             {
-                var server = _configInfo.GetServer();
-                return server.IsSecure;
+                try
+                {
+                    var server = _configInfo.GetServer();
+                    return server.IsSecure;
+                }
+                catch (ServerUnavailableException e)
+                {
+                    Log.Info(m => m("Default to IsSecure false because of {0}", e));
+                    return false;
+                }
             }
         }
 

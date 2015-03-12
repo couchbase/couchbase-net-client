@@ -946,6 +946,7 @@ namespace Couchbase.Core
         /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.
         /// </summary>
+        /// <remarks>If the server is not available (<see cref="ServerUnavailableException"/>), will default to false.</remarks>
         bool IsSecure { get; }
     }
 }
