@@ -1234,66 +1234,6 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void When_Operation_Is_Successful_It_Does_Not_Timeout()
-        {
-            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
-            {
-                var slowSet = new SlowSet<object>(
-                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
-                    "When_Operation_Is_Slow_Operation_TimesOut",
-                    new DefaultTranscoder(new AutoByteConverter()),
-                    null,
-                    new AutoByteConverter(),
-                    500)
-                {
-                    SleepTime = 1000
-                };
-
-                var result = bucket.SendWithRetry(slowSet);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-            }
-        }
-
-        [Test]
-        public void When_Operation_Is_Faster_Than_Timeout_Operation_Succeeds()
-        {
-            using (var bucket = (CouchbaseBucket)_cluster.OpenBucket())
-            {
-                var slowSet = new SlowSet<object>(
-                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
-                    "When_Operation_Is_Slow_Operation_TimesOut",
-                    new DefaultTranscoder(new AutoByteConverter()),
-                    null,
-                    new AutoByteConverter(),
-                    1000)
-                {
-                    SleepTime = 500
-                };
-
-                var result = bucket.SendWithRetry(slowSet);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-            }
-        }
-
-        [Test]
-        public void When_Timeout_Defaults_Are_Used_Operation_Succeeds()
-        {
-            using (var bucket = (CouchbaseBucket) _cluster.OpenBucket())
-            {
-                var slowSet = new SlowSet<object>(
-                    "When_Operation_Is_Slow_Operation_TimesOut_Key",
-                    "When_Operation_Is_Slow_Operation_TimesOut",
-                    new DefaultTranscoder(new AutoByteConverter()),
-                    null,
-                    new AutoByteConverter(),
-                    _cluster.Configuration.DefaultOperationLifespan); //use lifespan in configuration
-
-                var result = bucket.SendWithRetry(slowSet);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-            }
-        }
-
-        [Test]
         public void Test_ReplicaRead()
         {
             var config = new ClientConfiguration

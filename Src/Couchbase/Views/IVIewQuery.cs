@@ -223,6 +223,12 @@ namespace Couchbase.Views
         /// </summary>
         /// <returns>A <see cref="Uri"/> object that represents the query. This query can be run within a browser.</returns>
         Uri RawUri();
+
+        /// <summary>
+        /// The number of times the view request was retried if it fails before succeeding or giving up.
+        /// </summary>
+        /// <remarks>Used internally.</remarks>
+        int RetryAttempts { get; set; }
     }
 }
 

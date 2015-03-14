@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -13,10 +12,8 @@ using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
-using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -36,15 +33,13 @@ namespace Couchbase
     public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable
     {
         private readonly static ILog Log = LogManager.GetLogger<CouchbaseBucket>();
-        private readonly IClusterController _clusterManager;
+        private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
-        private static readonly object SyncObj = new object();
         private readonly IByteConverter _converter;
         private readonly ITypeTranscoder _transcoder;
-        private readonly Func<TimingLevel, object, IOperationTimer> Timer;
-        private volatile bool _timingEnabled;
         private readonly uint _operationLifespanTimeout;
+        private CouchbaseRequestExecuter _requestExecuter;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -57,20 +52,18 @@ namespace Couchbase
             public int Count;
         }
 
-        internal CouchbaseBucket(IClusterController clusterManager, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
+        internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
         {
-            _clusterManager = clusterManager;
+            _clusterController = clusterController;
             _converter = converter;
             _transcoder = transcoder;
-            Timer = _clusterManager.Configuration.Timer;
-            _timingEnabled = _clusterManager.Configuration.EnableOperationTiming;
             Name = bucketName;
-            
+
             //extract the default operation lifespan timeout from configuration.
             BucketConfiguration bucketConfig;
-            _operationLifespanTimeout = _clusterManager.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
+            _operationLifespanTimeout = _clusterController.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
                 ? bucketConfig.DefaultOperationLifespan
-                : _clusterManager.Configuration.DefaultOperationLifespan;
+                : _clusterController.Configuration.DefaultOperationLifespan;
         }
 
         /// <summary>
@@ -99,170 +92,14 @@ namespace Couchbase
                 _configInfo != null ? _configInfo.BucketConfig.Rev :
                 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
+            Interlocked.Exchange(ref _requestExecuter,
+                new CouchbaseRequestExecuter(_clusterController, _configInfo, _converter, Name));
         }
-
         IServer GetServer(string key, out IVBucket vBucket)
         {
             var keyMapper = _configInfo.GetKeyMapper();
-            vBucket = (IVBucket) keyMapper.MapKey(key);
+            vBucket = (IVBucket)keyMapper.MapKey(key);
             return vBucket.LocatePrimary();
-        }
-
-        internal IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
-        {
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.Timer = Timer;
-                operation.BeginTimer(TimingLevel.Three);
-            }
-
-            CheckDisposed();
-            IOperationResult<T> operationResult = new OperationResult<T> {Success = false};
-            do
-            {
-                IVBucket vBucket;
-                var server = GetServer(operation.Key, out vBucket);
-                if (server == null)
-                {
-                    continue;
-                }
-                operation.VBucket = vBucket;
-                operationResult = server.Send(operation);
-
-                if (operationResult.Success)
-                {
-                    Log.Debug(
-                        m =>
-                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult.Value));
-                    break;
-                }
-                if (CanRetryOperation(operationResult, operation, server) && !operation.TimedOut())
-                {
-                    IOperation<T> operation1 = operation;
-                    IOperationResult<T> result = operationResult;
-                    Log.Debug(m => m("Operation retry {0} for key {1} using vb{2} from rev{3} and opaque{4}. Reason: {5}",
-                        operation1.Attempts, operation1.Key, operation1.VBucket.Index, operation1.VBucket.Rev,operation1.Opaque, result.Message));
-
-                    operation = operation.Clone();
-                }
-                else
-                {
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
-                    break;
-                }
-            } while (!operationResult.Success && !operation.TimedOut());
-
-            if (!operationResult.Success)
-            {
-                if (operation.TimedOut())
-                {
-                    const string msg = "The operation has timed out.";
-                    ((OperationResult) operationResult).Message = msg;
-                    ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
-                }
-
-                const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.VBucket.Index, operation.VBucket.Rev, operation.Opaque, operationResult.Message));
-            }
-
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.EndTimer(TimingLevel.Three);
-            }
-
-            return operationResult;
-        }
-
-        static bool OperationSupportsRetries<T>(IOperation<T>  operation)
-        {
-            var supportsRetry = false;
-            switch (operation.OperationCode)
-            {
-                case OperationCode.Get:
-                case OperationCode.Add:
-                    supportsRetry = true;
-                    break;
-                case OperationCode.Set:
-                case OperationCode.Replace:
-                case OperationCode.Delete:
-                case OperationCode.Append:
-                case OperationCode.Prepend:
-                    supportsRetry = operation.Cas > 0;
-                    break;
-                case OperationCode.Increment:
-                case OperationCode.Decrement:
-                case OperationCode.GAT:
-                case OperationCode.Touch:
-                    break;
-            }
-            return supportsRetry;
-        }
-
-        bool CanRetryOperation<T>(IOperationResult<T> operationResult, IOperation<T> operation, IServer server)
-        {
-            var supportsRetry = OperationSupportsRetries(operation);
-            var retry = false;
-            switch (operationResult.Status)
-            {
-                case ResponseStatus.Success:
-                case ResponseStatus.KeyNotFound:
-                case ResponseStatus.KeyExists:
-                case ResponseStatus.ValueTooLarge:
-                case ResponseStatus.InvalidArguments:
-                case ResponseStatus.ItemNotStored:
-                case ResponseStatus.IncrDecrOnNonNumericValue:
-                    break;
-                case ResponseStatus.VBucketBelongsToAnotherServer:
-                    return CheckForConfigUpdates(operationResult, operation);
-                case ResponseStatus.AuthenticationError:
-                case ResponseStatus.AuthenticationContinue:
-                case ResponseStatus.InvalidRange:
-                case ResponseStatus.UnknownCommand:
-                case ResponseStatus.OutOfMemory:
-                case ResponseStatus.NotSupported:
-                case ResponseStatus.InternalError:
-                case ResponseStatus.Busy:
-                case ResponseStatus.TemporaryFailure:
-                    break;
-                case ResponseStatus.ClientFailure:
-                    retry = HandleIOError(operation, server);
-                    break;
-                case ResponseStatus.OperationTimeout:
-                    break;
-            }
-            return retry && supportsRetry;
-        }
-
-        bool HandleIOError<T>(IOperation<T> operation, IServer server)
-        {
-            var retry = false;
-            var exception = operation.Exception as IOException;
-            if (exception != null)
-            {
-                try
-                {
-                    //Mark the current server as dead and force a reconfig
-                    server.MarkDead();
-
-                    var liveServer = _configInfo.GetServer();
-                    var result = liveServer.Send(new Config(_converter, liveServer.EndPoint, _operationLifespanTimeout));
-                    Log.Info(m => m("Trying to reconfig with {0}: {1}", liveServer.EndPoint, result.Message));
-                    if (result.Success)
-                    {
-                        var config = result.Value;
-                        if (config != null)
-                        {
-                            _clusterManager.NotifyConfigPublished(result.Value);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.Info(e);
-                }
-            }
-            return retry;
         }
 
         /// <summary>
@@ -284,7 +121,7 @@ namespace Couchbase
                     if (bucketConfig != null)
                     {
                         Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
-                        _clusterManager.NotifyConfigPublished(bucketConfig);
+                        _clusterController.NotifyConfigPublished(bucketConfig);
                     }
                 }
                 catch (Exception e)
@@ -295,7 +132,6 @@ namespace Couchbase
             }
             return requiresRetry;
         }
-
         /// <summary>
         /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
         /// </summary>
@@ -313,33 +149,6 @@ namespace Couchbase
             return observer.Observe(key, cas, deletion, replicateTo, persistTo)
                 ? ObserveResponse.DurabilitySatisfied
                 : ObserveResponse.DurabilityNotSatisfied;
-        }
-
-        /// <summary>
-        /// Sends an operation to the server while observing it's durability requirements
-        /// </summary>
-        /// <typeparam name="T">The value for T.</typeparam>
-        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
-        /// <param name="deletion">True if mutation is a deletion.</param>
-        /// <param name="replicateTo">The durability requirement for replication.</param>
-        /// <param name="persistTo">The durability requirement for persistence.</param>
-        /// <returns>The <see cref="IOperationResult{T}"/> with it's <see cref="Durability"/> status.</returns>
-        private IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            CheckDisposed();
-            var result = SendWithRetry(operation);
-            if (result.Success)
-            {
-                var observeResponse = Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                result.Durability = observeResponse == ObserveResponse.DurabilitySatisfied
-                    ? Durability.Satisfied
-                    : Durability.NotSatisfied;
-            }
-            else
-            {
-                result.Durability = Durability.NotSatisfied;
-            }
-            return result;
         }
 
         /// <summary>
@@ -363,8 +172,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -427,12 +237,13 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
                 Expires = expiration
             };
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -501,8 +312,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -520,11 +332,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -560,12 +373,13 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
                 Cas = cas
             };
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -697,8 +511,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -711,8 +526,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -728,11 +544,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -764,12 +581,13 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
                 Expires = expiration
             };
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -852,8 +670,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -868,8 +687,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -888,11 +708,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -934,8 +755,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
+            CheckDisposed();
             var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -951,11 +773,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
+            CheckDisposed();
             var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1023,8 +846,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1042,11 +866,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
-            return SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1096,11 +921,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
+            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1160,8 +986,9 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithDurability(operation, true, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1174,11 +1001,12 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
-            return SendWithDurability(operation, true, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1288,12 +1116,14 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
+            CheckDisposed();
             var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
-            return SendWithRetry(operation);
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         public IOperationResult<T> GetFromReplica<T>(string key)
         {
+            CheckDisposed();
             IVBucket vBucket = null;
             var primary = GetServer(key, out vBucket);
 
@@ -1405,6 +1235,7 @@ namespace Couchbase
         /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
         public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
         {
+            CheckDisposed();
             const uint defaultExpiration = 15;
             const uint maxExpiration = 30;
             if (expiration > maxExpiration)
@@ -1415,7 +1246,7 @@ namespace Couchbase
             {
                 Expiration = expiration
             };
-            return SendWithRetry(getl);
+            return _requestExecuter.SendWithRetry(getl);
         }
 
         /// <summary>
@@ -1442,11 +1273,12 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
         public IOperationResult Unlock(string key, ulong cas)
         {
+            CheckDisposed();
             var unlock = new Unlock(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
-            return SendWithRetry(unlock);
+            return _requestExecuter.SendWithRetry(unlock);
         }
 
         /// <summary>
@@ -1750,7 +1582,7 @@ namespace Couchbase
         public IViewResult<T> Query<T>(IViewQuery query)
         {
             CheckDisposed();
-            return SendWithRetry<T>((ViewQuery)query);
+            return _requestExecuter.SendWithRetry<T>((ViewQuery)query);
         }
 
         /// <summary>
@@ -1762,67 +1594,8 @@ namespace Couchbase
         /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
         public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
         {
-            var server = _configInfo.GetServer();
-            return server.SendAsync<T>(query);
-        }
-
-        internal IViewResult<T> SendWithRetry<T>(ViewQuery query)
-        {
-            IViewResult<T> viewResult = null;
-            try
-            {
-                using (var cancellationTokenSource = new CancellationTokenSource(_configInfo.ClientConfig.ViewHardTimeout))
-                {
-                    var task = RetryViewEvery((e, c) =>
-                    {
-                        var server = c.GetServer();
-                        return server.Send<T>(query);
-                    },
-                    query, _configInfo, cancellationTokenSource.Token);
-                    task.ConfigureAwait(false);
-                    task.Wait(cancellationTokenSource.Token);
-                    viewResult = task.Result;
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
-                viewResult = new ViewResult<T>
-                {
-                    Message = message,
-                    Error = e.Message,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            return viewResult;
-        }
-
-        static async Task<IViewResult<T>> RetryViewEvery<T>(Func<ViewQuery, IConfigInfo, IViewResult<T>> execute, ViewQuery query, IConfigInfo configInfo, CancellationToken cancellationToken)
-        {
-            while (true)
-            {
-                var result = execute(query, configInfo);
-                if (query.RetryAttempts++ >= configInfo.ClientConfig.MaxViewRetries ||
-                    result.Success ||
-                    result.CannotRetry())
-                {
-                    return result;
-                }
-                Log.Debug(m=>m("trying again: {0}", query.RetryAttempts));
-                var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
-                var task = Task.Delay(sleepTime, cancellationToken);
-                try
-                {
-                    await task;
-                }
-                catch (TaskCanceledException)
-                {
-                    return result;
-                }
-            }
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(query);
         }
 
         /// <summary>
@@ -1958,7 +1731,7 @@ namespace Couchbase
         /// <returns>True if they have the same name and <see cref="ClusterController"/> instance.</returns>
         private bool Equals(CouchbaseBucket other)
         {
-            return Equals(_clusterManager, other._clusterManager) &&
+            return Equals(_clusterController, other._clusterController) &&
                 _disposed.Equals(other._disposed) &&
                 string.Equals(Name, other.Name);
         }
@@ -1971,7 +1744,7 @@ namespace Couchbase
         {
             unchecked
             {
-                var hashCode = (_clusterManager != null ? _clusterManager.GetHashCode() : 0);
+                var hashCode = (_clusterController != null ? _clusterController.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
                 return hashCode;
             }
@@ -2079,7 +1852,7 @@ namespace Couchbase
             if (!_disposed)
             {
                 Log.Debug(m => m("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId));
-                _clusterManager.DestroyBucket(this);
+                _clusterController.DestroyBucket(this);
                 if (disposing)
                 {
                     GC.SuppressFinalize(this);

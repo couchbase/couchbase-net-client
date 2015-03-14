@@ -546,7 +546,11 @@ namespace Couchbase.Views
             return new Uri(requestUri);
         }
 
-        internal int RetryAttempts { get; set; }
+        /// <summary>
+        /// The number of times the view request was retried if it fails before succeeding or giving up.
+        /// </summary>
+        /// <remarks>Used internally.</remarks>
+        public int RetryAttempts { get; set; }
     }
 }
 

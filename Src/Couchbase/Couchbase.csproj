@@ -81,7 +81,10 @@
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
+    <Compile Include="Core\Buckets\CouchbaseRequestExecuter.cs" />
+    <Compile Include="Core\Buckets\IRequestExecuter.cs" />
     <Compile Include="Core\Buckets\KeyObserver.cs" />
+    <Compile Include="Core\Buckets\MemcachedRequestExecuter.cs" />
     <Compile Include="Core\Diagnostics\CommonLogStore.cs" />
     <Compile Include="Core\Diagnostics\IOperationTimer.cs" />
     <Compile Include="Core\Diagnostics\ITimingStore.cs" />
