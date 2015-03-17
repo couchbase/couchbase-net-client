@@ -119,7 +119,46 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(ResponseStatus.Success, result.Status);
             }
-        }
+		}
+
+		[Test]
+		public void When_Cas_Has_Changed_Replace_Fails()
+		{
+			const string key = "CouchbaseBucket.When_Cas_Has_Changed_Replace_Fails";
+			using (var bucket = _cluster.OpenBucket("memcached"))
+			{
+				bucket.Remove(key);
+				var set = bucket.Insert(key, "value");
+				Assert.IsTrue(set.Success);
+
+				var upsert = bucket.Upsert(key, "newvalue");
+				Assert.IsTrue(upsert.Success);
+
+				var replace = bucket.Replace(key, "should fail", set.Cas);
+				Assert.IsFalse(replace.Success);
+			}
+		}
+
+		[Test]
+		public void When_Cas_Has_Not_Changed_Replace_Succeeds()
+		{
+			const string key = "CouchbaseBucket.When_Cas_Has_Not_Changed_Replace_Succeeds";
+			using (var bucket = _cluster.OpenBucket("memcached"))
+			{
+				bucket.Remove(key);
+				var set = bucket.Insert(key, "value");
+				Assert.IsTrue(set.Success);
+
+				var get = bucket.Get<string>(key);
+				Assert.AreEqual(get.Cas, set.Cas);
+
+				var replace = bucket.Replace(key, "should succeed", get.Cas);
+				Assert.True(replace.Success);
+
+				get = bucket.Get<string>(key);
+				Assert.AreEqual("should succeed", get.Value);
+			}
+		}
 
         [Test]
         public void When_Key_Exists_Delete_Returns_Success()
