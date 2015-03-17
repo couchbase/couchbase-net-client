@@ -369,7 +369,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
