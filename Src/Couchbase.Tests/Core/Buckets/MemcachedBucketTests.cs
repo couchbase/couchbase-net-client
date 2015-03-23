@@ -605,6 +605,52 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public void When_GetAndTouch_Is_Called_Expiration_Is_Extended()
+        {
+            var key = "When_GetAndTouch_Is_Called_Expiration_Is_Extended";
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                bucket.Remove(key);
+                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+                Thread.Sleep(3000);
+                var result = bucket.Get<string>(key);
+                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+                bucket.Remove(key);
+                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+                result = bucket.GetAndTouch<string>(key, new TimeSpan(0, 0, 0, 5));
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(result.Value, "{value}");
+                Thread.Sleep(3000);
+                result = bucket.Get<string>(key);
+                Assert.AreEqual(result.Status, ResponseStatus.Success);
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public void When_Key_Is_Touched_Expiration_Is_Extended()
+        {
+            var key = "When_Key_Is_Touched_Expiration_Is_Extended";
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                bucket.Remove(key);
+                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+                Thread.Sleep(3000);
+                var result = bucket.Get<string>(key);
+                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+                bucket.Remove(key);
+                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+                bucket.Touch(key, new TimeSpan(0, 0, 0, 5));
+                Thread.Sleep(3000);
+                result = bucket.Get<string>(key);
+                Assert.AreEqual(result.Status, ResponseStatus.Success);
+            }
+        }
+
         [TearDown]
         public void TestFixtureTearDown()
         {

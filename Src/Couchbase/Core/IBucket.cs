@@ -619,6 +619,54 @@ namespace Couchbase.Core
         IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize);
 
         /// <summary>
+        /// Updates the expiration a key without modifying or returning it's value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
+        IOperationResult Touch(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Updates the expiration a key without modifying or returning it's value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        Task<IOperationResult<object>> TouchAsync(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
+        IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IDocumentResult{T}"/> with the key's document.</returns>
+        IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration);
+
+            /// <summary>
         /// Gets a document by it's given id.
         /// </summary>
         /// <typeparam name="T">The type T to convert the value to.</typeparam>

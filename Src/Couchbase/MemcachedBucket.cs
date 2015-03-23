@@ -118,6 +118,37 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Updates the expiration a key without modifying or returning it's value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
+        public IOperationResult Touch(string key, TimeSpan expiration)
+        {
+            var touch = new Touch(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetry(touch);
+        }
+
+        /// <summary>
+        /// Updates the expiration a key without modifying or returning it's value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        public Task<IOperationResult<object>> TouchAsync(string key, TimeSpan expiration)
+        {
+            var touch = new Touch(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetryAsync(touch);
+        }
+
+
+        /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
@@ -691,6 +722,62 @@ namespace Couchbase
         {
             var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
+        public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration)
+        {
+            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration)
+        {
+            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="IDocumentResult{T}"/> with the key's document.</returns>
+        public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration)
+        {
+            var result = GetAndTouch<T>(key, expiration);
+            return new DocumentResult<T>(result, key);
+        }
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
+        public Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            var result = GetAndTouchAsync<T>(key, expiration);
+            tcs.SetResult(new DocumentResult<T>(result.Result, key));
+            return tcs.Task;
         }
 
         public IOperationResult<T> GetFromReplica<T>(string key)
