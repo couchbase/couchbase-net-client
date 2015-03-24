@@ -43,6 +43,31 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Key_Does_Not_Exist_Exists_Returns_False()
+        {
+            var key = "thekeythatdoesnotexists_perhaps";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Exists(key);
+                Assert.IsFalse(result);
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Exists_Returns_True()
+        {
+            var key = "thekeythatexists";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                bucket.Upsert(key, "somevalue");
+                var result = bucket.Exists(key);
+                Assert.IsTrue(result);
+            }
+        }
+
+
         /// <summary>
         /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
         /// </summary>

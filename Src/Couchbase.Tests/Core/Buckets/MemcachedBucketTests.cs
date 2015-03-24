@@ -34,6 +34,31 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void When_Key_Does_Not_Exist_Exists_Returns_False()
+        {
+            var key = "thekeythatdoesnotexists_perhaps";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var result = bucket.Exists(key);
+                Assert.IsFalse(result);
+            }
+        }
+
+        [Test]
+        public void When_Key_Exists_Exists_Returns_True()
+        {
+            var key = "thekeythatexists";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                bucket.Upsert(key, "somevalue");
+                var result = bucket.Exists(key);
+                Assert.IsTrue(result);
+            }
+        }
+
+
+        [Test]
         [ExpectedException(typeof(AuthenticationException))]
         public void Test_That_OpenBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {

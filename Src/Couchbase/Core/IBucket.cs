@@ -26,6 +26,21 @@ namespace Couchbase.Core
         Couchbase.Core.Buckets.BucketTypeEnum BucketType { get; }
 
         /// <summary>
+        /// Checks for the existance of a given key.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>True if the key exists.</returns>
+        bool Exists(string key);
+
+        /// <summary>
+        /// Checks for the existance of a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
+        Task<bool> ExistsAsync(string key);
+
+
+        /// <summary>
         /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
         /// </summary>
         /// <param name="key">The key to 'observe'.</param>

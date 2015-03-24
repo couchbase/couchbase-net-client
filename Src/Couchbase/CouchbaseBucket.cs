@@ -95,6 +95,7 @@ namespace Couchbase
             Interlocked.Exchange(ref _requestExecuter,
                 new CouchbaseRequestExecuter(_clusterController, _configInfo, _converter, Name));
         }
+
         IServer GetServer(string key, out IVBucket vBucket)
         {
             var keyMapper = _configInfo.GetKeyMapper();
@@ -132,6 +133,29 @@ namespace Couchbase
             }
             return requiresRetry;
         }
+
+        /// <summary>
+        /// Checks for the existance of a given key.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>True if the key exists.</returns>
+        public bool Exists(string key)
+        {
+            var observe = new Observe(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var result = _requestExecuter.SendWithRetry(observe);
+            return result.Success && result.Value.KeyState != KeyState.NotFound;
+        }
+
+        /// <summary>
+        /// Checks for the existance of a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
+        public Task<bool> ExistsAsync(string key)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
         /// </summary>

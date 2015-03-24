@@ -112,6 +112,28 @@ namespace Couchbase
                 new MemcachedRequestExecuter(_clusterController, _configInfo, _converter, Name));
         }
 
+        /// <summary>
+        /// Checks for the existance of a given key.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>True if the key exists.</returns>
+        public bool Exists(string key)
+        {
+            var observe = new Observe(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var result = _requestExecuter.SendWithRetry(observe);
+            return result.Success && result.Value.KeyState != KeyState.NotFound;
+        }
+
+        /// <summary>
+        /// Checks for the existance of a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
+        public Task<bool> ExistsAsync(string key)
+        {
+            throw new NotImplementedException();
+        }
+
         public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException();
