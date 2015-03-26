@@ -104,37 +104,6 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Performs a CCCP request for the latest server configuration if the passed in operationResult
-        /// results in a NMV response.
-        /// </summary>
-        /// <typeparam name="T">The Type parameter of the passed in operation.</typeparam>
-        /// <param name="operationResult">The <see cref="IOperationResult{T}"/> to check.</param>
-        /// <param name="operation"></param>
-        /// <returns>True if the operation should be retried again with the new config.</returns>
-        bool CheckForConfigUpdates<T>(IOperationResult<T> operationResult, IOperation operation)
-        {
-            var requiresRetry = false;
-            if (operationResult.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                try
-                {
-                    var bucketConfig = operation.GetConfig();
-                    if (bucketConfig != null)
-                    {
-                        Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
-                        _clusterController.NotifyConfigPublished(bucketConfig);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-                requiresRetry = true;
-            }
-            return requiresRetry;
-        }
-
-        /// <summary>
         /// Checks for the existance of a given key.
         /// </summary>
         /// <param name="key">The key to check.</param>
@@ -1456,13 +1425,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Increment(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1546,13 +1509,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Decrement(key, initial, delta, expiration, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1584,13 +1541,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Append<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1606,13 +1557,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Append<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1628,13 +1573,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Prepend<string>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -1650,13 +1589,7 @@ namespace Couchbase
             var server = GetServer(key, out vBucket);
 
             var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _converter, _operationLifespanTimeout);
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info(m => m("Requires retry {0}", key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
