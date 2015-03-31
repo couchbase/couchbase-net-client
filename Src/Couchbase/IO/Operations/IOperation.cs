@@ -12,8 +12,6 @@ namespace Couchbase.IO.Operations
     {
         OperationCode OperationCode { get; }
 
-        ITypeTranscoder Transcoder { get; }
-
         string Key { get; }
 
         Exception Exception { get; set; }
@@ -75,6 +73,10 @@ namespace Couchbase.IO.Operations
         Func<SocketAsyncState, Task> Completed { get; set; }
 
         bool CanRetry();
+
+        IOperationResult GetResult();
+
+        IOperation Clone();
     }
 }
 

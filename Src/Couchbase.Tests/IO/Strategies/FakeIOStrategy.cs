@@ -36,7 +36,7 @@ namespace Couchbase.Tests.IO.Strategies
         public IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             operation = (IOperation<T>)_operation;
-            return Task.Run(() => operation.GetResult()).Result;
+            return Task.Run(() => operation.GetResultWithValue()).Result;
         }
 
         public IPEndPoint EndPoint
@@ -76,6 +76,62 @@ namespace Couchbase.Tests.IO.Strategies
         }
 
         Task IOStrategy.ExecuteAsync<T>(IOperation<T> operation)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public IOperationResult Execute(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExecuteAsync(IOperation operation, IConnection connection)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExecuteAsync(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        IOperationResult<T> IOStrategy.Execute<T>(IOperation<T> operation, IConnection connection)
+        {
+            throw new NotImplementedException();
+        }
+
+        IOperationResult<T> IOStrategy.Execute<T>(IOperation<T> operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        IOperationResult IOStrategy.Execute(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        IPEndPoint IOStrategy.EndPoint
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        IConnectionPool IOStrategy.ConnectionPool
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        ISaslMechanism IOStrategy.SaslMechanism
+        {
+            set { throw new NotImplementedException(); }
+        }
+
+        bool IOStrategy.IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        void IDisposable.Dispose()
         {
             throw new NotImplementedException();
         }

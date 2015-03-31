@@ -109,13 +109,22 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-
         public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
         {
             throw new NotImplementedException();
         }
 
         public IQueryResult<IQueryPlan> Prepare(string statementToPrepare)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IOperationResult Send(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SendAsync(IOperation operation)
         {
             throw new NotImplementedException();
         }

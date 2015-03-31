@@ -37,7 +37,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="operationResult">The <see cref="IOperationResult"/> to check from the server.</param>
         /// <param name="operation">The <see cref="IOperation"/> to check to see if it supports retries. Not all operations support retries.</param>
         /// <returns></returns>
-        public bool CanRetryOperation<T>(IOperationResult operationResult, IOperation<T> operation)
+        public bool CanRetryOperation(IOperationResult operationResult, IOperation operation)
         {
             var responseStatus = operationResult.Status;
             if (responseStatus == ResponseStatus.VBucketBelongsToAnotherServer)
@@ -152,6 +152,33 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Sends an operation to the server while observing it's durability requirements
+        /// </summary>
+        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
+        /// <param name="deletion">True if mutation is a deletion.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>The <see cref="IOperationResult"/> with it's <see cref="Durability"/> status.</returns>
+        public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var result = SendWithRetry(operation);
+            if (result.Success)
+            {
+                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
+                var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                result.Durability = observed
+                    ? Durability.Satisfied
+                    : Durability.NotSatisfied;
+            }
+            else
+            {
+                result.Durability = Durability.NotSatisfied;
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Sends an operation to the server while observing it's durability requirements using async/await
         /// </summary>
         /// <typeparam name="T">The value for T.</typeparam>
@@ -202,6 +229,78 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Sends a <see cref="IOperation" /> to the Couchbase Server using the Memcached protocol.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation" /> to send.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> with the status of the request.
+        /// </returns>
+        public override IOperationResult SendWithRetry(IOperation operation)
+        {
+            if (Log.IsDebugEnabled && TimingEnabled)
+            {
+                operation.Timer = Timer;
+                operation.BeginTimer(TimingLevel.Three);
+            }
+
+            IOperationResult operationResult = new OperationResult { Success = false };
+            do
+            {
+                IVBucket vBucket;
+                var server = GetServer(operation.Key, out vBucket);
+                if (server == null)
+                {
+                    continue;
+                }
+                operation.VBucket = vBucket;
+                operationResult = server.Send(operation);
+
+                if (operationResult.Success)
+                {
+                    Log.Debug(
+                        m =>
+                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                                operation.Attempts, operation.Key, operationResult));
+                    break;
+                }
+                if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                {
+                    IOperation operation1 = operation;
+                    IOperationResult result = operationResult;
+                    Log.Debug(m => m("Operation retry {0} for key {1} using vb{2} from rev{3} and opaque{4}. Reason: {5}",
+                        operation1.Attempts, operation1.Key, operation1.VBucket.Index, operation1.VBucket.Rev, operation1.Opaque, result.Message));
+
+                    operation = operation.Clone();
+                }
+                else
+                {
+                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    break;
+                }
+            } while (!operationResult.Success && !operation.TimedOut());
+
+            if (!operationResult.Success)
+            {
+                if (operation.TimedOut())
+                {
+                    const string msg = "The operation has timed out.";
+                    ((OperationResult)operationResult).Message = msg;
+                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
+                }
+
+                const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
+                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.VBucket.Index, operation.VBucket.Rev, operation.Opaque, operationResult.Message));
+            }
+
+            if (Log.IsDebugEnabled && TimingEnabled)
+            {
+                operation.EndTimer(TimingLevel.Three);
+            }
+
+            return operationResult;
+        }
+
+        /// <summary>
         /// Sends a <see cref="IOperation{T}" /> to the Couchbase Server using the Memcached protocol.
         /// </summary>
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
@@ -244,7 +343,7 @@ namespace Couchbase.Core.Buckets
                     Log.Debug(m => m("Operation retry {0} for key {1} using vb{2} from rev{3} and opaque{4}. Reason: {5}",
                         operation1.Attempts, operation1.Key, operation1.VBucket.Index, operation1.VBucket.Rev, operation1.Opaque, result.Message));
 
-                    operation = operation.Clone();
+                    operation = (IOperation<T>)operation.Clone();
                 }
                 else
                 {
@@ -326,6 +425,33 @@ namespace Couchbase.Core.Buckets
         public override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
         {
             var tcs = new TaskCompletionSource<IOperationResult<T>>();
+            var cts = new CancellationTokenSource(OperationLifeSpan);
+            cts.CancelAfter(OperationLifeSpan);
+
+
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+            operation.VBucket = vBucket;
+
+            operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(this, Pending, ClusterController, tcs, cts.Token);
+            Pending.TryAdd(operation.Opaque, operation);
+
+            var server = vBucket.LocatePrimary();
+            server.SendAsync(operation).ConfigureAwait(false);
+            return tcs.Task;
+        }
+
+
+        /// <summary>
+        /// Sends a <see cref="IOperation" /> to the Couchbase Server using the Memcached protocol using async/await.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation" /> to send.</param>
+        /// <returns>
+        /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public override Task<IOperationResult> SendWithRetryAsync(IOperation operation)
+        {
+            var tcs = new TaskCompletionSource<IOperationResult>();
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 

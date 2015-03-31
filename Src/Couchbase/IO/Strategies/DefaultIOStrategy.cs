@@ -64,6 +64,45 @@ namespace Couchbase.IO.Strategies
 
             //Read the response and return the completed operation
             operation.Read(response, 0, response.Length);
+            return operation.GetResultWithValue();
+        }
+
+
+        /// <summary>
+        /// Executes an operation for a given key.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation" /> being executed.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IOperationResult Execute(IOperation operation)
+        {
+            //Get the buffer and a connection
+            var request = operation.Write();
+            var connection = _connectionPool.Acquire();
+            byte[] response;
+            try
+            {
+                //A new connection will have to be authenticated
+                if (!connection.IsAuthenticated)
+                {
+                    Authenticate(connection);
+                }
+
+                //Send the request buffer and release the connection
+                response = connection.Send(request);
+            }
+            finally
+            {
+                _connectionPool.Release(connection);
+            }
+
+            //Read the response and return the completed operation
+            if (response != null)
+            {
+                operation.Read(response, 0, response.Length);
+            }
             return operation.GetResult();
         }
 
@@ -102,7 +141,7 @@ namespace Couchbase.IO.Strategies
             {
                 operation.Read(response, 0, response.Length);
             }
-            return operation.GetResult();
+            return operation.GetResultWithValue();
         }
 
         /// <summary>
@@ -127,6 +166,24 @@ namespace Couchbase.IO.Strategies
         /// <summary>
         /// Asynchrounously executes an operation for a given key.
         /// </summary>
+        /// <param name="operation">The <see cref="IOperation{T}" /> being executed.</param>
+        /// <param name="connection">The <see cref="IConnection" /> the operation is using.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        /// <remarks>
+        /// This overload is used to perform authentication on the connection if it has not already been authenticated.
+        /// </remarks>
+        public async Task ExecuteAsync(IOperation operation, IConnection connection)
+        {
+            var request = await operation.WriteAsync().ContinueOnAnyContext();
+            connection.SendAsync(request, operation.Completed);
+        }
+
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
         /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}" /> being executed.</param>
         /// <returns>
@@ -137,6 +194,27 @@ namespace Couchbase.IO.Strategies
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
         public Task ExecuteAsync<T>(IOperation<T> operation)
+        {
+            var connection = _connectionPool.Acquire();
+            if (!connection.IsAuthenticated)
+            {
+                Authenticate(connection);
+            }
+            return ExecuteAsync(operation, connection);
+        }
+
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation{T}" /> being executed.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        /// <remarks>
+        /// This overload is used to perform authentication on the connection if it has not already been authenticated.
+        /// </remarks>
+        public Task ExecuteAsync(IOperation operation)
         {
             var connection = _connectionPool.Acquire();
             if (!connection.IsAuthenticated)

@@ -88,14 +88,21 @@ namespace Couchbase.Core
 
         public IViewClient ViewClient { get; private set; }
 
-        public IOperationResult<T> Send<T>(IOperation<T> operation)
+        /// <summary>
+        /// Sends a key/value operation that contains no body to it's mapped server.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation" /> to send.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of the operation.
+        /// </returns>
+        public IOperationResult Send(IOperation operation)
         {
             if (Log.IsDebugEnabled && _timingEnabled)
             {
                 operation.BeginTimer(TimingLevel.Two);
             }
 
-            IOperationResult<T> result;
+            IOperationResult result;
             try
             {
                 Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
@@ -115,11 +122,74 @@ namespace Couchbase.Core
             return result;
         }
 
+        /// <summary>
+        /// Sends a key/value operation that contains a body to it's mapped server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}" /> to send.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult{T}" /> representing the result of the operation.
+        /// </returns>
+        public IOperationResult<T> Send<T>(IOperation<T> operation)
+        {
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.BeginTimer(TimingLevel.Two);
+            }
+
+            IOperationResult<T> result;
+            try
+            {
+                Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                result = _ioStrategy.Execute(operation);
+            }
+            catch (Exception e)
+            {
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                result = operation.GetResultWithValue();
+            }
+
+            if (Log.IsDebugEnabled && _timingEnabled)
+            {
+                operation.EndTimer(TimingLevel.Two);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Sends a key/value operation to it's mapped server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}" /> to send.</param>
+        /// <returns>
+        /// A <see cref="Task" /> representing the asynchronous operation.
+        /// </returns>
         public Task SendAsync<T>(IOperation<T> operation)
         {
             return _ioStrategy.ExecuteAsync(operation);
         }
 
+        /// <summary>
+        /// Sends a key/value operation that contains no body to it's mapped server asynchronously.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation" /> to send.</param>
+        /// <returns>
+        /// A <see cref="Task" /> representing the asynchronous operation.
+        /// </returns>
+        public Task SendAsync(IOperation operation)
+        {
+            return _ioStrategy.ExecuteAsync(operation);
+        }
+
+        /// <summary>
+        /// Sends a request for a View to the server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row result.</typeparam>
+        /// <param name="query">The <see cref="IViewQuery" /> representing the query.</param>
+        /// <returns>
+        /// An <see cref="Task{IViewResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
         {
             Task<IViewResult<T>> result;
@@ -146,6 +216,14 @@ namespace Couchbase.Core
             return result;
         }
 
+        /// <summary>
+        /// Sends a request for a View to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row result.</typeparam>
+        /// <param name="query">The <see cref="IViewQuery" /> representing the query.</param>
+        /// <returns>
+        /// An <see cref="IViewResult{T}" /> representing the result of the query.
+        /// </returns>
         public IViewResult<T> Send<T>(IViewQuery query)
         {
             IViewResult<T> result;
@@ -170,6 +248,14 @@ namespace Couchbase.Core
             return result;
         }
 
+        /// <summary>
+        /// Sends a request for a N1QL query to the server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest" /> object.</param>
+        /// <returns>
+        /// An <see cref="Task{IQueryResult}" /> object representing the asynchronous operation.
+        /// </returns>
         IQueryResult<T> IServer.Send<T>(IQueryRequest queryRequest)
         {
             IQueryResult<T> result;
@@ -194,6 +280,12 @@ namespace Couchbase.Core
             return result;
         }
 
+        /// <summary>
+        /// Sends a request for a N1QL query to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest" /> object.</param>
+        /// <returns></returns>
         Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
         {
             if (queryRequest.GetBaseUri() == null)
@@ -322,6 +414,7 @@ namespace Couchbase.Core
             Dispose(false);
         }
 #endif
+
     }
 }
 

@@ -81,7 +81,7 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Observe; }
         }
 
-        public override IOperation<ObserveState> Clone()
+        public override IOperation Clone()
         {
             var cloned = new Observe(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

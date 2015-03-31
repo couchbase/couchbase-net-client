@@ -127,7 +127,7 @@ namespace Couchbase.Tests.Core
                 BodyLength = bytes.Length
             };
 
-            var bucketConfig = op.GetResult().Value;
+            var bucketConfig = op.GetResultWithValue().Value;
 
             var config = new ClientConfiguration();
             config.UpdateBootstrapList(bucketConfig);

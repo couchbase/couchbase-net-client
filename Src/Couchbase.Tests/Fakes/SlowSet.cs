@@ -42,7 +42,7 @@ namespace Couchbase.Tests.Fakes
             return base.Write();
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new SlowSet<T>(Key, RawValue, Transcoder, VBucket, Converter, OperationLifespan)
             {

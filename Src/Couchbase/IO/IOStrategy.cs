@@ -30,6 +30,13 @@ namespace Couchbase.IO
         IOperationResult<T> Execute<T>(IOperation<T> operation);
 
         /// <summary>
+        /// Executes an operation for a given key.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> being executed.</param>
+        /// <returns>An <see cref="IOperationResult"/> representing the result of operation.</returns>
+        IOperationResult Execute(IOperation operation);
+
+        /// <summary>
         /// Asynchrounously executes an operation for a given key.
         /// </summary>
         /// <typeparam name="T">The Type T of the value being stored or retrieved.</typeparam>
@@ -68,6 +75,34 @@ namespace Couchbase.IO
         /// Returns true if internal TCP connections are using SSL.
         /// </summary>
         bool IsSecure { get; }
+
+
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation{T}" /> being executed.</param>
+        /// <param name="connection">The <see cref="IConnection" /> the operation is using.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        /// <remarks>
+        /// This overload is used to perform authentication on the connection if it has not already been authenticated.
+        /// </remarks>
+        Task ExecuteAsync(IOperation operation, IConnection connection);
+
+        /// <summary>
+        /// Asynchrounously executes an operation for a given key.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation{T}" /> being executed.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult" /> representing the result of operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        /// <remarks>
+        /// This overload is used to perform authentication on the connection if it has not already been authenticated.
+        /// </remarks>
+        Task ExecuteAsync(IOperation operation);
     }
 }
 

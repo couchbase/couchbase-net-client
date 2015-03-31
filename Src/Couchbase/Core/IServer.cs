@@ -34,16 +34,65 @@ namespace Couchbase.Core
 
         IPEndPoint EndPoint { get; }
 
+        /// <summary>
+        /// Sends a key/value operation that contains no body to it's mapped server asynchronously.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> to send.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        Task SendAsync(IOperation operation);
+
+        /// <summary>
+        /// Sends a key/value operation to it's mapped server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task SendAsync<T>(IOperation<T> operation);
 
+        /// <summary>
+        /// Sends a key/value operation that contains a body to it's mapped server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body.</typeparam>
+        /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> representing the result of the operation.</returns>
         IOperationResult<T> Send<T>(IOperation<T> operation);
 
+        /// <summary>
+        /// Sends a key/value operation that contains no body to it's mapped server.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> to send.</param>
+        /// <returns>An <see cref="IOperationResult"/> representing the result of the operation.</returns>
+        IOperationResult Send(IOperation operation);
+
+        /// <summary>
+        /// Sends a request for a View to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body for each row result.</typeparam>
+        /// <param name="query">The <see cref="IViewQuery"/> representing the query.</param>
+        /// <returns>An <see cref="IViewResult{T}"/> representing the result of the query.</returns>
         IViewResult<T> Send<T>(IViewQuery query);
 
+        /// <summary>
+        /// Sends a request for a View to the server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body for each row result.</typeparam>
+        /// <param name="query">The <see cref="IViewQuery"/> representing the query.</param>
+        /// <returns>An <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
         Task<IViewResult<T>> SendAsync<T>(IViewQuery query);
 
+        /// <summary>
+        /// Sends a request for a N1QL query to the server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest"/> object.</param>
+        /// <returns>An <see cref="Task{IQueryResult}"/> object representing the asynchronous operation.</returns>
         IQueryResult<T> Send<T>(IQueryRequest queryRequest);
 
+        /// <summary>
+        /// Sends a request for a N1QL query to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest"/> object.</param>
         Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest);
 
         IQueryResult<T> Send<T>(string query);

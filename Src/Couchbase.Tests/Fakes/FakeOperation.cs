@@ -31,7 +31,7 @@ namespace Couchbase.Tests.Fakes
             };
         }
 
-        public override IOperationResult<string> GetResult()
+        public override IOperationResult<string> GetResultWithValue()
         {
             return _operationResult;
         }

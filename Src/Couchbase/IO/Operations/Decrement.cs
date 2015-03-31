@@ -65,7 +65,7 @@ namespace Couchbase.IO.Operations
             return new byte[0];
         }
 
-        public override IOperation<ulong> Clone()
+        public override IOperation Clone()
         {
             var cloned = new Decrement(Key, _initial,_delta, _expiration, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

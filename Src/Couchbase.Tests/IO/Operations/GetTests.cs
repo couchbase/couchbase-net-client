@@ -43,7 +43,7 @@ namespace Couchbase.Tests.IO.Operations
             var op = new Get<string>("Key", GetVBucket(), new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
 
-            var result = op.GetResult();
+            var result = op.GetResultWithValue();
             Assert.IsNull(result.Value);
             Assert.IsEmpty(result.Message);
         }

@@ -45,7 +45,7 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.GAT; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new GetT<T>(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

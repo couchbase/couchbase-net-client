@@ -26,7 +26,7 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Set; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new Set<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque, Timeout)
             {

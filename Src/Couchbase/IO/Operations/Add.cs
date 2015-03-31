@@ -32,7 +32,7 @@ namespace Couchbase.IO.Operations
             get { return 24; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new Add<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

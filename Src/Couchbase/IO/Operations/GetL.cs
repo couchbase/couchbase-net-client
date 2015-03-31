@@ -30,7 +30,7 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.GetL; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new GetL<T>(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

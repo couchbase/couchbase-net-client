@@ -1042,7 +1042,7 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
-        Task<IOperationResult<object>> RemoveAsync(string key);
+        Task<IOperationResult> RemoveAsync(string key);
 
         /// <summary>
         /// Removes a document for a given key from the database.
@@ -1172,7 +1172,7 @@ namespace Couchbase.Core
         /// <param name="key">The key to "touch".</param>
         /// <param name="expiration">The expiration to extend.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        Task<IOperationResult<object>> TouchAsync(string key, TimeSpan expiration);
+        Task<IOperationResult> TouchAsync(string key, TimeSpan expiration);
 
         /// <summary>
         /// Retrieves a value by key and additionally updates the expiry with a new value.

@@ -65,7 +65,7 @@ namespace Couchbase.IO.Operations
             get { return 28; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Converter, Opaque, Timeout)
             {

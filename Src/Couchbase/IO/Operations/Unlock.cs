@@ -4,41 +4,16 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal class Unlock : OperationBase<string>
+    internal class Unlock : OperationBase
     {
         public Unlock(IByteConverter converter, uint timeout)
             : base(converter, timeout)
         {
         }
 
-        private Unlock(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
-            : base(key, default(string), transcoder, vBucket, converter, opaque, timeout)
-        {
-        }
-
-        public Unlock(string key, string value, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, vBucket, converter, timeout)
-        {
-        }
-
-        public Unlock(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, vBucket, converter, timeout)
-        {
-        }
-
-        public Unlock(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
+        public Unlock(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint timeout)
             : base(key, vBucket, converter, transcoder, timeout)
         {
-        }
-
-        public override byte[] CreateExtras()
-        {
-            return new byte[0];
-        }
-
-        public override byte[] CreateBody()
-        {
-            return new byte[0];
         }
 
         public override OperationCode OperationCode
@@ -46,13 +21,14 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Unlock; }
         }
 
-        public override IOperation<string> Clone()
+        public override IOperation Clone()
         {
-            var cloned = new Unlock(Key, Transcoder, VBucket, Converter, Opaque, Timeout)
+            var cloned = new Unlock(Key, Transcoder, VBucket, Converter, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                Opaque = Opaque
             };
             return cloned;
         }

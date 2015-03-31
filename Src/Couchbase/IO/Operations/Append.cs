@@ -57,7 +57,7 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Append; }
         }
 
-        public override IOperation<T> Clone()
+        public override IOperation Clone()
         {
             var cloned = new Append<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
             {

@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Configuration;
-using System.ServiceModel;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -12,23 +9,12 @@ using Couchbase.IO.Utils;
 using System;
 using System.IO;
 using System.Text;
-using System.Threading;
-using Couchbase.Views;
 
 namespace Couchbase.IO.Operations
 {
-    internal abstract class OperationBase<T> : IOperation<T>
+    internal abstract class OperationBase<T> : OperationBase, IOperation<T>
     {
-        private const int DefaultOffset = 24;
-        public const int HeaderLength = 24;
-        public const int DefaultRetries = 2;
-        private readonly uint _opaque;
-        private readonly ITypeTranscoder _transcoder;
-        private readonly T _value;
-        private bool _timedOut;
-        protected readonly IByteConverter Converter;
-        protected Flags Flags = new Flags();
-        private Dictionary<TimingLevel, IOperationTimer> _timers;
+        protected T _value;
 
         protected OperationBase(IByteConverter converter, uint timeout)
             : this(string.Empty, null, converter, timeout)
@@ -37,17 +23,9 @@ namespace Couchbase.IO.Operations
 
         protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket,
             IByteConverter converter, uint opaque, uint timeout)
+            : base(key, transcoder, vBucket, converter, opaque, timeout)
         {
-            Key = key;
             _value = value;
-            _transcoder = transcoder;
-            _opaque = opaque;
-            CreationTime = DateTime.UtcNow;
-            Timeout = timeout;
-            VBucket = vBucket;
-            Converter = converter;
-            MaxRetries = DefaultRetries;
-            Data = new MemoryStream();
         }
 
         protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
@@ -65,171 +43,64 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public virtual void Reset()
+        public override byte[] CreateBody()
         {
-            Reset(ResponseStatus.Success);
+            byte[] bytes;
+            if (typeof(T).IsValueType)
+            {
+                bytes = Transcoder.Encode(RawValue, Flags);
+            }
+            else
+            {
+                bytes = RawValue == null ? new byte[0] :
+                    Transcoder.Encode(RawValue, Flags);
+            }
+
+            return bytes;
         }
 
-        public void BeginTimer(TimingLevel level)
+        public virtual Couchbase.IOperationResult<T> GetResultWithValue()
         {
-            IOperationTimer timer = null;
-            if (Timer != null)
+            var value = GetValue();
+            var result = new OperationResult<T>
             {
-                timer = Timer(level, this);
-                if (_timers == null)
-                {
-                    _timers = new Dictionary<TimingLevel, IOperationTimer>();
-                }
-                if (!_timers.ContainsKey(level))
-                {
-                    _timers.Add(level, timer);
-                }
-            }
-        }
-
-        public void EndTimer(TimingLevel level)
-        {
-            if (_timers != null && _timers.ContainsKey(level))
-            {
-                IOperationTimer timer = null;
-                if(_timers.TryGetValue(level, out timer))
-                {
-                    if (timer != null)
-                    {
-                        timer.Dispose();
-                        _timers.Remove(level);
-                    }
-                }
-            }
-        }
-
-        public virtual void Reset(ResponseStatus status)
-        {
-            if (Data != null)
-            {
-                Data.Dispose();
-            }
-            Data = new MemoryStream();
-            LengthReceived = 0;
-
-            Header = new OperationHeader
-            {
-                Magic = Header.Magic,
-                OperationCode = OperationCode,
+                Success = GetSuccess(),
+                Message = GetMessage(),
+                Status = GetResponseStatus(),
+                Value = value,
                 Cas = Header.Cas,
-                BodyLength = Header.BodyLength,
-                Key = Key,
-                Status = status
+                Exception = Exception
             };
+
+            Data.Dispose();
+            return result;
         }
 
-        public virtual void HandleClientError(string message, ResponseStatus responseStatus)
-        {
-            Reset(responseStatus);
-            var msgBytes = Encoding.UTF8.GetBytes(message);
-            LengthReceived += msgBytes.Length;
-            if (Data == null)
-            {
-                Data = new MemoryStream();
-            }
-            Data.Write(msgBytes, 0, msgBytes.Length);
-        }
 
-        public virtual void Read(byte[] buffer, int offset, int length)
+        public virtual T GetValue()
         {
-            if (Header.BodyLength == 0)
+            var result = default(T);
+            if(Success && Data != null && Data.Length > 0)
             {
-                Header = new OperationHeader
+                try
                 {
-                    Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
-                    OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
-                    KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
-                    ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus) Converter.ToInt16(buffer, HeaderIndexFor.Status),
-                    BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
-                };
-            }
-            LengthReceived += length;
-            Data.Write(buffer, offset, length);
-        }
-
-        public async virtual Task ReadAsync(byte[] buffer, int offset, int length)
-        {
-            if (Header.BodyLength == 0)
-            {
-                Header = new OperationHeader
+                    var buffer = Data.ToArray();
+                    ReadExtras(buffer);
+                    var offset = 24 + Header.KeyLength + Header.ExtrasLength;
+                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags);
+                }
+                catch (Exception e)
                 {
-                    Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
-                    OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
-                    KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
-                    ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus)Converter.ToInt16(buffer, HeaderIndexFor.Status),
-                    BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
-                };
+                    Exception = e;
+                    HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                }
             }
-
-            await Data.WriteAsync(buffer, offset, length);
-            LengthReceived += length;
+            return result;
         }
 
-        public virtual byte[] Write()
+        internal T RawValue
         {
-            var extras = CreateExtras();
-            var key = CreateKey();
-            var body = CreateBody();
-            var header = CreateHeader(extras, body, key);
-
-            var buffer = new byte[extras.GetLengthSafe() +
-               body.GetLengthSafe() +
-               key.GetLengthSafe() +
-               header.GetLengthSafe()];
-
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(extras, 0, buffer, header.Length, extras.Length);
-            System.Buffer.BlockCopy(key, 0, buffer, header.Length + extras.Length, key.Length);
-            System.Buffer.BlockCopy(body, 0, buffer, header.Length + extras.Length + key.Length, body.Length);
-
-            return buffer;
-        }
-
-        public virtual Task<byte[]> WriteAsync()
-        {
-            var tcs = new TaskCompletionSource<byte[]>();
-            try
-            {
-                tcs.SetResult(Write());
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return tcs.Task;
-        }
-
-        public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
-        {
-            var header = new byte[24];
-            var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe();
-
-            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
-            Converter.FromInt16((short)key.GetLengthSafe(), header, HeaderIndexFor.KeyLength);
-            Converter.FromByte((byte)extras.GetLengthSafe(), header, HeaderIndexFor.ExtrasLength);
-
-            if (VBucket != null)
-            {
-                Converter.FromInt16((short)VBucket.Index, header, HeaderIndexFor.VBucket);
-            }
-
-            Converter.FromInt32(totalLength, header, HeaderIndexFor.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
-            Converter.FromUInt64(Cas, header, HeaderIndexFor.Cas);
-
-            return header;
+            get { return _value; }
         }
 
         protected DataFormat GetFormat()
@@ -239,7 +110,7 @@ namespace Couchbase.IO.Operations
             switch (typeCode)
             {
                 case TypeCode.Object:
-                    if (typeof (T) == typeof (Byte[]))
+                    if (typeof(T) == typeof(Byte[]))
                     {
                         dataFormat = DataFormat.Binary;
                     }
@@ -269,7 +140,7 @@ namespace Couchbase.IO.Operations
             return dataFormat;
         }
 
-        public virtual byte[] CreateExtras()
+        public override byte[] CreateExtras()
         {
             var extras = new byte[8];
             var format = (byte)GetFormat();
@@ -288,7 +159,7 @@ namespace Couchbase.IO.Operations
             Converter.FromUInt16(typeCode, extras, 2);
             Converter.FromUInt32(Expires, extras, 4);
 
-            Format = (DataFormat) format;
+            Format = (DataFormat)format;
             Compression = compression;
 
             Flags.DataFormat = Format;
@@ -298,266 +169,25 @@ namespace Couchbase.IO.Operations
             return extras;
         }
 
-        public virtual void ReadExtras(byte[] buffer)
+        public override byte[] Write()
         {
-            if (buffer.Length > 24)
-            {
-                var format = new byte();
-                var flags = Converter.ToByte(buffer, 24);
-                Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
-                Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
-                Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
-                Converter.SetBit(ref format, 3, Converter.GetBit(flags, 3));
+            var extras = CreateExtras();
+            var key = CreateKey();
+            var body = CreateBody();
+            var header = CreateHeader(extras, body, key);
 
-                var compression = new byte();
-                Converter.SetBit(ref compression, 4, Converter.GetBit(flags, 4));
-                Converter.SetBit(ref compression, 5, Converter.GetBit(flags, 5));
-                Converter.SetBit(ref compression, 6, Converter.GetBit(flags, 6));
+            var buffer = new byte[BufferExtensions.GetLengthSafe(extras) +
+                                  BufferExtensions.GetLengthSafe(body) +
+                                  BufferExtensions.GetLengthSafe(key) +
+                                  BufferExtensions.GetLengthSafe(header)];
 
-                var typeCode = (TypeCode)(Converter.ToUInt16(buffer, 26) & 0xff);
-                Format = (DataFormat)format;
-                Compression = (Compression) compression;
-                Flags.DataFormat = Format;
-                Flags.Compression = Compression;
-                Flags.TypeCode = typeCode;
-                Expires = Converter.ToUInt32(buffer, 25);
-            }
-        }
+            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            System.Buffer.BlockCopy(extras, 0, buffer, header.Length, extras.Length);
+            System.Buffer.BlockCopy(key, 0, buffer, header.Length + extras.Length, key.Length);
+            System.Buffer.BlockCopy(body, 0, buffer, header.Length + extras.Length + key.Length, body.Length);
 
-        public virtual byte[] CreateKey()
-        {
-            var length = Encoding.UTF8.GetByteCount(Key);
-            var buffer = new byte[length];
-            Converter.FromString(Key, buffer, 0);
             return buffer;
         }
-
-        public virtual byte[] CreateBody()
-        {
-            byte[] bytes;
-            if (typeof(T).IsValueType)
-            {
-                bytes = _transcoder.Encode(RawValue, Flags);
-            }
-            else
-            {
-                bytes = RawValue == null ? new byte[0] :
-                    _transcoder.Encode(RawValue, Flags);
-            }
-
-            return bytes;
-        }
-
-        public virtual Couchbase.IOperationResult<T> GetResult()
-        {
-            var value = GetValue();
-            var result = new OperationResult<T>
-            {
-                Success = GetSuccess(),
-                Message = GetMessage(),
-                Status = GetResponseStatus(),
-                Value = value,
-                Cas = Header.Cas,
-                Exception = Exception
-            };
-
-            Data.Dispose();
-            return result;
-        }
-
-        public virtual bool GetSuccess()
-        {
-            return Header.Status == ResponseStatus.Success && Exception == null;
-        }
-
-        public virtual ResponseStatus GetResponseStatus()
-        {
-            var status = Header.Status;
-            if (Exception != null)
-            {
-                status = ResponseStatus.ClientFailure;
-            }
-            return status;
-        }
-
-        public virtual T GetValue()
-        {
-            var result = default(T);
-            if(Success && Data != null && Data.Length > 0)
-            {
-                try
-                {
-                    var buffer = Data.ToArray();
-                    ReadExtras(buffer);
-                    var offset = 24 + Header.KeyLength + Header.ExtrasLength;
-                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags);
-                }
-                catch (Exception e)
-                {
-                    Exception = e;
-                    HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                }
-            }
-            return result;
-        }
-
-        public virtual string GetMessage()
-        {
-            var message = string.Empty;
-            if (Success) return message;
-            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                message = ResponseStatus.VBucketBelongsToAnotherServer.ToString();
-            }
-            else
-            {
-                if (Exception == null)
-                {
-                    try
-                    {
-                        if (Header.Status != ResponseStatus.Success)
-                        {
-                            if (Data == null)
-                            {
-                                message = string.Empty;
-                            }
-                            else
-                            {
-                                var buffer = Data.ToArray();
-                                if (buffer.Length > 0 && TotalLength == 24)
-                                {
-                                    message = Converter.ToString(buffer, 0, buffer.Length);
-                                }
-                                else
-                                {
-                                    message = Converter.ToString(buffer, 24, Math.Min(buffer.Length - 24, TotalLength - 24));
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        message = e.Message;
-                    }
-                }
-                else
-                {
-                    message = Exception.Message;
-                }
-            }
-            return message;
-        }
-
-        public virtual IBucketConfig GetConfig()
-        {
-            IBucketConfig config = null;
-            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                var offset = HeaderLength + Header.ExtrasLength;
-                var length = Header.BodyLength - Header.ExtrasLength;
-
-                //Override any flags settings since the body of the response has changed to a config
-                config = Transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
-                {
-                    Compression = Compression.None,
-                    DataFormat = DataFormat.Json,
-                    TypeCode = TypeCode.Object
-                });
-            }
-            return config;
-        }
-
-        public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
-
-        public abstract OperationCode OperationCode { get; }
-
-        public OperationHeader Header { get; set; }
-
-        public OperationBody Body { get; set; }
-
-        public DataFormat Format { get; set; }
-
-        public Compression Compression { get; set; }
-
-        public ITypeTranscoder Transcoder
-        {
-            get { return _transcoder; }
-        }
-
-        public string Key { get; protected set; }
-
-        public Exception Exception { get; set; }
-
-        public virtual int BodyOffset
-        {
-            get { return DefaultOffset; }
-        }
-
-        public ulong Cas { get; set; }
-
-        public MemoryStream Data { get; set; }
-
-        public byte[] Buffer { get; set; }
-
-        internal T RawValue
-        {
-            get { return _value; }
-        }
-
-        public uint Opaque
-        {
-            get { return _opaque; }
-        }
-
-        public IVBucket VBucket { get; set; }
-
-        public int LengthReceived { get; protected set; }
-
-        public int TotalLength
-        {
-            get { return Header.TotalLength; }
-        }
-
-        public virtual bool Success
-        {
-            get { return Header.Status == ResponseStatus.Success && Exception == null; }
-        }
-
-        public uint Expires { get; set; }
-
-        public int Attempts { get; set; }
-
-        public int MaxRetries { get; set; }
-
-        public DateTime CreationTime { get; set; }
-
-        public virtual bool CanRetry()
-        {
-            return Cas > 0;
-        }
-
-        public virtual IOperation<T> Clone()
-        {
-            throw new NotImplementedException();
-        }
-
-        public uint Timeout { get; set; }
-
-        public bool TimedOut()
-        {
-            if (_timedOut) return _timedOut;
-
-            var elasped = DateTime.UtcNow.Subtract(CreationTime).TotalMilliseconds;
-            if (elasped >= Timeout)
-            {
-                _timedOut = true;
-            }
-            return _timedOut;
-        }
-
-        public byte[] WriteBuffer { get; set; }
-
-        public Func<SocketAsyncState, Task> Completed { get; set; }
     }
 }
 

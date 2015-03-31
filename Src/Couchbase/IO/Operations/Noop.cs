@@ -2,7 +2,7 @@
 
 namespace Couchbase.IO.Operations
 {
-    internal class Noop : OperationBase<object>
+    internal class Noop : OperationBase
     {
         public Noop(IByteConverter converter, uint timeout) : base(converter, timeout)
         {

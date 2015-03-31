@@ -5,15 +5,10 @@ using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
-    internal sealed class Delete : OperationBase<object>
+    internal sealed class Delete : OperationBase
     {
         public Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, converter, transcoder, timeout)
-        {
-        }
-
-        private Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(key, null, transcoder, vBucket, converter, opaque, timeout)
         {
         }
 
@@ -35,13 +30,14 @@ namespace Couchbase.IO.Operations
             return buffer;
         }
 
-        public override IOperation<object> Clone()
+        public override IOperation Clone()
         {
-            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
+            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                Opaque = Opaque
             };
             return cloned;
         }

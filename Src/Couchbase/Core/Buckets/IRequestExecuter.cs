@@ -17,6 +17,13 @@ namespace Couchbase.Core.Buckets
         IConfigInfo ConfigInfo { get; }
 
         /// <summary>
+        /// Sends a <see cref="IOperation"/> to the Couchbase Server using the Memcached protocol.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> to send.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
+        IOperationResult SendWithRetry(IOperation operation);
+
+        /// <summary>
         /// Sends a <see cref="IOperation{T}"/> to the Couchbase Server using the Memcached protocol.
         /// </summary>
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
@@ -31,6 +38,13 @@ namespace Couchbase.Core.Buckets
         /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/> with the status of the request to be awaited on.</returns>
         Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation);
+
+        /// <summary>
+        /// Sends a <see cref="IOperation"/> to the Couchbase Server using the Memcached protocol using async/await.
+        /// </summary>
+        /// <param name="operation">The <see cref="IOperation"/> to send.</param>
+        /// <returns>An <see cref="Task{IOperationResult}"/> with the status of the request to be awaited on.</returns>
+        Task<IOperationResult> SendWithRetryAsync(IOperation operation);
 
         /// <summary>
         /// Sends a View request to the server to be executed.
@@ -76,6 +90,16 @@ namespace Couchbase.Core.Buckets
         IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Sends an operation to the server while observing it's durability requirements
+        /// </summary>
+        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
+        /// <param name="deletion">True if mutation is a deletion.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>The <see cref="IOperationResult"/> with it's <see cref="Durability"/> status.</returns>
+        IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
         /// Sends an operation to the server while observing it's durability requirements using async/await
         /// </summary>
         /// <typeparam name="T">The value for T.</typeparam>
@@ -87,6 +111,16 @@ namespace Couchbase.Core.Buckets
         Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Sends an operation to the server while observing it's durability requirements using async/await
+        /// </summary>
+        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
+        /// <param name="deletion">True if mutation is a deletion.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
+        Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
+
+        ///<summary>
         /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
         /// </summary>
         /// <typeparam name="T">The Type of the <see cref="IOperation"/>'s value.</typeparam>
@@ -98,6 +132,20 @@ namespace Couchbase.Core.Buckets
         Task<IOperationResult<T>> RetryOperationEveryAsync<T>(
             Func<IOperation<T>, IConfigInfo, Task<IOperationResult<T>>> execute,
             IOperation<T> operation,
+            IConfigInfo configInfo,
+            CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
+        /// </summary>
+        /// <param name="execute">A delegate that contains the send logic.</param>
+        /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> for timing out the request.</param>
+        /// An <see cref="Task{IOperationResult}" /> object representing the asynchrobous operation.
+        Task<IOperationResult> RetryOperationEveryAsync(
+            Func<IOperation, IConfigInfo, Task<IOperationResult>> execute,
+            IOperation operation,
             IConfigInfo configInfo,
             CancellationToken cancellationToken);
     }

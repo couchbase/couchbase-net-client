@@ -161,7 +161,7 @@ namespace Couchbase
         /// <param name="key">The key to "touch".</param>
         /// <param name="expiration">The expiration to extend.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        public Task<IOperationResult<object>> TouchAsync(string key, TimeSpan expiration)
+        public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration)
         {
             var touch = new Touch(key, null, _converter, _transcoder, _operationLifespanTimeout)
             {
@@ -723,7 +723,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IOperationResult<object>> RemoveAsync(string key)
+        public Task<IOperationResult> RemoveAsync(string key)
         {
             CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);

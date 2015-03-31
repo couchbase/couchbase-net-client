@@ -50,5 +50,21 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+
+        public IOperationResult Execute(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExecuteAsync(IOperation operation, IConnection connection)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExecuteAsync(IOperation operation)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
