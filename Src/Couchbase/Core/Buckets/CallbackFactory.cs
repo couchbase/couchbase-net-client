@@ -33,15 +33,15 @@ namespace Couchbase.Core.Buckets
                         }
                         else
                         {
-                            if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                            if (result.IsNmv())
                             {
-                                var config = actual.GetConfig();
+                                var config = op.GetConfig();
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
                                 }
                             }
-                            if (op.CanRetry() && result.ShouldRetry())
+                            if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
@@ -104,7 +104,7 @@ namespace Couchbase.Core.Buckets
                         }
                         else
                         {
-                            if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                            if (result.IsNmv())
                             {
                                 var config = op.GetConfig();
                                 if (config != null)
@@ -112,7 +112,7 @@ namespace Couchbase.Core.Buckets
                                     controller.NotifyConfigPublished(config);
                                 }
                             }
-                            if (op.CanRetry() && result.ShouldRetry())
+                            if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
@@ -176,15 +176,15 @@ namespace Couchbase.Core.Buckets
                         }
                         else
                         {
-                            if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                            if (result.IsNmv())
                             {
-                                var config = actual.GetConfig();
+                                var config = op.GetConfig();
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
                                 }
                             }
-                            if (op.CanRetry() && result.ShouldRetry())
+                            if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
@@ -249,7 +249,7 @@ namespace Couchbase.Core.Buckets
                         }
                         else
                         {
-                            if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                            if (result.IsNmv())
                             {
                                 var config = op.GetConfig();
                                 if (config != null)
@@ -257,7 +257,7 @@ namespace Couchbase.Core.Buckets
                                     controller.NotifyConfigPublished(config);
                                 }
                             }
-                            if (op.CanRetry() && result.ShouldRetry())
+                            if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
@@ -317,7 +317,7 @@ namespace Couchbase.Core.Buckets
                             .ContinueOnAnyContext();
 
                         var result = actual.GetResultWithValue();
-                        if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                        if (result.IsNmv())
                         {
                             var config = actual.GetConfig();
                             if (config != null)
@@ -359,7 +359,7 @@ namespace Couchbase.Core.Buckets
                             .ContinueOnAnyContext();
 
                         var result = op.GetResult();
-                        if (result.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                        if (result.IsNmv())
                         {
                             var config = op.GetConfig();
                             if (config != null)

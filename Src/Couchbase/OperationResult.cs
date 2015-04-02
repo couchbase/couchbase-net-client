@@ -86,6 +86,15 @@ namespace Couchbase
             }
             return false;
         }
+
+        /// <summary>
+        /// Checks if the server responded with a Not My Vbucket.
+        /// </summary>
+        /// <returns>Returns true if <see cref="ResponseStatus"/> is a VBucketBelongsToAnotherServer.</returns>
+        public bool IsNmv()
+        {
+            return Status == ResponseStatus.VBucketBelongsToAnotherServer;
+        }
     }
 }
 

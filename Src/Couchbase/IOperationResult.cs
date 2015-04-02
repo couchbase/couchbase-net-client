@@ -22,6 +22,12 @@ namespace Couchbase
         /// The level of durability that the operation achieved
         /// </summary>
         Durability Durability { get; set; }
+
+        /// <summary>
+        /// Checks if the server responded with a Not My Vbucket.
+        /// </summary>
+        /// <returns>Returns true if <see cref="ResponseStatus"/> is a VBucketBelongsToAnotherServer.</returns>
+        bool IsNmv();
     }
 }
 #region [ License information ]

@@ -46,7 +46,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
         /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> for timing out the request.</param>
-        /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// An <see cref="Task{IOperationResult}"/> object representing the asynchrobous operation.
         public virtual async Task<IOperationResult<T>> RetryOperationEveryAsync<T>(
             Func<IOperation<T>, IConfigInfo, Task<IOperationResult<T>>> execute,
             IOperation<T> operation,
@@ -56,7 +56,7 @@ namespace Couchbase.Core.Buckets
             while (true)
             {
                 var result = await execute(operation, configInfo).ConfigureAwait(false);
-                if (result.Success || operation.TimedOut() || !operation.CanRetry() || result.Status != ResponseStatus.VBucketBelongsToAnotherServer)
+                if (result.Success || operation.TimedOut())
                 {
                     if (operation.TimedOut())
                     {
@@ -66,6 +66,11 @@ namespace Couchbase.Core.Buckets
                     }
                     return result;
                 }
+                if (!result.IsNmv() && !operation.CanRetry())
+                {
+                    return result;
+                }
+
                 operation.Attempts++;
                 var sleepTime = (int)Math.Pow(2, operation.Attempts * 2);
                 var task = Task.Delay(sleepTime, cancellationToken).ConfigureAwait(false);
@@ -101,7 +106,7 @@ namespace Couchbase.Core.Buckets
             while (true)
             {
                 var result = await execute(operation, configInfo).ConfigureAwait(false);
-                if (result.Success || operation.TimedOut() || !operation.CanRetry() || result.Status != ResponseStatus.VBucketBelongsToAnotherServer)
+                if (result.Success || operation.TimedOut())
                 {
                     if (operation.TimedOut())
                     {
@@ -109,6 +114,10 @@ namespace Couchbase.Core.Buckets
                         ((OperationResult)result).Message = string.Format(msg, operation.Attempts);
                         ((OperationResult)result).Status = ResponseStatus.OperationTimeout;
                     }
+                    return result;
+                }
+                if (!result.IsNmv() || !operation.CanRetry())
+                {
                     return result;
                 }
                 operation.Attempts++;
