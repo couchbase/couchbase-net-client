@@ -93,6 +93,93 @@ namespace Couchbase.Tests
             Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
         }
 
+        [Test]
+        public async void When_Key_Exists_GetDocumentAsync_Returns_Success()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.GET_OPAQUE_5_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var bucket = GetBucketForKey("key1");
+            var result = await bucket.GetDocumentAsync<int>("key1");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public async void When_Lock_Acquired_GetWithLockReturns_Success()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.GET_WITH_LOCK_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var bucket = GetBucketForKey("key1");
+            var result = await bucket.GetWithLockAsync<string>("key1", new TimeSpan(0, 0, 0, 2));
+
+            Console.WriteLine(result.Message);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void Test_GetDocumentAsync()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "CouchbaseBucket_Async_Tests.Test_GetDocumentAsync";
+                    bucket.Remove(key);
+                    bucket.Insert(key, "NA");
+                    var result = await bucket.GetDocumentAsync<string>(key);
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(result.Content, result2.Value);
+                }
+            }
+        }
+
+        [Test]
+        public async void When_Key_Is_Locked_Mutate_Fails()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "When_Key_Is_Locked_Mutate_Fails";
+                    Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success);
+                    var getl = await bucket.GetWithLockAsync<string>(key, 15);
+                    Assert.IsTrue(getl.Success);
+                    var upsert = bucket.Upsert(key, "{'name':'value2'}");
+                    Assert.IsFalse(upsert.Success);
+                }
+            }
+        }
+
+        [Test]
+        public async void When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked";
+                    Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success); //succeed
+
+                    var getl = await bucket.GetWithLockAsync<string>(key, 15);
+                    Assert.IsTrue(getl.Success); //will succeed
+
+                    var unlock = bucket.Unlock(key, getl.Cas);
+                    Assert.IsTrue(unlock.Success);
+
+                    var upsert = bucket.Upsert(key, "{'name':'value2'}");
+                    Assert.IsTrue(upsert.Success);
+                }
+            }
+        }
 
         [Test]
         public async void When_Key_Is_Found_GetAsync_Returns_True()

@@ -27,7 +27,7 @@ namespace Couchbase
     /// </summary>
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
-        private readonly static ILog Log = LogManager.GetLogger<MemcachedBucket>();
+        private static readonly ILog Log = LogManager.GetLogger<MemcachedBucket>();
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
@@ -40,7 +40,8 @@ namespace Couchbase
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
         /// </summary>
-        private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
+        private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts =
+            new ConditionalWeakTable<IDisposable, RefCount>();
 
 
         [UsedImplicitly]
@@ -49,7 +50,8 @@ namespace Couchbase
             public int Count;
         }
 
-        internal MemcachedBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
+        internal MemcachedBucket(IClusterController clusterController, string bucketName, IByteConverter converter,
+            ITypeTranscoder transcoder)
         {
             _clusterController = clusterController;
             _converter = converter;
@@ -58,7 +60,8 @@ namespace Couchbase
 
             //extract the default operation lifespan timeout from configuration.
             BucketConfiguration bucketConfig;
-            _operationLifespanTimeout = _clusterController.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
+            _operationLifespanTimeout = _clusterController.Configuration.BucketConfigs.TryGetValue(bucketName,
+                out bucketConfig)
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
         }
@@ -73,10 +76,7 @@ namespace Couchbase
         /// </summary>
         public BucketTypeEnum BucketType
         {
-            get
-            {
-                return BucketTypeEnum.Memcached;
-            }
+            get { return BucketTypeEnum.Memcached; }
         }
 
         /// <summary>
@@ -107,10 +107,10 @@ namespace Couchbase
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
             Log.Info(m => m("Config updated old/new: {0}, {1}",
-               _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
+                _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
-                new MemcachedRequestExecuter(_clusterController, _configInfo,  Name, _pending));
+                new MemcachedRequestExecuter(_clusterController, _configInfo, Name, _pending));
         }
 
         /// <summary>
@@ -290,23 +290,27 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
 
         }
 
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -380,7 +384,8 @@ namespace Couchbase
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
-        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options,
+            int rangeSize)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (items != null && items.Count > 0)
@@ -472,17 +477,20 @@ namespace Couchbase
             return Replace(key, value, expiration.ToTtl());
         }
 
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -574,12 +582,14 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -874,7 +884,8 @@ namespace Couchbase
         /// <param name="options"></param>
         /// <param name="rangeSize"></param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
-        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options,
+            int rangeSize)
         {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (keys != null && keys.Count > 0)
@@ -918,7 +929,7 @@ namespace Couchbase
         {
             const ulong initial = 1;
             const ulong delta = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0; //infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Increment(key, delta, initial, expiration);
         }
@@ -933,7 +944,7 @@ namespace Couchbase
         public IOperationResult<ulong> Increment(string key, ulong delta)
         {
             const ulong initial = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0; //infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Increment(key, delta, initial, expiration);
         }
@@ -965,7 +976,8 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
-            var operation = new Increment(key, initial, delta, expiration, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Increment(key, initial, delta, expiration, null, _converter, _transcoder,
+                _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -995,7 +1007,7 @@ namespace Couchbase
         {
             const ulong initial = 1;
             const ulong delta = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0; //infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Decrement(key, delta, initial, expiration);
         }
@@ -1010,7 +1022,7 @@ namespace Couchbase
         public IOperationResult<ulong> Decrement(string key, ulong delta)
         {
             const ulong initial = 1;
-            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+            const uint expiration = 0; //infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Decrement(key, delta, initial, expiration);
         }
@@ -1042,7 +1054,8 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
-            var operation = new Decrement(key, initial, delta, expiration, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Decrement(key, initial, delta, expiration, null, _converter, _transcoder,
+                _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1142,7 +1155,7 @@ namespace Couchbase
 
         public Task<IQueryResult<T>> QueryAsync<T>(string query)
         {
-             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
@@ -1246,7 +1259,8 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1288,27 +1302,32 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1323,7 +1342,8 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1370,22 +1390,26 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1400,7 +1424,8 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1420,17 +1445,20 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration,
+            ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
         }
@@ -1475,9 +1503,27 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
+        /// <summary>
+        ///     Gets a document by it's given id asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <returns>
+        ///  An <see cref="IDocumentResult{T}" /> object containing the document if it's found and any other operation specific info.
+        /// </returns>
+        public async Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
         {
-            throw new NotImplementedException();
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetAsync<T>(id).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, id));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         public Task<IOperationResult<T>> GetFromReplicAsync<T>(string key)

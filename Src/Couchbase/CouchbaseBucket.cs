@@ -484,11 +484,11 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Gets a Task that can be awaited on for a given Key and value.
+        ///  Gets a value for a given key as an asynchronous operation.
         /// </summary>
-        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
-        /// <param name="key">The unique Key to use to lookup the value.</param>
-        /// <returns>A Task that can be awaited on for it's <see cref="IOperationResult{T}"/> value.</returns>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="key">The documents primary key.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             CheckDisposed();
@@ -508,9 +508,25 @@ namespace Couchbase
             return new DocumentResult<T>(result, id);
         }
 
-        public Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
+        /// <summary>
+        /// Gets a document by it's given id asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <returns>An <see cref="IDocumentResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
+        public async Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
         {
-            throw new NotImplementedException();
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetAsync<T>(id).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, id));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         public IOperationResult<T> GetFromReplica<T>(string key)
@@ -596,14 +612,42 @@ namespace Couchbase
             return GetWithLock<T>(key, (uint)expiration.TotalSeconds);
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)
         {
-            throw new NotImplementedException();
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expiration = expiration
+            };
+            return _requestExecuter.SendWithRetryAsync(getl);
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration)
         {
-            throw new NotImplementedException();
+            return GetWithLockAsync<T>(key, (uint)expiration.TotalSeconds);
         }
 
 
@@ -1061,20 +1105,29 @@ namespace Couchbase
             return new DocumentResult<T>(result, key);
         }
 
+
         /// <summary>
         /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key to "touch".</param>
         /// <param name="expiration">The expiration to extend.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        public Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
+        public async Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
         {
             var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            var result = GetAndTouchAsync<T>(key, expiration);
-            tcs.SetResult(new DocumentResult<T>(result.Result, key));
-            return tcs.Task;
+            try
+            {
+                var result = await GetAndTouchAsync<T>(key, expiration).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, key));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
+        /// <summary>
         /// Prepends a value to a give key.
         /// </summary>
         /// <param name="key">The key to Prepend too.</param>

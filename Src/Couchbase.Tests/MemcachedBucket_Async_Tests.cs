@@ -100,6 +100,20 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public async void When_Key_Exists_GetDocumentAsync_Returns_Success()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.GET_OPAQUE_5_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var bucket = GetBucketForKey("key1");
+            var result = await bucket.GetDocumentAsync<int>("key1");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
         public async void When_NMV_Found_GetAsync_Will_Retry_Until_Timeout()
         {
             var connection = new FakeConnection();
@@ -112,6 +126,26 @@ namespace Couchbase.Tests
             Console.WriteLine(result.Message);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(ResponseStatus.OperationTimeout, result.Status);
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public async void Test_GetDocumentAsync()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("memcached"))
+                {
+                    var key = "MemcachedBucket_Async_Tests.Test_GetDocumentAsync";
+                    bucket.Remove(key);
+                    bucket.Insert(key, "NA");
+                    var result = await bucket.GetDocumentAsync<string>(key);
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(result.Content, result2.Value);
+                }
+            }
         }
 
         [Test]
