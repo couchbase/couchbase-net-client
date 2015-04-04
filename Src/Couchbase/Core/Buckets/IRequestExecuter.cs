@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Views;
@@ -148,5 +150,21 @@ namespace Couchbase.Core.Buckets
             IOperation operation,
             IConfigInfo configInfo,
             CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Checks the primary node for the key, if a NMV is encountered, will retry on each replica.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
+        /// <returns>The result of the operation.</returns>
+        IOperationResult<T> ReadFromReplica<T>(ReplicaRead<T> operation);
+
+        /// <summary>
+        /// Checks the primary node for the key, if a NMV is encountered, will retry on each replica, asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing asynchcronous operation.</returns>
+        Task<IOperationResult<T>> ReadFromReplicaAsync<T>(ReplicaRead<T> operation);
     }
 }

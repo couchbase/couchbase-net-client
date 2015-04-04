@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Net;
 using Couchbase.Configuration;
@@ -16,6 +17,7 @@ using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using System.IO;
+using System.Threading;
 
 namespace Couchbase.Tests
 {
@@ -345,6 +347,65 @@ namespace Couchbase.Tests
                     var result2 = bucket.Get<string>(key);
                     Assert.IsTrue(result.Success);
                     Assert.AreEqual("BA", result2.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void Test_ReplicaReadAsync()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKeyAsync";
+                    var value = bucket.Get<string>(key);
+
+                    if (value.Status == ResponseStatus.KeyNotFound)
+                    {
+                        Assert.IsTrue(bucket.Insert(key, "replicaval").Success);
+                        Thread.Sleep(100);
+                        value = bucket.Get<string>(key);
+                    }
+
+                    var result = await bucket.GetFromReplicaAsync<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(value.Value, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Does_Not_Exist_ReplicaReadAsync_Returns_KeyNotFound()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKeyAsync_Does_Not_Exist";
+                    var result = await bucket.GetFromReplicaAsync<string>(key);
+                    Assert.IsFalse(result.Success);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
                 }
             }
         }

@@ -528,33 +528,32 @@ namespace Couchbase
             return await tcs.Task.ContinueOnAnyContext();
         }
 
+        /// <summary>
+        /// Gets a value for a key by checking each replica.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the value being retrieved.</typeparam>
+        /// <param name="key">The key of the value to retrieve.</param>
+        /// <returns>An <see cref="IOperationResult"/> with the results of the operation.</returns>
         public IOperationResult<T> GetFromReplica<T>(string key)
         {
-            IVBucket vBucket = null;
-            var primary = GetServer(key, out vBucket);
-
-            var replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-            var result = primary.Send(replicaRead);
-
-            if (result.Success) return result;
-            foreach (var replica in vBucket.Replicas)
-            {
-                replicaRead = new ReplicaRead<T>(key, vBucket, _converter, _transcoder, _operationLifespanTimeout);
-                var server = vBucket.LocateReplica(replica);
-                if (server == null) continue;
-                result = server.Send(replicaRead);
-                if (result.Success)
-                {
-                    return result;
-                }
-            }
-
-            return result;
+            //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
+            var operation = new ReplicaRead<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.ReadFromReplica(operation);
         }
 
-        public Task<IOperationResult<T>> GetFromReplicAsync<T>(string key)
+        /// <summary>
+        /// Gets a value for a key by checking each replica asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the value being retrieved.</typeparam>
+        /// <param name="key">The key of the value to retrieve.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key)
         {
-            throw new NotImplementedException();
+            //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
+            var operation = new ReplicaRead<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.ReadFromReplicaAsync(operation);
         }
 
         /// <summary>

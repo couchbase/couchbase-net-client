@@ -1531,9 +1531,9 @@ namespace Couchbase
             return await tcs.Task.ContinueOnAnyContext();
         }
 
-        public Task<IOperationResult<T>> GetFromReplicAsync<T>(string key)
+        public Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)

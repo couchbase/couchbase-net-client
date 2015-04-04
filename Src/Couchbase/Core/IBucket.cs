@@ -1262,7 +1262,7 @@ namespace Couchbase.Core
         /// <typeparam name="T"></typeparam>
         /// <param name="key"></param>
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
-        Task<IOperationResult<T>> GetFromReplicAsync<T>(string key);
+        Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key);
 
         /// <summary>
         /// Gets a range of values for a given set of keys

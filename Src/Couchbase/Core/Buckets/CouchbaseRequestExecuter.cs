@@ -542,7 +542,7 @@ namespace Couchbase.Core.Buckets
                 };
                 tcs.SetResult(queryResult);
             }
-            return queryResult;;
+            return queryResult;
         }
     }
 }

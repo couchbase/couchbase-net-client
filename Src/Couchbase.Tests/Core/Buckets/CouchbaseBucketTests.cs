@@ -1339,6 +1339,29 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void When_Key_Does_Not_Exist_ReplicaRead_Returns_KeyNotFound()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKey_That_Doesnt_Exist";
+                    var result = bucket.GetFromReplica<string>(key);
+                    Assert.IsFalse(result.Success);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+                }
+            }
+        }
+
+        [Test]
         public void When_String_Is_JSON_Couchbase_Treats_It_As_JSON()
         {
             using (var bucket = _cluster.OpenBucket())

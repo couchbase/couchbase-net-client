@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Diagnostics;
@@ -9,6 +5,12 @@ using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Views;
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.Core.Buckets
 {
@@ -87,7 +89,6 @@ namespace Couchbase.Core.Buckets
                 }
             }
         }
-
 
         /// <summary>
         /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
@@ -311,6 +312,74 @@ namespace Couchbase.Core.Buckets
         public virtual Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Checks the primary node for the key, if a NMV is encountered, will retry on each replica.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operation">The <see cref="IOperation" /> to execiute.</param>
+        /// <returns>
+        /// The result of the operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IOperationResult<T> ReadFromReplica<T>(ReplicaRead<T> operation)
+        {
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+            operation.VBucket = vBucket;
+
+            IOperationResult<T> result = new OperationResult<T>();
+            foreach (var index in vBucket.Replicas)
+            {
+                var replica = vBucket.LocateReplica(index);
+                if (replica == null) continue;
+                result = replica.Send(operation);
+                if (result.Success && !result.IsNmv())
+                {
+                    return result;
+                }
+                operation = (ReplicaRead<T>)operation.Clone();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Checks the primary node for the key, if a NMV is encountered, will retry on each replica, asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the request.</typeparam>
+        /// <param name="operation">The <see cref="IOperation" /> to execiute.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing asynchcronous operation.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public async Task<IOperationResult<T>> ReadFromReplicaAsync<T>(ReplicaRead<T> operation)
+        {
+            var tcs = new TaskCompletionSource<IOperationResult<T>>();
+            var cts = new CancellationTokenSource(OperationLifeSpan);
+            cts.CancelAfter(OperationLifeSpan);
+
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+
+            operation.VBucket = vBucket;
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(this, Pending, ClusterController, tcs);
+            Pending.TryAdd(operation.Opaque, operation);
+
+            IOperationResult<T> result = new OperationResult<T>();
+            foreach (var index in vBucket.Replicas)
+            {
+                var replica = vBucket.LocateReplica(index);
+                if (replica == null) continue;
+
+                await replica.SendAsync(operation).ConfigureAwait(false);
+                result = await tcs.Task;
+                if (result.Success && !result.IsNmv())
+                {
+                    return result;
+                }
+            }
+            return result;
         }
     }
 }

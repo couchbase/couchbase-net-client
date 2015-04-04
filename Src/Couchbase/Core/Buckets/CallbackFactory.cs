@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO;
@@ -153,9 +154,12 @@ namespace Couchbase.Core.Buckets
             return func;
         }
 
-        public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForCouchbase<T>(IRequestExecuter executer,
-            ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
-            TaskCompletionSource<IOperationResult<T>> tcs, CancellationToken cancellationToken)
+        public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForCouchbase<T>(
+            IRequestExecuter executer,
+            ConcurrentDictionary<uint, IOperation> pending,
+            IClusterController controller,
+            TaskCompletionSource<IOperationResult<T>> tcs,
+            CancellationToken cancellationToken)
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
@@ -300,8 +304,10 @@ namespace Couchbase.Core.Buckets
             return func;
         }
 
-        public static Func<SocketAsyncState, Task> CompletedFuncForRetry<T>(IRequestExecuter executer,
-          ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
+        public static Func<SocketAsyncState, Task> CompletedFuncForRetry<T>(
+          IRequestExecuter executer,
+          ConcurrentDictionary<uint, IOperation> pending,
+          IClusterController controller,
           TaskCompletionSource<IOperationResult<T>> tcs)
         {
             Func<SocketAsyncState, Task> func = async s =>
