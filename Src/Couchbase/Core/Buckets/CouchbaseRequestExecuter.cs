@@ -187,9 +187,23 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
-        public override Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            var result = await SendWithRetryAsync(operation);
+            if (result.Success)
+            {
+                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
+                var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                result.Durability = observed
+                    ? Durability.Satisfied
+                    : Durability.NotSatisfied;
+            }
+            else
+            {
+                result.Durability = Durability.NotSatisfied;
+            }
+            return result;
         }
 
         /// <summary>

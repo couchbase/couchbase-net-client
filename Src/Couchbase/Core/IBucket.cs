@@ -39,9 +39,19 @@ namespace Couchbase.Core
         /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
         Task<bool> ExistsAsync(string key);
 
+        /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied asynchronously.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>An <see cref="Task{ObserveResponse}"/> value indicating if the durability requirement were or were not met.</returns>
+        Task<ObserveResponse> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
-        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied.
         /// </summary>
         /// <param name="key">The key to 'observe'.</param>
         /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>

@@ -140,6 +140,11 @@ namespace Couchbase
             throw new NotSupportedException();
         }
 
+        public Task<ObserveResponse> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException();
+        }
+
         /// <summary>
         /// Updates the expiration a key without modifying or returning it's value.
         /// </summary>

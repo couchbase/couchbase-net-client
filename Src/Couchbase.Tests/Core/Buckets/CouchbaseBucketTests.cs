@@ -12,6 +12,7 @@ using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Documents;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -1034,7 +1035,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied()
         {
             var key = "When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied";
-            var value = "Test_Observe_Remove_value";
+            var value = "Test_Observe_Insert_value";
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
@@ -1047,10 +1048,26 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public async void When_CAS_Changed_ObserveAsync_Returns_DurabilityNotSatisfied()
+        {
+            var key = "When_CAS_Changed_ObserveAsync_Returns_DurabilityNotSatisfied";
+            var value = "Test_ObserveAsync_Insert_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result1 = bucket.Insert(key, value);
+                var result2 = bucket.Upsert(key, "modified");
+                Assert.AreNotEqual(result1.Cas, result2.Cas);
+                var result3 = await bucket.ObserveAsync(key, result1.Cas, false, ReplicateTo.Zero, PersistTo.Zero);
+                Assert.AreEqual(ObserveResponse.DurabilityNotSatisfied, result3);
+            }
+        }
+
+        [Test]
         public void When_CAS_Changed_Observe_Returns_DurabilitySatisfied()
         {
-            var key = "When_CAS_Changed_Observe_Returns_DurabilityNotSatisfied";
-            var value = "Test_Observe_Remove_value";
+            var key = "When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied";
+            var value = "Test_Observe_value";
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
@@ -1058,6 +1075,22 @@ namespace Couchbase.Tests.Core.Buckets
                 var result2 = bucket.Upsert(key, "modified");
                 Assert.AreNotEqual(result1.Cas, result2.Cas);
                 var result3 = bucket.Observe(key, result2.Cas, false, ReplicateTo.Zero, PersistTo.Zero);
+                Assert.AreEqual(ObserveResponse.DurabilitySatisfied, result3);
+            }
+        }
+
+        [Test]
+        public async void When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied()
+        {
+            var key = "When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied";
+            var value = "Test_ObserveAsync_value";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Remove(key);
+                var result1 = bucket.Insert(key, value);
+                var result2 = bucket.Upsert(key, "modified");
+                Assert.AreNotEqual(result1.Cas, result2.Cas);
+                var result3 = await bucket.ObserveAsync(key, result2.Cas, false, ReplicateTo.Zero, PersistTo.Zero);
                 Assert.AreEqual(ObserveResponse.DurabilitySatisfied, result3);
             }
         }

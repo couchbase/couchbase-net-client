@@ -48,7 +48,6 @@ namespace Couchbase
         /// </summary>
         private static readonly ConditionalWeakTable<IDisposable, RefCount> RefCounts = new ConditionalWeakTable<IDisposable, RefCount>();
 
-
         [UsedImplicitly]
         private sealed class RefCount
         {
@@ -1023,7 +1022,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satified.
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied.
         /// </summary>
         /// <param name="key">The key to 'observe'.</param>
         /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
@@ -1039,6 +1038,26 @@ namespace Couchbase
             return observer.Observe(key, cas, deletion, replicateTo, persistTo)
                 ? ObserveResponse.DurabilitySatisfied
                 : ObserveResponse.DurabilityNotSatisfied;
+        }
+
+        /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied asynchronously.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An <see cref="Task{ObserveResponse}" /> value indicating if the durability requirement were or were not met.
+        /// </returns>
+        public async Task<ObserveResponse> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            CheckDisposed();
+            var config = _configInfo.ClientConfig.BucketConfigs[Name];
+            var observer = new KeyObserver(_configInfo, config.ObserveInterval, config.ObserveTimeout);
+            var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo);
+            return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
         }
 
         /// <summary>
@@ -2360,6 +2379,7 @@ namespace Couchbase
             Dispose(false);
         }
 #endif
+
     }
 }
 
