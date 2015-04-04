@@ -62,9 +62,11 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public Task ExecuteAsync(IOperation operation)
+        public async Task ExecuteAsync(IOperation operation)
         {
-            throw new NotImplementedException();
+            var buffer = await operation.WriteAsync();
+            var connection = ConnectionPool.Acquire();
+            connection.SendAsync(buffer, operation.Completed);
         }
     }
 }

@@ -1455,51 +1455,154 @@ namespace Couchbase
             return results;
         }
 
+        /// <summary>
+        /// Asynchronously removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult> RemoveAsync(string key)
         {
             CheckDisposed();
             var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation).ContinueOnAnyContext();
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> to remove from the database.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
+        {
+            CheckDisposed();
+            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation).ContinueOnAnyContext();
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
+        {
+            CheckDisposed();
+            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            CheckDisposed();
+            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Cas = cas
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
-        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IOperationResult> RemoveAsync(string key, ulong cas)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Cas = cas
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Cas = cas
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
         /// <summary>

@@ -126,7 +126,7 @@ namespace Couchbase.Tests.Fakes
 
         public Task SendAsync(IOperation operation)
         {
-            throw new NotImplementedException();
+            return Strategy.ExecuteAsync(operation);
         }
     }
 }

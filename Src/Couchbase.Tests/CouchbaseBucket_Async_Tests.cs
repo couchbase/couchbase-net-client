@@ -125,6 +125,37 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public async void When_Key_Does_Not_Exist_RemoveAsync_Returns_KeyNotFound()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.REMOVE_KEYNOTFOUND);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Does_Not_Exist_RemoveAsync_Returns_KeyNotFound";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.RemoveAsync(key);
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+        }
+
+        [Test]
+        public async void When_Key_Found_RemoveAsync_Returns_Success()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.REMOVE_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Found_RemoveAsync_Returns_Success";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.RemoveAsync(key);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+
+        [Test]
         [Category("Integration")]
         [Category("Couchbase")]
         public async void Test_GetDocumentAsync()
