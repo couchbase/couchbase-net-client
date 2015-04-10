@@ -48,6 +48,33 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public async void When_Observing_Key_During_RemoveAsync_Durability_Constraint_Is_Reached()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            configuration.Initialize();
+
+            var provider = new CarrierPublicationProvider(
+                configuration,
+                (pool) => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            var configInfo = provider.GetConfig("default");
+
+            var observer = new KeyObserver(configInfo, 10, 500);
+            var constraintReached = await observer.ObserveRemoveAsync("Test_Timeout_Remove_Async", 0, ReplicateTo.Zero, PersistTo.One);
+            Assert.IsTrue(constraintReached);
+        }
+
+        [Test]
         public void When_Observing_Key_During_Add_Durability_Constraint_Is_Reached()
         {
             var configuration = new ClientConfiguration
@@ -80,7 +107,45 @@ namespace Couchbase.Tests.Core.Buckets
                 }
             }
             var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = observer.ObserveAdd("Test_Timeout_Add", cas, ReplicateTo.One, PersistTo.One);
+            var constraintReached = observer.ObserveAdd("Test_Timeout_Add", cas, ReplicateTo.Zero, PersistTo.Zero);
+            Assert.IsTrue(constraintReached);
+        }
+
+        [Test]
+        public async void When_Observing_Key_During_AddAsync_Durability_Constraint_Is_Reached()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            configuration.Initialize();
+
+            var provider = new CarrierPublicationProvider(
+                configuration,
+                (pool) => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            var configInfo = provider.GetConfig("default");
+
+            var key = "Test_Timeout_Add_Async";
+            ulong cas = 0;
+            using (var cluster = new Cluster(configuration))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    bucket.Insert(key, "");
+                    cas = bucket.Upsert(key, "").Cas;
+                }
+            }
+            var observer = new KeyObserver(configInfo, 10, 500);
+            var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);
         }
 
@@ -122,6 +187,44 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public async void When_Mutation_Happens_Observe_Fails_Async()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            configuration.Initialize();
+
+            var provider = new CarrierPublicationProvider(
+                configuration,
+                (pool) => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            var configInfo = provider.GetConfig("default");
+
+            var key = "When_Mutation_Happens_Observe_Fails_async";
+            ulong cas = 0;
+            using (var cluster = new Cluster(configuration))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    cas = bucket.Insert(key, "").Cas;
+                    bucket.Upsert(key, "");
+                }
+            }
+            var observer = new KeyObserver(configInfo, 10, 500);
+            var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.One, PersistTo.One);
+            Assert.IsFalse(constraintReached);
+        }
+
+        [Test]
         public void Test_Timeout_Add_PersistTo_Master()
         {
             var configuration = new ClientConfiguration
@@ -155,6 +258,45 @@ namespace Couchbase.Tests.Core.Buckets
 
             var observer = new KeyObserver(configInfo, 10, 500);
             var constraintReached = observer.ObserveAdd("Test_Timeout_Add_PersistTo_Master", result.Cas, ReplicateTo.Zero, PersistTo.Zero);
+            Assert.IsTrue(constraintReached);
+        }
+
+
+        [Test]
+        public async void Test_Timeout_Add_PersistTo_Master_Async()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            configuration.Initialize();
+
+            var provider = new CarrierPublicationProvider(
+                configuration,
+                (pool) => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new AutoByteConverter(),
+                new DefaultTranscoder(new AutoByteConverter()));
+
+            var configInfo = provider.GetConfig("default");
+
+            var key = "Test_Timeout_Add_PersistTo_Master_Async";
+            IOperationResult result;
+            using (var cluster = new Cluster(configuration))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    result = bucket.Insert(key, "");
+                }
+            }
+
+            var observer = new KeyObserver(configInfo, 10, 500);
+            var constraintReached = await observer.ObserveAddAsync(key, result.Cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);
         }
 

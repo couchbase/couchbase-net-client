@@ -953,7 +953,7 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
-                var result = bucket.Upsert(key, value, ReplicateTo.Three, PersistTo.Three);
+                var result = bucket.Upsert(key, value, ReplicateTo.Zero, PersistTo.Zero);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
             }
@@ -967,7 +967,7 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Remove(key);
-                var result = bucket.Insert(key, value, ReplicateTo.Three, PersistTo.Three);
+                var result = bucket.Insert(key, value, ReplicateTo.Zero, PersistTo.Zero);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
             }
@@ -982,7 +982,7 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 bucket.Remove(key);
                 bucket.Insert(key, value);
-                var result = bucket.Replace(key, value, ReplicateTo.Three, PersistTo.Three);
+                var result = bucket.Replace(key, value, ReplicateTo.Zero, PersistTo.Zero);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
             }
@@ -1025,7 +1025,7 @@ namespace Couchbase.Tests.Core.Buckets
             using (var bucket = _cluster.OpenBucket())
             {
                 bucket.Insert(key, value);
-                var result = bucket.Remove(key, ReplicateTo.Three, PersistTo.Three);
+                var result = bucket.Remove(key, ReplicateTo.Zero, PersistTo.Zero);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(Durability.Satisfied, result.Durability);
             }

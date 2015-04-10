@@ -381,5 +381,34 @@ namespace Couchbase.Core.Buckets
             }
             return result;
         }
+
+        public IOperationResult<ObserveState> Observe(Observe operation)
+        {
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+            operation.VBucket = vBucket;
+
+            var server = vBucket.LocatePrimary();
+            return server.Send(operation);
+        }
+
+        public Task<IOperationResult<ObserveState>> ObserveAsync(Observe operation)
+        {
+            var tcs = new TaskCompletionSource<IOperationResult<ObserveState>>();
+            var cts = new CancellationTokenSource(OperationLifeSpan);
+            cts.CancelAfter(OperationLifeSpan);
+
+            var keyMapper = ConfigInfo.GetKeyMapper();
+            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
+
+            operation.VBucket = vBucket;
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(this, Pending, ClusterController, tcs);
+            Pending.TryAdd(operation.Opaque, operation);
+
+            var server = vBucket.LocatePrimary();
+            server.SendAsync(operation);
+
+            return tcs.Task;
+        }
     }
 }

@@ -469,7 +469,6 @@ namespace Couchbase.Core.Buckets
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 
-
             var keyMapper = ConfigInfo.GetKeyMapper();
             var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
             operation.VBucket = vBucket;
