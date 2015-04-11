@@ -676,6 +676,86 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var document = new Document<dynamic>
+                {
+                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert",
+                    Expiry = 2000,
+                    Content = new { name = "I expire in 2000 milliseconds." }
+
+                };
+
+                var upsert = bucket.Upsert(document);
+                Assert.IsTrue(upsert.Success);
+
+                var get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+                Thread.Sleep(3000);
+                get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+            }
+        }
+
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var document = new Document<dynamic>
+                {
+                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert",
+                    Expiry = 2000,
+                    Content = new { name = "I expire in 2000 milliseconds." }
+
+                };
+
+                bucket.Remove(document);
+                var upsert = bucket.Insert(document);
+                Assert.IsTrue(upsert.Success);
+
+                var get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+                Thread.Sleep(3000);
+                get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+            }
+        }
+
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace()
+        {
+            using (var bucket = _cluster.OpenBucket("memcached"))
+            {
+                var document = new Document<dynamic>
+                {
+                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace",
+                    Expiry = 2000,
+                    Content = new { name = "I expire in 2000 milliseconds." }
+
+                };
+
+                bucket.Remove(document);
+                var upsert = bucket.Insert(document);
+                Assert.IsTrue(upsert.Success);
+
+                var replace = bucket.Replace(document);
+                Assert.IsTrue(replace.Success);
+
+                var get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+                Thread.Sleep(3000);
+                get = bucket.GetDocument<dynamic>(document.Id);
+                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+            }
+        }
+
         [TearDown]
         public void TestFixtureTearDown()
         {

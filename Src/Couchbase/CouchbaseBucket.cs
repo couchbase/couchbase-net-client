@@ -772,7 +772,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
-            var result = Insert(document.Id, document.Content);
+            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -861,7 +861,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var result = Insert(document.Id, document.Content, replicateTo, persistTo);
+            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -1613,7 +1613,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
-            var result = Replace(document.Id, document.Content, document.Cas);
+            var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -1766,7 +1766,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var result = Replace(document.Id, document.Content, document.Cas, replicateTo, persistTo);
+            var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -1947,7 +1947,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Upsert<T>(IDocument<T> document)
         {
-            var result = Upsert(document.Id, document.Content);
+            var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
         }
 
@@ -2111,7 +2111,7 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var result = Upsert(document.Id, document.Content, replicateTo, persistTo);
+            var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo);
             return new DocumentResult<T>(result, document.Id);
         }
 

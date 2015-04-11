@@ -23,7 +23,7 @@ namespace Couchbase
         public ulong Cas { get; set; }
 
         /// <summary>
-        /// The time-to-live or TTL for the document before it's evicated from disk
+        /// The time-to-live or TTL for the document before it's evicted from disk in milliseconds.
         /// </summary>
         /// <remarks>Setting this to zero or less will give the document infinite lifetime</remarks>
         public uint Expiry { get; set; }

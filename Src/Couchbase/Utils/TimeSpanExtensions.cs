@@ -29,5 +29,10 @@ namespace Couchbase.Utils
                 return unixTimeStamp;
             }
         }
+
+        public static uint ToTtl(this uint duration)
+        {
+            return ToTtl(new TimeSpan(0, 0, 0, 0, (int)duration));
+        }
     }
 }
