@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
@@ -14,7 +18,9 @@ using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Fakes;
+using Couchbase.Utils;
 using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -26,9 +32,65 @@ namespace Couchbase.Tests.Core.Buckets
         private string _bucketName = "default";
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
 
+        readonly IPEndPoint _endPoint = UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
+        private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
+        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+        readonly IByteConverter _converter = new AutoByteConverter();
+        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new AutoByteConverter());
+
+        internal IClusterController GetBucketForKey(string key, out IConfigInfo configInfo)
+        {
+            var config = new ClientConfiguration();
+            var fakeServer = new FakeServer(_connectionPool, null, null, _endPoint,
+                new FakeIOStrategy(_endPoint, _connectionPool, false));
+
+            var mockVBucket = new Mock<IVBucket>();
+            mockVBucket.Setup(x => x.LocatePrimary()).Returns(fakeServer);
+
+            var mockKeyMapper = new Mock<IKeyMapper>();
+            mockKeyMapper.Setup(x => x.MapKey(key)).Returns(mockVBucket.Object);
+
+            var mockConfigInfo = new Mock<IConfigInfo>();
+            mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);
+            mockConfigInfo.Setup(x => x.BucketConfig).Returns(_bucketConfig);
+            mockConfigInfo.Setup(x => x.GetServer()).Returns(fakeServer);
+            configInfo = mockConfigInfo.Object;
+
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(config);
+            mockController.Setup(x => x.CreateBucket("default", ""))
+                .Returns(new CouchbaseBucket(mockController.Object, "default", _converter, _transcoder));
+
+            var cluster = new Cluster(config, mockController.Object);
+            var bucket = cluster.OpenBucket("default", "");
+
+            //simulate a config event
+            ((IConfigObserver)bucket).NotifyConfigChanged(mockConfigInfo.Object);
+
+            return mockController.Object;
+        }
+
+        [Test]
+        public async void Test_Executer()
+        {
+            IConfigInfo configInfo;
+            var controller = GetBucketForKey("thekey", out configInfo);
+            _requestExecuter = new CouchbaseRequestExecuter(controller, configInfo, "default", _pending);
+
+            var operation = new Mock<IOperation<string>>();
+            operation.Setup(x => x.GetConfig()).Returns(new BucketConfig());
+            operation.Setup(x => x.Write()).Throws(new Exception("bad kungfu"));
+            operation.Setup(x => x.Key).Returns("thekey");
+
+            var result = await _requestExecuter.SendWithRetryAsync(operation.Object);
+            Assert.IsTrue(result.Success);
+        }
+
         [SetUp]
         public void SetUp()
         {
+            _connectionPool.Clear();
+
             var server = new Mock<IServer>();
             server.Setup(x => x.Send(It.IsAny<IOperation<Object>>())).Returns(new OperationResult<object>());
             var vBucket = new Mock<IVBucket>();
@@ -44,6 +106,18 @@ namespace Couchbase.Tests.Core.Buckets
             clusterController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
 
             _requestExecuter = new CouchbaseRequestExecuter(clusterController.Object, configInfo.Object,  _bucketName, _pending);
+        }
+
+
+        [Test]
+        public async void When_Operation_WriteAsync_Faults()
+        {
+            var operation = new Mock<IOperation<string>>();
+            operation.Setup(x => x.GetConfig()).Returns(new BucketConfig());
+            //operation.Setup(x => x.Write()).Throws(new Exception("bad kungfu"));
+
+            var result = await _requestExecuter.SendWithRetryAsync<object>(operation.Object);
+            Assert.AreEqual(true, result);
         }
 
         [Test]

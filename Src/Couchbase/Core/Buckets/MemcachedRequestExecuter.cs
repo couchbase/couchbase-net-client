@@ -149,11 +149,24 @@ namespace Couchbase.Core.Buckets
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 
-            operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(this, Pending, ClusterController, tcs, cts.Token);
-            Pending.TryAdd(operation.Opaque, operation);
+            try
+            {
+                operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
+                    this, Pending, ClusterController, tcs, cts.Token);
 
-            var server = GetServer(operation.Key);
-            server.SendAsync(operation).ConfigureAwait(false);
+                Pending.TryAdd(operation.Opaque, operation);
+
+                var server = GetServer(operation.Key);
+                server.SendAsync(operation).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                tcs.TrySetResult(new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                });
+            }
             return tcs.Task;
         }
 
@@ -170,11 +183,24 @@ namespace Couchbase.Core.Buckets
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 
-            operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(this, Pending, ClusterController, tcs, cts.Token);
-            Pending.TryAdd(operation.Opaque, operation);
+            try
+            {
+                operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
+                    this, Pending, ClusterController, tcs, cts.Token);
 
-            var server = GetServer(operation.Key);
-            server.SendAsync(operation).ConfigureAwait(false);
+                Pending.TryAdd(operation.Opaque, operation);
+
+                var server = GetServer(operation.Key);
+                server.SendAsync(operation).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                tcs.TrySetResult(new OperationResult
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                });
+            }
             return tcs.Task;
         }
     }

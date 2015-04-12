@@ -436,23 +436,35 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
+        public async override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
         {
             var tcs = new TaskCompletionSource<IOperationResult<T>>();
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 
+            try
+            {
+                var keyMapper = ConfigInfo.GetKeyMapper();
+                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
+                operation.VBucket = vBucket;
 
-            var keyMapper = ConfigInfo.GetKeyMapper();
-            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
-            operation.VBucket = vBucket;
+                operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                    this, Pending, ClusterController, tcs, cts.Token);
 
-            operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(this, Pending, ClusterController, tcs, cts.Token);
-            Pending.TryAdd(operation.Opaque, operation);
+                Pending.TryAdd(operation.Opaque, operation);
 
-            var server = vBucket.LocatePrimary();
-            server.SendAsync(operation).ConfigureAwait(false);
-            return tcs.Task;
+                var server = vBucket.LocatePrimary();
+                await server.SendAsync(operation).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                tcs.TrySetResult(new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                });
+            }
+            return await tcs.Task;
         }
 
 
@@ -463,22 +475,35 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public override Task<IOperationResult> SendWithRetryAsync(IOperation operation)
+        public async override Task<IOperationResult> SendWithRetryAsync(IOperation operation)
         {
             var tcs = new TaskCompletionSource<IOperationResult>();
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
 
-            var keyMapper = ConfigInfo.GetKeyMapper();
-            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
-            operation.VBucket = vBucket;
+            try
+            {
+                var keyMapper = ConfigInfo.GetKeyMapper();
+                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
+                operation.VBucket = vBucket;
 
-            operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(this, Pending, ClusterController, tcs, cts.Token);
-            Pending.TryAdd(operation.Opaque, operation);
+                operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                    this, Pending, ClusterController, tcs, cts.Token);
 
-            var server = vBucket.LocatePrimary();
-            server.SendAsync(operation).ConfigureAwait(false);
-            return tcs.Task;
+                Pending.TryAdd(operation.Opaque, operation);
+
+                var server = vBucket.LocatePrimary();
+                server.SendAsync(operation).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                tcs.TrySetResult(new OperationResult
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                });
+            }
+            return await tcs.Task;
         }
 
         /// <summary>
