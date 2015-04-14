@@ -187,6 +187,7 @@ namespace Couchbase.Tests
             Assert.IsTrue(result.Success);
         }
 
+        [Test]
         public async void When_Key_Does_Not_Exist_UpsertAsync_Succeeds()
         {
             var connection = new FakeConnection();
@@ -214,6 +215,33 @@ namespace Couchbase.Tests
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        public async void When_Key_Does_Not_Exist_InsertAsync_Succeeds()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Does_Not_Exist_InsertAsync_Succeeds";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.InsertAsync(key, "NA");
+
+        }
+
+        [Test]
+        public async void When_Key_Found_InsertAsync_Returns_KeyExists()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_KEYEXISTS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Found_InsertAsync_Returns_KeyExists";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.InsertAsync(key, "NA");
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
         }
 
         [Test]

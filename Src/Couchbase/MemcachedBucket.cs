@@ -1602,53 +1602,100 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="IBucket" />failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> JSON document to add to the database.</param>
+        /// <returns>
+        /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
         {
-            throw new NotImplementedException();
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl()).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration)
         {
-            throw new NotImplementedException();
+            return InsertAsync(key, value, expiration.ToTtl());
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration,
             ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
