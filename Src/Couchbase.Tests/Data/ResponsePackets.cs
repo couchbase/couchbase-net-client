@@ -505,5 +505,15 @@ namespace Couchbase.Tests.Data
         {
             129, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 19, 212, 177, 187, 223, 17, 80, 176
         };
+
+        public static byte[] UPSERT_NOKEY_SUCCESS =
+        {
+            129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 131, 64, 79, 242, 0, 0
+        };
+
+        public static byte[] UPSERT_KEYEXISTS_SUCCESS =
+        {
+            129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 131, 64, 79, 242, 0, 0
+        };
     }
 }

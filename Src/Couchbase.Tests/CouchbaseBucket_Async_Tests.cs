@@ -279,6 +279,36 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public async void When_Key_Does_Not_Exist_UpsertAsync_Succeeds()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.UPSERT_NOKEY_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Does_Not_Exist_UpsertAsync_Succeeds";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.UpsertAsync(key, "NA");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public async void When_Key_Does_Exist_UpsertAsync_Succeeds()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.UPSERT_KEYEXISTS_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Does_Exist_UpsertAsync_Succeeds";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.UpsertAsync(key, "NA");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
         [Category("Integration")]
         [Category("Couchbase")]
         public async void Test_GetAsync()
