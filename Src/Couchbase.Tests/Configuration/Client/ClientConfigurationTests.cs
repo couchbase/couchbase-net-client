@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
@@ -398,6 +399,28 @@ namespace Couchbase.Tests.Configuration.Client
             var couchbaseConfiguration = new ClientConfiguration();
             couchbaseConfiguration.Servers[0]= new Uri("http://localhost2:8091");
             Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
+        }
+
+        [Test]
+        public void When_EnableTcpKeepAlives_Is_Disabled_In_AppConfig_EnableTcpKeepAlives_Is_False()
+        {
+            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
+            config.Initialize();
+
+            var bucket = config.BucketConfigs["default"];
+            Assert.IsFalse(bucket.PoolConfiguration.EnableTcpKeepAlives);
+        }
+
+        [Test]
+        public void When_EnableTcpKeepAlives_Is_Enabled_In_AppConfig_EnableTcpKeepAlives_Is_True()
+        {
+            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
+            config.Initialize();
+
+            var bucket = config.BucketConfigs["default2"];
+            Assert.IsTrue(bucket.PoolConfiguration.EnableTcpKeepAlives);
+            Assert.AreEqual(10000, bucket.PoolConfiguration.TcpKeepAliveInterval);
+            Assert.AreEqual(60000, bucket.PoolConfiguration.TcpKeepAliveTime);
         }
     }
 }

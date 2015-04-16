@@ -64,6 +64,9 @@ namespace Couchbase.Configuration.Client
             EnableOperationTiming = false;
             BufferSize = 1024 * 16;
             DefaultOperationLifespan = 2500;//ms
+            EnableTcpKeepAlives = true;
+            TcpKeepAliveInterval = 2*60*60*1000;
+            TcpKeepAliveTime = 1000;
 
             PoolConfiguration = new PoolConfiguration(this)
             {
@@ -115,6 +118,15 @@ namespace Couchbase.Configuration.Client
             PoolConfiguration = new PoolConfiguration(this);
             DefaultOperationLifespan = couchbaseClientSection.OperationLifespan;
 
+            //to enable tcp keep-alives
+            EnableTcpKeepAlives = couchbaseClientSection.EnableTcpKeepAlives;
+            TcpKeepAliveInterval = couchbaseClientSection.TcpKeepAliveInterval;
+            TcpKeepAliveTime = couchbaseClientSection.TcpKeepAliveTime;
+
+            var keepAlivesChanged = EnableTcpKeepAlives != true ||
+                                    TcpKeepAliveInterval != 1000 ||
+                                    TcpKeepAliveTime != 2*60*60*1000;
+
             foreach (var server in couchbaseClientSection.Servers)
             {
                 Servers.Add(((UriElement)server).Uri);
@@ -144,6 +156,9 @@ namespace Couchbase.Configuration.Client
                         BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
                         ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
                         SendTimeout = bucket.ConnectionPool.SendTimeout,
+                        EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
+                        TcpKeepAliveInterval =  keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
+                        TcpKeepAliveTime =  keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
                         ClientConfiguration = this
                     }
                 };
@@ -154,6 +169,32 @@ namespace Couchbase.Configuration.Client
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether enable TCP keep alives.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+        /// </value>
+        public bool EnableTcpKeepAlives { get; set; }
+
+        /// <summary>
+        /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive time in milliseconds.
+        /// </value>
+        /// <remarks>The default is 2hrs.</remarks>
+        public uint TcpKeepAliveTime { get; set; }
+
+        /// <summary>
+        /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive interval in milliseconds..
+        /// </value>
+        /// <remarks>The default is 1 second.</remarks>
+        public uint TcpKeepAliveInterval { get; set; }
 
         /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.

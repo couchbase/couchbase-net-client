@@ -37,6 +37,9 @@ namespace Couchbase.Configuration.Client
             SendTimeout = DefaultSendTimeout;
             BufferSize = 1024 * 16;
             ConnectTimeout = 10000;
+            EnableTcpKeepAlives = true;
+            TcpKeepAliveTime = (uint) 2*60*60*1000;
+            TcpKeepAliveInterval = (uint) 1000;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
@@ -57,7 +60,36 @@ namespace Couchbase.Configuration.Client
             ClientConfiguration = clientConfiguration;
             ConnectTimeout = connectTimeout;
             BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize);
+            EnableTcpKeepAlives = true;
+            TcpKeepAliveTime = (uint)2 * 60 * 60 * 1000;
+            TcpKeepAliveInterval = (uint)1000;
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether enable TCP keep alives.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+        /// </value>
+        public bool EnableTcpKeepAlives { get; set; }
+
+        /// <summary>
+        /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive time in milliseconds.
+        /// </value>
+        /// <remarks>The default is 2hrs.</remarks>
+        public uint TcpKeepAliveTime { get; set; }
+
+        /// <summary>
+        /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive interval in milliseconds..
+        /// </value>
+        /// <remarks>The default is 1 second.</remarks>
+        public uint TcpKeepAliveInterval { get; set; }
 
         /// <summary>
         /// The maximum number of connections to create.

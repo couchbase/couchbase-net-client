@@ -110,6 +110,48 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["connectTimeout"]; }
             set { this["connectTimeout"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether enable TCP keep alives.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+        /// </value>
+        /// <remarks>The default is true; TCP Keep Alives are enabled.</remarks>
+        [ConfigurationProperty("enableTcpKeepAlives", DefaultValue = true, IsRequired = false)]
+        public bool EnableTcpKeepAlives
+        {
+            get { return (bool)this["enableTcpKeepAlives"]; }
+            set { this["enableTcpKeepAlives"] = value; }
+        }
+
+        /// <summary>
+        /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive time in milliseconds.
+        /// </value>
+        /// <remarks>The default is 2hrs.</remarks>
+        [ConfigurationProperty("tcpKeepAliveTime", DefaultValue = ((uint)2 * 60 * 60 * 1000), IsRequired = false)]
+        public uint TcpKeepAliveTime
+        {
+            get { return (uint)this["tcpKeepAliveTime"]; }
+            set { this["tcpKeepAliveTime"] = value; }
+        }
+
+        /// <summary>
+        /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive interval in milliseconds..
+        /// </value>
+        /// <remarks>The default is 1 second.</remarks>
+        [ConfigurationProperty("tcpKeepAliveInterval", DefaultValue = ((uint)1000), IsRequired = false)]
+        public uint TcpKeepAliveInterval
+        {
+            get { return (uint)this["tcpKeepAliveInterval"]; }
+            set { this["tcpKeepAliveInterval"] = value; }
+        }
     }
 }
 

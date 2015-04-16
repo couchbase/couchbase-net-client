@@ -6,6 +6,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.IO;
@@ -137,6 +138,23 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(18099, section.HttpsMgmtPort);
             Assert.AreEqual(18098, section.HttpsApiPort);
             Assert.AreEqual(11219, section.DirectPort);
+        }
+
+        [Test]
+        public void Test_EnableTcpKeepAlives()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_3");
+            Assert.AreEqual(true, section.EnableTcpKeepAlives);
+            Assert.AreEqual(100, section.TcpKeepAliveInterval);
+            Assert.AreEqual(10, section.TcpKeepAliveTime);
+
+            var configuration = new ClientConfiguration(section);
+            configuration.Initialize();
+
+            var bucket = configuration.BucketConfigs["default"];
+            Assert.AreEqual(true, bucket.PoolConfiguration.EnableTcpKeepAlives);
+            Assert.AreEqual(100, bucket.PoolConfiguration.TcpKeepAliveInterval);
+            Assert.AreEqual(10, bucket.PoolConfiguration.TcpKeepAliveTime);
         }
 
         [Test]

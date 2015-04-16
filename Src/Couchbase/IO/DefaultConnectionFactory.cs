@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.IO
 {
@@ -24,6 +25,15 @@ namespace Couchbase.IO
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 socket.Connect(p.EndPoint);
+
+                //enable keep-alives only when set in config
+                if (config.EnableTcpKeepAlives)
+                {
+                    socket.SetKeepAlives(config.EnableTcpKeepAlives,
+                        config.TcpKeepAliveTime,
+                        config.TcpKeepAliveInterval);
+                }
+
                 if (config.UseSsl)
                 {
                     var ns = new NetworkStream(socket);
@@ -44,7 +54,6 @@ namespace Couchbase.IO
             Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) =>
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
                 var waitHandle = asyncResult.AsyncWaitHandle;
 
@@ -73,6 +82,13 @@ namespace Couchbase.IO
                     //TODO this should be from T...
                     var pool = p as ConnectionPool<Connection>;
                     connection = new Connection(pool, socket, c);
+                }
+                //need to be able to completely disable the feature if false - this should work
+                if (p.Configuration.EnableTcpKeepAlives)
+                {
+                    socket.SetKeepAlives(p.Configuration.EnableTcpKeepAlives,
+                        p.Configuration.TcpKeepAliveTime,
+                        p.Configuration.TcpKeepAliveInterval);
                 }
                 return connection as T;
             };
