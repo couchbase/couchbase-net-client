@@ -18,6 +18,13 @@ namespace Enyim.Caching.Configuration
         private bool _lingerEnabled = false;
         private TimeSpan _lingerTime = new TimeSpan(0, 0, 10);
 
+        public SocketPoolConfiguration()
+        {
+            EnableTcpKeepAlives = true;
+            TcpKeepAliveTime = (uint) 2*60*60*1000;
+            TcpKeepAliveInterval = ((uint) 1000);
+        }
+
         int ISocketPoolConfiguration.MinPoolSize
         {
             get { return this.minPoolSize; }
@@ -128,6 +135,32 @@ namespace Enyim.Caching.Configuration
             get { return _lingerEnabled; }
             set { _lingerEnabled = value; }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether enable TCP keep alives.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+        /// </value>
+        public bool EnableTcpKeepAlives { get; set; }
+
+        /// <summary>
+        /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive time in milliseconds.
+        /// </value>
+        /// <remarks>The default is 2hrs.</remarks>
+        public uint TcpKeepAliveTime { get; set; }
+
+        /// <summary>
+        /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive interval in milliseconds..
+        /// </value>
+        /// <remarks>The default is 1 second.</remarks>
+        public uint TcpKeepAliveInterval { get; set; }
     }
 }
 

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Collections;
 using Couchbase.Exceptions;
+using Couchbase.Extensions;
 using Enyim.Caching;
 using Enyim.Caching.Configuration;
 using Enyim.Caching.Memcached;
@@ -64,8 +65,6 @@ namespace Couchbase
                 SendTimeout = (int)_config.ReceiveTimeout.TotalMilliseconds,
                 NoDelay = true
             };
-
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (int)_config.ReceiveTimeout.TotalMilliseconds);
 
             if (_config.LingerEnabled)
@@ -74,6 +73,12 @@ namespace Couchbase
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOptions);
             }
             socket.Connect(_node.EndPoint);
+            if (_config.EnableTcpKeepAlives)
+            {
+                socket.SetKeepAlives(_config.EnableTcpKeepAlives,
+                    _config.TcpKeepAliveTime,
+                    _config.TcpKeepAliveInterval);
+            }
 
             var pooledSocket = new CouchbasePooledSocket(this, socket);
             if (_provider != null && !Authenticate(pooledSocket))

@@ -60,6 +60,9 @@
     <Compile Include="..\Couchbase\Extensions\UriExtensions.cs">
       <Link>Extensions\UriExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Extensions\SocketExtensions.cs">
+      <Link>Extensions\SocketExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Extensions\InterfaceContractResolver.cs">
       <Link>Extensions\InterfaceContractResolver.cs</Link>
     </Compile>

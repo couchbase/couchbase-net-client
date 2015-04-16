@@ -79,6 +79,32 @@ namespace Enyim.Caching.Configuration
         bool LingerEnabled { get; set; }
 
         INodeFailurePolicyFactory FailurePolicyFactory { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether enable TCP keep alives.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+        /// </value>
+        bool EnableTcpKeepAlives { get; set; }
+
+        /// <summary>
+        /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive time in milliseconds.
+        /// </value>
+        /// <remarks>The default is 2hrs.</remarks>
+        uint TcpKeepAliveTime { get; set; }
+
+        /// <summary>
+        /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+        /// </summary>
+        /// <value>
+        /// The TCP keep alive interval in milliseconds..
+        /// </value>
+        /// <remarks>The default is 1 second.</remarks>
+        uint TcpKeepAliveInterval { get; set; }
     }
 }
 

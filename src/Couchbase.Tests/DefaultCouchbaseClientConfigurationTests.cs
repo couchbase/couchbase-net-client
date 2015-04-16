@@ -226,6 +226,33 @@ namespace Couchbase.Tests
             Assert.That(config.Servers.ObserveTimeout, Is.EqualTo(TimeSpan.FromSeconds(30)));
         }
 
+        [Test]
+        public void When_EnableTcpKeepAlives_Is_Not_Set_The_Defaults_Are_Used()
+        {
+            var config = new CouchbaseClientConfiguration();
+            Assert.IsTrue(config.SocketPool.EnableTcpKeepAlives);
+            Assert.AreEqual(2*60*60*1000, config.SocketPool.TcpKeepAliveTime);
+            Assert.AreEqual(1000, config.SocketPool.TcpKeepAliveInterval);
+        }
+
+        [Test]
+        public void When_EnableTcpKeepAlives_Is_False_In_AppConfig_The_EnableTcpKeepAlive_Is_Disabled()
+        {
+            var config = ConfigurationManager.GetSection("keep-alives-disabled") as CouchbaseClientSection;
+            Assert.IsFalse(config.SocketPool.EnableTcpKeepAlives);
+            Assert.AreEqual(2 * 60 * 60 * 1000, config.SocketPool.TcpKeepAliveTime);
+            Assert.AreEqual(1000, config.SocketPool.TcpKeepAliveInterval);
+        }
+
+        [Test]
+        public void When_EnableTcpKeepAlives_Is_True_In_AppConfig_The_EnableTcpKeepAlive_Is_Enabled()
+        {
+            var config = ConfigurationManager.GetSection("keep-alives-custom") as CouchbaseClientSection;
+            Assert.IsTrue(config.SocketPool.EnableTcpKeepAlives);
+            Assert.AreEqual(60000, config.SocketPool.TcpKeepAliveTime);
+            Assert.AreEqual(10000, config.SocketPool.TcpKeepAliveInterval);
+        }
+
         #endregion
 
         #region HttpClient

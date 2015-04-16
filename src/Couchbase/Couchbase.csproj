@@ -88,6 +88,7 @@
     <Compile Include="Extensions\CouchbaseClientExtensions.cs" />
     <Compile Include="Extensions\CouchbaseClientConfigurationExtensions.cs" />
     <Compile Include="Extensions\InterfaceContractResolver.cs" />
+    <Compile Include="Extensions\SocketExtensions.cs" />
     <Compile Include="Extensions\UriExtensions.cs" />
     <Compile Include="GenericViewRowTransformer.cs" />
     <Compile Include="Helpers\DocHelper.cs" />

@@ -423,6 +423,9 @@ namespace Couchbase.Configuration
                 this.fpf = original.FailurePolicyFactory;
                 _lingerTime = original.LingerTime;
                 _lingerEnabled = original.LingerEnabled;
+                EnableTcpKeepAlives = original.EnableTcpKeepAlives;
+                TcpKeepAliveInterval = original.TcpKeepAliveInterval;
+                TcpKeepAliveTime = original.TcpKeepAliveTime;
             }
 
             int ISocketPoolConfiguration.MinPoolSize { get { return this.minPoolSize; } set { } }
@@ -451,6 +454,32 @@ namespace Couchbase.Configuration
                 get { return _lingerEnabled; }
                 set { _lingerEnabled = value; }
             }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether enable TCP keep alives.
+            /// </summary>
+            /// <value>
+            /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
+            /// </value>
+            public bool EnableTcpKeepAlives { get; set; }
+
+            /// <summary>
+            /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
+            /// </summary>
+            /// <value>
+            /// The TCP keep alive time in milliseconds.
+            /// </value>
+            /// <remarks>The default is 2hrs.</remarks>
+            public uint TcpKeepAliveTime { get; set; }
+
+            /// <summary>
+            /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
+            /// </summary>
+            /// <value>
+            /// The TCP keep alive interval in milliseconds..
+            /// </value>
+            /// <remarks>The default is 1 second.</remarks>
+            public uint TcpKeepAliveInterval { get; set; }
         }
 
         private class HBM : IHeartbeatMonitorConfiguration
