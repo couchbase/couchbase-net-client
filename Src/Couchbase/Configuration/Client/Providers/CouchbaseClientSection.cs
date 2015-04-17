@@ -270,11 +270,36 @@ namespace Couchbase.Configuration.Client.Providers
         /// The TCP keep alive interval in milliseconds..
         /// </value>
         /// <remarks>The default is 1 second.</remarks>
-        [ConfigurationProperty("tcpKeepAliveInterval", DefaultValue = ((uint)1000), IsRequired = false)]
+        [ConfigurationProperty("tcpKeepAliveInterval", DefaultValue = ((uint) 1000), IsRequired = false)]
         public uint TcpKeepAliveInterval
         {
-            get { return (uint)this["tcpKeepAliveInterval"]; }
+            get { return (uint) this["tcpKeepAliveInterval"]; }
             set { this["tcpKeepAliveInterval"] = value; }
+        }
+
+        /// Gets or sets the transcoder.
+        /// </summary>
+        /// <value>
+        /// The transcoder.
+        /// </value>
+        [ConfigurationProperty("transcoder", DefaultValue = null, IsRequired = false)]
+        public TranscoderElement Transcoder
+        {
+            get { return (TranscoderElement)this["transcoder"]; }
+            set { this["transcoder"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the converter.
+        /// </summary>
+        /// <value>
+        /// The converter.
+        /// </value>
+        [ConfigurationProperty("converter", DefaultValue = null, IsRequired = false)]
+        public ConverterElement Converter
+        {
+            get { return (ConverterElement)this["converter"]; }
+            set { this["converter"] = value; }
         }
     }
 }

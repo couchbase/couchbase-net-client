@@ -315,7 +315,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public void when_custom_Transcoder_Upsert_uses_it()
+        public void When_Custom_Transcoder_Upsert_uses_it()
         {
             const string key = "when_custom_Transcoder_Upsert_uses_it";
             var clientConfiguration = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"))
@@ -339,7 +339,7 @@ namespace Couchbase.Tests.Core.Buckets
                     Assert.IsTrue(result.Success);
                     var readBack = bucket.Get<string>(key);
                     Assert.IsTrue(readBack.Success);
-                    Assert.IsTrue(readBack.Value.Contains("Couchbase.Tests.Documents.Pascal"));
+                    Assert.IsTrue(readBack.Value.Contains("when_custom_Transcoder_Upsert_uses_it"));
                 }
             }
         }

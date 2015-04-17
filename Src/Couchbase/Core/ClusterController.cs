@@ -62,8 +62,8 @@ namespace Couchbase.Core
                 return connectionPool;
             },
             SaslFactory.GetFactory3(),
-            new AutoByteConverter(),
-            new DefaultTranscoder(new AutoByteConverter(), clientConfig.DeserializationSettings, clientConfig.SerializationSettings))
+            clientConfig.Converter(),
+            clientConfig.Transcoder())
         {
         }
 
@@ -84,8 +84,8 @@ namespace Couchbase.Core
                 connectionPool.Initialize();
                 return connectionPool;
             }, SaslFactory.GetFactory3(),
-            new AutoByteConverter(),
-            new DefaultTranscoder(new AutoByteConverter(), clientConfig.DeserializationSettings, clientConfig.SerializationSettings))
+            clientConfig.Converter(),
+            clientConfig.Transcoder())
         {
         }
 

@@ -8,7 +8,9 @@ using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
@@ -68,11 +70,18 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = 2*60*60*1000;
             TcpKeepAliveTime = 1000;
 
+            //the default byte converter
+            Converter = ConverterFactory.GetConverter();
+
+            //the default transcoder
+            Transcoder = TranscoderFactory.GetTranscoder(this);
+
             PoolConfiguration = new PoolConfiguration(this)
             {
                 BufferSize = BufferSize,
                 BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize)
             };
+
             BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
                 {DefaultBucket, new BucketConfiguration
@@ -91,50 +100,51 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// For synchronization with App.config or Web.configs.
         /// </summary>
-        /// <param name="couchbaseClientSection"></param>
-        public ClientConfiguration(CouchbaseClientSection couchbaseClientSection)
+        /// <param name="section"></param>
+        public ClientConfiguration(CouchbaseClientSection section)
         {
-            //For operation timing
             Timer = TimingFactory.GetTimer(Log);
 
-            UseSsl = couchbaseClientSection.UseSsl;
-            SslPort = couchbaseClientSection.SslPort;
-            ApiPort = couchbaseClientSection.ApiPort;
-            DirectPort = couchbaseClientSection.DirectPort;
-            MgmtPort = couchbaseClientSection.MgmtPort;
-            HttpsMgmtPort = couchbaseClientSection.HttpsMgmtPort;
-            HttpsApiPort = couchbaseClientSection.HttpsApiPort;
-            ObserveInterval = couchbaseClientSection.ObserveInterval;
-            ObserveTimeout = couchbaseClientSection.ObserveTimeout;
-            MaxViewRetries = couchbaseClientSection.MaxViewRetries;
-            ViewHardTimeout = couchbaseClientSection.ViewHardTimeout;
+            UseSsl = section.UseSsl;
+            SslPort = section.SslPort;
+            ApiPort = section.ApiPort;
+            DirectPort = section.DirectPort;
+            MgmtPort = section.MgmtPort;
+            HttpsMgmtPort = section.HttpsMgmtPort;
+            HttpsApiPort = section.HttpsApiPort;
+            ObserveInterval = section.ObserveInterval;
+            ObserveTimeout = section.ObserveTimeout;
+            MaxViewRetries = section.MaxViewRetries;
+            ViewHardTimeout = section.ViewHardTimeout;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            EnableConfigHeartBeat = couchbaseClientSection.EnableConfigHeartBeat;
-            HeartbeatConfigInterval = couchbaseClientSection.HeartbeatConfigInterval;
-            ViewRequestTimeout = couchbaseClientSection.ViewRequestTimeout;
-            Expect100Continue = couchbaseClientSection.Expect100Continue;
-            EnableOperationTiming = couchbaseClientSection.EnableOperationTiming;
+            EnableConfigHeartBeat = section.EnableConfigHeartBeat;
+            HeartbeatConfigInterval = section.HeartbeatConfigInterval;
+            ViewRequestTimeout = section.ViewRequestTimeout;
+            Expect100Continue = section.Expect100Continue;
+            EnableOperationTiming = section.EnableOperationTiming;
             PoolConfiguration = new PoolConfiguration(this);
-            DefaultOperationLifespan = couchbaseClientSection.OperationLifespan;
+            DefaultOperationLifespan = section.OperationLifespan;
+            Converter = ConverterFactory.GetConverter(section.Converter);
+            Transcoder = TranscoderFactory.GetTranscoder(this, section.Transcoder);
 
             //to enable tcp keep-alives
-            EnableTcpKeepAlives = couchbaseClientSection.EnableTcpKeepAlives;
-            TcpKeepAliveInterval = couchbaseClientSection.TcpKeepAliveInterval;
-            TcpKeepAliveTime = couchbaseClientSection.TcpKeepAliveTime;
+            EnableTcpKeepAlives = section.EnableTcpKeepAlives;
+            TcpKeepAliveInterval = section.TcpKeepAliveInterval;
+            TcpKeepAliveTime = section.TcpKeepAliveTime;
 
             var keepAlivesChanged = EnableTcpKeepAlives != true ||
                                     TcpKeepAliveInterval != 1000 ||
                                     TcpKeepAliveTime != 2*60*60*1000;
 
-            foreach (var server in couchbaseClientSection.Servers)
+            foreach (var server in section.Servers)
             {
                 Servers.Add(((UriElement)server).Uri);
                 _serversChanged = true;
             }
 
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
-            foreach (var bucketElement in couchbaseClientSection.Buckets)
+            foreach (var bucketElement in section.Buckets)
             {
                 var bucket = (BucketElement)bucketElement;
                 var bucketConfiguration = new BucketConfiguration
@@ -195,6 +205,23 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>The default is 1 second.</remarks>
         public uint TcpKeepAliveInterval { get; set; }
+
+        /// Gets or sets the transcoder factory.
+        /// </summary>
+        /// <value>
+        /// The transcoder factory.
+        /// </value>
+        [JsonIgnore]
+        public Func<ITypeTranscoder> Transcoder { get; set; }
+
+        /// <summary>
+        /// Gets or sets the converter.
+        /// </summary>
+        /// <value>
+        /// The converter.
+        /// </value>
+        [JsonIgnore]
+        public Func<IByteConverter> Converter { get; set; }
 
         /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.

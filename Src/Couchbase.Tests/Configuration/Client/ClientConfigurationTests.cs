@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Views;
+using Couchbase.Tests.Fakes;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Client
@@ -401,7 +396,6 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
         }
 
-        [Test]
         public void When_EnableTcpKeepAlives_Is_Disabled_In_AppConfig_EnableTcpKeepAlives_Is_False()
         {
             var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
@@ -414,13 +408,29 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_EnableTcpKeepAlives_Is_Enabled_In_AppConfig_EnableTcpKeepAlives_Is_True()
         {
-            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
+            var config = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
             config.Initialize();
 
             var bucket = config.BucketConfigs["default2"];
             Assert.IsTrue(bucket.PoolConfiguration.EnableTcpKeepAlives);
             Assert.AreEqual(10000, bucket.PoolConfiguration.TcpKeepAliveInterval);
             Assert.AreEqual(60000, bucket.PoolConfiguration.TcpKeepAliveTime);
+        }
+
+        [Test]
+        public void When_Custom_Converter_Configured_In_AppConfig_It_Is_Returned()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
+            var config = new ClientConfiguration(section);
+            Assert.IsInstanceOf<FakeConverter>(config.Converter());
+        }
+
+        [Test]
+        public void When_Custom_Transcoder_Configured_In_AppConfig_It_Is_Returned()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
+            var config = new ClientConfiguration(section);
+            Assert.IsInstanceOf<FakeTranscoder>(config.Transcoder());
         }
     }
 }

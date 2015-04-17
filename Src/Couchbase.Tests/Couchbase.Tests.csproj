@@ -83,6 +83,7 @@
     <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
+    <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
@@ -96,6 +97,9 @@
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
+    <Compile Include="Fakes\FakeConverter.cs" />
+    <Compile Include="Fakes\FakeTranscoder.cs" />
+    <Compile Include="IO\Converters\ConverterFactoryTests.cs" />
     <Compile Include="MemcachedBucket_Async_Tests.cs" />
     <Compile Include="CouchbaseBucket_Async_Tests.cs" />
     <Compile Include="Data\ResponsePackets.cs" />

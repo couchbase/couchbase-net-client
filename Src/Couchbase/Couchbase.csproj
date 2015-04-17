@@ -69,6 +69,8 @@
     <Compile Include="Configuration\Client\Providers\BucketElementCollection.cs" />
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
     <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
+    <Compile Include="Configuration\Client\Providers\ConverterElement.cs" />
+    <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElementCollection.cs" />
     <Compile Include="Configuration\DefaultPorts.cs" />
@@ -162,6 +164,7 @@
     <Compile Include="Core\BucketAlreadyOpenException.cs" />
     <Compile Include="Core\BucketNotFoundException.cs" />
     <Compile Include="Core\Buckets\BucketTypeEnum.cs" />
+    <Compile Include="Core\Transcoders\TranscoderFactory.cs" />
     <Compile Include="CouchbaseBucket.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
@@ -169,6 +172,7 @@
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
+    <Compile Include="IO\Converters\ConverterFactory.cs" />
     <Compile Include="IO\Operations\GetK.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
