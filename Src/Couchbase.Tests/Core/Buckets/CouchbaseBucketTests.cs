@@ -1642,6 +1642,19 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_Value_Is_Null_Get_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var key = "When_Value_Is_Null_Get_Fails";
+                var result = bucket.Upsert<object>(key, null);
+                Assert.IsTrue(result.Success);
+                var get = bucket.Get<object>(key);
+                Assert.IsTrue(get.Success);
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

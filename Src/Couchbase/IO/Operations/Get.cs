@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+﻿using System;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -33,6 +34,31 @@ namespace Couchbase.IO.Operations
             System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
 
             return buffer;
+        }
+
+        public override void ReadExtras(byte[] buffer)
+        {
+            if (buffer.Length > 24)
+            {
+                var format = new byte();
+                var flags = Converter.ToByte(buffer, 24);
+                Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
+                Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
+                Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
+                Converter.SetBit(ref format, 3, Converter.GetBit(flags, 3));
+
+                var compression = new byte();
+                Converter.SetBit(ref compression, 4, Converter.GetBit(flags, 4));
+                Converter.SetBit(ref compression, 5, Converter.GetBit(flags, 5));
+                Converter.SetBit(ref compression, 6, Converter.GetBit(flags, 6));
+
+                var typeCode = (TypeCode)(Converter.ToUInt16(buffer, 26) & 0xff);
+                Format = (DataFormat)format;
+                Compression = (Compression)compression;
+                Flags.DataFormat = Format;
+                Flags.Compression = Compression;
+                Flags.TypeCode = typeCode;
+            }
         }
 
         public override int BodyOffset
