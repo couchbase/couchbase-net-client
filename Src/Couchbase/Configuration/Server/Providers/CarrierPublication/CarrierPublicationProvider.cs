@@ -24,7 +24,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
+            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
@@ -49,7 +49,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         try
                         {
-                            var result = server.Send(new Config(Converter, server.EndPoint, ClientConfig.DefaultOperationLifespan));
+                            var result = server.Send(
+                                new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
+
                             if (result.Success && result.Status == ResponseStatus.Success)
                             {
                                 var config = result.Value;
@@ -98,10 +100,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
                     var ioStrategy = IOStrategyFactory(connectionPool);
-                    var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Converter);
+                    var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Transcoder);
                     ioStrategy.SaslMechanism = saslMechanism;
 
-                    var operationResult = ioStrategy.Execute(new Config(Converter, endPoint, ClientConfig.DefaultOperationLifespan));
+                    var operationResult = ioStrategy.Execute(
+                        new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
+
                     if (operationResult.Success)
                     {
                         var bucketConfig = operationResult.Value;
@@ -112,7 +116,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             IOStrategyFactory,
                             ConnectionPoolFactory,
                             SaslFactory,
-                            Converter,
                             Transcoder);
 
                         Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));

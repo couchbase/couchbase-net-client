@@ -9,6 +9,7 @@ using Couchbase.Utils;
 using NUnit.Framework;
 using System;
 using System.Configuration;
+using Couchbase.Core.Transcoders;
 
 namespace Couchbase.Tests.IO.Operations
 {
@@ -38,7 +39,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig()
         {
-            var response = _ioStrategy.Execute(new Config(new AutoByteConverter(), _endPoint, OperationLifespan));
+            var response = _ioStrategy.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);
             Console.WriteLine(response.Value.ToString());
@@ -47,10 +48,10 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig_Non_Default_Bucket()
         {
-            var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new AutoByteConverter());
+            var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new DefaultTranscoder());
             _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
 
-            var response = _ioStrategy.Execute(new Config(new ManualByteConverter(), _endPoint, OperationLifespan));
+            var response = _ioStrategy.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
 
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);

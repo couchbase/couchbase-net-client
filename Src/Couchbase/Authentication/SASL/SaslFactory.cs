@@ -1,5 +1,6 @@
 ﻿using System;
 using Common.Logging;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -18,24 +19,24 @@ namespace Couchbase.Authentication.SASL
         /// </summary>
         public const uint DefaultTimeout = 2500; //2.5sec
 
-        public static Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> GetFactory3()
+        public static Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> GetFactory3()
         {
-            return (username, password, strategy, converter) =>
+            return (username, password, strategy, transcoder) =>
             {
                 ISaslMechanism saslMechanism = null;
                 var connection = strategy.ConnectionPool.Acquire();
                 try
                 {
-                    var saslListResult = strategy.Execute(new SaslList(converter, DefaultTimeout), connection);
+                    var saslListResult = strategy.Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
                         if (saslListResult.Value.Contains("CRAM-MD5"))
                         {
-                            saslMechanism = new CramMd5Mechanism(strategy ,username, password, converter);
+                            saslMechanism = new CramMd5Mechanism(strategy, username, password, transcoder);
                         }
                         else
                         {
-                            saslMechanism = new PlainTextMechanism(strategy, username, password, converter);
+                            saslMechanism = new PlainTextMechanism(strategy, username, password, transcoder);
                         }
                     }
                 }

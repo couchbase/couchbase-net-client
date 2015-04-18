@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -30,7 +31,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslListMechanism()
         {
-            var response = _ioStrategy.Execute(new SaslList(new ManualByteConverter(), OperationLifespan));
+            var response = _ioStrategy.Execute(new SaslList(new DefaultTranscoder(), OperationLifespan));
             Assert.IsNotNullOrEmpty(response.Value);
             Console.WriteLine(response.Value);
             Assert.IsTrue(response.Success);

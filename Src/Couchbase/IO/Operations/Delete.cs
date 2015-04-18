@@ -7,8 +7,8 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Delete : OperationBase
     {
-        public Delete(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
+        public Delete(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
@@ -32,7 +32,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Delete(Key, VBucket, Converter, Transcoder, Timeout)
+            var cloned = new Delete(Key, VBucket, Transcoder, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

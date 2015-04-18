@@ -1,4 +1,6 @@
 ﻿using System;
+using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -9,8 +11,18 @@ namespace Couchbase.IO.Operations.Authentication
     /// </summary>
     internal sealed class SaslList : OperationBase<string>
     {
-        public SaslList(IByteConverter converter, uint timeout)
-            : base(converter, timeout)
+        public SaslList(ITypeTranscoder transcoder, uint timeout)
+            : this(string.Empty, null, transcoder, null, SequenceGenerator.GetNext(), timeout)
+        {
+        }
+
+        public SaslList(string key, string value, ITypeTranscoder transcoder, IVBucket vBucket, uint opaque, uint timeout)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
+        {
+        }
+
+        public SaslList(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 

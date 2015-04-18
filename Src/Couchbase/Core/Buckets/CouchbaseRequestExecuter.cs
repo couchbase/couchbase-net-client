@@ -138,7 +138,10 @@ namespace Couchbase.Core.Buckets
             if (result.Success)
             {
                 var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
+                var observer = new KeyObserver(ConfigInfo,
+                    ClusterController.Transcoder,
+                    config.ObserveInterval, config.ObserveTimeout);
+
                 var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
                 result.Durability = observed
                     ? Durability.Satisfied
@@ -165,7 +168,11 @@ namespace Couchbase.Core.Buckets
             if (result.Success)
             {
                 var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
+
+                var observer = new KeyObserver(ConfigInfo,
+                    ClusterController.Transcoder,
+                    config.ObserveInterval, config.ObserveTimeout);
+
                 var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
                 result.Durability = observed
                     ? Durability.Satisfied
@@ -193,8 +200,13 @@ namespace Couchbase.Core.Buckets
             if (result.Success)
             {
                 var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                var observer = new KeyObserver(ConfigInfo, config.ObserveInterval, config.ObserveTimeout);
+
+                var observer = new KeyObserver(ConfigInfo,
+                    ClusterController.Transcoder,
+                    config.ObserveInterval, config.ObserveTimeout);
+
                 var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+
                 result.Durability = observed
                     ? Durability.Satisfied
                     : Durability.NotSatisfied;

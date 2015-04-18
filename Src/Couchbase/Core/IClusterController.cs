@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.Core
 {
@@ -10,6 +12,8 @@ namespace Couchbase.Core
         List<IConfigProvider> ConfigProviders { get; }
 
         ClientConfiguration Configuration { get; }
+        IByteConverter Converter { get; }
+        ITypeTranscoder Transcoder { get; }
 
         IConfigProvider GetProvider(string name);
 

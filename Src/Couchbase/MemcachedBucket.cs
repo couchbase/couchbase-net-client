@@ -120,7 +120,7 @@ namespace Couchbase
         /// <returns>True if the key exists.</returns>
         public bool Exists(string key)
         {
-            var observe = new Observe(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var observe = new Observe(key, null,  _transcoder, _operationLifespanTimeout);
             var result = _requestExecuter.SendWithRetry(observe);
             return result.Success && result.Value.KeyState != KeyState.NotFound;
         }
@@ -153,7 +153,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
         public IOperationResult Touch(string key, TimeSpan expiration)
         {
-            var touch = new Touch(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration.ToTtl()
             };
@@ -168,7 +168,7 @@ namespace Couchbase
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
         public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration)
         {
-            var touch = new Touch(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration.ToTtl()
             };
@@ -197,7 +197,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -211,7 +211,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -243,7 +243,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -261,7 +261,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
                 Expires = expiration
@@ -433,7 +433,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -446,7 +446,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -460,7 +460,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -541,7 +541,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null,  _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -555,7 +555,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
-            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -617,7 +617,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key)
         {
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -629,7 +629,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -741,7 +741,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -765,7 +765,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -777,7 +777,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
         public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration)
         {
-            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration.ToTtl()
             };
@@ -792,7 +792,7 @@ namespace Couchbase
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
         public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration)
         {
-            var operation = new GetT<T>(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration.ToTtl()
             };
@@ -981,7 +981,7 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
-            var operation = new Increment(key, initial, delta, expiration, null, _converter, _transcoder,
+            var operation = new Increment(key, initial, delta, expiration, null, _transcoder,
                 _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -1059,7 +1059,7 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
-            var operation = new Decrement(key, initial, delta, expiration, null, _converter, _transcoder,
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder,
                 _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -1088,7 +1088,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Append(string key, string value)
         {
-            var operation = new Append<string>(key, value, _transcoder, null, _converter, _operationLifespanTimeout);
+            var operation = new Append<string>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1100,7 +1100,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<byte[]> Append(string key, byte[] value)
         {
-            var operation = new Append<byte[]>(key, value, _transcoder, null, _converter, _operationLifespanTimeout);
+            var operation = new Append<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1113,7 +1113,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
-            var operation = new Prepend<string>(key, value, _transcoder, null, _converter, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, _transcoder, null,  _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1125,21 +1125,21 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<byte[]> Prepend(string key, byte[] value)
         {
-            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _converter, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
         public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1301,7 +1301,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1372,7 +1372,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
                 Cas = cas
@@ -1476,8 +1476,8 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetryAsync<T>(operation);
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -1547,7 +1547,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
                 Cas = cas
@@ -1653,7 +1653,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
             };
@@ -1709,7 +1709,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation).ContinueOnAnyContext();
         }
 
@@ -1725,7 +1725,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
@@ -1742,7 +1742,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
@@ -1757,7 +1757,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -1775,7 +1775,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
@@ -1791,7 +1791,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -1810,7 +1810,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
@@ -1827,7 +1827,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _converter, _transcoder, _operationLifespanTimeout)
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };

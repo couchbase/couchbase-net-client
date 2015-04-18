@@ -1,4 +1,6 @@
 ﻿using System;
+using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -10,14 +12,33 @@ namespace Couchbase.IO.Operations.Authentication
     internal class SaslStart : OperationBase<string>
     {
         /// <summary>
+        ///     Creates an instance of the <see cref="SaslStart" />" object for starting the SASL authentication process.
+        /// </summary>
+        /// <param name="key">The SASL Mechanism to use: PLAIN or CRAM-MD5.</param>
+        /// <param name="value"></param>
+        /// <param name="vBucket"></param>
+        /// <param name="transcoder"></param>
+        /// <param name="opaque"></param>
+        /// <param name="timeout"></param>
+        public SaslStart(string key, string value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
+        {
+        }
+
+        public SaslStart(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
+        {
+        }
+
+        /// <summary>
         /// Creates an instance of the <see cref="SaslStart"/>" object for starting the SASL authentication process.
         /// </summary>
         /// <param name="key">The SASL Mechanism to use: PLAIN or CRAM-MD5.</param>
         /// <param name="value"></param>
-        /// <param name="converter">The <see cref="IByteConverter"/> to use for encoding and decoding values.</param>
+        /// <param name="transcoder"></param>
         /// <param name="timeout"></param>
-        public SaslStart(string key, string value, IByteConverter converter, uint timeout)
-            : base(key, value, null, converter, timeout)
+        public SaslStart(string key, string value, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, null, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 
@@ -97,7 +118,7 @@ namespace Couchbase.IO.Operations.Authentication
             CAS (16-23): 0x0000000000000000 (0)
             Mechanisms (24-28): PLAIN
             Auth token (29-39): foo0x00foo0x00bar
-         */
+        */
     }
 }
 

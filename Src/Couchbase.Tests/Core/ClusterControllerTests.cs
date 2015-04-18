@@ -15,6 +15,7 @@ using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Configuration.Client;
@@ -117,7 +118,7 @@ namespace Couchbase.Tests.Core
             var totalBytes = new byte[24 + bytes.Length];
             bytes.CopyTo(totalBytes, 24);
 
-            var op = new Config(new AutoByteConverter(), _endPoint, OperationLifespan)
+            var op = new Config(new DefaultTranscoder(), OperationLifespan, _endPoint)
             {
                 Data = new MemoryStream(totalBytes)
             };

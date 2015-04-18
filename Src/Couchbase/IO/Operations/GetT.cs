@@ -7,13 +7,13 @@ namespace Couchbase.IO.Operations
 {
     internal class GetT<T> : OperationBase<T>
     {
-        public GetT(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
+        public GetT(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
-        protected GetT(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(key, default(T), transcoder, vBucket, converter, opaque, timeout)
+        protected GetT(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, default(T), vBucket, transcoder, opaque, timeout)
         {
         }
 
@@ -47,7 +47,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new GetT<T>(Key, VBucket, Converter, Transcoder, Opaque, Timeout)
+            var cloned = new GetT<T>(Key, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

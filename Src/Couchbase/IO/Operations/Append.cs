@@ -7,33 +7,18 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Append<T> : OperationBase<T>
     {
-        public Append(IByteConverter converter, uint timeout)
-            : base(converter, timeout)
+        public Append(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        public Append(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        public Append(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
-        public Append(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, vBucket, converter, timeout)
-        {
-        }
-
-        public Append(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, vBucket, converter, timeout)
-        {
-        }
-
-        public Append(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
-        {
-        }
-
-        private Append(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
+        private Append(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
         {
         }
 
@@ -59,7 +44,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Append<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
+            var cloned = new Append<T>(Key, RawValue, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

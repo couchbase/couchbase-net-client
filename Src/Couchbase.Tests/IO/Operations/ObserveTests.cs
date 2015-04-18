@@ -18,7 +18,7 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "Test_Observe";
 
-            var operation = new Observe(key, GetVBucket(), new AutoByteConverter(), OperationLifespanTimeout);
+            var operation = new Observe(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(operation);
             Console.WriteLine(result.Message);
             Assert.IsTrue(result.Success);
@@ -28,19 +28,19 @@ namespace Couchbase.Tests.IO.Operations
         public async void Test_Observe2()
         {
             const string key = "Test_Observe2";
-            var remove = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var remove = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
-            var set = new Set<int?>(key, 10, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var set = new Set<int?>(key, 10, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(set);
             Assert.IsTrue(result.Success);
 
-            var get = new Get<dynamic>(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result1 = IOStrategy.Execute(get);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result.Cas, result1.Cas);
 
             await Task.Delay(100);
-            var operation = new Observe(key, GetVBucket(), new AutoByteConverter(), OperationLifespanTimeout);
+            var operation = new Observe(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result2 = IOStrategy.Execute(operation);
 
             Assert.AreEqual(result1.Cas, result2.Value.Cas);
@@ -52,7 +52,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Observe("key", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout)
+            var operation = new Observe("key", GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };

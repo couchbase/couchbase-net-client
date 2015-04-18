@@ -8,6 +8,7 @@ using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -70,6 +71,9 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = 2*60*60*1000;
             TcpKeepAliveTime = 1000;
 
+            //the default serializer
+            Serializer = SerializerFactory.GetSerializer();
+
             //the default byte converter
             Converter = ConverterFactory.GetConverter();
 
@@ -125,6 +129,9 @@ namespace Couchbase.Configuration.Client
             EnableOperationTiming = section.EnableOperationTiming;
             PoolConfiguration = new PoolConfiguration(this);
             DefaultOperationLifespan = section.OperationLifespan;
+
+            //transcoders, converters, and serializers...o mai.
+            Serializer = SerializerFactory.GetSerializer(this, section.Serializer);
             Converter = ConverterFactory.GetConverter(section.Converter);
             Transcoder = TranscoderFactory.GetTranscoder(this, section.Transcoder);
 
@@ -206,6 +213,7 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The default is 1 second.</remarks>
         public uint TcpKeepAliveInterval { get; set; }
 
+        /// <summary>
         /// Gets or sets the transcoder factory.
         /// </summary>
         /// <value>
@@ -222,6 +230,15 @@ namespace Couchbase.Configuration.Client
         /// </value>
         [JsonIgnore]
         public Func<IByteConverter> Converter { get; set; }
+
+        /// <summary>
+        /// Gets or sets the serializer.
+        /// </summary>
+        /// <value>
+        /// The serializer.
+        /// </value>
+        [JsonIgnore]
+        public Func<ITypeSerializer> Serializer { get; set; }
 
         /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.
@@ -355,11 +372,13 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// The incoming serializer settings for the JSON serializer.
         /// </summary>
+        [Obsolete("Please use a custom ITypeSerializer instead; this property is no longer used will be removed in a future release. See NCBC-676 for details.")]
         public JsonSerializerSettings SerializationSettings { get; set; }
 
         /// <summary>
         /// The outgoing serializer settings for the JSON serializer.
         /// </summary>
+        [Obsolete("Please use a custom ITypeSerializer instead; this property is no longer used will be removed in a future release. See NCBC-676 for details.")]
         public JsonSerializerSettings DeserializationSettings { get; set; }
 
         /// <summary>

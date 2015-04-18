@@ -2,6 +2,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Common.Logging;
+using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -14,18 +16,19 @@ namespace Couchbase.Authentication.SASL
     internal class CramMd5Mechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetLogger<CramMd5Mechanism>();
-        private readonly IByteConverter _converter;
         private IOStrategy _ioStrategy;
+        private ITypeTranscoder _transcoder;
+
 
         /// <summary>
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOStrategy"/>.
         /// </summary>
         /// <param name="ioStrategy">The I/O strategy to use.</param>
-        /// <param name="converter">The <see cref="IByteConverter"/> to use for converting to and from byte arrays.</param>
-        public CramMd5Mechanism(IOStrategy ioStrategy, IByteConverter converter)
+        /// <param name="transcoder"></param>
+        public CramMd5Mechanism(IOStrategy ioStrategy, ITypeTranscoder transcoder)
         {
             _ioStrategy = ioStrategy;
-            _converter = converter;
+            _transcoder = transcoder;
         }
 
         /// <summary>
@@ -45,12 +48,13 @@ namespace Couchbase.Authentication.SASL
         /// <param name="ioStrategy">The <see cref="IOStrategy"/>to use for I/O.</param>
         /// <param name="username">The name of the Bucket you are connecting to.</param>
         /// <param name="password">The password for the Bucket.</param>
-        public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password, IByteConverter converter)
+        /// <param name="transcoder"></param>
+        public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password, ITypeTranscoder transcoder)
         {
             _ioStrategy = ioStrategy;
             Username = username;
             Password = password;
-            _converter = converter;
+            _transcoder = transcoder;
         }
 
         /// <summary>
@@ -87,14 +91,14 @@ namespace Couchbase.Authentication.SASL
             var temp = connection;
             Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
 
-            var operation = new SaslStart(MechanismType, null, _converter, SaslFactory.DefaultTimeout);
+            var operation = new SaslStart(MechanismType, (VBucket)null, _transcoder, SaslFactory.DefaultTimeout);
             var result = _ioStrategy.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
                 var challenge = result.Message;
                 var reply = ComputeResponse(challenge);
 
-                operation = new SaslStep(MechanismType, reply, _converter, SaslFactory.DefaultTimeout);
+                operation = new SaslStep(MechanismType, reply, _transcoder, SaslFactory.DefaultTimeout);
                 result = _ioStrategy.Execute(operation, connection);
             }
 

@@ -17,8 +17,7 @@ namespace Couchbase.Tests.IO.Operations
     {
         private IOStrategy _ioStrategy;
         private IConnectionPool _connectionPool;
-        protected readonly AutoByteConverter Converter = new AutoByteConverter();
-        protected  ITypeTranscoder Transcoder;
+        protected ITypeTranscoder Transcoder = new DefaultTranscoder();
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
         protected IPEndPoint EndPoint;
         protected static readonly uint OperationLifespanTimeout = 2500; //2.5sec
@@ -30,7 +29,7 @@ namespace Couchbase.Tests.IO.Operations
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, EndPoint);
             _ioStrategy = new DefaultIOStrategy(_connectionPool);
-            Transcoder = new DefaultTranscoder(Converter);
+            Transcoder = new DefaultTranscoder();
         }
 
         internal IVBucket GetVBucket()

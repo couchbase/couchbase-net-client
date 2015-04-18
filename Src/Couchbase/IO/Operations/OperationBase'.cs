@@ -16,30 +16,14 @@ namespace Couchbase.IO.Operations
     {
         protected T _value;
 
-        protected OperationBase(IByteConverter converter, uint timeout)
-            : this(string.Empty, null, converter, timeout)
-        {
-        }
-
-        protected OperationBase(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket,
-            IByteConverter converter, uint opaque, uint timeout)
-            : base(key, transcoder, vBucket, converter, opaque, timeout)
+        protected OperationBase(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, vBucket, transcoder, opaque, timeout)
         {
             _value = value;
         }
 
-        protected OperationBase(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : this(key, value, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), timeout)
-        {
-        }
-
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : this(key, default(T), new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), timeout)
-        {
-        }
-
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : this(key, default(T), transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : this(key, default(T), vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 

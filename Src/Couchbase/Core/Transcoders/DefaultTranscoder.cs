@@ -6,27 +6,33 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.IO;
 using System.Text;
+using Couchbase.Core.Serialization;
 
 namespace Couchbase.Core.Transcoders
 {
     public class DefaultTranscoder : ITypeTranscoder
     {
         private static readonly ILog Log = LogManager.GetLogger<DefaultTranscoder>();
-        private readonly IByteConverter _converter;
-        private readonly JsonSerializerSettings _outgoingSerializerSettings;
-        private readonly JsonSerializerSettings _incomingSerializerSettings;
+
+        public DefaultTranscoder()
+            : this(new AutoByteConverter())
+        {
+        }
 
         public DefaultTranscoder(IByteConverter converter)
-            : this(converter, new JsonSerializerSettings(), new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() })
+            : this(converter, new DefaultSerializer())
         {
         }
 
-        public DefaultTranscoder(IByteConverter converter, JsonSerializerSettings incomingSerializerSettings, JsonSerializerSettings outgoingSerializerSettings)
+        public DefaultTranscoder(IByteConverter converter, ITypeSerializer serializer)
         {
-            _converter = converter;
-            _incomingSerializerSettings = incomingSerializerSettings;
-            _outgoingSerializerSettings = outgoingSerializerSettings;
+            Serializer = serializer;
+            Converter = converter;
         }
+
+        public ITypeSerializer Serializer { get; set; }
+
+        public IByteConverter Converter { get; set; }
 
         public byte[] Encode<T>(T value, Flags flags)
         {
@@ -75,31 +81,31 @@ namespace Couchbase.Core.Transcoders
                 case TypeCode.DBNull:
                 case TypeCode.String:
                 case TypeCode.Char:
-                    _converter.FromString(Convert.ToString(value), ref bytes, 0);
+                    Converter.FromString(Convert.ToString(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int16:
-                    _converter.FromInt16(Convert.ToInt16(value), ref bytes, 0);
+                    Converter.FromInt16(Convert.ToInt16(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt16:
-                    _converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0);
+                    Converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int32:
-                    _converter.FromInt32(Convert.ToInt32(value), ref bytes, 0);
+                    Converter.FromInt32(Convert.ToInt32(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt32:
-                    _converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0);
+                    Converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Int64:
-                    _converter.FromInt64(Convert.ToInt64(value), ref bytes, 0);
+                    Converter.FromInt64(Convert.ToInt64(value), ref bytes, 0);
                     break;
 
                 case TypeCode.UInt64:
-                    _converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
+                    Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
                     break;
 
                 case TypeCode.Single:
@@ -188,42 +194,42 @@ namespace Couchbase.Core.Transcoders
                 case TypeCode.Int16:
                     if (length > 0)
                     {
-                        value = _converter.ToInt16(buffer, offset);
+                        value = Converter.ToInt16(buffer, offset);
                     }
                     break;
 
                 case TypeCode.UInt16:
                     if (length > 0)
                     {
-                        value = _converter.ToUInt16(buffer, offset);
+                        value = Converter.ToUInt16(buffer, offset);
                     }
                     break;
 
                 case TypeCode.Int32:
                     if (length > 0)
                     {
-                        value = _converter.ToInt32(buffer, offset);
+                        value = Converter.ToInt32(buffer, offset);
                     }
                     break;
 
                 case TypeCode.UInt32:
                     if (length > 0)
                     {
-                        value = _converter.ToUInt32(buffer, offset);
+                        value = Converter.ToUInt32(buffer, offset);
                     }
                     break;
 
                 case TypeCode.Int64:
                     if (length > 0)
                     {
-                        value = _converter.ToInt64(buffer, offset);
+                        value = Converter.ToInt64(buffer, offset);
                     }
                     break;
 
                 case TypeCode.UInt64:
                     if (length > 0)
                     {
-                        value = _converter.ToUInt64(buffer, offset);
+                        value = Converter.ToUInt64(buffer, offset);
                     }
                     break;
 
@@ -260,32 +266,7 @@ namespace Couchbase.Core.Transcoders
 
         public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
-            T value;
-            using (var ms = new MemoryStream(buffer, offset, length))
-            {
-                using (var sr = new StreamReader(ms))
-                {
-                    using (var jr = new JsonTextReader(sr))
-                    {
-                        var serializer = JsonSerializer.Create(_incomingSerializerSettings);
-
-                        //use the following code block only for value types
-                        //strangely enough Nullable<T> itself is a value type so we need to filter it out
-                        if (typeof(T).IsValueType && (!typeof(T).IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
-                        {
-                            //we can't declare Nullable<T> because T is not restricted to struct in this method scope
-                            object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
-                            //either we have a null or an instance of Nullabte<T> that can be cast directly to T
-                            value = nullableVal == null ? default(T) : (T)nullableVal;
-                        }
-                        else
-                        {
-                            value = serializer.Deserialize<T>(jr);
-                        }
-                    }
-                }
-            }
-            return value;
+            return Serializer.Deserialize<T>(buffer, offset, length);
         }
 
         public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags)
@@ -295,18 +276,7 @@ namespace Couchbase.Core.Transcoders
 
         public byte[] SerializeAsJson(object value)
         {
-            using (var ms = new MemoryStream())
-            {
-                using (var sw = new StreamWriter(ms))
-                {
-                    using (var jr = new JsonTextWriter(sw))
-                    {
-                        var serializer = JsonSerializer.Create(_outgoingSerializerSettings);
-                        serializer.Serialize(jr, value);
-                    }
-                }
-                return ms.ToArray();
-            }
+            return Serializer.Serialize(value);
         }
 
         private string Decode(byte[] buffer, int offset, int length)

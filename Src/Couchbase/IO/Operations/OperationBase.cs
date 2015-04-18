@@ -23,13 +23,7 @@ namespace Couchbase.IO.Operations
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
 
-        protected OperationBase(IByteConverter converter, uint timeout)
-            : this(string.Empty, null, converter, timeout)
-        {
-        }
-
-        protected OperationBase(string key, ITypeTranscoder transcoder, IVBucket vBucket,
-            IByteConverter converter, uint opaque, uint timeout)
+        protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
             Key = key;
             Transcoder = transcoder;
@@ -37,18 +31,13 @@ namespace Couchbase.IO.Operations
             CreationTime = DateTime.UtcNow;
             Timeout = timeout;
             VBucket = vBucket;
-            Converter = converter;
+            Converter = transcoder.Converter;
             MaxRetries = DefaultRetries;
             Data = new MemoryStream();
         }
 
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : this(key, new DefaultTranscoder(converter), vBucket, converter, SequenceGenerator.GetNext(), timeout)
-        {
-        }
-
-        protected OperationBase(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : this(key, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : this(key, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 

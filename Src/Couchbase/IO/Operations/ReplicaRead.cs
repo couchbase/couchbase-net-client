@@ -12,28 +12,13 @@ namespace Couchbase.IO.Operations
 {
     internal class ReplicaRead<T> : OperationBase<T>
     {
-        public ReplicaRead(IByteConverter converter, uint timeout)
-            : base(converter, timeout)
+        private ReplicaRead(string key, ITypeTranscoder transcoder, IVBucket vBucket, uint opaque, uint timeout)
+            : base(key, default(T), vBucket, transcoder, opaque, timeout)
         {
         }
 
-        private ReplicaRead(string key, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
-            : base(key, default(T), transcoder, vBucket, converter, opaque, timeout)
-        {
-        }
-
-        public ReplicaRead(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, vBucket, converter, timeout)
-        {
-        }
-
-        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, vBucket, converter, timeout)
-        {
-        }
-
-        public ReplicaRead(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
+        public ReplicaRead(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
@@ -67,7 +52,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Converter, Opaque, Timeout)
+            var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

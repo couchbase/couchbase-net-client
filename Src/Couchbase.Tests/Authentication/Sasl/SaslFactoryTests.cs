@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
@@ -41,7 +42,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void When_PlainText_Provided_Factory_Returns_CramMd5Mechanism()
         {
             var factory = SaslFactory.GetFactory3();
-            var mechanism = factory("authenticated", "secret", _ioStrategy, new ManualByteConverter());
+            var mechanism = factory("authenticated", "secret", _ioStrategy, new DefaultTranscoder());
             Assert.IsTrue(mechanism is CramMd5Mechanism);
         }
     }

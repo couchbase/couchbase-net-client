@@ -15,10 +15,9 @@ namespace Couchbase.IO.Operations
             ulong delta,
             uint expiration,
             IVBucket vBucket,
-            IByteConverter converter,
             ITypeTranscoder transcoder,
             uint timeout)
-            : base(key, initial, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+            : base(key, initial, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
             _delta = delta;
             _initial = initial;
@@ -30,11 +29,10 @@ namespace Couchbase.IO.Operations
             ulong delta,
             uint expiration,
             IVBucket vBucket,
-            IByteConverter converter,
             ITypeTranscoder transcoder,
             uint opaque,
             uint timeout)
-            : base(key, initial, transcoder, vBucket, converter, opaque, timeout)
+            : base(key, initial, vBucket, transcoder, opaque, timeout)
         {
             _delta = delta;
             _initial = initial;
@@ -67,7 +65,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Decrement(Key, _initial,_delta, _expiration, VBucket, Converter, Transcoder, Opaque, Timeout)
+            var cloned = new Decrement(Key, _initial,_delta, _expiration, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

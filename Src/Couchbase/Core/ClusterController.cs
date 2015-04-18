@@ -34,9 +34,7 @@ namespace Couchbase.Core
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> _saslFactory;
-        private readonly IByteConverter _converter;
-        private readonly ITypeTranscoder _transcoder;
+        private readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> _saslFactory;
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
 
@@ -92,7 +90,7 @@ namespace Couchbase.Core
         public ClusterController(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
+            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
         {
@@ -100,10 +98,14 @@ namespace Couchbase.Core
             _ioStrategyFactory = ioStrategyFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
-            _converter = converter;
-            _transcoder = transcoder;
+            Converter = converter;
+            Transcoder = transcoder;
             Initialize();
         }
+
+        public IByteConverter Converter { get; private set; }
+
+        public ITypeTranscoder Transcoder { get; private set; }
 
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 
@@ -114,15 +116,15 @@ namespace Couchbase.Core
                 _ioStrategyFactory,
                 _connectionPoolFactory,
                 _saslFactory,
-                _converter,
-                _transcoder));
+                Converter,
+                Transcoder));
 
             _configProviders.Add(new HttpStreamingProvider(_clientConfig,
                 _ioStrategyFactory,
                 _connectionPoolFactory,
                 _saslFactory,
-                _converter,
-                _transcoder));
+                Converter,
+                Transcoder));
         }
 
         public IConfigProvider GetProvider(string name)
@@ -173,7 +175,7 @@ namespace Couchbase.Core
                         {
                             case NodeLocatorEnum.VBucket:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new CouchbaseBucket(this, bucketName, _converter, _transcoder));
+                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -183,7 +185,7 @@ namespace Couchbase.Core
 
                             case NodeLocatorEnum.Ketama:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new MemcachedBucket(this, bucketName, _converter, _transcoder));
+                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {

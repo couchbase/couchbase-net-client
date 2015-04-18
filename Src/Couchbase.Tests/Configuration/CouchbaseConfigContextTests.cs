@@ -52,7 +52,6 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
             configInfo.LoadConfig();
 
@@ -104,7 +103,6 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
@@ -134,7 +132,6 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
@@ -188,7 +185,6 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
                 new DefaultTranscoder(new AutoByteConverter()));
 
             configInfo.LoadConfig();

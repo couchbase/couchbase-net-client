@@ -16,15 +16,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Key_Exists_GetT_Returns_Value";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var get = new GetT<dynamic>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout)
+            var get = new GetT<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Expires = new TimeSpan(0,0,0, 1).ToTtl()
             };

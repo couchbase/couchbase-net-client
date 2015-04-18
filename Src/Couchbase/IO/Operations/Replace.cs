@@ -10,18 +10,18 @@ namespace Couchbase.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class Replace<T> : OperationBase<T>
     {
-        public Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        public Replace(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        private Replace(string key, T value, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
+        private Replace(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
         {
         }
 
-        public Replace(string key, T value, ulong cas, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        public Replace(string key, T value, ulong cas, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
             Cas = cas;
         }
@@ -33,7 +33,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Replace<T>(Key, RawValue, VBucket, Converter, Transcoder, Opaque, Timeout)
+            var cloned = new Replace<T>(Key, RawValue, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

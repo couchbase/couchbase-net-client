@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -38,7 +39,7 @@ namespace Couchbase.Tests.IO
         [Test]
         public void When_Authentication_Fails_AuthenticationException_Or_ConnectionUnavailableException_Is_Thrown()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secretw", new AutoByteConverter());
+            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secretw", new DefaultTranscoder());
             _ioStrategy.SaslMechanism = authenticator;
 
             //The first two iterations will throw auth exceptions and then a CUE;
@@ -49,7 +50,7 @@ namespace Couchbase.Tests.IO
                 count++;
                 try
                 {
-                    var config = new Config(new AutoByteConverter(), UriExtensions.GetEndPoint(Address), OperationLifespan);
+                    var config = new Config(new DefaultTranscoder(), OperationLifespan, UriExtensions.GetEndPoint(Address));
                     var result = _ioStrategy.Execute(config);
                     Console.WriteLine(result.Success);
                 }
@@ -71,7 +72,7 @@ namespace Couchbase.Tests.IO
         public void Test_ExecuteAsync()
         {
             var tcs = new TaskCompletionSource<object>();
-            var operation = new Noop(new AutoByteConverter(), OperationLifespan);
+            var operation = new Noop( new DefaultTranscoder(), OperationLifespan);
             operation.Completed = s =>
             {
                 Assert.IsNull(s.Exception);

@@ -70,6 +70,7 @@
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
     <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
     <Compile Include="Configuration\Client\Providers\ConverterElement.cs" />
+    <Compile Include="Configuration\Client\Providers\SerializerElement.cs" />
     <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElementCollection.cs" />
@@ -97,6 +98,9 @@
     <Compile Include="Core\Diagnostics\TimingLevel.cs" />
     <Compile Include="Core\INodeAdapter.cs" />
     <Compile Include="Core\NodeAdapter.cs" />
+    <Compile Include="Core\Serialization\DefaultSerializer.cs" />
+    <Compile Include="Core\Serialization\ITypeSerializer.cs" />
+    <Compile Include="Core\Serialization\SerializerFactory.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Cluster.cs" />

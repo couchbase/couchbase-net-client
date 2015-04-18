@@ -277,6 +277,7 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["tcpKeepAliveInterval"] = value; }
         }
 
+        /// <summary>
         /// Gets or sets the transcoder.
         /// </summary>
         /// <value>
@@ -300,6 +301,19 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (ConverterElement)this["converter"]; }
             set { this["converter"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the serializer.
+        /// </summary>
+        /// <value>
+        /// The serializer.
+        /// </value>
+        [ConfigurationProperty("serializer", DefaultValue = null, IsRequired = false)]
+        public SerializerElement Serializer
+        {
+            get { return (SerializerElement)this["serializer"]; }
+            set { this["serializer"] = value; }
         }
     }
 }

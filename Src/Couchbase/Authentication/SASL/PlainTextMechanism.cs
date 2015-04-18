@@ -4,6 +4,8 @@ using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 using System;
+using Couchbase.Core.Serialization;
+using Couchbase.Core.Transcoders;
 
 namespace Couchbase.Authentication.SASL
 {
@@ -14,27 +16,27 @@ namespace Couchbase.Authentication.SASL
     {
         private static readonly ILog Log = LogManager.GetLogger<PlainTextMechanism>();
         private IOStrategy _strategy;
-        private readonly IByteConverter _converter;
+        private readonly ITypeTranscoder _transcoder;
 
-        public PlainTextMechanism(IOStrategy strategy, IByteConverter converter)
+        public PlainTextMechanism(IOStrategy strategy, ITypeTranscoder transcoder)
         {
             _strategy = strategy;
-            _converter = converter;
+            _transcoder = transcoder;
         }
 
-        public PlainTextMechanism(string username, string password, IByteConverter converter)
+        public PlainTextMechanism(string username, string password, ITypeTranscoder transcoder)
         {
             Username = username;
             Password = password;
-            _converter = converter;
+            _transcoder = transcoder;
         }
 
-        public PlainTextMechanism(IOStrategy strategy, string username, string password, IByteConverter converter)
+        public PlainTextMechanism(IOStrategy strategy, string username, string password, ITypeTranscoder transcoder)
         {
             _strategy = strategy;
             Username = username;
             Password = password;
-            _converter = converter;
+            _transcoder = transcoder;
         }
 
         /// <summary>
@@ -88,7 +90,7 @@ namespace Couchbase.Authentication.SASL
 
             try
             {
-                var operation = new SaslStart(MechanismType, GetAuthData(username, password), _converter, SaslFactory.DefaultTimeout);
+                var operation = new SaslStart(MechanismType, GetAuthData(username, password), _transcoder, SaslFactory.DefaultTimeout);
                 var result = _strategy.Execute(operation, connection);
 
                 if (!result.Success &&

@@ -14,15 +14,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Key_Exists_GetQ_Returns_Value";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), new DefaultTranscoder(), OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new DefaultTranscoder(), OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var getK = new GetQ<dynamic>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var getK = new GetQ<dynamic>(key, GetVBucket(), new DefaultTranscoder(), OperationLifespanTimeout);
 
             var result = IOStrategy.Execute(getK);
             Assert.IsTrue(result.Success);
@@ -34,8 +33,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_OperationResult_Returns_Defaults()
         {
-            var op = new GetQ<string>("Key", GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var op = new GetQ<string>("Key", GetVBucket(), new DefaultTranscoder(), OperationLifespanTimeout);
 
             var result = op.GetResultWithValue();
             Assert.IsNull(result.Value);
@@ -48,15 +46,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_String_GetQ_Uses_DataFormat_String";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<string>(key, "foo", GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var getQ = new GetQ<string>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var getQ = new GetQ<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             getQ.CreateExtras();
             Assert.AreEqual(DataFormat.String, getQ.Format);
@@ -73,15 +70,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_Object_GetQ_Uses_DataFormat_Json";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var getQ = new GetQ<dynamic>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var getQ = new GetQ<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             getQ.CreateExtras();
             Assert.AreEqual(DataFormat.Json, getQ.Format);
@@ -98,15 +94,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_Object_GetQ_Uses_DataFormat_Json";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<byte[]>(key, new byte[] { 0x0 }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<byte[]>(key, new byte[] { 0x0 }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var getQ = new GetQ<byte[]>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var getQ = new GetQ<byte[]>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             getQ.CreateExtras();
             Assert.AreEqual(DataFormat.Binary, getQ.Format);
@@ -121,7 +116,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new GetQ<string>("key", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout)
+            var operation = new GetQ<string>("key", GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -16,8 +17,8 @@ namespace Couchbase.Tests.Fakes
     {
         private FakeOperationResult _operationResult;
 
-        public FakeOperation(IByteConverter converter)
-            : base(converter, 500)
+        public FakeOperation(ITypeTranscoder transcoder)
+            : base(string.Empty, null,transcoder, 500)
         {
         }
 

@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -21,6 +24,7 @@ namespace Couchbase.Core.Buckets
         private readonly int _timeout;
         private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
         private const uint ObserveOperationTimeout = 2500; //2.5sec
+        private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
         /// The durability requirements that must be met.
@@ -68,14 +72,28 @@ namespace Couchbase.Core.Buckets
         /// Ctor for <see cref="KeyObserver"/>.
         /// </summary>
         /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
+        /// <param name="transcoder"></param>
         /// <param name="interval">The interval to poll.</param>
         /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
-        public KeyObserver(IConfigInfo configInfo, int interval, int timeout)
+        public KeyObserver(IConfigInfo configInfo, ITypeTranscoder transcoder, int interval, int timeout)
         {
             _configInfo = configInfo;
             _interval = interval;
             _timeout = timeout;
+            _transcoder = transcoder;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KeyObserver"/> class.
+        /// </summary>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
+        /// <param name="interval">The interval to poll.</param>
+        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
+        public KeyObserver(IConfigInfo configInfo, int interval, int timeout)
+            : this(configInfo, new DefaultTranscoder(), interval, timeout)
+        {
+        }
+
 
         /// <summary>
         /// Performs an observe event on the durability requirements specified on a key stored by an Add operation.
@@ -155,7 +173,7 @@ namespace Couchbase.Core.Buckets
                 VBucket = vBucket
             };
 
-            var operation = new Observe(key, vBucket, new AutoByteConverter(), ObserveOperationTimeout);
+            var operation = new Observe(key, vBucket, _transcoder, ObserveOperationTimeout);
              //Used to terminate the loop at the specific timeout
             using (var cts = new CancellationTokenSource(_timeout))
             {
@@ -224,7 +242,7 @@ namespace Couchbase.Core.Buckets
                 VBucket = vBucket
             };
 
-            var operation = new Observe(key, vBucket, new AutoByteConverter(), ObserveOperationTimeout);
+            var operation = new Observe(key, vBucket, _transcoder, ObserveOperationTimeout);
             do
             {
                 var master = p.VBucket.LocatePrimary();

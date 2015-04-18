@@ -4,6 +4,7 @@ using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -46,7 +47,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_Send()
         {
-            var operation = new Config(new ManualByteConverter(), _endPoint, OperationLifespan);
+            var operation = new Config(new DefaultTranscoder(), OperationLifespan, _endPoint);
             var response = _server.Send(operation);
             Assert.IsTrue(response.Success);
             Assert.AreEqual(response.Cas, 0);

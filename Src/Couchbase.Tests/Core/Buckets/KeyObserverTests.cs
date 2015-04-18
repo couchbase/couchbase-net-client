@@ -9,6 +9,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -38,7 +39,7 @@ namespace Couchbase.Tests.Core.Buckets
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
                 new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer()));
 
             var configInfo = provider.GetConfig("default");
 

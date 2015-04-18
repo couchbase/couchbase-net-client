@@ -7,8 +7,8 @@ namespace Couchbase.IO.Operations
 {
     internal class Touch : OperationBase
     {
-        public Touch(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
+        public Touch(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
@@ -42,7 +42,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Touch(Key, VBucket, Converter, Transcoder, Timeout)
+            var cloned = new Touch(Key, VBucket, Transcoder, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -40,7 +42,7 @@ namespace Couchbase.Tests.Core.Transcoders
         [Test]
         public void Test_Serialize_UInt16()
         {
-            var transcoder = new DefaultTranscoder(new ManualByteConverter());
+            var transcoder = new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer());
             UInt16 data = 5;
 
             var flags = new Flags
@@ -334,11 +336,15 @@ namespace Couchbase.Tests.Core.Transcoders
         [Test]
         public void Should_Convert_To_PascalCase_Json_With_Altered_Serialization_Settings()
         {
-            var transcoder = new DefaultTranscoder(new ManualByteConverter(),
-                new JsonSerializerSettings(), new JsonSerializerSettings
-                {
-                    ContractResolver = new DefaultContractResolver()
-                });
+            var transcoder = new DefaultTranscoder(
+                new ManualByteConverter(),
+                new DefaultSerializer(
+                    new JsonSerializerSettings(),
+                    new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver()
+            }));
+
             var data = new Pascal
             {
                 SomeProperty = "SOME",

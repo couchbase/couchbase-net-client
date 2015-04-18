@@ -20,15 +20,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Key_Exists_Get_Returns_Value";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var get = new Get<dynamic>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             var result = IOStrategy.Execute(get);
             Assert.IsTrue(result.Success);
@@ -40,8 +39,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_OperationResult_Returns_Defaults()
         {
-            var op = new Get<string>("Key", GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var op = new Get<string>("Key", GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             var result = op.GetResultWithValue();
             Assert.IsNull(result.Value);
@@ -54,15 +52,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_String_DataFormat_String_Is_Used";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<string>(key, "foo", GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var get = new Get<string>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.String, get.Format);
@@ -79,15 +76,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_Object_DataFormat_Json_Is_Used";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var get = new Get<dynamic>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.Json, get.Format);
@@ -104,15 +100,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Type_Is_Object_DataFormat_Json_Is_Used";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<byte[]>(key, new byte[] { 0x0 }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<byte[]>(key, new byte[] { 0x0 }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var get = new Get<byte[]>(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout);
+            var get = new Get<byte[]>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.Binary, get.Format);
@@ -127,7 +122,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Get<string>("key", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout)
+            var operation = new Get<string>("key", GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };
@@ -142,7 +137,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void When_Operation_Is_Get_Operation_Allow_Retries()
         {
-            var operation = new Get<string>("key", null, null, null, 1000);
+            var operation = new Get<string>("key", null, Transcoder, 1000);
             var result = operation.CanRetry();
             Assert.AreEqual(true, result);
         }

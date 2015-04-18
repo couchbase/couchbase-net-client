@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
 using System.Text;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -30,7 +32,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_AuthFailure_With_InvalidCredentials()
         {
-            var operation = new SaslStart("PLAIN", GetAuthData("foo", "bar"), new ManualByteConverter(), OperationLifespan);
+            var operation = new SaslStart("PLAIN", GetAuthData("foo", "bar"), new DefaultTranscoder(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.AreEqual("Auth failure", response.Message);
@@ -41,7 +43,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void Test_SaslAuthenticate_Returns_Succuss_With_ValidCredentials()
         {
-            var operation = new SaslStart("PLAIN", GetAuthData("authenticated", "secret"), new ManualByteConverter(), OperationLifespan);
+            var operation = new SaslStart("PLAIN", GetAuthData("authenticated", "secret"), new DefaultTranscoder(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.AreEqual("Authenticated", response.Value);
@@ -52,7 +54,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         [Test]
         public void When_CRAM_MD5_Used_SaslStart_Returns_AuthenticationContinue()
         {
-            var operation = new SaslStart("CRAM-MD5", null, new ManualByteConverter(), OperationLifespan);
+            var operation = new SaslStart("CRAM-MD5", (VBucket)null, new DefaultTranscoder(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
             Assert.IsNotNullOrEmpty(response.Message);

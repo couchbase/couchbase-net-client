@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Serialization;
 using Newtonsoft.Json;
 
 namespace Couchbase.Views
@@ -11,10 +12,12 @@ namespace Couchbase.Views
     internal class JsonDataMapper : IDataMapper
     {
         private readonly ClientConfiguration _configuration;
+        private readonly ITypeSerializer _serializer;
 
         public JsonDataMapper(ClientConfiguration configuration)
         {
             _configuration = configuration;
+            _serializer = _configuration.Serializer();
         }
 
         /// <summary>
@@ -25,13 +28,7 @@ namespace Couchbase.Views
         /// <returns>An object deserialized to it's T type.</returns>
         public T Map<T>(Stream stream)
         {
-            T instance;
-            using (var streamReader = new StreamReader(stream))
-            {
-                instance = JsonConvert.DeserializeObject<T>(streamReader.ReadToEnd(),
-                    _configuration.DeserializationSettings);
-            }
-            return instance;
+            return _serializer.Deserialize<T>(stream);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
+            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
@@ -216,7 +216,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         IOStrategyFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
-                        Converter,
                         Transcoder);
                     break;
                 case NodeLocatorEnum.Ketama:
@@ -225,7 +224,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         IOStrategyFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
-                        Converter,
                         Transcoder);
                     break;
                 default:

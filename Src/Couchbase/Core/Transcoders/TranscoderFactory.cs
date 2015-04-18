@@ -18,9 +18,7 @@ namespace Couchbase.Core.Transcoders
         /// <returns>A <see cref="Func{ITypeTranscoder}"/> for creating <see cref="ITypeTranscoder"/>s.</returns>
         public static Func<ITypeTranscoder> GetTranscoder(ClientConfiguration config)
         {
-            return () => new DefaultTranscoder(config.Converter(),
-                config.DeserializationSettings,
-                config.SerializationSettings);
+            return () => new DefaultTranscoder(config.Converter(), config.Serializer());
         }
 
         /// <summary>
@@ -34,8 +32,7 @@ namespace Couchbase.Core.Transcoders
             var parameters = new object[]
             {
                 config.Converter(),
-                config.DeserializationSettings,
-                config.SerializationSettings
+                config.Serializer()
             };
 
             var type = Type.GetType(element.Type, true);

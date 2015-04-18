@@ -29,9 +29,7 @@ namespace Couchbase.Configuration
         protected List<IServer> Servers = new List<IServer>();
         protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
-        protected readonly Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> SaslFactory;
-        protected readonly IByteConverter Converter;
-        protected readonly ITypeTranscoder _transcoder;
+        protected readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory;
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
@@ -39,8 +37,7 @@ namespace Couchbase.Configuration
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
-            IByteConverter converter,
+            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
         {
             _bucketConfig = bucketConfig;
@@ -49,9 +46,10 @@ namespace Couchbase.Configuration
             ConnectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
-            Converter = converter;
-            _transcoder = transcoder;
+            Transcoder = transcoder;
         }
+
+        protected ITypeTranscoder Transcoder { get; private set; }
 
         /// <summary>
         /// The time at which this configuration context has been created.

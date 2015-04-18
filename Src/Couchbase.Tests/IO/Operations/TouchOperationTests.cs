@@ -21,15 +21,14 @@ namespace Couchbase.Tests.IO.Operations
             var key = "When_Key_Exists_Touch_Returns_Success";
 
             //delete the value if it exists
-            var delete = new Delete(key, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(delete);
 
             //Add the key
-            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), new AutoByteConverter(), new DefaultTranscoder(new ManualByteConverter()), OperationLifespanTimeout);
+            var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
             Assert.IsTrue(IOStrategy.Execute(add).Success);
 
-            var touch = new Touch(key, GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout)
+            var touch = new Touch(key, GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Expires = new TimeSpan(0, 0, 0, 3).ToTtl()
             };
@@ -53,8 +52,7 @@ namespace Couchbase.Tests.IO.Operations
                 109, 121, 107, 101, 121, 50, 50, 50, 50 };
 
             //create a touch operations
-            var touch = new Touch("mykey2222", GetVBucket(), new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()), OperationLifespanTimeout)
+            var touch = new Touch("mykey2222", GetVBucket(), new DefaultTranscoder(), OperationLifespanTimeout)
             {
                 Expires = new TimeSpan(0, 0, 0, 1).ToTtl()
             };

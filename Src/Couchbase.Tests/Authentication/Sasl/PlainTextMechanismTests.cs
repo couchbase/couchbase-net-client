@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Credentials_Provided_Authenticate_Returns_True()
         {
-            var authenticator = new PlainTextMechanism(_ioStrategy, new ManualByteConverter());
+            var authenticator = new PlainTextMechanism(_ioStrategy, new DefaultTranscoder());
             _ioStrategy.ConnectionPool.Initialize();
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
@@ -42,7 +43,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Valid_Invalid_Credentials_Provided_Authenticate_Returns_False()
         {
-            var authenticator = new PlainTextMechanism(_ioStrategy, new ManualByteConverter());
+            var authenticator = new PlainTextMechanism(_ioStrategy, new DefaultTranscoder());
             _ioStrategy.ConnectionPool.Initialize();
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)
@@ -55,7 +56,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void When_Non_Sasl_Bucket_And_Empty_Password_Authenticate_Returns_true()
         {
-            var authenticator = new PlainTextMechanism(_ioStrategy, new ManualByteConverter());
+            var authenticator = new PlainTextMechanism(_ioStrategy, new DefaultTranscoder());
             _ioStrategy.ConnectionPool.Initialize();
 
             foreach (var connection in _ioStrategy.ConnectionPool.Connections)

@@ -19,13 +19,13 @@ namespace Couchbase.Tests.Fakes
     {
         private const uint OperationLifespan = 2500; //ms
 
-        public SlowSet(string key, T value, IVBucket vBucket, IByteConverter converter)
-            : base(key, value, vBucket, converter, OperationLifespan)
+        public SlowSet(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder)
+            : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), OperationLifespan)
         {
         }
 
-        public SlowSet(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), 2500)
+        public SlowSet(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, uint timeout)
+            : base(key, value, vBucket, transcoder,  SequenceGenerator.GetNext(), timeout)
         {
         }
 
@@ -44,7 +44,7 @@ namespace Couchbase.Tests.Fakes
 
         public override IOperation Clone()
         {
-            var cloned = new SlowSet<T>(Key, RawValue, Transcoder, VBucket, Converter, OperationLifespan)
+            var cloned = new SlowSet<T>(Key, RawValue, Transcoder, VBucket, OperationLifespan)
             {
                 Attempts = Attempts,
                 Cas = Cas,

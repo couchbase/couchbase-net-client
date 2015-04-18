@@ -23,10 +23,9 @@ namespace Couchbase.Configuration
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, IByteConverter, ISaslMechanism> saslFactory,
-            IByteConverter converter,
+            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
-            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
+            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, transcoder)
         {
         }
 
@@ -67,7 +66,7 @@ namespace Couchbase.Configuration
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
                         var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
-                        var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Converter);
+                        var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Transcoder);
                         ioStrategy.SaslMechanism = saslMechanism;
                         servers.Add(server);
                     }
@@ -100,7 +99,7 @@ namespace Couchbase.Configuration
                     var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                     var ioStrategy = IOStrategyFactory(connectionPool);
                     var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
-                    var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Converter);
+                    var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Transcoder);
                     ioStrategy.SaslMechanism = saslMechanism;
                     servers.Add(server);
                 }

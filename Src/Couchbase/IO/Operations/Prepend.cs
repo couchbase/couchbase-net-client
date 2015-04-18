@@ -7,33 +7,18 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Prepend<T> : OperationBase<T>
     {
-        public Prepend(IByteConverter converter, uint timeout)
-            : base(converter, timeout)
+        public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, uint timeout)
+            : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
         }
 
-        public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, SequenceGenerator.GetNext(), timeout)
+        public Prepend(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
         }
 
-        public Prepend(string key, T value, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, value, vBucket, converter, timeout)
-        {
-        }
-
-        public Prepend(string key, IVBucket vBucket, IByteConverter converter, uint timeout)
-            : base(key, vBucket, converter, timeout)
-        {
-        }
-
-        public Prepend(string key, IVBucket vBucket, IByteConverter converter, ITypeTranscoder transcoder, uint timeout)
-            : base(key, vBucket, converter, transcoder, timeout)
-        {
-        }
-
-        private Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, IByteConverter converter, uint opaque, uint timeout)
-            : base(key, value, transcoder, vBucket, converter, opaque, timeout)
+        private Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, uint opaque, uint timeout)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
         {
         }
 
@@ -59,7 +44,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Prepend<T>(Key, RawValue, Transcoder, VBucket, Converter, Opaque, Timeout)
+            var cloned = new Prepend<T>(Key, RawValue, Transcoder, VBucket, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

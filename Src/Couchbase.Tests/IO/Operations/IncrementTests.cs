@@ -31,11 +31,11 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "Test_IncrementOperation";
 
-            var delete = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
-            var increment = new Increment(key, 0, 1, 0, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var increment = new Increment(key, 0, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result1 = IOStrategy.Execute(increment);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
@@ -45,7 +45,7 @@ namespace Couchbase.Tests.IO.Operations
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(1, result2.Value);
 
-            var getOperation = new Get<string>(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var getOperation = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result3 = IOStrategy.Execute(getOperation);
             var value = result3.Value;
             Assert.AreEqual(result2.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
@@ -54,7 +54,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Increment("key", 1, 1, 0, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout)
+            var operation = new Increment("key", 1, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };

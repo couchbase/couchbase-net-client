@@ -432,6 +432,14 @@ namespace Couchbase.Tests.Configuration.Client
             var config = new ClientConfiguration(section);
             Assert.IsInstanceOf<FakeTranscoder>(config.Transcoder());
         }
+
+        [Test]
+        public void When_Custom_Serializer_Configured_In_AppConfig_It_Is_Returned()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
+            var config = new ClientConfiguration(section);
+            Assert.IsInstanceOf<FakeSerializer>(config.Serializer());
+        }
     }
 }
 

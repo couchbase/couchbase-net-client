@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Net;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 
@@ -10,10 +12,21 @@ namespace Couchbase.IO.Operations
     {
         private readonly IPEndPoint _endpoint;
 
-        public Config(IByteConverter converter, IPEndPoint endPoint, uint timeout)
-            : base(converter, timeout)
+        public Config(ITypeTranscoder transcoder, uint timeout, IPEndPoint endpoint)
+            : this(string.Empty, null, transcoder, timeout, endpoint)
         {
-            _endpoint = endPoint;
+        }
+
+        public Config(string key, BucketConfig value, ITypeTranscoder transcoder, IVBucket vBucket, uint opaque, uint timeout, IPEndPoint endpoint)
+            : base(key, value, vBucket, transcoder, opaque, timeout)
+        {
+            _endpoint = endpoint;
+        }
+
+        public Config(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout, IPEndPoint endpoint)
+            : base(key, vBucket, transcoder, timeout)
+        {
+            _endpoint = endpoint;
         }
 
         public override byte[] CreateExtras()

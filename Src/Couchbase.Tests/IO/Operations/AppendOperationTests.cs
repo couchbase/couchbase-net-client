@@ -20,24 +20,24 @@ namespace Couchbase.Tests.IO.Operations
             const string expected = "Hello!";
 
             //clean up old keys
-            var deleteOperation = new Delete(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var deleteOperation = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(deleteOperation);
 
-            deleteOperation = new Delete(key + "!", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            deleteOperation = new Delete(key + "!", GetVBucket(), Transcoder, OperationLifespanTimeout);
             IOStrategy.Execute(deleteOperation);
 
             //create the key
-            var set = new Set<string>(key, "Hello", GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var set = new Set<string>(key, "Hello", GetVBucket(), Transcoder, OperationLifespanTimeout);
             var addResult = IOStrategy.Execute(set);
             Assert.IsTrue(addResult.Success);
 
-            var append = new Append<string>(key, "!", Transcoder, GetVBucket(), Converter, OperationLifespanTimeout);
+            var append = new Append<string>(key, "!", GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result = IOStrategy.Execute(append);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
-            var get = new Get<string>(key, GetVBucket(), Converter, Transcoder, OperationLifespanTimeout);
+            var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var getResult = IOStrategy.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
         }
@@ -45,7 +45,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Append<string>("Hello", "!", Transcoder, GetVBucket(), Converter, OperationLifespanTimeout);
+            var operation = new Append<string>("Hello", "!", GetVBucket(), Transcoder, OperationLifespanTimeout);
             var cloned = operation.Clone();
             Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
             Assert.AreEqual(operation.Cas, cloned.Cas);
