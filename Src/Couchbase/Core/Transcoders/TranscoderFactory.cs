@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Configuration;
-using System.Reflection;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 

@@ -1,21 +1,21 @@
 ﻿using Common.Logging;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using System;
-using System.IO;
 using System.Text;
 using Couchbase.Core.Serialization;
 
 namespace Couchbase.Core.Transcoders
 {
+    /// <summary>
+    /// Provides the default implementation for <see cref="ITypeTranscoder"/> interface.
+    /// </summary>
     public class DefaultTranscoder : ITypeTranscoder
     {
         private static readonly ILog Log = LogManager.GetLogger<DefaultTranscoder>();
 
         public DefaultTranscoder()
-            : this(new AutoByteConverter())
+            : this(new DefaultConverter())
         {
         }
 
@@ -30,10 +30,25 @@ namespace Couchbase.Core.Transcoders
             Converter = converter;
         }
 
+        /// <summary>
+        /// Gets or sets the serializer used by the <see cref="ITypeTranscoder" /> implementation.
+        /// </summary>
         public ITypeSerializer Serializer { get; set; }
 
+        /// <summary>
+        /// Gets or sets the byte converter used by used by the <see cref="ITypeTranscoder" /> implementation.
+        /// </summary>
         public IByteConverter Converter { get; set; }
 
+        /// <summary>
+        /// Encodes the specified value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value of the key to encode.</param>
+        /// <param name="flags">The flags used for decoding the response.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException"></exception>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
         public byte[] Encode<T>(T value, Flags flags)
         {
             byte[] bytes;
@@ -71,6 +86,13 @@ namespace Couchbase.Core.Transcoders
             return bytes;
         }
 
+        /// <summary>
+        /// Encodes the specified value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
         public byte[] Encode<T>(T value)
         {
             var bytes = new byte[] { };
@@ -125,6 +147,16 @@ namespace Couchbase.Core.Transcoders
             return bytes;
         }
 
+        /// <summary>
+        /// Decodes the specified buffer.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <param name="flags">The flags used for decoding the payload.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException"></exception>
         public T Decode<T>(byte[] buffer, int offset, int length, Flags flags)
         {
             object value = default(T);
@@ -177,6 +209,15 @@ namespace Couchbase.Core.Transcoders
             return (T)value;
         }
 
+        /// <summary>
+        /// Decodes the specified buffer.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
         public T Decode<T>(byte[] buffer, int offset, int length)
         {
             object value = default(T);
@@ -264,21 +305,50 @@ namespace Couchbase.Core.Transcoders
             return (T)value;
         }
 
+        /// <summary>
+        /// Deserializes as json.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
         public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
             return Serializer.Deserialize<T>(buffer, offset, length);
         }
 
+        /// <summary>
+        /// Decodes the specified buffer.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="buffer">The buffer representing the value of the key to decode.</param>
+        /// <param name="offset">The offset to start reading at.</param>
+        /// <param name="length">The length to read from the buffer.</param>
+        /// <param name="flags">The flags used to encode the payload.</param>
+        /// <returns></returns>
         public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags)
         {
             return Decode<T>(buffer.Array, offset, length, flags);
         }
 
+        /// <summary>
+        /// Serializes as json.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
         public byte[] SerializeAsJson(object value)
         {
             return Serializer.Serialize(value);
         }
 
+        /// <summary>
+        /// Decodes the specified buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
         private string Decode(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
@@ -289,6 +359,13 @@ namespace Couchbase.Core.Transcoders
             return result;
         }
 
+        /// <summary>
+        /// Decodes the binary.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
         private byte[] DecodeBinary(byte[] buffer, int offset, int length)
         {
             var temp = new byte[length];
