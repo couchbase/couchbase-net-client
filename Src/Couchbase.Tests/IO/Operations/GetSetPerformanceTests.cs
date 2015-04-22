@@ -19,7 +19,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Timed_Execution()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var transcoder = new DefaultTranscoder(converter);
             var vbucket = GetVBucket();
             int n = 1000; //set to a higher # if needed
@@ -47,7 +47,7 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_Timed_Execution_Parallel()
         {
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var transcoder = new DefaultTranscoder(converter);
             var vbucket = GetVBucket();
             var n = 1000;//set to a higher # if needed

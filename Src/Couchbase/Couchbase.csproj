@@ -239,7 +239,7 @@
     <Compile Include="IOperationResult.cs" />
     <Compile Include="IO\ConnectionBase.cs" />
     <Compile Include="IO\ConnectionPool.cs" />
-    <Compile Include="IO\Converters\AutoByteConverter.cs" />
+    <Compile Include="IO\Converters\DefaultConverter.cs" />
     <Compile Include="IO\Converters\IByteConverter.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
     <Compile Include="IO\IOStrategyFactory.cs" />

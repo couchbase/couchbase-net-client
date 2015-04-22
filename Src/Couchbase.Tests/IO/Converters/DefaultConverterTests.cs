@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Couchbase.Tests.IO.Converters
 {
     [TestFixture]
-    public sealed class AutoByteConverterTests
+    public sealed class DefaultConverterTests
     {
         private byte[] _buffer;
 
@@ -49,7 +49,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToByte()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = converter.ToByte(_buffer, 0);
             const int expected = 128;
 
@@ -59,7 +59,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToInt16()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
 
             var actual = converter.ToInt16(_buffer, 2);
             const int expected = 5;
@@ -70,7 +70,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToUInt16()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = converter.ToUInt16(_buffer, 2);
             const uint expected = 5u;
 
@@ -80,7 +80,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToInt32()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = converter.ToInt32(_buffer, 8);
             const uint expected = 5u;
 
@@ -90,7 +90,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToUInt32()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = converter.ToUInt32(_buffer, 8);
             const int expected = 5;
 
@@ -103,7 +103,7 @@ namespace Couchbase.Tests.IO.Converters
             const int offset = 24;
             const int length = 5;
 
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = converter.ToString(_buffer, offset, length);
             const string expected = "Hello";
 
@@ -124,7 +124,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt16()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[8];
             converter.FromInt16(5, actual, 2);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -135,7 +135,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt16()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[8];
             converter.FromUInt16(5, actual, 2);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -146,7 +146,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt32()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[11];
             converter.FromInt32(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -157,7 +157,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt32()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[11];
             converter.FromUInt32(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -168,7 +168,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt64()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[15];
             converter.FromInt64(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -179,7 +179,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt64()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var actual = new byte[15];
             converter.FromUInt64(5, actual, 3);
             var expected = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -190,7 +190,7 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_Cas()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             var bytes = new byte[] {255, 255, 255, 255, 229, 93, 159, 223};
             const ulong expected = 18446744073262702559;
             var actual = converter.ToUInt64(bytes, 0);
@@ -200,7 +200,7 @@ namespace Couchbase.Tests.IO.Converters
          [Test]
         public void Test_Cas2()
         {
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
              var bytes = new byte[]
              {
                  0x00,

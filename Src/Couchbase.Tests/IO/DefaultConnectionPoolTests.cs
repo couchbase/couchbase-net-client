@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<Connection>();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount);
-            _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factory, new AutoByteConverter());
+            _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factory, new DefaultConverter());
             _connectionPool.Initialize();
         }
 

@@ -38,7 +38,7 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
+                new DefaultConverter(),
                 new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer()));
 
             var configInfo = provider.GetConfig("default");
@@ -65,8 +65,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -92,8 +92,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -129,8 +129,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -167,8 +167,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -204,8 +204,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -242,8 +242,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 
@@ -280,8 +280,8 @@ namespace Couchbase.Tests.Core.Buckets
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new AutoByteConverter(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultConverter(),
+                new DefaultTranscoder(new DefaultConverter()));
 
             var configInfo = provider.GetConfig("default");
 

@@ -36,7 +36,7 @@ namespace Couchbase.Tests.IO
             _address = string.Format("{0}:11207", ConfigurationManager.AppSettings["serverIp"]);
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<SslConnection>();
-            var converter = new AutoByteConverter();
+            var converter = new DefaultConverter();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount)
             {
                 UseSsl = true

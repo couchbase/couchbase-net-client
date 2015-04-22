@@ -31,8 +31,8 @@ namespace Couchbase.Tests
         readonly IPEndPoint _endPoint = UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
         private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
         readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
-        readonly IByteConverter _converter = new AutoByteConverter();
-        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new AutoByteConverter());
+        readonly IByteConverter _converter = new DefaultConverter();
+        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
         public IBucket GetBucketForKey(string key)
         {

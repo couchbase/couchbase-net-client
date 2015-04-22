@@ -14,7 +14,7 @@ namespace Couchbase.Tests.Fakes
     public class FakeTranscoder : ITypeTranscoder
     {
          public FakeTranscoder()
-            : this(new AutoByteConverter())
+            : this(new DefaultConverter())
         {
         }
 

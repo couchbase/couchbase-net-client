@@ -52,7 +52,7 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultTranscoder(new DefaultConverter()));
             configInfo.LoadConfig();
 
 
@@ -103,7 +103,7 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultTranscoder(new DefaultConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
             Assert.IsNotNull(configInfo.GetKeyMapper());
@@ -132,7 +132,7 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultTranscoder(new DefaultConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
             Assert.IsNotNull(configInfo.GetKeyMapper());
@@ -185,7 +185,7 @@ namespace Couchbase.Tests.Configuration
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory3(),
-                new DefaultTranscoder(new AutoByteConverter()));
+                new DefaultTranscoder(new DefaultConverter()));
 
             configInfo.LoadConfig();
             Assert.AreEqual(1070, configInfo.BucketConfig.Rev);

@@ -26,7 +26,7 @@ namespace Couchbase.IO
         private int _acquireFailedCount ;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
-            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new AutoByteConverter())
+            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
         {
         }
 

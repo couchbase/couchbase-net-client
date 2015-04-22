@@ -10,12 +10,12 @@ namespace Couchbase.IO.Converters
     public static class ConverterFactory
     {
         /// <summary>
-        /// Gets a <see cref="Func{IByteConverter}"/> factory for the default converter: <see cref="AutoByteConverter"/>
+        /// Gets a <see cref="Func{IByteConverter}"/> factory for the default converter: <see cref="DefaultConverter"/>
         /// </summary>
-        /// <returns>A func for creating <see cref="AutoByteConverter"/> instances.</returns>
+        /// <returns>A func for creating <see cref="DefaultConverter"/> instances.</returns>
         public static Func<IByteConverter> GetConverter()
         {
-            return () => new AutoByteConverter();
+            return () => new DefaultConverter();
         }
 
         /// <summary>

@@ -12,7 +12,7 @@ namespace Couchbase.Configuration.Client.Providers
         public ConverterElement()
         {
             Name = "default";
-            Type = "Couchbase.IO.Converters.AutoByteConverter, Couchbase.NetClient";
+            Type = "Couchbase.IO.Converters.DefaultConverter, Couchbase.NetClient";
         }
 
         /// <summary>

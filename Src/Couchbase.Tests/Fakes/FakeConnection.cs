@@ -16,7 +16,7 @@ namespace Couchbase.Tests.Fakes
 
         public FakeConnection()
         {
-            Converter = new AutoByteConverter();
+            Converter = new DefaultConverter();
         }
 
         public FakeConnection(Socket socket) : this()
