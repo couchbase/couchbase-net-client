@@ -40,3 +40,5 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Couchbase.Linq.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Linq")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
+[assembly: InternalsVisibleTo("Sdkd")]
+[assembly: InternalsVisibleTo("SdkdConsole")]
