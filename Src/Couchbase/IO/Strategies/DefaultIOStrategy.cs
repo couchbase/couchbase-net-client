@@ -177,8 +177,19 @@ namespace Couchbase.IO.Strategies
         /// </remarks>
         public async Task ExecuteAsync(IOperation operation, IConnection connection)
         {
-            var request = await operation.WriteAsync().ContinueOnAnyContext();
-            connection.SendAsync(request, operation.Completed);
+            try
+            {
+                var request = await operation.WriteAsync().ContinueOnAnyContext();
+                connection.SendAsync(request, operation.Completed);
+            }
+            catch (Exception e)
+            {
+                Log.Debug(e);
+                operation.Completed(new SocketAsyncState
+                {
+                    Exception = e
+                });
+            }
         }
 
         /// <summary>

@@ -248,16 +248,35 @@ namespace Couchbase.IO.Operations
 
         public IOperationResult GetResult()
         {
-            var result = new OperationResult
+            var result = new OperationResult();
+            try
             {
-                Success = GetSuccess(),
-                Message = GetMessage(),
-                Status = GetResponseStatus(),
-                Cas = Header.Cas,
-                Exception = Exception
-            };
+                result.Success = GetSuccess();
+                result.Message = GetMessage();
+                result.Status = GetResponseStatus();
+                result.Cas = Header.Cas;
+                result.Exception = Exception;
 
-            Data.Dispose();
+                //clean up and set to null
+                if (!result.IsNmv())
+                {
+                    Data.Dispose();
+                    Data = null;
+                }
+            }
+            catch (Exception e)
+            {
+                result.Exception = e;
+                result.Success = false;
+                result.Status = ResponseStatus.ClientFailure;
+            }
+            finally
+            {
+                if (Data != null && !result.IsNmv())
+                {
+                    Data.Dispose();
+                }
+            }
             return result;
         }
 
@@ -326,7 +345,7 @@ namespace Couchbase.IO.Operations
         public virtual IBucketConfig GetConfig()
         {
             IBucketConfig config = null;
-            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer)
+            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data != null)
             {
                 var offset = HeaderLength + Header.ExtrasLength;
                 var length = Header.BodyLength - Header.ExtrasLength;

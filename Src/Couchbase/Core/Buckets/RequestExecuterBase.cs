@@ -157,11 +157,15 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}" /> to send.</param>
+        /// <param name="tcs"></param>
+        /// <param name="cts"></param>
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> with the status of the request to be awaited on.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation)
+        public virtual Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation,
+            TaskCompletionSource<IOperationResult<T>> tcs = null,
+            CancellationTokenSource cts = null)
         {
             throw new NotImplementedException();
         }
@@ -277,7 +281,9 @@ namespace Couchbase.Core.Buckets
         /// An <see cref="Task{IOperationResult}" /> with the status of the request to be awaited on.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<IOperationResult> SendWithRetryAsync(IOperation operation)
+        public virtual Task<IOperationResult> SendWithRetryAsync(IOperation operation,
+            TaskCompletionSource<IOperationResult> tcs = null,
+            CancellationTokenSource cts = null)
         {
             throw new NotImplementedException();
         }

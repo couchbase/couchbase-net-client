@@ -8,6 +8,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using System;
 using System.IO;
+using System.ServiceModel.Channels;
 using System.Text;
 
 namespace Couchbase.IO.Operations
@@ -43,20 +44,39 @@ namespace Couchbase.IO.Operations
             return bytes;
         }
 
-        public virtual Couchbase.IOperationResult<T> GetResultWithValue()
+        public virtual IOperationResult<T> GetResultWithValue()
         {
-            var value = GetValue();
-            var result = new OperationResult<T>
+            var result = new OperationResult<T>();
+            try
             {
-                Success = GetSuccess(),
-                Message = GetMessage(),
-                Status = GetResponseStatus(),
-                Value = value,
-                Cas = Header.Cas,
-                Exception = Exception
-            };
+                var value = GetValue();
+                result.Success = GetSuccess();
+                result.Message = GetMessage();
+                result.Status = GetResponseStatus();
+                result.Value = value;
+                result.Cas = Header.Cas;
+                result.Exception = Exception;
 
-            Data.Dispose();
+                //clean up and set to null
+                if (!result.IsNmv())
+                {
+                    Data.Dispose();
+                    Data = null;
+                }
+            }
+            catch (Exception e)
+            {
+                result.Exception = e;
+                result.Success = false;
+                result.Status = ResponseStatus.ClientFailure;
+            }
+            finally
+            {
+                if (Data != null && !result.IsNmv())
+                {
+                    Data.Dispose();
+                }
+            }
             return result;
         }
 
@@ -160,10 +180,10 @@ namespace Couchbase.IO.Operations
             var body = CreateBody();
             var header = CreateHeader(extras, body, key);
 
-            var buffer = new byte[BufferExtensions.GetLengthSafe(extras) +
-                                  BufferExtensions.GetLengthSafe(body) +
-                                  BufferExtensions.GetLengthSafe(key) +
-                                  BufferExtensions.GetLengthSafe(header)];
+            var buffer = new byte[extras.GetLengthSafe() +
+                                  body.GetLengthSafe() +
+                                  key.GetLengthSafe() +
+                                  header.GetLengthSafe()];
 
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
             System.Buffer.BlockCopy(extras, 0, buffer, header.Length, extras.Length);

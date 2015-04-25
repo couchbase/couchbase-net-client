@@ -23,6 +23,15 @@ namespace Couchbase.Core.Buckets
                     var actual = (IOperation<T>)op;
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            actual.Exception = s.Exception;
+                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(actual.GetResultWithValue());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();
@@ -94,6 +103,15 @@ namespace Couchbase.Core.Buckets
                 {
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            op.Exception = s.Exception;
+                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(op.GetResult());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();
@@ -169,6 +187,15 @@ namespace Couchbase.Core.Buckets
                     var actual = (IOperation<T>)op;
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            actual.Exception = s.Exception;
+                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(actual.GetResultWithValue());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();
@@ -242,6 +269,15 @@ namespace Couchbase.Core.Buckets
                 {
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            op.Exception = s.Exception;
+                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(op.GetResult());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();
@@ -318,6 +354,15 @@ namespace Couchbase.Core.Buckets
                     var actual = (IOperation<T>)op;
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            actual.Exception = s.Exception;
+                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(actual.GetResultWithValue());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();
@@ -360,6 +405,15 @@ namespace Couchbase.Core.Buckets
                 {
                     try
                     {
+                        //check if an error occurred earlier
+                        if (s.Exception != null)
+                        {
+                            op.Exception = s.Exception;
+                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            tcs.SetResult(op.GetResult());
+                            return;
+                        }
+
                         var response = s.Data.ToArray();
                         await op.ReadAsync(response, 0, response.Length)
                             .ContinueOnAnyContext();

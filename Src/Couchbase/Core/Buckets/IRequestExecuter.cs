@@ -38,15 +38,23 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
+        /// <param name="tcs">The <see cref="TaskCompletionSource{T}"/> the represents the task to await on.</param>
+        /// <param name="cts">The <see cref="CancellationTokenSource"/> for cancellation.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/> with the status of the request to be awaited on.</returns>
-        Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation);
+        Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation,
+            TaskCompletionSource<IOperationResult<T>> tcs = null,
+            CancellationTokenSource cts = null);
 
         /// <summary>
         /// Sends a <see cref="IOperation"/> to the Couchbase Server using the Memcached protocol using async/await.
         /// </summary>
         /// <param name="operation">The <see cref="IOperation"/> to send.</param>
+        /// <param name="tcs">The <see cref="TaskCompletionSource{T}"/> the represents the task to await on.</param>
+        /// <param name="cts">The <see cref="CancellationTokenSource"/> for cancellation.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/> with the status of the request to be awaited on.</returns>
-        Task<IOperationResult> SendWithRetryAsync(IOperation operation);
+        Task<IOperationResult> SendWithRetryAsync(IOperation operation,
+            TaskCompletionSource<IOperationResult> tcs = null,
+            CancellationTokenSource cts = null);
 
         /// <summary>
         /// Sends a View request to the server to be executed.

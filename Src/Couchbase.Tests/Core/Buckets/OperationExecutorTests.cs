@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -78,12 +79,18 @@ namespace Couchbase.Tests.Core.Buckets
             var controller = GetBucketForKey("thekey", out configInfo);
             _requestExecuter = new CouchbaseRequestExecuter(controller, configInfo, "default", _pending);
 
+            var tcs = new TaskCompletionSource<IOperationResult<string>>();
+            var cts = new CancellationTokenSource();
+
             var operation = new Mock<IOperation<string>>();
             operation.Setup(x => x.GetConfig()).Returns(new BucketConfig());
             operation.Setup(x => x.Write()).Throws(new Exception("bad kungfu"));
             operation.Setup(x => x.Key).Returns("thekey");
+            operation.Setup(x => x.Completed).Returns(CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                _requestExecuter, _pending, controller, tcs, cts.Token));
+            operation.Setup(x => x.GetResultWithValue()).Returns(new OperationResult<string>{Success = true});
 
-            var result = await _requestExecuter.SendWithRetryAsync(operation.Object);
+            var result = await _requestExecuter.SendWithRetryAsync(operation.Object, tcs);
             Assert.IsTrue(result.Success);
         }
 
@@ -109,16 +116,29 @@ namespace Couchbase.Tests.Core.Buckets
             _requestExecuter = new CouchbaseRequestExecuter(clusterController.Object, configInfo.Object,  _bucketName, _pending);
         }
 
-
         [Test]
-        public async void When_Operation_WriteAsync_Faults()
+        public async void When_Operation_WriteAsync_Faults_Success_Is_False()
         {
+            IConfigInfo configInfo;
+            var controller = GetBucketForKey("thekey", out configInfo);
+            _requestExecuter = new CouchbaseRequestExecuter(controller, configInfo, "default", _pending);
+
+            var tcs = new TaskCompletionSource<IOperationResult<string>>();
+            var cts = new CancellationTokenSource();
+
             var operation = new Mock<IOperation<string>>();
             operation.Setup(x => x.GetConfig()).Returns(new BucketConfig());
-            //operation.Setup(x => x.Write()).Throws(new Exception("bad kungfu"));
+            operation.Setup(x => x.WriteAsync()).Throws(new Exception("bad kungfu"));
+            operation.Setup(x => x.Key).Returns("thekey");
+            operation.Setup(x => x.Completed).Returns(CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                _requestExecuter, _pending, controller, tcs, cts.Token));
+            operation.Setup(x => x.GetResultWithValue()).Returns(new OperationResult<string>
+            {
+                Success = false, Exception = new Exception("bad kungfu")
+            });
 
-           // var result = await _requestExecuter.SendWithRetryAsync<object>(operation.Object);
-            //Assert.AreEqual(true, result);
+            var result = await _requestExecuter.SendWithRetryAsync(operation.Object, tcs);
+            Assert.AreEqual(false, result.Success);
         }
 
         [Test]

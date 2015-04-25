@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Logging.Factory;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -41,32 +42,49 @@ namespace Couchbase.IO
 
         public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
         {
-            if (callback == null)
+            SocketAsyncState state = null;
+            try
             {
-                throw new ArgumentNullException("callback", "Must be provided for async IO.");
+                state = new SocketAsyncState
+                {
+                    Data = new MemoryStream(),
+                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Buffer = buffer,
+                    Completed = callback
+                };
+
+                _eventArgs.UserToken = state;
+                Log.Debug(m => m("Sending {0}", state.Opaque));
+
+                //set the buffer
+                var bufferLength = buffer.Length < Configuration.BufferSize
+                    ? buffer.Length
+                    : Configuration.BufferSize;
+
+                _eventArgs.SetBuffer(0, bufferLength);
+                Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
+
+                //Send the request
+                if (!Socket.SendAsync(_eventArgs))
+                {
+                    IsDead = true;
+                }
             }
-            var state = new SocketAsyncState
+            catch (Exception e)
             {
-                Data = new MemoryStream(),
-                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                Buffer = buffer,
-                Completed = callback
-            };
-            _eventArgs.UserToken = state;
-            Log.Debug(m => m("Sending {0}", state.Opaque));
-
-            //set the buffer
-            var bufferLength = buffer.Length < Configuration.BufferSize
-                ? buffer.Length
-                : Configuration.BufferSize;
-
-            _eventArgs.SetBuffer(0, bufferLength);
-            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
-
-            //Send the request
-            if (!Socket.SendAsync(_eventArgs))
-            {
-                IsDead = true;
+                if (state == null)
+                {
+                    callback(new SocketAsyncState
+                    {
+                        Exception = e
+                    });
+                }
+                else
+                {
+                    state.Exception = e;
+                    state.Completed(state);
+                    Log.Debug(e);
+                }
             }
         }
 
