@@ -152,6 +152,34 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (uint)this["tcpKeepAliveInterval"]; }
             set { this["tcpKeepAliveInterval"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets the maximum number of times the client will try to close a <see cref="IConnection"/>
+        /// if it's in use and <see cref="IConnectionPool"/> has been disposed.
+        /// </summary>
+        /// <value>
+        /// The maximum close attempts.
+        /// </value>
+        [ConfigurationProperty("maxCloseAttempts", DefaultValue = (int)5, IsRequired = false)]
+        public int MaxCloseAttempts
+        {
+            get { return (int)this["maxCloseAttempts"]; }
+            set { this["maxCloseAttempts"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the interval between close attempts on a <see cref="IConnection"/>
+        /// if it's in use and <see cref="IConnectionPool"/> has been disposed.
+        /// </summary>
+        /// <value>
+        /// The close attempt interval.
+        /// </value>
+        [ConfigurationProperty("closeAttemptInterval", DefaultValue = ((uint)100), IsRequired = false)]
+        public uint CloseAttemptInterval
+        {
+            get { return (uint)this["closeAttemptInterval"]; }
+            set { this["closeAttemptInterval"] = value; }
+        }
     }
 }
 

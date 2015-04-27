@@ -78,5 +78,46 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+
+        public bool InUse
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public void MarkUsed(bool isUsed)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public void CountdownToClose(uint interval)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public int MaxCloseAttempts
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+
+        public int CloseAttempts
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsDisposed
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

@@ -176,6 +176,8 @@ namespace Couchbase.Configuration.Client
                         EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
                         TcpKeepAliveInterval =  keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
                         TcpKeepAliveTime =  keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
+                        CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
+                        MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
                         ClientConfiguration = this
                     }
                 };

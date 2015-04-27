@@ -14,7 +14,6 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
-        private volatile bool _disposed;
 
         internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new SocketAsyncEventArgs(), converter)
@@ -27,6 +26,9 @@ namespace Couchbase.IO
             //set the configuration info
             ConnectionPool = connectionPool;
             Configuration = ConnectionPool.Configuration;
+
+            //set the max close attempts so that a connection in use is not disposed
+            MaxCloseAttempts = Configuration.MaxCloseAttempts;
 
             //Since the config can be changed on the fly create allocator late in the cycle
             _allocator = Configuration.BufferAllocator(Configuration);
@@ -300,14 +302,14 @@ namespace Couchbase.IO
         }
 
         /// <summary>
-        /// Diposes the underlying socket and other objects used by this instance.
+        /// Disposes the underlying socket and other objects used by this instance.
         /// </summary>
         public override void Dispose()
         {
+            Log.DebugFormat("Disposing {0}", _identity);
+            if (Disposed || InUse && !IsDead) return;
+            Disposed = true;
             IsDead = true;
-            if (_disposed) return;
-
-            _disposed = true;
 
             try
             {
@@ -324,6 +326,9 @@ namespace Couchbase.IO
                         Socket.Dispose();
                     }
                 }
+                //call the bases dispose to cleanup the timer
+                base.Dispose();
+
                 _allocator.ReleaseBuffer(_eventArgs);
                 _eventArgs.Dispose();
                 _requestCompleted.Dispose();

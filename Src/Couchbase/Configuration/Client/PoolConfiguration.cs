@@ -40,6 +40,8 @@ namespace Couchbase.Configuration.Client
             EnableTcpKeepAlives = true;
             TcpKeepAliveTime = (uint) 2*60*60*1000;
             TcpKeepAliveInterval = (uint) 1000;
+            CloseAttemptInterval = 100u;
+            MaxCloseAttempts = 5;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
@@ -63,6 +65,8 @@ namespace Couchbase.Configuration.Client
             EnableTcpKeepAlives = true;
             TcpKeepAliveTime = (uint)2 * 60 * 60 * 1000;
             TcpKeepAliveInterval = (uint)1000;
+            CloseAttemptInterval = 100u;
+            MaxCloseAttempts = 5;
         }
 
         /// <summary>
@@ -142,6 +146,26 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>The default is 10000ms</remarks>
         public int ConnectTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of times the client will try to close a <see cref="IConnection"/>
+        /// if it's in use and <see cref="IConnectionPool"/> has been disposed.
+        /// </summary>
+        /// <value>
+        /// The maximum close attempts.
+        /// </value>
+        /// <remarks>The default is 5 attempts.</remarks>
+        public int MaxCloseAttempts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the interval between close attempts on a <see cref="IConnection"/>
+        /// if it's in use and <see cref="IConnectionPool"/> has been disposed.
+        /// </summary>
+        /// <value>
+        /// The close attempt interval.
+        /// </value>
+        /// <remarks>The default is 100ms.</remarks>
+        public uint CloseAttemptInterval { get; set; }
 
         /// <summary>
         /// References the top level <see cref="ClientConfiguration"/> object.

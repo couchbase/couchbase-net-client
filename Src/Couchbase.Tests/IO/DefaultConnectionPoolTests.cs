@@ -61,6 +61,43 @@ namespace Couchbase.Tests.IO
             Assert.IsNotNull(connection);
         }
 
+        [Test]
+        public void When_InUse_Is_True_And_Dispose_Called_IsDiposed_Is_False()
+        {
+            var connection = _connectionPool.Acquire();
+            Assert.IsTrue(connection.InUse);
+            connection.Dispose();
+
+            Assert.IsTrue(connection.InUse);
+            Assert.IsFalse(connection.IsDisposed);
+        }
+
+        [Test]
+        public void When_InUse_Is_False_And_Dispose_Called_IsDiposed_Is_True()
+        {
+            var connection = _connectionPool.Acquire();
+            Assert.IsTrue(connection.InUse);
+            _connectionPool.Release(connection);
+
+            Assert.IsFalse(connection.InUse);
+            connection.Dispose();
+
+            Assert.IsTrue(connection.IsDisposed);
+        }
+
+        [Test]
+        public void When_CountdownToClose_And_IsUsed_Connection_Will_Close_After_N_Attempts()
+        {
+            var connection = _connectionPool.Acquire();
+            connection.MaxCloseAttempts = 5;
+            connection.CountdownToClose(100);
+            Thread.Sleep(600);
+            Assert.AreEqual(5, connection.CloseAttempts);
+            Assert.IsTrue(connection.IsDisposed);
+            Assert.IsTrue(connection.IsDead);
+            Assert.IsFalse(connection.InUse);
+        }
+
 
         //[Test]
         public void Test_Acquire_Multithreaded()

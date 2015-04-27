@@ -55,6 +55,16 @@ namespace Couchbase.Tests.IO
         public void When_Dispose_Called_Handle_Is_Not_Connected()
         {
             var connection = _connectionPool.Acquire();
+            connection.MarkUsed(false);
+            connection.Dispose();
+            Assert.IsFalse(connection.Socket.Connected);
+        }
+
+        [Test]
+        public void When_Shutdown_Called_Handle_Is_Not_Connected()
+        {
+            var connection = _connectionPool.Acquire();
+            connection.MarkUsed(false);
             connection.Dispose();
             Assert.IsFalse(connection.Socket.Connected);
         }

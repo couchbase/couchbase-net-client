@@ -49,7 +49,9 @@ namespace Couchbase.Tests.Configuration.Client
                 {
                     MaxSize = 10,
                     MinSize = 10,
-                    SendTimeout = 12000
+                    SendTimeout = 12000,
+                    MaxCloseAttempts = 6,
+                    CloseAttemptInterval = 120
                 }
             };
             config.Initialize();
@@ -75,6 +77,8 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
             Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
+            Assert.AreEqual(120, bucketConfig.PoolConfiguration.CloseAttemptInterval);
+            Assert.AreEqual(6, bucketConfig.PoolConfiguration.MaxCloseAttempts);
         }
 
         [Test]

@@ -23,7 +23,7 @@ namespace Couchbase.IO
         private bool _disposed;
         private ConcurrentBag<T> _refs = new ConcurrentBag<T>();
         private Guid _identity = Guid.NewGuid();
-        private int _acquireFailedCount ;
+        private int _acquireFailedCount;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
@@ -114,6 +114,7 @@ namespace Couchbase.IO
                 Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                     connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
 
+                connection.MarkUsed(true);
                 return connection;
             }
 
@@ -129,6 +130,7 @@ namespace Couchbase.IO
 
                     Interlocked.Increment(ref _count);
                     Interlocked.Exchange(ref _acquireFailedCount, 0);
+                    connection.MarkUsed(true);
                     return connection;
                 }
             }
@@ -155,7 +157,7 @@ namespace Couchbase.IO
         public void Release(T connection)
         {
             Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
-
+            connection.MarkUsed(false);
             if (connection.IsDead)
             {
                 connection.Dispose();
@@ -186,10 +188,13 @@ namespace Couchbase.IO
             if (!_disposed)
             {
                 _disposed = true;
-                while (_refs.Count > 0)
+                foreach (var connection in _refs)
                 {
-                    T connection;
-                    if (_refs.TryTake(out connection))
+                    if (connection.InUse)
+                    {
+                        connection.CountdownToClose(_configuration.CloseAttemptInterval);
+                    }
+                    else
                     {
                         connection.Dispose();
                     }

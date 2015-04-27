@@ -235,6 +235,29 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
+        public void When_MaxCloseAttempts_And_MaxCloseInterval_Changed_In_AppConfig_ConnectionPoolElement_Is_Updated()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4");
+            var buckets = new BucketElement[section.Buckets.Count];
+            section.Buckets.CopyTo(buckets, 0);
+
+            var default2 = buckets[1];
+            Assert.AreEqual(6, default2.ConnectionPool.MaxCloseAttempts);
+            Assert.AreEqual(120, default2.ConnectionPool.CloseAttemptInterval);
+        }
+
+        [Test]
+        public void When_MaxCloseAttempts_And_MaxCloseInterval_Changed_In_AppConfig_ClientConfiguration_Is_Updated()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4");
+            var config = new ClientConfiguration(section);
+            var default2 = config.BucketConfigs["default2"];
+
+            Assert.AreEqual(6, default2.PoolConfiguration.MaxCloseAttempts);
+            Assert.AreEqual(120, default2.PoolConfiguration.CloseAttemptInterval);
+        }
+
+        [Test]
         public void When_Initialize_Called_With_AppConfig_Settings_Bucket_Can_Be_Opened()
         {
             using (var cluster = new Cluster("couchbaseClients/couchbase"))

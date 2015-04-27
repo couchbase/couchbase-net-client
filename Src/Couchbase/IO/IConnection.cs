@@ -31,17 +31,83 @@ namespace Couchbase.IO
         /// </summary>
         bool IsSecure { get; }
 
-        void Send<T>(IOperation<T> operation);
-
-        OperationAsyncState State { get; }
-
+        /// <summary>
+        /// Gets the remove hosts <see cref="EndPoint"/> that this <see cref="Connection"/> is connected to.
+        /// </summary>
+        /// <value>
+        /// The end point.
+        /// </value>
         EndPoint EndPoint { get; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is dead.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is dead; otherwise, <c>false</c>.
+        /// </value>
         bool IsDead { get; set; }
 
+        /// <summary>
+        /// Sends a request packet as an asynchronous operation.
+        /// </summary>
+        /// <param name="buffer">A memcached request buffer.</param>
+        /// <param name="callback">The callback that will be fired after the operation is completed.</param>
         void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback);
 
-        byte[] Send(byte[] request);
+        /// <summary>
+        /// Sends a request packet as an asynchronous operation; waiting for the reponse.
+        /// </summary>
+        /// <param name="request">A memcached request buffer.</param>
+        /// <returns>A memcached response packet.</returns>
+         byte[] Send(byte[] request);
+
+        /// <summary>
+        ///  Checks whether this <see cref="Connection"/> is currently being used to execute a request.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if if this <see cref="Connection"/> is in use; otherwise, <c>false</c>.
+        /// </value>
+        bool InUse { get; }
+
+        /// <summary>
+        /// Marks this <see cref="Connection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
+        /// is <c>false</c> or the <see cref="MaxCloseAttempts"/> has been reached.
+        /// </summary>
+        /// <param name="isUsed">if set to <c>true</c> [is used].</param>
+        void MarkUsed(bool isUsed);
+
+        /// <summary>
+        /// Disposes this <see cref="Connection"/> if <see cref="InUse"/> is <c>false</c>; otherwise
+        /// it will wait for the interval and attempt again up until the <see cref="MaxCloseAttempts"/>
+        /// threshold is met or <see cref="InUse"/> is <c>false</c>.
+        /// </summary>
+        /// <param name="interval">The interval to wait between close attempts.</param>
+        void CountdownToClose(uint interval);
+
+        /// <summary>
+        /// Gets or sets the maximum times that the client will check the <see cref="InUse"/>
+        /// property before closing the connection.
+        /// </summary>
+        /// <value>
+        /// The maximum close attempts.
+        /// </value>
+        int MaxCloseAttempts { get; set; }
+
+        /// <summary>
+        /// Gets the number of close attempts that this <see cref="Connection"/> has attemped.
+        /// </summary>
+        /// <value>
+        /// The close attempts.
+        /// </value>
+        int CloseAttempts { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is disposed.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is disposed; otherwise, <c>false</c>.
+        /// </value>
+        bool IsDisposed { get; }
     }
 }
 

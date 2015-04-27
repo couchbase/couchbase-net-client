@@ -44,6 +44,10 @@ namespace Couchbase.Authentication.SASL
                 {
                     Log.Error(e);
                 }
+                finally
+                {
+                    strategy.ConnectionPool.Release(connection);
+                }
                 return saslMechanism;
             };
         }
