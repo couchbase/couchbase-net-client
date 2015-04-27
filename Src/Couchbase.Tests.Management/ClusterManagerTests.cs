@@ -149,6 +149,24 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
+        public void When_Bucket_Password_And_Username_Are_Used_ListBuckets_Succeeds()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                var clusterManager = cluster.CreateManager("authenticated", "secret");
+                var results = clusterManager.ListBuckets();
+                Assert.Greater(results.Value.Count, 0);
+            }
+        }
+
+        [Test]
         public void Test_ListBuckets()
         {
             var configuration = new ClientConfiguration
@@ -285,7 +303,6 @@ namespace Couchbase.Tests.Management
             using (var cluster = new Cluster(configuration))
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
-
                 var result = clusterManager.CreateBucket("test1");
                 Assert.IsNullOrEmpty(result.Message);
                 Assert.IsTrue(result.Success);

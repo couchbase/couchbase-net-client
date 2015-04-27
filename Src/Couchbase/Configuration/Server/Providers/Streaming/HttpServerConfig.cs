@@ -21,13 +21,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly static ILog Log = LogManager.GetLogger<HttpServerConfig>();
         private readonly ClientConfiguration _clientConfig;
 
-        public HttpServerConfig(ClientConfiguration clientConfig) 
+        public HttpServerConfig(ClientConfiguration clientConfig)
             : base("default", string.Empty)
         {
             _clientConfig = clientConfig;
         }
 
-        public HttpServerConfig(ClientConfiguration clientConfig, string username, string password) 
+        public HttpServerConfig(ClientConfiguration clientConfig, string username, string password)
             : base(username, password)
         {
             _clientConfig = clientConfig;

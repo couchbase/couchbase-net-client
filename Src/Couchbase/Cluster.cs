@@ -135,7 +135,7 @@ namespace Couchbase
         /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICluster"/> configuration settings. </returns>
         public IClusterManager CreateManager(string username, string password)
         {
-            var serverConfig = new HttpServerConfig(Configuration);
+            var serverConfig = new HttpServerConfig(Configuration, username, password);
             serverConfig.Initialize();
 
             return new ClusterManager(Configuration,
