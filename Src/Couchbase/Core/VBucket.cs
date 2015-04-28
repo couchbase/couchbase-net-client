@@ -5,6 +5,9 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
+    /// <summary>
+    /// Represents a VBucket partition in a Couchbase cluster
+    /// </summary>
     internal class VBucket : IVBucket
     {
         private readonly static ILog Log = LogManager.GetLogger<VBucket>();
@@ -54,29 +57,66 @@ namespace Couchbase.Core
             return server ?? (_cluster.GetRandom());
         }
 
-        public IServer LocateReplica(int replicaIndex)
+        /// <summary>
+        /// Locates a replica for a given index.
+        /// </summary>
+        /// <param name="index">The index of the replica.</param>
+        /// <returns>An <see cref="IServer"/> if the replica is found, otherwise null.</returns>
+        public IServer LocateReplica(int index)
         {
             try
             {
-                return _cluster[replicaIndex];
+                return _cluster[index];
             }
             catch
             {
-                Log.Debug(m=>m("No server found for replica with index of {0}.", replicaIndex));
+                Log.Debug(m=>m("No server found for replica with index of {0}.", index));
                 return null;
             }
         }
 
+        /// <summary>
+        /// Gets an array of replica indexes.
+        /// </summary>
         public int[] Replicas
         {
             get { return _replicas; }
         }
 
+        /// <summary>
+        /// Gets the index of the VBucket.
+        /// </summary>
+        /// <value>
+        /// The index.
+        /// </value>
         public int Index { get; private set; }
 
+        /// <summary>
+        /// Gets the index of the primary node in the VBucket.
+        /// </summary>
+        /// <value>
+        /// The primary index that the key has mapped to.
+        /// </value>
         public int Primary { get; private set; }
 
+        /// <summary>
+        /// Gets or sets the configuration revision.
+        /// </summary>
+        /// <value>
+        /// The rev.
+        /// </value>
         public int Rev { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance has replicas.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has replicas; otherwise, <c>false</c>.
+        /// </value>
+        public bool HasReplicas
+        {
+            get { return _replicas.Any(x => x > -1); }
+        }
     }
 }
 

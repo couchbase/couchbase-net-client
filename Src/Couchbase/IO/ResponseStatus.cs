@@ -104,6 +104,13 @@ namespace Couchbase.IO
         /// The operation exceeded the specified OperationTimeout configured for the client instance.
         /// </summary>
         /// <remarks>The default is 2500ms.</remarks>
-        OperationTimeout = 0x0200
+        OperationTimeout = 0x0200,
+
+        /// <summary>
+        ///  Returned when the client cannot locate a replica within the cluster map config for a replica read.
+        ///  This would happen if a bucket was not configured to have replicas; if you encounter this error check
+        ///  to make sure you have indeed configured replicas on your bucket.
+        /// </summary>
+        NoReplicasFound = 0x0300
     }
 }

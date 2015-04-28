@@ -9,8 +9,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 
 namespace Couchbase.Core.Buckets
 {
@@ -335,17 +333,29 @@ namespace Couchbase.Core.Buckets
             var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
             operation.VBucket = vBucket;
 
-            IOperationResult<T> result = new OperationResult<T>();
-            foreach (var index in vBucket.Replicas)
+            IOperationResult<T> result = null;
+            if (vBucket.HasReplicas)
             {
-                var replica = vBucket.LocateReplica(index);
-                if (replica == null) continue;
-                result = replica.Send(operation);
-                if (result.Success && !result.IsNmv())
+                foreach (var index in vBucket.Replicas)
                 {
-                    return result;
+                    var replica = vBucket.LocateReplica(index);
+                    if (replica == null) continue;
+                    result = replica.Send(operation);
+                    if (result.Success && !result.IsNmv())
+                    {
+                        return result;
+                    }
+                    operation = (ReplicaRead<T>) operation.Clone();
                 }
-                operation = (ReplicaRead<T>)operation.Clone();
+            }
+            else
+            {
+                result = new OperationResult<T>
+                {
+                    Status = ResponseStatus.NoReplicasFound,
+                    Message = "No replicas found; have you configured the bucket for replica reads?",
+                    Success = false
+                };
             }
             return result;
         }
@@ -372,18 +382,30 @@ namespace Couchbase.Core.Buckets
             operation.Completed = CallbackFactory.CompletedFuncForRetry(this, Pending, ClusterController, tcs);
             Pending.TryAdd(operation.Opaque, operation);
 
-            IOperationResult<T> result = new OperationResult<T>();
-            foreach (var index in vBucket.Replicas)
+           IOperationResult<T> result = null;
+            if (vBucket.HasReplicas)
             {
-                var replica = vBucket.LocateReplica(index);
-                if (replica == null) continue;
-
-                await replica.SendAsync(operation).ConfigureAwait(false);
-                result = await tcs.Task;
-                if (result.Success && !result.IsNmv())
+                foreach (var index in vBucket.Replicas)
                 {
-                    return result;
+                    var replica = vBucket.LocateReplica(index);
+                    if (replica == null) continue;
+
+                    await replica.SendAsync(operation).ConfigureAwait(false);
+                    result = await tcs.Task;
+                    if (result.Success && !result.IsNmv())
+                    {
+                        return result;
+                    }
                 }
+            }
+            else
+            {
+                result = new OperationResult<T>
+                {
+                    Status = ResponseStatus.NoReplicasFound,
+                    Message = "No replicas found; have you configured the bucket for replica reads?",
+                    Success = false
+                };
             }
             return result;
         }
