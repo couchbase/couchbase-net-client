@@ -510,14 +510,42 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration,
+                Cas = cas
+            };
+            return _requestExecuter.SendWithRetry(operation);
         }
 
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            return Replace(key, value, cas, expiration.ToTtl());
         }
 
         /// <summary>
