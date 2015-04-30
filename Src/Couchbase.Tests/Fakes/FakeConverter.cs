@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.Tests.Fakes
@@ -135,6 +131,68 @@ namespace Couchbase.Tests.Fakes
         }
 
         public bool GetBit(byte theByte, int position)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public short ToInt16(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ushort ToUInt16(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int ToInt32(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public uint ToUInt32(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ToInt64(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ulong ToUInt64(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo)
         {
             throw new NotImplementedException();
         }

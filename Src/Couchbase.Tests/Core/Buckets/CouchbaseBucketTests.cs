@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -1652,6 +1653,24 @@ namespace Couchbase.Tests.Core.Buckets
                 Assert.IsTrue(result.Success);
                 var get = bucket.Get<object>(key);
                 Assert.IsTrue(get.Success);
+            }
+        }
+
+        [Test]
+        public void When_Value_Is_Null_Get_Succeeds2()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                const string KEY = "NUMERIC_TEST_KEY";
+                var result = bucket.Get<int>(KEY);
+                Assert.IsTrue(result.Success);
+
+                const string KEY2 = "STRING_TEST_KEY";
+                var result2 = bucket.Get<string>(KEY2);
+                Assert.IsTrue(result2.Success);
+
+                Assert.IsTrue(bucket.Upsert("NUMERIC_TEST_2.0", 123).Success);
+                var result3 = bucket.Get<int>("NUMERIC_TEST_2.0");
             }
         }
 

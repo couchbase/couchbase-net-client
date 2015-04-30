@@ -356,7 +356,7 @@ namespace Couchbase.IO.Operations
                     Compression = Compression.None,
                     DataFormat = DataFormat.Json,
                     TypeCode = TypeCode.Object
-                });
+                }, OperationCode);
             }
             return config;
         }

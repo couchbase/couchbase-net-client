@@ -33,12 +33,12 @@ namespace Couchbase.IO.Operations
             byte[] bytes;
             if (typeof(T).IsValueType)
             {
-                bytes = Transcoder.Encode(RawValue, Flags);
+                bytes = Transcoder.Encode(RawValue, Flags, OperationCode);
             }
             else
             {
                 bytes = RawValue == null ? new byte[0] :
-                    Transcoder.Encode(RawValue, Flags);
+                    Transcoder.Encode(RawValue, Flags, OperationCode);
             }
 
             return bytes;
@@ -91,7 +91,7 @@ namespace Couchbase.IO.Operations
                     var buffer = Data.ToArray();
                     ReadExtras(buffer);
                     var offset = 24 + Header.KeyLength + Header.ExtrasLength;
-                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags);
+                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags, OperationCode);
                 }
                 catch (Exception e)
                 {

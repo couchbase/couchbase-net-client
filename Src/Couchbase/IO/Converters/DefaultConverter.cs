@@ -5,7 +5,8 @@ namespace Couchbase.IO.Converters
 {
     /// <summary>
     /// The default <see cref="IByteConverter" /> for for converting types and arrays before
-    /// being sent or after being received across the network.
+    /// being sent or after being received across the network. Unless an overload is called
+    /// with useNbo = false, Network Byte Order will be used in the conversion.
     /// </summary>
     public sealed class DefaultConverter : IByteConverter
     {
@@ -50,9 +51,25 @@ namespace Couchbase.IO.Converters
         /// <returns></returns>
         public short ToInt16(byte[] buffer, int offset)
         {
-            const int length = 2;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToInt16(array, 0);
+            return ToInt16(buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="Int16" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public short ToInt16(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 2;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToInt16(array, 0);
+            }
+            return BitConverter.ToInt16(buffer, offset);
         }
 
         /// <summary>
@@ -63,9 +80,25 @@ namespace Couchbase.IO.Converters
         /// <returns></returns>
         public ushort ToUInt16(byte[] buffer, int offset)
         {
-            const int length = 2;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToUInt16(array, 0);
+            return ToUInt16(buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="UInt16" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public ushort ToUInt16(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 2;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToUInt16(array, 0);
+            }
+            return BitConverter.ToUInt16(buffer, offset);
         }
 
         /// <summary>
@@ -76,9 +109,25 @@ namespace Couchbase.IO.Converters
         /// <returns></returns>
         public int ToInt32(byte[] buffer, int offset)
         {
-            const int length = 4;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToInt32(array, 0);
+            return ToInt32(buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="Int32" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public int ToInt32(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 4;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToInt32(array, 0);
+            }
+            return BitConverter.ToInt32(buffer, offset);
         }
 
         /// <summary>
@@ -89,9 +138,25 @@ namespace Couchbase.IO.Converters
         /// <returns></returns>
         public uint ToUInt32(byte[] buffer, int offset)
         {
-            const int length = 4;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToUInt32(array, 0);
+            return ToUInt32(buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="UInt32" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public uint ToUInt32(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 4;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToUInt32(array, 0);
+            }
+            return BitConverter.ToUInt32(buffer, offset);
         }
 
         /// <summary>
@@ -108,6 +173,24 @@ namespace Couchbase.IO.Converters
         }
 
         /// <summary>
+        /// Reads a <see cref="Int64" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public long ToInt64(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 8;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToInt64(array, 0);
+            }
+            return BitConverter.ToInt64(buffer, offset);
+        }
+
+        /// <summary>
         /// Reads a <see cref="UInt64" /> from a buffer starting from a given offset.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
@@ -115,9 +198,25 @@ namespace Couchbase.IO.Converters
         /// <returns></returns>
         public ulong ToUInt64(byte[] buffer, int offset)
         {
-            const int length = 8;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToUInt64(array, 0);
+            return ToUInt64(buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="UInt64" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        public ulong ToUInt64(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 8;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToUInt64(array, 0);
+            }
+            return BitConverter.ToUInt64(buffer, offset);
         }
 
         /// <summary>
@@ -139,12 +238,32 @@ namespace Couchbase.IO.Converters
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         /// <param name="offset">The offset.</param>
-        public void FromInt16(short value, ref byte[] buffer, int offset)
+        public void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo)
         {
             const int length = 2;
             var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        public void FromInt16(short value, ref byte[] buffer, int offset)
+        {
+            FromInt16(value, ref buffer, offset, true);
         }
 
         /// <summary>
@@ -155,7 +274,29 @@ namespace Couchbase.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromInt16(short value, byte[] buffer, int offset)
         {
-            FromInt16(value, ref buffer, offset);
+            FromInt16(value, ref buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="UInt16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <param name="offset">The offset.</param>
+        public void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            const int length = 2;
+            var src = BitConverter.GetBytes(value);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
         }
 
         /// <summary>
@@ -166,9 +307,7 @@ namespace Couchbase.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromUInt16(ushort value, ref byte[] buffer, int offset)
         {
-            const int length = 2;
-            var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
+            FromUInt16(value, ref buffer, offset, true);
         }
 
         /// <summary>
@@ -188,24 +327,31 @@ namespace Couchbase.IO.Converters
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        public void FromInt32(int value, ref byte[] buffer, int offset)
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        public void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo)
         {
             const int length = 4;
             var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
         }
 
         /// <summary>
-        /// Writes a <see cref="UInt32" /> to a buffer starting at a given offset.
+        /// Writes a <see cref="Int32" /> to a buffer starting at a given offset.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        public void FromUInt32(uint value, ref byte[] buffer, int offset)
+        public void FromInt32(int value, ref byte[] buffer, int offset)
         {
-            const int length = 4;
-            var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
+            FromInt32(value, ref buffer, offset, true);
         }
 
         /// <summary>
@@ -231,6 +377,61 @@ namespace Couchbase.IO.Converters
         }
 
         /// <summary>
+        /// Writes a <see cref="UInt32" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        public void FromUInt32(uint value, ref byte[] buffer, int offset)
+        {
+            FromUInt32(value, ref buffer, offset, true);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="UInt32" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        public void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            const int length = 4;
+            var src = BitConverter.GetBytes(value);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="Int64" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        public void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            const int length = 8;
+            var src = BitConverter.GetBytes(value);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
+        }
+
+        /// <summary>
         /// Writes a <see cref="Int64" /> to a buffer starting at a given offset.
         /// </summary>
         /// <param name="value">The value.</param>
@@ -238,22 +439,7 @@ namespace Couchbase.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromInt64(long value, ref byte[] buffer, int offset)
         {
-            const int length = 8;
-            var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
-        }
-
-        /// <summary>
-        /// Writes a <see cref="UInt64" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        public void FromUInt64(ulong value, ref byte[] buffer, int offset)
-        {
-            const int length = 8;
-            var src = BitConverter.GetBytes(value);
-            CopyAndReverse(src, ref buffer, offset, length);
+            FromInt64(value, ref buffer, offset, true);
         }
 
         /// <summary>
@@ -265,6 +451,39 @@ namespace Couchbase.IO.Converters
         public void FromInt64(long value, byte[] buffer, int offset)
         {
             FromInt64(value, ref buffer, offset);
+        }
+
+        /// <summary>
+        /// Writes a <see cref="UInt64" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        public void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo)
+        {
+            const int length = 8;
+            var src = BitConverter.GetBytes(value);
+            if (useNbo)
+            {
+                CopyAndReverse(src, ref buffer, offset, length);
+            }
+            else
+            {
+                buffer = new byte[length];
+                Buffer.BlockCopy(src, 0, buffer, offset, length);
+            }
+        }
+
+        /// <summary>
+        /// Writes a <see cref="UInt64" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        public void FromUInt64(ulong value, ref byte[] buffer, int offset)
+        {
+            FromUInt64(value, ref buffer, offset, true);
         }
 
         /// <summary>

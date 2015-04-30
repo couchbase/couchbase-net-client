@@ -16,8 +16,9 @@ namespace Couchbase.Core.Transcoders
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value of the key to encode.</param>
         /// <param name="flags">The flags used for decoding the response.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
-        byte[] Encode<T>(T value, Flags flags);
+        byte[] Encode<T>(T value, Flags flags, OperationCode opcode);
 
         /// <summary>
         /// Decodes the specified buffer.
@@ -27,8 +28,9 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset to start reading at.</param>
         /// <param name="length">The length to read from the buffer.</param>
         /// <param name="flags">The flags used to encode the payload.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
-        T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags);
+        T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OperationCode opcode);
 
         /// <summary>
         /// Decodes the specified buffer.
@@ -38,8 +40,9 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <param name="flags">The flags used for decoding the payload.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
-        T Decode<T>(byte[] buffer, int offset, int length, Flags flags);
+        T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OperationCode opcode);
 
         /// <summary>
         /// Gets or sets the serializer used by the <see cref="ITypeTranscoder"/> implementation.

@@ -46,17 +46,18 @@ namespace Couchbase.Core.Transcoders
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value of the key to encode.</param>
         /// <param name="flags">The flags used for decoding the response.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public byte[] Encode<T>(T value, Flags flags)
+        public byte[] Encode<T>(T value, Flags flags, OperationCode opcode)
         {
             byte[] bytes;
             switch (flags.DataFormat)
             {
                 case DataFormat.Reserved:
                 case DataFormat.Private:
-                    bytes = Encode(value);
+                    bytes = Encode(value, opcode);
                     break;
 
                 case DataFormat.Json:
@@ -77,7 +78,7 @@ namespace Couchbase.Core.Transcoders
                     break;
 
                 case DataFormat.String:
-                    bytes = Encode(value);
+                    bytes = Encode(value, opcode);
                     break;
 
                 default:
@@ -91,9 +92,10 @@ namespace Couchbase.Core.Transcoders
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public byte[] Encode<T>(T value)
+        public byte[] Encode<T>(T value, OperationCode opcode)
         {
             var bytes = new byte[] { };
             var typeCode = Type.GetTypeCode(typeof(T));
@@ -107,27 +109,34 @@ namespace Couchbase.Core.Transcoders
                     break;
 
                 case TypeCode.Int16:
-                    Converter.FromInt16(Convert.ToInt16(value), ref bytes, 0);
+                    Converter.FromInt16(Convert.ToInt16(value), ref bytes, 0, false);
                     break;
 
                 case TypeCode.UInt16:
-                    Converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0);
+                    Converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0, false);
                     break;
 
                 case TypeCode.Int32:
-                    Converter.FromInt32(Convert.ToInt32(value), ref bytes, 0);
+                    Converter.FromInt32(Convert.ToInt32(value), ref bytes, 0, false);
                     break;
 
                 case TypeCode.UInt32:
-                    Converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0);
+                    Converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0, false);
                     break;
 
                 case TypeCode.Int64:
-                    Converter.FromInt64(Convert.ToInt64(value), ref bytes, 0);
+                    Converter.FromInt64(Convert.ToInt64(value), ref bytes, 0, false);
                     break;
 
                 case TypeCode.UInt64:
-                    Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0);
+                    if (opcode == OperationCode.Increment || opcode == OperationCode.Decrement)
+                    {
+                        Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0, true);
+                    }
+                    else
+                    {
+                        Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0, false);
+                    }
                     break;
 
                 case TypeCode.Single:
@@ -155,9 +164,10 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <param name="flags">The flags used for decoding the payload.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
-        public T Decode<T>(byte[] buffer, int offset, int length, Flags flags)
+        public T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
             object value = default(T);
             switch (flags.DataFormat)
@@ -170,7 +180,7 @@ namespace Couchbase.Core.Transcoders
                     }
                     else
                     {
-                        value = Decode<T>(buffer, offset, length);
+                        value = Decode<T>(buffer, offset, length, opcode);
                     }
                     break;
 
@@ -218,7 +228,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="length">The length.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public T Decode<T>(byte[] buffer, int offset, int length)
+        public T Decode<T>(byte[] buffer, int offset, int length, OperationCode opcode)
         {
             object value = default(T);
 
@@ -235,42 +245,49 @@ namespace Couchbase.Core.Transcoders
                 case TypeCode.Int16:
                     if (length > 0)
                     {
-                        value = Converter.ToInt16(buffer, offset);
+                        value = Converter.ToInt16(buffer, offset, false);
                     }
                     break;
 
                 case TypeCode.UInt16:
                     if (length > 0)
                     {
-                        value = Converter.ToUInt16(buffer, offset);
+                        value = Converter.ToUInt16(buffer, offset, false);
                     }
                     break;
 
                 case TypeCode.Int32:
                     if (length > 0)
                     {
-                        value = Converter.ToInt32(buffer, offset);
+                        value = Converter.ToInt32(buffer, offset, false);
                     }
                     break;
 
                 case TypeCode.UInt32:
                     if (length > 0)
                     {
-                        value = Converter.ToUInt32(buffer, offset);
+                        value = Converter.ToUInt32(buffer, offset, false);
                     }
                     break;
 
                 case TypeCode.Int64:
                     if (length > 0)
                     {
-                        value = Converter.ToInt64(buffer, offset);
+                        value = Converter.ToInt64(buffer, offset, false);
                     }
                     break;
 
                 case TypeCode.UInt64:
                     if (length > 0)
                     {
-                        value = Converter.ToUInt64(buffer, offset);
+                        if (opcode == OperationCode.Increment || opcode == OperationCode.Decrement)
+                        {
+                            value = Converter.ToUInt64(buffer, offset, true);
+                        }
+                        else
+                        {
+                            value = Converter.ToUInt64(buffer, offset, false);
+                        }
                     }
                     break;
 
@@ -326,10 +343,11 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset to start reading at.</param>
         /// <param name="length">The length to read from the buffer.</param>
         /// <param name="flags">The flags used to encode the payload.</param>
+        /// <param name="opcode"></param>
         /// <returns></returns>
-        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags)
+        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
-            return Decode<T>(buffer.Array, offset, length, flags);
+            return Decode<T>(buffer.Array, offset, length, flags, opcode);
         }
 
         /// <summary>

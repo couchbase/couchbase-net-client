@@ -36,14 +36,6 @@ namespace Couchbase.IO.Converters
         ushort ToUInt16(byte[] buffer, int offset);
 
         /// <summary>
-        /// Reads a <see cref="Int32"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        int ToInt32(byte[] buffer, int offset);
-
-        /// <summary>
         /// Reads a <see cref="UInt32"/> from a buffer starting from a given offset.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
@@ -77,22 +69,6 @@ namespace Couchbase.IO.Converters
         /// A <see cref="System.String" /> that represents this instance.
         /// </returns>
         string ToString(byte[] buffer, int offset, int length);
-
-        /// <summary>
-        /// Writes a <see cref="Int16"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt16(short value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int16"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt16(short value, byte[] buffer, int offset);
 
         /// <summary>
         /// Writes a <see cref="UInt16"/> to a buffer starting at a given offset.
@@ -221,5 +197,137 @@ namespace Couchbase.IO.Converters
         /// <param name="position">The position.</param>
         /// <returns>True if the bit is set; otherwise false.</returns>
         bool GetBit(byte theByte, int position);
+
+        /// <summary>
+        /// Reads a <see cref="Int16" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        short ToInt16(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="UInt16" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        ushort ToUInt16(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="Int32" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns></returns>
+        int ToInt32(byte[] buffer, int offset);
+
+        /// <summary>
+        /// Reads a <see cref="Int32" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        int ToInt32(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="UInt32" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        uint ToUInt32(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="Int64" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        long ToInt64(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="UInt64" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <returns></returns>
+        ulong ToUInt64(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <param name="offset">The offset.</param>
+        void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        void FromInt16(short value, ref byte[] buffer, int offset);
+
+        /// <summary>
+        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        void FromInt16(short value, byte[] buffer, int offset);
+
+        /// <summary>
+        /// Writes a <see cref="UInt16" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        /// <param name="offset">The offset.</param>
+        void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="Int32" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="UInt32" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="Int64" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Writes a <see cref="UInt64" /> to a buffer starting at a given offset.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
+        void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo);
     }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -33,17 +34,17 @@ namespace Couchbase.Tests.Fakes
 
         public IByteConverter Converter { get; set; }
 
-        public byte[] Encode<T>(T value, Couchbase.IO.Operations.Flags flags)
+        public byte[] Encode<T>(T value, Flags flags, OperationCode opcode)
         {
             throw new NotImplementedException();
         }
 
-        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Couchbase.IO.Operations.Flags flags)
+        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
             throw new NotImplementedException();
         }
 
-        public T Decode<T>(byte[] buffer, int offset, int length, Couchbase.IO.Operations.Flags flags)
+        public T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
             throw new NotImplementedException();
         }
