@@ -63,7 +63,14 @@ namespace Couchbase.Core.Buckets
 
                                     var keyMapper = c.GetKeyMapper();
                                     var mappedNode= keyMapper.MapKey(cloned.Key);
-                                    var server = mappedNode.LocatePrimary();
+
+                                    IServer server;
+                                    var attempts = 0;
+                                    while ((server = mappedNode.LocatePrimary()) == null)
+                                    {
+                                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                                        Thread.Sleep((int)Math.Pow(2, attempts));
+                                    }
                                     server.SendAsync(o).ContinueOnAnyContext();
 
                                     return retryTcs.Task;
@@ -143,7 +150,14 @@ namespace Couchbase.Core.Buckets
 
                                     var keyMapper = c.GetKeyMapper();
                                     var mappedNode = keyMapper.MapKey(cloned.Key);
-                                    var server = mappedNode.LocatePrimary();
+
+                                    IServer server;
+                                    var attempts = 0;
+                                    while ((server = mappedNode.LocatePrimary()) == null)
+                                    {
+                                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                                        Thread.Sleep((int)Math.Pow(2, attempts));
+                                    }
                                     server.SendAsync(o).ContinueOnAnyContext();
 
                                     return retryTcs.Task;
@@ -229,7 +243,13 @@ namespace Couchbase.Core.Buckets
                                     var vBucket = (IVBucket)keyMapper.MapKey(o.Key);
                                     o.VBucket = vBucket;
 
-                                    var server = vBucket.LocatePrimary();
+                                    IServer server;
+                                    var attempts = 0;
+                                    while ((server = vBucket.LocatePrimary()) == null)
+                                    {
+                                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                                        Thread.Sleep((int)Math.Pow(2, attempts));
+                                    }
                                     server.SendAsync(o).ContinueOnAnyContext();
 
                                     return retryTcs.Task;
@@ -311,7 +331,13 @@ namespace Couchbase.Core.Buckets
                                     var vBucket = (IVBucket)keyMapper.MapKey(o.Key);
                                     o.VBucket = vBucket;
 
-                                    var server = vBucket.LocatePrimary();
+                                    IServer server;
+                                    var attempts = 0;
+                                    while ((server = vBucket.LocatePrimary()) == null)
+                                    {
+                                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                                        Thread.Sleep((int)Math.Pow(2, attempts));
+                                    }
                                     server.SendAsync(o).ContinueOnAnyContext();
 
                                     return retryTcs.Task;
