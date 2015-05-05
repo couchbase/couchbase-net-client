@@ -468,7 +468,13 @@ namespace Couchbase.Core.Buckets
 
                 Pending.TryAdd(operation.Opaque, operation);
 
-                var server = vBucket.LocatePrimary();
+                IServer server;
+                var attempts = 0;
+                while ((server = vBucket.LocatePrimary()) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server.");}
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -510,7 +516,13 @@ namespace Couchbase.Core.Buckets
 
                 Pending.TryAdd(operation.Opaque, operation);
 
-                var server = vBucket.LocatePrimary();
+                IServer server;
+                var attempts = 0;
+                while ((server = vBucket.LocatePrimary()) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)

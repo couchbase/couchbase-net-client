@@ -159,7 +159,13 @@ namespace Couchbase.Core.Buckets
 
                 Pending.TryAdd(operation.Opaque, operation);
 
-                var server = GetServer(operation.Key);
+                IServer server;
+                var attempts = 0;
+                while ((server = GetServer(operation.Key)) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -196,7 +202,13 @@ namespace Couchbase.Core.Buckets
 
                 Pending.TryAdd(operation.Opaque, operation);
 
-                var server = GetServer(operation.Key);
+                IServer server;
+                var attempts = 0;
+                while ((server = GetServer(operation.Key)) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)
