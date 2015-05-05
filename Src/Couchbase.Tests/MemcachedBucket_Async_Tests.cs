@@ -377,6 +377,34 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public async void When_Key_Not_Found_ExistAsync_Returns_False()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.UPSERT_NOKEY_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Not_Found_ExistAsync_Returns_False";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.ExistsAsync(key);
+
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public async void When_Key_Found_ExistAsync_Returns_True()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.UPSERT_KEYEXISTS_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "When_Key_Found_ExistAsync_Returns_True";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.ExistsAsync(key);
+
+            Assert.IsTrue(result);
+        }
+
+        [Test]
         [ Category("Integration")]
         [Category("Memcached")]
         public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()

@@ -130,9 +130,11 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to check.</param>
         /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
-        public Task<bool> ExistsAsync(string key)
+        public async Task<bool> ExistsAsync(string key)
         {
-            throw new NotImplementedException();
+            var observe = new Observe(key, null,  _transcoder, _operationLifespanTimeout);
+            var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
+            return result.Success && result.Value.KeyState != KeyState.NotFound;
         }
 
         public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
