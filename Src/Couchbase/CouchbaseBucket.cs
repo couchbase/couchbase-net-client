@@ -343,30 +343,78 @@ namespace Couchbase
             return Decrement(key, delta, initial, expiration.ToTtl());
         }
 
+        /// <summary>
+        /// Decrements the value of a key by one as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key)
         {
-
-            throw new NotImplementedException();
+            return DecrementAsync(key, 1);
         }
 
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta)
         {
-            throw new NotImplementedException();
+            return DecrementAsync(key, delta, 1);
         }
 
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial)
         {
-            throw new NotImplementedException();
+            return DecrementAsync(key, delta, initial, 0);
         }
 
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
-            throw new NotImplementedException();
+            return DecrementAsync(key, delta, initial, expiration.ToTtl());
         }
 
         /// <summary>
@@ -739,29 +787,77 @@ namespace Couchbase
             return Increment(key, delta, initial, expiration.ToTtl());
         }
 
+        /// <summary>
+        /// Increments the value of a key by one as an asynchronous operation. If the key doesn't exist, it will be created.
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>/// <returns></returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key)
         {
-            throw new NotImplementedException();
+            return IncrementAsync(key, 1);
         }
 
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta)
         {
-            throw new NotImplementedException();
+            return IncrementAsync(key, delta, 1);
         }
 
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial)
         {
-            throw new NotImplementedException();
+            return IncrementAsync(key, delta, initial, 0);
         }
 
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</remarks>>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Increment(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <remarks>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</remarks>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
-            throw new NotImplementedException();
+            return IncrementAsync(key, delta, initial, expiration.ToTtl());
         }
 
         /// <summary>

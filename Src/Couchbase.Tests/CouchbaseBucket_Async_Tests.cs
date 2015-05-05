@@ -528,5 +528,170 @@ namespace Couchbase.Tests
                 }
             }
         }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "When_Integer_Is_Incremented_Value_Increases_By_One_Async";
+                    bucket.Remove(key);
+
+                    var result = await bucket.IncrementAsync(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(1, result.Value);
+
+                    result = bucket.Increment(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(2, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async()
+        {
+            const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = await bucket.IncrementAsync(key, 10, 2);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(2, result.Value);
+
+                    result = bucket.Increment(key, 10, 2);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(12, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Expiration_Is_2_Key_Expires_After_2_Seconds_Async()
+        {
+            const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds_Async";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = await bucket.IncrementAsync(key, 1, 1, 1);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(1, result.Value);
+                    Thread.Sleep(2000);
+                    result = bucket.Get<ulong>(key);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+                }
+            }
+        }
+
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
+                    bucket.Remove(key);
+
+                    var result = await bucket.DecrementAsync(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(1, result.Value);
+
+                    result = bucket.Decrement(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(0, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
+
+                    //remove key if it exists
+                    await bucket.RemoveAsync(key);
+
+                    //will add the initial value
+                    var result = await bucket.DecrementAsync(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(1, result.Value);
+
+                    //decrement the key
+                    result = await bucket.DecrementAsync(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(0, result.Value);
+
+                    //Should still be zero
+                    result = await bucket.DecrementAsync(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(0, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
+        {
+            const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    await bucket.RemoveAsync(key);
+                    var result = await bucket.DecrementAsync(key, 2, 4);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(4, result.Value);
+
+                    result = await bucket.DecrementAsync(key, 2, 4);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(2, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
+        {
+            const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    await bucket.RemoveAsync(key);
+                    var result = await bucket.DecrementAsync(key, 1, 1, 1);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(1, result.Value);
+                    Thread.Sleep(2000);
+                    result = bucket.Get<ulong>(key);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+                }
+            }
+        }
     }
 }
