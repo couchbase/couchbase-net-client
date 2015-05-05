@@ -2064,7 +2064,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Decrement(key, delta, initial, expiration, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
