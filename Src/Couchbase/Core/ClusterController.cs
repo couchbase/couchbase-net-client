@@ -162,6 +162,13 @@ namespace Couchbase.Core
             var exceptions = new List<Exception>();
             lock (_syncObject)
             {
+                //shortcircuit in case lock was waited upon because another thread bootstraped same bucket
+                if (_buckets.ContainsKey(bucketName))
+                {
+                    Log.DebugFormat("Bootstraping was already done, returning existing bucket {0}", bucketName);
+                    return _buckets[bucketName];
+                }
+                //otherwise bootstrap a new bucket
                 var success = false;
                 IBucket bucket = null;
                 foreach (var provider in _configProviders)

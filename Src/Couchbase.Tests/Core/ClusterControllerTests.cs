@@ -22,6 +22,7 @@ using Couchbase.Tests.Configuration.Client;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using System.Threading;
 
 namespace Couchbase.Tests.Core
 {
@@ -38,7 +39,8 @@ namespace Couchbase.Tests.Core
         public void SetUp()
         {
             _endPoint = UriExtensions.GetEndPoint(_address);
-            _clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            CouchbaseClientSection section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
+            _clientConfig = new ClientConfiguration(section);
             _clusterManager = new ClusterController(_clientConfig);
         }
 
@@ -153,6 +155,28 @@ namespace Couchbase.Tests.Core
             Assert.NotNull(info.BucketConfigs());
             Assert.Greater(info.BucketConfigs().Count, 0);
             Assert.NotNull(info.BucketConfigs().ElementAt(0));
+        }
+
+        [Test]
+        public void When_Same_Bucket_Requested_Twice_In_Parallel_Only_One_Bootstrap_Is_Done()
+        {
+            var clusterController = new ClusterController(_clientConfig);
+            var cluster1 = new Cluster(_clientConfig, clusterController);
+            var cluster2 = new Cluster(_clientConfig, clusterController);
+
+            object bucket1 = null;
+            object bucket2 = null;
+
+            var t1 = new Thread(() => bucket1 = cluster1.OpenBucket("default", ""));
+            var t2 = new Thread(() => bucket2 = cluster2.OpenBucket("default", ""));
+
+            t1.Start();
+            t2.Start();
+            t1.Join();
+            t2.Join();
+
+            Assert.IsNotNull(bucket1);
+            Assert.AreSame(bucket1, bucket2);
         }
     }
 }
