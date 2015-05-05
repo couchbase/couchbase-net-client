@@ -184,6 +184,8 @@ namespace Couchbase.IO
                     {
                         _sslStream.Dispose();
                     }
+                    //call the bases dispose to cleanup the timer
+                    base.Dispose();
                 }
             }
             else
@@ -199,6 +201,8 @@ namespace Couchbase.IO
                     {
                         _sslStream.Dispose();
                     }
+                    //call the bases dispose to cleanup the timer
+                    base.Dispose();
                 }
             }
             Disposed = true;

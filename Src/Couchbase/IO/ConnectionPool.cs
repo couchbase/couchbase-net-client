@@ -108,7 +108,7 @@ namespace Couchbase.IO
         {
             T connection;
 
-            if (_store.TryDequeue(out connection))
+            if (_store.TryDequeue(out connection) && !_disposed)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
                 Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
@@ -120,7 +120,7 @@ namespace Couchbase.IO
 
             lock (_lock)
             {
-                if (_count < _configuration.MaxSize)
+                if (_count < _configuration.MaxSize && !_disposed)
                 {
                     connection = _factory(this, _converter);
                     _refs.Add(connection);
@@ -188,15 +188,28 @@ namespace Couchbase.IO
             if (!_disposed)
             {
                 _disposed = true;
-                foreach (var connection in _refs)
+                var interval = _configuration.CloseAttemptInterval;
+
+                T conn;
+                while (_refs.Count > 0)
                 {
-                    if (connection.InUse)
+                    if (_refs.TryTake(out conn) && !conn.HasShutdown)
                     {
-                        connection.CountdownToClose(_configuration.CloseAttemptInterval);
-                    }
-                    else
-                    {
-                        connection.Dispose();
+                        if (conn.InUse)
+                        {
+                            conn.CountdownToClose(interval);
+                            _refs.Add(conn);
+                        }
+                        else
+                        {
+                            lock (conn)
+                            {
+                                if (!conn.InUse)
+                                {
+                                    conn.Dispose();
+                                }
+                            }
+                        }
                     }
                 }
             }

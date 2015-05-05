@@ -119,5 +119,11 @@ namespace Couchbase.Tests.Fakes
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public bool HasShutdown
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

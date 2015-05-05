@@ -108,6 +108,14 @@ namespace Couchbase.IO
         /// <c>true</c> if this instance is disposed; otherwise, <c>false</c>.
         /// </value>
         bool IsDisposed { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is shutting down.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has shutdown; otherwise, <c>false</c>.
+        /// </value>
+        bool HasShutdown { get; }
     }
 }
 

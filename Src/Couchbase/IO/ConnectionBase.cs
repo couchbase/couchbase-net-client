@@ -136,6 +136,14 @@ namespace Couchbase.IO
         public int CloseAttempts { get { return _closeAttempts; } }
 
         /// <summary>
+        /// Gets a value indicating whether this instance is shutting down.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has shutdown; otherwise, <c>false</c>.
+        /// </value>
+        public bool HasShutdown { get; private set; }
+
+        /// <summary>
         /// Gets a value indicating whether this instance is disposed.
         /// </summary>
         /// <value>
@@ -195,6 +203,7 @@ namespace Couchbase.IO
         /// <param name="interval">The interval to wait between close attempts.</param>
         public void CountdownToClose(uint interval)
         {
+            HasShutdown = true;
             _timer = new System.Timers.Timer
             {
                 Interval = interval,
@@ -208,7 +217,7 @@ namespace Couchbase.IO
                 _closeAttempts = Interlocked.Increment(ref _closeAttempts);
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
-                    Log.DebugFormat("Restarting timer for connection: {0}", _identity);
+                    Log.DebugFormat("Restarting timer for connection for {0} after {1}", _identity, args.SignalTime.Millisecond);
                     _timer.Start();
                 }
                 else
