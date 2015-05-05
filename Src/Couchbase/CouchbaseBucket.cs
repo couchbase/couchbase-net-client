@@ -171,14 +171,32 @@ namespace Couchbase
             return operationResult;
         }
 
+        /// <summary>
+        /// Appends a value to a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to append to.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<string>> AppendAsync(string key, string value)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Append<string>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var result = _requestExecuter.SendWithRetryAsync(operation);
+            return result;
         }
 
+        /// <summary>
+        /// Appends a value to a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to append to.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Append<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var result = _requestExecuter.SendWithRetryAsync(operation);
+            return result;
         }
 
         public IBucketManager CreateManager(string username, string password)
@@ -1397,14 +1415,30 @@ namespace Couchbase
             return operationResult;
         }
 
+        /// <summary>
+        /// Prepends a value to a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to Prepend to.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<string>> PrependAsync(string key, string value)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Prepend<string>(key, value, _transcoder, null, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
+        /// <summary>
+        /// Prepends a value to a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to Prepend to.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _operationLifespanTimeout);
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>

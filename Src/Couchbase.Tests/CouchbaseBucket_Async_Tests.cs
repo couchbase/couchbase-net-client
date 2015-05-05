@@ -595,17 +595,68 @@ namespace Couchbase.Tests
             }
         }
 
+        public async void Test_Prepend_Async()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "Test_Prepend_Async";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.PrependAsync(key, "AB");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public async void Test_AppendAsync()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "Test_Append_Async";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.AppendAsync(key, "AB");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void Test_AppendAsync_String()
+        {
+            const string key = "CouchbaseBucket.Test_AppendAsync";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    {
+                        bucket.Remove(key);
+                        Assert.IsTrue(bucket.Insert(key, key).Success);
+                        var result = await bucket.AppendAsync(key, "!");
+                        Assert.IsTrue(result.Success);
+
+                        result = await bucket.GetAsync<string>(key);
+                        Assert.AreEqual(key + "!", result.Value);
+                    }
+                }
+            }
+        }
 
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
         public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
         {
+            const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
             using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket())
                 {
-                    const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
                     bucket.Remove(key);
 
                     var result = await bucket.DecrementAsync(key);
@@ -624,12 +675,11 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
         {
+            const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
             using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket())
                 {
-                    const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
-
                     //remove key if it exists
                     await bucket.RemoveAsync(key);
 
@@ -650,6 +700,49 @@ namespace Couchbase.Tests
                 }
             }
         }
+
+        public async void Test_AppendAsync_ByteArray()
+        {
+            const string key = "CouchbaseBucket.Test_AppendAsync_ByteArray";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var bytes = new byte[] {0x00, 0x01};
+                    await bucket.RemoveAsync(key);
+                    Assert.IsTrue((await bucket.InsertAsync(key, bytes)).Success);
+                    var result2 = bucket.Get<byte[]>(key);
+                    Assert.AreEqual(bytes, result2.Value);
+                    var result = await bucket.AppendAsync(key, new byte[] {0x02});
+                    Assert.IsTrue(result.Success);
+
+                    result = bucket.Get<byte[]>(key);
+                    Assert.AreEqual(new byte[] {0x00, 0x01, 0x02}, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async void Test_PrependAsync()
+        {
+            const string key = "CouchbaseBucket.Test_PrependAsync";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    Assert.IsTrue(bucket.Insert(key, key).Success);
+                    var result = await bucket.PrependAsync(key, "!");
+                    Assert.IsTrue(result.Success);
+
+                    result = bucket.Get<string>(key);
+                    Assert.AreEqual("!" + key, result.Value);
+                }
+            }
+        }
+
 
         [Test]
         [Category("Integration")]
@@ -672,6 +765,26 @@ namespace Couchbase.Tests
                 }
             }
         }
+
+        public async void Test_PrependAsync_ByteArray()
+        {
+            const string key = "CouchbaseBucket.Test_PrependAsync_ByteArray";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                     var bytes = new byte[] {0x00, 0x01};
+                    bucket.Remove(key);
+                    Assert.IsTrue(bucket.Insert(key, bytes).Success);
+                    var result = await bucket.PrependAsync(key, new byte[] {0x02});
+                    Assert.IsTrue(result.Success);
+
+                    result = bucket.Get<byte[]>(key);
+                    Assert.AreEqual(new byte[] {0x02, 0x00, 0x01,}, result.Value);
+                }
+            }
+        }
+
 
         [Test]
         [Category("Integration")]

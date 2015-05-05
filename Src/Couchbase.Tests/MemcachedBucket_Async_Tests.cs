@@ -24,16 +24,23 @@ using NUnit.Framework;
 using System.IO;
 using System.Threading;
 
+
 namespace Couchbase.Tests
 {
     [TestFixture]
     public class MemcachedBucket_Async_Tests
     {
-        readonly IPEndPoint _endPoint = UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
+        private readonly IPEndPoint _endPoint =
+            UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
+
         private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
-        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
-        readonly IByteConverter _converter = new DefaultConverter();
-        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
+
+        private readonly IBucketConfig _bucketConfig =
+            JsonConvert.DeserializeObject<BucketConfig>(
+                File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+
+        private readonly IByteConverter _converter = new DefaultConverter();
+        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
         public IBucket GetBucketForKey(string key)
         {
@@ -61,7 +68,7 @@ namespace Couchbase.Tests
             var bucket = cluster.OpenBucket("memcached", "");
 
             //simulate a config event
-            ((IConfigObserver)bucket).NotifyConfigChanged(mockConfigInfo.Object);
+            ((IConfigObserver) bucket).NotifyConfigChanged(mockConfigInfo.Object);
 
             return bucket;
         }
@@ -370,7 +377,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        [Category("Integration")]
+        [ Category("Integration")]
         [Category("Memcached")]
         public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
         {
@@ -441,11 +448,11 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
         {
+            const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
             using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
-                    const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
                     bucket.Remove(key);
 
                     var result = await bucket.DecrementAsync(key);
@@ -459,34 +466,54 @@ namespace Couchbase.Tests
             }
         }
 
+        public async void Test_Prepend_Async()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "Test_Prepend_Async";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.PrependAsync(key, "AB");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public async void Test_Append_Async()
+        {
+            var connection = new FakeConnection();
+            connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
+            _connectionPool.AddConnection(connection);
+
+            var key = "Test_Append_Async";
+            var bucket = GetBucketForKey(key);
+            var result = await bucket.AppendAsync(key, "AB");
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
         [Test]
         [Category("Integration")]
         [Category("Memcached")]
-        public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
+        public async void Test_AppendAsync_String()
         {
+            const string key = "MemcachedBucket.Test_AppendAsync";
             using (var cluster = new Cluster())
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
-                    const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
+                    {
+                        bucket.Remove(key);
+                        Assert.IsTrue(bucket.Insert(key, key).Success);
+                        var result = await bucket.AppendAsync(key, "!");
+                        Assert.IsTrue(result.Success);
 
-                    //remove key if it exists
-                    await bucket.RemoveAsync(key);
-
-                    //will add the initial value
-                    var result = await bucket.DecrementAsync(key);
-                    Assert.IsTrue(result.Success);
-                    Assert.AreEqual(1, result.Value);
-
-                    //decrement the key
-                    result = await bucket.DecrementAsync(key);
-                    Assert.IsTrue(result.Success);
-                    Assert.AreEqual(0, result.Value);
-
-                    //Should still be zero
-                    result = await bucket.DecrementAsync(key);
-                    Assert.IsTrue(result.Success);
-                    Assert.AreEqual(0, result.Value);
+                        result = await bucket.GetAsync<string>(key);
+                        Assert.AreEqual(key + "!", result.Value);
+                    }
                 }
             }
         }
@@ -494,6 +521,66 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Memcached")]
+        public async void Test_AppendAsync_ByteArray()
+        {
+            const string key = "MemcachedBucket.Test_AppendAsync_ByteArray";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("memcached"))
+                {
+                    {
+                        var bytes = new byte[] {0x00, 0x01};
+                        await bucket.RemoveAsync(key);
+                        Assert.IsTrue((await bucket.InsertAsync(key, bytes)).Success);
+                        var result2 = bucket.Get<byte[]>(key);
+                        Assert.AreEqual(bytes, result2.Value);
+                        var result = await bucket.AppendAsync(key, new byte[] {0x02});
+                        Assert.IsTrue(result.Success);
+
+                        result = bucket.Get<byte[]>(key);
+                        Assert.AreEqual(new byte[] {0x00, 0x01, 0x02}, result.Value);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
+        {
+            const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("memcached"))
+                {
+                    {
+                        //remove key if it exists
+                        await bucket.RemoveAsync(key);
+
+                        //will add the initial value
+                        var result = await bucket.DecrementAsync(key);
+                        Assert.IsTrue(result.Success);
+                        Assert.AreEqual(1, result.Value);
+
+                        //decrement the key
+                        result = await bucket.DecrementAsync(key);
+                        Assert.IsTrue(result.Success);
+                        Assert.AreEqual(0, result.Value);
+
+                        //Should still be zero
+                        result = await bucket.DecrementAsync(key);
+                        Assert.IsTrue(result.Success);
+                        Assert.AreEqual(0, result.Value);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+
         public async void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
         {
             const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async";
@@ -516,6 +603,49 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Memcached")]
+        public async void Test_PrependAsync()
+        {
+            const string key = "MemcachedBucket.Test_PrependAsync";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("memcached"))
+                {
+                    bucket.Remove(key);
+                    Assert.IsTrue(bucket.Insert(key, key).Success);
+                    var result = await bucket.PrependAsync(key, "!");
+                    Assert.IsTrue(result.Success);
+
+                    result = bucket.Get<string>(key);
+                    Assert.AreEqual("!" + key, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public async void Test_PrependAsync_ByteArray()
+        {
+            const string key = "MemcachedBucket.Test_PrependAsync_ByteArray";
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("memcached"))
+                {
+                    var bytes = new byte[] {0x00, 0x01};
+                    bucket.Remove(key);
+                    Assert.IsTrue(bucket.Insert(key, bytes).Success);
+                    var result = await bucket.PrependAsync(key, new byte[] {0x02});
+                    Assert.IsTrue(result.Success);
+
+                    result = bucket.Get<byte[]>(key);
+                    Assert.AreEqual(new byte[] {0x02, 0x00, 0x01,}, result.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
         public async void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async";
@@ -530,6 +660,7 @@ namespace Couchbase.Tests
                     Thread.Sleep(2000);
                     result = bucket.Get<ulong>(key);
                     Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+
                 }
             }
         }
