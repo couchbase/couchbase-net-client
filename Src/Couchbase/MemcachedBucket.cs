@@ -1890,19 +1890,48 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="GetWithLock{T}" /> as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public Task<IOperationResult> UnlockAsync(string key, ulong cas)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>

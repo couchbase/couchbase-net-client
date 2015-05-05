@@ -205,7 +205,7 @@ namespace Couchbase.Tests
                     var getl = await bucket.GetWithLockAsync<string>(key, 15);
                     Assert.IsTrue(getl.Success); //will succeed
 
-                    var unlock = bucket.Unlock(key, getl.Cas);
+                    var unlock = await bucket.UnlockAsync(key, getl.Cas);
                     Assert.IsTrue(unlock.Success);
 
                     var upsert = bucket.Upsert(key, "{'name':'value2'}");

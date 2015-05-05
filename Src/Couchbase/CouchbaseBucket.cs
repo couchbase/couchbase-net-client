@@ -2405,9 +2405,20 @@ namespace Couchbase
             return _requestExecuter.SendWithRetry(unlock);
         }
 
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/> as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult> UnlockAsync(string key, ulong cas)
         {
-            throw new NotImplementedException();
+            CheckDisposed();
+            var operation = new Unlock(key, _transcoder, null, _operationLifespanTimeout)
+            {
+                Cas = cas
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
