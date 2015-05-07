@@ -239,8 +239,8 @@ namespace Couchbase.IO
         /// </summary>
         public virtual void Dispose()
         {
-            if (_timer == null) return;
             Log.DebugFormat("Disposing the timer for {0}", _identity);
+            if (_timer == null) return;
             _inUse = false;
             _timer.Dispose();
         }

@@ -34,6 +34,8 @@ namespace Couchbase.Core
 
         IPEndPoint EndPoint { get; }
 
+        void TakeOffline(bool isDown);
+
         /// <summary>
         /// Sends a key/value operation that contains no body to it's mapped server asynchronously.
         /// </summary>
@@ -112,6 +114,8 @@ namespace Couchbase.Core
         bool IsDead { get; }
 
         void MarkDead();
+
+        bool IsDown { get; }
     }
 }
 

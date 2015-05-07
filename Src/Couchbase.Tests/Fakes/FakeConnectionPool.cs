@@ -62,6 +62,19 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+
+        public Couchbase.Core.IServer Owner
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }
 

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.Remoting.Channels;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
 
 namespace Couchbase.IO
 {
@@ -48,5 +50,7 @@ namespace Couchbase.IO
         /// Returns a collection of <see cref="IConnection"/> objects.
         /// </summary>
         IEnumerable<IConnection> Connections { get; }
+
+        IServer Owner { get; set; }
     }
 }

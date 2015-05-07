@@ -1,16 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -29,23 +32,75 @@ namespace Couchbase.Core
         private volatile bool _disposed;
         private volatile bool _isDead;
         private volatile bool _timingEnabled;
+        private volatile bool _isDown;
+        private Timer _heartBeatTimer;
 
-        public Server(IOStrategy ioStrategy,  INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration, IBucketConfig bucketConfig) :
-            this(ioStrategy,
-            new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-            new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
-            nodeAdapter, clientConfiguration)
+        public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
+            IBucketConfig bucketConfig) :
+                this(ioStrategy,
+                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig,
+                        clientConfiguration),
+                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
+                    nodeAdapter, clientConfiguration)
         {
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration)
+        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
+            ClientConfiguration clientConfiguration)
         {
             _ioStrategy = ioStrategy;
+            _ioStrategy.ConnectionPool.Owner = this;
             ViewClient = viewClient;
             QueryClient = queryClient;
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
+            _heartBeatTimer = new Timer(1000)
+            {
+                Enabled = false
+            };
+            _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
+        }
+
+        private async void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
+        {
+            Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
+            if (_isDown)
+            {
+                IConnection connection = null;
+                try
+                {
+                    connection = _ioStrategy.ConnectionPool.Acquire();
+                    var noop = new Noop(new DefaultTranscoder(), 1000);
+
+                    var result = _ioStrategy.Execute(noop);
+                    if (result.Success)
+                    {
+                        Log.DebugFormat("Successfully connected to {0}", EndPoint);
+                        Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
+                        _isDown = false;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Debug(e);
+                }
+                finally
+                {
+                    if (connection != null)
+                    {
+                        if (_isDown)
+                        {
+                            if (connection.Socket.Connected)
+                            {
+                                connection.IsDead = false;
+                            }
+                            _heartBeatTimer.Start();
+                        }
+                        _ioStrategy.ConnectionPool.Release(connection);
+                    }
+                }
+            }
         }
 
         public uint ViewPort
@@ -60,9 +115,15 @@ namespace Couchbase.Core
             set { _queryPort = value; }
         }
 
-        public IPEndPoint EndPoint { get { return _ioStrategy.EndPoint; } }
+        public IPEndPoint EndPoint
+        {
+            get { return _ioStrategy.EndPoint; }
+        }
 
-        public IConnectionPool ConnectionPool { get { return _ioStrategy.ConnectionPool; } }
+        public IConnectionPool ConnectionPool
+        {
+            get { return _ioStrategy.ConnectionPool; }
+        }
 
         public string HostName { get; set; }
 
@@ -76,7 +137,10 @@ namespace Couchbase.Core
 
         public bool Healthy { get; private set; }
 
-        public bool IsSecure { get { return _ioStrategy.IsSecure; } }
+        public bool IsSecure
+        {
+            get { return _ioStrategy.IsSecure; }
+        }
 
         public bool IsDead
         {
@@ -87,6 +151,20 @@ namespace Couchbase.Core
         public IQueryClient QueryClient { get; private set; }
 
         public IViewClient ViewClient { get; private set; }
+
+
+        public bool IsDown
+        {
+            get { return _isDown; }
+            set { _isDown = value; }
+        }
+
+        public void TakeOffline(bool isDown)
+        {
+            Log.DebugFormat("Taking node {0} offline: {1}", EndPoint, isDown);
+            _isDown = isDown;
+            _heartBeatTimer.Start();
+        }
 
         /// <summary>
         /// Sends a key/value operation that contains no body to it's mapped server.
@@ -165,9 +243,19 @@ namespace Couchbase.Core
         /// <returns>
         /// A <see cref="Task" /> representing the asynchronous operation.
         /// </returns>
-        public Task SendAsync<T>(IOperation<T> operation)
+        public async Task SendAsync<T>(IOperation<T> operation)
         {
-            return _ioStrategy.ExecuteAsync(operation);
+            if (_isDown)
+            {
+                var msg = string.Format("The current node {0} is down.", EndPoint);
+                operation.Completed(new SocketAsyncState
+                {
+                    Exception = new ServerException(msg),
+                    Opaque = operation.Opaque
+                });
+                return;
+            }
+            await _ioStrategy.ExecuteAsync(operation);
         }
 
         /// <summary>
@@ -177,9 +265,19 @@ namespace Couchbase.Core
         /// <returns>
         /// A <see cref="Task" /> representing the asynchronous operation.
         /// </returns>
-        public Task SendAsync(IOperation operation)
+        public async Task SendAsync(IOperation operation)
         {
-            return _ioStrategy.ExecuteAsync(operation);
+            if (_isDown)
+            {
+                var msg = string.Format("The current node {0} is down.", EndPoint);
+                operation.Completed(new SocketAsyncState
+                {
+                    Exception = new ServerException(msg),
+                    Opaque = operation.Opaque
+                });
+                return;
+            }
+            await _ioStrategy.ExecuteAsync(operation);
         }
 
         /// <summary>
@@ -357,9 +455,9 @@ namespace Couchbase.Core
             if (bucketConfig.UseSsl)
             {
                 var port = _nodeAdapter.ViewsSsl;
-                uri = uri.Replace(((int)DefaultPorts.CApi).
+                uri = uri.Replace(((int) DefaultPorts.CApi).
                     ToString(CultureInfo.InvariantCulture), port.
-                    ToString(CultureInfo.InvariantCulture));
+                        ToString(CultureInfo.InvariantCulture));
                 uri = uri.Replace("http", "https");
             }
 
@@ -390,7 +488,7 @@ namespace Couchbase.Core
             Dispose(true);
         }
 
-        void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!_disposed)
             {

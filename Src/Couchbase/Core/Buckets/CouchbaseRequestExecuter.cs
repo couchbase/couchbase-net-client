@@ -523,6 +523,7 @@ namespace Couchbase.Core.Buckets
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
                     Thread.Sleep((int)Math.Pow(2, attempts));
                 }
+                Log.Debug(m=>m("Starting send for {0} with {1}", operation.Opaque, server.EndPoint));
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)

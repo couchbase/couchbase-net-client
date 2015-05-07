@@ -187,7 +187,8 @@ namespace Couchbase.IO.Strategies
                 Log.Debug(e);
                 operation.Completed(new SocketAsyncState
                 {
-                    Exception = e
+                    Exception = e,
+                    Opaque = operation.Opaque
                 });
             }
         }
@@ -204,14 +205,26 @@ namespace Couchbase.IO.Strategies
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public Task ExecuteAsync<T>(IOperation<T> operation)
+        public async Task ExecuteAsync<T>(IOperation<T> operation)
         {
-            var connection = _connectionPool.Acquire();
-            if (!connection.IsAuthenticated)
+            try
             {
-                Authenticate(connection);
+                var connection = _connectionPool.Acquire();
+                if (!connection.IsAuthenticated)
+                {
+                    Authenticate(connection);
+                }
+                await ExecuteAsync(operation, connection);
             }
-            return ExecuteAsync(operation, connection);
+            catch (Exception e)
+            {
+                Log.Debug(e);
+                operation.Completed(new SocketAsyncState
+                {
+                    Exception = e,
+                    Opaque = operation.Opaque
+                });
+            }
         }
 
         /// <summary>
@@ -225,14 +238,26 @@ namespace Couchbase.IO.Strategies
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public Task ExecuteAsync(IOperation operation)
+        public async Task ExecuteAsync(IOperation operation)
         {
-            var connection = _connectionPool.Acquire();
-            if (!connection.IsAuthenticated)
+            try
             {
-                Authenticate(connection);
+                var connection = _connectionPool.Acquire();
+                if (!connection.IsAuthenticated)
+                {
+                    Authenticate(connection);
+                }
+                await ExecuteAsync(operation, connection);
             }
-            return ExecuteAsync(operation, connection);
+             catch (Exception e)
+             {
+                 Log.Debug(e);
+                 operation.Completed(new SocketAsyncState
+                 {
+                     Exception = e,
+                     Opaque = operation.Opaque
+                 });
+             }
         }
 
 

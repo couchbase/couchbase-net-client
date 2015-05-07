@@ -3,9 +3,11 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.Remoting.Channels;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.IO
@@ -24,6 +26,7 @@ namespace Couchbase.IO
         private ConcurrentBag<T> _refs = new ConcurrentBag<T>();
         private Guid _identity = Guid.NewGuid();
         private int _acquireFailedCount;
+        private readonly IServer _owner;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
@@ -122,6 +125,7 @@ namespace Couchbase.IO
             {
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
+                    Log.Debug("Trying to acquire new connection!");
                     connection = _factory(this, _converter);
                     _refs.Add(connection);
 
@@ -162,6 +166,13 @@ namespace Couchbase.IO
             {
                 connection.Dispose();
                 Interlocked.Decrement(ref _count);
+                Log.Debug(m => m("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
+                    connection.Identity, EndPoint, _identity, _store.Count, _count));
+
+                if (Owner != null)
+                {
+                    Owner.TakeOffline(connection.IsDead);
+                }
             }
             else
             {
@@ -237,5 +248,7 @@ namespace Couchbase.IO
         {
             get { return _store.ToArray(); }
         }
+
+        public IServer Owner { get; set; }
     }
 }

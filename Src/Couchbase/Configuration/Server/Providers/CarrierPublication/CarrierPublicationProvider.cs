@@ -49,6 +49,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         try
                         {
+                            Log.Debug(m=>m("Config heartbeat on {0}.", server.EndPoint));
                             var result = server.Send(
                                 new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
 

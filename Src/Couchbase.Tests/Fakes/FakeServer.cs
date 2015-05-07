@@ -128,5 +128,17 @@ namespace Couchbase.Tests.Fakes
         {
             return Strategy.ExecuteAsync(operation);
         }
+
+
+        public bool IsDown
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+
+        public void TakeOffline(bool isDown)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
