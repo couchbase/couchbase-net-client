@@ -68,9 +68,9 @@ namespace Couchbase.Configuration.Client
             BufferSize = 1024 * 16;
             DefaultOperationLifespan = 2500;//ms
             EnableTcpKeepAlives = true;
-            TcpKeepAliveInterval = 2*60*60*1000;
-            TcpKeepAliveTime = 1000;
-            NodeAvailableCheckInterval = 1000;
+
+            TcpKeepAliveTime = 2*60*60*1000;
+            TcpKeepAliveInterval = 1000;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
