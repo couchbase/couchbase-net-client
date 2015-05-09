@@ -291,11 +291,7 @@ namespace Couchbase.Core.Buckets
                 }
                 if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
                 {
-                    IOperation operation1 = operation;
-                    IOperationResult result = operationResult;
-                    Log.Debug(m => m("Operation retry {0} for key {1} using vb{2} from rev{3} and opaque{4}. Reason: {5}",
-                        operation1.Attempts, operation1.Key, operation1.VBucket.Index, operation1.VBucket.Rev, operation1.Opaque, result.Message));
-
+                    LogFailure(operation, operationResult);
                     operation = operation.Clone();
                 }
                 else
@@ -313,9 +309,7 @@ namespace Couchbase.Core.Buckets
                     ((OperationResult)operationResult).Message = msg;
                     ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                 }
-
-                const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.VBucket.Index, operation.VBucket.Rev, operation.Opaque, operationResult.Message));
+                LogFailure(operation, operationResult);
             }
 
             if (Log.IsDebugEnabled && TimingEnabled)
@@ -364,11 +358,7 @@ namespace Couchbase.Core.Buckets
                 }
                 if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
                 {
-                    IOperation<T> operation1 = operation;
-                    IOperationResult<T> result = operationResult;
-                    Log.Debug(m => m("Operation retry {0} for key {1} using vb{2} from rev{3} and opaque{4}. Reason: {5}",
-                        operation1.Attempts, operation1.Key, operation1.VBucket.Index, operation1.VBucket.Rev, operation1.Opaque, result.Message));
-
+                    LogFailure(operation, operationResult);
                     operation = (IOperation<T>)operation.Clone();
                 }
                 else
@@ -386,9 +376,7 @@ namespace Couchbase.Core.Buckets
                     ((OperationResult)operationResult).Message = msg;
                     ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                 }
-
-                const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.VBucket.Index, operation.VBucket.Rev, operation.Opaque, operationResult.Message));
+                LogFailure(operation, operationResult);
             }
 
             if (Log.IsDebugEnabled && TimingEnabled)

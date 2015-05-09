@@ -79,9 +79,7 @@ namespace Couchbase.Core.Buckets
                     ((OperationResult)operationResult).Message = msg;
                     ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                 }
-
-                const string msg1 = "Operation for key {0} failed after {1} retries for opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+                LogFailure(operation, operationResult);
             }
             return operationResult;
         }
@@ -128,9 +126,7 @@ namespace Couchbase.Core.Buckets
                     ((OperationResult)operationResult).Message = msg;
                     ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                 }
-
-                const string msg1 = "Operation for key {0} failed after {1} retries for opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+                LogFailure(operation, operationResult);
             }
             return operationResult;
         }

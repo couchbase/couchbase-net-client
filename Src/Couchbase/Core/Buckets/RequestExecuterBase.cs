@@ -438,5 +438,20 @@ namespace Couchbase.Core.Buckets
 
             return tcs.Task;
         }
+
+        public void LogFailure(IOperation operation, IOperationResult operationResult)
+        {
+            var vBucket = operation.VBucket;
+            if (vBucket != null)
+            {
+                const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
+                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message));
+            }
+            else
+            {
+                const string msg1 = "Operation for key {0} failed after {1} retries and opaque{2}. Reason: {3}";
+                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+            }
+        }
     }
 }
