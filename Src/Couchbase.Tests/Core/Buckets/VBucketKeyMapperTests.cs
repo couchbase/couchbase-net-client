@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,8 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Cryptography;
 using Couchbase.Tests.Helpers;
+using Couchbase.Tests.Utils;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -18,7 +21,7 @@ namespace Couchbase.Tests.Core.Buckets
     public class VBucketKeyMapperTests
     {
         const string Key = "XXXXX";
-        private List<IServer> _servers;
+        private Dictionary<IPAddress, IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
         private IBucketConfig _bucketConfig;
 
@@ -28,11 +31,14 @@ namespace Couchbase.Tests.Core.Buckets
             _bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
             _vBucketServerMap = _bucketConfig.VBucketServerMap;
 
-            _servers = _vBucketServerMap.
-                ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), _bucketConfig)).
-                Cast<IServer>().
-                ToList();
+            _servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in _vBucketServerMap.ServerList)
+            {
+                _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), _bucketConfig));
+            }
         }
 
         [Test]
@@ -55,7 +61,10 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            _servers.ForEach(x=>x.Dispose());
+            foreach (var server in _servers.Values)
+            {
+                server.Dispose();
+            }
         }
     }
 }

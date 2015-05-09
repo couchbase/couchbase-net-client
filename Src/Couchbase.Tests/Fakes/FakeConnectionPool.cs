@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.Utils;
 
@@ -63,18 +64,7 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-
-        public Couchbase.Core.IServer Owner
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public IServer Owner { get; set; }
     }
 }
 

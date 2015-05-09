@@ -56,7 +56,7 @@ namespace Couchbase.Configuration
             if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || force)
             {
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
-                var servers = new List<IServer>();
+                var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
@@ -68,7 +68,7 @@ namespace Couchbase.Configuration
                         var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
                         var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Transcoder);
                         ioStrategy.SaslMechanism = saslMechanism;
-                        servers.Add(server);
+                        servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)
                     {
@@ -78,7 +78,10 @@ namespace Couchbase.Configuration
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
-                    old.ForEach(x => x.Dispose());
+                    foreach (var server in old.Values)
+                    {
+                        server.Dispose();
+                    }
                     old.Clear();
                 }
             }
@@ -88,7 +91,7 @@ namespace Couchbase.Configuration
 
         public override void LoadConfig()
         {
-            var servers = new List<IServer>();
+            var servers = new Dictionary<IPAddress, IServer>();
             var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
             var nodes = BucketConfig.GetNodes();
             foreach (var adapter in nodes)
@@ -101,7 +104,7 @@ namespace Couchbase.Configuration
                     var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
                     var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Transcoder);
                     ioStrategy.SaslMechanism = saslMechanism;
-                    servers.Add(server);
+                    servers.Add(endpoint.Address, server);
                 }
                 catch (Exception e)
                 {
@@ -111,7 +114,10 @@ namespace Couchbase.Configuration
             var old = Interlocked.Exchange(ref Servers, servers);
             if (old != null)
             {
-                old.ForEach(x => x.Dispose());
+                foreach (var server in old.Values)
+                {
+                    server.Dispose();
+                }
                 old.Clear();
             }
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));

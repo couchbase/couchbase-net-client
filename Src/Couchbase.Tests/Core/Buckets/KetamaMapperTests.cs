@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
@@ -10,6 +11,7 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.Tests.Helpers;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -18,16 +20,21 @@ namespace Couchbase.Tests.Core.Buckets
     public class KetamaMapperTests
     {
         private KetamaKeyMapper _keyMapper;
-        private List<IServer> _servers;
+        private Dictionary<IPAddress, IServer> _servers;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.Find(x => x.BucketType == "memcached");
-            _servers = bucketConfig.GetNodes().
-                Select(node => new Server(ObjectFactory.CreateIOStrategy(node), node, new ClientConfiguration(), bucketConfig)).
-                Cast<IServer>().
-                ToList();
+
+            _servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in bucketConfig.GetNodes())
+            {
+                _servers.Add(IPEndPointExtensions.GetEndPoint(server.Hostname).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             _keyMapper = new KetamaKeyMapper(_servers);
         }

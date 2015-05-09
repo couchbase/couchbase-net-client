@@ -26,7 +26,7 @@ namespace Couchbase.Configuration
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
-        protected List<IServer> Servers = new List<IServer>();
+        protected IDictionary<IPAddress, IServer> Servers = new Dictionary<IPAddress, IServer>();
         protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory;
@@ -162,7 +162,7 @@ namespace Couchbase.Configuration
                 IServer server;
                 do
                 {
-                    server = Servers.Where(x => !x.IsDead).GetRandom();
+                    server = Servers.Values.Where(x => !x.IsDead).GetRandom();
 
                     //cannot find a server - usually a temp state
                     if (server == null)
@@ -202,7 +202,7 @@ namespace Couchbase.Configuration
                 try
                 {
                     Lock.EnterReadLock();
-                    return Servers.ToList();
+                    return Servers.Values.ToList();
                 }
                 finally
                 {
@@ -236,7 +236,10 @@ namespace Couchbase.Configuration
                 }
                 if (Servers != null)
                 {
-                    Servers.ForEach(x => x.Dispose());
+                    foreach (var server in Servers)
+                    {
+                        server.Value.Dispose();
+                    }
                     Servers.Clear();
                 }
                 _disposed = true;

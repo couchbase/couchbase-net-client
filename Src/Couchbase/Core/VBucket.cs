@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Common.Logging;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
 
 namespace Couchbase.Core
@@ -11,24 +14,18 @@ namespace Couchbase.Core
     internal class VBucket : IVBucket
     {
         private readonly static ILog Log = LogManager.GetLogger<VBucket>();
-        private readonly List<IServer> _cluster;
         private readonly int[] _replicas;
+        private readonly VBucketServerMap _vBucketServerMap;
+        private readonly IDictionary<IPAddress, IServer> _cluster;
 
-        public VBucket(List<IServer> cluster, int index, int primary, int[] replicas, int rev)
+        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, int rev, VBucketServerMap vBucketServerMap)
         {
             _cluster = cluster;
             Index = index;
             Primary = primary;
             _replicas = replicas;
             Rev = rev;
-        }
-
-        public VBucket(List<IServer> cluster, int index, int primary, int[] replicas)
-        {
-            _cluster = cluster;
-            Index = index;
-            Primary = primary;
-            _replicas = replicas;
+            _vBucketServerMap = vBucketServerMap;
         }
 
         /// <summary>
@@ -41,7 +38,15 @@ namespace Couchbase.Core
             IServer server = null;
             if (Primary > -1 && Primary < _cluster.Count)
             {
-                server = _cluster[Primary];
+                try
+                {
+                    var hostname = _vBucketServerMap.IPEndPoints[Primary];
+                    server = _cluster[hostname.Address];
+                }
+                catch (Exception e)
+                {
+                    Log.Debug(e);
+                }
             }
             if(server == null)
             {
@@ -50,11 +55,12 @@ namespace Couchbase.Core
                     var index = _replicas.GetRandom();
                     if (index > -1 && index < _cluster.Count)
                     {
-                        server = _cluster[index];
+                        var hostname = _vBucketServerMap.IPEndPoints[index];
+                        server = _cluster[hostname.Address];
                     }
                 }
             }
-            return server ?? (_cluster.GetRandom());
+            return server ?? (_cluster.Values.GetRandom());
         }
 
         /// <summary>
@@ -66,7 +72,8 @@ namespace Couchbase.Core
         {
             try
             {
-                return _cluster[index];
+                var hostname = _vBucketServerMap.IPEndPoints[index];
+                return _cluster[hostname.Address];
             }
             catch
             {

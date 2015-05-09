@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Common.Logging;
@@ -18,9 +19,9 @@ namespace Couchbase.Core.Buckets
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
-        private readonly List<IServer> _servers;
+        private readonly IDictionary<IPAddress, IServer> _servers;
 
-        public VBucketKeyMapper(List<IServer> servers, VBucketServerMap vBucketServerMap, int revision)
+        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, int revision)
         {
             Rev = revision;
             _servers = servers;
@@ -75,7 +76,7 @@ namespace Couchbase.Core.Buckets
                 {
                     replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev));
+                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap));
             }
             return vBuckets;
         }
@@ -101,7 +102,7 @@ namespace Couchbase.Core.Buckets
                     {
                         replicas[r - 1] = vBucketMapForward[i][r];
                     }
-                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas, Rev));
+                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap));
                 }
             }
             return vBucketMapForwards;

@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -6,6 +9,8 @@ namespace Couchbase.Configuration.Server.Serialization
 {
     public sealed class VBucketServerMap : IEquatable<VBucketServerMap>
     {
+        private readonly object _syncObj = new object();
+        private List<IPEndPoint> _ipEndPoints;
         public VBucketServerMap()
         {
             HashAlgorithm = string.Empty;
@@ -29,6 +34,26 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("vBucketMapForward")]
         public int[][] VBucketMapForward { get; set; }
+
+        [JsonIgnore]
+        public List<IPEndPoint> IPEndPoints
+        {
+            get
+            {
+                if (_ipEndPoints == null || !_ipEndPoints.Any())
+                {
+                    lock (_syncObj)
+                    {
+                        _ipEndPoints = new List<IPEndPoint>();
+                        foreach (var server in ServerList)
+                        {
+                            _ipEndPoints.Add(IPEndPointExtensions.GetEndPoint(server));
+                        }
+                    }
+                }
+                return _ipEndPoints;
+            }
+        }
 
         public bool Equals(VBucketServerMap other)
         {

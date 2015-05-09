@@ -43,7 +43,7 @@ namespace Couchbase.Configuration
                 if (BucketConfig == null || !BucketConfig.AreNodesEqual(bucketConfig) || !Servers.Any() || force)
                 {
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
-                    var servers = new List<IServer>();
+                    var servers = new Dictionary<IPAddress, IServer>();
                     var nodes = bucketConfig.GetNodes();
                     foreach (var adapter in nodes)
                     {
@@ -58,7 +58,7 @@ namespace Couchbase.Configuration
                             ioStrategy.SaslMechanism = saslMechanism;
 
                             var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
-                            servers.Add(server);
+                            servers.Add(endpoint.Address, server);
                         }
                         catch (Exception e)
                         {
@@ -68,7 +68,10 @@ namespace Couchbase.Configuration
                     var old = Interlocked.Exchange(ref Servers, servers);
                     if (old != null)
                     {
-                        old.ForEach(x => x.Dispose());
+                        foreach (var server in old.Values)
+                        {
+                            server.Dispose();
+                        }
                         old.Clear();
                     }
                 }
@@ -97,7 +100,7 @@ namespace Couchbase.Configuration
                 Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
 
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
-                var servers = new List<IServer>();
+                var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
@@ -118,7 +121,7 @@ namespace Couchbase.Configuration
                             newIoStrategy.SaslMechanism = saslMechanism;
                             server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig);
                         }
-                        servers.Add(server);
+                        servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)
                     {
@@ -130,7 +133,10 @@ namespace Couchbase.Configuration
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
-                    old.ForEach(x => x.Dispose());
+                    foreach (var server in old.Values)
+                    {
+                        server.Dispose();
+                    }
                     old.Clear();
                 }
                 Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
@@ -148,7 +154,7 @@ namespace Couchbase.Configuration
             {
                 Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
-                var servers = new List<IServer>();
+                var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
@@ -160,7 +166,7 @@ namespace Couchbase.Configuration
                         var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Transcoder);
                         ioStrategy.SaslMechanism = saslMechanism;
                         var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
-                        servers.Add(server);
+                        servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)
                     {
@@ -170,7 +176,10 @@ namespace Couchbase.Configuration
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
-                    old.ForEach(x => x.Dispose());
+                    foreach (var server in old.Values)
+                    {
+                        server.Dispose();
+                    }
                     old.Clear();
                 }
                 Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
@@ -183,7 +192,7 @@ namespace Couchbase.Configuration
 
         internal List<IServer> GetServers()
         {
-            return Servers;
+            return Servers.Values.ToList();
         }
 
         internal Dictionary<int, IVBucket> GetVBuckets()

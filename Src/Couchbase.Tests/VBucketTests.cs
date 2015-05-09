@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +12,10 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
+using Couchbase.Tests.Utils;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -21,24 +25,28 @@ namespace Couchbase.Tests
     public class VBucketTests
     {
         private IVBucket _vBucket;
-        private List<IServer> _servers;
+        private IDictionary<IPAddress, IServer> _servers;
+        private VBucketServerMap _vBucketServerMap;
 
         [TestFixtureSetUp]
         public void SetUp()
         {
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
-            var vBucketServerMap = bucketConfig.VBucketServerMap;
+            _vBucketServerMap = bucketConfig.VBucketServerMap;
 
-            _servers = vBucketServerMap.
-                ServerList.
-                Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-                Cast<IServer>().
-                ToList();
+            _servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in _vBucketServerMap.ServerList)
+            {
+                _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
-            var vBucketMap = vBucketServerMap.VBucketMap.First();
+            var vBucketMap = _vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
             var replicas = new int[]{vBucketMap[1]};
-            _vBucket = new VBucket(_servers, 0, primary, replicas);
+            _vBucket = new VBucket(_servers, 0, primary, replicas, bucketConfig.Rev, _vBucketServerMap);
         }
 
         [Test]
@@ -48,7 +56,7 @@ namespace Couchbase.Tests
             Assert.IsNotNull(primary);
 
             var expected = _servers.First();
-            Assert.AreSame(expected, primary);
+            Assert.AreSame(expected.Value, primary);
         }
 
         [Test]
@@ -58,7 +66,8 @@ namespace Couchbase.Tests
             var replica = _vBucket.LocateReplica(replicaIndex);
             Assert.IsNotNull(replica);
 
-            var expected = _servers[replicaIndex];
+            var hostname = _vBucketServerMap.IPEndPoints[replicaIndex];
+            var expected = _servers[hostname.Address];
             Assert.AreSame(expected, replica);
         }
 
@@ -67,11 +76,15 @@ namespace Couchbase.Tests
         {
             var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var servers = bucketConfig.VBucketServerMap.
-               ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-               Cast<IServer>().
-               ToList();
+
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in _vBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
@@ -85,11 +98,15 @@ namespace Couchbase.Tests
         {
             var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var servers = bucketConfig.VBucketServerMap.
-               ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-               Cast<IServer>().
-               ToList();
+
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in _vBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
@@ -107,11 +124,15 @@ namespace Couchbase.Tests
         {
             var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var servers = bucketConfig.VBucketServerMap.
-               ServerList.
-               Select(server => new Server(ObjectFactory.CreateIOStrategy(server), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-               Cast<IServer>().
-               ToList();
+
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in bucketConfig.VBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
@@ -131,11 +152,15 @@ namespace Couchbase.Tests
         {
             var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var servers = bucketConfig.VBucketServerMap.
-               ServerList.
-               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-               Cast<IServer>().
-               ToList();
+
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in _vBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
 
@@ -144,8 +169,8 @@ namespace Couchbase.Tests
             var vBucket = (IVBucket)mapper.MapKey(key);
             Assert.AreEqual(-1, vBucket.Primary);
 
-            var server = vBucket.LocatePrimary();
-            Assert.IsNotNull(server);
+            var primary = vBucket.LocatePrimary();
+            Assert.IsNotNull(primary);
         }
 
         [Test]
@@ -153,14 +178,18 @@ namespace Couchbase.Tests
         {
             var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var servers = bucketConfig.VBucketServerMap.
-               ServerList.
-               Select(s => new Server(ObjectFactory.CreateIOStrategy(s), new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-               Cast<IServer>().
-               ToList();
+
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in bucketConfig.VBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(ObjectFactory.CreateIOStrategy(server),
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             //remove one server
-            servers.RemoveAt(1);
+            servers.Remove(_vBucketServerMap.IPEndPoints.Skip(1).First().Address);
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
 
@@ -168,15 +197,28 @@ namespace Couchbase.Tests
             const string key = "somekey23";
             var vBucket = (IVBucket)mapper.MapKey(key);
 
-            var server = vBucket.LocatePrimary();
-            Assert.IsNotNull(server);
+            var primary = vBucket.LocatePrimary();
+            Assert.IsNotNull(primary);
         }
 
         [Test]
         public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
         {
-            var server = new Server(null, new NodeAdapter(new Node {Hostname = "127.0.0.1"}, new NodeExt()), new ClientConfiguration(), new BucketConfig{Name = "default"});
-            var vbucket = new VBucket(new List<IServer> {server, server}, 100, -1, new [] {2});
+            var server = new Server(
+               new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+               new FakeConnectionPool(), false),
+               new NodeAdapter(new Node { Hostname = "127.0.0.1" },
+               new NodeExt()),
+               new ClientConfiguration(),
+               new BucketConfig { Name = "default" });
+
+            var vbucket =
+                new VBucket(new Dictionary<IPAddress, IServer>
+                {
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                },
+                100, -1, new[] {2}, 0, new VBucketServerMap {ServerList = new []{"127.0.0.1:10210"}});
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
         }
@@ -184,7 +226,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_1_LocatePrimary_Returns_Random_Server()
         {
-            var vbucket = new VBucket(new List<IServer> { }, 100, -1, new[] { 0 });
+            var vbucket = new VBucket(new Dictionary<IPAddress, IServer>{}, 100, -1, new[] { 0 }, 0, new VBucketServerMap{ ServerList = new []{ "127.0.0.1:10210" }});
             var found = vbucket.LocatePrimary();
             Assert.IsNull(found);//should be null
         }
@@ -192,8 +234,21 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
-            var server = new Server(null, new NodeAdapter(new Node { Hostname = "127.0.0.1" }, new NodeExt()), new ClientConfiguration(), new BucketConfig{Name ="default"});
-            var vbucket = new VBucket(new List<IServer> { server, server }, 100, -1, new[] { -1 });
+            var server = new Server(
+                new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+                new FakeConnectionPool(), false),
+                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
+                new NodeExt()),
+                new ClientConfiguration(),
+                new BucketConfig{Name ="default"});
+
+            var vbucket =
+                new VBucket(new Dictionary<IPAddress, IServer>
+                {
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                },
+                100, -1, new[] { -1 }, 0,  new VBucketServerMap{ ServerList = new[] { "127.0.0.1:10210" }});
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
         }
@@ -201,7 +256,10 @@ namespace Couchbase.Tests
          [TestFixtureTearDown]
         public void TearDown()
         {
-            _servers.ForEach(x=>x.Dispose());
+             foreach (var server in _servers.Values)
+             {
+                 server.Dispose();
+             }
         }
     }
 }

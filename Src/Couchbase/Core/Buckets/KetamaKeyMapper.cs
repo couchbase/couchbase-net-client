@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,11 +12,11 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class KetamaKeyMapper : IKeyMapper
     {
-        private readonly List<IServer> _servers;
+        private readonly IDictionary<IPAddress, IServer> _servers;
         private readonly int _totalWeight;
         private readonly SortedDictionary<long, IServer> _buckets = new SortedDictionary<long, IServer>();
 
-        public KetamaKeyMapper(List<IServer> servers)
+        public KetamaKeyMapper(IDictionary<IPAddress, IServer> servers)
         {
             _servers = servers;
             _totalWeight = _servers.Count;
@@ -87,7 +88,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         public void Initialize()
         {
-            foreach (var server in _servers)
+            foreach (var server in _servers.Values)
             {
                 const int weight = 1; //may change this later
                 var factor = Math.Floor(40*_servers.Count()*weight/(double) _totalWeight);

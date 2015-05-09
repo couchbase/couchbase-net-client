@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Client;
@@ -8,6 +9,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
+using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -37,16 +39,19 @@ namespace Couchbase.Tests.IO.Operations
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x => x.Name=="default");
             var vBucketServerMap = bucketConfig.VBucketServerMap;
 
-            var servers = vBucketServerMap.
-                ServerList.
-                Select(server => new Server(_ioStrategy, new NodeAdapter(new Node(), new NodeExt()), new ClientConfiguration(), bucketConfig)).
-                Cast<IServer>().
-                ToList();
+            var servers = new Dictionary<IPAddress, IServer>();
+            foreach (var server in vBucketServerMap.ServerList)
+            {
+                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                    new Server(_ioStrategy,
+                        new NodeAdapter(new Node(), new NodeExt()),
+                        new ClientConfiguration(), bucketConfig));
+            }
 
             var vBucketMap = vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
             var replicas = new int[]{vBucketMap[1]};
-            return new VBucket(servers, 0, primary, replicas);
+            return new VBucket(servers, 0, primary, replicas, bucketConfig.Rev, vBucketServerMap);
         }
 
         internal IOStrategy IOStrategy { get { return _ioStrategy; } }
