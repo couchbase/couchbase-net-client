@@ -89,7 +89,8 @@ namespace Couchbase.IO
                 {
                     callback(new SocketAsyncState
                     {
-                        Exception = e
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
                     });
                 }
                 else

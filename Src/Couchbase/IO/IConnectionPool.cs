@@ -7,6 +7,9 @@ using Couchbase.Core;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// Represents a pool of TCP connections to a Couchbase Server node.
+    /// </summary>
     internal interface IConnectionPool : IDisposable
     {
         /// <summary>
@@ -51,6 +54,23 @@ namespace Couchbase.IO
         /// </summary>
         IEnumerable<IConnection> Connections { get; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="IServer"/> instance which "owns" this pool.
+        /// </summary>
+        /// <value>
+        /// The owner.
+        /// </value>
         IServer Owner { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the pool failed to initialize properly.
+        /// If for example, TCP connection to the server couldn't be made, then this
+        /// would return false until the connection could be made (after the node went
+        /// back online).
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if initialization failed; otherwise, <c>false</c>.
+        /// </value>
+        bool InitializationFailed { get; }
     }
 }

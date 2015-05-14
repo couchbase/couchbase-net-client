@@ -12,6 +12,9 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// Represents a pool of TCP connections to a Couchbase Server node.
+    /// </summary>
     internal class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
     {
         private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<T>>();
@@ -46,6 +49,17 @@ namespace Couchbase.IO
             _converter = converter;
             EndPoint = endPoint;
         }
+
+        /// <summary>
+        /// Gets a value indicating whether the pool failed to initialize properly.
+        /// If for example, TCP connection to the server couldn't be made, then this
+        /// would return false until the connection could be made (after the node went
+        /// back online).
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if initialization failed; otherwise, <c>false</c>.
+        /// </value>
+        public bool InitializationFailed { get; private set; }
 
         /// <summary>
         /// The configuration passed into the pool when it is created. It has fields
@@ -91,12 +105,21 @@ namespace Couchbase.IO
                 _count = _configuration.MinSize;
                 do
                 {
-                    var connection = _factory(this, _converter);
-                    Log.Debug(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
-                        EndPoint, connection.Identity, _identity, _disposed));
+                    try
+                    {
+                        var connection = _factory(this, _converter);
+                        Log.Debug(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
+                            EndPoint, connection.Identity, _identity, _disposed));
 
-                    _store.Enqueue(connection);
-                    _refs.Add(connection);
+                        _store.Enqueue(connection);
+                        _refs.Add(connection);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Info(e);
+                        InitializationFailed = true;
+                        return;
+                    }
                 } while (_store.Count < _count);
             }
         }
@@ -249,6 +272,12 @@ namespace Couchbase.IO
             get { return _store.ToArray(); }
         }
 
+        /// <summary>
+        /// Gets or sets the <see cref="IServer" /> instance which "owns" this pool.
+        /// </summary>
+        /// <value>
+        /// The owner.
+        /// </value>
         public IServer Owner { get; set; }
     }
 }

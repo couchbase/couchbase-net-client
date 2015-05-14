@@ -69,7 +69,7 @@ namespace Couchbase.IO
         /// The SASL mechanism type the <see cref="IOStrategy"/> is using for authentication.
         /// </summary>
         /// <remarks>This could be PLAIN or CRAM-MD5 depending upon what the server supports.</remarks>
-        ISaslMechanism SaslMechanism { set; }
+        ISaslMechanism SaslMechanism { set; get; }
 
         /// <summary>
         /// Returns true if internal TCP connections are using SSL.

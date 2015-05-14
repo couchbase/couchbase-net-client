@@ -21,6 +21,12 @@ namespace Couchbase.IO
         public Exception Exception { get; set; }
 
         public Func<SocketAsyncState, Task> Completed { get; set; }
+
+        /// <summary>
+        /// Represents a response status that has originated in within the client.
+        /// The purpose is to handle client side errors
+        /// </summary>
+        public ResponseStatus Status { get; set; }
     }
 
     #region [ License information ]

@@ -10,6 +10,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
+using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
 using NUnit.Framework;
@@ -33,7 +34,8 @@ namespace Couchbase.Tests.Core.Buckets
                 _servers.Add(IPEndPointExtensions.GetEndPoint(server.Hostname).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             _keyMapper = new KetamaKeyMapper(_servers);

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
@@ -9,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -17,36 +17,42 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Utils;
 using Couchbase.Views;
 
 namespace Couchbase.Core
 {
+    /// <summary>
+    /// Represents a Couchbase Server node on the network.
+    /// </summary>
     internal class Server : IServer
     {
         private static readonly ILog Log = LogManager.GetLogger<Server>();
         private readonly ClientConfiguration _clientConfiguration;
         private readonly IOStrategy _ioStrategy;
         private readonly INodeAdapter _nodeAdapter;
+        private readonly ITypeTranscoder _typeTranscoder;
+        private readonly IBucketConfig _bucketConfig;
         private uint _viewPort = 8092;
         private uint _queryPort = 8093;
         private volatile bool _disposed;
         private volatile bool _isDead;
         private volatile bool _timingEnabled;
         private volatile bool _isDown;
-        private Timer _heartBeatTimer;
+        private readonly Timer _heartBeatTimer;
 
         public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
-            IBucketConfig bucketConfig) :
+            IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
                 this(ioStrategy,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig,
                         clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
-                    nodeAdapter, clientConfiguration)
+                    nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
         public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
-            ClientConfiguration clientConfiguration)
+            ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
             _ioStrategy = ioStrategy;
             _ioStrategy.ConnectionPool.Owner = this;
@@ -55,21 +61,29 @@ namespace Couchbase.Core
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
+            _typeTranscoder = transcoder;
+            _bucketConfig = bucketConfig;
             _heartBeatTimer = new Timer(1000)
             {
                 Enabled = false
             };
             _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
+            TakeOffline(_ioStrategy.ConnectionPool.InitializationFailed);
         }
 
         private async void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
         {
             Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
+            _heartBeatTimer.Stop();
             if (_isDown)
             {
                 IConnection connection = null;
                 try
                 {
+                    //once we can connect, we need a sasl mechanism for auth
+                    CreateSaslMechanismIfNotExists();
+
+                    //if we have a sasl mechanism, we just try a noop
                     connection = _ioStrategy.ConnectionPool.Acquire();
                     var noop = new Noop(new DefaultTranscoder(), 1000);
 
@@ -78,15 +92,17 @@ namespace Couchbase.Core
                     {
                         Log.DebugFormat("Successfully connected to {0}", EndPoint);
                         Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
-                        _isDown = false;
+                        TakeOffline(false);
                     }
                 }
                 catch (Exception e)
                 {
+                    //the node is down or unreachable
                     Log.Debug(e);
                 }
                 finally
                 {
+                    //will be null if the node is dead
                     if (connection != null)
                     {
                         if (_isDown)
@@ -99,9 +115,36 @@ namespace Couchbase.Core
                         }
                         _ioStrategy.ConnectionPool.Release(connection);
                     }
+                    else
+                    {
+                        _heartBeatTimer.Start();
+                    }
                 }
             }
         }
+
+        /// <summary>
+        /// Creates the sasl mechanism using the <see cref="SaslFactory" /> provided if it is null.
+        /// </summary>
+        public void CreateSaslMechanismIfNotExists()
+        {
+            if (_ioStrategy.SaslMechanism == null)
+            {
+                _ioStrategy.SaslMechanism = SaslFactory(
+                    _bucketConfig.Name,
+                    _bucketConfig.Password,
+                    _ioStrategy,
+                    _typeTranscoder);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the SASL factory for authenticating each TCP connection.
+        /// </summary>
+        /// <value>
+        /// The sasl factory.
+        /// </value>
+        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
 
         public uint ViewPort
         {
@@ -163,7 +206,34 @@ namespace Couchbase.Core
         {
             Log.DebugFormat("Taking node {0} offline: {1}", EndPoint, isDown);
             _isDown = isDown;
-            _heartBeatTimer.Start();
+            if (_isDown)
+            {
+                _heartBeatTimer.Start();
+            }
+            else
+            {
+               _heartBeatTimer.Stop();
+            }
+        }
+
+        IOperationResult HandleNodeUnavailable(IOperation operation)
+        {
+            var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
+            operation.Exception = new NodeUnavailableException(msg);
+            operation.HandleClientError(msg, ResponseStatus.NodeUnavailable);
+            return  operation.GetResult();
+        }
+
+        IOperationResult<T> HandleNodeUnavailable<T>(IOperation<T> operation)
+        {
+            var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
+            operation.Exception = new NodeUnavailableException(msg);
+            operation.HandleClientError(msg, ResponseStatus.NodeUnavailable);
+            return operation.GetResultWithValue();
         }
 
         /// <summary>
@@ -181,21 +251,28 @@ namespace Couchbase.Core
             }
 
             IOperationResult result;
-            try
+            if (_isDown)
             {
-                Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
-                result = _ioStrategy.Execute(operation);
+                result = HandleNodeUnavailable(operation);
             }
-            catch (Exception e)
+            else
             {
-                operation.Exception = e;
-                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                result = operation.GetResult();
-            }
+                try
+                {
+                    Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                    result = _ioStrategy.Execute(operation);
+                }
+                catch (Exception e)
+                {
+                    operation.Exception = e;
+                    operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                    result = operation.GetResult();
+                }
 
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.EndTimer(TimingLevel.Two);
+                if (Log.IsDebugEnabled && _timingEnabled)
+                {
+                    operation.EndTimer(TimingLevel.Two);
+                }
             }
             return result;
         }
@@ -216,21 +293,28 @@ namespace Couchbase.Core
             }
 
             IOperationResult<T> result;
-            try
+            if (_isDown)
             {
-                Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
-                result = _ioStrategy.Execute(operation);
+                result = HandleNodeUnavailable(operation);
             }
-            catch (Exception e)
+            else
             {
-                operation.Exception = e;
-                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                result = operation.GetResultWithValue();
-            }
+                try
+                {
+                    Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                    result = _ioStrategy.Execute(operation);
+                }
+                catch (Exception e)
+                {
+                    operation.Exception = e;
+                    operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                    result = operation.GetResultWithValue();
+                }
 
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.EndTimer(TimingLevel.Two);
+                if (Log.IsDebugEnabled && _timingEnabled)
+                {
+                    operation.EndTimer(TimingLevel.Two);
+                }
             }
             return result;
         }
@@ -247,11 +331,14 @@ namespace Couchbase.Core
         {
             if (_isDown)
             {
-                var msg = string.Format("The current node {0} is down.", EndPoint);
+                var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
                 operation.Completed(new SocketAsyncState
                 {
-                    Exception = new ServerException(msg),
-                    Opaque = operation.Opaque
+                    Exception = new NodeUnavailableException(msg),
+                    Opaque = operation.Opaque,
+                    Status = ResponseStatus.NodeUnavailable
                 });
                 return;
             }
@@ -269,11 +356,14 @@ namespace Couchbase.Core
         {
             if (_isDown)
             {
-                var msg = string.Format("The current node {0} is down.", EndPoint);
+                var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
                 operation.Completed(new SocketAsyncState
                 {
                     Exception = new ServerException(msg),
-                    Opaque = operation.Opaque
+                    Opaque = operation.Opaque,
+                    Status = ResponseStatus.NodeUnavailable
                 });
                 return;
             }

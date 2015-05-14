@@ -124,6 +124,7 @@ namespace Couchbase.Tests.IO.Strategies
         ISaslMechanism IOStrategy.SaslMechanism
         {
             set { throw new NotImplementedException(); }
+            get {  throw new NotImplementedException(); }
         }
 
         bool IOStrategy.IsSecure

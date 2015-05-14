@@ -70,6 +70,7 @@ namespace Couchbase.Configuration.Client
             EnableTcpKeepAlives = true;
             TcpKeepAliveInterval = 2*60*60*1000;
             TcpKeepAliveTime = 1000;
+            NodeAvailableCheckInterval = 1000;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -108,7 +109,7 @@ namespace Couchbase.Configuration.Client
         public ClientConfiguration(CouchbaseClientSection section)
         {
             Timer = TimingFactory.GetTimer(Log);
-
+            NodeAvailableCheckInterval = section.NodeAvailableCheckInterval;
             UseSsl = section.UseSsl;
             SslPort = section.SslPort;
             ApiPort = section.ApiPort;
@@ -188,6 +189,15 @@ namespace Couchbase.Configuration.Client
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
+
+        /// <summary>
+        /// If the client detects that a node has gone offline it will check for connectivity at this interval.
+        /// </summary>
+        /// <remarks>The default is 1000ms.</remarks>
+        /// <value>
+        /// The node available check interval.
+        /// </value>
+        public uint NodeAvailableCheckInterval { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether enable TCP keep alives.

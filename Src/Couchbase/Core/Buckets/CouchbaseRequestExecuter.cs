@@ -12,6 +12,7 @@ using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Utils;
 using Couchbase.Views;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core.Buckets
 {
@@ -61,6 +62,7 @@ namespace Couchbase.Core.Buckets
                 if (bucketConfig != null)
                 {
                     Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev));
+                    Log.Debug(JsonConvert.SerializeObject(bucketConfig));
                     ClusterController.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
                 }
@@ -293,6 +295,7 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = operation.Clone();
+                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
                 }
                 else
                 {
@@ -360,6 +363,7 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = (IOperation<T>)operation.Clone();
+                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
                 }
                 else
                 {

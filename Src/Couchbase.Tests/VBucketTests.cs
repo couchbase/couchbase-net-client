@@ -40,7 +40,8 @@ namespace Couchbase.Tests
                 _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var vBucketMap = _vBucketServerMap.VBucketMap.First();
@@ -82,8 +83,11 @@ namespace Couchbase.Tests
             {
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new NodeAdapter(new Node(),
+                        new NodeExt()),
+                        new ClientConfiguration(),
+                        bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
@@ -105,7 +109,8 @@ namespace Couchbase.Tests
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
@@ -131,7 +136,8 @@ namespace Couchbase.Tests
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
@@ -159,7 +165,8 @@ namespace Couchbase.Tests
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
@@ -185,7 +192,8 @@ namespace Couchbase.Tests
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             //remove one server
@@ -210,7 +218,8 @@ namespace Couchbase.Tests
                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                new NodeExt()),
                new ClientConfiguration(),
-               new BucketConfig { Name = "default" });
+               new BucketConfig { Name = "default" },
+               new FakeTranscoder());
 
             var vbucket =
                 new VBucket(new Dictionary<IPAddress, IServer>
@@ -240,7 +249,8 @@ namespace Couchbase.Tests
                 new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                 new NodeExt()),
                 new ClientConfiguration(),
-                new BucketConfig{Name ="default"});
+                new BucketConfig { Name = "default" },
+                new FakeTranscoder());
 
             var vbucket =
                 new VBucket(new Dictionary<IPAddress, IServer>

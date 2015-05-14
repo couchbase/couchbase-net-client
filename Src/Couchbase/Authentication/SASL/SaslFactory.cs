@@ -24,9 +24,10 @@ namespace Couchbase.Authentication.SASL
             return (username, password, strategy, transcoder) =>
             {
                 ISaslMechanism saslMechanism = null;
-                var connection = strategy.ConnectionPool.Acquire();
+                IConnection connection = null;
                 try
                 {
+                    connection = strategy.ConnectionPool.Acquire();
                     var saslListResult = strategy.Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
@@ -46,7 +47,10 @@ namespace Couchbase.Authentication.SASL
                 }
                 finally
                 {
-                    strategy.ConnectionPool.Release(connection);
+                    if (connection != null)
+                    {
+                        strategy.ConnectionPool.Release(connection);
+                    }
                 }
                 return saslMechanism;
             };

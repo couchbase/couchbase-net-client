@@ -65,6 +65,12 @@ namespace Couchbase.Tests.Fakes
         }
 
         public IServer Owner { get; set; }
+
+
+        public bool InitializationFailed
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

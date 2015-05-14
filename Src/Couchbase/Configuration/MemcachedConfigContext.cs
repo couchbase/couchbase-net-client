@@ -65,9 +65,12 @@ namespace Couchbase.Configuration
                     {
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
-                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig);
-                        var saslMechanism = SaslFactory(bucketConfig.Name, bucketConfig.Password, ioStrategy, Transcoder);
-                        ioStrategy.SaslMechanism = saslMechanism;
+                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder)
+                        {
+                            SaslFactory = SaslFactory
+                        };
+                        server.CreateSaslMechanismIfNotExists();
+
                         servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)
@@ -101,9 +104,13 @@ namespace Couchbase.Configuration
                 {
                     var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
                     var ioStrategy = IOStrategyFactory(connectionPool);
-                    var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig);
-                    var saslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, ioStrategy, Transcoder);
-                    ioStrategy.SaslMechanism = saslMechanism;
+
+                    var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                    {
+                        SaslFactory = SaslFactory
+                    };
+                    server.CreateSaslMechanismIfNotExists();
+
                     servers.Add(endpoint.Address, server);
                 }
                 catch (Exception e)

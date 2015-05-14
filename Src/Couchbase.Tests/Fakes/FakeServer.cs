@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -137,6 +139,15 @@ namespace Couchbase.Tests.Fakes
 
 
         public void TakeOffline(bool isDown)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+
+
+        public void CreateSaslMechanismIfNotExists()
         {
             throw new NotImplementedException();
         }

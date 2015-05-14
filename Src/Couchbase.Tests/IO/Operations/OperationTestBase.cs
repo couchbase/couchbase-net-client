@@ -9,6 +9,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
+using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
 using NUnit.Framework;
@@ -45,7 +46,8 @@ namespace Couchbase.Tests.IO.Operations
                 servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(_ioStrategy,
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig));
+                        new ClientConfiguration(), bucketConfig,
+                        new FakeTranscoder()));
             }
 
             var vBucketMap = vBucketServerMap.VBucketMap.First();

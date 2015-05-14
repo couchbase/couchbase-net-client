@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -8,6 +10,9 @@ using Couchbase.Views;
 
 namespace Couchbase.Core
 {
+    /// <summary>
+    /// Represents a Couchbase Server node on the network.
+    /// </summary>
     internal interface IServer : IDisposable
     {
         string HostName { get; set; }
@@ -116,6 +121,19 @@ namespace Couchbase.Core
         void MarkDead();
 
         bool IsDown { get; }
+
+        /// <summary>
+        /// Gets or sets the SASL factory for authenticating each TCP connection.
+        /// </summary>
+        /// <value>
+        /// The sasl factory.
+        /// </value>
+        Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+
+        /// <summary>
+        /// Creates the sasl mechanism using the <see cref="SaslFactory"/> provided if it is null.
+        /// </summary>
+        void CreateSaslMechanismIfNotExists();
     }
 }
 

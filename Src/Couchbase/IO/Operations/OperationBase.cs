@@ -288,7 +288,7 @@ namespace Couchbase.IO.Operations
         public virtual ResponseStatus GetResponseStatus()
         {
             var status = Header.Status;
-            if (Exception != null)
+            if (Exception != null && status == ResponseStatus.Success)
             {
                 status = ResponseStatus.ClientFailure;
             }

@@ -10,6 +10,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Cryptography;
+using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
 using Couchbase.Tests.Utils;
 using Couchbase.Utils;
@@ -37,7 +38,8 @@ namespace Couchbase.Tests.Core.Buckets
                 _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
                     new Server(ObjectFactory.CreateIOStrategy(server),
                         new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), _bucketConfig));
+                        new ClientConfiguration(), _bucketConfig,
+                        new FakeTranscoder()));
             }
         }
 

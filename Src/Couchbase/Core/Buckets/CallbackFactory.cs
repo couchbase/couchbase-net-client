@@ -27,7 +27,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             actual.Exception = s.Exception;
-                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            actual.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(actual.GetResultWithValue());
                             return;
                         }
@@ -114,7 +114,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             op.Exception = s.Exception;
-                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            op.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(op.GetResult());
                             return;
                         }
@@ -205,7 +205,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             actual.Exception = s.Exception;
-                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            actual.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(actual.GetResultWithValue());
                             return;
                         }
@@ -265,7 +265,7 @@ namespace Couchbase.Core.Buckets
                     catch (Exception e)
                     {
                         op.Exception = e;
-                        op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
+                        op.HandleClientError(e.Message, s.Status);
                         tcs.SetResult(actual.GetResultWithValue());
                     }
                 }
@@ -293,7 +293,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             op.Exception = s.Exception;
-                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            op.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(op.GetResult());
                             return;
                         }
@@ -384,7 +384,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             actual.Exception = s.Exception;
-                            actual.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            actual.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(actual.GetResultWithValue());
                             return;
                         }
@@ -435,7 +435,7 @@ namespace Couchbase.Core.Buckets
                         if (s.Exception != null)
                         {
                             op.Exception = s.Exception;
-                            op.HandleClientError(s.Exception.Message, ResponseStatus.ClientFailure);
+                            op.HandleClientError(s.Exception.Message, s.Status);
                             tcs.SetResult(op.GetResult());
                             return;
                         }

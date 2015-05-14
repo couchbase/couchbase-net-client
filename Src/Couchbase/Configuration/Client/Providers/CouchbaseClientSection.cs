@@ -315,6 +315,21 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (SerializerElement)this["serializer"]; }
             set { this["serializer"] = value; }
         }
+
+        /// <summary>
+        /// If the client detects that a node has gone offline it will check for connectivity at this interval.
+        /// </summary>
+        /// <remarks>The default is 1000ms.</remarks>
+        /// <value>
+        /// The node available check interval.
+        /// </value>
+        [ConfigurationProperty("nodeAvailableCheckInterval", DefaultValue = ((uint)1000), IsRequired = false)]
+        public uint NodeAvailableCheckInterval
+        {
+            get { return (uint)this["nodeAvailableCheckInterval"]; }
+            set { this["nodeAvailableCheckInterval"] = value; }
+        }
+
     }
 }
 

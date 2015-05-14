@@ -95,6 +95,9 @@ namespace Couchbase.IO
         /// </summary>
         TemporaryFailure = 0x0086,
 
+        /*The response status's below are not part of the Memcached protocol and represent
+         client level failures. They are not supported by all SDKs. */
+
         /// <summary>
         /// A client error has occured before the operation could be sent to the server.
         /// </summary>
@@ -111,6 +114,11 @@ namespace Couchbase.IO
         ///  This would happen if a bucket was not configured to have replicas; if you encounter this error check
         ///  to make sure you have indeed configured replicas on your bucket.
         /// </summary>
-        NoReplicasFound = 0x0300
+        NoReplicasFound = 0x0300,
+
+        /// <summary>
+        /// The node or service that the key has been mapped to is offline or cannot be reached.
+        /// </summary>
+        NodeUnavailable = 0x0400
     }
 }

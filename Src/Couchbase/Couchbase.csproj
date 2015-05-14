@@ -98,6 +98,7 @@
     <Compile Include="Core\Diagnostics\TimingLevel.cs" />
     <Compile Include="Core\INodeAdapter.cs" />
     <Compile Include="Core\NodeAdapter.cs" />
+    <Compile Include="Core\NodeUnavailableException.cs" />
     <Compile Include="Core\Serialization\DefaultSerializer.cs" />
     <Compile Include="Core\Serialization\ITypeSerializer.cs" />
     <Compile Include="Core\Serialization\SerializerFactory.cs" />
@@ -232,6 +233,7 @@
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
+    <Compile Include="Utils\ExceptionUtil.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Views\IViewResult%27.cs" />

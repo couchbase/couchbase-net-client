@@ -4,6 +4,8 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
@@ -188,7 +190,8 @@ namespace Couchbase.IO.Strategies
                 operation.Completed(new SocketAsyncState
                 {
                     Exception = e,
-                    Opaque = operation.Opaque
+                    Opaque = operation.Opaque,
+                    Status = ResponseStatus.ClientFailure
                 });
             }
         }
@@ -222,7 +225,8 @@ namespace Couchbase.IO.Strategies
                 operation.Completed(new SocketAsyncState
                 {
                     Exception = e,
-                    Opaque = operation.Opaque
+                    Opaque = operation.Opaque,
+                    Status = ResponseStatus.ClientFailure
                 });
             }
         }
@@ -255,7 +259,8 @@ namespace Couchbase.IO.Strategies
                  operation.Completed(new SocketAsyncState
                  {
                      Exception = e,
-                     Opaque = operation.Opaque
+                     Opaque = operation.Opaque,
+                     Status = ResponseStatus.ClientFailure
                  });
              }
         }
@@ -285,6 +290,7 @@ namespace Couchbase.IO.Strategies
         /// </remarks>
         public ISaslMechanism SaslMechanism
         {
+            get { return _saslMechanism; }
             set { _saslMechanism = value; }
         }
 
