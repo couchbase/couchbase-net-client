@@ -10,7 +10,7 @@ namespace Couchbase.Configuration.Server.Serialization
     public sealed class VBucketServerMap : IEquatable<VBucketServerMap>
     {
         private readonly object _syncObj = new object();
-        private List<IPEndPoint> _ipEndPoints;
+        private List<IPEndPoint> _ipEndPoints = new List<IPEndPoint>();
         public VBucketServerMap()
         {
             HashAlgorithm = string.Empty;

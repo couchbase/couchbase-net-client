@@ -263,6 +263,29 @@ namespace Couchbase.Tests
             Assert.IsNotNull(found);
         }
 
+        [Test]
+        public void When_Replica_Index_Postive_LocatePrimary_Returns_It()
+        {
+            var server = new Server(
+                new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+                new FakeConnectionPool(), false),
+                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
+                new NodeExt()),
+                new ClientConfiguration(),
+                new BucketConfig { Name = "default" },
+                new FakeTranscoder());
+
+            var vbucket =
+                new VBucket(new Dictionary<IPAddress, IServer>
+                {
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                },
+                100, -1, new[] { 0 }, 0, new VBucketServerMap { ServerList = new[] { "127.0.0.1:10210", "127.0.0.2:10210" } });
+            var found = vbucket.LocatePrimary();
+            Assert.IsNotNull(found);
+        }
+
          [TestFixtureTearDown]
         public void TearDown()
         {

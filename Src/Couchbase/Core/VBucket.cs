@@ -1,4 +1,4 @@
-﻿using System;
+﻿    using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -36,7 +36,8 @@ namespace Couchbase.Core
         public IServer LocatePrimary()
         {
             IServer server = null;
-            if (Primary > -1 && Primary < _cluster.Count)
+            if (Primary > -1 && Primary < _cluster.Count &&
+                Primary < _vBucketServerMap.IPEndPoints.Count)
             {
                 try
                 {
@@ -53,10 +54,18 @@ namespace Couchbase.Core
                 if (_replicas.Any(x => x != -1))
                 {
                     var index = _replicas.GetRandom();
-                    if (index > -1 && index < _cluster.Count)
+                    if (index > -1 && index < _cluster.Count
+                        && index < _vBucketServerMap.IPEndPoints.Count)
                     {
-                        var hostname = _vBucketServerMap.IPEndPoints[index];
-                        server = _cluster[hostname.Address];
+                        try
+                        {
+                            var hostname = _vBucketServerMap.IPEndPoints[index];
+                            server = _cluster[hostname.Address];
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Debug(e);
+                        }
                     }
                 }
             }
