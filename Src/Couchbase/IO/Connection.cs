@@ -69,18 +69,7 @@ namespace Couchbase.IO
                 //Send the request
                 if (!Socket.SendAsync(_eventArgs))
                 {
-                    if (_eventArgs.SocketError == SocketError.Success)
-                    {
-                        ConnectionPool.Release(this);
-                        state.Completed(state);
-                    }
-                    else
-                    {
-                        IsDead = true;
-                        ConnectionPool.Release(this);
-                        state.Exception = new SocketException((int)_eventArgs.SocketError);
-                        state.Completed(state);
-                    }
+                    OnCompleted(Socket, _eventArgs);
                 }
             }
             catch (Exception e)
@@ -129,8 +118,7 @@ namespace Couchbase.IO
             //Send the request
             if (!Socket.SendAsync(_eventArgs))
             {
-                IsDead = true;
-                throw new IOException("Failed to send operation!");
+               OnCompleted(Socket, _eventArgs);
             }
 
             //wait for completion
@@ -171,7 +159,7 @@ namespace Couchbase.IO
                         Receive(socket, args);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(args.LastOperation.ToString());
                 }
             }
             catch (Exception e)
