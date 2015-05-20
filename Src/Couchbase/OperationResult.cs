@@ -52,6 +52,8 @@ namespace Couchbase
             switch (Status)
             {
                 case ResponseStatus.VBucketBelongsToAnotherServer:
+                case ResponseStatus.TemporaryFailure:
+                case ResponseStatus.NodeUnavailable:
                     return true;
                 case ResponseStatus.ClientFailure:
                     return IsClientFailureRetriable();
@@ -70,7 +72,6 @@ namespace Couchbase
                 case ResponseStatus.NotSupported:
                 case ResponseStatus.InternalError:
                 case ResponseStatus.Busy:
-                case ResponseStatus.TemporaryFailure:
                 case ResponseStatus.OperationTimeout:
                     return false;
                 default:
