@@ -72,6 +72,8 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveTime = 2*60*60*1000;
             TcpKeepAliveInterval = 1000;
 
+            NodeAvailableCheckInterval = 1000;//ms
+
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
 
