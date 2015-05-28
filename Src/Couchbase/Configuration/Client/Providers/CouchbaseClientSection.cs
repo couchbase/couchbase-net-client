@@ -283,7 +283,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The transcoder.
         /// </value>
-        [ConfigurationProperty("transcoder", DefaultValue = null, IsRequired = false)]
+        [ConfigurationProperty("transcoder", IsRequired = false)]
         public TranscoderElement Transcoder
         {
             get { return (TranscoderElement)this["transcoder"]; }
@@ -296,7 +296,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The converter.
         /// </value>
-        [ConfigurationProperty("converter", DefaultValue = null, IsRequired = false)]
+        [ConfigurationProperty("converter", IsRequired = false)]
         public ConverterElement Converter
         {
             get { return (ConverterElement)this["converter"]; }
@@ -309,7 +309,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The serializer.
         /// </value>
-        [ConfigurationProperty("serializer", DefaultValue = null, IsRequired = false)]
+        [ConfigurationProperty("serializer", IsRequired = false)]
         public SerializerElement Serializer
         {
             get { return (SerializerElement)this["serializer"]; }
@@ -330,6 +330,18 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["nodeAvailableCheckInterval"] = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the default connection pool settings.
+        /// </summary>
+        /// <value>
+        /// The default connection pool settings.
+        /// </value>
+        [ConfigurationProperty("connectionPool", IsRequired = false)]
+        public ConnectionPoolElement ConnectionPool
+        {
+            get { return (ConnectionPoolElement)this["connectionPool"]; }
+            set { this["connectionPool"] = value; }
+        }
     }
 }
 

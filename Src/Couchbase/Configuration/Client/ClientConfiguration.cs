@@ -130,7 +130,6 @@ namespace Couchbase.Configuration.Client
             ViewRequestTimeout = section.ViewRequestTimeout;
             Expect100Continue = section.Expect100Continue;
             EnableOperationTiming = section.EnableOperationTiming;
-            PoolConfiguration = new PoolConfiguration(this);
             DefaultOperationLifespan = section.OperationLifespan;
 
             //transcoders, converters, and serializers...o mai.
@@ -153,6 +152,25 @@ namespace Couchbase.Configuration.Client
                 _serversChanged = true;
             }
 
+            PoolConfiguration = new PoolConfiguration
+            {
+                MaxSize = section.ConnectionPool.MaxSize,
+                MinSize = section.ConnectionPool.MinSize,
+                WaitTimeout = section.ConnectionPool.WaitTimeout,
+                ShutdownTimeout = section.ConnectionPool.ShutdownTimeout,
+                UseSsl = section.ConnectionPool.UseSsl,
+                BufferSize = section.ConnectionPool.BufferSize,
+                BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
+                ConnectTimeout = section.ConnectionPool.ConnectTimeout,
+                SendTimeout = section.ConnectionPool.SendTimeout,
+                EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : section.ConnectionPool.EnableTcpKeepAlives,
+                TcpKeepAliveInterval = keepAlivesChanged ? TcpKeepAliveInterval : section.ConnectionPool.TcpKeepAliveInterval,
+                TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : section.ConnectionPool.TcpKeepAliveTime,
+                CloseAttemptInterval = section.ConnectionPool.CloseAttemptInterval,
+                MaxCloseAttempts = section.ConnectionPool.MaxCloseAttempts,
+                ClientConfiguration = this
+            };
+
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
             foreach (var bucketElement in section.Buckets)
             {
@@ -164,8 +182,13 @@ namespace Couchbase.Configuration.Client
                     Password = bucket.Password,
                     ObserveInterval = bucket.ObserveInterval,
                     DefaultOperationLifespan = bucket.OperationLifespan ??(uint) DefaultOperationLifespan,
-                    ObserveTimeout = bucket.ObserveTimeout,
-                    PoolConfiguration = new PoolConfiguration
+                    ObserveTimeout = bucket.ObserveTimeout
+                };
+                //Configuration properties (including elements) can not be null, but we can check if it was originally presnt in xml and skip it.
+                //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
+                if (bucket.ConnectionPool.ElementInformation.IsPresent)
+                {
+                    bucketConfiguration.PoolConfiguration = new PoolConfiguration
                     {
                         MaxSize = bucket.ConnectionPool.MaxSize,
                         MinSize = bucket.ConnectionPool.MinSize,
@@ -177,13 +200,13 @@ namespace Couchbase.Configuration.Client
                         ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
                         SendTimeout = bucket.ConnectionPool.SendTimeout,
                         EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
-                        TcpKeepAliveInterval =  keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
-                        TcpKeepAliveTime =  keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
+                        TcpKeepAliveInterval = keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
+                        TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
                         CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
                         MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
                         ClientConfiguration = this
-                    }
-                };
+                    };
+                }
                 BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
 
