@@ -304,6 +304,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     IConfigInfo configInfo;
                     if (Configs.TryRemove(observer.Name, out configInfo))
                     {
+                        configInfo.Dispose();
                         Log.Info(m => m("Removing config for {0}", observer.Name));
                     }
                 }
