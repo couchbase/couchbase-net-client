@@ -15,21 +15,53 @@ namespace Couchbase.Core
     /// </summary>
     internal interface IServer : IDisposable
     {
-        string HostName { get; set; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is MGMT node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is MGMT node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsMgmtNode { get; }
 
-        uint QueryPort { get; set; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is query node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is query node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsQueryNode { get; }
 
-        uint ViewPort { get; set; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is data node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is data node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsDataNode { get; }
 
-        uint DirectPort { get; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is index node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is index node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsIndexNode { get; }
 
-        uint ProxyPort { get; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is view node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is view node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsViewNode { get; }
 
-        uint Replication { get; }
+        bool IsSecure { get; }
 
-        bool Active { get; }
+        bool IsDead { get; }
 
-        bool Healthy { get; }
+        void MarkDead();
+
+        bool IsDown { get; }
 
         IConnectionPool ConnectionPool { get; }
 
@@ -113,14 +145,6 @@ namespace Couchbase.Core
         string GetBaseViewUri(string name);
 
         string GetBaseQueryUri();
-
-        bool IsSecure { get; }
-
-        bool IsDead { get; }
-
-        void MarkDead();
-
-        bool IsDown { get; }
 
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.

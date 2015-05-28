@@ -35,11 +35,11 @@ namespace Couchbase.Tests
             _vBucketServerMap = bucketConfig.VBucketServerMap;
 
             _servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in _vBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                _servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }
@@ -79,14 +79,12 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in _vBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(),
-                        new NodeExt()),
-                        new ClientConfiguration(),
-                        bucketConfig,
+                servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
+                        new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }
 
@@ -104,11 +102,11 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in _vBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }
@@ -131,11 +129,11 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in bucketConfig.VBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }
@@ -160,11 +158,11 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in _vBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }
@@ -187,11 +185,11 @@ namespace Couchbase.Tests
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in bucketConfig.VBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }

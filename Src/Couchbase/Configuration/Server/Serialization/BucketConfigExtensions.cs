@@ -27,6 +27,10 @@ namespace Couchbase.Configuration.Server.Serialization
             {
                 nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null)));
             }
+            else
+            {
+                nodeAdapters.AddRange(nodesExt.Select((t, i) => new NodeAdapter(null, nodesExt[i])));
+            }
 
             return nodeAdapters;
         }

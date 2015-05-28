@@ -33,11 +33,11 @@ namespace Couchbase.Tests.Core.Buckets
             _vBucketServerMap = _bucketConfig.VBucketServerMap;
 
             _servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in _vBucketServerMap.ServerList)
+            foreach (var node in _bucketConfig.GetNodes())
             {
-                _servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
+                _servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                        node,
                         new ClientConfiguration(), _bucketConfig,
                         new FakeTranscoder()));
             }

@@ -77,8 +77,19 @@
     <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
     <Compile Include="ClusterTests.cs" />
     <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
+    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
+    <Compile Include="Configuration\Client\FakeClientConfig.cs" />
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
+    <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
+    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
+    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\BucketConfigTests.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
+    <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests_Isolated.cs" />
@@ -88,12 +99,6 @@
     <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
-    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
-    <Compile Include="Configuration\Client\FakeClientConfig.cs" />
-    <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
-    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Tests.cs" />
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
@@ -131,11 +136,6 @@
     <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
     <Compile Include="IO\Operations\ConfigOperationTests.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\BucketConfigTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
     <Compile Include="ConfigUtil.cs" />
     <Compile Include="Core\ClusterControllerTests.cs" />
     <Compile Include="Core\ServerTests.cs" />
@@ -194,6 +194,9 @@
     <None Include="Data\Configuration\carrier-publication-config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\Configuration\cb4-config-4-nodes.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\Configuration\config-1070.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -234,6 +237,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\config-with-replicas-incomplete.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\nodesext-cb-beta-4.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\pools.json">

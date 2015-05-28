@@ -9,6 +9,7 @@ using Couchbase.Utils;
 using NUnit.Framework;
 using System;
 using System.Configuration;
+using System.IO;
 using Couchbase.Core.Transcoders;
 
 namespace Couchbase.Tests.IO.Operations

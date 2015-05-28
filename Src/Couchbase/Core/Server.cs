@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Timers;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
@@ -40,6 +39,8 @@ namespace Couchbase.Core
         private volatile bool _timingEnabled;
         private volatile bool _isDown;
         private readonly Timer _heartBeatTimer;
+        private string _cachedViewUrl;
+        private string _cachedQueryUrl;
 
         public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
@@ -56,13 +57,24 @@ namespace Couchbase.Core
         {
             _ioStrategy = ioStrategy;
             _ioStrategy.ConnectionPool.Owner = this;
-            ViewClient = viewClient;
-            QueryClient = queryClient;
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
             _typeTranscoder = transcoder;
             _bucketConfig = bucketConfig;
+
+            //services that this node is responsible for
+            IsMgmtNode = _nodeAdapter.MgmtApi > 0;
+            IsDataNode = _nodeAdapter.KeyValue > 0;
+            IsQueryNode = _nodeAdapter.N1QL > 0;
+            IsIndexNode = _nodeAdapter.IndexAdmin > 0;
+            IsViewNode = _nodeAdapter.Views > 0;
+
+            //View and query clients
+            ViewClient = viewClient;
+            QueryClient = queryClient;
+
+            //timer and node status
             _heartBeatTimer = new Timer(1000)
             {
                 Enabled = false
@@ -70,6 +82,129 @@ namespace Couchbase.Core
             _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
             TakeOffline(_ioStrategy.ConnectionPool.InitializationFailed);
         }
+
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is MGMT node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is MGMT node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsMgmtNode { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is query node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is query node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsQueryNode { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is data node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is data node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDataNode { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is index node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is index node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsIndexNode { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is view node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is view node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsViewNode { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the SASL factory for authenticating each TCP connection.
+        /// </summary>
+        /// <value>
+        /// The sasl factory.
+        /// </value>
+        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+
+        /// <summary>
+        /// Gets the remote <see cref="IPEndPoint"/> of this node.
+        /// </summary>
+        /// <value>
+        /// The end point.
+        /// </value>
+        public IPEndPoint EndPoint
+        {
+            get { return _ioStrategy.EndPoint; }
+        }
+
+        /// <summary>
+        /// Gets a reference to the connection pool thar this node is using.
+        /// </summary>
+        /// <value>
+        /// The connection pool.
+        /// </value>
+        public IConnectionPool ConnectionPool
+        {
+            get { return _ioStrategy.ConnectionPool; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance node is sending
+        /// and receiving data securely with TLS.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is secure; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsSecure
+        {
+            get { return _ioStrategy.IsSecure; }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is dead.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is dead; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDead
+        {
+            get { return _isDead; }
+            set { _isDead = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is down.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is down; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDown
+        {
+            get { return _isDown; }
+            set { _isDown = value; }
+        }
+
+        /// <summary>
+        /// Gets the client used for sending N1QL requests to the N1QL service.
+        /// </summary>
+        /// <value>
+        /// The query client.
+        /// </value>
+        public IQueryClient QueryClient { get; private set; }
+
+        /// <summary>
+        /// Gets the view client for sending View requests to the data service.
+        /// </summary>
+        /// <value>
+        /// The view client.
+        /// </value>
+        public IViewClient ViewClient { get; private set; }
 
         private async void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
         {
@@ -136,70 +271,6 @@ namespace Couchbase.Core
                     _ioStrategy,
                     _typeTranscoder);
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the SASL factory for authenticating each TCP connection.
-        /// </summary>
-        /// <value>
-        /// The sasl factory.
-        /// </value>
-        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
-
-        public uint ViewPort
-        {
-            get { return _viewPort; }
-            set { _viewPort = value; }
-        }
-
-        public uint QueryPort
-        {
-            get { return _queryPort; }
-            set { _queryPort = value; }
-        }
-
-        public IPEndPoint EndPoint
-        {
-            get { return _ioStrategy.EndPoint; }
-        }
-
-        public IConnectionPool ConnectionPool
-        {
-            get { return _ioStrategy.ConnectionPool; }
-        }
-
-        public string HostName { get; set; }
-
-        public uint DirectPort { get; private set; }
-
-        public uint ProxyPort { get; private set; }
-
-        public uint Replication { get; private set; }
-
-        public bool Active { get; private set; }
-
-        public bool Healthy { get; private set; }
-
-        public bool IsSecure
-        {
-            get { return _ioStrategy.IsSecure; }
-        }
-
-        public bool IsDead
-        {
-            get { return _isDead; }
-            set { _isDead = value; }
-        }
-
-        public IQueryClient QueryClient { get; private set; }
-
-        public IViewClient ViewClient { get; private set; }
-
-
-        public bool IsDown
-        {
-            get { return _isDown; }
-            set { _isDown = value; }
         }
 
         public void TakeOffline(bool isDown)
@@ -524,15 +595,26 @@ namespace Couchbase.Core
             return Prepare(query);
         }
 
-        //note this should be cached
-        public string GetBaseViewUri()
+        public string GetBaseViewUri(string bucketName)
         {
-            var uri = _nodeAdapter.CouchbaseApiBase;
-            return uri.Replace("$HOST", "localhost");
+            if (string.IsNullOrWhiteSpace(_cachedQueryUrl))
+            {
+                const string uriPattern = @"{0}://{1}:{2}/{3}";
+                var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
+
+                _cachedViewUrl = string.Format(uriPattern,
+                    bucketConfig.UseSsl ? "https" : "http",
+                    _nodeAdapter.Hostname,
+                    bucketConfig.UseSsl ? _nodeAdapter.ViewsSsl : _nodeAdapter.Views,
+                    bucketName);
+            }
+
+            return _cachedViewUrl;
         }
 
+
         //TODO refactor to use CouchbaseApiHttps element when stabilized
-        public string GetBaseViewUri(string bucketName)
+        public string GetBaseViewUri2(string bucketName)
         {
             var uri = _nodeAdapter.CouchbaseApiBase;
             var index = uri.LastIndexOf("%", StringComparison.Ordinal);
@@ -545,7 +627,7 @@ namespace Couchbase.Core
             if (bucketConfig.UseSsl)
             {
                 var port = _nodeAdapter.ViewsSsl;
-                uri = uri.Replace(((int) DefaultPorts.CApi).
+                uri = uri.Replace((_nodeAdapter.Views).
                     ToString(CultureInfo.InvariantCulture), port.
                         ToString(CultureInfo.InvariantCulture));
                 uri = uri.Replace("http", "https");
@@ -561,7 +643,7 @@ namespace Couchbase.Core
             sb.Append("http://");
             sb.Append(EndPoint.Address);
             sb.Append(":");
-            sb.Append(QueryPort);
+            sb.Append(_nodeAdapter.N1QL);
             sb.Append("/query");
 
             return sb.ToString();
@@ -602,7 +684,6 @@ namespace Couchbase.Core
             Dispose(false);
         }
 #endif
-
     }
 }
 

@@ -73,7 +73,6 @@ namespace Couchbase.IO.Operations
                     ReadExtras(buffer);
                     var length = TotalLength - BodyOffset;
                     var json = Transcoder.Decode<string>(buffer, BodyOffset, length, Flags, OperationCode);
-
                     if (_endpoint != null)
                     {
                         json = json.Replace("$HOST", _endpoint.Address.ToString());

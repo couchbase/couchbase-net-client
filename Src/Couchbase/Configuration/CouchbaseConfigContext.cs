@@ -47,7 +47,7 @@ namespace Couchbase.Configuration
                     var nodes = bucketConfig.GetNodes();
                     foreach (var adapter in nodes)
                     {
-                        var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
+                        var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                         try
                         {
                             Log.Info(m => m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(), bucketConfig.Rev));
@@ -108,7 +108,7 @@ namespace Couchbase.Configuration
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
-                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
+                    var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                     try
                     {
                         IServer server = null;
@@ -165,7 +165,7 @@ namespace Couchbase.Configuration
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
-                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
+                    var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                     try
                     {
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration,endpoint);

@@ -60,7 +60,7 @@ namespace Couchbase.Configuration
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
-                    var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
+                    var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                     try
                     {
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
@@ -99,7 +99,7 @@ namespace Couchbase.Configuration
             var nodes = BucketConfig.GetNodes();
             foreach (var adapter in nodes)
             {
-                var endpoint = IPEndPointExtensions.GetEndPoint(adapter, clientBucketConfig, BucketConfig);
+                var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                 try
                 {
                     var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);

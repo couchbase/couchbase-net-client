@@ -29,13 +29,13 @@ namespace Couchbase.Tests.Core.Buckets
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.Find(x => x.BucketType == "memcached");
 
             _servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in bucketConfig.GetNodes())
+            foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(IPEndPointExtensions.GetEndPoint(server.Hostname).Address,
-                    new Server(ObjectFactory.CreateIOStrategy(server),
-                        new NodeAdapter(new Node(), new NodeExt()),
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                _servers.Add(node.GetIPAddress(),
+                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                       node,
+                       new ClientConfiguration(), bucketConfig,
+                       new FakeTranscoder()));
             }
 
             _keyMapper = new KetamaKeyMapper(_servers);
@@ -65,8 +65,7 @@ namespace Couchbase.Tests.Core.Buckets
             const string key = "foo";
             var hash = _keyMapper.GetHash(key);
             var index = _keyMapper.FindIndex(hash);
-            //Assert.AreEqual(276, index);
-            Assert.AreEqual(275, index);
+            Assert.AreEqual(272, index);
         }
 
         [TestFixtureTearDown]

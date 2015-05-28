@@ -41,11 +41,11 @@ namespace Couchbase.Tests.IO.Operations
             var vBucketServerMap = bucketConfig.VBucketServerMap;
 
             var servers = new Dictionary<IPAddress, IServer>();
-            foreach (var server in vBucketServerMap.ServerList)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(server).Address,
+                servers.Add(IPEndPointExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue).Address,
                     new Server(_ioStrategy,
-                        new NodeAdapter(new Node(), new NodeExt()),
+                        node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
             }

@@ -46,7 +46,6 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var operation = new SaslStart("PLAIN", GetAuthData("authenticated", "secret"), new DefaultTranscoder(), OperationLifespan);
             var response = _ioStrategy.Execute(operation);
 
-            Assert.AreEqual("Authenticated", response.Value);
             Assert.AreEqual(ResponseStatus.Success, response.Status);
             Assert.IsTrue(response.Success);
         }

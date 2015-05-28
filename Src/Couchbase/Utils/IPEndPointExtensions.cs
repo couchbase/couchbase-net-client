@@ -36,7 +36,7 @@ namespace Couchbase.Utils
             return new IPEndPoint(ipAddress, port);
         }
 
-        public static IPEndPoint GetEndPoint(INodeAdapter adapter, BucketConfiguration clientConfig, IBucketConfig serverConfig)
+        public static IPEndPoint GetEndPoint(INodeAdapter adapter, BucketConfiguration clientConfig, IBucketConfig server)
         {
             var address = adapter.Hostname.Split(':').First();
             IPAddress ipAddress;

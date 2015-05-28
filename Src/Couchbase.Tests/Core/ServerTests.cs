@@ -1,17 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO;
-using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies;
 using Couchbase.Tests.Fakes;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core
@@ -27,35 +24,25 @@ namespace Couchbase.Tests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
+            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = config.GetNodes().First();
+
             _endPoint = UriExtensions.GetEndPoint(_address);
             var configuration = new ClientConfiguration();
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
-            _server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()), configuration, new BucketConfig { Name = "default" }, new FakeTranscoder());
-        }
-
-        [Test]
-        public void Test_Healthy()
-        {
-            Assert.IsFalse(_server.Healthy);
+            var connectionPool = new FakeConnectionPool();
+            var ioStrategy = new FakeIOStrategy(_endPoint, connectionPool, false);
+            _server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder());
         }
 
         [Test]
         public void Test_That_ConnectionPool_Is_Not_Null()
         {
             Assert.IsNotNull(_server.ConnectionPool);
-        }
-
-        [Test]
-        public void Test_Send()
-        {
-            var operation = new Config(new DefaultTranscoder(), OperationLifespan, _endPoint);
-            var response = _server.Send(operation);
-            Assert.IsTrue(response.Success);
-            Assert.AreEqual(response.Cas, 0);
-            Assert.IsNotNull(response.Value);
-            Assert.AreEqual(ResponseStatus.Success, response.Status);
-            Assert.IsNullOrEmpty(response.Message);
         }
 
         [Test]
@@ -77,22 +64,28 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
+
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
+
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
             using (var server = new Server(ioStrategy,
-                new NodeAdapter(new Node(),
-                    new NodeExt()),
-                    configuration,
-                    new BucketConfig { Name = "default" },
-                    new FakeTranscoder()))
+                node,
+                configuration,
+                config,
+                new FakeTranscoder()))
             {
                 var uri = server.GetBaseViewUri("default");
-                Assert.AreEqual("https://localhost:18092/default", uri);
+                Assert.AreEqual("https://192.168.109.104:18092/default", uri);
             }
         }
 
         [Test]
-        public void Test_BuildUrl()
+        public void When_UseSsl_Is_True_Use_HTTP_Protocol()
         {
             var configuration = new ClientConfiguration
             {
@@ -102,43 +95,54 @@ namespace Couchbase.Tests.Core
                 }
             };
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
 
-            var node = new Node
-            {
-                CouchApiBase = "http://192.168.56.104:8092/beer-sample%2Ba6f9e23c32a4fd07278459e40e91f90a"
-            };
-            using (var server = new Server(ioStrategy, null, null, new NodeAdapter(node, new NodeExt()), configuration, new FakeTranscoder(), null))
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
+
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            using (var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder()))
             {
                 var uri = server.GetBaseViewUri("beer-sample");
-                Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
+                Assert.AreEqual(uri, "https://192.168.109.104:18092/beer-sample");
             }
         }
 
         [Test]
-        public void Test_BuildUrl2()
+        public void When_UseSsl_Is_False_Use_HTTP_Protocol()
         {
             var configuration = new ClientConfiguration
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = true, Port = 18092}}
+                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = false, Port = 18092}}
                 }
             };
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
 
-            var node = new Node
-            {
-                CouchApiBase = "http://192.168.56.104:8092/beer-sample"
-            };
-            using (var server = new Server(ioStrategy, null, null, new NodeAdapter(node, new NodeExt()), configuration,
-                    new FakeTranscoder(), null))
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
+
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            using (var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder()))
             {
                 var uri = server.GetBaseViewUri("beer-sample");
-                Assert.AreEqual(uri, "https://192.168.56.104:18092/beer-sample");
+                Assert.AreEqual(uri, "http://192.168.109.104:8092/beer-sample");
             }
         }
 
@@ -151,17 +155,100 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(_address));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
-            using (var server = new Server(ioStrategy, new NodeAdapter(new Node(), new NodeExt()),configuration,
-                    new BucketConfig {Name = "default"},
-                    new FakeTranscoder()))
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
+
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
+
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            using (var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder()))
             {
                 var uri = server.GetBaseViewUri("default");
-                Assert.AreEqual("http://localhost:8092/default", uri);
+                Assert.AreEqual(uri, "http://192.168.109.104:8092/default");
             }
         }
 
+        [Test]
+        public void When_Node_Supports_N1QL_Queries_IsQueryNode_Is_True()
+        {
+            var configuration = new ClientConfiguration
+            {
+                UseSsl = false
+            };
+            configuration.Initialize();
+
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
+
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.103"));
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            Assert.IsTrue(server.IsQueryNode);
+            Assert.IsTrue(server.IsMgmtNode);
+            Assert.IsFalse(server.IsIndexNode);
+            Assert.IsFalse(server.IsDataNode);
+            Assert.IsFalse(server.IsViewNode);
+        }
+
+        [Test]
+        public void When_Node_Supports_KV_Queries_IsDataNode_Is_True()
+        {
+            var configuration = new ClientConfiguration
+            {
+                UseSsl = false
+            };
+            configuration.Initialize();
+
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
+
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.101"));
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            Assert.IsFalse(server.IsQueryNode);
+            Assert.IsTrue(server.IsMgmtNode);
+            Assert.IsFalse(server.IsIndexNode);
+            Assert.IsTrue(server.IsDataNode);
+            Assert.IsTrue(server.IsViewNode);
+        }
+
+        [Test]
+        public void When_Node_Supports_Index_Queries_IsIndexNode_Is_True()
+        {
+            var configuration = new ClientConfiguration
+            {
+                UseSsl = false
+            };
+            configuration.Initialize();
+
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = config.GetNodes();
+
+            var node = nodes.Find(x => x.Hostname.Equals("192.168.109.102"));
+            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+                new FakeConnectionPool(), false);
+
+            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            Assert.IsFalse(server.IsQueryNode);
+            Assert.IsTrue(server.IsMgmtNode);
+            Assert.IsTrue(server.IsIndexNode);
+            Assert.IsFalse(server.IsDataNode);
+            Assert.IsFalse(server.IsViewNode);
+        }
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

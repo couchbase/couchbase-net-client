@@ -29,5 +29,29 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("mgmtSSL")]
         public int MgmtSSL { get; set; }
+
+        [JsonProperty("projector")]
+        public int Projector { get; set; }
+
+        [JsonProperty("indexAdmin")]
+        public int IndexAdmin { get; set; }
+
+        [JsonProperty("indexScan")]
+        public int IndexScan { get; set; }
+
+        [JsonProperty("indexHttp")]
+        public int IndexHttp { get; set; }
+
+        [JsonProperty("indexStreamInit")]
+        public int IndexStreamInit { get; set; }
+
+        [JsonProperty("indexStreamCatchup")]
+        public int IndexStreamCatchup { get; set; }
+
+        [JsonProperty("indexStreamMaint")]
+        public int IndexStreamMaint { get; set; }
+
+        [JsonProperty("n1ql")]
+        public int N1QL { get; set; }
     }
 }

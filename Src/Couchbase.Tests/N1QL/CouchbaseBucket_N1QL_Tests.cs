@@ -146,8 +146,23 @@ namespace Couchbase.Tests.N1QL
 
                 var result = await bucket.QueryAsync<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
-                Assert.AreEqual(10, result.Rows.Count);
-                Assert.AreEqual(10, result.Metrics.ResultCount);//this shoulf fail when metrics=false works!
+                Assert.IsNull(result.Metrics);
+            }
+        }
+
+        [Test]
+        public async void Test_QueryAsync_With_QueryRequest_With_Metrics_true()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT $1")
+                    .AddPositionalParameter(10)
+                    .Metrics(true);
+
+                var result = await bucket.QueryAsync<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+                Assert.IsNotNull(result.Metrics);
             }
         }
 

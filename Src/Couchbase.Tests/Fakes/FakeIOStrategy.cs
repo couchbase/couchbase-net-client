@@ -153,7 +153,8 @@ namespace Couchbase.Tests.Fakes
                 var completed = operation.Completed;
                 completed(new SocketAsyncState
                 {
-                    Exception = e
+                    Exception = e,
+                    Opaque = operation.Opaque
                 });
             }
         }
@@ -181,7 +182,8 @@ namespace Couchbase.Tests.Fakes
             {
                 operation.Completed(new SocketAsyncState
                 {
-                    Exception = e
+                    Exception = e,
+                    Opaque = operation.Opaque
                 });
             }
         }
@@ -254,8 +256,6 @@ namespace Couchbase.Tests.Fakes
 
         public void Dispose()
         {
-            throw new NotImplementedException();
         }
-
     }
 }

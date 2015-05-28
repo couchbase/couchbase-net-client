@@ -22,22 +22,6 @@ namespace Couchbase.Tests.Fakes
             Strategy = strategy;
         }
 
-        public string HostName { get; set; }
-
-        public uint QueryPort { get; set; }
-
-        public uint ViewPort { get; set; }
-
-        public uint DirectPort { get; private set; }
-
-        public uint ProxyPort { get; private set; }
-
-        public uint Replication { get; private set; }
-
-        public bool Active { get; private set; }
-
-        public bool Healthy { get; private set; }
-
         public IConnectionPool ConnectionPool { get; private set; }
 
         public IViewClient ViewClient { get; private set; }
@@ -131,25 +115,46 @@ namespace Couchbase.Tests.Fakes
             return Strategy.ExecuteAsync(operation);
         }
 
-
         public bool IsDown
         {
             get { throw new NotImplementedException(); }
         }
-
 
         public void TakeOffline(bool isDown)
         {
             throw new NotImplementedException();
         }
 
-
         public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
-
 
         public void CreateSaslMechanismIfNotExists()
         {
             throw new NotImplementedException();
+        }
+
+        public bool IsMgmtNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsQueryNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsDataNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsIndexNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsViewNode
+        {
+            get { throw new NotImplementedException(); }
         }
     }
 }

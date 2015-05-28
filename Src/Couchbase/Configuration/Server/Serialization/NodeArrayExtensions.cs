@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
@@ -69,10 +70,19 @@ namespace Couchbase.Configuration.Server.Serialization
                 for (var i = 0; i < serversList.Length; i++)
                 {
                     var host = serversList[i].Split(':')[0];
-                    foreach (var n in nodes.Where(n => n.Hostname != null && n.Hostname.Split(':')[0].Equals(host)))
+                    foreach (var n in nodes.Where(n => n.Hostname != null
+                        && n.Hostname.Split(':')[0].Equals(host)))
                     {
                         reordered[i] = n;
                         break;
+                    }
+                }
+                for (var i = 0; i < nodes.Length; i++)
+                {
+                    var cur = nodes[i];
+                    if (!reordered.Contains(cur))
+                    {
+                        reordered[i] = cur;
                     }
                 }
             }
