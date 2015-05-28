@@ -275,6 +275,29 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.AreEqual("testvalue", result2.Value);
             }
         }
+
+        [Test]
+        public void Test_Connection_Pool_Settings_Inheritance()
+        {
+            //use section with client-wide connection pool settings and one bucket overriding the settings
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_5");
+            var config = new ClientConfiguration(section);
+            config.Initialize();
+
+            Assert.AreEqual(4, config.BucketConfigs["default"].PoolConfiguration.MaxSize, "Bucket specific setting of MaxSize=4 should have been used.");
+            Assert.AreEqual(3, config.BucketConfigs["default2"].PoolConfiguration.MaxSize, "Client default setting of MaxSize=3 should have been used.");
+
+            //use section with no connection pool definitions at all
+            section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_2");
+            config = new ClientConfiguration(section);
+            config.Initialize();
+
+            //get default value for connection pool max size
+            var propInfo = typeof(ConnectionPoolElement).GetProperty("MaxSize");
+            var confProp = (ConfigurationPropertyAttribute)Attribute.GetCustomAttribute(propInfo, typeof(ConfigurationPropertyAttribute));
+
+            Assert.AreEqual(confProp.DefaultValue, config.BucketConfigs["default"].PoolConfiguration.MaxSize, "Default setting of MaxSize should have been used.");
+        }
     }
 }
 
