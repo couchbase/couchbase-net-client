@@ -140,6 +140,32 @@ namespace Couchbase
         }
 
         /// <summary>
+        ///  Check for existence of a given key
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns> Returns the <see cref="IOperationResult"/> object containing Value as true if the key exists</returns>
+        internal IOperationResult<bool> _Exists(string key)
+        {
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var result = _requestExecuter.SendWithRetry(observe);
+            OperationResult<bool> ret = new OperationResult<bool>
+            {
+                Success = result.Success,
+                Status = result.Status,
+                Message = result.Message,
+                Exception = result.Exception,
+                Durability = result.Durability,
+                Cas = result.Cas
+            };
+            if (result.Value.KeyState != KeyState.NotFound)
+            {
+                ret.Value = true;
+            }
+            return ret;
+        }
+
+
+        /// <summary>
         /// Checks for the existance of a given key as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key to check.</param>
@@ -150,6 +176,32 @@ namespace Couchbase
             var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
             var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
             return result.Success && result.Value.KeyState != KeyState.NotFound;
+        }
+
+        /// <summary>
+        /// Checks for the existance of a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        ///  <returns>A <see cref="Task<IOperationResult<bool>>"/> object representing the asynchronous operation.</returns>
+        internal async Task<IOperationResult<bool>> _ExistsAsync(string key)
+        {
+            CheckDisposed();
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
+            OperationResult<bool> ret = new OperationResult<bool>
+            {
+                Success = result.Success,
+                Status = result.Status,
+                Message = result.Message,
+                Exception = result.Exception,
+                Durability = result.Durability,
+                Cas = result.Cas
+            };
+            if (result.Value.KeyState != KeyState.NotFound)
+            {
+                ret.Value = true;
+            }
+            return ret;
         }
 
         /// <summary>
