@@ -80,6 +80,7 @@
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Configuration\Client\FakeClientConfig.cs" />
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
+    <Compile Include="Configuration\CouchbaseConfigContext_MDS_Tests.cs" />
     <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />

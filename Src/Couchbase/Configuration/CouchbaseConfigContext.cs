@@ -69,6 +69,9 @@ namespace Couchbase.Configuration
                             Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                         }
                     }
+
+                    UpdateServices(servers);
+
                     var old = Interlocked.Exchange(ref Servers, servers);
                     if (old != null)
                     {
@@ -136,6 +139,8 @@ namespace Couchbase.Configuration
                     }
                 }
 
+                UpdateServices(servers);
+
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
@@ -183,6 +188,9 @@ namespace Couchbase.Configuration
                         Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
+
+                UpdateServices(servers);
+
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
@@ -198,6 +206,42 @@ namespace Couchbase.Configuration
             {
                 Lock.ExitWriteLock();
             }
+        }
+
+        void UpdateServices(Dictionary<IPAddress, IServer> servers)
+        {
+            var newQueryNodes = servers
+                .Where(x => x.Value.IsQueryNode)
+                .Select(x => x.Value)
+                .ToList();
+
+            Interlocked.Exchange(ref QueryNodes, newQueryNodes);
+            IsQueryCapable = QueryNodes.Count > 0;
+
+            var newDataNodes = servers
+                .Where(x => x.Value.IsDataNode)
+                .Select(x => x.Value)
+                .ToList();
+
+            Interlocked.Exchange(ref DataNodes, newDataNodes);
+            IsDataCapable = DataNodes.Count > 0;
+
+            var newViewNodes = servers
+                .Where(x => x.Value.IsViewNode)
+                .Select(x => x.Value)
+                .ToList();
+
+            Interlocked.Exchange(ref ViewNodes, newViewNodes);
+            IsViewCapable = ViewNodes.Count > 0;
+
+            var newIndexNodes = servers
+                .Where(x => x.Value.IsIndexNode)
+                .Select(x => x.Value)
+                .ToList();
+
+            Interlocked.Exchange(ref IndexNodes, newIndexNodes);
+            IsIndexCapable = ViewNodes.Count > 0;
+
         }
 
         internal List<IServer> GetServers()

@@ -151,6 +151,76 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public IServer GetDataNode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IServer GetQueryNode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IServer GetIndexNode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IServer GetViewNode()
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public bool IsQueryCapable
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool IsViewCapable
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool IsDataCapable
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool IsIndexCapable
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }
 

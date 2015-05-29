@@ -67,6 +67,62 @@ namespace Couchbase.Configuration
         /// Returns true if the bucket is configured to use SSL
         /// </summary>
         bool SslConfigured { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this cluster is supports N1QL queries.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is query capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsQueryCapable { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this cluster supports View requests.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is view capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsViewCapable { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this cluster supports K/V operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is data capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsDataCapable { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this cluster is supports indexing
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this cluster is index capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsIndexCapable { get; }
+
+        /// <summary>
+        /// Gets a data node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetDataNode();
+
+        /// <summary>
+        /// Gets a query node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetQueryNode();
+
+        /// <summary>
+        /// Gets a index node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetIndexNode();
+
+        /// <summary>
+        /// Gets a view node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetViewNode();
     }
 }
 

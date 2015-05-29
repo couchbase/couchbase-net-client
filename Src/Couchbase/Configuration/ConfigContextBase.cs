@@ -7,7 +7,6 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.Utils;
 using System;
 using System.Collections.Generic;
@@ -33,6 +32,17 @@ namespace Couchbase.Configuration
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
+
+        //for segregating the nodes into separate lists
+        protected List<IServer> QueryNodes;
+        protected List<IServer> ViewNodes;
+        protected List<IServer> DataNodes;
+        protected List<IServer> IndexNodes;
+
+        public bool IsQueryCapable { get; set; }
+        public bool IsViewCapable { get; set; }
+        public bool IsDataCapable { get; set; }
+        public bool IsIndexCapable { get; set; }
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
@@ -264,6 +274,42 @@ namespace Couchbase.Configuration
         public bool SslConfigured
         {
             get { return _bucketConfig.UseSsl || _clientConfig.UseSsl; }
+        }
+
+        /// <summary>
+        /// Gets a data node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetDataNode()
+        {
+            return DataNodes.GetRandom();
+        }
+
+        /// <summary>
+        /// Gets a query node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetQueryNode()
+        {
+            return QueryNodes.GetRandom();
+        }
+
+        /// <summary>
+        /// Gets a index node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetIndexNode()
+        {
+            return IndexNodes.GetRandom();
+        }
+
+        /// <summary>
+        /// Gets a view node from the Servers collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetViewNode()
+        {
+            return ViewNodes.GetRandom();
         }
     }
 }

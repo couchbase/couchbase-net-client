@@ -233,7 +233,7 @@ namespace Couchbase.Core.Buckets
             {
                 do
                 {
-                    var server = ConfigInfo.GetServer();
+                    var server = ConfigInfo.GetViewNode();
                     viewResult = server.Send<T>(viewQuery);
                 } while (
                     !viewResult.Success &&
@@ -408,7 +408,7 @@ namespace Couchbase.Core.Buckets
                 {
                     var task = RetryViewEveryAsync(async (e, c) =>
                     {
-                        var server = c.GetServer();
+                        var server = c.GetViewNode();
                         return await server.SendAsync<T>(query);
                     },
                     query, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
@@ -542,7 +542,7 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
-                var server = ConfigInfo.GetServer();
+                var server = ConfigInfo.GetQueryNode();
                 queryResult = server.Send<T>(queryRequest);
             }
             catch (Exception e)
@@ -572,7 +572,7 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
-                var server = ConfigInfo.GetServer();
+                var server = ConfigInfo.GetQueryNode();
                 queryResult = await server.SendAsync<T>(queryRequest).ConfigureAwait(false);
                 tcs.TrySetResult(queryResult);
             }

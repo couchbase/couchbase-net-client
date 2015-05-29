@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using Couchbase.Authentication.SASL;
@@ -78,6 +79,15 @@ namespace Couchbase.Configuration
                         Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
+
+                var newDataNodes = servers
+                         .Where(x => x.Value.IsDataNode)
+                         .Select(x => x.Value)
+                         .ToList();
+
+                Interlocked.Exchange(ref QueryNodes, newDataNodes);
+                IsDataCapable = newDataNodes.Count > 0;
+
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
@@ -118,6 +128,16 @@ namespace Couchbase.Configuration
                     Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                 }
             }
+
+            //for kv requests
+            var newDataNodes = servers
+                          .Where(x => x.Value.IsDataNode)
+                          .Select(x => x.Value)
+                          .ToList();
+
+            Interlocked.Exchange(ref QueryNodes, newDataNodes);
+            IsDataCapable = newDataNodes.Count > 0;
+
             var old = Interlocked.Exchange(ref Servers, servers);
             if (old != null)
             {
