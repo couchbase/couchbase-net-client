@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -13,6 +14,7 @@ using Couchbase.IO;
 using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -26,7 +28,8 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var bucketConfig = ConfigUtil.ServerConfig.Buckets.Find(x => x.BucketType == "memcached");
+            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             _servers = new Dictionary<IPAddress, IServer>();
             foreach (var node in bucketConfig.GetNodes())
@@ -65,7 +68,7 @@ namespace Couchbase.Tests.Core.Buckets
             const string key = "foo";
             var hash = _keyMapper.GetHash(key);
             var index = _keyMapper.FindIndex(hash);
-            Assert.AreEqual(272, index);
+            Assert.AreEqual(263, index);
         }
 
         [TestFixtureTearDown]

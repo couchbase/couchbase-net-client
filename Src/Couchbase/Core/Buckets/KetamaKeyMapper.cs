@@ -88,7 +88,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         public void Initialize()
         {
-            foreach (var server in _servers.Values)
+            foreach (var server in _servers.Values.Where(x=>x.IsDataNode))
             {
                 const int weight = 1; //may change this later
                 var factor = Math.Floor(40*_servers.Count()*weight/(double) _totalWeight);
