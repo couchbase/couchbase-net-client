@@ -56,6 +56,9 @@ namespace Couchbase.Tests.Core.Buckets
             mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);
             mockConfigInfo.Setup(x => x.BucketConfig).Returns(_bucketConfig);
             mockConfigInfo.Setup(x => x.GetServer()).Returns(fakeServer);
+            mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);
+            mockConfigInfo.Setup(x => x.IsViewCapable).Returns(true);
+            mockConfigInfo.Setup(x => x.IsQueryCapable).Returns(true);
             configInfo = mockConfigInfo.Object;
 
             var mockController = new Mock<IClusterController>();
@@ -109,6 +112,9 @@ namespace Couchbase.Tests.Core.Buckets
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper.Object);
+            configInfo.Setup(x => x.IsDataCapable).Returns(true);
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.IsQueryCapable).Returns(true);
 
             var clusterController = new Mock<IClusterController>();
             clusterController.Setup(x => x.Configuration).Returns(new ClientConfiguration());

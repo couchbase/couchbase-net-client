@@ -7,6 +7,7 @@ using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Services;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -136,6 +137,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>The <see cref="IOperationResult{T}"/> with it's <see cref="Durability"/> status.</returns>
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
+
             var result = SendWithRetry(operation);
             if (result.Success)
             {
@@ -166,6 +171,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>The <see cref="IOperationResult"/> with it's <see cref="Durability"/> status.</returns>
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
+
             var result = SendWithRetry(operation);
             if (result.Success)
             {
@@ -198,6 +207,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
         public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
+
             var result = await SendWithRetryAsync(operation);
             if (result.Success)
             {
@@ -228,6 +241,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
         public override IViewResult<T> SendWithRetry<T>(IViewQuery viewQuery)
         {
+            //Is the cluster configured for View services?
+            if (!ConfigInfo.IsViewCapable)
+                throw new ServiceNotSupportedException("The cluster does not support View services.");
+
             IViewResult<T> viewResult = null;
             try
             {
@@ -265,6 +282,10 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
+            //Is the cluster configured for Data services?
+            if(!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
+
             if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.Timer = Timer;
@@ -333,6 +354,10 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
+
             if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.Timer = Timer;
@@ -401,6 +426,10 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query)
         {
+            //Is the cluster configured for View services?
+            if (!ConfigInfo.IsViewCapable)
+                throw new ServiceNotSupportedException("The cluster does not support View services.");
+
             IViewResult<T> viewResult = null;
             try
             {
@@ -448,6 +477,10 @@ namespace Couchbase.Core.Buckets
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable) tcs.SetException(
+                new ServiceNotSupportedException("The cluster does not support Data services."));
 
             try
             {
@@ -497,6 +530,10 @@ namespace Couchbase.Core.Buckets
             tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
 
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable) tcs.SetException(
+                new ServiceNotSupportedException("The cluster does not support Data services."));
+
             try
             {
                 var keyMapper = ConfigInfo.GetKeyMapper();
@@ -539,6 +576,12 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsQueryCapable)
+            {
+                throw new ServiceNotSupportedException("The cluster does not support Query services.");
+            }
+
             IQueryResult<T> queryResult = null;
             try
             {
@@ -569,6 +612,11 @@ namespace Couchbase.Core.Buckets
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
         {
             var tcs = new TaskCompletionSource<IQueryResult<T>>();
+
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsQueryCapable) tcs.SetException(
+                new ServiceNotSupportedException("The cluster does not support Query services."));
+
             IQueryResult<T> queryResult = null;
             try
             {

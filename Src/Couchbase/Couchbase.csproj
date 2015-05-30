@@ -103,6 +103,7 @@
     <Compile Include="Core\Serialization\DefaultSerializer.cs" />
     <Compile Include="Core\Serialization\ITypeSerializer.cs" />
     <Compile Include="Core\Serialization\SerializerFactory.cs" />
+    <Compile Include="Core\Services\ServiceNotSupportedException.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Cluster.cs" />
