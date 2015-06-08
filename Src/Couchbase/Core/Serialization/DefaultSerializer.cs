@@ -49,7 +49,8 @@ namespace Couchbase.Core.Serialization
         /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
         public T Deserialize<T>(byte[] buffer, int offset, int length)
         {
-            T value;
+            T value = default (T);
+            if (length == 0) return value;
             using (var ms = new MemoryStream(buffer, offset, length))
             {
                 using (var sr = new StreamReader(ms))
