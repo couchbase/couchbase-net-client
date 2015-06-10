@@ -1,4 +1,6 @@
 ﻿
+using System.ComponentModel;
+
 namespace Couchbase.IO
 {
     /// <summary>
@@ -6,6 +8,12 @@ namespace Couchbase.IO
     /// </summary>
     public enum ResponseStatus
     {
+        /// <summary>
+        ///  Indicates that the enum has not been set.
+        /// </summary>
+        /// <remarks>0 has already been taken by the Memcached protocol for success.</remarks>
+        None = -1,
+
         /// <summary>
         /// The operation was successful
         /// </summary>

@@ -101,7 +101,7 @@ namespace Couchbase.IO.Strategies
             }
 
             //Read the response and return the completed operation
-            if (response != null)
+            if (response != null && response.Length > 0)
             {
                 operation.Read(response, 0, response.Length);
             }
@@ -139,7 +139,7 @@ namespace Couchbase.IO.Strategies
             }
 
             //Read the response and return the completed operation
-            if (response != null)
+            if (response != null && response.Length > 0)
             {
                 operation.Read(response, 0, response.Length);
             }

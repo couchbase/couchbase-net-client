@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using NUnit.Framework;
@@ -351,6 +352,18 @@ namespace Couchbase.Tests.IO.Operations
             };
             Thread.Sleep(500);
             Assert.IsFalse(set.TimedOut());
+        }
+
+        [Test]
+        public void When_Reponse_Is_Empty_Do_Not_Throw_Exception()
+        {
+            var key = "stringkey";
+            var expected = new byte[] {};//empty response
+
+            var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
+            get.Read(expected, 0, expected.Length);
+            var result = get.GetResult();
+            Assert.IsFalse(result.Success);
         }
     }
 }

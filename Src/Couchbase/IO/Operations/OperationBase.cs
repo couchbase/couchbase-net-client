@@ -34,6 +34,7 @@ namespace Couchbase.IO.Operations
             Converter = transcoder.Converter;
             MaxRetries = DefaultRetries;
             Data = new MemoryStream();
+            Header = new OperationHeader {Status = ResponseStatus.None};
         }
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
@@ -137,7 +138,7 @@ namespace Couchbase.IO.Operations
 
         public virtual void Read(byte[] buffer, int offset, int length)
         {
-            if (Header.BodyLength == 0)
+            if (Header.BodyLength == 0 && buffer.Length >= HeaderIndexFor.HeaderLength)
             {
                 Header = new OperationHeader
                 {
@@ -157,7 +158,7 @@ namespace Couchbase.IO.Operations
 
         public async virtual Task ReadAsync(byte[] buffer, int offset, int length)
         {
-            if (Header.BodyLength == 0)
+            if (Header.BodyLength == 0 && buffer.Length >= HeaderIndexFor.HeaderLength)
             {
                 Header = new OperationHeader
                 {
@@ -311,7 +312,7 @@ namespace Couchbase.IO.Operations
                     {
                         if (Header.Status != ResponseStatus.Success)
                         {
-                            if (Data == null)
+                            if (Data == null || Data.Length == 0)
                             {
                                 message = string.Empty;
                             }
