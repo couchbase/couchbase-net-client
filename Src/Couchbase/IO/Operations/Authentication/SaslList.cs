@@ -60,6 +60,7 @@ namespace Couchbase.IO.Operations.Authentication
 
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
+            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
 
             return header;
         }

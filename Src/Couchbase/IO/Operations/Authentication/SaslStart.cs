@@ -80,6 +80,7 @@ namespace Couchbase.IO.Operations.Authentication
             Converter.FromByte((byte)OperationCode, buffer, HeaderIndexFor.Opcode);
             Converter.FromInt16((short)key.Length, buffer, HeaderIndexFor.KeyLength);
             Converter.FromInt32(totalLength, buffer, HeaderIndexFor.BodyLength);
+            Converter.FromUInt32(Opaque, buffer, HeaderIndexFor.Opaque);
 
             return header;
         }

@@ -244,13 +244,13 @@ namespace Couchbase.IO
                     //socket was closed on recieving side
                     if (e.BytesTransferred == 0)
                     {
+                        IsDead = true;
                         if (state.Completed == null)
                         {
                             _requestCompleted.Set();
                         }
                         else
                         {
-                            IsDead = true;
                             ConnectionPool.Release(this);
                             state.Exception = new SocketException(10054);
                             state.Completed(state);
