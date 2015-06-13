@@ -14,32 +14,27 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
+        private readonly int Offset;
 
-        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
-            : this(connectionPool, socket, new SocketAsyncEventArgs(), converter)
-        {
-        }
-
-        internal Connection(IConnectionPool connectionPool, Socket socket, SocketAsyncEventArgs eventArgs, IByteConverter converter)
+        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
         {
-            //set the configuration info
             ConnectionPool = connectionPool;
             Configuration = ConnectionPool.Configuration;
 
             //set the max close attempts so that a connection in use is not disposed
             MaxCloseAttempts = Configuration.MaxCloseAttempts;
 
-            //Since the config can be changed on the fly create allocator late in the cycle
-            _allocator = Configuration.BufferAllocator(Configuration);
+            _allocator = allocator;
 
             //create a seae with an accept socket and completed event
-            _eventArgs = eventArgs;
+            _eventArgs = new SocketAsyncEventArgs();
             _eventArgs.AcceptSocket = socket;
             _eventArgs.Completed += OnCompleted;
 
             //set the buffer to use with this saea instance
             _allocator.SetBuffer(_eventArgs);
+            Offset = _eventArgs.Offset;
         }
 
         public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
@@ -52,7 +47,8 @@ namespace Couchbase.IO
                     Data = new MemoryStream(),
                     Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                     Buffer = buffer,
-                    Completed = callback
+                    Completed = callback,
+                    SendOffset = _eventArgs.Offset
                 };
 
                 _eventArgs.UserToken = state;
@@ -63,8 +59,8 @@ namespace Couchbase.IO
                     ? buffer.Length
                     : Configuration.BufferSize;
 
-                _eventArgs.SetBuffer(0, bufferLength);
-                Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
+                _eventArgs.SetBuffer(state.SendOffset, bufferLength);
+                Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, state.SendOffset, bufferLength);
 
                 //Send the request
                 if (!Socket.SendAsync(_eventArgs))
@@ -103,8 +99,11 @@ namespace Couchbase.IO
             {
                 Data = new MemoryStream(),
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                Buffer = buffer
+                Buffer = buffer,
+                SendOffset = _eventArgs.Offset
             };
+
+            Log.DebugFormat("Sending opaque{0} on {1}", state.Opaque, Identity);
             _eventArgs.UserToken = state;
 
             //set the buffer
@@ -112,8 +111,8 @@ namespace Couchbase.IO
                 ? buffer.Length
                 : Configuration.BufferSize;
 
-            _eventArgs.SetBuffer(0, bufferLength);
-            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, 0, bufferLength);
+            _eventArgs.SetBuffer(state.SendOffset, bufferLength);
+            Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, state.SendOffset, bufferLength);
 
             //Send the request
             if (!Socket.SendAsync(_eventArgs))
@@ -132,10 +131,12 @@ namespace Couchbase.IO
             //Check if an IO error occurred
             if (state.Exception != null)
             {
+                Log.DebugFormat("Connection {0} has failed with {1}", Identity, state.Exception);
                 IsDead = true;
                 throw state.Exception;
             }
 
+            Log.DebugFormat("Complete opaque{0} on {1}", state.Opaque, Identity);
             //return the response bytes
             return state.Data.ToArray();
         }
@@ -192,10 +193,10 @@ namespace Couchbase.IO
                         : Configuration.BufferSize;
 
                     //reset the saea buffer
-                    _eventArgs.SetBuffer(0, bufferLength);
+                    _eventArgs.SetBuffer(state.SendOffset, bufferLength);
 
                     //copy and send the remaining portion of the buffer
-                    Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, 0, bufferLength);
+                    Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, state.SendOffset, bufferLength);
                     if (!Socket.SendAsync(_eventArgs))
                     {
                         OnCompleted(socket, e);
@@ -238,16 +239,20 @@ namespace Couchbase.IO
             while (true)
             {
                 var state = (SocketAsyncState)e.UserToken;
-                Log.Debug(m => m("Receive {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
+                Log.Debug(m => m("Receive {0} bytes for opaque{1} with {2} on server {3} offset{4}", e.BytesTransferred, state.Opaque, Identity, EndPoint, state.SendOffset));
                 if (e.SocketError == SocketError.Success)
                 {
                     //socket was closed on recieving side
                     if (e.BytesTransferred == 0)
                     {
+                        Log.DebugFormat("Connection {0} has failed in receive with {1} bytes.", Identity, e.BytesTransferred);
                         IsDead = true;
                         if (state.Completed == null)
                         {
-                            _requestCompleted.Set();
+                            if (!Disposed)
+                            {
+                                _requestCompleted.Set();
+                            }
                         }
                         else
                         {
@@ -258,7 +263,7 @@ namespace Couchbase.IO
                         break;
                     }
                     state.BytesReceived += e.BytesTransferred;
-                    state.Data.Write(e.Buffer, 0, e.BytesTransferred);
+                    state.Data.Write(e.Buffer, state.SendOffset, e.BytesTransferred);
 
                     //if first loop get the length of the body from the header
                     if (state.BodyLength == 0)
@@ -271,7 +276,7 @@ namespace Couchbase.IO
                             ? state.BodyLength
                             : Configuration.BufferSize;
 
-                        e.SetBuffer(0, bufferSize);
+                        e.SetBuffer(state.SendOffset, bufferSize);
                         var willRaiseCompletedEvent = socket.ReceiveAsync(e);
                         if (!willRaiseCompletedEvent)
                         {
@@ -302,7 +307,10 @@ namespace Couchbase.IO
                     //if the callback is null we are in blocking mode
                     if (state.Completed == null)
                     {
-                        _requestCompleted.Set();
+                        if (!Disposed)
+                        {
+                            _requestCompleted.Set();
+                        }
                     }
                     else
                     {

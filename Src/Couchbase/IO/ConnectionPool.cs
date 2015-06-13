@@ -19,7 +19,7 @@ namespace Couchbase.IO
     {
         private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<T>>();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
-        private readonly Func<ConnectionPool<T>, IByteConverter, T> _factory;
+        private readonly Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
         private readonly PoolConfiguration _configuration;
         private readonly object _lock = new object();
@@ -30,6 +30,7 @@ namespace Couchbase.IO
         private Guid _identity = Guid.NewGuid();
         private int _acquireFailedCount;
         private readonly IServer _owner;
+        private readonly BufferAllocator _bufferAllocator;
 
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
@@ -42,11 +43,12 @@ namespace Couchbase.IO
         /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
         /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
         /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
-        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, T> factory, IByteConverter converter)
+        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
         {
             _configuration = configuration;
             _factory = factory;
             _converter = converter;
+            _bufferAllocator = Configuration.BufferAllocator(Configuration);
             EndPoint = endPoint;
         }
 
@@ -107,8 +109,8 @@ namespace Couchbase.IO
                 {
                     try
                     {
-                        var connection = _factory(this, _converter);
-                        Log.Debug(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
+                        var connection = _factory(this, _converter, _bufferAllocator);
+                        Log.Info(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
                             EndPoint, connection.Identity, _identity, _disposed));
 
                         _store.Enqueue(connection);
@@ -148,11 +150,11 @@ namespace Couchbase.IO
             {
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
-                    Log.Debug("Trying to acquire new connection!");
-                    connection = _factory(this, _converter);
+                    Log.Info("Trying to acquire new connection!");
+                    connection = _factory(this, _converter, _bufferAllocator);
                     _refs.Add(connection);
 
-                    Log.Debug(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                    Log.Info(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                         connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
 
                     Interlocked.Increment(ref _count);
@@ -167,13 +169,9 @@ namespace Couchbase.IO
             if (acquireFailedCount >= _configuration.MaxAcquireIterationCount)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
-                const string msg = "Failed to acquire a connection after {0} tries.";
+                const string msg = "Failed to acquire a pooled client connection after {0} tries.";
                 throw new ConnectionUnavailableException(msg, acquireFailedCount);
             }
-
-            Log.Debug(m => m("No connections currently available on {0} - {1}. Trying again[{2}]. - Disposed: {3}",
-                EndPoint, _identity, _acquireFailedCount, _disposed));
-
             return Acquire();
         }
 
@@ -183,13 +181,13 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection)
         {
-            Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
+            Log.Info(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
                 connection.Dispose();
                 Interlocked.Decrement(ref _count);
-                Log.Debug(m => m("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
+                Log.Info(m => m("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
                     connection.Identity, EndPoint, _identity, _store.Count, _count));
 
                 if (Owner != null)

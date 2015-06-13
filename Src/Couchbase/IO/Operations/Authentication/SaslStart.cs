@@ -73,14 +73,13 @@ namespace Couchbase.IO.Operations.Authentication
         public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
             var header = new byte[24];
-            var buffer = header;
             var totalLength = key.GetLengthSafe() + body.GetLengthSafe();
 
-            Converter.FromByte((byte)Magic.Request, buffer, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, buffer, HeaderIndexFor.Opcode);
-            Converter.FromInt16((short)key.Length, buffer, HeaderIndexFor.KeyLength);
-            Converter.FromInt32(totalLength, buffer, HeaderIndexFor.BodyLength);
-            Converter.FromUInt32(Opaque, buffer, HeaderIndexFor.Opaque);
+            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
+            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
+            Converter.FromInt16((short)key.Length, header, HeaderIndexFor.KeyLength);
+            Converter.FromInt32(totalLength, header, HeaderIndexFor.BodyLength);
+            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
 
             return header;
         }

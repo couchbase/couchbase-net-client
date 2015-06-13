@@ -178,6 +178,11 @@ namespace Couchbase.IO.Operations
                     Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
                 };
             }
+            if (Opaque != Header.Opaque)
+            {
+                var msg = string.Format("Expected opaque {0} but got {1}", Opaque, Header.Opaque);
+                HandleClientError(msg, ResponseStatus.ClientFailure);
+            }
 
             await Data.WriteAsync(buffer, offset, length);
             LengthReceived += length;

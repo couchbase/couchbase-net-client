@@ -6,6 +6,8 @@ namespace Couchbase.IO
 {
     public sealed class SocketAsyncState
     {
+        public int SendOffset { get; set; }
+
         public int BytesSent { get; set; }
 
         public MemoryStream Data { get; set; }

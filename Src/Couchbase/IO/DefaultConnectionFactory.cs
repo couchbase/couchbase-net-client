@@ -17,41 +17,9 @@ namespace Couchbase.IO
         /// Returns a functory for creating <see cref="Connection"/> objects.
         /// </summary>
         /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
-        internal static Func<IConnectionPool, IConnection> GetDefault()
+        internal static Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> GetGeneric<T>() where T : class, IConnection
         {
-            Func<IConnectionPool, IConnection> factory = p =>
-            {
-                var config = p.Configuration;
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                socket.Connect(p.EndPoint);
-
-                //enable keep-alives only when set in config
-                if (config.EnableTcpKeepAlives)
-                {
-                    socket.SetKeepAlives(config.EnableTcpKeepAlives,
-                        config.TcpKeepAliveTime,
-                        config.TcpKeepAliveInterval);
-                }
-
-                if (config.UseSsl)
-                {
-                    var ns = new NetworkStream(socket);
-                    var ssls = new SslStream(ns);
-                    ssls.AuthenticateAsClient(p.EndPoint.Address.ToString());
-                }
-                return null;//new DefaultConnection(p, socket);
-            };
-            return factory;
-        }
-
-        /// <summary>
-        /// Returns a functory for creating <see cref="Connection"/> objects.
-        /// </summary>
-        /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
-        internal static Func<ConnectionPool<T>, IByteConverter, T> GetGeneric<T>() where T : class, IConnection
-        {
-            Func<IConnectionPool<T>, IByteConverter, T> factory = (p, c) =>
+            Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory = (p, c, b) =>
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
@@ -81,7 +49,7 @@ namespace Couchbase.IO
                 {
                     //TODO this should be from T...
                     var pool = p as ConnectionPool<Connection>;
-                    connection = new Connection(pool, socket, c);
+                    connection = new Connection(pool, socket, c, b);
                 }
                 //need to be able to completely disable the feature if false - this should work
                 if (p.Configuration.EnableTcpKeepAlives)

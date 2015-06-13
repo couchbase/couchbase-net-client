@@ -89,9 +89,10 @@ namespace Couchbase.Authentication.SASL
             Password = password ?? string.Empty;
 
             var temp = connection;
-            Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
 
             var operation = new SaslStart(MechanismType, (VBucket)null, _transcoder, SaslFactory.DefaultTimeout);
+            Log.Debug(m => m("Authenticating socket {0} with opaque {1}", temp.Identity, operation.Opaque));
+
             var result = _ioStrategy.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
