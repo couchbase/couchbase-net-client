@@ -58,7 +58,7 @@ namespace Couchbase.Configuration
             {
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
-                var nodes = BucketConfig.GetNodes();
+                var nodes = bucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
@@ -85,7 +85,7 @@ namespace Couchbase.Configuration
                          .Select(x => x.Value)
                          .ToList();
 
-                Interlocked.Exchange(ref QueryNodes, newDataNodes);
+                Interlocked.Exchange(ref DataNodes, newDataNodes);
                 IsDataCapable = newDataNodes.Count > 0;
 
                 var old = Interlocked.Exchange(ref Servers, servers);
@@ -135,10 +135,11 @@ namespace Couchbase.Configuration
                           .Select(x => x.Value)
                           .ToList();
 
-            Interlocked.Exchange(ref QueryNodes, newDataNodes);
+            Interlocked.Exchange(ref DataNodes, newDataNodes);
             IsDataCapable = newDataNodes.Count > 0;
 
             var old = Interlocked.Exchange(ref Servers, servers);
+            Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
             if (old != null)
             {
                 foreach (var server in old.Values)
@@ -147,7 +148,6 @@ namespace Couchbase.Configuration
                 }
                 old.Clear();
             }
-            Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
         }
     }
 }
