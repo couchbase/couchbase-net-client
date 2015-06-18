@@ -12,7 +12,7 @@ namespace Couchbase.Utils
     {
         public static string NodeUnavailableMsg =
             "The node {0} that the key was mapped to is either down or unreachable. " +
-             "The SDK will continue to try to connect every {1} seconds. " +
+             "The SDK will continue to try to connect every {1}ms. " +
              "Until it can connect every operation routed to it will fail with this exception.";
 
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
