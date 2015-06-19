@@ -83,7 +83,7 @@ namespace Couchbase.IO.Strategies
             //Get the buffer and a connection
             var request = operation.Write();
             var connection = _connectionPool.Acquire();
-            byte[] response;
+            byte[] response =  null;
             try
             {
                 //A new connection will have to be authenticated
@@ -94,6 +94,11 @@ namespace Couchbase.IO.Strategies
 
                 //Send the request buffer and release the connection
                 response = connection.Send(request);
+            }
+            catch (Exception e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
             }
             finally
             {
@@ -136,6 +141,7 @@ namespace Couchbase.IO.Strategies
             catch (Exception e)
             {
                 Log.Debug(e);
+                operation.Exception = e;
             }
             finally
             {
