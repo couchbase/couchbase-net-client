@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -95,10 +96,17 @@ namespace Couchbase.IO.Strategies
                 //Send the request buffer and release the connection
                 response = connection.Send(request);
             }
+            catch (SocketException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+            }
             catch (Exception e)
             {
                 Log.Debug(e);
                 operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
             finally
             {
@@ -138,10 +146,17 @@ namespace Couchbase.IO.Strategies
                 //Send the request buffer and release the connection
                 response = connection.Send(request);
             }
+            catch (SocketException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+            }
             catch (Exception e)
             {
                 Log.Debug(e);
                 operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
             finally
             {
@@ -201,7 +216,9 @@ namespace Couchbase.IO.Strategies
                 {
                     Exception = e,
                     Opaque = operation.Opaque,
-                    Status = ResponseStatus.ClientFailure
+                    Status = (e is SocketException) ?
+                        ResponseStatus.TransportFailure :
+                        ResponseStatus.ClientFailure
                 });
             }
         }
@@ -236,7 +253,9 @@ namespace Couchbase.IO.Strategies
                 {
                     Exception = e,
                     Opaque = operation.Opaque,
-                    Status = ResponseStatus.ClientFailure
+                    Status = (e is SocketException) ?
+                        ResponseStatus.TransportFailure :
+                        ResponseStatus.ClientFailure
                 });
             }
         }
@@ -270,7 +289,9 @@ namespace Couchbase.IO.Strategies
                  {
                      Exception = e,
                      Opaque = operation.Opaque,
-                     Status = ResponseStatus.ClientFailure
+                     Status = (e is SocketException) ?
+                        ResponseStatus.TransportFailure :
+                        ResponseStatus.ClientFailure
                  });
              }
         }

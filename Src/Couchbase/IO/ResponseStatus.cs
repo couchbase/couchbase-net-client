@@ -127,6 +127,11 @@ namespace Couchbase.IO
         /// <summary>
         /// The node or service that the key has been mapped to is offline or cannot be reached.
         /// </summary>
-        NodeUnavailable = 0x0400
+        NodeUnavailable = 0x0400,
+
+        /// <summary>
+        /// Indicates that a transport layer failure occured while the client was sending or receiving data.
+        /// </summary>
+        TransportFailure = 0x0500
     }
 }

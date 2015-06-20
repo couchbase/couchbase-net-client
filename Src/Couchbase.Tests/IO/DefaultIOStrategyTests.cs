@@ -2,19 +2,24 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Strategies;
+using Couchbase.Tests.Fakes;
 using Couchbase.Tests.IO.Operations;
 using Couchbase.Utils;
+using Moq;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 
 namespace Couchbase.Tests.IO
 {
@@ -86,6 +91,44 @@ namespace Couchbase.Tests.IO
                 tcs.SetResult(result);
                 return tcs.Task;
             };
+        }
+
+        [Test]
+        public void When_Operation_Fails_With_SocketException_TransportFailure_Is_Returned()
+        {
+            var mockedSasl = new Mock<ISaslMechanism>();
+
+            var mockedConnection = new Mock<IConnection>();
+            mockedConnection.Setup(x => x.Send(It.IsAny<byte[]>())).Throws<SocketException>();
+            mockedConnection.Setup(x => x.IsAuthenticated).Returns(true);
+
+            var mockedPool = new Mock<IConnectionPool>();
+            mockedPool.Setup(x => x.Acquire()).Returns(mockedConnection.Object);
+
+            var strategy = new DefaultIOStrategy(mockedPool.Object, mockedSasl.Object);
+            var op = new Get<object>(string.Empty, null, new DefaultTranscoder(new DefaultConverter()), 100);
+            var result = strategy.Execute(op);
+
+            Assert.AreEqual(ResponseStatus.TransportFailure, result.Status);
+        }
+
+        [Test]
+        public void When_Operation_Fails_Without_SocketException_ClientFailure_Is_Returned()
+        {
+            var mockedSasl = new Mock<ISaslMechanism>();
+
+            var mockedConnection = new Mock<IConnection>();
+            mockedConnection.Setup(x => x.Send(It.IsAny<byte[]>())).Throws<IndexOutOfRangeException>();
+            mockedConnection.Setup(x => x.IsAuthenticated).Returns(true);
+
+            var mockedPool = new Mock<IConnectionPool>();
+            mockedPool.Setup(x => x.Acquire()).Returns(mockedConnection.Object);
+
+            var strategy = new DefaultIOStrategy(mockedPool.Object, mockedSasl.Object);
+            var op = new Add<string>(string.Empty, "", null, new DefaultTranscoder(new DefaultConverter()), 100);
+            var result = strategy.Execute(op);
+
+            Assert.AreEqual(ResponseStatus.ClientFailure, result.Status);
         }
 
         [TestFixtureTearDown]
