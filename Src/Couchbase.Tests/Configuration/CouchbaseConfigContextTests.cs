@@ -20,7 +20,7 @@ namespace Couchbase.Tests.Configuration
     [TestFixture]
     public class CouchbaseConfigContextTests
     {
-        private readonly static ILog Log = LogManager.GetLogger<CouchbaseConfigContextTests>();
+        private static readonly ILog Log = LogManager.GetLogger<CouchbaseConfigContextTests>();
         //[Test]
         public void Test_LoadConfig()
         {
@@ -39,7 +39,9 @@ namespace Couchbase.Tests.Configuration
             };
             clientConfig.Initialize();
 
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+            var bucketConfig =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
@@ -60,7 +62,9 @@ namespace Couchbase.Tests.Configuration
                 Assert.AreEqual(expected, actual);
             }
 
-            var bucketConfig2 = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-9958.json"));
+            var bucketConfig2 =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-revision-9958.json"));
             configInfo.LoadConfig(bucketConfig2);
 
             servers = configInfo.GetServers();
@@ -73,7 +77,7 @@ namespace Couchbase.Tests.Configuration
                 Assert.AreEqual(expected, actual);
             }
 
-            Log.Debug(m=>m("CLEANUP!"));
+            Log.Debug(m => m("CLEANUP!"));
             configInfo.Dispose();
         }
 
@@ -90,7 +94,9 @@ namespace Couchbase.Tests.Configuration
             };
             clientConfig.Initialize();
 
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-with-fqdn-servers.json"));
+            var bucketConfig =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-with-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
@@ -119,7 +125,9 @@ namespace Couchbase.Tests.Configuration
             };
             clientConfig.Initialize();
 
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-with-long-fqdn-servers.json"));
+            var bucketConfig =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-with-long-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
@@ -139,8 +147,12 @@ namespace Couchbase.Tests.Configuration
         public void When_VBucketMap_Is_Different_And_Nodes_AreEqual_Return_false_true()
         {
             //same config versions but vbucketmap is different
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-rev4456-v1.json"));
-            var bucketConfig2 = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-rev4456-v2.json"));
+            var bucketConfig =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-rev4456-v1.json"));
+            var bucketConfig2 =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\config-rev4456-v2.json"));
 
             //the configs are not equal, but what is different?
             Assert.IsFalse(bucketConfig2.Equals(bucketConfig));
@@ -185,6 +197,33 @@ namespace Couchbase.Tests.Configuration
 
             configInfo.LoadConfig(bucket1071);
             Assert.AreEqual(1071, configInfo.BucketConfig.Rev);
+        }
+
+        [Test]
+        public void When_NodesExt_Does_Not_Exist_Defaults_are_used()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://localhost:8091")
+                },
+                UseSsl = false
+            };
+            clientConfig.Initialize();
+
+            var bucketConfig =
+                JsonConvert.DeserializeObject<BucketConfig>(
+                    File.ReadAllText("Data\\Configuration\\carrier-publication-config.json"));
+            var configInfo = new CouchbaseConfigContext(bucketConfig,
+                clientConfig,
+                pool => new DefaultIOStrategy(pool),
+                (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
+                SaslFactory.GetFactory3(),
+                new DefaultTranscoder(new DefaultConverter()));
+
+            Assert.DoesNotThrow(() => configInfo.LoadConfig());
+            Assert.IsNotNull(configInfo.GetKeyMapper());
         }
     }
 }

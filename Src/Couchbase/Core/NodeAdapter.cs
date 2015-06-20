@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Net;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
@@ -26,11 +27,25 @@ namespace Couchbase.Core
             //strip off the admin port - we can use services
             if (Hostname.Contains(":"))
             {
-                Hostname = Hostname.Split(':')[0];
+                var hostAndPorts = Hostname.Split(':');
+                Hostname = hostAndPorts[0];
+                if (Hostname.Contains("$HOST"))
+                {
+                    Hostname = "localhost";
+                }
+                MgmtApi = int.Parse(hostAndPorts[1]);
             }
 
-            //These will default to zero id nodesExt is null
-            if (nodeExt != null)
+            if (nodeExt == null)
+            {
+                MgmtApiSsl = node.Ports.HttpsMgmt;
+                Moxi = node.Ports.Proxy;
+                KeyValue = node.Ports.Direct;
+                KeyValueSsl = node.Ports.SslDirect;
+                ViewsSsl = node.Ports.HttpsCapi;
+                Views = new Uri(CouchbaseApiBase).Port;
+            }
+            else
             {
                 MgmtApi = _nodeExt.Services.Mgmt;
                 MgmtApiSsl = _nodeExt.Services.MgmtSSL;
@@ -48,10 +63,9 @@ namespace Couchbase.Core
                 IndexStreamMaint = _nodeExt.Services.IndexStreamMaint;
                 N1QL = _nodeExt.Services.N1QL;
             }
-
             if (_node != null)
             {
-                CouchbaseApiBase = _node.CouchApiBase;
+                CouchbaseApiBase = _node.CouchApiBase.Replace("$HOST", Hostname);
                 CouchbaseApiBaseHttps = _node.CouchApiBaseHttps;
             }
         }

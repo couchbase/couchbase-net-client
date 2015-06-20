@@ -97,6 +97,7 @@
     <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
+    <Compile Include="Core\NodeAdapterTests.cs" />
     <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
@@ -238,6 +239,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\config-with-replicas-incomplete.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\couchbase-2_5_1-couchbase_config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\couchbase-2_5_1-memcached_config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\nodesext-cb-beta-4.json">
