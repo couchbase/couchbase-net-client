@@ -40,9 +40,9 @@ namespace Couchbase.Configuration.Server.Serialization
         {
             get
             {
-                if (_ipEndPoints == null || !_ipEndPoints.Any())
+                lock (_syncObj)
                 {
-                    lock (_syncObj)
+                    if (_ipEndPoints == null || !_ipEndPoints.Any())
                     {
                         _ipEndPoints = new List<IPEndPoint>();
                         foreach (var server in ServerList)
