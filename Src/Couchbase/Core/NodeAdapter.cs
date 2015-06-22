@@ -35,7 +35,11 @@ namespace Couchbase.Core
                 }
                 MgmtApi = int.Parse(hostAndPorts[1]);
             }
-
+            if (_node != null)
+            {
+                CouchbaseApiBase = _node.CouchApiBase.Replace("$HOST", Hostname);
+                CouchbaseApiBaseHttps = _node.CouchApiBaseHttps;
+            }
             if (nodeExt == null)
             {
                 MgmtApiSsl = node.Ports.HttpsMgmt;
@@ -62,11 +66,6 @@ namespace Couchbase.Core
                 IndexStreamCatchup = _nodeExt.Services.IndexStreamCatchup;
                 IndexStreamMaint = _nodeExt.Services.IndexStreamMaint;
                 N1QL = _nodeExt.Services.N1QL;
-            }
-            if (_node != null)
-            {
-                CouchbaseApiBase = _node.CouchApiBase.Replace("$HOST", Hostname);
-                CouchbaseApiBaseHttps = _node.CouchApiBaseHttps;
             }
         }
 
