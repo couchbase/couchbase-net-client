@@ -835,5 +835,19 @@ namespace Couchbase.Tests
                 }
             }
         }
+
+        [Test]
+        public async void When_Document_Size_Exceeds_Buffer_Length_Upsert_Succeeds()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var json = File.ReadAllText(@"Data\\bigger-than-buffer-doc.json");
+                    var result = await bucket.UpsertAsync("XyxyUserW4thPxrmiss1onInfa-10984_async", json);
+                    Assert.AreEqual(ResponseStatus.Success, result.Status);
+                }
+            }
+        }
     }
 }

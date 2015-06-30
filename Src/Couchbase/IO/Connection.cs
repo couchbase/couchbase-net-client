@@ -206,6 +206,7 @@ namespace Couchbase.IO
                 }
                 else
                 {
+                    e.SetBuffer(state.SendOffset, Configuration.BufferSize);
                     var willRaiseCompletedEvent = socket.ReceiveAsync(e);
                     if (!willRaiseCompletedEvent)
                     {
