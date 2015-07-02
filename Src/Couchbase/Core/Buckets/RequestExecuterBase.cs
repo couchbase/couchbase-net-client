@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Services;
 
 namespace Couchbase.Core.Buckets
 {
@@ -329,33 +330,51 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="System.NotImplementedException"></exception>
         public IOperationResult<T> ReadFromReplica<T>(ReplicaRead<T> operation)
         {
-            var keyMapper = ConfigInfo.GetKeyMapper();
-            var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
-            operation.VBucket = vBucket;
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+                throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            IOperationResult<T> result = null;
-            if (vBucket.HasReplicas)
+            IOperationResult<T> result = new OperationResult<T> {Success = false};
+            do
             {
-                foreach (var index in vBucket.Replicas)
+                var keyMapper = ConfigInfo.GetKeyMapper();
+                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
+                operation.VBucket = vBucket;
+
+                if (vBucket.HasReplicas)
                 {
-                    var replica = vBucket.LocateReplica(index);
-                    if (replica == null) continue;
-                    result = replica.Send(operation);
-                    if (result.Success && !result.IsNmv())
+                    foreach (var index in vBucket.Replicas)
                     {
-                        return result;
+                        var replica = vBucket.LocateReplica(index);
+                        if (replica == null) continue;
+                        result = replica.Send(operation);
+                        if (result.Success && !result.IsNmv())
+                        {
+                            return result;
+                        }
+                        operation = (ReplicaRead<T>) operation.Clone();
                     }
-                    operation = (ReplicaRead<T>) operation.Clone();
                 }
-            }
-            else
-            {
-                result = new OperationResult<T>
+                else
                 {
-                    Status = ResponseStatus.NoReplicasFound,
-                    Message = "No replicas found; have you configured the bucket for replica reads?",
-                    Success = false
-                };
+                    result = new OperationResult<T>
+                    {
+                        Status = ResponseStatus.NoReplicasFound,
+                        Message = "No replicas found; have you configured the bucket for replica reads?",
+                        Success = false
+                    };
+                }
+            } while (!result.Success && !operation.TimedOut());
+
+            if (!result.Success)
+            {
+                if (operation.TimedOut() && result.Status != ResponseStatus.NoReplicasFound)
+                {
+                    const string msg = "The operation has timed out.";
+                    ((OperationResult)result).Message = msg;
+                    ((OperationResult)result).Status = ResponseStatus.OperationTimeout;
+                }
+                LogFailure(operation, result);
             }
             return result;
         }

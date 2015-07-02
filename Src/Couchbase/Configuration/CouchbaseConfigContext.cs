@@ -50,7 +50,10 @@ namespace Couchbase.Configuration
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                         try
                         {
-                            Log.Info(m => m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(), bucketConfig.Rev));
+                            Log.Info(
+                                m =>
+                                    m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(),
+                                        bucketConfig.Rev));
                             var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
 
                             var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
@@ -73,6 +76,11 @@ namespace Couchbase.Configuration
                     UpdateServices(servers);
 
                     var old = Interlocked.Exchange(ref Servers, servers);
+                    Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                    var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+                    Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
+                    Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+
                     if (old != null)
                     {
                         foreach (var server in old.Values)
@@ -82,11 +90,16 @@ namespace Couchbase.Configuration
                         old.Clear();
                     }
                 }
-                if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
+                else
                 {
-                    Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
-                    Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev));
-                    Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+                    if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
+                    {
+                        Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                        var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap,
+                            bucketConfig.Rev);
+                        Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
+                        Interlocked.Exchange(ref _bucketConfig, bucketConfig);
+                    }
                 }
             }
             catch (Exception e)
@@ -143,6 +156,8 @@ namespace Couchbase.Configuration
 
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
                 var old = Interlocked.Exchange(ref Servers, servers);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
+                Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {
                     foreach (var server in old.Values)
@@ -151,7 +166,6 @@ namespace Couchbase.Configuration
                     }
                     old.Clear();
                 }
-                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
             }
             finally
             {
@@ -192,6 +206,8 @@ namespace Couchbase.Configuration
                 UpdateServices(servers);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
+                Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {
                     foreach (var server in old.Values)
@@ -200,7 +216,6 @@ namespace Couchbase.Configuration
                     }
                     old.Clear();
                 }
-                Interlocked.Exchange(ref KeyMapper, new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev));
             }
             finally
             {
