@@ -119,7 +119,6 @@
     <Compile Include="Documents\Contact.cs" />
     <Compile Include="Documents\Geo.cs" />
     <Compile Include="Documents\Pascal.cs" />
-    <Compile Include="Encryption\EffectiveConfigurationTests.cs" />
     <Compile Include="Fakes\FakeConnection.cs" />
     <Compile Include="Fakes\FakeConnectionPool.cs" />
     <Compile Include="Fakes\FakeIOStrategy.cs" />
@@ -257,6 +256,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\vbucket-forwardmap.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\DesignDocs\beers_ext.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\DesignDocs\docs.json">

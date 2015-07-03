@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -15,12 +16,37 @@ namespace Couchbase.Tests.Views
     [TestFixture]
     public class ViewClientTests
     {
+        [TestFixtureSetUp]
+        public void TestFixtureSetup()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket("beer-sample"))
+                {
+                    var manager = bucket.CreateManager("Administrator", "password");
+
+                    var get = manager.GetDesignDocument("beer_ext");
+                    if (!get.Success)
+                    {
+                        var designDoc = File.ReadAllText(@"Data\\DesignDocs\\beers_ext.json");
+                        var inserted = manager.InsertDesignDocument("beer_ext", designDoc);
+                        if (inserted.Success)
+                        {
+                            Console.WriteLine("Created 'beer_ext' design doc.");
+                        }
+                    }
+                }
+            }
+        }
+
         [Test]
         public void When_Row_Is_Dynamic_Query_By_Key_Succeeds()
         {
             var query = new ViewQuery().
-             From("beer", "all_beers").
-             Bucket("beer-sample").Limit(1);
+             From("beer_ext", "all_beers").
+             Bucket("beer-sample").
+             Limit(1).
+             Development(false);;
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -30,7 +56,7 @@ namespace Couchbase.Tests.Views
             var result = client.Execute<Beer>(query);
 
             var query2 = new ViewQuery().
-             From("beer", "all_beers").
+             From("beer_ext", "all_beers").
              Bucket("beer-sample").Key(result.Rows.First().Id);
 
             var result2 = client.Execute<Beer>(query2);
@@ -41,8 +67,10 @@ namespace Couchbase.Tests.Views
         public void When_Poco_Is_Supplied_Map_Results_To_It()
         {
             var query = new ViewQuery().
-              From("beer", "all_beers").
-              Bucket("beer-sample").Limit(10);
+              From("beer_ext", "all_beers").
+              Bucket("beer-sample").
+              Limit(10).
+              Development(false);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -136,7 +164,7 @@ namespace Couchbase.Tests.Views
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
                 new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration{ViewRequestTimeout = 30000});
+                new ClientConfiguration{ViewRequestTimeout = 5000});
 
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);
@@ -156,7 +184,7 @@ namespace Couchbase.Tests.Views
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
                 new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration{ViewRequestTimeout = 30000});
+                new ClientConfiguration{ViewRequestTimeout = 5000});
 
             var result = client.Execute<dynamic>(query);
             Assert.IsNotNull(result.Rows);

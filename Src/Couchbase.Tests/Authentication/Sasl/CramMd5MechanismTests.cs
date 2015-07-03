@@ -1,5 +1,6 @@
 ﻿using System.Configuration;
 using System.IO;
+using System.Net.Sockets;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
@@ -124,7 +125,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         }
 
         [Test]
-        [ExpectedException(typeof(IOException))]
+        [ExpectedException(typeof(SocketException))]
         public void When_IOException_Occurs_Authenticate_Throws_Exception()
         {
             var authenticator = new CramMd5Mechanism(_ioStrategy, "default", string.Empty, new DefaultTranscoder());

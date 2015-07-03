@@ -10,7 +10,7 @@ namespace Couchbase.IO.Utils
     public static class BufferExtensions
     {
         /// <summary>
-        /// Converts a <see cref="byte"/> to an <see cref="OperationCode"/> 
+        /// Converts a <see cref="byte"/> to an <see cref="OperationCode"/>
         /// </summary>
         /// <param name="value"></param> enumeration value.
         /// <returns>A <see cref="OperationCode"/> enumeration value.</returns>

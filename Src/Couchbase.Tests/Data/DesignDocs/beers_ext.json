@@ -1,0 +1,1 @@
+﻿{"views":{"all_beers":{"map":"function (doc, meta) {if(doc.type=='beer'){ emit(meta.id, doc);}}"}}}

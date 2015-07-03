@@ -27,7 +27,7 @@ namespace Couchbase.Tests.N1QL
             var indexes = client.Query<dynamic>(new QueryRequest("SELECT name FROM system:keyspaces").BaseUri(uri));
             foreach (var row in indexes.Rows)
             {
-                if (row.name == "beer-sample")
+                if (row.GetValue("name").Value == "beer-sample")
                 {
                     client.Query<dynamic>(new QueryRequest("DROP PRIMARY INDEX ON `beer-sample`").BaseUri(uri));
                 }

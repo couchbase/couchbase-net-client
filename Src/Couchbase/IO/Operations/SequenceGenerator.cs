@@ -16,5 +16,10 @@ namespace Couchbase.IO.Operations
             var temp = Interlocked.Increment(ref _sequenceId);
             return (uint)temp;
         }
+
+        public static void Reset()
+        {
+            Interlocked.Exchange(ref _sequenceId, 0);
+        }
     }
 }
