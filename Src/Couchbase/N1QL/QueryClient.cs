@@ -33,33 +33,11 @@ namespace Couchbase.N1QL
         /// <param name="server">The <see cref="Uri"/> of the server.</param>
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
-        public async Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query)
+        public Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query)
         {
-            var queryResult = new QueryResult<T>();
-            var content = new StringContent(query);
-            try
-            {
-                var request = await HttpClient.PostAsync(server, content);
-                var response = await request.Content.ReadAsStreamAsync();
+            var queryRequest = new QueryRequest(query).BaseUri(server);
 
-                queryResult = DataMapper.Map<QueryResult<T>>(response);
-                queryResult.Success = queryResult.Status == QueryStatus.Success;
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    Log.Error(e);
-                    ProcessError(e, queryResult);
-                    return true;
-                });
-            }
-            catch (Exception e)
-            {
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
-            return queryResult;
+            return QueryAsync<T>(queryRequest);
         }
 
         /// <summary>
@@ -71,46 +49,9 @@ namespace Couchbase.N1QL
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
         public IQueryResult<T> Query<T>(Uri server, string query)
         {
-            var queryResult = new QueryResult<T>();
+            var queryRequest = new QueryRequest(query).BaseUri(server);
 
-            try
-            {
-                var request = WebRequest.Create(server);
-                request.Timeout = _clientConfig.ViewRequestTimeout;
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-
-                var bytes = System.Text.Encoding.UTF8.GetBytes(query);
-                request.ContentLength = bytes.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                }
-
-                var response = request.GetResponse();
-                using (var stream = response.GetResponseStream())
-                {
-                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
-                    queryResult.Success = queryResult.Status == QueryStatus.Success;
-                }
-            }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var stream = e.Response.GetResponseStream();
-                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
-                }
-                queryResult.Exception = e;
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
-            return queryResult;
+            return Query<T>(queryRequest);
         }
 
         static string EncodeParameter(object parameter)
