@@ -1518,8 +1518,7 @@ namespace Couchbase
         public IQueryResult<T> Query<T>(string query)
         {
             CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Send<T>(query);
+            return _requestExecuter.SendWithRetry<T>(new QueryRequest(query));
         }
 
         /// <summary>

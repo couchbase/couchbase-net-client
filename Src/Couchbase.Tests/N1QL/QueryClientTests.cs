@@ -57,6 +57,53 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
+        public void Test_Query_HelloWorld_BareStringRequet()
+        {
+            var config = new ClientConfiguration();
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
+            var query = "SELECT 'Hello World' AS Greeting";
+
+            var result = client.Query<dynamic>(uri, query);
+            Assert.IsNotNull(result);
+            Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
+        }
+
+        [Test]
+        public void Test_Query_HelloWorld_Async()
+        {
+            var config = new ClientConfiguration();
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
+            var query = new QueryRequest("SELECT 'Hello World' AS Greeting").BaseUri(uri);
+
+            var task = client.QueryAsync<dynamic>(query);
+            task.Wait();
+
+            var result = task.Result;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
+        }
+
+        [Test]
+        public void Test_Query_HelloWorld_AsyncBareStringRequet()
+        {
+            var config = new ClientConfiguration();
+            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
+            var uri = new Uri(string.Format("http://{0}:8093/query", _server));
+            var query = "SELECT 'Hello World' AS Greeting";
+
+            var task = client.QueryAsync<dynamic>(uri, query);
+            task.Wait();
+
+            var result = task.Result;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual("Hello World", result.Rows.First().Greeting.ToString());
+        }
+
+        [Test]
         public void Test_Query_Incorrect_Syntax()
         {
             var config = new ClientConfiguration();
