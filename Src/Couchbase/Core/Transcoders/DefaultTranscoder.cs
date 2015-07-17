@@ -40,6 +40,43 @@ namespace Couchbase.Core.Transcoders
         /// </summary>
         public IByteConverter Converter { get; set; }
 
+        public Flags GetFormat<T>(T value)
+        {
+            var dataFormat = DataFormat.Json;
+            var typeCode = Type.GetTypeCode(typeof(T));
+            switch (typeCode)
+            {
+                case TypeCode.Object:
+                    if (typeof(T) == typeof(Byte[]))
+                    {
+                        dataFormat = DataFormat.Binary;
+                    }
+                    break;
+                case TypeCode.Boolean:
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Int16:
+                case TypeCode.UInt16:
+                case TypeCode.Int32:
+                case TypeCode.UInt32:
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
+                case TypeCode.Single:
+                case TypeCode.Double:
+                case TypeCode.Decimal:
+                case TypeCode.DateTime:
+                    dataFormat = DataFormat.Json;
+                    break;
+                case TypeCode.Char:
+                case TypeCode.String:
+                    dataFormat = DataFormat.String;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            return new Flags() { Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
+        }
+
         /// <summary>
         /// Encodes the specified value.
         /// </summary>
@@ -57,7 +94,8 @@ namespace Couchbase.Core.Transcoders
             {
                 case DataFormat.Reserved:
                 case DataFormat.Private:
-                    bytes = Encode(value, opcode);
+                case DataFormat.String:
+                    bytes = Encode(value, flags.TypeCode, opcode);
                     break;
 
                 case DataFormat.Json:
@@ -77,10 +115,6 @@ namespace Couchbase.Core.Transcoders
                     }
                     break;
 
-                case DataFormat.String:
-                    bytes = Encode(value, opcode);
-                    break;
-
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -92,13 +126,13 @@ namespace Couchbase.Core.Transcoders
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value.</param>
+        /// <param name="typeCode">Type to use for encoding</param>
         /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public byte[] Encode<T>(T value, OperationCode opcode)
+        public byte[] Encode<T>(T value, TypeCode typeCode, OperationCode opcode)
         {
             var bytes = new byte[] { };
-            var typeCode = Type.GetTypeCode(typeof(T));
             switch (typeCode)
             {
                 case TypeCode.Empty:

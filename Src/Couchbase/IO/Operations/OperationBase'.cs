@@ -107,48 +107,16 @@ namespace Couchbase.IO.Operations
             get { return _value; }
         }
 
-        protected DataFormat GetFormat()
-        {
-            var dataFormat = DataFormat.Json;
-            var typeCode = Type.GetTypeCode(typeof(T));
-            switch (typeCode)
-            {
-                case TypeCode.Object:
-                    if (typeof(T) == typeof(Byte[]))
-                    {
-                        dataFormat = DataFormat.Binary;
-                    }
-                    break;
-                case TypeCode.Boolean:
-                case TypeCode.SByte:
-                case TypeCode.Byte:
-                case TypeCode.Int16:
-                case TypeCode.UInt16:
-                case TypeCode.Int32:
-                case TypeCode.UInt32:
-                case TypeCode.Int64:
-                case TypeCode.UInt64:
-                case TypeCode.Single:
-                case TypeCode.Double:
-                case TypeCode.Decimal:
-                case TypeCode.DateTime:
-                    dataFormat = DataFormat.Json;
-                    break;
-                case TypeCode.Char:
-                case TypeCode.String:
-                    dataFormat = DataFormat.String;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-            return dataFormat;
-        }
-
         public override byte[] CreateExtras()
         {
             var extras = new byte[8];
-            var format = (byte)GetFormat();
-            const byte compression = (byte)Compression.None;
+
+            Flags = Transcoder.GetFormat<T>(RawValue);
+            Format = Flags.DataFormat;
+            Compression = Flags.Compression;
+
+            byte format = (byte)Format;
+            byte compression = (byte)Compression;
 
             Converter.SetBit(ref extras[0], 0, Converter.GetBit(format, 0));
             Converter.SetBit(ref extras[0], 1, Converter.GetBit(format, 1));
@@ -159,16 +127,9 @@ namespace Couchbase.IO.Operations
             Converter.SetBit(ref extras[0], 6, Converter.GetBit(compression, 1));
             Converter.SetBit(ref extras[0], 7, Converter.GetBit(compression, 2));
 
-            var typeCode = (ushort)Type.GetTypeCode(typeof(T));
+            var typeCode = (ushort)Flags.TypeCode;
             Converter.FromUInt16(typeCode, extras, 2);
             Converter.FromUInt32(Expires, extras, 4);
-
-            Format = (DataFormat)format;
-            Compression = compression;
-
-            Flags.DataFormat = Format;
-            Flags.Compression = Compression;
-            Flags.TypeCode = (TypeCode)typeCode;
 
             return extras;
         }
