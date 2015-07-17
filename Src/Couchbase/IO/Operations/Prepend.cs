@@ -24,16 +24,9 @@ namespace Couchbase.IO.Operations
 
         public override byte[] CreateExtras()
         {
-            var format = (byte)GetFormat();
-            const byte compression = (byte)Compression.None;
-
-            var typeCode = (ushort)Type.GetTypeCode(typeof(T));
-            Format = (DataFormat)format;
-            Compression = compression;
-
-            Flags.DataFormat = Format;
-            Flags.Compression = Compression;
-            Flags.TypeCode = (TypeCode)typeCode;
+            Flags = Transcoder.GetFormat<T>(RawValue);
+            Format = Flags.DataFormat;
+            Compression = Flags.Compression;
             return new byte[0];
         }
 
