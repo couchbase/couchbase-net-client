@@ -260,6 +260,23 @@ namespace Couchbase.Tests.Core.Transcoders
         }
 
         [Test]
+        public void Test_Deserialize_Char()
+        {
+            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var value = 'o';
+
+            var flags = new Flags {
+                Compression = Compression.None,
+                DataFormat = DataFormat.Reserved,
+                TypeCode = value.GetTypeCode()
+            };
+
+            var bytes = Encoding.UTF8.GetBytes(value.ToString());
+            var actual = transcoder.Decode<char>(bytes, 0, bytes.Length, flags, OperationCode.Get);
+            Assert.AreEqual(value, actual);
+        }
+
+        [Test]
         public void Test_Byte_Array()
         {
             var transcoder = new DefaultTranscoder(new DefaultConverter());
