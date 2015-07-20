@@ -221,7 +221,7 @@ namespace Couchbase.Core.Transcoders
                 case DataFormat.Json:
                     if (typeof (T) == typeof (string))
                     {
-                        value = Decode(buffer, offset, length);
+                        value = DecodeString(buffer, offset, length);
                     }
                     else
                     {
@@ -243,11 +243,18 @@ namespace Couchbase.Core.Transcoders
                     break;
 
                 case DataFormat.String:
-                    value = Decode(buffer, offset, length);
+                    if (typeof(T) == typeof(char))
+                    {
+                        value = DecodeChar(buffer, offset, length);
+                    }
+                    else
+                    {
+                        value = DecodeString(buffer, offset, length);
+                    }
                     break;
 
                 default:
-                    value = Decode(buffer, offset, length);
+                    value = DecodeString(buffer, offset, length);
                     break;
             }
             return (T)value;
@@ -272,8 +279,11 @@ namespace Couchbase.Core.Transcoders
                 case TypeCode.Empty:
                 case TypeCode.DBNull:
                 case TypeCode.String:
+                    value = DecodeString(buffer, offset, length);
+                    break;
+
                 case TypeCode.Char:
-                    value = Decode(buffer, offset, length);
+                    value = DecodeChar(buffer, offset, length);
                     break;
 
                 case TypeCode.Int16:
@@ -395,18 +405,44 @@ namespace Couchbase.Core.Transcoders
         }
 
         /// <summary>
-        /// Decodes the specified buffer.
+        /// Decodes the specified buffer as string.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns></returns>
-        private string Decode(byte[] buffer, int offset, int length)
+        private string DecodeString(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
             if (buffer != null && buffer.Length > 0 && length > 0)
             {
                 result = Encoding.UTF8.GetString(buffer, offset, length);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Decodes the specified buffer as char.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
+        private char DecodeChar(byte[] buffer, int offset, int length)
+        {
+            char result = default(char);
+            if (buffer != null && buffer.Length > 0 && length > 0)
+            {
+                var str = Encoding.UTF8.GetString(buffer, offset, length);
+                if (str.Length == 1)
+                {
+                    result = str[0];
+                }
+                else if (str.Length > 1)
+                {
+                    var msg = string.Format("Can not convert string \"{0}\" to char", str);
+                    throw new InvalidCastException(msg);
+                }
             }
             return result;
         }
