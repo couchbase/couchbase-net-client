@@ -34,6 +34,11 @@ namespace Couchbase.Tests.Fakes
 
         public IByteConverter Converter { get; set; }
 
+        public Flags GetFormat<T>(T value)
+        {
+            throw new NotImplementedException();
+        }
+
         public byte[] Encode<T>(T value, Flags flags, OperationCode opcode)
         {
             throw new NotImplementedException();

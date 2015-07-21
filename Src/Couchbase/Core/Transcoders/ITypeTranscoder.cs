@@ -11,6 +11,14 @@ namespace Couchbase.Core.Transcoders
     public interface ITypeTranscoder
     {
         /// <summary>
+        /// Get data formatting based on the generic type and/or the actual value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">Value to be formatted.</param>
+        /// <returns>Flags used to format value written to operation payload.</returns>
+        Flags GetFormat<T>(T value);
+
+        /// <summary>
         /// Encodes the specified value.
         /// </summary>
         /// <typeparam name="T"></typeparam>

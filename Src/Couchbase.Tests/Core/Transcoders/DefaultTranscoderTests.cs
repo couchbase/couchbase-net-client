@@ -347,7 +347,7 @@ namespace Couchbase.Tests.Core.Transcoders
             };
             var expectedJsonBytes = Encoding.UTF8.GetBytes("{\"SomeProperty\":\"SOME\",\"SomeIntProperty\":12345,\"HasPascalCase\":true}");
             var actualJsonBytes = transcoder.SerializeAsJson(data);
-            var actualJsonEncoded = transcoder.Encode(data, OperationCode.Get);
+            var actualJsonEncoded = transcoder.Encode(data, TypeCode.Object, OperationCode.Get);
 
             Assert.AreEqual(expectedJsonBytes, actualJsonBytes);
             Assert.AreEqual(expectedJsonBytes, actualJsonEncoded);
