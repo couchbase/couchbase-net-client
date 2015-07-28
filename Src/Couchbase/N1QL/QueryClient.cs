@@ -24,6 +24,7 @@ namespace Couchbase.N1QL
             HttpClient = httpClient;
             DataMapper = dataMapper;
             _clientConfig = clientConfig;
+            HttpClient.Timeout = new TimeSpan(0, 0, 0, (int)_clientConfig.QueryRequestTimeout);
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace Couchbase.N1QL
             try
             {
                 var request = WebRequest.Create(queryRequest.GetBaseUri());
-                request.Timeout = _clientConfig.ViewRequestTimeout;
+                request.Timeout = (int)_clientConfig.QueryRequestTimeout;
                 request.Method = "POST";
                 request.ContentType = "application/x-www-form-urlencoded";
 
@@ -196,7 +197,7 @@ namespace Couchbase.N1QL
             try
             {
                 var request = WebRequest.Create(requestUri);
-                request.Timeout = _clientConfig.ViewRequestTimeout;
+                request.Timeout = (int)_clientConfig.QueryRequestTimeout;
                 request.Method = "GET";
 
                 using (var response = request.GetResponse() as HttpWebResponse)

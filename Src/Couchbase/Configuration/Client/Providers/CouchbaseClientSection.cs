@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using Common.Logging;
 
 namespace Couchbase.Configuration.Client.Providers
@@ -199,6 +200,18 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (int)this["viewRequestTimeout"]; }
             set { this["viewRequestTimeout"] = value; }
+        }
+
+        /// <summary>
+        /// Sets the timeout for each HTTP N1QL query request.
+        /// </summary>
+        /// <remarks>The default is 70000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        [ConfigurationProperty("queryRequestTimeout", DefaultValue = "70000", IsRequired = false)]
+        public uint QueryRequestTimeout
+        {
+            get { return (uint)this["queryRequestTimeout"]; }
+            set { this["queryRequestTimeout"] = value; }
         }
 
         /// <summary>

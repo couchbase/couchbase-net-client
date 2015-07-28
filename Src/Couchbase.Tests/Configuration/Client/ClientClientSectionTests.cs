@@ -18,6 +18,20 @@ namespace Couchbase.Tests.Configuration.Client
     public class ClientClientSectionTests
     {
         [Test]
+        public void When_GetSection_Called_Section_Is_QueryRequestTimeout_Defaults_To_70_Seconds()
+        {
+            var section =  (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
+            Assert.AreEqual(70000, section.QueryRequestTimeout);
+        }
+
+        [Test]
+        public void When_GetSection_Called_Section_Is_Set_QueryRequestTimeout_Returns_Value()
+        {
+            var section = (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_1");
+            Assert.AreEqual(10000, section.QueryRequestTimeout);
+        }
+
+        [Test]
         public void When_GetSection_Called_Section_Is_Returned()
         {
             var section = ConfigurationManager.GetSection("couchbaseClients/couchbase");

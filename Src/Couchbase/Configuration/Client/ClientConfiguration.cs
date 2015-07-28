@@ -13,6 +13,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -40,12 +41,14 @@ namespace Couchbase.Configuration.Client
         private int _viewRequestTimeout;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
+        private uint _queryRequestTimeout;
 
         public ClientConfiguration()
         {
             //For operation timing
             Timer = TimingFactory.GetTimer(Log);
 
+            QueryRequestTimeout = 70000;
             UseSsl = false;
             SslPort = 11207;
             ApiPort = 8092;
@@ -131,6 +134,7 @@ namespace Couchbase.Configuration.Client
             Expect100Continue = section.Expect100Continue;
             EnableOperationTiming = section.EnableOperationTiming;
             DefaultOperationLifespan = section.OperationLifespan;
+            QueryRequestTimeout = section.QueryRequestTimeout;
 
             //transcoders, converters, and serializers...o mai.
             Serializer = SerializerFactory.GetSerializer(this, section.Serializer);
@@ -213,6 +217,22 @@ namespace Couchbase.Configuration.Client
             //Set back to default
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
+        }
+
+        /// <summary>
+        /// Gets or sets the timeout for a N1QL query request; this correlates to the client-side timeout.
+        /// Server-side timeouts are configured per request using the <see cref="QueryRequest.Timeout"/> method.
+        /// </summary>
+        /// <value>
+        /// The query request timeout.
+        /// </value>
+        /// <remarks>The value must be positive.</remarks>
+        /// <remarks>The default client-side value is 70 seconds.</remarks>
+        /// <remarks>The default server-side timeout is zero; this is an infinite timeout.</remarks>
+        public uint QueryRequestTimeout
+        {
+            get { return _queryRequestTimeout; }
+            set { _queryRequestTimeout = value; }
         }
 
         /// <summary>
