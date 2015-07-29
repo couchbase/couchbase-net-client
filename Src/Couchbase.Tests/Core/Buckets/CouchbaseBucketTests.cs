@@ -548,6 +548,24 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
+        public void Test_Large_Append_Returns_Error()
+        {
+            const string key = "CouchbaseBucket.Test_Large_Append_Returns_Error";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var bytes = new byte[] { 0x00, 0x01 };
+                bucket.Remove(key);
+                Assert.IsTrue(bucket.Insert(key, bytes).Success);
+                var result2 = bucket.Get<byte[]>(key);
+                Assert.AreEqual(bytes, result2.Value);
+                var buffer = new byte[21 * 1000 * 1000];
+                var result = bucket.Append(key, buffer);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(result.Status, ResponseStatus.ValueTooLarge);
+            }
+        }
+
+        [Test]
         public void Test_Prepend()
         {
             const string key = "CouchbaseBucket.Test_Prepend";
