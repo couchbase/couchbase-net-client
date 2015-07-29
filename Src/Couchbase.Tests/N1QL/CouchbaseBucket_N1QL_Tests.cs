@@ -244,5 +244,106 @@ namespace Couchbase.Tests.N1QL
                 Assert.IsNotEmpty(result.Errors);
             }
         }
+
+        [Test]
+        public void Test_Invalid_Insert_Query()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                     .Statement("INSERT INTO `beer-sample` VALUES ('foo1', {'bar' , 'baz'})")
+                     .Signature(false);
+                var result = bucket.Query<dynamic>(queryRequest);
+
+                Assert.IsFalse(result.Success);
+            }
+        }
+
+        [Test]
+        public void Test_Insert_And_Update_Query()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : 'bar'})")
+                    .Signature(false);
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest()
+                        .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo='baz'")
+                        .Signature(false)
+                        .ScanConsistency(ScanConsistency.RequestPlus);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest().Statement("DELETE FROM `beer-sample` USE KEYS 'testkey'")
+                    .Signature(false);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+
+        }
+
+        [Test]
+        public void Tests_Insert_Update_And_Delete_Positional_Query()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : $1})")
+                    .AddPositionalParameter("bar")
+                    .Signature(false);
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest()
+                    .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo=$1")
+                    .AddPositionalParameter("baz")
+                    .Signature(false)
+                    .ScanConsistency(ScanConsistency.RequestPlus);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest()
+                    .Statement("DELETE FROM `beer-sample` USE KEYS $1;")
+                    .AddPositionalParameter("testkey")
+                    .Signature(false);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+
+        }
+
+        [Test]
+        public void Tests_Insert_Update_And_Delete_Parameterized_Query()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : $val})")
+                    .AddNamedParameter("val", "bar")
+                    .Signature(false);
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest()
+                    .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo=$val")
+                    .AddNamedParameter("val", "baz")
+                    .Signature(false)
+                    .ScanConsistency(ScanConsistency.RequestPlus);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+
+                queryRequest = new QueryRequest()
+                    .Statement("DELETE FROM `beer-sample` USE KEYS $key")
+                    .AddNamedParameter("key", "testkey")
+                    .Signature(false);
+                result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+
+        }
+
     }
 }
