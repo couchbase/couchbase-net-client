@@ -97,10 +97,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             foreach (var endPoint in bucketConfiguration.GetEndPoints())
             {
                 Log.Debug(m=>m("Bootstrapping with {0}", endPoint));
+
+                IOStrategy ioStrategy = null;
                 try
                 {
                     var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
-                    var ioStrategy = IOStrategyFactory(connectionPool);
+                    ioStrategy = IOStrategyFactory(connectionPool);
                     var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Transcoder);
                     ioStrategy.SaslMechanism = saslMechanism;
 
@@ -125,6 +127,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         Configs[bucketName] = configInfo;
                         break;
                     }
+
                     var exception = operationResult.Exception;
                     if (exception != null)
                     {
@@ -134,7 +137,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     //CCCP only supported for Couchbase Buckets
                     if (operationResult.Status == ResponseStatus.UnknownCommand)
                     {
-                        ioStrategy.Dispose();
                         throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                     }
                     Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
@@ -143,6 +145,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 catch (ConfigException)
                 {
+                    ioStrategy.Dispose();
                     Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     throw;
                 }
@@ -162,6 +165,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     Log.Warn(e);
                     exceptions.Add(e);
+                }
+                finally
+                {
+                    if (ioStrategy != null && configInfo == null)
+                    {
+                        ioStrategy.Dispose();
+                    }
                 }
             }
 
