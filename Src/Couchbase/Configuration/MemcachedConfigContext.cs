@@ -51,6 +51,7 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <param name="bucketConfig"></param>
         /// <param name="force">True to force a reconfiguration.</param>
+        /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public override void LoadConfig(IBucketConfig bucketConfig, bool force = false)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
@@ -80,6 +81,13 @@ namespace Couchbase.Configuration
                     }
                 }
 
+                //If servers is empty that means we could not initialize _any_ nodes
+                //We fail-fast here so that the problem can be indentified and handled.
+                if (!servers.Any())
+                {
+                    throw new CouchbaseBootstrapException(ExceptionUtil.BootStrapFailedMsg);
+                }
+
                 var newDataNodes = servers
                          .Where(x => x.Value.IsDataNode)
                          .Select(x => x.Value)
@@ -102,6 +110,7 @@ namespace Couchbase.Configuration
             Interlocked.Exchange(ref _bucketConfig, bucketConfig);
         }
 
+        /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public override void LoadConfig()
         {
             var servers = new Dictionary<IPAddress, IServer>();
@@ -127,6 +136,13 @@ namespace Couchbase.Configuration
                 {
                     Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
                 }
+            }
+
+            //If servers is empty that means we could not initialize _any_ nodes
+            //We fail-fast here so that the problem can be indentified and handled.
+            if (!servers.Any())
+            {
+                throw new CouchbaseBootstrapException(ExceptionUtil.BootStrapFailedMsg);
             }
 
             //for kv requests

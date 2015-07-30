@@ -112,6 +112,7 @@ namespace Couchbase.Configuration
             }
         }
 
+        /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public void LoadConfig(IOStrategy ioStrategy)
         {
             try
@@ -173,6 +174,7 @@ namespace Couchbase.Configuration
             }
         }
 
+        /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public override void LoadConfig()
         {
             Lock.EnterWriteLock();
@@ -223,8 +225,21 @@ namespace Couchbase.Configuration
             }
         }
 
+        /// <summary>
+        /// Checks the server's list and identfies what services the node supports. Separate
+        /// lists are created for each service type.
+        /// </summary>
+        /// <param name="servers">The servers.</param>
+        /// <exception cref="Couchbase.Configuration.CouchbaseBootstrapException"></exception>
         void UpdateServices(Dictionary<IPAddress, IServer> servers)
         {
+            //If servers is empty that means we could not initialize _any_ nodes
+            //We fail-fast here so that the problem can be indentified and handled.
+            if (!servers.Any())
+            {
+                throw new CouchbaseBootstrapException(ExceptionUtil.BootStrapFailedMsg);
+            }
+
             var newQueryNodes = servers
                 .Where(x => x.Value.IsQueryNode)
                 .Select(x => x.Value)

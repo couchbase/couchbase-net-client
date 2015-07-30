@@ -15,9 +15,19 @@ namespace Couchbase.Utils
              "The SDK will continue to try to connect every {1}ms. " +
              "Until it can connect every operation routed to it will fail with this exception.";
 
+        public static string BootStrapFailedMsg =
+            "After bootstrapping the nodes list has zero elements indicating that " +
+            "client failed during bootstrapping. Please check the client logs for more " +
+            "information as for why it failed.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);
+        }
+
+        public static string GetMessage(string msg, params object[] args)
+        {
+            return string.Format(msg, args);
         }
     }
 }

@@ -75,6 +75,7 @@
     <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElementCollection.cs" />
+    <Compile Include="Configuration\CouchbaseBootstrapException.cs" />
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
