@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core;
 
 namespace Couchbase.Configuration.Server.Serialization
 {

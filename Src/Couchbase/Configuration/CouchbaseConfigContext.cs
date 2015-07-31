@@ -10,7 +10,6 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration
@@ -40,11 +39,11 @@ namespace Couchbase.Configuration
             try
             {
                 Lock.EnterWriteLock();
-                if (BucketConfig == null || !BucketConfig.AreNodesEqual(bucketConfig) || !Servers.Any() || force)
+                var nodes = bucketConfig.GetNodes();
+                if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || !Servers.Any() || force)
                 {
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                     var servers = new Dictionary<IPAddress, IServer>();
-                    var nodes = bucketConfig.GetNodes();
                     foreach (var adapter in nodes)
                     {
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);

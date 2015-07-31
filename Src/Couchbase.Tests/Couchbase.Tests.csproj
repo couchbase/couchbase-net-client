@@ -97,6 +97,7 @@
     <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
+    <Compile Include="Core\NodeAdapterExtensionsTests.cs" />
     <Compile Include="Core\NodeAdapterTests.cs" />
     <Compile Include="Core\Transcoders\CustomTranscoderTests.cs" />
     <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
@@ -245,6 +246,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\couchbase-2_5_1-memcached_config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\couchbase-4.0-rev839.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\couchbase-4.0-rev855.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\nodesext-cb-beta-4.json">

@@ -83,6 +83,7 @@
     <Compile Include="Configuration\Server\Serialization\Controller.cs" />
     <Compile Include="Configuration\Server\Serialization\Controllers.cs" />
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
+    <Compile Include="Core\NodeAdapterExtensions.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
     <Compile Include="Configuration\Server\Serialization\Services.cs" />
