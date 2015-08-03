@@ -195,15 +195,19 @@
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
     <Compile Include="IO\ConnectionPoolFactory.cs" />
+    <Compile Include="IO\RemoteHostClosedException.cs" />
     <Compile Include="IQueryCacheInvalidator.cs" />
     <Compile Include="IDocumentResult.cs" />
+    <Compile Include="IO\AsyncState.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
+    <Compile Include="IO\MultiplexedConnection.cs" />
     <Compile Include="IO\Converters\ConverterFactory.cs" />
     <Compile Include="Core\DocumentMutationLostException.cs" />
     <Compile Include="IO\Operations\Hello.cs" />
     <Compile Include="IO\Operations\EnhancedDurability\ObserveSeqnoResponse.cs" />
     <Compile Include="IO\Operations\ServerFeatures.cs" />
+    <Compile Include="IO\IState.cs" />
     <Compile Include="IO\Operations\GetK.cs" />
     <Compile Include="IO\Operations\GetL.cs" />
     <Compile Include="IO\OperationAsyncState.cs" />
@@ -226,6 +230,8 @@
     <Compile Include="Management\ClusterSettings.cs" />
     <Compile Include="Management\CouchbaseService.cs" />
     <Compile Include="Management\CompositeResult.cs" />
+    <Compile Include="IO\Strategies\MultiplexedIOStrategy.cs" />
+    <Compile Include="IO\SyncState.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />
@@ -374,7 +380,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

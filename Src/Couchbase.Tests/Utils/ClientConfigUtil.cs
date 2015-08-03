@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.IO;
+using Couchbase.IO.Strategies;
 
 namespace Couchbase.Tests.Utils
 {
@@ -20,6 +22,8 @@ namespace Couchbase.Tests.Utils
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
+            config.ConnectionPoolCreator = ConnectionPoolFactory.GetFactory<ConnectionPool<MultiplexedConnection>>();
+            config.IOServiceCreator = IOStrategyFactory.GetFactory<MultiplexedIOStrategy>();
             config.Initialize();
             return config;
         }

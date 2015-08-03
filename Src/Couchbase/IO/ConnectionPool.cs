@@ -17,7 +17,7 @@ namespace Couchbase.IO
     /// </summary>
     internal class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
     {
-        private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<T>>();
+        private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<IConnection>>();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
         private readonly Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
@@ -26,7 +26,7 @@ namespace Couchbase.IO
         private readonly IByteConverter _converter;
         private int _count;
         private bool _disposed;
-        private ConcurrentBag<T> _refs = new ConcurrentBag<T>();
+        private ConcurrentDictionary<Guid, T> _refs = new ConcurrentDictionary<Guid, T>();
         private Guid _identity = Guid.NewGuid();
         private int _acquireFailedCount;
         private readonly IServer _owner;
@@ -114,7 +114,7 @@ namespace Couchbase.IO
                             EndPoint, connection.Identity, _identity, _disposed));
 
                         _store.Enqueue(connection);
-                        _refs.Add(connection);
+                        _refs.TryAdd(connection.Identity, connection);
                         Interlocked.Increment(ref _count);
                     }
                     catch (Exception e)
@@ -153,7 +153,7 @@ namespace Couchbase.IO
                 {
                     Log.Info("Trying to acquire new connection!");
                     connection = _factory(this, _converter, _bufferAllocator);
-                    _refs.Add(connection);
+                    _refs.TryAdd(connection.Identity, connection);
 
                     Log.Info(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                         connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
@@ -195,6 +195,13 @@ namespace Couchbase.IO
                 {
                     Owner.CheckOnline(connection.IsDead);
                 }
+
+                lock (_lock)
+                {
+                    T old;
+                    _refs.TryRemove(connection.Identity, out old);
+                    old.Dispose();
+                }
             }
             else
             {
@@ -209,7 +216,10 @@ namespace Couchbase.IO
         public void Dispose()
         {
             Log.Debug(m => m("Disposing ConnectionPool for {0} - {1}", EndPoint, _identity));
-            Dispose(true);
+            lock (_lock)
+            {
+                Dispose(true);
+            }
         }
 
         public void Dispose(bool disposing)
@@ -223,16 +233,18 @@ namespace Couchbase.IO
                 _disposed = true;
                 var interval = _configuration.CloseAttemptInterval;
 
-                T conn;
-
-                while (_refs.Count > 0)
+                const int maxAttempts = 10;
+                var attempts = 0;
+                foreach (var key in _refs.Keys)
                 {
-                    if (_refs.TryTake(out conn) && !conn.HasShutdown)
+                    Log.DebugFormat("Trying to close conn {0}", key);
+                    T conn;
+                    if (_refs.TryGetValue(key, out conn) && conn != null && !conn.HasShutdown)
                     {
+                        Log.DebugFormat("Closing conn {0} - ", key, conn.Identity);
                         if (conn.InUse)
                         {
                             conn.CountdownToClose(interval);
-                            _refs.Add(conn);
                         }
                         else
                         {
@@ -241,6 +253,7 @@ namespace Couchbase.IO
                                 if (!conn.InUse)
                                 {
                                     conn.Dispose();
+                                    _refs.TryRemove(key, out conn);
                                 }
                             }
                         }

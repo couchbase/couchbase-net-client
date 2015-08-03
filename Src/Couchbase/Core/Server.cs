@@ -268,7 +268,7 @@ namespace Couchbase.Core
         {
             Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
             _heartBeatTimer.Stop();
-            if (_isDown)
+            if (_isDown && !_disposed)
             {
                 if (IsDataNode)
                 {
@@ -383,7 +383,7 @@ namespace Couchbase.Core
         /// </summary>
         public void CreateSaslMechanismIfNotExists()
         {
-            if (_ioStrategy.SaslMechanism == null)
+            if (_ioStrategy.SaslMechanism == null && SaslFactory != null)
             {
                 _ioStrategy.SaslMechanism = SaslFactory(
                     _bucketConfig.Name,
@@ -488,6 +488,7 @@ namespace Couchbase.Core
         /// </returns>
         public IOperationResult Send(IOperation operation)
         {
+            operation.CurrentHost = EndPoint;
             if (Log.IsDebugEnabled && _timingEnabled)
             {
                 operation.BeginTimer(TimingLevel.Two);
@@ -530,6 +531,7 @@ namespace Couchbase.Core
         /// </returns>
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
+            operation.CurrentHost = EndPoint;
             if (Log.IsDebugEnabled && _timingEnabled)
             {
                 operation.BeginTimer(TimingLevel.Two);
@@ -572,6 +574,7 @@ namespace Couchbase.Core
         /// </returns>
         public async Task SendAsync<T>(IOperation<T> operation)
         {
+            operation.CurrentHost = EndPoint;
             if (_isDown)
             {
                 var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
@@ -597,6 +600,7 @@ namespace Couchbase.Core
         /// </returns>
         public async Task SendAsync(IOperation operation)
         {
+            operation.CurrentHost = EndPoint;
             if (_isDown)
             {
                 var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
@@ -752,7 +756,14 @@ namespace Couchbase.Core
             IsDown = true;
             if (!_disposed && _heartBeatTimer != null)
             {
-                _heartBeatTimer.Start();
+                try
+                {
+                    _heartBeatTimer.Start();
+                }
+                catch (ObjectDisposedException)
+                {
+                    //another thread has already disposed or finalized on this object
+                }
             }
         }
 
@@ -788,6 +799,7 @@ namespace Couchbase.Core
                     {
                         GC.SuppressFinalize(this);
                     }
+
                     if (_heartBeatTimer != null)
                     {
                         _heartBeatTimer.Dispose();

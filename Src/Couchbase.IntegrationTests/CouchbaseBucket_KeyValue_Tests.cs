@@ -14,7 +14,7 @@ namespace Couchbase.IntegrationTests
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("current"));
             _bucket = _cluster.OpenBucket();
         }
 

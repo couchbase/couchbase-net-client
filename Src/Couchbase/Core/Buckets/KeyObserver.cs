@@ -414,7 +414,7 @@ namespace Couchbase.Core.Buckets
             var replica = observeParams.VBucket.LocateReplica(replicaIndex);
             var result = await Task.Run(()=>replica.Send(operation)).ContinueOnAnyContext();
 
-            Log.Debug(m=>m("Replica {0} - {1} [0]", replica.EndPoint, result.Value, replicaIndex));
+            Log.Debug(m=>m("Replica {0} - {1} {2}", replica.EndPoint, result.Value.KeyState, replicaIndex));
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {

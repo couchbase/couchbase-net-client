@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
@@ -431,5 +432,7 @@ namespace Couchbase.IO.Operations
         {
             throw new NotImplementedException();
         }
+
+        public IPEndPoint CurrentHost { get; set; }
     }
 }

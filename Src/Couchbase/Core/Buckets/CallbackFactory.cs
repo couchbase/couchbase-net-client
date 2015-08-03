@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -11,6 +12,8 @@ namespace Couchbase.Core.Buckets
 {
     internal static class CallbackFactory
     {
+        private readonly static ILog Log = LogManager.GetLogger(typeof(CouchbaseRequestExecuter));
+
         public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForMemcached<T>(IRequestExecuter executer,
             ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
             TaskCompletionSource<IOperationResult<T>> tcs, CancellationToken cancellationToken)
@@ -140,6 +143,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
+                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque,op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();
@@ -231,6 +235,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
+                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult<T>>();
@@ -319,6 +324,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
+                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();

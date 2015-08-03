@@ -24,6 +24,8 @@ namespace Couchbase.Utils
 
         public static string NotEnoughReplicasConfigured = "Not enough replicas configured on the bucket.";
 
+        public static string RemoteHostClosedMsg = "The remote host ({0}) has gracefully closed this connection.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

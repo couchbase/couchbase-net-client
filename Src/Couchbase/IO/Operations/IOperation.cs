@@ -5,6 +5,7 @@ using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using System;
 using System.IO;
+using System.Net;
 
 namespace Couchbase.IO.Operations
 {
@@ -75,6 +76,8 @@ namespace Couchbase.IO.Operations
         bool CanRetry();
 
         IOperationResult GetResult();
+
+        IPEndPoint CurrentHost { get; set; }
 
         IOperation Clone();
     }
