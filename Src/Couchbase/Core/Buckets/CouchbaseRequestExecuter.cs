@@ -135,28 +135,41 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="IOperationResult{T}"/> with it's <see cref="Durability"/> status.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            var result = SendWithRetry(operation);
-            if (result.Success)
+            IOperationResult<T> result;
+            try
             {
-                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                var observer = new KeyObserver(ConfigInfo,
-                    ClusterController.Transcoder,
-                    config.ObserveInterval, config.ObserveTimeout);
+                result = SendWithRetry(operation);
+                if (result.Success)
+                {
+                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                    var observer = new KeyObserver(ConfigInfo,
+                        ClusterController.Transcoder,
+                        config.ObserveInterval, config.ObserveTimeout);
 
-                var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                result.Durability = observed
-                    ? Durability.Satisfied
-                    : Durability.NotSatisfied;
+                    var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                    result.Durability = observed
+                        ? Durability.Satisfied
+                        : Durability.NotSatisfied;
+                }
+                else
+                {
+                    result.Durability = Durability.NotSatisfied;
+                }
             }
-            else
+            catch (Exception e)
             {
-                result.Durability = Durability.NotSatisfied;
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                };
             }
             return result;
         }
@@ -169,29 +182,42 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="IOperationResult"/> with it's <see cref="Durability"/> status.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            var result = SendWithRetry(operation);
-            if (result.Success)
+            IOperationResult result;
+            try
             {
-                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                result = SendWithRetry(operation);
+                if (result.Success)
+                {
+                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
 
-                var observer = new KeyObserver(ConfigInfo,
-                    ClusterController.Transcoder,
-                    config.ObserveInterval, config.ObserveTimeout);
+                    var observer = new KeyObserver(ConfigInfo,
+                        ClusterController.Transcoder,
+                        config.ObserveInterval, config.ObserveTimeout);
 
-                var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                result.Durability = observed
-                    ? Durability.Satisfied
-                    : Durability.NotSatisfied;
+                    var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                    result.Durability = observed
+                        ? Durability.Satisfied
+                        : Durability.NotSatisfied;
+                }
+                else
+                {
+                    result.Durability = Durability.NotSatisfied;
+                }
             }
-            else
+            catch (Exception e)
             {
-                result.Durability = Durability.NotSatisfied;
+                result = new OperationResult
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                };
             }
             return result;
         }
@@ -205,30 +231,43 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            var result = await SendWithRetryAsync(operation);
-            if (result.Success)
+            IOperationResult<T> result;
+            try
             {
-                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                result = await SendWithRetryAsync(operation);
+                if (result.Success)
+                {
+                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
 
-                var observer = new KeyObserver(ConfigInfo,
-                    ClusterController.Transcoder,
-                    config.ObserveInterval, config.ObserveTimeout);
+                    var observer = new KeyObserver(ConfigInfo,
+                        ClusterController.Transcoder,
+                        config.ObserveInterval, config.ObserveTimeout);
 
-                var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                    var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
 
-                result.Durability = observed
-                    ? Durability.Satisfied
-                    : Durability.NotSatisfied;
+                    result.Durability = observed
+                        ? Durability.Satisfied
+                        : Durability.NotSatisfied;
+                }
+                else
+                {
+                    result.Durability = Durability.NotSatisfied;
+                }
             }
-            else
+            catch (Exception e)
             {
-                result.Durability = Durability.NotSatisfied;
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure
+                };
             }
             return result;
         }
@@ -239,6 +278,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T of the <see cref="ViewRow{T}"/> value.</typeparam>
         /// <param name="viewQuery">The view query.</param>
         /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override IViewResult<T> SendWithRetry<T>(IViewQuery viewQuery)
         {
             //Is the cluster configured for View services?
@@ -280,6 +320,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="IOperationResult" /> with the status of the request.
         /// </returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
             //Is the cluster configured for Data services?
@@ -352,6 +393,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="IOperationResult" /> with the status of the request.
         /// </returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
             //Is the cluster configured for Data services?
@@ -424,6 +466,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
         /// </returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query)
         {
             //Is the cluster configured for View services?

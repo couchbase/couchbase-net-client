@@ -181,7 +181,14 @@ namespace Couchbase.Core.Buckets
                 var task = await ObserveEvery(async p =>
                 {
                     //check the master for persistence to disk
-                    var master = p.VBucket.LocatePrimary();
+                    IServer master;
+                    var attempts = 0;
+                    while ((master = p.VBucket.LocatePrimary()) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        Thread.Sleep((int)Math.Pow(2, attempts));
+                    }
+
                     var result = master.Send(operation);
                     Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
                     var state = result.Value;
