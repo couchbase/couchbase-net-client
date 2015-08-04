@@ -118,7 +118,7 @@ namespace Couchbase.IO
                     }
                     catch (Exception e)
                     {
-                        Log.Info(e);
+                        Log.InfoFormat("Node {0} failed to initialize, reason: {1}", EndPoint, e);
                         InitializationFailed = true;
                         return;
                     }

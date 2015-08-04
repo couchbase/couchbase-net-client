@@ -65,15 +65,17 @@ namespace Couchbase.Configuration
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                     try
                     {
-                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
-                        var ioStrategy = IOStrategyFactory(connectionPool);
-                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder)
+                        if (adapter.IsDataNode) //a data node so create a connection pool
                         {
-                            SaslFactory = SaslFactory
-                        };
-                        server.CreateSaslMechanismIfNotExists();
-
-                        servers.Add(endpoint.Address, server);
+                            var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
+                            var ioStrategy = IOStrategyFactory(connectionPool);
+                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder)
+                            {
+                                SaslFactory = SaslFactory
+                            };
+                            server.CreateSaslMechanismIfNotExists();
+                            servers.Add(endpoint.Address, server);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -121,16 +123,18 @@ namespace Couchbase.Configuration
                 var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                 try
                 {
-                    var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
-                    var ioStrategy = IOStrategyFactory(connectionPool);
-
-                    var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                    if (adapter.IsDataNode) //a data node so create a connection pool
                     {
-                        SaslFactory = SaslFactory
-                    };
-                    server.CreateSaslMechanismIfNotExists();
+                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
+                        var ioStrategy = IOStrategyFactory(connectionPool);
 
-                    servers.Add(endpoint.Address, server);
+                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                        {
+                            SaslFactory = SaslFactory
+                        };
+                        server.CreateSaslMechanismIfNotExists();
+                        servers.Add(endpoint.Address, server);
+                    }
                 }
                 catch (Exception e)
                 {

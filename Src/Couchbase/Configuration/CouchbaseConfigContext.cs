@@ -57,18 +57,25 @@ namespace Couchbase.Configuration
                                 m =>
                                     m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(),
                                         bucketConfig.Rev));
-                            var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
 
-                            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
-                            var ioStrategy = IOStrategyFactory(connectionPool);
-
-                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
+                            IServer server;
+                            if (adapter.IsDataNode) //a data node so create a connection pool
                             {
-                                SaslFactory = SaslFactory
-                            };
-                            server.CreateSaslMechanismIfNotExists();
-                            SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                                var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
+                                var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                                var ioStrategy = IOStrategyFactory(connectionPool);
 
+                                server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
+                                {
+                                    SaslFactory = SaslFactory
+                                };
+                                server.CreateSaslMechanismIfNotExists();
+                                SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                            }
+                            else
+                            {
+                                server = new Core.Server(null, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
+                            }
                             servers.Add(endpoint.Address, server);
                         }
                         catch (Exception e)
@@ -142,16 +149,23 @@ namespace Couchbase.Configuration
                         }
                         else
                         {
-                            var poolConfig = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
-                            var connectionPool = ConnectionPoolFactory(poolConfig, endpoint);
-                            var newIoStrategy = IOStrategyFactory(connectionPool);
-
-                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                            if (adapter.IsDataNode) //a data node so create a connection pool
                             {
-                                SaslFactory = SaslFactory
-                            };
-                            server.CreateSaslMechanismIfNotExists();
-                            SupportsEnhancedDurability = supportsEnhancedDurability;
+                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
+                                var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                                var newIoStrategy = IOStrategyFactory(connectionPool);
+
+                                server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                                {
+                                    SaslFactory = SaslFactory
+                                };
+                                server.CreateSaslMechanismIfNotExists();
+                                SupportsEnhancedDurability = newIoStrategy.SupportsEnhancedDurability;
+                            }
+                            else
+                            {
+                                server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                            }
                         }
                         servers.Add(endpoint.Address, server);
                     }
@@ -197,15 +211,24 @@ namespace Couchbase.Configuration
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                     try
                     {
-                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration,endpoint);
-                        var ioStrategy = IOStrategyFactory(connectionPool);
-
-                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                        IServer server;
+                       if (adapter.IsDataNode) //a data node so create a connection pool
                         {
-                            SaslFactory = SaslFactory
-                        };
-                        server.CreateSaslMechanismIfNotExists();
-                        SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                            var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
+                            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                            var newIoStrategy = IOStrategyFactory(connectionPool);
+
+                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                            {
+                                SaslFactory = SaslFactory
+                            };
+                            server.CreateSaslMechanismIfNotExists();
+                            SupportsEnhancedDurability = newIoStrategy.SupportsEnhancedDurability;
+                        }
+                        else
+                        {
+                            server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                        }
                         servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)

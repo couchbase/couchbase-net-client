@@ -161,5 +161,38 @@ namespace Couchbase.Core
         {
             return GetIPEndPoint(useSsl ? KeyValueSsl : KeyValue);
         }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is data node.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is data node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDataNode
+        {
+            get { return KeyValue > 0 || KeyValueSsl > 0; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is index node.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is index node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsIndexNode
+        {
+            get { return IndexHttp > 0; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is query node.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is query node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsQueryNode
+        {
+            get { return N1QL > 0; }
+        }
     }
 }

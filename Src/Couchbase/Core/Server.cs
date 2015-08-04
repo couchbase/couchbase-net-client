@@ -64,8 +64,11 @@ namespace Couchbase.Core
         public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
-            _ioStrategy = ioStrategy;
-            _ioStrategy.ConnectionPool.Owner = this;
+            if (ioStrategy != null)
+            {
+                _ioStrategy = ioStrategy;
+                _ioStrategy.ConnectionPool.Owner = this;
+            }
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
@@ -83,13 +86,16 @@ namespace Couchbase.Core
             ViewClient = viewClient;
             QueryClient = queryClient;
 
-            //timer and node status
-            _heartBeatTimer = new Timer(1000)
+            if (IsDataNode)
             {
-                Enabled = false
-            };
-            _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
-            TakeOffline(_ioStrategy.ConnectionPool.InitializationFailed);
+                //timer and node status
+                _heartBeatTimer = new Timer(1000)
+                {
+                    Enabled = false
+                };
+                _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
+                TakeOffline(_ioStrategy.ConnectionPool.InitializationFailed);
+            }
         }
 
 
@@ -150,7 +156,7 @@ namespace Couchbase.Core
         /// </value>
         public IPEndPoint EndPoint
         {
-            get { return _ioStrategy.EndPoint; }
+            get { return IsDataNode ? _ioStrategy.EndPoint : _nodeAdapter.GetIPEndPoint(); }
         }
 
         /// <summary>
@@ -161,7 +167,7 @@ namespace Couchbase.Core
         /// </value>
         public IConnectionPool ConnectionPool
         {
-            get { return _ioStrategy.ConnectionPool; }
+            get { return IsDataNode ? _ioStrategy.ConnectionPool : null; }
         }
 
         /// <summary>
@@ -173,7 +179,7 @@ namespace Couchbase.Core
         /// </value>
         public bool IsSecure
         {
-            get { return _ioStrategy.IsSecure; }
+            get { return IsDataNode ? _ioStrategy.IsSecure : _clientConfiguration.UseSsl; }
         }
 
         /// <summary>
@@ -287,7 +293,7 @@ namespace Couchbase.Core
         {
             Log.DebugFormat("Taking node {0} offline: {1}", EndPoint, isDown);
             _isDown = isDown;
-            if (_isDown)
+            if (_isDown && IsDataNode)
             {
                 _heartBeatTimer.Start();
             }

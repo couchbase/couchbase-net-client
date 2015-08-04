@@ -52,5 +52,29 @@ namespace Couchbase.Core
         /// </summary>
         /// <returns>An <see cref="IPAddress"/> for this node.</returns>
         IPAddress GetIPAddress();
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is data node which supports K/V and Views.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is data node ; otherwise, <c>false</c>.
+        /// </value>
+        bool IsDataNode { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is index node.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is index node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsIndexNode { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is query node supports N1QL.
+        /// </summary>
+        /// <value>
+        /// 	<c>true</c> if this instance is query node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsQueryNode { get; }
     }
 }
