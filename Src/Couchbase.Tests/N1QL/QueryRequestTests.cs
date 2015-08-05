@@ -176,6 +176,20 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
+        public void When_ScanConsistency_AtPlus_Provided_NotSupportedException_Is_Thrown()
+        {
+            var query = new QueryRequest();
+            Assert.Throws<NotSupportedException>(()=>query.ScanConsistency(ScanConsistency.AtPlus));
+        }
+
+        [Test]
+        public void When_ScanConsistency_StatementPlus_Provided_NotSupportedException_Is_Thrown()
+        {
+            var query = new QueryRequest();
+            Assert.Throws<NotSupportedException>(() => query.ScanConsistency(ScanConsistency.StatementPlus));
+        }
+
+        [Test]
         public void Test_Using_Prepared_Is_Detected()
         {
             var request = CreateFullQueryRequest();

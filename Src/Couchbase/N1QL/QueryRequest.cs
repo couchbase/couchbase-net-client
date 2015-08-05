@@ -7,6 +7,9 @@ using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
 {
+    /// <summary>
+    /// Builds a N1QL query request.
+    /// </summary>
     public class QueryRequest : IQueryRequest
     {
         private Method _method;
@@ -93,6 +96,12 @@ namespace Couchbase.N1QL
             get { return _prepared; }
         }
 
+        /// <summary>
+        /// Prepareds the specified prepared plan.
+        /// </summary>
+        /// <param name="preparedPlan">The prepared plan.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">preparedPlan</exception>
         public IQueryRequest Prepared(IQueryPlan preparedPlan)
         {
             if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.ToN1ql()))
@@ -104,12 +113,28 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// The HTTP method type to use.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns></returns>
         public IQueryRequest HttpMethod(Method method)
         {
             _method = method;
             return this;
         }
 
+        /// <summary>
+        /// Sets a N1QL statement to be executed.
+        /// </summary>
+        /// <param name="statement">Any valid N1QL statement for a POST request, or a read-only N1QL statement (SELECT, EXPLAIN) for a GET request.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">statement</exception>
+        /// <remarks>
+        /// If both prepared and statement are present and non-empty, an error is returned.
+        /// </remarks>
         public IQueryRequest Statement(string statement)
         {
             if (string.IsNullOrWhiteSpace(statement))
@@ -121,36 +146,97 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// Sets the maximum time to spend on the request.
+        /// </summary>
+        /// <param name="timeOut">Maximum time to spend on the request</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional - the default is 0ms, which means the request runs for as long as it takes.
+        /// </remarks>
         public IQueryRequest Timeout(TimeSpan timeOut)
         {
             _timeOut = timeOut;
             return this;
         }
 
+        /// <summary>
+        /// If a GET request, this will always be true otherwise false.
+        /// </summary>
+        /// <param name="readOnly">True for get requests.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Any value set here will be overridden by the type of request sent.
+        /// </remarks>
         public IQueryRequest ReadOnly(bool readOnly)
         {
             _readOnly = readOnly;
             return this;
         }
 
+        /// <summary>
+        /// Specifies that metrics should be returned with query results.
+        /// </summary>
+        /// <param name="includeMetrics">True to return query metrics.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest Metrics(bool includeMetrics)
         {
             _includeMetrics = includeMetrics;
             return this;
         }
 
+        /// <summary>
+        /// Adds a named parameter to the parameters to the statement or prepared statement.
+        /// </summary>
+        /// <param name="name">The name of the parameter.</param>
+        /// <param name="value">The value of the parameter.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest AddNamedParameter(string name, object value)
         {
             _parameters.Add(name, value);
             return this;
         }
 
+        /// <summary>
+        /// Adds a positional parameter to the parameters to the statement or prepared statement.
+        /// </summary>
+        /// <param name="value">The value of the positional parameter.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest AddPositionalParameter(object value)
         {
             _arguments.Add(value);
             return this;
         }
 
+        /// <summary>
+        /// Adds a collection of named parameters to the parameters to the statement or prepared statement.
+        /// </summary>
+        /// <param name="parameters">A list of <see cref="KeyValuePair{K, V}" /> to be sent.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest AddNamedParameter(params KeyValuePair<string, object>[] parameters)
         {
             foreach (var parameter in parameters)
@@ -160,6 +246,11 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// Adds a list of positional parameters to the statement or prepared statement.
+        /// </summary>
+        /// <param name="parameters">A list of positional parameters.</param>
+        /// <returns></returns>
         public IQueryRequest AddPositionalParameter(params object[] parameters)
         {
             foreach (var parameter in parameters)
@@ -169,54 +260,150 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// Desired format for the query results.
+        /// </summary>
+        /// <param name="format">An <see cref="Format" /> enum.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest Format(Format format)
         {
             _format = format;
             return this;
         }
 
+        /// <summary>
+        /// Specifies the desired character encoding for the query results.
+        /// </summary>
+        /// <param name="encoding">An <see cref="Encoding" /> enum.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest Encoding(Encoding encoding)
         {
             _encoding = encoding;
             return this;
         }
 
+        /// <summary>
+        /// Compression format to use for response data on the wire. Possible values are ZIP, RLE, LZMA, LZO, NONE.
+        /// </summary>
+        /// <param name="compression"></param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional. The default is NONE.
+        /// </remarks>
         public IQueryRequest Compression(Compression compression)
         {
             _compression = compression;
             return this;
         }
 
+        /// <summary>
+        /// Includes a header for the results schema in the response.
+        /// </summary>
+        /// <param name="includeSignature">True to include a header for the results schema in the response.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// The default is true.
+        /// </remarks>
         public IQueryRequest Signature(bool includeSignature)
         {
             _includeSignature = includeSignature;
             return this;
         }
 
+        /// <summary>
+        /// Specifies the consistency guarantee/constraint for index scanning.
+        /// </summary>
+        /// <param name="scanConsistency">Specify the consistency guarantee/constraint for index scanning.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">AtPlus and StatementPlus are not currently supported by CouchbaseServer.</exception>
+        /// <exception cref="NotSupportedException">AtPlus and StatementPlus are not currently supported by CouchbaseServer.</exception>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest ScanConsistency(ScanConsistency scanConsistency)
         {
+            if (scanConsistency == N1QL.ScanConsistency.AtPlus ||
+                scanConsistency == N1QL.ScanConsistency.StatementPlus)
+            {
+                throw new NotSupportedException(
+                    "AtPlus and StatementPlus are not currently supported by CouchbaseServer.");
+            }
             _scanConsistency = scanConsistency;
             return this;
         }
 
+        /// <summary>
+        /// Scans the vector.
+        /// </summary>
+        /// <param name="scanVector">The scan vector.</param>
+        /// <returns></returns>
         public IQueryRequest ScanVector(dynamic scanVector)
         {
             _scanVector = scanVector;
             return this;
         }
 
+        /// <summary>
+        /// Specifies the maximum time the client is willing to wait for an index to catch up to the vector timestamp in the request. If an index has to catch up, and the <see cref="ScanWait" /> time is exceed doing so, an error is returned.
+        /// </summary>
+        /// <param name="scanWait">The maximum time the client is willing to wait for index to catch up to the vector timestamp.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest ScanWait(TimeSpan scanWait)
         {
             _scanWait = scanWait;
             return this;
         }
 
+        /// <summary>
+        /// Pretty print the output.
+        /// </summary>
+        /// <param name="pretty">True for the pretty.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        /// True by default.
+        /// </remarks>
         public IQueryRequest Pretty(bool pretty)
         {
             _pretty = pretty;
             return this;
         }
 
+        /// <summary>
+        /// Adds a set of credentials to the list of credentials, in the form of user/password
+        /// </summary>
+        /// <param name="username">The bucket or username.</param>
+        /// <param name="password">The password of the bucket.</param>
+        /// <param name="isAdmin">True if connecting as an admin.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">username;cannot be null, empty or whitespace.</exception>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
         public IQueryRequest AddCredentials(string username, string password, bool isAdmin)
         {
             if (string.IsNullOrWhiteSpace(username))
@@ -235,18 +422,31 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// Clients the context identifier.
+        /// </summary>
+        /// <param name="clientContextId">The client context identifier.</param>
+        /// <returns></returns>
         public IQueryRequest ClientContextId(string clientContextId)
         {
             _clientContextId = clientContextId;
             return this;
         }
 
+        /// <summary>
+        /// Bases the URI.
+        /// </summary>
+        /// <param name="baseUri">The base URI.</param>
+        /// <returns></returns>
         public IQueryRequest BaseUri(Uri baseUri)
         {
             _baseUri = baseUri;
             return this;
         }
 
+        /// <summary>
+        /// Checks the HTTP method.
+        /// </summary>
         void CheckMethod()
         {
             if (_method != Method.None) return;
@@ -259,6 +459,13 @@ namespace Couchbase.N1QL
             }
         }
 
+        /// <summary>
+        /// Gets the constructed <see cref="Uri" /> for making the request.
+        /// </summary>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">A statement or prepared plan must be provided.</exception>
         public Uri GetRequestUri()
         {
             if (string.IsNullOrWhiteSpace(_statement))
@@ -363,6 +570,13 @@ namespace Couchbase.N1QL
             return _statement;
         }
 
+        /// <summary>
+        /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service if <see cref="Method.Post" /> is used.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">A statement or prepared plan must be provided.</exception>
         public IDictionary<string, string> GetFormValues()
         {
             if (string.IsNullOrWhiteSpace(_statement))
@@ -456,6 +670,10 @@ namespace Couchbase.N1QL
             return formValues;
         }
 
+        /// <summary>
+        /// Gets the query parameters.
+        /// </summary>
+        /// <returns></returns>
         public string GetQueryParameters()
         {
             var sb = new StringBuilder();
@@ -481,21 +699,41 @@ namespace Couchbase.N1QL
             return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
         }
 
+        /// <summary>
+        /// Creates a new <see cref="QueryRequest"/> object.
+        /// </summary>
+        /// <returns></returns>
         public static IQueryRequest Create()
         {
             return new QueryRequest();
         }
 
+        /// <summary>
+        /// Creates a new <see cref="QueryRequest"/> object with the specified statement.
+        /// </summary>
+        /// <param name="statement">The statement.</param>
+        /// <returns></returns>
         public static IQueryRequest Create(string statement)
         {
             return new QueryRequest(statement);
         }
 
+        /// <summary>
+        /// Creates the specified plan.
+        /// </summary>
+        /// <param name="plan">The plan.</param>
+        /// <returns></returns>
         public static IQueryRequest Create(IQueryPlan plan)
         {
             return new QueryRequest(plan);
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         public override string ToString()
         {
             string request;
