@@ -29,6 +29,7 @@ namespace Couchbase.Views
             _bucketConfig = bucketConfig;
             _clientConfig = clientClientConfig;
             HttpClient = httpClient;
+            HttpClient.Timeout = new TimeSpan(0, 0, 0, 0, clientClientConfig.ViewRequestTimeout);
             HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic", Convert.ToBase64String(
                 Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password))));

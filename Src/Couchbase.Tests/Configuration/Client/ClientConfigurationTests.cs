@@ -37,6 +37,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(2500, bucketConfig.DefaultOperationLifespan);
+            Assert.AreEqual(75000, config.ViewRequestTimeout);
         }
 
         [Test]
@@ -52,7 +53,8 @@ namespace Couchbase.Tests.Configuration.Client
                     SendTimeout = 12000,
                     MaxCloseAttempts = 6,
                     CloseAttemptInterval = 120
-                }
+                },
+                ViewRequestTimeout = 5000
             };
             config.Initialize();
 
@@ -79,6 +81,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
             Assert.AreEqual(120, bucketConfig.PoolConfiguration.CloseAttemptInterval);
             Assert.AreEqual(6, bucketConfig.PoolConfiguration.MaxCloseAttempts);
+            Assert.AreEqual(5000, config.ViewRequestTimeout);
         }
 
         [Test]

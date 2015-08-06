@@ -184,6 +184,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(18092, configuration.HttpsApiPort);
             Assert.AreEqual(11210, configuration.DirectPort);
             Assert.IsFalse(configuration.UseSsl);
+            Assert.AreEqual(75000, configuration.ViewRequestTimeout);
 
             var server = configuration.Servers.First();
             Assert.AreEqual(new Uri(string.Format("http://{0}:8091/pools", serverIp)).PathAndQuery, server.PathAndQuery);
@@ -215,6 +216,7 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.AreEqual(18098, configuration.HttpsApiPort);
                 Assert.AreEqual(11219, configuration.DirectPort);
                 Assert.IsTrue(configuration.UseSsl);
+                Assert.AreEqual(5000, configuration.ViewRequestTimeout);
 
                 var server = configuration.Servers.First();
                 Assert.AreEqual(new Uri("https://localhost2:18099/pools"), server);

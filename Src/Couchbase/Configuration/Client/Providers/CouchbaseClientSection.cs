@@ -193,9 +193,9 @@ namespace Couchbase.Configuration.Client.Providers
         /// <summary>
         /// Sets the timeout for each HTTP View request.
         /// </summary>
-        /// <remarks>The default is 5000ms.</remarks>
-        /// <remarks>The value must be greater than Zero and less than 60000ms.</remarks>
-        [ConfigurationProperty("viewRequestTimeout", DefaultValue = 5000, IsRequired = false)]
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        [ConfigurationProperty("viewRequestTimeout", DefaultValue = 75000, IsRequired = false)]
         public int ViewRequestTimeout
         {
             get { return (int)this["viewRequestTimeout"]; }

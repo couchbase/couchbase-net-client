@@ -64,7 +64,7 @@ namespace Couchbase.Configuration.Client
             EnableConfigHeartBeat = true;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            ViewRequestTimeout = 5000; //ms
+            ViewRequestTimeout = 75000; //ms
             DefaultConnectionLimit = 5; //connections
             Expect100Continue = false;
             EnableOperationTiming = false;
@@ -475,14 +475,14 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Sets the timeout for each HTTP View request.
         /// </summary>
-        /// <remarks>The default is 5000ms.</remarks>
-        /// <remarks>The value must be greater than Zero and less than 60000ms.</remarks>
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
         public int ViewRequestTimeout
         {
             get { return _viewRequestTimeout; }
             set
             {
-                if (value > 0 && value < 60000)
+                if (value > 0)
                 {
                     _viewRequestTimeout = value;
                 }
