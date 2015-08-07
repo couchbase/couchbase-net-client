@@ -186,7 +186,7 @@ namespace Couchbase.Core.Buckets
                     while ((master = p.VBucket.LocatePrimary()) == null)
                     {
                         if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        Thread.Sleep((int)Math.Pow(2, attempts));
+                        await Task.Delay((int) Math.Pow(2, attempts));
                     }
 
                     var result = master.Send(operation);
