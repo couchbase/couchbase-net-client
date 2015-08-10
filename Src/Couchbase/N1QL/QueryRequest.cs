@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -42,6 +43,7 @@ namespace Couchbase.N1QL
         private const string LowerCaseTrue = "true";
         private const string LowerCaseFalse = "false";
         public const string TimeoutArgPattern = "{0}={1}ms&";
+        public const uint TimeoutDefault = 75000;
 
         public static readonly Dictionary<ScanConsistency, string> ScanConsistencyResolver = new Dictionary<ScanConsistency, string>
         {
@@ -513,7 +515,11 @@ namespace Couchbase.N1QL
 
             if (_timeOut.HasValue && _timeOut.Value > TimeSpan.Zero)
             {
-                formValues.Add(QueryParameters.Timeout, (uint)_timeOut.Value.TotalMilliseconds + "ms");
+                formValues.Add(QueryParameters.Timeout, (uint) _timeOut.Value.TotalMilliseconds + "ms");
+            }
+            else
+            {
+                formValues.Add(QueryParameters.Timeout, string.Concat(TimeoutDefault, "ms"));
             }
             if (_readOnly.HasValue)
             {

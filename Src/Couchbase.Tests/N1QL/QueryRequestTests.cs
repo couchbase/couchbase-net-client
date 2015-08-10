@@ -28,7 +28,7 @@ namespace Couchbase.Tests.N1QL
                 Statement("SELECT * FROM default");
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM default\"}";
+            var expected = "{\"statement\":\"SELECT * FROM default\",\"timeout\":\"75000ms\"}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -42,7 +42,7 @@ namespace Couchbase.Tests.N1QL
                 ClientContextId("somecontextlessthanorequalto64chars");
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM default\",\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
+            var expected = "{\"statement\":\"SELECT * FROM default\",\"timeout\":\"75000ms\",\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -57,7 +57,7 @@ namespace Couchbase.Tests.N1QL
                 Pretty(true);
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM default\",\"pretty\":true,\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
+            var expected = "{\"statement\":\"SELECT * FROM default\",\"timeout\":\"75000ms\",\"pretty\":true,\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -71,7 +71,7 @@ namespace Couchbase.Tests.N1QL
                 AddPositionalParameter("dog");
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM default WHERE type=$1\",\"args\":[\"dog\"]}";
+            var expected = "{\"statement\":\"SELECT * FROM default WHERE type=$1\",\"timeout\":\"75000ms\",\"args\":[\"dog\"]}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -87,7 +87,7 @@ namespace Couchbase.Tests.N1QL
 
             var json = query.GetFormValuesAsJson();
             var expected = "{\"statement\":\"SELECT * FROM default " +
-                "WHERE type=$1 OR type=$2\",\"args\":[\"dog\",\"cat\"]}";
+                "WHERE type=$1 OR type=$2\",\"timeout\":\"75000ms\",\"args\":[\"dog\",\"cat\"]}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -103,7 +103,7 @@ namespace Couchbase.Tests.N1QL
 
             var json = query.GetFormValuesAsJson();
             var expected = "{\"statement\":\"SELECT * FROM default WHERE type=$canine OR type=$feline\"," +
-                "\"$canine\":\"dog\",\"$feline\":\"cat\"}";
+                "\"timeout\":\"75000ms\",\"$canine\":\"dog\",\"$feline\":\"cat\"}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -117,7 +117,7 @@ namespace Couchbase.Tests.N1QL
                 AddCredentials("authenticated", "secret", true);
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM authenticated\",\"creds\":[{\"user\":\"admin:authenticated\",\"pass\":\"secret\"}]}";
+            var expected = "{\"statement\":\"SELECT * FROM authenticated\",\"timeout\":\"75000ms\",\"creds\":[{\"user\":\"admin:authenticated\",\"pass\":\"secret\"}]}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
         }
@@ -131,7 +131,7 @@ namespace Couchbase.Tests.N1QL
                 AddCredentials("authenticated", "secret", false);
 
             var json = query.GetFormValuesAsJson();
-            var expected = "{\"statement\":\"SELECT * FROM authenticated\"," +
+            var expected = "{\"statement\":\"SELECT * FROM authenticated\",\"timeout\":\"75000ms\"," +
                            "\"creds\":[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}]}";
             Console.WriteLine(json);
             Assert.AreEqual(expected, json);
@@ -302,6 +302,31 @@ namespace Couchbase.Tests.N1QL
             Console.WriteLine(json);
 
             Assert.AreEqual(expected, json);
+        }
+
+        [Test]
+        public void When_Timeout_Is_Not_Set_Default_To_75000ms()
+        {
+            var query = new QueryRequest()
+              .BaseUri(new Uri(string.Format("http://{0}:8093/query", _server)))
+              .Statement("SELECT * FROM `beer-sample`");
+
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM `beer-sample`\",\"timeout\":\"75000ms\"}";
+            Console.WriteLine(json);
+
+            Assert.AreEqual(expected, json);
+        }
+
+        [Test]
+        public void When_Timeout_Is_Not_Set_QueryString_Values_Use_Timeout_Default()
+        {
+            var query = new QueryRequest()
+                .BaseUri(new Uri(string.Format("http://{0}:8093/query", _server)))
+                .Statement("SELECT * from Who");
+
+            var queryStringValues = query.GetFormValues();
+            Assert.AreEqual(queryStringValues["timeout"], "75000ms");
         }
     }
 }
