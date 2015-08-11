@@ -62,6 +62,14 @@ namespace Couchbase.Configuration
         protected ITypeTranscoder Transcoder { get; private set; }
 
         /// <summary>
+        /// Gets a value indicating whether the server supports enhanced durability.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedDurability { get; protected set; }
+
+        /// <summary>
         /// The time at which this configuration context has been created.
         /// </summary>
         public DateTime CreationTime

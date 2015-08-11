@@ -4,7 +4,7 @@ using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal sealed class Add<T> : OperationBase<T>
+    internal sealed class Add<T> : MutationOperationBase<T>
     {
         public Add(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
@@ -27,18 +27,14 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Add; }
         }
 
-        public override int BodyOffset
-        {
-            get { return 24; }
-        }
-
         public override IOperation Clone()
         {
             var cloned = new Add<T>(Key, RawValue, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                MutationToken = MutationToken
             };
             return cloned;
         }

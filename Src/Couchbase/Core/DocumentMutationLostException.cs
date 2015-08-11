@@ -1,25 +1,25 @@
-﻿using Couchbase.Core.Buckets;
-using Couchbase.IO;
+﻿using System;
 
-namespace Couchbase
+namespace Couchbase.Core
 {
     /// <summary>
-    /// The return type for "document" centric operation requests that do not return documents - e.g. remove
+    ///  The observed document was lost during a hard failover, because the document did not reach the replica in time.
     /// </summary>
-    public interface IDocumentResult : IResult
+    public class DocumentMutationLostException : Exception
     {
-        /// <summary>
-        /// The response status returned by the server when fulfilling the request.
-        /// </summary>
-        ResponseStatus Status { get; }
+        public DocumentMutationLostException(string message)
+            : base(message)
+        {
+        }
     }
+}
 
-    #region [ License information ]
+#region [ License information          ]
 
-    /* ************************************************************
+/* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
+ *    @copyright 2015 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -35,6 +35,4 @@ namespace Couchbase
  *
  * ************************************************************/
 
-    #endregion
-
-}
+#endregion

@@ -257,5 +257,8 @@ namespace Couchbase.Tests.Fakes
         public void Dispose()
         {
         }
+
+
+        public bool SupportsEnhancedDurability { get; protected set; }
     }
 }

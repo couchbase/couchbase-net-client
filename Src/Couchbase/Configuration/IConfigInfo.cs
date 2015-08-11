@@ -93,6 +93,14 @@ namespace Couchbase.Configuration
         bool IsDataCapable { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the server supports enhanced durability.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedDurability { get; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this cluster is supports indexing
         /// </summary>
         /// <value>

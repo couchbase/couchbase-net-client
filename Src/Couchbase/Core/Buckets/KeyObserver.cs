@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
@@ -23,7 +20,6 @@ namespace Couchbase.Core.Buckets
         private readonly int _interval;
         private readonly int _timeout;
         private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
-        private const uint ObserveOperationTimeout = 2500; //2.5sec
         private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
@@ -66,6 +62,47 @@ namespace Couchbase.Core.Buckets
                     return ReplicatedToCount >= (int)ReplicateTo && PersistedToCount >= (int)PersistTo;
                 }
             }
+
+            /// <summary>
+            /// Checks that the number of configured replicas matches the <see cref="ReplicateTo"/> value.
+            /// </summary>
+            /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+            /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
+            public void CheckConfiguredReplicas()
+            {
+                var replicas = GetReplicas();
+                if (replicas.Count < (int)ReplicateTo)
+                {
+                    throw new ReplicaNotConfiguredException(ExceptionUtil.NotEnoughReplicasConfigured);
+                }
+            }
+
+            /// <summary>
+            /// Gets a list of replica indexes that is the larger of either the <see cref="PersistTo"/> or the <see cref="ReplicateTo"/> value.
+            /// </summary>
+            /// <returns>A list of replica indexes which is the larger of either the <see cref="PersistTo"/> or the <see cref="ReplicateTo"/> value</returns>
+            public List<int> GetReplicas()
+            {
+                var maxReplicas = (int)ReplicateTo > (int)PersistTo ?
+                    (int)ReplicateTo :
+                    (int)PersistTo;
+
+                return maxReplicas > VBucket.Replicas.Length ?
+                    VBucket.Replicas.Where(x => x > -1).ToList() :
+                    VBucket.Replicas.Where(x => x > -1).Take(maxReplicas).ToList();
+            }
+
+            /// <summary>
+            /// Resets the internal persistence and replication counters to zero.
+            /// </summary>
+            public void Reset()
+            {
+                lock (_syncObj)
+                {
+                    PersistedToCount = 0;
+                    ReplicatedToCount = 0;
+                }
+            }
         }
 
         /// <summary>
@@ -103,6 +140,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
         /// <returns>True if the durability constraints have been satisfied.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public bool ObserveAdd(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             return Observe(key, cas, false, replicateTo, persistTo);
@@ -116,6 +155,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated (deleted) to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted (deleted) to to satisfy the durability constraint.</param>
         /// <returns>True if the durability constraints have been satisfied.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public Task<bool> ObserveRemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             return ObserveAsync(key, cas, true, replicateTo, persistTo);
@@ -129,6 +170,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
         /// <returns>True if the durability constraints have been satisfied.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public Task<bool> ObserveAddAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             return ObserveAsync(key, cas, false, replicateTo, persistTo);
@@ -142,6 +185,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated (deleted) to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted (deleted) to to satisfy the durability constraint.</param>
         /// <returns>True if the durability constraints have been satisfied.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public bool ObserveRemove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
             return Observe(key, cas, true, replicateTo, persistTo);
@@ -156,6 +201,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
         /// <returns> A <see cref="Task{bool}"/> representing the aynchronous operation.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public async Task<bool> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
@@ -172,8 +219,9 @@ namespace Couchbase.Core.Buckets
                 ReplicateTo = replicateTo,
                 VBucket = vBucket
             };
+            observeParams.CheckConfiguredReplicas();
 
-            var operation = new Observe(key, vBucket, _transcoder, ObserveOperationTimeout);
+            var operation = new Observe(key, vBucket, _transcoder, (uint)_timeout);
              //Used to terminate the loop at the specific timeout
             using (var cts = new CancellationTokenSource(_timeout))
             {
@@ -211,7 +259,7 @@ namespace Couchbase.Core.Buckets
 
                     //Run the durability requirement check on each replica
                     var tasks = new List<Task<bool>>();
-                    var replicas = GetReplicas(vBucket, replicateTo, persistTo);
+                    var replicas = p.GetReplicas();
                     replicas.ForEach(x => tasks.Add(CheckReplicaAsync(p, operation, x)));
 
                     //Wait for all tasks to finish
@@ -219,7 +267,7 @@ namespace Couchbase.Core.Buckets
                     var mutated = tasks.All(subtask => subtask.Result);
 
                     return p.IsDurabilityMet() && !mutated;
-                }, observeParams, _interval, cts.Token).ContinueOnAnyContext();
+                }, observeParams, operation, _interval, cts.Token).ContinueOnAnyContext();
                 return task;
             }
         }
@@ -233,6 +281,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
         /// <returns>True if the durability constraints have been met.</returns>
+        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
+        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
         public bool Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var criteria = GetDurabilityCriteria(deletion);
@@ -248,8 +298,9 @@ namespace Couchbase.Core.Buckets
                 ReplicateTo = replicateTo,
                 VBucket = vBucket
             };
+            p.CheckConfiguredReplicas();
 
-            var operation = new Observe(key, vBucket, _transcoder, ObserveOperationTimeout);
+            var operation = new Observe(key, vBucket, _transcoder, (uint)_timeout);
             do
             {
                 var master = p.VBucket.LocatePrimary();
@@ -271,11 +322,14 @@ namespace Couchbase.Core.Buckets
                 }
 
                 //If not check each replica
-                if (CheckReplicas(p, operation, replicateTo, persistTo))
+                if (CheckReplicas(p, operation))
                 {
                     return true;
                 }
+
+                //prepare for another attempt
                 operation = (Observe)operation.Clone();
+                p.Reset();
 
             } while (!operation.TimedOut());
             return false;
@@ -304,17 +358,11 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="observeParams">The observe parameters.</param>
         /// <param name="operation">The operation observe operation reference; will be cloned if reused.</param>
-        /// <param name="replicateTo">The replication durability that must be met.</param>
-        /// <param name="persistTo">The persistence durbaility that must be met.</param>
         /// <returns></returns>
-        bool CheckReplicas(ObserveParams observeParams, Observe operation, ReplicateTo replicateTo, PersistTo persistTo)
+        bool CheckReplicas(ObserveParams observeParams, Observe operation)
         {
             //Get the candidate replicas, if none are defined that match the specified durability return false.
-            var replicas = GetReplicas(observeParams.VBucket, replicateTo, persistTo);
-            if (replicas.Count < (int)replicateTo)
-            {
-                return false;
-            }
+            var replicas = observeParams.GetReplicas();
 
             //Check each replica to see if has met the durability constraints specified. A mutation means we failed.
             var mutated = replicas.All(index => CheckReplica(observeParams, operation, index));
@@ -386,10 +434,11 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="observe">The func to call at the specific interval</param>
         /// <param name="observeParams">The parameters to pass in.</param>
+        /// <param name="op">The <see cref="Observe"/> operation.</param>
         /// <param name="interval">The interval to check.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> to use to terminate the observation at the specified timeout.</param>
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
-        static async Task<bool> ObserveEvery(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, int interval, CancellationToken cancellationToken)
+        static async Task<bool> ObserveEvery(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, Observe op, int interval, CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -408,6 +457,10 @@ namespace Couchbase.Core.Buckets
                 {
                     return false;
                 }
+
+                //prepare for another attempt
+                observeParams.Reset();
+                op = (Observe)op.Clone();
             }
         }
 

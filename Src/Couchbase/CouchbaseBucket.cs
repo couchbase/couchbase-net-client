@@ -3145,6 +3145,17 @@ namespace Couchbase
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedDurability
+        {
+            get { return _configInfo.SupportsEnhancedDurability; }
+        }
+
         void CheckDisposed()
         {
             if (_disposed)

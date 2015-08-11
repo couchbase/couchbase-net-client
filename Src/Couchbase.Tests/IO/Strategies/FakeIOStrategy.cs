@@ -136,6 +136,12 @@ namespace Couchbase.Tests.IO.Strategies
         {
             throw new NotImplementedException();
         }
+
+
+        public bool SupportsEnhancedDurability
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
@@ -8,7 +7,7 @@ namespace Couchbase.IO.Operations
     /// Replace a key in the database, failing if the key does not exist.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal sealed class Replace<T> : OperationBase<T>
+    internal sealed class Replace<T> : MutationOperationBase<T>
     {
         public Replace(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
@@ -37,7 +36,8 @@ namespace Couchbase.IO.Operations
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                MutationToken = MutationToken
             };
             return cloned;
         }

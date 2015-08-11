@@ -6,9 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
@@ -22,6 +24,7 @@ namespace Couchbase.IO.Operations
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
+        protected static MutationToken DefaultMutationToken = new MutationToken(0, 0, 0);
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
@@ -268,6 +271,7 @@ namespace Couchbase.IO.Operations
                 result.Status = GetResponseStatus();
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
+                result.Token = MutationToken ?? DefaultMutationToken;
 
                 //clean up and set to null
                 if (!result.IsNmv())
@@ -391,6 +395,7 @@ namespace Couchbase.IO.Operations
         }
 
         public ITypeTranscoder Transcoder { get; protected set; }
+        public MutationToken MutationToken { get; protected set; }
 
         public virtual byte[] CreateExtras()
         {

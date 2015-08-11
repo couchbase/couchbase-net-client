@@ -156,5 +156,11 @@ namespace Couchbase.Tests.Fakes
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public bool SupportEnhancedDurability
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

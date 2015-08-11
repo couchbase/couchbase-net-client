@@ -9,7 +9,7 @@ namespace Couchbase.IO.Operations
     /// Add a key to the database, replacing the key if it already exists.
     /// </summary>
     /// <typeparam name="T">The value to insert.</typeparam>
-    internal sealed class Set<T> : OperationBase<T>
+    internal sealed class Set<T> : MutationOperationBase<T>
     {
         public Set(string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
@@ -32,7 +32,8 @@ namespace Couchbase.IO.Operations
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                MutationToken = MutationToken
             };
             return cloned;
         }

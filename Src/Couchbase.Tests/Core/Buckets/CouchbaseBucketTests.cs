@@ -1686,6 +1686,157 @@ namespace Couchbase.Tests.Core.Buckets
             }
         }
 
+        [Test]
+        public void When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation()
+        {
+            const string key = "When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation";
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = true
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = bucket.Insert(key, "foo");
+                    Assert.Greater(result.Token.SequenceNumber, 0);
+                    Assert.Greater(result.Token.VBucketUUID, 0);
+                }
+            }
+        }
+
+        [Test]
+        public void When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation()
+        {
+            const string key = "When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation";
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = false
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = bucket.Insert(key, "foo");
+                    Assert.AreEqual(0, result.Token.SequenceNumber);
+                    Assert.AreEqual(0, result.Token.VBucketUUID);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Note: assumes a single node cluster with no replication.
+        /// </summary>
+        [Test]
+        public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds()
+        {
+            const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds";
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = true
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = bucket.Insert(key, "foo", ReplicateTo.Zero);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(Durability.Satisfied, result.Durability);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Note: assumes a single node cluster with no replication.
+        /// </summary>
+        [Test]
+        public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails()
+        {
+            const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails";
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = true
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = bucket.Insert(key, "foo", ReplicateTo.One);
+                    Assert.IsFalse(result.Success);
+                    Assert.AreEqual(Durability.NotSatisfied, result.Durability);
+                    Assert.IsInstanceOf(typeof(ReplicaNotConfiguredException), result.Exception);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Note: assumes a cluster with replication set to 2
+        /// </summary>
+        [Test]
+        public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds()
+        {
+            const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds";
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = true
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    bucket.Remove(key);
+                    var result = bucket.Insert(key, "foo", ReplicateTo.Two, PersistTo.Two);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(Durability.Satisfied, result.Durability);
+                }
+            }
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

@@ -221,6 +221,12 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
                 throw new NotImplementedException();
             }
         }
+
+
+        public bool SupportsEnhancedDurability
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

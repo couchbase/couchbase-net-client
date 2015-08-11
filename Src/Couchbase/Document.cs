@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.Buckets;
 
 namespace Couchbase
 {
@@ -32,6 +33,16 @@ namespace Couchbase
         /// The value representing the document itself
         /// </summary>
         public T Content { get; set; }
+
+        /// <summary>
+        /// Gets the mutation token for the operation if enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// The mutation token.
+        /// </value>
+        /// <remarks>Note: this is used internally for enhanced durability if supported by
+        /// the Couchbase server version and enabled by configuration.</remarks>
+        public MutationToken Token { get; internal set; }
     }
 }
 #region [ License information ]

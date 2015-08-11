@@ -32,6 +32,21 @@ namespace Couchbase.Configuration.Client
             ObserveInterval = 10; //ms
             ObserveTimeout = 500; //ms
             _operationLifespan = 2500; //ms, work around property that flags as changed
+            PoolConfiguration = new PoolConfiguration();
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use enhanced durability if the
+        /// Couchbase server version supports it; if it's not supported the client will use
+        /// Observe for Endure operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseEnhancedDurability
+        {
+            get { return PoolConfiguration.UseEnhancedDurability; }
+            set { PoolConfiguration.UseEnhancedDurability = value; }
         }
 
         /// <summary>

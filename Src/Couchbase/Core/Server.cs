@@ -124,6 +124,7 @@ namespace Couchbase.Core
         /// </value>
         public bool IsViewNode { get; private set; }
 
+
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
@@ -684,6 +685,7 @@ namespace Couchbase.Core
             Dispose(false);
         }
 #endif
+
     }
 }
 

@@ -1,11 +1,10 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
-    internal sealed class Delete : OperationBase
+    internal sealed class Delete : MutationOperationBase
     {
         public Delete(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
@@ -37,7 +36,8 @@ namespace Couchbase.IO.Operations
                 Attempts = Attempts,
                 Cas = Cas,
                 CreationTime = CreationTime,
-                Opaque = Opaque
+                Opaque = Opaque,
+                MutationToken = MutationToken
             };
             return cloned;
         }

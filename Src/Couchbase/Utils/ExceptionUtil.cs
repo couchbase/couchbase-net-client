@@ -20,6 +20,10 @@ namespace Couchbase.Utils
             "client failed during bootstrapping. Please check the client logs for more " +
             "information as for why it failed.";
 
+        public static string DocumentMutationLostMsg = "Document Mutation lost during a hard failover.";
+
+        public static string NotEnoughReplicasConfigured = "Not enough replicas configured on the bucket.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

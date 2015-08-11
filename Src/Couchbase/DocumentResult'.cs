@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.IO;
-using Couchbase.IO.Operations;
 
 namespace Couchbase
 {
@@ -20,7 +15,8 @@ namespace Couchbase
             {
                 Cas = result.Cas,
                 Id = id,
-                Content = result.Value
+                Content = result.Value,
+                Token = result.Token
             };
             Content = Document.Content;
             Message = result.Message;

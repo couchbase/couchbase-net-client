@@ -1,25 +1,39 @@
-﻿using Couchbase.Core.Buckets;
-using Couchbase.IO;
-
-namespace Couchbase
+﻿
+namespace Couchbase.IO.Operations
 {
     /// <summary>
-    /// The return type for "document" centric operation requests that do not return documents - e.g. remove
+    /// Features that they client negotiate on a per connection basis.
     /// </summary>
-    public interface IDocumentResult : IResult
+    internal enum ServerFeatures : short
     {
         /// <summary>
-        /// The response status returned by the server when fulfilling the request.
+        /// For custom data types
         /// </summary>
-        ResponseStatus Status { get; }
+        Datatype = 0x01,
+
+        /// <summary>
+        /// Enable TCP nodelay
+        /// </summary>
+        TcpNoDelay = 0x03,
+
+        /// <summary>
+        ///  Return the sequence number with every mutation
+        /// </summary>
+        MutationSeqno = 0x04,
+
+        /// <summary>
+        /// Disable TCP nodelay
+        /// </summary>
+        TcpDelay = 0x05
     }
+}
 
-    #region [ License information ]
+#region [ License information          ]
 
-    /* ************************************************************
+/* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
+ *    @copyright 2015 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -35,6 +49,4 @@ namespace Couchbase
  *
  * ************************************************************/
 
-    #endregion
-
-}
+#endregion

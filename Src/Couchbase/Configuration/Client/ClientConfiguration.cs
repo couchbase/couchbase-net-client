@@ -186,7 +186,8 @@ namespace Couchbase.Configuration.Client
                     Password = bucket.Password,
                     ObserveInterval = bucket.ObserveInterval,
                     DefaultOperationLifespan = bucket.OperationLifespan ??(uint) DefaultOperationLifespan,
-                    ObserveTimeout = bucket.ObserveTimeout
+                    ObserveTimeout = bucket.ObserveTimeout,
+                    UseEnhancedDurability = bucket.UseEnhancedDurability
                 };
                 //Configuration properties (including elements) can not be null, but we can check if it was originally presnt in xml and skip it.
                 //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
@@ -200,16 +201,23 @@ namespace Couchbase.Configuration.Client
                         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
                         UseSsl = bucket.ConnectionPool.UseSsl,
                         BufferSize = bucket.ConnectionPool.BufferSize,
-                        BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
+                        BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
                         ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
                         SendTimeout = bucket.ConnectionPool.SendTimeout,
-                        EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
-                        TcpKeepAliveInterval = keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
+                        EnableTcpKeepAlives =
+                            keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
+                        TcpKeepAliveInterval =
+                            keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
                         TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
                         CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
                         MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
+                        UseEnhancedDurability = bucket.UseEnhancedDurability,
                         ClientConfiguration = this
                     };
+                }
+                else
+                {
+                    bucketConfiguration.PoolConfiguration = PoolConfiguration;
                 }
                 BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }

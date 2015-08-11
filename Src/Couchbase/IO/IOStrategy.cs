@@ -103,6 +103,14 @@ namespace Couchbase.IO
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
         Task ExecuteAsync(IOperation operation);
+
+        /// <summary>
+        /// Gets a value indicating whether the server supports enhanced durability.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedDurability { get; }
     }
 }
 

@@ -447,6 +447,66 @@ namespace Couchbase.Tests.Configuration.Client
             var config = new ClientConfiguration(section);
             Assert.IsInstanceOf<FakeSerializer>(config.Serializer());
         }
+
+        [Test]
+        public void When_EnhancedDurability_Is_Enabled_SupportsEnhancedDurability_Is_True()
+        {
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = true
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    Assert.IsTrue(bucket.SupportsEnhancedDurability);
+                }
+            }
+        }
+
+        [Test]
+        public void When_EnhancedDurability_Is_Not_Enabled_SupportsEnhancedDurability_Is_False()
+        {
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            UseEnhancedDurability = false
+                        }
+                    }
+                }
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    Assert.IsFalse(bucket.SupportsEnhancedDurability);
+                }
+            }
+        }
+
+        [Test]
+        public void When_Default_Configuration_Is_Used_SupportsEnhancedDurability_Is_False()
+        {
+            using (var cluster = new Cluster())
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    Assert.IsFalse(bucket.SupportsEnhancedDurability);
+                }
+            }
+        }
     }
 }
 

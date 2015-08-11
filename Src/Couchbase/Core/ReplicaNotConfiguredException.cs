@@ -1,25 +1,26 @@
-﻿using Couchbase.Core.Buckets;
-using Couchbase.IO;
+﻿using System;
 
-namespace Couchbase
+namespace Couchbase.Core
 {
     /// <summary>
-    /// The return type for "document" centric operation requests that do not return documents - e.g. remove
+    /// This exception is thrown when the given operation targeting a specific replica is not fulfillable because the
+    /// replica is not configured (for example replica 2 is asked for, but only 1 is configured).
     /// </summary>
-    public interface IDocumentResult : IResult
+    public class ReplicaNotConfiguredException : Exception
     {
-        /// <summary>
-        /// The response status returned by the server when fulfilling the request.
-        /// </summary>
-        ResponseStatus Status { get; }
+        public ReplicaNotConfiguredException(string message)
+            : base(message)
+        {
+        }
     }
+}
 
-    #region [ License information ]
+#region [ License information          ]
 
-    /* ************************************************************
+/* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
+ *    @copyright 2015 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -35,6 +36,4 @@ namespace Couchbase
  *
  * ************************************************************/
 
-    #endregion
-
-}
+#endregion

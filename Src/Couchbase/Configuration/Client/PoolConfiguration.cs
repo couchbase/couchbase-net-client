@@ -70,6 +70,16 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to use enhanced durability if the
+        /// Couchbase server version supports it; if it's not supported the client will use
+        /// Observe for Endure operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        internal bool UseEnhancedDurability { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether enable TCP keep alives.
         /// </summary>
         /// <value>

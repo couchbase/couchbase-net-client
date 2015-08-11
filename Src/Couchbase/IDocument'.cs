@@ -1,4 +1,6 @@
-﻿namespace Couchbase
+﻿using Couchbase.Core.Buckets;
+
+namespace Couchbase
 {
     /// <summary>
     /// Provides an interface for interacting with documents within Couchbase Server
@@ -26,6 +28,16 @@
         /// The value representing the document itself
         /// </summary>
         T Content { get; set; }
+
+        /// <summary>
+        /// Gets the mutation token for the operation if enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// The mutation token.
+        /// </value>
+        /// <remarks>Note: this is used internally for enhanced durability if supported by
+        /// the Couchbase server version and enabled by configuration.</remarks>
+        MutationToken Token { get; }
     }
 }
 #region [ License information ]

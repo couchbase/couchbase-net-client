@@ -63,6 +63,7 @@ namespace Couchbase.Configuration
                                 SaslFactory = SaslFactory
                             };
                             server.CreateSaslMechanismIfNotExists();
+                            SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
 
                             servers.Add(endpoint.Address, server);
                         }
@@ -114,6 +115,7 @@ namespace Couchbase.Configuration
         /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public void LoadConfig(IOStrategy ioStrategy)
         {
+            var supportsEnhancedDurability = false;
             try
             {
                 Lock.EnterWriteLock();
@@ -131,6 +133,8 @@ namespace Couchbase.Configuration
                         if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Count() == 1)
                         {
                             server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder);
+                            supportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                            SupportsEnhancedDurability = supportsEnhancedDurability;
                         }
                         else
                         {
@@ -143,6 +147,7 @@ namespace Couchbase.Configuration
                                 SaslFactory = SaslFactory
                             };
                             server.CreateSaslMechanismIfNotExists();
+                            SupportsEnhancedDurability = supportsEnhancedDurability;
                         }
                         servers.Add(endpoint.Address, server);
                     }
@@ -196,6 +201,7 @@ namespace Couchbase.Configuration
                             SaslFactory = SaslFactory
                         };
                         server.CreateSaslMechanismIfNotExists();
+                        SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
                         servers.Add(endpoint.Address, server);
                     }
                     catch (Exception e)

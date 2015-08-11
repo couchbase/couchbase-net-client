@@ -1724,6 +1724,14 @@ namespace Couchbase.Core
         /// </summary>
         /// <remarks>If the server is not available (<see cref="ServerUnavailableException"/>), will default to false.</remarks>
         bool IsSecure { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedDurability { get; }
     }
 }
 

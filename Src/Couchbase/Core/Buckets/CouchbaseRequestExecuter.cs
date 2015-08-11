@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -149,19 +150,46 @@ namespace Couchbase.Core.Buckets
                 if (result.Success)
                 {
                     var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                    var observer = new KeyObserver(ConfigInfo,
-                        ClusterController.Transcoder,
-                        config.ObserveInterval, config.ObserveTimeout);
 
-                    var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                    result.Durability = observed
-                        ? Durability.Satisfied
-                        : Durability.NotSatisfied;
+                    if (ConfigInfo.SupportsEnhancedDurability)
+                    {
+                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, (uint) config.ObserveTimeout);
+
+                        var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
+                    else
+                    {
+                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, config.ObserveTimeout);
+
+                        var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
                 }
                 else
                 {
                     result.Durability = Durability.NotSatisfied;
                 }
+            }
+            catch (ReplicaNotConfiguredException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.NoReplicasFound,
+                    Durability = Durability.NotSatisfied
+                };
+            }
+            catch (DocumentMutationLostException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationLost,
+                    Durability = Durability.NotSatisfied
+                };
             }
             catch (Exception e)
             {
@@ -197,19 +225,45 @@ namespace Couchbase.Core.Buckets
                 {
                     var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
 
-                    var observer = new KeyObserver(ConfigInfo,
-                        ClusterController.Transcoder,
-                        config.ObserveInterval, config.ObserveTimeout);
+                    if (ConfigInfo.SupportsEnhancedDurability)
+                    {
+                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, (uint) config.ObserveTimeout);
 
-                    var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                    result.Durability = observed
-                        ? Durability.Satisfied
-                        : Durability.NotSatisfied;
+                        var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
+                    else
+                    {
+                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, config.ObserveTimeout);
+
+                        var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
                 }
                 else
                 {
                     result.Durability = Durability.NotSatisfied;
                 }
+            }
+            catch (ReplicaNotConfiguredException e)
+            {
+                result = new OperationResult
+                {
+                    Exception = e,
+                    Status = ResponseStatus.NoReplicasFound,
+                    Durability = Durability.NotSatisfied
+                };
+            }
+            catch (DocumentMutationLostException e)
+            {
+                result = new OperationResult
+                {
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationLost,
+                    Durability = Durability.NotSatisfied
+                };
             }
             catch (Exception e)
             {
@@ -246,20 +300,46 @@ namespace Couchbase.Core.Buckets
                 {
                     var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
 
-                    var observer = new KeyObserver(ConfigInfo,
-                        ClusterController.Transcoder,
-                        config.ObserveInterval, config.ObserveTimeout);
+                    if (ConfigInfo.SupportsEnhancedDurability)
+                    {
+                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, (uint) config.ObserveTimeout);
 
-                    var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                        var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
+                    else
+                    {
+                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
+                            config.ObserveInterval, config.ObserveTimeout);
 
-                    result.Durability = observed
-                        ? Durability.Satisfied
-                        : Durability.NotSatisfied;
+                        var observed =
+                            await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    }
                 }
                 else
                 {
                     result.Durability = Durability.NotSatisfied;
                 }
+            }
+            catch (ReplicaNotConfiguredException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.NoReplicasFound,
+                    Durability = Durability.NotSatisfied
+                };
+            }
+            catch (DocumentMutationLostException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationLost,
+                    Durability = Durability.NotSatisfied
+                };
             }
             catch (Exception e)
             {

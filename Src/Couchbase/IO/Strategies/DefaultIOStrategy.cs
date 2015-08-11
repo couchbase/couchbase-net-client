@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Strategies
@@ -70,7 +72,6 @@ namespace Couchbase.IO.Strategies
             return operation.GetResultWithValue();
         }
 
-
         /// <summary>
         /// Executes an operation for a given key.
         /// </summary>
@@ -78,7 +79,6 @@ namespace Couchbase.IO.Strategies
         /// <returns>
         /// An <see cref="IOperationResult" /> representing the result of operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         public IOperationResult Execute(IOperation operation)
         {
             //Get the buffer and a connection
@@ -91,6 +91,7 @@ namespace Couchbase.IO.Strategies
                 if (!connection.IsAuthenticated)
                 {
                     Authenticate(connection);
+                    EnableEnhancedDurability(connection);
                 }
 
                 //Send the request buffer and release the connection
@@ -141,6 +142,7 @@ namespace Couchbase.IO.Strategies
                 if (!connection.IsAuthenticated)
                 {
                     Authenticate(connection);
+                    EnableEnhancedDurability(connection);
                 }
 
                 //Send the request buffer and release the connection
@@ -180,7 +182,6 @@ namespace Couchbase.IO.Strategies
         /// <returns>
         /// An <see cref="IOperationResult{T}" /> representing the result of operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
@@ -198,7 +199,6 @@ namespace Couchbase.IO.Strategies
         /// <returns>
         /// An <see cref="IOperationResult" /> representing the result of operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
@@ -231,7 +231,6 @@ namespace Couchbase.IO.Strategies
         /// <returns>
         /// An <see cref="IOperationResult{T}" /> representing the result of operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
@@ -267,7 +266,6 @@ namespace Couchbase.IO.Strategies
         /// <returns>
         /// An <see cref="IOperationResult" /> representing the result of operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
@@ -295,7 +293,6 @@ namespace Couchbase.IO.Strategies
                  });
              }
         }
-
 
         /// <summary>
         /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy" /> instance is communicating with.
@@ -347,6 +344,35 @@ namespace Couchbase.IO.Strategies
                 }
             }
         }
+
+        /// <summary>
+        /// Enables enhanced durability if it is configured and supported by the server.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        private void EnableEnhancedDurability(IConnection connection)
+        {
+            var config = ConnectionPool.Configuration;
+            if (config.UseEnhancedDurability)
+            {
+                var features = new List<short> {(short) ServerFeatures.MutationSeqno};
+                var key = string.Format("couchbase-net-sdk/{0}", CurrentAssembly.Version);
+                var hello = new Hello(key, features.ToArray(), new DefaultTranscoder(), 0, 0);
+
+                var result = Execute(hello, connection);
+                if (result.Success && result.Value.Contains(features.First()))
+                {
+                    SupportsEnhancedDurability = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedDurability { get; private set; }
 
         /// <summary>
         /// Returns true if internal TCP connections are using SSL.

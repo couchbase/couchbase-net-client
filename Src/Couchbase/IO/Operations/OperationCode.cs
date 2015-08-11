@@ -53,7 +53,15 @@
         Unlock = 0x95,
 
         //"Dirty" reads
-        ReplicaRead = 0x83
+        ReplicaRead = 0x83,
+
+        //Enhanced durability
+        ObserveSeqNo = 0x91,
+
+        /// <summary>
+        /// You say goodbye and I say Hello. Hello, hello.
+        /// </summary>
+        Hello = 0x1f
     };
 }
 

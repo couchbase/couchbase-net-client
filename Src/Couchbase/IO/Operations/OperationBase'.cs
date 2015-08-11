@@ -1,15 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
-using Couchbase.Core.Diagnostics;
+﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using System;
-using System.IO;
-using System.ServiceModel.Channels;
-using System.Text;
 
 namespace Couchbase.IO.Operations
 {
@@ -56,6 +48,7 @@ namespace Couchbase.IO.Operations
                 result.Value = value;
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
+                result.Token = MutationToken ?? DefaultMutationToken;
 
                 //clean up and set to null
                 if (!result.IsNmv())

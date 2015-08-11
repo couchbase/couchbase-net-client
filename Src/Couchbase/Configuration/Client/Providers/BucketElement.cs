@@ -8,6 +8,20 @@ namespace Couchbase.Configuration.Client.Providers
     public sealed class BucketElement : ConfigurationElement
     {
         /// <summary>
+        /// Gets or sets a value indicating whether to use enhanced durability if the
+        /// Couchbase server version supports it; if it's not supported the client will use
+        /// Observe for Endure operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("useEnhancedDurability", DefaultValue = false, IsRequired = false)]
+        public bool UseEnhancedDurability
+        {
+            get { return (bool)this["useEnhancedDurability"]; }
+            set { this["useEnhancedDurability"] = value; }
+        }
+        /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
         /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>

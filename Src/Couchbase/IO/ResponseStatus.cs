@@ -132,6 +132,11 @@ namespace Couchbase.IO
         /// <summary>
         /// Indicates that a transport layer failure occured while the client was sending or receiving data.
         /// </summary>
-        TransportFailure = 0x0500
+        TransportFailure = 0x0500,
+
+        /// <summary>
+        /// Document Mutation lost during a hard failover.
+        /// </summary>
+        DocumentMutationLost = 0x0600
     }
 }

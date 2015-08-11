@@ -1,10 +1,9 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal class Increment : OperationBase<ulong>
+    internal class Increment : MutationOperationBase<ulong>
     {
         private readonly ulong _delta;
         private readonly uint _expiration;
@@ -56,7 +55,8 @@ namespace Couchbase.IO.Operations
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                MutationToken = MutationToken
             };
             return cloned;
         }

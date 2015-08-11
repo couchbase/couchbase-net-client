@@ -32,6 +32,19 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Gets the <see cref="IVBucket"/> at the specified index.
+        /// </summary>
+        /// <value>
+        /// The <see cref="IVBucket"/>.
+        /// </value>
+        /// <param name="index">The index.</param>
+        /// <returns></returns>
+        public IVBucket this[int index]
+        {
+            get { return _vBuckets[index]; }
+        }
+
+        /// <summary>
         /// Maps a given Key to it's node in a Couchbase Cluster.
         /// </summary>
         /// <param name="key"></param>

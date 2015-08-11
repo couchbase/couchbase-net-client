@@ -99,15 +99,15 @@ namespace Couchbase.Tests.Core.Buckets
             var configInfo = provider.GetConfig("default");
 
             ulong cas = 0;
-            using (var cluster = new Cluster(configuration))
-            {
-                using (var bucket = cluster.OpenBucket())
+                using (var cluster = new Cluster(configuration))
                 {
-                    bucket.Remove("Test_Timeout_Add");
-                    bucket.Insert("Test_Timeout_Add", "");
-                    cas = bucket.Upsert("Test_Timeout_Add", "").Cas;
+                    using (var bucket = cluster.OpenBucket())
+                    {
+                        bucket.Remove("Test_Timeout_Add");
+                        bucket.Insert("Test_Timeout_Add", "");
+                        cas = bucket.Upsert("Test_Timeout_Add", "").Cas;
+                    }
                 }
-            }
             var observer = new KeyObserver(configInfo, 10, 500);
             var constraintReached = observer.ObserveAdd("Test_Timeout_Add", cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);

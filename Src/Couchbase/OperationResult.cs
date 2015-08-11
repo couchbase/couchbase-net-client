@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
+﻿using System.Net.Sockets;
+using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 
@@ -23,6 +21,14 @@ namespace Couchbase
         /// If Success is false, the reason why the operation failed.
         /// </summary>
         public string Message { get; internal set; }
+
+        /// <summary>
+        /// Gets the mutation token for the operation if enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// The mutation token.
+        /// </value>
+        public MutationToken Token { get; internal set; }
 
         /// <summary>
         /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.

@@ -1,11 +1,9 @@
-﻿using System;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {
-    internal sealed class Prepend<T> : OperationBase<T>
+    internal sealed class Prepend<T> : MutationOperationBase<T>
     {
         public Prepend(string key, T value, ITypeTranscoder transcoder, IVBucket vBucket, uint timeout)
             : base(key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
@@ -41,7 +39,8 @@ namespace Couchbase.IO.Operations
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                MutationToken = MutationToken
             };
             return cloned;
         }

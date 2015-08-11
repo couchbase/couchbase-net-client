@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
-using Couchbase.Core;
 using Couchbase.IO;
 using NUnit.Framework;
 

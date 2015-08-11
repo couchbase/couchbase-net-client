@@ -93,6 +93,7 @@
     <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
+    <Compile Include="Core\Buckets\KeySeqnoObserverTests.cs" />
     <Compile Include="Core\Buckets\MemcachedBucketTests_Isolated.cs" />
     <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
@@ -112,6 +113,8 @@
     <Compile Include="Fakes\FakeSerializer.cs" />
     <Compile Include="Fakes\FakeTranscoder.cs" />
     <Compile Include="IO\Converters\ConverterFactoryTests.cs" />
+    <Compile Include="IO\Operations\HelloTests.cs" />
+    <Compile Include="IO\Operations\EnhancedDurability\ObserveSeqnoTests.cs" />
     <Compile Include="MemcachedBucket_Async_Tests.cs" />
     <Compile Include="CouchbaseBucket_Async_Tests.cs" />
     <Compile Include="Data\ResponsePackets.cs" />

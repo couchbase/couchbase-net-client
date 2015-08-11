@@ -1,4 +1,5 @@
-﻿using Couchbase.IO;
+﻿using Couchbase.Core.Buckets;
+using Couchbase.IO;
 using Couchbase.IO.Operations;
 
 namespace Couchbase
@@ -8,6 +9,16 @@ namespace Couchbase
     /// </summary>
     public interface IOperationResult : IResult
     {
+        /// <summary>
+        /// Gets the mutation token for the operation if enhanced durability is enabled.
+        /// </summary>
+        /// <value>
+        /// The mutation token.
+        /// </value>
+        /// <remarks>Note: this is used internally for enhanced durability if supported by
+        /// the Couchbase server version and enabled by configuration.</remarks>
+        MutationToken Token { get; }
+
         /// <summary>
         /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.
         /// </summary>
