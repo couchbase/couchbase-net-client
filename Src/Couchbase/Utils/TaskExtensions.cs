@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
+﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Couchbase.Utils
@@ -10,25 +6,23 @@ namespace Couchbase.Utils
     public static class TaskExtensions
     {
         /// <summary>
-        /// Makes the <see cref="Task"/> resume on the <see cref="Thread"/> that completed the <see cref="Task"/>.
+        /// Makes the <see cref="Task"/> resume without the current context.
         /// </summary>
         /// <param name="task">The current <see cref="Task"/>.</param>
-        /// <returns>The current <see cref="Task"/></returns>
-        public static Task ContinueOnAnyContext(this Task task)
+        /// <returns>The <see cref="ConfiguredTaskAwaitable"/> not dependent on the current context.</returns>
+        public static ConfiguredTaskAwaitable ContinueOnAnyContext(this Task task)
         {
-            task.ConfigureAwait(false);
-            return task;
+            return task.ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Makes the <see cref="Task{T}"/> resume on the <see cref="Thread"/> that completed the <see cref="Task{T}"/>.
+        /// Makes the <see cref="Task{T}"/> resume without the current context.
         /// </summary>
         /// <param name="task">The current <see cref="Task{T}"/>.</param>
-        /// <returns>The current <see cref="Task{T}"/></returns>
-        public static Task<T> ContinueOnAnyContext<T>(this Task<T> task)
+        /// <returns>The <see cref="ConfiguredTaskAwaitable{T}"/> not dependent on the current context.</returns>
+        public static ConfiguredTaskAwaitable<T> ContinueOnAnyContext<T>(this Task<T> task)
         {
-            task.ConfigureAwait(false);
-            return task;
+            return task.ConfigureAwait(false);
         }
     }
 }
