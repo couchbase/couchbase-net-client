@@ -1796,7 +1796,7 @@ namespace Couchbase
         {
             CheckDisposed();
             var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetryAsync(operation).ContinueOnAnyContext();
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -1811,7 +1811,7 @@ namespace Couchbase
         {
             CheckDisposed();
             var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithRetryAsync(operation).ContinueOnAnyContext();
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
