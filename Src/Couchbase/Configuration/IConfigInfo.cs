@@ -12,7 +12,7 @@ namespace Couchbase.Configuration
     /// Provides an interface for implementing an object responsible for maintaining a
     /// list of nodes in cluster and the mapping between keys and nodes.
     /// </summary>
-    internal interface IConfigInfo : IDisposable
+    internal interface IConfigInfo : IDisposable, IQueryCacheInvalidator
     {
         /// <summary>
         /// The time at which this configuration context has been created.

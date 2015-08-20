@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -10,6 +11,7 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.N1QL;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration
@@ -26,6 +28,8 @@ namespace Couchbase.Configuration
             ITypeTranscoder transcoder)
             : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, transcoder)
         {
+            //for caching query plans
+            QueryCache = new ConcurrentDictionary<string, QueryPlan>();
         }
 
         /// <summary>
@@ -58,7 +62,7 @@ namespace Couchbase.Configuration
                             var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
                             var ioStrategy = IOStrategyFactory(connectionPool);
 
-                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder)
+                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
                             {
                                 SaslFactory = SaslFactory
                             };
@@ -132,7 +136,7 @@ namespace Couchbase.Configuration
                         IServer server = null;
                         if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Count() == 1)
                         {
-                            server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder);
+                            server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                             supportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
                             SupportsEnhancedDurability = supportsEnhancedDurability;
                         }
@@ -142,7 +146,7 @@ namespace Couchbase.Configuration
                             var connectionPool = ConnectionPoolFactory(poolConfig, endpoint);
                             var newIoStrategy = IOStrategyFactory(connectionPool);
 
-                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
                             {
                                 SaslFactory = SaslFactory
                             };
@@ -196,7 +200,7 @@ namespace Couchbase.Configuration
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration,endpoint);
                         var ioStrategy = IOStrategyFactory(connectionPool);
 
-                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
                         {
                             SaslFactory = SaslFactory
                         };
@@ -288,6 +292,15 @@ namespace Couchbase.Configuration
         {
             return ((VBucketKeyMapper) KeyMapper).GetVBuckets();
         }
+
+
+        /// <summary>
+        /// Gets the query cache for the current instance. Each <see cref="IBucket" /> implementation instance has it's own for caching query plans.
+        /// </summary>
+        /// <value>
+        /// The query cache.
+        /// </value>
+        public ConcurrentDictionary<string, QueryPlan> QueryCache { get; private set; }
     }
 }
 

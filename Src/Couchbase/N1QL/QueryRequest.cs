@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Newtonsoft.Json;
+using System.Web;
+using System.Net;
 
 namespace Couchbase.N1QL
 {
@@ -12,8 +14,8 @@ namespace Couchbase.N1QL
     /// </summary>
     public class QueryRequest : IQueryRequest
     {
-        private Method _method;
         private string _statement;
+        private QueryPlan _preparedPayload;
         private TimeSpan? _timeOut = TimeSpan.Zero;
         private bool? _readOnly;
         private bool? _includeMetrics;
@@ -30,7 +32,8 @@ namespace Couchbase.N1QL
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
         private string _clientContextId;
         private Uri _baseUri;
-        private bool _prepared;
+        private bool _prepareEncoded;
+        private bool _adHoc = true;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -55,18 +58,21 @@ namespace Couchbase.N1QL
         public QueryRequest(string statement)
         {
             _statement = statement;
-            _prepared = false;
+            _preparedPayload = null;
+            _prepareEncoded = false;
         }
 
-        public QueryRequest(IQueryPlan plan)
+        public QueryRequest(QueryPlan plan)
         {
-            _statement = plan.ToN1ql();
-            _prepared = true;
+            _statement = null;
+            _preparedPayload = plan;
+            _prepareEncoded = true;
         }
 
         private struct QueryParameters
         {
             public const string Statement = "statement";
+            public const string PreparedEncoded = "encoded_plan";
             public const string Prepared = "prepared";
             public const string Timeout = "timeout";
             public const string Readonly = "readonly";
@@ -86,14 +92,40 @@ namespace Couchbase.N1QL
             public const string ClientContextId = "client_context_id";
         }
 
-        public bool IsPost
-        {
-            get { return _method == N1QL.Method.Post; }
-        }
-
+        /// <summary>
+        /// Returns true if the request is a prepared statement
+        /// </summary>
         public bool IsPrepared
         {
-            get { return _prepared; }
+            get { return _prepareEncoded; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this query statement is to executed in an ad-hoc manner.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is ad-hoc; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsAdHoc
+        {
+            get { return _adHoc; }
+        }
+
+        /// <summary>
+        /// If set to false, the client will try to perform optimizations
+        /// transparently based on the server capabilities, like preparing the statement and
+        /// then executing a query plan instead of the raw query.
+        /// </summary>
+        /// <param name="adHoc">if set to <c>false</c> the query will be optimized if possible.</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// The default is <c>true</c>; the query will executed in an ad-hoc manner,
+        /// without special optomizations.
+        /// </remarks>
+        public IQueryRequest AdHoc(bool adHoc)
+        {
+            _adHoc = adHoc;
+            return this;
         }
 
         /// <summary>
@@ -102,25 +134,15 @@ namespace Couchbase.N1QL
         /// <param name="preparedPlan">The prepared plan.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">preparedPlan</exception>
-        public IQueryRequest Prepared(IQueryPlan preparedPlan)
+        public IQueryRequest Prepared(QueryPlan preparedPlan)
         {
-            if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.ToN1ql()))
+            if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.EncodedPlan))
             {
                 throw new ArgumentNullException("preparedPlan");
             }
-            _statement = preparedPlan.ToN1ql();
-            _prepared = true;
-            return this;
-        }
-
-        /// <summary>
-        /// The HTTP method type to use.
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        public IQueryRequest HttpMethod(Method method)
-        {
-            _method = method;
+            _statement = null;
+            _preparedPayload = preparedPlan;
+            _prepareEncoded = true;
             return this;
         }
 
@@ -142,7 +164,8 @@ namespace Couchbase.N1QL
                 throw new ArgumentNullException("statement");
             }
             _statement = statement;
-            _prepared = false;
+            _preparedPayload = null;
+            _prepareEncoded = false;
             return this;
         }
 
@@ -444,122 +467,6 @@ namespace Couchbase.N1QL
             return this;
         }
 
-        /// <summary>
-        /// Checks the HTTP method.
-        /// </summary>
-        void CheckMethod()
-        {
-            if (_method != Method.None) return;
-            if (!string.IsNullOrWhiteSpace(_statement))
-            {
-                var statement = _statement.ToLower();
-                _method = statement.Contains("SELECT") || statement.Contains("select")
-                    ? Method.Get
-                    : Method.Post;
-            }
-        }
-
-        /// <summary>
-        /// Gets the constructed <see cref="Uri" /> for making the request.
-        /// </summary>
-        /// <returns>
-        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
-        /// </returns>
-        /// <exception cref="System.ArgumentException">A statement or prepared plan must be provided.</exception>
-        public Uri GetRequestUri()
-        {
-            if (string.IsNullOrWhiteSpace(_statement))
-            {
-                throw new ArgumentException("A statement or prepared plan must be provided.");
-            }
-            CheckMethod();
-
-            //build the request query starting with the base uri- e.g. http://localhost:8093/query
-            var sb = new StringBuilder();
-            sb.Append(_baseUri + "?");
-
-            if (_prepared)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Prepared, _statement);
-            }
-            else
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Statement, _statement);
-            }
-            if (_timeOut.HasValue && _timeOut.Value > TimeSpan.Zero)
-            {
-                sb.AppendFormat(TimeoutArgPattern, QueryParameters.Timeout,
-                    EncodeParameter((uint)_timeOut.Value.TotalMilliseconds));
-            }
-            if (_readOnly.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Readonly, _readOnly.Value ? LowerCaseTrue : LowerCaseFalse);
-            }
-            if (_includeMetrics.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Metrics, _includeMetrics.Value ? LowerCaseTrue : LowerCaseFalse);
-            }
-            if (_parameters.Count > 0)
-            {
-                foreach (var parameter in _parameters)
-                {
-                    sb.AppendFormat(QueryArgPattern,
-                       parameter.Key.Contains("$") ? parameter.Key : "$" + parameter.Key,
-                       EncodeParameter( parameter.Value));
-                }
-            }
-            if (_arguments.Count > 0)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Args, EncodeParameter(_arguments));
-            }
-            if (_format.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Format, _format);
-            }
-            if (_encoding.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Encoding, _encoding);
-            }
-            if (_compression.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Compression, _compression);
-            }
-            if(_includeSignature.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Signature, _includeSignature.Value ? LowerCaseTrue : LowerCaseFalse);
-            }
-            if (_scanConsistency.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanConsistency, ScanConsistencyResolver[_scanConsistency.Value]);
-            }
-            if (_scanVector != null)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanVector, _scanVector);
-            }
-            if (_scanWait.HasValue)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ScanWait, "" + ((uint)_scanWait.Value.TotalMilliseconds));
-            }
-            if (_pretty)
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Pretty, _pretty ? LowerCaseTrue : LowerCaseFalse);
-            }
-            if (_credentials.Count > 0)
-            {
-                var creds = new List<dynamic>();
-                foreach (var credential in _credentials)
-                {
-                    creds.Add(new {user=credential.Key, pass=credential.Value});
-                }
-                sb.AppendFormat(QueryArgPattern, QueryParameters.Creds, EncodeParameter(creds));
-            }
-            if (!string.IsNullOrEmpty(_clientContextId))
-            {
-                sb.AppendFormat(QueryArgPattern, QueryParameters.ClientContextId, _clientContextId);
-            }
-            return new Uri(sb.ToString().TrimEnd('&'));
-        }
-
         public Uri GetBaseUri()
         {
             return _baseUri;
@@ -570,27 +477,34 @@ namespace Couchbase.N1QL
             return _statement;
         }
 
+        public QueryPlan GetPreparedPayload()
+        {
+            return _preparedPayload;
+        }
+
         /// <summary>
-        /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service if <see cref="Method.Post" /> is used.
+        /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service.
         /// </summary>
         /// <returns>
         /// The <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service.
         /// </returns>
         /// <exception cref="System.ArgumentException">A statement or prepared plan must be provided.</exception>
-        public IDictionary<string, string> GetFormValues()
+        /// <remarks>Since values will be POSTed as JSON, here we deal with unencoded typed values
+        /// (like ints, Lists, etc...) rather than only strings.</remarks>
+        public IDictionary<string, object> GetFormValues()
         {
-            if (string.IsNullOrWhiteSpace(_statement))
+            if (string.IsNullOrWhiteSpace(_statement) && _preparedPayload == null)
             {
                 throw new ArgumentException("A statement or prepared plan must be provided.");
             }
-            CheckMethod();
 
-            //build the request query starting with the base uri- e.g. http://localhost:8093/query
-            IDictionary<string, string> formValues = new Dictionary<string, string>();
+            //build the map of request parameters
+            IDictionary<string, object> formValues = new Dictionary<string, object>();
 
-            if (_prepared)
+            if (_prepareEncoded)
             {
-                formValues.Add(QueryParameters.Prepared, _statement);
+                formValues.Add(QueryParameters.Prepared, _preparedPayload.Name);
+                formValues.Add(QueryParameters.PreparedEncoded, _preparedPayload.EncodedPlan);
             }
             else
             {
@@ -603,11 +517,11 @@ namespace Couchbase.N1QL
             }
             if (_readOnly.HasValue)
             {
-                formValues.Add(QueryParameters.Readonly, _readOnly.Value ? LowerCaseTrue : LowerCaseFalse);
+                formValues.Add(QueryParameters.Readonly, _readOnly.Value);
             }
             if (_includeMetrics.HasValue)
             {
-                formValues.Add(QueryParameters.Metrics, _includeMetrics.Value ? LowerCaseTrue : LowerCaseFalse);
+                formValues.Add(QueryParameters.Metrics, _includeMetrics);
             }
             if (_parameters.Count > 0)
             {
@@ -615,12 +529,12 @@ namespace Couchbase.N1QL
                 {
                     formValues.Add(
                         parameter.Key.Contains("$") ? parameter.Key : "$" + parameter.Key,
-                        JsonConvert.SerializeObject(parameter.Value));
+                        parameter.Value);
                 }
             }
             if (_arguments.Count > 0)
             {
-                formValues.Add(QueryParameters.Args, EncodeParameter(_arguments));
+                formValues.Add(QueryParameters.Args, _arguments);
             }
             if (_format.HasValue)
             {
@@ -636,7 +550,7 @@ namespace Couchbase.N1QL
             }
             if (_includeSignature.HasValue)
             {
-                formValues.Add(QueryParameters.Signature, _includeSignature.Value ? LowerCaseTrue : LowerCaseFalse);
+                formValues.Add(QueryParameters.Signature, _includeSignature.Value);
             }
             if (_scanConsistency.HasValue)
             {
@@ -652,7 +566,7 @@ namespace Couchbase.N1QL
             }
             if (_pretty)
             {
-                formValues.Add(QueryParameters.Pretty, _pretty ? LowerCaseTrue : LowerCaseFalse);
+                formValues.Add(QueryParameters.Pretty, _pretty);
             }
             if (_credentials.Count > 0)
             {
@@ -661,7 +575,7 @@ namespace Couchbase.N1QL
                 {
                     creds.Add(new { user = credential.Key, pass = credential.Value });
                 }
-                formValues.Add(QueryParameters.Creds, EncodeParameter(creds));
+                formValues.Add(QueryParameters.Creds, creds);
             }
             if (!string.IsNullOrEmpty(_clientContextId))
             {
@@ -671,22 +585,37 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// Gets the query parameters.
+        /// Gets the query parameters for x-form-urlencoded content-type.
         /// </summary>
+        /// <remarks>Each key and value from GetFormValues will be urlencoded</remarks>
         /// <returns></returns>
-        public string GetQueryParameters()
+        [Obsolete("JSON method is used instead of x-form-urlencoded")]
+        public string GetQueryParametersAsFormUrlencoded()
         {
             var sb = new StringBuilder();
             var formValues = GetFormValues();
             foreach (var formValue in GetFormValues())
             {
-                sb.AppendFormat(QueryArgPattern, formValue.Key, formValue.Value);
+                sb.AppendFormat(QueryArgPattern,
+                    WebUtility.UrlEncode(formValue.Key),
+                    WebUtility.UrlEncode(formValue.Value.ToString()));
             }
             if (formValues.Count > 0)
             {
                 sb.Remove(sb.Length - 1, 1);
             }
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Gets the JSON representation of this query for execution in a POST.
+        /// </summary>
+        /// <returns>The form values as a JSON object.</returns>
+        public string GetFormValuesAsJson()
+        {
+            var formValues = GetFormValues();
+            var json = JsonConvert.SerializeObject(formValues);
+            return json;
         }
 
         /// <summary>
@@ -723,7 +652,7 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <param name="plan">The plan.</param>
         /// <returns></returns>
-        public static IQueryRequest Create(IQueryPlan plan)
+        public static IQueryRequest Create(QueryPlan plan)
         {
             return new QueryRequest(plan);
         }
@@ -739,7 +668,7 @@ namespace Couchbase.N1QL
             string request;
             try
             {
-                request = GetRequestUri().ToString();
+                request = GetBaseUri().ToString() + "[" + GetFormValuesAsJson() + "]";
             }
             catch
             {

@@ -1695,23 +1695,6 @@ namespace Couchbase.Core
         IViewQuery CreateQuery(string designdoc, string view, bool development);
 
         /// <summary>
-        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
-        /// </summary>
-        /// <param name="statement">A string containing a N1QL statement.</param>
-        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
-        /// and cachable execution plan for the statement.</returns>
-        IQueryResult<IQueryPlan> Prepare(string statement);
-
-        /// <summary>
-        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
-        /// </summary>
-        /// <param name="toPrepare">A <see cref="IQueryRequest"/> containing a N1QL statement to be prepared for later execution.</param>
-        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
-        /// and cachable execution plan for the statement.</returns>
-        /// <remarks>Only the Statement and BaseUri properties of the request are relevant and used.</remarks>
-        IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare);
-
-        /// <summary>
         /// Creates a <see cref="IBucketManager"/> instance for managing buckets.
         /// </summary>
         /// <param name="username">The administrators username</param>

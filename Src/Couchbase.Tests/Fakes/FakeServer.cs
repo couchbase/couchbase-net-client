@@ -29,6 +29,7 @@ namespace Couchbase.Tests.Fakes
         public IQueryClient QueryClient { get; private set; }
 
         public IPEndPoint EndPoint { get; private set; }
+
         public IOStrategy Strategy { get; set; }
 
         public bool IsSecure { get; private set; }
@@ -95,12 +96,12 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
             throw new NotImplementedException();
         }
 
-        public IQueryResult<IQueryPlan> Prepare(string statementToPrepare)
+        public IQueryResult<QueryPlan> Prepare(string statementToPrepare)
         {
             throw new NotImplementedException();
         }
@@ -161,6 +162,11 @@ namespace Couchbase.Tests.Fakes
         public bool SupportEnhancedDurability
         {
             get { throw new NotImplementedException(); }
+        }
+
+        public int InvalidateQueryCache()
+        {
+            throw new NotImplementedException();
         }
     }
 }

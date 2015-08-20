@@ -8,7 +8,7 @@ namespace Couchbase.N1QL
     /// <summary>
     /// An interface for client-side support for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    internal interface IQueryClient
+    internal interface IQueryClient : IQueryCacheInvalidator
     {
         /// <summary>
         /// Executes an ad-hoc N1QL query against a Couchbase Server.
@@ -32,10 +32,10 @@ namespace Couchbase.N1QL
         /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
         /// </summary>
         /// <param name="toPrepare">The <see cref="IQueryRequest"/> containing a N1QL statement to be prepared.</param>
-        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
+        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="QueryPlan"/> representing the reusable
         /// and cachable execution plan for the statement.</returns>
         /// <remarks>Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.</remarks>
-        IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare);
+        IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare);
 
         /// <summary>
         /// Synchronously executes an a N1QL query request against a Couchbase Server.

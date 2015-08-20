@@ -1,11 +1,23 @@
 ﻿using System;
 using System.ComponentModel;
+using Newtonsoft.Json;
+using System.Text;
+using Couchbase.N1QL;
 
 namespace Couchbase.Utils
 {
     internal static class StringExtensions
     {
-        public static T ToEnum<T>(this string value) where T : struct 
+
+        /// <summary>
+        /// Converts a <see cref="System.String"/> to an <see cref="System.Enum"/>. Assumes that
+        /// the conversion is possible; e.g. the <see cref="value"/> field must match an enum name.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        /// <exception cref="InvalidEnumArgumentException">Thrown if the conversion cannot be made.</exception>
+        public static T ToEnum<T>(this string value) where T : struct
         {
             T result;
             if (!Enum.TryParse(value, true, out result))
@@ -13,6 +25,11 @@ namespace Couchbase.Utils
                 throw new InvalidEnumArgumentException();
             }
             return result;
+        }
+
+        public static string EncodeParameter(this object parameter)
+        {
+            return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
         }
     }
 }

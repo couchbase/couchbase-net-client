@@ -9,6 +9,7 @@ using Couchbase.Tests.Documents;
 using Couchbase.Views;
 using Newtonsoft.Json.Bson;
 using NUnit.Framework;
+using Couchbase.Utils;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -39,7 +40,7 @@ namespace Couchbase.Tests.N1QL
 
             var result = client.Query<dynamic>(query);
             Assert.IsNotNull(result);
-            Assert.IsTrue(result.Success);
+            Assert.IsTrue(result.Success, result.GetErrorsAsString());
             Assert.IsNotNull(result.Rows);
         }
 
@@ -174,8 +175,7 @@ namespace Couchbase.Tests.N1QL
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
-                AddPositionalParameter("beer").
-                HttpMethod(Method.Post);
+                AddPositionalParameter("beer");
 
             var result = client.Query<dynamic>(request);
             Assert.AreEqual(QueryStatus.Success, result.Status);
@@ -194,8 +194,7 @@ namespace Couchbase.Tests.N1QL
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
-                AddNamedParameter("type", "beer").
-                HttpMethod(Method.Post);
+                AddNamedParameter("type", "beer");
 
             var result = client.Query<dynamic>(request);
             Assert.AreEqual(QueryStatus.Success, result.Status);
@@ -206,45 +205,6 @@ namespace Couchbase.Tests.N1QL
             }
         }
 
-        [Test]
-        public void Test_Query_GET_Positional_Parameters()
-        {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
-                Pretty(false).
-                AddPositionalParameter("beer").
-                HttpMethod(Method.Get);
-
-            var result = client.Query<dynamic>(request);
-            Assert.AreEqual(QueryStatus.Success, result.Status);
-            Assert.AreEqual(10, result.Rows.Count);
-            foreach (var row in result.Rows)
-            {
-                Console.WriteLine(row);
-            }
-        }
-
-        [Test]
-        public void Test_Query_GET_Named_Parameters()
-        {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
-                Pretty(false).
-                AddNamedParameter("type", "beer").
-                HttpMethod(Method.Get);
-
-            var result = client.Query<dynamic>(request);
-            Assert.AreEqual(QueryStatus.Success, result.Status);
-            Assert.AreEqual(10, result.Rows.Count);
-            foreach (var row in result.Rows)
-            {
-                Console.WriteLine(row);
-            }
-        }
 
         [Test]
         public async void Test_QueryAsync_POST_Named_Parameters()
@@ -254,8 +214,7 @@ namespace Couchbase.Tests.N1QL
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
-                AddNamedParameter("type", "beer").
-                HttpMethod(Method.Post);
+                AddNamedParameter("type", "beer");
 
             var result = await client.QueryAsync<dynamic>(request);
             Assert.AreEqual(QueryStatus.Success, result.Status);
@@ -267,15 +226,14 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
-        public async void Test_QueryAsync_GET_Positional_Parameters()
+        public async void Test_QueryAsync_POST_Positional_Parameters()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
-                AddPositionalParameter("beer").
-                HttpMethod(Method.Get);
+                AddPositionalParameter("beer");
 
             var result = await client.QueryAsync<dynamic>(request);
             Assert.AreEqual(QueryStatus.Success, result.Status);
@@ -287,27 +245,7 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
-        public async void Test_QueryAsync_GET_Named_Parameters()
-        {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
-            var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
-                BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
-                Pretty(false).
-                AddNamedParameter("type", "beer").
-                HttpMethod(Method.Get);
-
-            var result = await client.QueryAsync<dynamic>(request);
-            Assert.AreEqual(QueryStatus.Success, result.Status);
-            Assert.AreEqual(10, result.Rows.Count);
-            foreach (var row in result.Rows)
-            {
-                Console.WriteLine(row);
-            }
-        }
-
-        [Test]
-        public void When_Prepared_Is_True_Client_Uses_Prepared_Statement()
+        public void When_AdHoc_Is_False_Client_Uses_Prepared_Statement()
         {
             var config = new ClientConfiguration();
             var serverUri = new Uri(string.Format("http://{0}:8093/query", _server));
@@ -316,7 +254,8 @@ namespace Couchbase.Tests.N1QL
             var normalRequest = QueryRequest.Create(statement).
                 BaseUri(serverUri).
                 Pretty(false);
-            var preparedRequest = QueryRequest.Create(). //will set the plan later
+            var preparedRequest = QueryRequest.Create(statement).
+                AdHoc(false).
                 BaseUri(serverUri).
                 Pretty(false);
 
@@ -328,10 +267,6 @@ namespace Couchbase.Tests.N1QL
 
             stopWatch = new Stopwatch();
             stopWatch.Restart();
-            var plan = client.Prepare(normalRequest).Rows.First();
-            preparedRequest.Prepared(plan).
-                BaseUri(serverUri).
-                Pretty(false);
             var resultPrepareExecute = client.Query<dynamic>(preparedRequest);
             stopWatch.Stop();
             Console.WriteLine("Elasped time prepare statement + execute 1:{0}", stopWatch.ElapsedMilliseconds);
@@ -343,14 +278,21 @@ namespace Couchbase.Tests.N1QL
             Console.WriteLine("Elasped time execute 2:{0}", stopWatch.ElapsedMilliseconds);
 
             Assert.IsTrue(preparedRequest.IsPrepared);
+            Assert.IsNull(preparedRequest.GetStatement());
+            Assert.IsNotNull(preparedRequest.GetPreparedPayload());
             Assert.IsFalse(normalRequest.IsPrepared);
-            Assert.AreEqual(QueryStatus.Success, resultNormal.Status);
-            Assert.AreEqual(QueryStatus.Success, resultPrepareExecute.Status);
-            Assert.AreEqual(QueryStatus.Success, resultExecute.Status);
+            Assert.AreEqual(QueryStatus.Success, resultNormal.Status, resultNormal.GetErrorsAsString());
+            Assert.AreEqual(QueryStatus.Success, resultPrepareExecute.Status, resultPrepareExecute.GetErrorsAsString());
+            Assert.AreEqual(QueryStatus.Success, resultExecute.Status, resultExecute.GetErrorsAsString());
+
+            //additionally test the plan that was executed and the plan for normalRequest are the same
+            var plan = client.Prepare(normalRequest).Rows.First();
+            Assert.IsNotNull(preparedRequest.GetPreparedPayload());
+            Assert.AreEqual(plan.Operator, preparedRequest.GetPreparedPayload().Operator);
         }
 
         [Test]
-        public void When_Prepared_Is_False_Client_Doesnt_Cache()
+        public void When_AdHoc_Is_True_Client_Doesnt_Cache()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), config);

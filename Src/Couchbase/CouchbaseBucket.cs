@@ -31,7 +31,7 @@ namespace Couchbase
     /// Represents a persistent Couchbase Bucket and can be used for performing CRUD operations on documents,
     /// querying Views and executing N1QL queries.
     /// </summary>
-    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable
+    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator
     {
         private readonly static ILog Log = LogManager.GetLogger<CouchbaseBucket>();
         private readonly IClusterController _clusterController;
@@ -2584,35 +2584,6 @@ namespace Couchbase
             return Upsert(key, value, cas, expiration.ToTtl());
         }
 
-        /// <summary>
-        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
-        /// </summary>
-        /// <param name="statement">A string containing a N1QL statement.</param>
-        /// <returns>
-        /// A <see cref="IQueryResult{T}" /> containing  the <see cref="IQueryPlan" /> representing the reusable
-        /// and cachable execution plan for the statement.
-        /// </returns>
-        public IQueryResult<IQueryPlan> Prepare(string statement)
-        {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Prepare(statement);
-        }
-
-        /// <summary>
-        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
-        /// </summary>
-        /// <param name="toPrepare">A <see cref="IQueryRequest"/> containing a N1QL statement to be prepared for later execution.</param>
-        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="IQueryPlan"/> representing the reusable
-        /// and cachable execution plan for the statement.</returns>
-        /// <remarks>Only the Statement and BaseUri properties of the request are relevant and used.</remarks>
-        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
-        {
-            CheckDisposed();
-            var server = _configInfo.GetServer();
-            return server.Prepare(toPrepare);
-        }
-
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
@@ -3156,6 +3127,20 @@ namespace Couchbase
             get { return _configInfo.SupportsEnhancedDurability; }
         }
 
+        /// <summary>
+        /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will
+        /// be filled with non-adhoc query statements (query plans) to speed up those subsequent executions. Triggering this method will wipe
+        /// out the complete cache, which will not cause an interruption but rather all queries need to be re-prepared internally. This method
+        /// is likely to be deprecated in the future once the server side query engine distributes its state throughout the cluster.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="Int32" /> representing the size of the cache before it was cleared.
+        /// </returns>
+        public int InvalidateQueryCache()
+        {
+            return _configInfo.InvalidateQueryCache();
+        }
+
         void CheckDisposed()
         {
             if (_disposed)
@@ -3238,7 +3223,6 @@ namespace Couchbase
             Dispose(false);
         }
 #endif
-
     }
 }
 

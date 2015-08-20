@@ -1,30 +1,41 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.AccessControl;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Views;
 using Newtonsoft.Json;
+using Couchbase.Utils;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.N1QL
 {
     /// <summary>
-    /// A <see cref="IViewClient"/> implementation for executing N1QL queries against a Couchbase Server.
+    /// A <see cref="IViewClient" /> implementation for executing N1QL queries against a Couchbase Server.
     /// </summary>
     internal class QueryClient : IQueryClient
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
         private readonly ClientConfiguration _clientConfig;
+        private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig)
+            : this(httpClient,dataMapper, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
+        {
+        }
+
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
             _clientConfig = clientConfig;
             HttpClient.Timeout = new TimeSpan(0, 0, 0, (int)_clientConfig.QueryRequestTimeout);
+            _queryCache = queryCache;
         }
 
         /// <summary>
@@ -55,75 +66,146 @@ namespace Couchbase.N1QL
             return Query<T>(queryRequest);
         }
 
-        static string EncodeParameter(object parameter)
-        {
-           return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
-        }
-
         /// <summary>
         /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
         /// </summary>
         /// <param name="toPrepare">The <see cref="IQueryRequest" /> containing a N1QL statement to be prepared.</param>
         /// <returns>
-        /// A <see cref="IQueryResult{T}" /> containing  the <see cref="IQueryPlan" /> representing the reusable
+        /// A <see cref="IQueryResult{T}" /> containing  the <see cref="QueryPlan" /> representing the reusable
         /// and cachable execution plan for the statement.
         /// </returns>
         /// <remarks>
         /// Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.
         /// </remarks>
-        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
-            string statement = toPrepare.GetStatement();
+            var statement = toPrepare.GetStatement();
             if (!statement.ToUpper().StartsWith("PREPARE "))
             {
                 statement = string.Concat("PREPARE ", statement);
             }
-            QueryRequest query = new QueryRequest(statement);
+            var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
-            IQueryResult<dynamic> planResult = Query<dynamic>(query);
-            IQueryResult<IQueryPlan> result = new QueryResult<IQueryPlan>()
-            {
-                Message = planResult.Message,
-                ClientContextId = planResult.ClientContextId,
-                Errors = planResult.Errors,
-                Exception = planResult.Exception,
-                Metrics = planResult.Metrics,
-                RequestId = planResult.RequestId,
-                Signature = planResult.Signature,
-                Status = planResult.Status,
-                Rows = new List<IQueryPlan>(1),
-                Success = planResult.Success
-            };
-            if (planResult.Success)
-            {
-                var rawPlan = planResult.Rows.First();
-                string encodedPlan = EncodeParameter(rawPlan);
-                result.Rows.Add(new QueryPlan(encodedPlan));
-            }
-            return result;
+            return ExecuteQuery<QueryPlan>(query);
         }
 
+        /// <summary>
+        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server asynchronously
+        /// </summary>
+        /// <param name="toPrepare">The <see cref="IQueryRequest" /> containing a N1QL statement to be prepared.</param>
+        /// <returns>
+        /// A <see cref="IQueryResult{T}" /> containing  the <see cref="QueryPlan" /> representing the reusable
+        /// and cachable execution plan for the statement.
+        /// </returns>
+        /// <remarks>
+        /// Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.
+        /// </remarks>
+        public async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare)
+        {
+            var statement = toPrepare.GetStatement();
+            if (!statement.ToUpper().StartsWith("PREPARE "))
+            {
+                statement = string.Concat("PREPARE ", statement);
+            }
+            var query = new QueryRequest(statement);
+            query.BaseUri(toPrepare.GetBaseUri());
+            return  await ExecuteQueryAsync<QueryPlan>(query);
+        }
+
+        /// <summary>
+        /// Executes the <see cref="IQueryRequest"/> against the Couchbase server.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryRequest">The query request.</param>
+        /// <returns></returns>
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
         {
-            var requestUri = queryRequest.GetRequestUri();
-
-            var queryResult = queryRequest.IsPost ?
-                Post<T>(queryRequest) : Get<T>(requestUri);
-
-            return queryResult;
+            PrepareStatementIfNotAdHoc(queryRequest);
+            return ExecuteQuery<T>(queryRequest);
         }
 
-        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        /// <summary>
+        /// Executes the <see cref="IQueryRequest"/> against the Couchbase server asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryRequest">The query request.</param>
+        /// <returns></returns>
+        public async Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
         {
-            var requestUri = queryRequest.GetRequestUri();
-
-            var queryResult = queryRequest.IsPost ?
-                PostAsync<T>(queryRequest) : GetAsync<T>(requestUri);
-
-            return queryResult;
+            await PrepareStatementIfNotAdHocAsync(queryRequest);
+            return await ExecuteQueryAsync<T>(queryRequest);
         }
 
-        IQueryResult<T> Post<T>(IQueryRequest queryRequest)
+        /// <summary>
+        /// Prepares the statement if the <see cref="IQueryRequest"/> is not ad-hoc and caches it for reuse.
+        /// </summary>
+        /// <param name="originalRequest">The original query request.</param>
+        void PrepareStatementIfNotAdHoc(IQueryRequest originalRequest)
+        {
+            if (originalRequest.IsAdHoc) return;
+
+            var statement = originalRequest.GetStatement();
+            if (statement == null) {
+                statement = originalRequest.GetPreparedPayload().Text;
+            }
+            QueryPlan queryPlan;
+            if (_queryCache.TryGetValue(statement, out queryPlan))
+            {
+                originalRequest.Prepared(queryPlan);
+            }
+            else
+            {
+                var result = Prepare(originalRequest);
+                //FIXME throw an exception?
+                if (!result.Success) return;
+                queryPlan = result.Rows.First();
+                queryPlan.Text = originalRequest.GetStatement(); //the plan Text will be used if we reprepare it
+                if (_queryCache.TryAdd(statement, queryPlan))
+                {
+                    originalRequest.Prepared(queryPlan);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Prepares the statement if the <see cref="IQueryRequest"/> is not ad-hoc and caches it for reuse.asynchronously.
+        /// </summary>
+        /// <param name="originalRequest">The original query request.</param>
+        async Task PrepareStatementIfNotAdHocAsync(IQueryRequest originalRequest)
+        {
+            if (originalRequest.IsAdHoc) return;
+
+            var statement = originalRequest.GetStatement();
+            if (statement == null) {
+                statement = originalRequest.GetPreparedPayload().Text;
+            }
+            QueryPlan queryPlan;
+            if (_queryCache.TryGetValue(statement, out queryPlan))
+            {
+                originalRequest.Prepared(queryPlan);
+            }
+            else
+            {
+                var result = await PrepareAsync(originalRequest);
+                if (!result.Success) return; //FIXME propagate the error somehow
+                queryPlan = result.Rows.First();
+                queryPlan.Text = originalRequest.GetStatement();
+                if (_queryCache.TryAdd(statement, queryPlan))
+                {
+                    originalRequest.Prepared(queryPlan);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Executes the <see cref="IQueryRequest"/> using HTTP POST to the Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of each row returned by the query.</typeparam>
+        /// <param name="queryRequest">The query request.</param>
+        /// <returns></returns>
+        /// <remarks>The format for the querying is JSON</remarks>
+        IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
         {
             var queryResult = new QueryResult<T>();
             try
@@ -131,9 +213,10 @@ namespace Couchbase.N1QL
                 var request = WebRequest.Create(queryRequest.GetBaseUri());
                 request.Timeout = (int)_clientConfig.QueryRequestTimeout;
                 request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
+                request.ContentType = "application/json";
 
-                var bytes = System.Text.Encoding.UTF8.GetBytes(queryRequest.GetQueryParameters());
+                var json = queryRequest.GetFormValuesAsJson();
+                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                 request.ContentLength = bytes.Length;
 
                 using (var stream = request.GetRequestStream())
@@ -166,97 +249,64 @@ namespace Couchbase.N1QL
             return queryResult;
         }
 
-        private async Task<IQueryResult<T>> PostAsync<T>(IQueryRequest queryRequest)
+        /// <summary>
+        /// Executes the <see cref="IQueryRequest"/> using HTTP POST to the Couchbase Server asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of each row returned by the query.</typeparam>
+        /// <param name="queryRequest">The query request.</param>
+        /// <returns></returns>
+        /// <remarks>The format for the querying is JSON</remarks>
+        private async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
             var queryResult = new QueryResult<T>();
-            var content = new FormUrlEncodedContent(queryRequest.GetFormValues());
-            try
-            {
-                var request = await HttpClient.PostAsync(queryRequest.GetBaseUri(), content);
-                using (var response = await request.Content.ReadAsStreamAsync())
+            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json")) {
+                try
                 {
-                    queryResult = DataMapper.Map<QueryResult<T>>(response);
-                    queryResult.Success = queryResult.Status == QueryStatus.Success;
-                }
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    Log.Error(e);
-                    ProcessError(e, queryResult);
-                    return true;
-                });
-            }
-            return queryResult;
-        }
-
-        IQueryResult<T> Get<T>(Uri requestUri)
-        {
-            var queryResult = new QueryResult<T>();
-            try
-            {
-                var request = WebRequest.Create(requestUri);
-                request.Timeout = (int)_clientConfig.QueryRequestTimeout;
-                request.Method = "GET";
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var stream = response.GetResponseStream())
+                    var request = await HttpClient.PostAsync(queryRequest.GetBaseUri(), content);
+                    using (var response = await request.Content.ReadAsStreamAsync())
                     {
-                        queryResult = DataMapper.Map<QueryResult<T>>(stream);
-                        queryResult.Success = response.StatusCode == HttpStatusCode.OK;
-                        response.Close();
+                        queryResult = DataMapper.Map<QueryResult<T>>(response);
+                        queryResult.Success = queryResult.Status == QueryStatus.Success;
                     }
                 }
-            }
-            catch (WebException e)
-            {
-                if (e.Response != null)
+                catch (AggregateException ae)
                 {
-                    var stream = e.Response.GetResponseStream();
-                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                    ae.Flatten().Handle(e =>
+                    {
+                        Log.Error(e);
+                        ProcessError(e, queryResult);
+                        return true;
+                    });
                 }
-                queryResult.Exception = e;
-                Log.Error(e);
             }
-            catch (Exception e)
-            {
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
+
             return queryResult;
         }
 
-        async Task<IQueryResult<T>> GetAsync<T>(Uri requestUri)
+
+        /// <summary>
+        /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will
+        /// be filled with non-adhoc query statements (query plans) to speed up those subsequent executions. Triggering this method will wipe
+        /// out the complete cache, which will not cause an interruption but rather all queries need to be re-prepared internally. This method
+        /// is likely to be deprecated in the future once the server side query engine distributes its state throughout the cluster.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="Int32" /> representing the size of the cache before it was cleared.
+        /// </returns>
+        /// <exception cref="OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue" />).</exception>
+        public int InvalidateQueryCache()
         {
-            var queryResult = new QueryResult<T>();
-            try
-            {
-                var request = await HttpClient.GetAsync(requestUri);
-                using (var response = await request.Content.ReadAsStreamAsync())
-                {
-                    queryResult = DataMapper.Map<QueryResult<T>>(response);
-                    queryResult.Success = queryResult.Status == QueryStatus.Success;
-                }
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    Log.Error(e);
-                    ProcessError(e, queryResult);
-                    return true;
-                });
-            }
-            catch (Exception e)
-            {
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
-            return queryResult;
+            var count = _queryCache.Count;
+            _queryCache.Clear();
+            return count;
         }
 
+        /// <summary>
+        /// Sets the <see cref="IQueryRequest"/> state if an error occurred during the request.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ex">The ex.</param>
+        /// <param name="queryResult">The query result.</param>
         private static void ProcessError<T>(Exception ex, QueryResult<T> queryResult)
         {
             const string message = "Check Exception and Error fields for details.";

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.N1QL;
 using NUnit.Framework;
+using Couchbase.Utils;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -202,57 +203,13 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
-        public void When_Prepare_A_Plan_Is_Returned()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var result = bucket.Prepare("SELECT * FROM `beer-sample` LIMIT 10");
-
-                Assert.AreEqual(QueryStatus.Success, result.Status);
-                Assert.AreEqual(1, result.Rows.Count);
-            }
-        }
-
-        [Test]
-        public void When_Possessing_A_Plan_It_Can_Be_Executed()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var planResult = bucket.Prepare("SELECT * FROM `beer-sample` LIMIT 10");
-                var plan = planResult.Rows.First();
-
-                Assert.AreEqual(QueryStatus.Success, planResult.Status);
-                Assert.AreEqual(1, planResult.Rows.Count);
-
-                var executionRequest = new QueryRequest(plan); //can also be constructed via Create factory method
-                var executionResult = bucket.Query<dynamic>(executionRequest);
-
-                Assert.AreEqual(QueryStatus.Success, executionResult.Status);
-                Assert.AreEqual(10, executionResult.Rows.Count);
-            }
-        }
-
-        [Test]
-        public void When_Preparing_An_Invalid_Statement_An_Error_Is_Returned()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var result = bucket.Prepare("SELECT * FRO `beer-sample` LIMIT 10");
-                Assert.IsFalse(result.Success);
-                Assert.AreEqual(0, result.Rows.Count);
-                Assert.AreEqual(QueryStatus.Fatal, result.Status);
-                Assert.IsNotEmpty(result.Errors);
-            }
-        }
-
-        [Test]
         public void Test_Invalid_Insert_Query()
         {
             using (var bucket = _cluster.OpenBucket())
             {
                 var queryRequest = new QueryRequest()
-                     .Statement("INSERT INTO `beer-sample` VALUES ('foo1', {'bar' , 'baz'})")
-                     .Signature(false);
+                    .Statement("INSERT INTO `default` VALUES ('foo1', {'bar' , 'baz'})")
+                    .Signature(false);
                 var result = bucket.Query<dynamic>(queryRequest);
 
                 Assert.IsFalse(result.Success);
@@ -264,20 +221,21 @@ namespace Couchbase.Tests.N1QL
         {
             using (var bucket = _cluster.OpenBucket())
             {
+                bucket.Remove("testdmlkey");
                 var queryRequest = new QueryRequest()
-                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : 'bar'})")
+                    .Statement("INSERT INTO `default` VALUES ('testdmlkey', {'foo' : 'bar'})")
                     .Signature(false);
                 var result = bucket.Query<dynamic>(queryRequest);
-                Assert.IsTrue(result.Success);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
 
                 queryRequest = new QueryRequest()
-                        .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo='baz'")
+                    .Statement("UPDATE `default` USE KEYS 'testdmlkey' SET foo='baz'")
                         .Signature(false)
                         .ScanConsistency(ScanConsistency.RequestPlus);
                 result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
 
-                queryRequest = new QueryRequest().Statement("DELETE FROM `beer-sample` USE KEYS 'testkey'")
+                queryRequest = new QueryRequest().Statement("DELETE FROM `default` USE KEYS 'testdmlkey'")
                     .Signature(false);
                 result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
@@ -290,15 +248,16 @@ namespace Couchbase.Tests.N1QL
         {
             using (var bucket = _cluster.OpenBucket())
             {
+                bucket.Remove("testdmlkey");
                 var queryRequest = new QueryRequest()
-                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : $1})")
+                    .Statement("INSERT INTO `default` VALUES ('testdmlkey', {'foo' : $1})")
                     .AddPositionalParameter("bar")
                     .Signature(false);
                 var result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
 
                 queryRequest = new QueryRequest()
-                    .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo=$1")
+                    .Statement("UPDATE `default` USE KEYS 'testdmlkey' SET foo=$1")
                     .AddPositionalParameter("baz")
                     .Signature(false)
                     .ScanConsistency(ScanConsistency.RequestPlus);
@@ -306,8 +265,8 @@ namespace Couchbase.Tests.N1QL
                 Assert.IsTrue(result.Success);
 
                 queryRequest = new QueryRequest()
-                    .Statement("DELETE FROM `beer-sample` USE KEYS $1;")
-                    .AddPositionalParameter("testkey")
+                    .Statement("DELETE FROM `default` USE KEYS $1;")
+                    .AddPositionalParameter("testdmlkey")
                     .Signature(false);
                 result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
@@ -320,15 +279,16 @@ namespace Couchbase.Tests.N1QL
         {
             using (var bucket = _cluster.OpenBucket())
             {
+                bucket.Remove("testdmlkey");
                 var queryRequest = new QueryRequest()
-                    .Statement("INSERT INTO `beer-sample` VALUES ('testkey', {'foo' : $val})")
+                    .Statement("INSERT INTO `default` VALUES ('testdmlkey', {'foo' : $val})")
                     .AddNamedParameter("val", "bar")
                     .Signature(false);
                 var result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
 
                 queryRequest = new QueryRequest()
-                    .Statement("UPDATE `beer-sample` USE KEYS 'testkey' SET foo=$val")
+                    .Statement("UPDATE `default` USE KEYS 'testdmlkey' SET foo=$val")
                     .AddNamedParameter("val", "baz")
                     .Signature(false)
                     .ScanConsistency(ScanConsistency.RequestPlus);
@@ -336,14 +296,104 @@ namespace Couchbase.Tests.N1QL
                 Assert.IsTrue(result.Success);
 
                 queryRequest = new QueryRequest()
-                    .Statement("DELETE FROM `beer-sample` USE KEYS $key")
-                    .AddNamedParameter("key", "testkey")
+                    .Statement("DELETE FROM `default` USE KEYS $key")
+                    .AddNamedParameter("key", "testdmlkey")
                     .Signature(false);
                 result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
             }
-
         }
 
+        [Test]
+        public void When_Adhoc_Query_Is_Used_Plan_Is_Prepared_And_Cached()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                ((IQueryCacheInvalidator)bucket).InvalidateQueryCache();
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 1")
+                    .AdHoc(false);
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+                var count = ((IQueryCacheInvalidator) bucket).InvalidateQueryCache();
+                Assert.IsFalse(queryRequest.IsAdHoc);
+                Assert.IsTrue(queryRequest.IsPrepared);
+                Assert.Greater(count, 0);
+            }
+        }
+
+        [Test]
+        public void When_Adhoc_Is_True_Query_Is_Not_Prepared_And_Cached()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                ((IQueryCacheInvalidator)bucket).InvalidateQueryCache();
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 1")
+                    .AdHoc(true);
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+                var count = ((IQueryCacheInvalidator)bucket).InvalidateQueryCache();
+                Assert.IsTrue(queryRequest.IsAdHoc);
+                Assert.IsFalse(queryRequest.IsPrepared);
+                Assert.AreEqual(count, 0);
+            }
+        }
+
+        [Test]
+        public void When_Adhoc_Is_False_QueryPlan_Is_Reused()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                ((IQueryCacheInvalidator)bucket).InvalidateQueryCache();
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 1")
+                    .AdHoc(false);
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+
+                var queryRequest1 = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 1")
+                    .AdHoc(false);
+
+                result = bucket.Query<dynamic>(queryRequest1);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+
+                var count = ((IQueryCacheInvalidator) bucket).InvalidateQueryCache();
+                Assert.IsTrue(queryRequest.IsPrepared);
+                Assert.IsFalse(queryRequest.IsAdHoc);
+                Assert.AreEqual(count, 1);
+            }
+        }
+
+        [Test]
+        public void When_Adhoc_Is_False_QueryPlan_From_Different_Queries_Are_Cached()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                ((IQueryCacheInvalidator)bucket).InvalidateQueryCache();
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 1")
+                    .AdHoc(false);
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+
+                var queryRequest1 = new QueryRequest()
+                    .Statement("SELECT * FROM `beer-sample` LIMIT 2")
+                    .AdHoc(false);
+
+                result = bucket.Query<dynamic>(queryRequest1);
+                Assert.IsTrue(result.Success, result.GetErrorsAsString());
+
+                var count = ((IQueryCacheInvalidator) bucket).InvalidateQueryCache();
+                Assert.IsTrue(queryRequest.IsPrepared);
+                Assert.IsFalse(queryRequest.IsAdHoc);
+                Assert.AreEqual(count, 2);
+            }
+        }
     }
 }

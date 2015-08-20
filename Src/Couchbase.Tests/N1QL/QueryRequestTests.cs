@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Couchbase.N1QL;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.Runtime.Remoting.Proxies;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -24,9 +27,10 @@ namespace Couchbase.Tests.N1QL
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Statement("SELECT * FROM default");
 
-            var uri = query.GetRequestUri();
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default"));
-            Console.WriteLine(uri);
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default\"}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -37,9 +41,10 @@ namespace Couchbase.Tests.N1QL
                 Statement("SELECT * FROM default").
                 ClientContextId("somecontextlessthanorequalto64chars");
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default&client_context_id=somecontextlessthanorequalto64chars"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default\",\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -51,9 +56,10 @@ namespace Couchbase.Tests.N1QL
                 ClientContextId("somecontextlessthanorequalto64chars").
                 Pretty(true);
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default&pretty=true&client_context_id=somecontextlessthanorequalto64chars"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default\",\"pretty\":true,\"client_context_id\":\"somecontextlessthanorequalto64chars\"}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -64,9 +70,10 @@ namespace Couchbase.Tests.N1QL
                 Statement("SELECT * FROM default WHERE type=$1").
                 AddPositionalParameter("dog");
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default WHERE type=$1&args=[\"dog\"]"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default WHERE type=$1\",\"args\":[\"dog\"]}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -78,9 +85,11 @@ namespace Couchbase.Tests.N1QL
                 AddPositionalParameter("dog").
                 AddPositionalParameter("cat");
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default WHERE type=$1 OR type=$2&args=[\"dog\"%2C\"cat\"]"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default " +
+                "WHERE type=$1 OR type=$2\",\"args\":[\"dog\",\"cat\"]}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -92,9 +101,11 @@ namespace Couchbase.Tests.N1QL
                 AddNamedParameter("canine", "dog").
                 AddNamedParameter("feline", "cat");
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM default WHERE type=$canine OR type=$feline&$canine=\"dog\"&$feline=\"cat\""));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM default WHERE type=$canine OR type=$feline\"," +
+                "\"$canine\":\"dog\",\"$feline\":\"cat\"}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -105,9 +116,10 @@ namespace Couchbase.Tests.N1QL
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("authenticated", "secret", true);
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM authenticated&creds=[{\"user\":\"admin:authenticated\"%2C\"pass\":\"secret\"}]"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM authenticated\",\"creds\":[{\"user\":\"admin:authenticated\",\"pass\":\"secret\"}]}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -118,9 +130,11 @@ namespace Couchbase.Tests.N1QL
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("authenticated", "secret", false);
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM authenticated&creds=[{\"user\":\"local:authenticated\"%2C\"pass\":\"secret\"}]"));
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM authenticated\"," +
+                           "\"creds\":[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}]}";
+            Console.WriteLine(json);
+            Assert.AreEqual(expected, json);
         }
 
         [Test]
@@ -161,7 +175,6 @@ namespace Couchbase.Tests.N1QL
             return new QueryRequest()
                 .BaseUri(new Uri(string.Format("http://{0}:8093/query", _server)))
                 .Metrics(true)
-                .HttpMethod(Method.Post)
                 .Statement("SELECT * from Who WHERE $1")
                 .Pretty(true)
                 .ReadOnly(false)
@@ -193,10 +206,17 @@ namespace Couchbase.Tests.N1QL
         public void Test_Using_Prepared_Is_Detected()
         {
             var request = CreateFullQueryRequest();
-            request.Prepared(new QueryPlan("{ \"test\": \"yes\" }"));
+            request.Prepared(new QueryPlan
+            {
+                Operator = "{ \"test\": \"yes\" }",
+                EncodedPlan = "{ \"encoded\": 1 }",
+                Name = "name"
+            });
 
             var values = request.GetFormValues();
-            Assert.AreEqual("{ \"test\": \"yes\" }", values["prepared"]);
+            Assert.AreEqual("{ \"encoded\": 1 }", values["encoded_plan"]);
+            Assert.AreEqual("name", values["prepared"]);
+
             try
             {
                 var statement = values["statement"];
@@ -214,48 +234,59 @@ namespace Couchbase.Tests.N1QL
             var request = CreateFullQueryRequest();
 
             var values = request.GetFormValues();
-            Assert.AreEqual("true", values["metrics"]);
+            Assert.AreEqual(true, values["metrics"]);
             Assert.AreEqual("SELECT * from Who WHERE $1", values["statement"]);
-            Assert.AreEqual("true", values["pretty"]);
-            Assert.AreEqual("false", values["readonly"]);
+            Assert.AreEqual(true, values["pretty"]);
+            Assert.AreEqual(false, values["readonly"]);
             Assert.AreEqual("request_plus", values["scan_consistency"]);
             Assert.AreEqual("100", values["scan_vector"]);
             Assert.AreEqual("100", values["scan_wait"]);
-            Assert.AreEqual("true", values["signature"]);
+            Assert.AreEqual(true, values["signature"]);
             Assert.AreEqual("RLE", values["compression"]);
-            Assert.AreEqual(Uri.EscapeDataString("[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}]"), values["creds"]);
-            Assert.AreEqual(Uri.EscapeDataString("[\"boo\"]"), values["args"]);
             Assert.AreEqual("10000ms", values["timeout"]);
+
+            //more complex ones
+            var expectedCred = "{ user = local:authenticated, pass = secret }";
+            Assert.IsInstanceOf<ICollection>(values["creds"]);
+            var creds = (ICollection<dynamic>) values["creds"];
+            Assert.AreEqual(1, creds.Count);
+            Assert.AreEqual(expectedCred, creds.First().ToString());
+//            Assert.AreEqual(new { user = "admin", pass = "toto"}.ToString(), creds.First().ToString());
+
+            var expectedArgs = new List<object>();
+            expectedArgs.Add("boo");
+            Assert.IsInstanceOf<ICollection>(values["args"]);
+            CollectionAssert.AreEqual(expectedArgs, (ICollection) values["args"]);
         }
 
         [Test]
-        public void GetQueryParameters_Should_Correspond_To_GetFormValues()
+        public void GetFormValuesAsJson_Should_Correspond_To_GetFormValues()
         {
             var request = CreateFullQueryRequest();
 
             var parameterPairs = request.GetFormValues();
-            var expectedParameterString = new StringBuilder();
-            foreach (var formValue in parameterPairs)
+            var json = request.GetFormValuesAsJson();
+            var fromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+
+            Assert.AreEqual(parameterPairs.Count, fromJson.Count);
+            foreach (var pair in parameterPairs)
             {
-                expectedParameterString.Append('&').Append(formValue.Key).Append('=').Append(formValue.Value);
+                var checkCollection = pair.Value as System.Collections.ICollection;
+                var real = fromJson[pair.Key];
+
+                if (checkCollection != null)
+                {
+                    //it's simpler for now to test collections using a JSON serialization
+                    var expectedJson = JsonConvert.SerializeObject(pair.Value);
+                    var realJson = JsonConvert.SerializeObject(real);
+                    Assert.AreEqual(expectedJson, realJson);
+                }
+                else
+                {
+                    var expected = pair.Value.ToString();
+                    Assert.AreEqual(expected, real.ToString());
+                }
             }
-            expectedParameterString.Remove(0, 1);
-
-            Assert.AreEqual(expectedParameterString.ToString(), request.GetQueryParameters());
-        }
-
-        [Test]
-        public void Request_Url_Parameter_Section_Should_Correspond_To_GetQueryParameters()
-        {
-            var request = CreateFullQueryRequest();
-            var expected = request.GetQueryParameters();
-
-            var uri = request.GetRequestUri();
-            var uriString = uri.OriginalString;
-            Console.WriteLine(uriString);
-            var actualParameterSection = uriString.Substring(uriString.IndexOf("?", StringComparison.Ordinal) + 1);
-
-            Assert.AreEqual(expected, actualParameterSection);
         }
 
         [Test]
@@ -266,10 +297,11 @@ namespace Couchbase.Tests.N1QL
                 .Statement("SELECT * FROM `beer-sample`")
                 .Timeout(new TimeSpan(0, 0, 0, 0, 5));
 
-            var uri = query.GetRequestUri();
-            Console.WriteLine(uri);
+            var json = query.GetFormValuesAsJson();
+            var expected = "{\"statement\":\"SELECT * FROM `beer-sample`\",\"timeout\":\"5ms\"}";
+            Console.WriteLine(json);
 
-            Assert.IsTrue(uri.ToString().Contains(":8093/query?statement=SELECT * FROM `beer-sample`&timeout=5ms"));
+            Assert.AreEqual(expected, json);
         }
     }
 }

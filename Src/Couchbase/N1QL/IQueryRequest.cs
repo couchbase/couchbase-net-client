@@ -10,23 +10,28 @@ namespace Couchbase.N1QL
     public interface IQueryRequest
     {
         /// <summary>
-        /// The HTTP method type to use.
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        bool IsPost { get; }
-
-        /// <summary>
         /// Returns true if the request is a prepared statement
         /// </summary>
         bool IsPrepared { get; }
 
         /// <summary>
-        /// The HTTP method type to use.
+        /// Gets a value indicating whether this query statement is to executed in an ad-hoc manner.
         /// </summary>
-        /// <param name="method"></param>
+        /// <value>
+        ///   <c>true</c> if this instance is ad-hoc; otherwise, <c>false</c>.
+        /// </value>
+        bool IsAdHoc { get; }
+
+        /// <summary>
+        ///  If set to false, the client will try to perform optimizations
+        ///  transparently based on the server capabilities, like preparing the statement and
+        ///  then executing a query plan instead of the raw query.
+        /// </summary>
+        /// <param name="adHoc">if set to <c>false</c> the query will be optimized if possible.</param>
+        /// <remarks>The default is <c>true</c>; the query will executed in an ad-hoc manner,
+        ///  without special optomizations.</remarks>
         /// <returns></returns>
-        IQueryRequest HttpMethod(Method method);
+        IQueryRequest AdHoc(bool adHoc);
 
         /// <summary>
         ///  Sets a N1QL statement to be executed.
@@ -40,11 +45,11 @@ namespace Couchbase.N1QL
         /// <summary>
         ///  Sets a N1QL statement to be executed.
         /// </summary>
-        /// <param name="queryPlan">The <see cref="IQueryPlan"/> that was prepared beforehand.</param>
+        /// <param name="queryPlan">The <see cref="QueryPlan"/> that was prepared beforehand.</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         /// <remarks>If both prepared and statement are present and non-empty, an error is returned.</remarks>
         /// <remarks>Required if statement not provided.</remarks>
-        IQueryRequest Prepared(IQueryPlan queryPlan);
+        IQueryRequest Prepared(QueryPlan queryPlan);
 
 
 
@@ -203,25 +208,34 @@ namespace Couchbase.N1QL
         IQueryRequest BaseUri(Uri uri);
 
         /// <summary>
-        /// Gets the constructed <see cref="Uri"/> for making the request.
-        /// </summary>
-        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-        Uri GetRequestUri();
-
-        /// <summary>
         /// Gets the <see cref="Uri"/> for the Query service
         /// </summary>
         /// <returns>The <see cref="Uri"/> for the Query service</returns>
         Uri GetBaseUri();
 
+        /// <summary>
+        /// Gets the raw, unprepared N1QL statement.
+        /// </summary>
+        /// <returns></returns>
         string GetStatement();
+
+        /// <summary>
+        /// Gets the prepared payload for this N1QL statement if IsPrepared() is true,
+        /// null otherwise.
+        /// </summary>
+        /// <returns></returns>
+        QueryPlan GetPreparedPayload();
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}"/> of the name/value pairs to be POSTed to the service if <see cref="Method.Post"/> is used.
         /// </summary>
         /// <returns>The <see cref="IDictionary{K, V}"/> of the name/value pairs to be POSTed to the service.</returns>
-        IDictionary<string, string> GetFormValues();
+        IDictionary<string, object> GetFormValues();
 
-        string GetQueryParameters();
+        /// <summary>
+        /// Gets the JSON representation of this query for execution in a POST.
+        /// </summary>
+        /// <returns>The form values as a JSON object.</returns>
+        string GetFormValuesAsJson();
     }
 }

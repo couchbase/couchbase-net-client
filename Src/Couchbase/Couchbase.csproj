@@ -180,6 +180,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IQueryCacheInvalidator.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
@@ -233,7 +234,6 @@
     <Compile Include="N1QL\Compression.cs" />
     <Compile Include="N1QL\Encoding.cs" />
     <Compile Include="N1QL\Format.cs" />
-    <Compile Include="N1QL\IQueryPlan.cs" />
     <Compile Include="N1QL\Method.cs" />
     <Compile Include="N1QL\IQueryRequest.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
@@ -248,6 +248,7 @@
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />
+    <Compile Include="Utils\QueryResultExtensions.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Views\IViewResult%27.cs" />

@@ -13,7 +13,7 @@ namespace Couchbase.Core
     /// <summary>
     /// Represents a Couchbase Server node on the network.
     /// </summary>
-    internal interface IServer : IDisposable
+    internal interface IServer : IDisposable, IQueryCacheInvalidator
     {
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.
@@ -138,9 +138,9 @@ namespace Couchbase.Core
 
         Task<IQueryResult<T>> SendAsync<T>(string query);
 
-        IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare);
+        IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare);
 
-        IQueryResult<IQueryPlan> Prepare(string statementToPrepare);
+        IQueryResult<QueryPlan> Prepare(string statementToPrepare);
 
         string GetBaseViewUri(string name);
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
@@ -44,10 +45,18 @@ namespace Couchbase.Core
 
         public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-                this(ioStrategy,
-                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig,
-                        clientConfiguration),
+            this(ioStrategy,
+                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
+                    nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+        {
+        }
+
+        public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
+            IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
+                this(ioStrategy,
+                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
+                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
@@ -583,14 +592,14 @@ namespace Couchbase.Core
             return task;
         }
 
-        public IQueryResult<IQueryPlan> Prepare(IQueryRequest toPrepare)
+        public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
             var uri = new Uri(GetBaseQueryUri());
             toPrepare.BaseUri(uri);
             return QueryClient.Prepare(toPrepare);
         }
 
-        public IQueryResult<IQueryPlan> Prepare(string statementToPrepare)
+        public IQueryResult<QueryPlan> Prepare(string statementToPrepare)
         {
             IQueryRequest query = new QueryRequest(statementToPrepare);
             return Prepare(query);
@@ -659,6 +668,20 @@ namespace Couchbase.Core
         {
             Log.Debug(m => m("Disposing Server for {0}", EndPoint));
             Dispose(true);
+        }
+
+        /// <summary>
+        /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will
+        /// be filled with non-adhoc query statements (query plans) to speed up those subsequent executions. Triggering this method will wipe
+        /// out the complete cache, which will not cause an interruption but rather all queries need to be re-prepared internally. This method
+        /// is likely to be deprecated in the future once the server side query engine distributes its state throughout the cluster.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="int" /> representing the size of the cache before it was cleared.
+        /// </returns>
+        public int InvalidateQueryCache()
+        {
+            return QueryClient.InvalidateQueryCache();
         }
 
         private void Dispose(bool disposing)
