@@ -178,7 +178,7 @@ namespace Couchbase.Core.Buckets
         /// The result of the View request as an <see cref="IViewResult{T}" /> where T is the Type of each row.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Views.IViewResult<T> SendWithRetry<T>(Views.IViewQuery query)
+        public virtual IViewResult<T> SendWithRetry<T>(IViewQueryable query)
         {
             throw new NotImplementedException();
         }
@@ -192,7 +192,7 @@ namespace Couchbase.Core.Buckets
         /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<Views.IViewResult<T>> SendWithRetryAsync<T>(Views.IViewQuery query)
+        public virtual Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
             throw new NotImplementedException();
         }

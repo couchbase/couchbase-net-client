@@ -459,7 +459,7 @@ namespace Couchbase.Core
         /// <returns>
         /// An <see cref="Task{IViewResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
+        public Task<IViewResult<T>> SendAsync<T>(IViewQueryable query)
         {
             Task<IViewResult<T>> result;
             try
@@ -493,7 +493,7 @@ namespace Couchbase.Core
         /// <returns>
         /// An <see cref="IViewResult{T}" /> representing the result of the query.
         /// </returns>
-        public IViewResult<T> Send<T>(IViewQuery query)
+        public IViewResult<T> Send<T>(IViewQueryable query)
         {
             IViewResult<T> result;
             try

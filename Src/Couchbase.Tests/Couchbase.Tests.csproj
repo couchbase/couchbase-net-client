@@ -91,6 +91,8 @@
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
     <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
+    <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
+    <Compile Include="Utils\ClientConfigUtil.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserverTests.cs" />
@@ -183,6 +185,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Views\JsonDataMapperTests.cs" />
+    <Compile Include="Views\SpatialViewQueryTests.cs" />
     <Compile Include="Views\ViewClientTests.cs" />
     <Compile Include="Views\ViewQueryTests.cs" />
   </ItemGroup>

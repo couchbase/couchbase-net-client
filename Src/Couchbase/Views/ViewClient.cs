@@ -42,7 +42,7 @@ namespace Couchbase.Views
         /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> to execute on.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQuery query)
+        public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQueryable query)
         {
             var uri = query.RawUri();
             var viewResult = new ViewResult<T>();
@@ -82,7 +82,7 @@ namespace Couchbase.Views
         /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> to execute on.</param>
         /// <returns>The <see cref="IViewResult{T}"/> instance which is the results of the query.</returns>
-        public IViewResult<T> Execute<T>(IViewQuery query)
+        public IViewResult<T> Execute<T>(IViewQueryable query)
         {
             var viewResult = new ViewResult<T>();
             try

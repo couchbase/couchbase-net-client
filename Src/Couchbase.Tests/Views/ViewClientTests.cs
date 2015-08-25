@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -8,6 +10,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Tests.Core.Buckets;
 using Couchbase.Tests.Documents;
+using Couchbase.Tests.Utils;
 using Couchbase.Views;
 using NUnit.Framework;
 
@@ -19,7 +22,7 @@ namespace Couchbase.Tests.Views
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("beer-sample"))
                 {
@@ -213,6 +216,26 @@ namespace Couchbase.Tests.Views
                 var result = await client.ExecuteAsync<dynamic>(query);
                 Console.WriteLine("{0} {1} {2}", i, result.Success, result.Message);
             });
+        }
+
+        [Test]
+        public void Test_Geo_Spatial_View()
+        {
+            var query = new SpatialViewQuery().From("spatial", "routes")
+                .BaseUri(ClientConfigUtil.GetConfiguration().Servers.First().ToString())
+                .Bucket("travel-sample")
+                .Stale(StaleState.False)
+                .Limit(10)
+                .Skip(0);
+
+             var client = new ViewClient(new HttpClient(),
+                new JsonDataMapper(ClientConfigUtil.GetConfiguration()),
+                new BucketConfig { Name = "travel-sample" },
+                new ClientConfiguration());
+
+            var results = client.Execute<dynamic>(query);
+            Assert.IsTrue(results.Success, results.Error);
+
         }
     }
 }

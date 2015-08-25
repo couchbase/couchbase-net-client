@@ -99,8 +99,8 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
         /// <param name="cancellationToken">For canceling the async operation.</param>
         /// <returns>A <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
-        static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQuery, IConfigInfo, Task<IViewResult<T>>> execute,
-            IViewQuery query,
+        static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQueryable, IConfigInfo, Task<IViewResult<T>>> execute,
+            IViewQueryable query,
             IConfigInfo configInfo,
             CancellationToken cancellationToken)
         {
@@ -359,7 +359,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="viewQuery">The view query.</param>
         /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
-        public override IViewResult<T> SendWithRetry<T>(IViewQuery viewQuery)
+        public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
             //Is the cluster configured for View services?
             if (!ConfigInfo.IsViewCapable)
@@ -547,7 +547,7 @@ namespace Couchbase.Core.Buckets
         /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
         /// </returns>
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
-        public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query)
+        public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
             //Is the cluster configured for View services?
             if (!ConfigInfo.IsViewCapable)

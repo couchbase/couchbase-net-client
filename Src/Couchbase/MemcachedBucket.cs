@@ -1182,12 +1182,12 @@ namespace Couchbase
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
-        public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        public Task<IViewResult<T>> QueryAsync<T>(IViewQueryable query)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IViewResult<T> Query<T>(IViewQuery query)
+        public IViewResult<T> Query<T>(IViewQueryable query)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

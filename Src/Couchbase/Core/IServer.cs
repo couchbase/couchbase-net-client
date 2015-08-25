@@ -109,7 +109,7 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type"/> T of the body for each row result.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> representing the query.</param>
         /// <returns>An <see cref="IViewResult{T}"/> representing the result of the query.</returns>
-        IViewResult<T> Send<T>(IViewQuery query);
+        IViewResult<T> Send<T>(IViewQueryable query);
 
         /// <summary>
         /// Sends a request for a View to the server asynchronously.
@@ -117,7 +117,7 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type"/> T of the body for each row result.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> representing the query.</param>
         /// <returns>An <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
-        Task<IViewResult<T>> SendAsync<T>(IViewQuery query);
+        Task<IViewResult<T>> SendAsync<T>(IViewQueryable query);
 
         /// <summary>
         /// Sends a request for a N1QL query to the server asynchronously.

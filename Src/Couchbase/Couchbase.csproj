@@ -251,6 +251,8 @@
     <Compile Include="Utils\QueryResultExtensions.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
+    <Compile Include="Views\ISpatialViewQuery.cs" />
+    <Compile Include="Views\IViewQueryable.cs" />
     <Compile Include="Views\IViewResult%27.cs" />
     <Compile Include="OperationResult%27.cs" />
     <Compile Include="IOperationResult.cs" />
@@ -327,11 +329,12 @@
     <Compile Include="Utils\StringExtensions.cs" />
     <Compile Include="Utils\UnsupportedAddressFamilyException.cs" />
     <Compile Include="Utils\UriExtensions.cs" />
+    <Compile Include="Views\SpatialViewQuery.cs" />
     <Compile Include="Views\ViewResult%27.cs" />
     <Compile Include="Views\Error.cs" />
     <Compile Include="Views\IDataMapper.cs" />
     <Compile Include="Views\IViewClient.cs" />
-    <Compile Include="Views\IVIewQuery.cs" />
+    <Compile Include="Views\IViewQuery.cs" />
     <Compile Include="Views\JsonDataMapper.cs" />
     <Compile Include="Views\StaleState.cs" />
     <Compile Include="Views\ViewClient.cs" />

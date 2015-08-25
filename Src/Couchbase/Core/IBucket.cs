@@ -1630,19 +1630,19 @@ namespace Couchbase.Core
         /// Executes a View query and returns the result.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <param name="query">The <see cref="IViewQuery"/> used to generate the results.</param>
         /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
         /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
-        IViewResult<T> Query<T>(IViewQuery query);
+        IViewResult<T> Query<T>(IViewQueryable query);
 
         /// <summary>
         /// Asynchronously Executes a View query and returns the result.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <param name="query">The <see cref="IViewQuery"/> used to generate the results.</param>
         /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
         /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
-        Task<IViewResult<T>> QueryAsync<T>(IViewQuery query);
+        Task<IViewResult<T>> QueryAsync<T>(IViewQueryable query);
 
         /// <summary>
         /// Executes a N1QL query against the Couchbase Cluster.
@@ -1678,7 +1678,7 @@ namespace Couchbase.Core
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and a published view.
+        /// Creates an instance of an object that implements <see cref="IViewQuery"/>, which targets a given bucket, design document and a published view.
         /// </summary>
         /// <param name="designDoc"></param>
         /// <param name="view"></param>
@@ -1686,12 +1686,12 @@ namespace Couchbase.Core
         IViewQuery CreateQuery(string designDoc, string view);
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
+        /// Creates an instance of an object that implements <see cref="IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="view">The View to query.</param>
         /// <param name="development">True will execute on the development dataset.</param>
-        /// <returns>An <see cref="T:Couchbase.Views.IViewQuery"/> which can have more filters and options applied to it.</returns>
+        /// <returns>An <see cref="T:Couchbase.Views.ViewQuery"/> which can have more filters and options applied to it.</returns>
         IViewQuery CreateQuery(string designdoc, string view, bool development);
 
         /// <summary>

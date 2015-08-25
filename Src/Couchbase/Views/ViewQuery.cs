@@ -291,7 +291,7 @@ namespace Couchbase.Views
         }
 
         /// <summary>
-        /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
+        /// Return only documents that match one of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
         /// </summary>
         /// <param name="keys">The keys to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
@@ -302,7 +302,7 @@ namespace Couchbase.Views
         }
 
         /// <summary>
-        /// Return only documents that match each of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
+        /// Return only documents that match one of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
         /// </summary>
         /// <param name="keys">The keys to retrieve</param>
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
@@ -397,7 +397,7 @@ namespace Couchbase.Views
         /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-        public IViewQuery BaseUri(string uri)
+       IViewQueryable IViewQueryable.BaseUri(string uri)
         {
             _baseUri = uri;
             return this;

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Couchbase.Utils
 {
@@ -139,6 +141,11 @@ namespace Couchbase.Utils
                 }
                 return 31*hash + count.GetHashCode();
             }
+        }
+
+        public static string ToJson(this IEnumerable array)
+        {
+            return JsonConvert.SerializeObject(array);
         }
     }
 }

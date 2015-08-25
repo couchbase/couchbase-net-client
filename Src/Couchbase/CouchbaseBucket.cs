@@ -295,7 +295,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket, design document and view.
+        /// Creates an instance of an object that implements <see cref="IViewQuery"/>, which targets a given bucket, design document and view.
         /// </summary>
         /// <param name="designDoc"></param>
         /// <param name="view"></param>
@@ -309,7 +309,7 @@ namespace Couchbase
             };
         }
         /// <summary>
-        /// Creates an instance of an object that implements <see cref="Couchbase.Views.IViewQuery"/>, which targets a given bucket and design document.
+        /// Creates an instance of an object that implements <see cref="IViewQuery"/>, which targets a given bucket and design document.
         /// </summary>
         /// <param name="designdoc">The design document that the View belongs to.</param>
         /// <param name="viewname"></param>
@@ -323,7 +323,7 @@ namespace Couchbase
             {
                 UseSsl = _configInfo.SslConfigured
             }
-            .Development(development);
+            .Development(development) as IViewQuery;
         }
 
         /// <summary>
@@ -1500,13 +1500,13 @@ namespace Couchbase
         /// Executes a View query and returns the result.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <param name="query">The <see cref="IViewQuery"/> used to generate the results.</param>
         /// <returns>An instance of an object that implements the <see cref="T:Couchbase.Views.IViewResult{T}"/> Type with the results of the query.</returns>
         /// <remarks>Use one of the IBucket.CreateQuery overloads to generate the query.</remarks>
-        public IViewResult<T> Query<T>(IViewQuery query)
+        public IViewResult<T> Query<T>(IViewQueryable query)
         {
             CheckDisposed();
-            return _requestExecuter.SendWithRetry<T>((ViewQuery)query);
+            return _requestExecuter.SendWithRetry<T>(query);
         }
 
         /// <summary>
@@ -1537,10 +1537,10 @@ namespace Couchbase
         /// Asynchronously Executes a View query and returns the result.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
-        /// <param name="query">The <see cref="Couchbase.Views.IViewQuery"/> used to generate the results.</param>
+        /// <param name="query">The <see cref="IViewQuery"/> used to generate the results.</param>
         /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IViewResult{T}"/> instance.</returns>
         /// <remarks>Note this implementation is experimental and subject to change in future release!</remarks>
-        public Task<IViewResult<T>> QueryAsync<T>(IViewQuery query)
+        public Task<IViewResult<T>> QueryAsync<T>(IViewQueryable query)
         {
             CheckDisposed();
             return _requestExecuter.SendWithRetryAsync<T>(query);

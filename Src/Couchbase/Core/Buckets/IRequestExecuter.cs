@@ -62,7 +62,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type of the body of the Views return value or row.</typeparam>
         /// <param name="query">An <see cref="IViewQuery"/> to be executed.</param>
         /// <returns>The result of the View request as an <see cref="IViewResult{T}"/> where T is the Type of each row.</returns>
-        IViewResult<T> SendWithRetry<T>(IViewQuery query);
+        IViewResult<T> SendWithRetry<T>(IViewQueryable query);
 
         /// <summary>
         /// Sends a View request to the server to be executed using async/await
@@ -70,7 +70,7 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type of the body of the Views return value or row.</typeparam>
         /// <param name="query">An <see cref="IViewQuery"/> to be executed.</param>
         /// <returns>The result of the View request as an <see cref="Task{IViewResult}"/> to be awaited on where T is the Type of each row.</returns>
-        Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQuery query);
+        Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query);
 
         /// <summary>
         /// Sends a N1QL query to the server to be executed using the <see cref="IQueryRequest"/> object.

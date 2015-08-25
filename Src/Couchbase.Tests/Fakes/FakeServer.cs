@@ -41,17 +41,59 @@ namespace Couchbase.Tests.Fakes
             return Strategy.ExecuteAsync(operation);
         }
 
+        public Task SendAsync(IOperation operation)
+        {
+            return Strategy.ExecuteAsync(operation);
+        }
+
+        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+
+        public bool IsMgmtNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsQueryNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsDataNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsIndexNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool IsViewNode
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public void MarkDead()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsDown
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public void TakeOffline(bool isDown)
+        {
+            throw new NotImplementedException();
+        }
+
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
 
-        public IViewResult<T> Send<T>(IViewQuery query)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IViewResult<T>> SendAsync<T>(IViewQuery query)
+        public Task<IViewResult<T>> SendAsync<T>(IViewQueryable query)
         {
             throw new NotImplementedException();
         }
@@ -86,7 +128,7 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        void IServer.MarkDead()
+        public void CreateSaslMechanismIfNotExists()
         {
             throw new NotImplementedException();
         }
@@ -96,75 +138,28 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
+        public int InvalidateQueryCache()
         {
             throw new NotImplementedException();
         }
 
-        public IQueryResult<QueryPlan> Prepare(string statementToPrepare)
-        {
-            throw new NotImplementedException();
-        }
 
         public IOperationResult Send(IOperation operation)
         {
             throw new NotImplementedException();
         }
 
-        public Task SendAsync(IOperation operation)
-        {
-            return Strategy.ExecuteAsync(operation);
-        }
-
-        public bool IsDown
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public void TakeOffline(bool isDown)
+        public IViewResult<T> Send<T>(IViewQueryable query)
         {
             throw new NotImplementedException();
         }
 
-        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
-
-        public void CreateSaslMechanismIfNotExists()
+        IQueryResult<QueryPlan> IServer.Prepare(IQueryRequest toPrepare)
         {
             throw new NotImplementedException();
         }
 
-        public bool IsMgmtNode
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public bool IsQueryNode
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public bool IsDataNode
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public bool IsIndexNode
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public bool IsViewNode
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-
-        public bool SupportEnhancedDurability
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public int InvalidateQueryCache()
+        IQueryResult<QueryPlan> IServer.Prepare(string statementToPrepare)
         {
             throw new NotImplementedException();
         }
