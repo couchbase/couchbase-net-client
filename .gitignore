@@ -10,3 +10,4 @@ packages
 *.vs*
 *.testsettings
 *.sln.docstates
+couchbase-net-client.userprefs
