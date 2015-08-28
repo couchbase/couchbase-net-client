@@ -10,6 +10,7 @@ using Couchbase.Views;
 using Newtonsoft.Json.Bson;
 using NUnit.Framework;
 using Couchbase.Utils;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -278,9 +279,10 @@ namespace Couchbase.Tests.N1QL
             Console.WriteLine("Elasped time execute 2:{0}", stopWatch.ElapsedMilliseconds);
 
             Assert.IsTrue(preparedRequest.IsPrepared);
-            Assert.IsNull(preparedRequest.GetStatement());
+            Assert.IsNotNull(preparedRequest.GetOriginalStatement());
             Assert.IsNotNull(preparedRequest.GetPreparedPayload());
             Assert.IsFalse(normalRequest.IsPrepared);
+            Assert.AreEqual(statement, preparedRequest.GetOriginalStatement());
             Assert.AreEqual(QueryStatus.Success, resultNormal.Status, resultNormal.GetErrorsAsString());
             Assert.AreEqual(QueryStatus.Success, resultPrepareExecute.Status, resultPrepareExecute.GetErrorsAsString());
             Assert.AreEqual(QueryStatus.Success, resultExecute.Status, resultExecute.GetErrorsAsString());
@@ -318,6 +320,81 @@ namespace Couchbase.Tests.N1QL
             stopWatch.Stop();
             Console.WriteLine("Elasped time 3:{0}", stopWatch.ElapsedMilliseconds);
             Assert.AreEqual(QueryStatus.Success, result.Status);
+        }
+
+        [Test]
+        public void When_Identified_Error_Are_Encountered_CheckRetry_Should_Return_True()
+        {
+            var listErrors = new System.Collections.Generic.List<Error>();
+            var error4070 = new Error()
+            {
+                Code = 4070,
+                Message = "whatever"
+            };
+            var error4050 = new Error()
+            {
+                Code = 4050,
+                Message = "whatever"
+            };
+            var error5000 = new Error()
+            {
+                Code = 5000,
+                Message = "somePrefix" + QueryClient.ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND + "someSuffix"
+            };
+            var notAnError5000 = new Error()
+            {
+                Code = 5000,
+                Message = "Syntax Error"
+            };
+
+            var request = new QueryRequest().AdHoc(false);
+            var response = new QueryResult<string>()
+            {
+                Errors = listErrors,
+                Success = false
+            };
+
+            listErrors.Add(error4050);
+            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+
+            listErrors.Clear();
+            listErrors.Add(error4070);
+            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+
+            listErrors.Clear();
+            listErrors.Add(error5000);
+            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+
+            listErrors.Clear();
+            listErrors.Add(notAnError5000);
+            Assert.IsFalse(QueryClient.CheckRetry(request, response));
+        }
+
+        [Test]
+        public void When_AdHoc_Is_Default_Or_True_CheckRetry_Should_Return_False()
+        {
+            var requestExplicit = new QueryRequest().AdHoc(true);
+            var requestDefault = new QueryRequest();
+            var response = new QueryResult<string>()
+            {
+                Success = true
+            };
+
+            Assert.IsFalse(QueryClient.CheckRetry(requestExplicit, response));
+            Assert.IsFalse(QueryClient.CheckRetry(requestDefault, response));
+        }
+
+        [Test]
+        public void When_AdHoc_Is_False_And_HasBeenRetried_CheckRetry_Should_Return_False()
+        {
+            var requestAdhocRetried = new QueryRequest().AdHoc(false);
+            requestAdhocRetried.HasBeenRetried = true;
+            var response = new QueryResult<string>()
+            {
+                Success = true
+            };
+
+            Assert.IsFalse(QueryClient.CheckRetry(requestAdhocRetried, response));
         }
     }
 }

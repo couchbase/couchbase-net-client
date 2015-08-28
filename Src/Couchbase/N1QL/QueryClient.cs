@@ -21,6 +21,9 @@ namespace Couchbase.N1QL
     internal class QueryClient : IQueryClient
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
+
+        internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
+
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
 
@@ -79,7 +82,7 @@ namespace Couchbase.N1QL
         /// </remarks>
         public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
-            var statement = toPrepare.GetStatement();
+            var statement = toPrepare.GetOriginalStatement();
             if (!statement.ToUpper().StartsWith("PREPARE "))
             {
                 statement = string.Concat("PREPARE ", statement);
@@ -102,7 +105,7 @@ namespace Couchbase.N1QL
         /// </remarks>
         public async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare)
         {
-            var statement = toPrepare.GetStatement();
+            var statement = toPrepare.GetOriginalStatement();
             if (!statement.ToUpper().StartsWith("PREPARE "))
             {
                 statement = string.Concat("PREPARE ", statement);
@@ -120,8 +123,34 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
         {
-            PrepareStatementIfNotAdHoc(queryRequest);
-            return ExecuteQuery<T>(queryRequest);
+            //shortcut for adhoc requests
+            if (queryRequest.IsAdHoc)
+            {
+                return ExecuteQuery<T>(queryRequest);
+            }
+
+            //optimize, return an error result if optimization step cannot complete
+            try
+            {
+                PrepareStatementIfNotAdHoc(queryRequest);
+            }
+            catch (Exception e)
+            {
+                var errorResult = new QueryResult<T>();
+                ProcessError(e, errorResult);
+                return errorResult;
+            }
+
+            //execute and retry if needed
+            var result = ExecuteQuery<T>(queryRequest);
+            if (CheckRetry<T>(queryRequest, result))
+            {
+                return Retry<T>(queryRequest);
+            }
+            else
+            {
+                return result;
+            }
         }
 
         /// <summary>
@@ -132,7 +161,91 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         public async Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
         {
+            //shortcut for adhoc requests
+            if (queryRequest.IsAdHoc)
+            {
+                return await ExecuteQueryAsync<T>(queryRequest);
+            }
+
+            //optimize, return an error result if optimization step cannot complete
+            try
+            {
+                await PrepareStatementIfNotAdHocAsync(queryRequest);
+            }
+            catch (Exception e)
+            {
+                var errorResult = new QueryResult<T>();
+                ProcessError(e, errorResult);
+                return errorResult;
+            }
+
+            //execute first attempt
+            var result = await ExecuteQueryAsync<T>(queryRequest);
+            //if needed, do a second attempt after having cleared the cache
+            if (CheckRetry<T>(queryRequest, result))
+            {
+                return await RetryAsync<T>(queryRequest);
+            }
+            else
+            {
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Checks the request and result to see if a retry is waranted. Will only retry if
+        /// the request is not adhoc, has not already been retried and contains a N1QL error
+        /// that matches criteria for retry (errors 4050, 4070 and some 5000).
+        /// </summary>
+        internal static bool CheckRetry<T>(IQueryRequest request, IQueryResult<T> result)
+        {
+            if (request.IsAdHoc || request.HasBeenRetried)
+            {
+                return false;
+            }
+
+            if (!result.Success)
+            {
+                //look at N1QL errors
+                foreach (var error in result.Errors)
+                {
+                    if (error.Code == (int)ErrorPrepared.Unrecognized || error.Code == (int)ErrorPrepared.UnableToDecode ||
+                        (error.Code == (int)ErrorPrepared.Generic &&
+                            error.Message != null && error.Message.Contains(ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND)))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private IQueryResult<T> Retry<T>(IQueryRequest queryRequest)
+        {
+            //mark as retried, remove from cache
+            string key = queryRequest.GetOriginalStatement();
+            queryRequest.HasBeenRetried = true;
+            QueryPlan dismissed;
+            _queryCache.TryRemove(key, out dismissed);
+
+            //re-optimize
+            PrepareStatementIfNotAdHoc(queryRequest);
+
+            //re-execute
+            return ExecuteQuery<T>(queryRequest);
+        }
+
+        private async Task<IQueryResult<T>> RetryAsync<T>(IQueryRequest queryRequest)
+        {
+            //mark as retried, remove from cache
+            queryRequest.HasBeenRetried = true;
+            QueryPlan dismissed;
+            _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out dismissed);
+
+            //re-optimize asynchronously
             await PrepareStatementIfNotAdHocAsync(queryRequest);
+
+            //re-execute asynchronously
             return await ExecuteQueryAsync<T>(queryRequest);
         }
 
@@ -144,25 +257,25 @@ namespace Couchbase.N1QL
         {
             if (originalRequest.IsAdHoc) return;
 
-            var statement = originalRequest.GetStatement();
-            if (statement == null) {
-                statement = originalRequest.GetPreparedPayload().Text;
-            }
+            var originalStatement = originalRequest.GetOriginalStatement();
             QueryPlan queryPlan;
-            if (_queryCache.TryGetValue(statement, out queryPlan))
+            if (_queryCache.TryGetValue(originalStatement, out queryPlan))
             {
-                originalRequest.Prepared(queryPlan);
+                originalRequest.Prepared(queryPlan, originalStatement);
             }
             else
             {
                 var result = Prepare(originalRequest);
-                //FIXME throw an exception?
-                if (!result.Success) return;
-                queryPlan = result.Rows.First();
-                queryPlan.Text = originalRequest.GetStatement(); //the plan Text will be used if we reprepare it
-                if (_queryCache.TryAdd(statement, queryPlan))
+                if (!result.Success)
                 {
-                    originalRequest.Prepared(queryPlan);
+                    Log.WarnFormat("Failure to prepare plan for query {0} (it will be reattempted next time it is issued): {1}",
+                        originalStatement, result.GetErrorsAsString());
+                    throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
+                }
+                queryPlan = result.Rows.FirstOrDefault();
+                if (queryPlan != null && _queryCache.TryAdd(originalStatement, queryPlan))
+                {
+                    originalRequest.Prepared(queryPlan, originalStatement);
                 }
             }
         }
@@ -175,24 +288,25 @@ namespace Couchbase.N1QL
         {
             if (originalRequest.IsAdHoc) return;
 
-            var statement = originalRequest.GetStatement();
-            if (statement == null) {
-                statement = originalRequest.GetPreparedPayload().Text;
-            }
+            var originalStatement = originalRequest.GetOriginalStatement();
             QueryPlan queryPlan;
-            if (_queryCache.TryGetValue(statement, out queryPlan))
+            if (_queryCache.TryGetValue(originalStatement, out queryPlan))
             {
-                originalRequest.Prepared(queryPlan);
+                originalRequest.Prepared(queryPlan, originalStatement);
             }
             else
             {
                 var result = await PrepareAsync(originalRequest);
-                if (!result.Success) return; //FIXME propagate the error somehow
-                queryPlan = result.Rows.First();
-                queryPlan.Text = originalRequest.GetStatement();
-                if (_queryCache.TryAdd(statement, queryPlan))
+                if (!result.Success)
                 {
-                    originalRequest.Prepared(queryPlan);
+                    Log.WarnFormat("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
+                        originalStatement, result.GetErrorsAsString());
+                    throw new PrepareStatementException("Unable to optimize async statement: " + result.GetErrorsAsString());
+                }
+                queryPlan = result.Rows.FirstOrDefault();
+                if (queryPlan != null && _queryCache.TryAdd(originalStatement, queryPlan))
+                {
+                    originalRequest.Prepared(queryPlan, originalStatement);
                 }
             }
         }

@@ -64,9 +64,9 @@ namespace Couchbase.N1QL
             _prepareEncoded = false;
         }
 
-        public QueryRequest(QueryPlan plan)
+        public QueryRequest(QueryPlan plan, string originalStatement)
         {
-            _statement = null;
+            _statement = originalStatement;
             _preparedPayload = plan;
             _prepareEncoded = true;
         }
@@ -114,6 +114,13 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
+        /// Gets a value indicating whether this instance has been retried (if it's been optimized
+        /// and prepared then the server marked it as stale/not runnable).
+        /// </summary>
+        /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
+        public bool HasBeenRetried { get; set; }
+
+        /// <summary>
         /// If set to false, the client will try to perform optimizations
         /// transparently based on the server capabilities, like preparing the statement and
         /// then executing a query plan instead of the raw query.
@@ -131,18 +138,23 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// Prepareds the specified prepared plan.
+        ///  Sets a N1QL statement to be executed in an optimized way using the given queryPlan.
         /// </summary>
-        /// <param name="preparedPlan">The prepared plan.</param>
-        /// <returns></returns>
-        /// <exception cref="System.ArgumentNullException">preparedPlan</exception>
-        public IQueryRequest Prepared(QueryPlan preparedPlan)
+        /// <param name="preparedPlan">The <see cref="QueryPlan"/> that was prepared beforehand.</param>
+        /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+        /// <remarks>Required if statement not provided, will erase a previously set Statement.</remarks>
+        public IQueryRequest Prepared(QueryPlan preparedPlan, string originalStatement)
         {
             if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.EncodedPlan))
             {
                 throw new ArgumentNullException("preparedPlan");
             }
-            _statement = null;
+            if (string.IsNullOrWhiteSpace(originalStatement))
+            {
+                throw new ArgumentNullException("originalStatement");
+            }
+            _statement = originalStatement;
             _preparedPayload = preparedPlan;
             _prepareEncoded = true;
             return this;
@@ -157,7 +169,7 @@ namespace Couchbase.N1QL
         /// </returns>
         /// <exception cref="System.ArgumentNullException">statement</exception>
         /// <remarks>
-        /// If both prepared and statement are present and non-empty, an error is returned.
+        /// Will erase a previous optimization of a statement using Prepared.
         /// </remarks>
         public IQueryRequest Statement(string statement)
         {
@@ -474,11 +486,20 @@ namespace Couchbase.N1QL
             return _baseUri;
         }
 
-        public string GetStatement()
+        /// <summary>
+        /// Gets the raw, unprepared N1QL statement.
+        /// </summary>
+        /// <remarks>If the statement has been optimized using Prepared, this will still
+        /// return the original un-optimized statement.</remarks>
+        public string GetOriginalStatement()
         {
             return _statement;
         }
 
+        /// <summary>
+        /// Gets the prepared payload for this N1QL statement if IsPrepared() is true,
+        /// null otherwise.
+        /// </summary>
         public QueryPlan GetPreparedPayload()
         {
             return _preparedPayload;
@@ -495,7 +516,8 @@ namespace Couchbase.N1QL
         /// (like ints, Lists, etc...) rather than only strings.</remarks>
         public IDictionary<string, object> GetFormValues()
         {
-            if (string.IsNullOrWhiteSpace(_statement) && _preparedPayload == null)
+            if (string.IsNullOrWhiteSpace(_statement) ||
+                (_prepareEncoded && _preparedPayload == null))
             {
                 throw new ArgumentException("A statement or prepared plan must be provided.");
             }
@@ -654,13 +676,14 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// Creates the specified plan.
+        /// Creates a query using the given plan as an optimization for the originalStatement.
         /// </summary>
         /// <param name="plan">The plan.</param>
+        /// <param name="originalStatement">The original statement, unoptimized.</param>
         /// <returns></returns>
-        public static IQueryRequest Create(QueryPlan plan)
+        public static IQueryRequest Create(QueryPlan plan, string originalStatement)
         {
-            return new QueryRequest(plan);
+            return new QueryRequest(plan, originalStatement);
         }
 
         /// <summary>

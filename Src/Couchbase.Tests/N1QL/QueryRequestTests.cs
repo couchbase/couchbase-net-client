@@ -11,6 +11,8 @@ using NUnit.Framework;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Runtime.Remoting.Proxies;
+using NUnit.Framework.Constraints;
+using System.Xml;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -203,6 +205,25 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
+        public void Test_Prepared_Doesnt_Use_Plan_Text_As_Statement()
+        {
+            var request = CreateFullQueryRequest();
+            request.Prepared(new QueryPlan()
+            {
+                Operator = "operator",
+                EncodedPlan = "encoded",
+                Name = "name",
+                Text = "modifiedStatement"
+            }, "originalStatement");
+            var values = request.GetFormValues();
+
+            Assert.AreEqual("originalStatement", request.GetOriginalStatement());
+            Assert.AreEqual("name", values["prepared"]);
+            Assert.AreEqual("encoded", values["encoded_plan"]);
+            Assert.False(request.GetFormValuesAsJson().Contains("modifiedStatement"));
+        }
+
+        [Test]
         public void Test_Using_Prepared_Is_Detected()
         {
             var request = CreateFullQueryRequest();
@@ -210,13 +231,13 @@ namespace Couchbase.Tests.N1QL
             {
                 Operator = "{ \"test\": \"yes\" }",
                 EncodedPlan = "{ \"encoded\": 1 }",
-                Name = "name"
-            });
+                Name = "name",
+                Text = "PREPARE original"
+            }, "original");
 
             var values = request.GetFormValues();
             Assert.AreEqual("{ \"encoded\": 1 }", values["encoded_plan"]);
             Assert.AreEqual("name", values["prepared"]);
-
             try
             {
                 var statement = values["statement"];

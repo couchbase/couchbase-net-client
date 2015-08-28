@@ -10,7 +10,7 @@ namespace Couchbase.N1QL
     public interface IQueryRequest
     {
         /// <summary>
-        /// Returns true if the request is a prepared statement
+        /// Returns true if the request is not ad-hoc and has been optimized using <see cref="Prepared"/>.
         /// </summary>
         bool IsPrepared { get; }
 
@@ -21,6 +21,13 @@ namespace Couchbase.N1QL
         ///   <c>true</c> if this instance is ad-hoc; otherwise, <c>false</c>.
         /// </value>
         bool IsAdHoc { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance has been retried (if it's been optimized
+        /// and prepared then the server marked it as stale/not runnable).
+        /// </summary>
+        /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
+        bool HasBeenRetried { get; set; }
 
         /// <summary>
         ///  If set to false, the client will try to perform optimizations
@@ -43,15 +50,13 @@ namespace Couchbase.N1QL
         IQueryRequest Statement(string statement);
 
         /// <summary>
-        ///  Sets a N1QL statement to be executed.
+        ///  Sets a N1QL statement to be executed in an optimized way using the given queryPlan.
         /// </summary>
         /// <param name="queryPlan">The <see cref="QueryPlan"/> that was prepared beforehand.</param>
+        /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-        /// <remarks>If both prepared and statement are present and non-empty, an error is returned.</remarks>
-        /// <remarks>Required if statement not provided.</remarks>
-        IQueryRequest Prepared(QueryPlan queryPlan);
-
-
+        /// <remarks>Required if statement not provided, will erase a previous call to <see cref="Statement"/>.</remarks>
+        IQueryRequest Prepared(QueryPlan queryPlan, string originalStatement);
 
         /// <summary>
         /// Sets the maximum time to spend on the request.
@@ -217,7 +222,7 @@ namespace Couchbase.N1QL
         /// Gets the raw, unprepared N1QL statement.
         /// </summary>
         /// <returns></returns>
-        string GetStatement();
+        string GetOriginalStatement();
 
         /// <summary>
         /// Gets the prepared payload for this N1QL statement if IsPrepared() is true,
