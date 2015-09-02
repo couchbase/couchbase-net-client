@@ -104,7 +104,7 @@ namespace Couchbase.IO
         {
             lock (_lock)
             {
-                _count = _configuration.MinSize;
+                var count = _configuration.MinSize;
                 do
                 {
                     try
@@ -115,6 +115,7 @@ namespace Couchbase.IO
 
                         _store.Enqueue(connection);
                         _refs.Add(connection);
+                        Interlocked.Increment(ref _count);
                     }
                     catch (Exception e)
                     {
@@ -122,7 +123,7 @@ namespace Couchbase.IO
                         InitializationFailed = true;
                         return;
                     }
-                } while (_store.Count < _count);
+                } while (_store.Count < count);
             }
         }
 
@@ -181,7 +182,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection)
         {
-            Log.Info(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
+            Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
@@ -192,7 +193,7 @@ namespace Couchbase.IO
 
                 if (Owner != null)
                 {
-                    Owner.TakeOffline(connection.IsDead);
+                    Owner.CheckOnline(connection.IsDead);
                 }
             }
             else

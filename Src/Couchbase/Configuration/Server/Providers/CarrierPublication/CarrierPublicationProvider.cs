@@ -45,7 +45,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 foreach (var configInfo in Configs)
                 {
                     var value = configInfo.Value;
-                    foreach (var server in value.Servers.Where(x => !x.IsDead))
+                    foreach (var server in value.Servers.Where(x => !x.IsDown))
                     {
                         try
                         {

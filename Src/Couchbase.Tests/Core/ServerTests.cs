@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
 using Couchbase.Tests.Fakes;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -249,6 +253,120 @@ namespace Couchbase.Tests.Core
             Assert.IsFalse(server.IsDataNode);
             Assert.IsFalse(server.IsViewNode);
         }
+
+        [Test]
+        public void When_IOErrorThreshold_Is_Met_By_IOErrorInterval_IsDead_Returns_True()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = config.GetNodes().First();
+
+            var endPoint = UriExtensions.GetEndPoint(_address);
+            var configuration = new ClientConfiguration
+            {
+                IOErrorThreshold = 10,
+                IOErrorCheckInterval = 100
+            };
+            var connectionPool = new FakeConnectionPool();
+            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
+            var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder());
+
+            Assert.IsFalse(server.IsDown);
+
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            for (int i = 0; i < 11; i++)
+            {
+                server.CheckOnline(true);
+                Console.WriteLine("{0}=>{1}", server.IsDown, server.IOErrorCount);
+                Thread.Sleep(10);
+            }
+            Console.WriteLine(stopWatch.ElapsedMilliseconds);
+            Assert.IsTrue(server.IsDown);
+            Assert.AreEqual(0, server.IOErrorCount);
+        }
+
+        [Test]
+        public void When_IOErrorThreshold_IsNot_Met_Within_IOErrorInterval_IsDead_Returns_False()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = config.GetNodes().First();
+
+            var endPoint = UriExtensions.GetEndPoint(_address);
+            var configuration = new ClientConfiguration
+            {
+                IOErrorThreshold = 10,
+                IOErrorCheckInterval = 10
+            };
+            var connectionPool = new FakeConnectionPool();
+            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
+            var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder());
+
+            Assert.IsFalse(server.IsDown);
+
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            for (int i = 0; i < 11; i++)
+            {
+                server.CheckOnline(true);
+                Console.WriteLine("{0}=>{1}", server.IsDown, server.IOErrorCount);
+            }
+            Console.WriteLine("Time elapsed {0}", stopWatch.ElapsedMilliseconds);
+            stopWatch.Restart();
+
+            Assert.IsFalse(server.IsDown);
+            Assert.AreEqual(0, server.IOErrorCount);
+        }
+
+        [Test]
+        public void When_IOErrorThreshold_IsNot_Met_By_IOErrorInterval_NodeUnavailableException_Is_Thrown()
+        {
+            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = config.GetNodes().First();
+
+            var endPoint = UriExtensions.GetEndPoint(_address);
+            var configuration = new ClientConfiguration
+            {
+                IOErrorThreshold = 10,
+                IOErrorCheckInterval = 100
+            };
+            var connectionPool = new FakeConnectionPool();
+            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
+            var server = new Server(ioStrategy,
+                node,
+                configuration,
+                config,
+                new FakeTranscoder());
+
+            Assert.IsFalse(server.IsDown);
+
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            for (int i = 0; i < 11; i++)
+            {
+                server.CheckOnline(true);
+                Console.WriteLine("{0}=>{1}", server.IsDown, server.IOErrorCount);
+                Thread.Sleep(10);
+            }
+            // ReSharper disable once ThrowingSystemException
+            Assert.Throws<NodeUnavailableException>(() =>
+            {
+                var operation = new FakeOperation(new DefaultTranscoder());
+                server.Send(operation);
+                throw operation.Exception;
+            });
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

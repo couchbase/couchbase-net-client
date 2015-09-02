@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using Common.Logging;
+using Couchbase.Core;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -354,6 +355,45 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (ConnectionPoolElement)this["connectionPool"]; }
             set { this["connectionPool"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the count of IO errors within a specific interval defined by the value of <see cref="IOErrorCheckInterval" />.
+        /// If the threshold is reached within the interval for a particular node, all keys mapped to that node the SDK will fail
+        /// with a <see cref="NodeUnavailableException" /> in the <see cref="IOperationResult.Exception"/> field. The node will be flagged as "dead"
+        /// and will try to reconnect, if connectivity is reached, the node will continue to process requests.
+        /// </summary>
+        /// <value>
+        /// The io error count threshold.
+        /// </value>
+        /// <remarks>
+        /// The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.
+        /// </remarks>
+        /// <remarks>The default is 10 errors.</remarks>
+        /// <remarks>The lower limit is 0; the default will apply if this is exceeded.</remarks>
+        [ConfigurationProperty("ioErrorThreshold", IsRequired = false, DefaultValue = 10u)]
+        public uint IOErrorThreshold
+        {
+            get { return (uint)this["ioErrorThreshold"]; }
+            set { this["ioErrorThreshold"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the interval that the <see cref="IOErrorThreshold"/> will be checked. If the threshold is reached within the interval for a
+        /// particular node, all keys mapped to that node the SDK will fail with a <see cref="NodeUnavailableException" /> in the
+        /// <see cref="IOperationResult.Exception"/> field. The node will be flagged as "dead" and will try to reconnect, if connectivity
+        /// is reached, the node will continue to process requests.
+        /// </summary>
+        /// <value>
+        /// The io error check interval.
+        /// </value>
+        /// <remarks>The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.</remarks>
+        /// <remarks>The default is 500ms; use milliseconds to override this: 1000 = 1 second.</remarks>
+        [ConfigurationProperty("ioErrorCheckInterval", IsRequired = false, DefaultValue = 500u)]
+        public uint IOErrorCheckInterval
+        {
+            get { return (uint)this["ioErrorCheckInterval"]; }
+            set { this["ioErrorCheckInterval"] = value; }
         }
     }
 }

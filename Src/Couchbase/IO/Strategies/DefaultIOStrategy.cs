@@ -103,6 +103,15 @@ namespace Couchbase.IO.Strategies
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
+            catch (RemoteHostTimeoutException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+
+                //this almost always will be a server offline or service down
+                _connectionPool.Owner.MarkDead();
+            }
             catch (Exception e)
             {
                 Log.Debug(e);
@@ -153,6 +162,15 @@ namespace Couchbase.IO.Strategies
                 Log.Debug(e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+            }
+            catch (RemoteHostTimeoutException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+
+                //this almost always will be a server offline or service down
+                _connectionPool.Owner.MarkDead();
             }
             catch (Exception e)
             {

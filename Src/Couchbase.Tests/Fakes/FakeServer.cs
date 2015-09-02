@@ -83,7 +83,7 @@ namespace Couchbase.Tests.Fakes
             get { throw new NotImplementedException(); }
         }
 
-        public void TakeOffline(bool isDown)
+        public void CheckOnline(bool isDead)
         {
             throw new NotImplementedException();
         }

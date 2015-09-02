@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.Remoting;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Common.Logging;
@@ -19,6 +20,7 @@ using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Utils;
 using Couchbase.Views;
+using Timer = System.Timers.Timer;
 
 namespace Couchbase.Core
 {
@@ -33,15 +35,16 @@ namespace Couchbase.Core
         private readonly INodeAdapter _nodeAdapter;
         private readonly ITypeTranscoder _typeTranscoder;
         private readonly IBucketConfig _bucketConfig;
-        private uint _viewPort = 8092;
-        private uint _queryPort = 8093;
         private volatile bool _disposed;
-        private volatile bool _isDead;
         private volatile bool _timingEnabled;
         private volatile bool _isDown;
         private readonly Timer _heartBeatTimer;
         private string _cachedViewUrl;
         private string _cachedQueryUrl;
+        private int _ioErrorCount;
+        // ReSharper disable once InconsistentNaming
+        private DateTime _lastIOErrorCheckedTime;
+        private readonly object _syncObj = new object();
 
         public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
@@ -88,16 +91,18 @@ namespace Couchbase.Core
 
             if (IsDataNode)
             {
+                _lastIOErrorCheckedTime = DateTime.Now;
+                _isDown = _ioStrategy.ConnectionPool.InitializationFailed;
+                Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
+
                 //timer and node status
-                _heartBeatTimer = new Timer(1000)
+                _heartBeatTimer = new Timer(_clientConfiguration.NodeAvailableCheckInterval)
                 {
-                    Enabled = false
+                    Enabled = _isDown
                 };
                 _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
-                TakeOffline(_ioStrategy.ConnectionPool.InitializationFailed);
             }
         }
-
 
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.
@@ -183,18 +188,6 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance is dead.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is dead; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsDead
-        {
-            get { return _isDead; }
-            set { _isDead = value; }
-        }
-
-        /// <summary>
         /// Gets or sets a value indicating whether this instance is down.
         /// </summary>
         /// <value>
@@ -222,9 +215,15 @@ namespace Couchbase.Core
         /// </value>
         public IViewClient ViewClient { get; private set; }
 
-        private async void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
+        // ReSharper disable once InconsistentNaming
+        public int IOErrorCount
         {
-            Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
+            get { return _ioErrorCount; }
+        }
+
+        private void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
+        {
+            Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
             _heartBeatTimer.Stop();
             if (_isDown)
             {
@@ -241,14 +240,20 @@ namespace Couchbase.Core
                     var result = _ioStrategy.Execute(noop);
                     if (result.Success)
                     {
-                        Log.DebugFormat("Successfully connected to {0}", EndPoint);
-                        Log.DebugFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
-                        TakeOffline(false);
+                        Log.InfoFormat("Successfully connected and marking node {0} as up.", EndPoint);
+                        _isDown = false;
+                        _heartBeatTimer.Stop();
+                    }
+                    else
+                    {
+                        Log.InfoFormat("The node {0} is still down: {1}", EndPoint, result.Status);
                     }
                 }
                 catch (Exception e)
                 {
+                    Log.InfoFormat("The node {0} is still down: {1}", EndPoint, e.Message);
                     //the node is down or unreachable
+                    _isDown = true;
                     Log.Debug(e);
                 }
                 finally
@@ -289,17 +294,33 @@ namespace Couchbase.Core
             }
         }
 
-        public void TakeOffline(bool isDown)
+        public void CheckOnline(bool isDead)
         {
-            Log.DebugFormat("Taking node {0} offline: {1}", EndPoint, isDown);
-            _isDown = isDown;
-            if (_isDown && IsDataNode)
+            if (isDead && IsDataNode)
             {
-                _heartBeatTimer.Start();
-            }
-            else
-            {
-               _heartBeatTimer.Stop();
+                lock (_syncObj)
+                {
+                    var current = DateTime.Now;
+                    var last = _lastIOErrorCheckedTime.AddMilliseconds(_clientConfiguration.IOErrorCheckInterval);
+                    Interlocked.Increment(ref _ioErrorCount);
+
+                    Log.InfoFormat("Checking if node {0} should be down - last: {1}, current: {2}, count: {3}",
+                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+
+                    if (_ioErrorCount > _clientConfiguration.IOErrorThreshold)
+                    {
+                        if(last < current)
+                        {
+                            Log.InfoFormat("Marking node {0} as down - last: {1}, current: {2}, count: {3}",
+                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+
+                            _isDown = true;
+                            _heartBeatTimer.Start();
+                        }
+                        Interlocked.Exchange(ref _ioErrorCount, 0);
+                        _lastIOErrorCheckedTime = DateTime.Now;
+                    }
+                }
             }
         }
 
@@ -667,12 +688,13 @@ namespace Couchbase.Core
 
         public void MarkDead()
         {
-            IsDead = true;
+            IsDown = true;
+            _heartBeatTimer.Start();
         }
 
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing Server for {0}", EndPoint));
+            Log.Info(m => m("Disposing Server for {0}", EndPoint));
             Dispose(true);
         }
 

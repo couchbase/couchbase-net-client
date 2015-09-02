@@ -57,8 +57,6 @@ namespace Couchbase.Core
 
         bool IsSecure { get; }
 
-        bool IsDead { get; }
-
         void MarkDead();
 
         bool IsDown { get; }
@@ -71,7 +69,7 @@ namespace Couchbase.Core
 
         IPEndPoint EndPoint { get; }
 
-        void TakeOffline(bool isDown);
+        void CheckOnline(bool isDead);
 
         /// <summary>
         /// Sends a key/value operation that contains no body to it's mapped server asynchronously.

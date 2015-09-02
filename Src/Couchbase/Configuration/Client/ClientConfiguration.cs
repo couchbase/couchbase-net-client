@@ -42,6 +42,8 @@ namespace Couchbase.Configuration.Client
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
         private uint _queryRequestTimeout;
+        private uint _ioErrorCheckInterval;
+        private uint _ioErrorThreshold;
 
         public ClientConfiguration()
         {
@@ -76,6 +78,8 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = 1000;
 
             NodeAvailableCheckInterval = 1000;//ms
+            IOErrorCheckInterval = 500;
+            IOErrorThreshold = 10;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -135,6 +139,8 @@ namespace Couchbase.Configuration.Client
             EnableOperationTiming = section.EnableOperationTiming;
             DefaultOperationLifespan = section.OperationLifespan;
             QueryRequestTimeout = section.QueryRequestTimeout;
+            IOErrorCheckInterval = section.IOErrorCheckInterval;
+            IOErrorThreshold = section.IOErrorThreshold;
 
             //transcoders, converters, and serializers...o mai.
             Serializer = SerializerFactory.GetSerializer(this, section.Serializer);
@@ -277,6 +283,55 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>The default is 1 second.</remarks>
         public uint TcpKeepAliveInterval { get; set; }
+
+        /// <summary>
+        /// Gets or sets the count of IO errors within a specific interval defined by the value of <see cref="IOErrorCheckInterval" />.
+        /// If the threshold is reached within the interval for a particular node, all keys mapped to that node the SDK will fail
+        /// with a <see cref="NodeUnavailableException" /> in the <see cref="IOperationResult.Exception"/> field.. The node will be flagged as "dead"
+        /// and will try to reconnect, if connectivity is reached, the node will continue to process requests.
+        /// </summary>
+        /// <value>
+        /// The io error count threshold.
+        /// </value>
+        /// <remarks>
+        /// The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.
+        /// </remarks>
+        /// <remarks>The default is 10 errors.</remarks>
+        /// <remarks>The lower limit is 0; the default will apply if this is exceeded.</remarks>
+        public uint IOErrorThreshold
+        {
+            get { return _ioErrorThreshold; }
+            set
+            {
+                if (value > -1)
+                {
+                    _ioErrorThreshold = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the interval that the <see cref="IOErrorThreshold"/> will be checked. If the threshold is reached
+        /// within the interval for a particular node, all keys mapped to that node the SDK will fail with a <see cref="NodeUnavailableException" />
+        /// in the <see cref="IOperationResult.Exception"/> field. The node will be flagged as "dead" and will try to reconnect,
+        /// if connectivity is reached, the node will continue to process requests.
+        /// </summary>
+        /// <value>
+        /// The io error check interval.
+        /// </value>
+        /// <remarks>The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.</remarks>
+        /// <remarks>The default is 500ms; use milliseconds to override this: 1000 = 1 second.</remarks>
+        public uint IOErrorCheckInterval
+        {
+            get { return _ioErrorCheckInterval; }
+            set
+            {
+                if (value > -1)
+                {
+                    _ioErrorCheckInterval = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets the transcoder factory.

@@ -204,6 +204,7 @@
     <Compile Include="IO\Operations\SequenceGenerator.cs" />
     <Compile Include="IO\Operations\Touch.cs" />
     <Compile Include="IO\Operations\Unlock.cs" />
+    <Compile Include="IO\RemoteHostTimeoutException.cs" />
     <Compile Include="IO\SocketAsyncState.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />

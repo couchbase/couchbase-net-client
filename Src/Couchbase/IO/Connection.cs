@@ -127,7 +127,7 @@ namespace Couchbase.IO
             {
                 IsDead = true;
                 const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
-                throw new IOException(msg);
+                throw new RemoteHostTimeoutException(msg);
             }
 
             //Check if an IO error occurred
