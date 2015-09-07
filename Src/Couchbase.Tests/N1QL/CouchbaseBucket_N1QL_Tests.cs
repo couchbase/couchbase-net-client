@@ -395,5 +395,24 @@ namespace Couchbase.Tests.N1QL
                 Assert.AreEqual(count, 2);
             }
         }
+
+        [Test]
+        public void When_Amp_And_Dollar_Are_Used_In_Insert_Values_Encoding_Is_Correct() {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var key = "Y-11db7305-6adb-4237-b6d7-fa4a3497d2e9";
+                bucket.Remove(key);
+
+                var query = "INSERT INTO `default` (KEY, VALUE) VALUES (\"" + key + "\", " +
+                    "{ \"0\": \"Y\", \"1\": \"&AB\", \"v\": \"$C(38)_AB\" })";
+
+                var request = QueryRequest.Create(query);
+                request.ScanConsistency(ScanConsistency.RequestPlus);
+                var queryResult = bucket.Query<dynamic>(request);
+
+                Assert.IsTrue(queryResult.Success, queryResult.GetErrorsAsString());
+                Assert.AreEqual(1, queryResult.Metrics.MutationCount);
+            }
+        }
     }
 }
