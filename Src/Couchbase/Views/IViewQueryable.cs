@@ -36,6 +36,6 @@ namespace Couchbase.Views
         /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
         /// <returns>An <see cref="IViewQueryable"/> object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-        IViewQueryable BaseUri(string uri);
+        IViewQueryable BaseUri(Uri uri);
     }
 }

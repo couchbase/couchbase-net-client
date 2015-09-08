@@ -105,7 +105,10 @@ namespace Couchbase.Views
                 if (e.Response != null)
                 {
                     var stream = e.Response.GetResponseStream();
-                    viewResult = Mapper.Map<ViewResult<T>>(stream);
+                    if (stream != null && stream.Length > 0)
+                    {
+                        viewResult = Mapper.Map<ViewResult<T>>(stream);
+                    }
                 }
                 viewResult.Exception = e;
                 viewResult.StatusCode = GetStatusCode(e.Message);

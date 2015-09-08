@@ -65,11 +65,11 @@ namespace Couchbase.Tests.Views
         public void When_BaseUri_Returns_BucketName_And_UUID_Bucket_Property_IsIgnored()
         {
             const string expected = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093/_design/beer/_view/brewery_beers?";
-            const string baseUriWithUuid = "http://192.168.56.102:8092/beer-sample%2B179b38da638e51deee5bcf5be82d2093";
+            const string baseUriWithUuid = "http://192.168.56.102:8092/";
 
             var actual = new ViewQuery(baseUriWithUuid).
                 From("beer", "brewery_beers").
-                Bucket("beer-sample");
+                Bucket("beer-sample%2B179b38da638e51deee5bcf5be82d2093");
 
             Assert.AreEqual(new Uri(expected), actual.RawUri());
         }

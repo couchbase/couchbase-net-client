@@ -252,6 +252,7 @@
     <Compile Include="Utils\QueryResultExtensions.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
+    <Compile Include="Utils\UrlUtil.cs" />
     <Compile Include="Views\ISpatialViewQuery.cs" />
     <Compile Include="Views\IViewQueryable.cs" />
     <Compile Include="Views\IViewResult%27.cs" />

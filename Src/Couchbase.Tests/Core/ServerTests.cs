@@ -83,7 +83,7 @@ namespace Couchbase.Tests.Core
                 config,
                 new FakeTranscoder()))
             {
-                var uri = server.GetBaseViewUri("default");
+                var uri = server.CachedViewBaseUri;
                 Assert.AreEqual("https://192.168.109.104:18092/default", uri);
             }
         }
@@ -114,7 +114,7 @@ namespace Couchbase.Tests.Core
                 config,
                 new FakeTranscoder()))
             {
-                var uri = server.GetBaseViewUri("beer-sample");
+                var uri = server.CachedViewBaseUri;
                 Assert.AreEqual(uri, "https://192.168.109.104:18092/beer-sample");
             }
         }
@@ -145,7 +145,7 @@ namespace Couchbase.Tests.Core
                 config,
                 new FakeTranscoder()))
             {
-                var uri = server.GetBaseViewUri("beer-sample");
+                var uri = server.CachedViewBaseUri;
                 Assert.AreEqual(uri, "http://192.168.109.104:8092/beer-sample");
             }
         }
@@ -174,7 +174,7 @@ namespace Couchbase.Tests.Core
                 config,
                 new FakeTranscoder()))
             {
-                var uri = server.GetBaseViewUri("default");
+                var uri = server.CachedViewBaseUri;
                 Assert.AreEqual(uri, "http://192.168.109.104:8092/default");
             }
         }

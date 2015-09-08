@@ -52,6 +52,11 @@ namespace Couchbase.Configuration.Server.Serialization
         public int IndexStreamMaint { get; set; }
 
         [JsonProperty("n1ql")]
+        // ReSharper disable once InconsistentNaming
         public int N1QL { get; set; }
+
+        [JsonProperty("n1qlSSL")]
+        // ReSharper disable once InconsistentNaming
+        public int N1QLSsl { get; set; }
     }
 }

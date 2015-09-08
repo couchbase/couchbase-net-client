@@ -19,9 +19,15 @@ namespace Couchbase.Tests.Views
     [TestFixture]
     public class ViewClientTests
     {
+        private readonly string _server = ConfigurationManager.AppSettings["serverIp"];
+
+        private Uri _baseUri;
+
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
+            _baseUri = new Uri(string.Format("http://{0}:8092/", _server));
+
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("beer-sample"))
@@ -46,10 +52,11 @@ namespace Couchbase.Tests.Views
         public void When_Row_Is_Dynamic_Query_By_Key_Succeeds()
         {
             var query = new ViewQuery().
-             From("beer_ext", "all_beers").
-             Bucket("beer-sample").
-             Limit(1).
-             Development(false);;
+                From("beer_ext", "all_beers").
+                Bucket("beer-sample").
+                Limit(1).
+                Development(false).
+                BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -59,8 +66,10 @@ namespace Couchbase.Tests.Views
             var result = client.Execute<Beer>(query);
 
             var query2 = new ViewQuery().
-             From("beer_ext", "all_beers").
-             Bucket("beer-sample").Key(result.Rows.First().Id);
+                From("beer_ext", "all_beers").
+                Bucket("beer-sample").
+                Key(result.Rows.First().Id).
+                BaseUri(_baseUri);
 
             var result2 = client.Execute<Beer>(query2);
             Assert.AreEqual(result.Rows.First().Id, result2.Rows.First().Id);
@@ -73,7 +82,8 @@ namespace Couchbase.Tests.Views
               From("beer_ext", "all_beers").
               Bucket("beer-sample").
               Limit(10).
-              Development(false);
+              Development(false).
+              BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -97,7 +107,8 @@ namespace Couchbase.Tests.Views
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
-                Limit(10);
+                Limit(10).
+                BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -118,7 +129,8 @@ namespace Couchbase.Tests.Views
         {
             var query = new ViewQuery().
                 From("beer", "view_that_does_not_exist").
-                Bucket("beer-sample");
+                Bucket("beer-sample").
+                BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -140,7 +152,8 @@ namespace Couchbase.Tests.Views
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
-                Group(true);
+                Group(true).
+                BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -162,7 +175,7 @@ namespace Couchbase.Tests.Views
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
-                BaseUri("http://192.168.56.105:8092/");
+                BaseUri(new Uri("http://192.168.56.105:8092/"));
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -182,7 +195,7 @@ namespace Couchbase.Tests.Views
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
-                BaseUri("http://192.168.62.200:8092/");
+                BaseUri(new Uri("http://192.168.62.200:8092/"));
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -201,7 +214,8 @@ namespace Couchbase.Tests.Views
         {
             var query = new ViewQuery().
                 From("docs", "all_docs").
-                Bucket("default");
+                Bucket("default").
+                BaseUri(_baseUri);
 
             var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(new ClientConfiguration()),
@@ -221,12 +235,15 @@ namespace Couchbase.Tests.Views
         [Test]
         public void Test_Geo_Spatial_View()
         {
+            var uriString = ClientConfigUtil.GetConfiguration().Servers.First().ToString();
+            uriString = uriString.Replace("8091", "8092");
+
             var query = new SpatialViewQuery().From("spatial", "routes")
-                .BaseUri(ClientConfigUtil.GetConfiguration().Servers.First().ToString())
                 .Bucket("travel-sample")
                 .Stale(StaleState.False)
                 .Limit(10)
-                .Skip(0);
+                .Skip(0)
+                .BaseUri(new Uri(uriString));
 
              var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(ClientConfigUtil.GetConfiguration()),
@@ -235,7 +252,6 @@ namespace Couchbase.Tests.Views
 
             var results = client.Execute<dynamic>(query);
             Assert.IsTrue(results.Success, results.Error);
-
         }
     }
 }

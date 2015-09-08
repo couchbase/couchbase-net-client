@@ -25,7 +25,10 @@ namespace Couchbase.Core
         int IndexStreamInit { get; set; }
         int IndexStreamCatchup { get; set; }
         int IndexStreamMaint { get; set; }
+        // ReSharper disable once InconsistentNaming
         int N1QL { get; set; }
+        // ReSharper disable once InconsistentNaming
+        int N1QLSsl { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IPEndPoint"/> for the KV port for this node.

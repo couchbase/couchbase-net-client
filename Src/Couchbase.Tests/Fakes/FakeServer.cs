@@ -163,5 +163,16 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+
+        public Uri CachedViewBaseUri
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public Uri CachedQueryBaseUri
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

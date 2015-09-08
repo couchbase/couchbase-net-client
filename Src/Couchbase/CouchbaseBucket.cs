@@ -303,7 +303,7 @@ namespace Couchbase
         public IViewQuery CreateQuery(string designDoc, string view)
         {
             CheckDisposed();
-            return new ViewQuery(Name, null, designDoc, view)
+            return new ViewQuery(Name, designDoc, view)
             {
                 UseSsl = _configInfo.SslConfigured
             };
@@ -319,7 +319,7 @@ namespace Couchbase
         public IViewQuery CreateQuery(string designdoc, string viewname, bool development)
         {
             CheckDisposed();
-            return new ViewQuery(Name, null, designdoc, viewname)
+            return new ViewQuery(Name, designdoc, viewname)
             {
                 UseSsl = _configInfo.SslConfigured
             }

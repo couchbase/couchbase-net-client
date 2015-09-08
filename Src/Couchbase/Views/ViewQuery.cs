@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.ServiceModel.Configuration;
 using System.Text;
 using Common.Logging;
 using Couchbase.Core;
@@ -13,6 +14,7 @@ namespace Couchbase.Views
     /// </summary>
     public class ViewQuery : IViewQuery
     {
+        private const string UriFormat = "{0}://{1}:{2}/{3}";
         private readonly static ILog Log = LogManager.GetLogger<ViewQuery>();
         public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";
@@ -21,13 +23,14 @@ namespace Couchbase.Views
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         const string QueryArgPattern = "{0}={1}&";
-        private const string DefaultHost = "{0}://localhost:{1}/";
+        private const string DefaultHost = "http://localhost:8092/";
+        private const string DefaultSslHost = "https://localhost:18092/";
         private const uint DefaultPort = 8092;
         private const uint DefaultSslPort = 18092;
         private const string Http = "http";
         private const string Https = "https";
 
-        private string _baseUri;
+        private Uri _baseUri;
         private string _bucketName;
         private string _designDoc;
         private string _viewName;
@@ -84,17 +87,13 @@ namespace Couchbase.Views
         public ViewQuery(string bucketName, string baseUri)
             : this(bucketName, baseUri, null)
         {
+                _baseUri = new Uri(baseUri);
         }
 
-        public ViewQuery(string bucketName, string baseUri, string designDoc)
-            : this(bucketName, baseUri, designDoc, null)
+        public ViewQuery(string bucketName, string designDoc, string viewName)
         {
-        }
-
-        public ViewQuery(string bucketName, string baseUri, string designDoc, string viewName)
-        {
+            _baseUri = new Uri(DefaultHost);
             _bucketName = bucketName;
-            _baseUri = baseUri ?? DefaultHost;
             _designDoc = designDoc;
             _viewName = viewName;
         }
@@ -397,7 +396,7 @@ namespace Couchbase.Views
         /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-       IViewQueryable IViewQueryable.BaseUri(string uri)
+        IViewQueryable IViewQueryable.BaseUri(Uri uri)
         {
             _baseUri = uri;
             return this;
@@ -439,111 +438,113 @@ namespace Couchbase.Views
         /// <returns></returns>
         public Uri RawUri()
         {
-            var sb = new StringBuilder();
-
-            var baseUri = string.Format(_baseUri,
-                UseSsl ? Https : Http,
-                UseSsl ? DefaultSslPort : DefaultPort);
-
-            sb.Append(baseUri);
-
-            if (!baseUri.EndsWith(ForwardSlash))
+            if (_baseUri == null)
             {
-                sb.Append(ForwardSlash);
+                var protocol = UseSsl ? Https : Http;
+                var port = UseSsl ? DefaultSslPort : DefaultPort;
+                _baseUri = new Uri(string.Format(UriFormat, protocol, DefaultHost, port, BucketName));
             }
 
-            if (!string.IsNullOrWhiteSpace(_bucketName) && !baseUri.Contains(_bucketName))
-            {
-                sb.Append(_bucketName);
-                sb.Append(ForwardSlash);
-            }
-            sb.Append(Design);
-            sb.Append(ForwardSlash);
+            return new Uri(_baseUri, GetRelativeUri() + GetQueryParams());
+        }
+
+        public string GetRelativeUri()
+        {
+            var relativeUri = new StringBuilder();
+            relativeUri.Append(ForwardSlash);
+            relativeUri.Append(BucketName);
+            relativeUri.Append(ForwardSlash);
+            relativeUri.Append(Design);
+            relativeUri.Append(ForwardSlash);
 
             if (_development.HasValue && _development.Value)
             {
-                sb.Append(DevelopmentViewPrefix);
+                relativeUri.Append(DevelopmentViewPrefix);
             }
 
-            sb.Append(_designDoc);
-            sb.Append(ForwardSlash);
-            sb.Append(ViewMethod);
-            sb.Append(ForwardSlash);
-            sb.Append(_viewName);
-            sb.Append(QueryOperator);
+            relativeUri.Append(_designDoc);
+            relativeUri.Append(ForwardSlash);
+            relativeUri.Append(ViewMethod);
+            relativeUri.Append(ForwardSlash);
+            relativeUri.Append(_viewName);
+            relativeUri.Append(QueryOperator);
 
+            return relativeUri.ToString();
+        }
+
+        public string GetQueryParams()
+        {
+            var queryParams = new StringBuilder();
             if (_staleState != StaleState.None)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Stale, _staleState.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Stale, _staleState.ToLowerString());
             }
             if (_descending.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Descending, _descending.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Descending, _descending.ToLowerString());
             }
             if (_continueOnError.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.OnError, _continueOnError.Value ? "continue" : "stop");
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.OnError, _continueOnError.Value ? "continue" : "stop");
             }
             if (_endDocId != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.EndKeyDocId, _endDocId);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.EndKeyDocId, _endDocId);
             }
             if (_endKey != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.EndKey, _endKey);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.EndKey, _endKey);
             }
             if (_fullSet.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.FullSet, _fullSet.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.FullSet, _fullSet.ToLowerString());
             }
             if (_group.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Group, _group.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Group, _group.ToLowerString());
             }
             if (_groupLevel.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.GroupLevel, _groupLevel);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.GroupLevel, _groupLevel);
             }
             if (_inclusiveEnd.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.InclusiveEnd, _inclusiveEnd.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.InclusiveEnd, _inclusiveEnd.ToLowerString());
             }
             if (_key != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Key, _key);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Key, _key);
             }
             if (_keys != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Keys, _keys);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Keys, _keys);
             }
             if (_limit.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Limit, _limit);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Limit, _limit);
             }
             if (_reduce.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Reduce, _reduce.ToLowerString());
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Reduce, _reduce.ToLowerString());
             }
             if (_startKey != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.StartKey, _startKey);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.StartKey, _startKey);
             }
             if (_startKeyDocId != null)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.StartKeyDocId, _startKeyDocId);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.StartKeyDocId, _startKeyDocId);
             }
             if (_skipCount.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.Skip, _skipCount);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Skip, _skipCount);
             }
             if (_connectionTimeout.HasValue)
             {
-                sb.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
             }
 
-            var requestUri = sb.ToString().TrimEnd('&');
-            Log.Debug(m=>m(requestUri));
-            return new Uri(requestUri);
+           return queryParams.ToString().TrimEnd('&');
         }
 
         /// <summary>

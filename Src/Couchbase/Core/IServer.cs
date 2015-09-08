@@ -140,10 +140,6 @@ namespace Couchbase.Core
 
         IQueryResult<QueryPlan> Prepare(string statementToPrepare);
 
-        string GetBaseViewUri(string name);
-
-        string GetBaseQueryUri();
-
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
@@ -151,6 +147,9 @@ namespace Couchbase.Core
         /// The sasl factory.
         /// </value>
         Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+
+        Uri CachedViewBaseUri { get; }
+        Uri CachedQueryBaseUri { get; }
 
         /// <summary>
         /// Creates the sasl mechanism using the <see cref="SaslFactory"/> provided if it is null.

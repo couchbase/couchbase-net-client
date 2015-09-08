@@ -31,6 +31,7 @@ namespace Couchbase.Core
     {
         private static readonly ILog Log = LogManager.GetLogger<Server>();
         private readonly ClientConfiguration _clientConfiguration;
+        private readonly BucketConfiguration _bucketConfiguration;
         private readonly IOStrategy _ioStrategy;
         private readonly INodeAdapter _nodeAdapter;
         private readonly ITypeTranscoder _typeTranscoder;
@@ -39,8 +40,6 @@ namespace Couchbase.Core
         private volatile bool _timingEnabled;
         private volatile bool _isDown;
         private readonly Timer _heartBeatTimer;
-        private string _cachedViewUrl;
-        private string _cachedQueryUrl;
         private int _ioErrorCount;
         // ReSharper disable once InconsistentNaming
         private DateTime _lastIOErrorCheckedTime;
@@ -74,6 +73,7 @@ namespace Couchbase.Core
             }
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
+            _bucketConfiguration = clientConfiguration.BucketConfigs[bucketConfig.Name];
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
             _typeTranscoder = transcoder;
             _bucketConfig = bucketConfig;
@@ -89,6 +89,9 @@ namespace Couchbase.Core
             ViewClient = viewClient;
             QueryClient = queryClient;
 
+            CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
+            CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
+
             if (IsDataNode)
             {
                 _lastIOErrorCheckedTime = DateTime.Now;
@@ -103,6 +106,16 @@ namespace Couchbase.Core
                 _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
             }
         }
+
+        /// <summary>
+        /// The base <see cref="Uri"/> for building a View query request.
+        /// </summary>
+        public Uri CachedViewBaseUri { get; private set; }
+
+        /// <summary>
+        /// The base <see cref="Uri"/> for building a N1QL query request.
+        /// </summary>
+        public Uri CachedQueryBaseUri { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.
@@ -491,8 +504,7 @@ namespace Couchbase.Core
             Task<IViewResult<T>> result;
             try
             {
-                var baseUri = GetBaseViewUri(query.BucketName);
-                query.BaseUri(baseUri);
+                query.BaseUri(CachedViewBaseUri);
                 result = ViewClient.ExecuteAsync<T>(query);
             }
             catch (Exception e)
@@ -525,8 +537,7 @@ namespace Couchbase.Core
             IViewResult<T> result;
             try
             {
-                var baseUri = GetBaseViewUri(query.BucketName);
-                query.BaseUri(baseUri);
+                query.BaseUri(CachedViewBaseUri);
                 result = ViewClient.Execute<T>(query);
             }
             catch (Exception e)
@@ -557,11 +568,7 @@ namespace Couchbase.Core
             IQueryResult<T> result;
             try
             {
-                if (queryRequest.GetBaseUri() == null)
-                {
-                    var uri = new Uri(GetBaseQueryUri());
-                    queryRequest.BaseUri(uri);
-                }
+                queryRequest.BaseUri(CachedQueryBaseUri);
                 result = QueryClient.Query<T>(queryRequest);
             }
             catch (Exception e)
@@ -584,11 +591,7 @@ namespace Couchbase.Core
         /// <returns></returns>
         Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
         {
-            if (queryRequest.GetBaseUri() == null)
-            {
-                var uri = new Uri(GetBaseQueryUri());
-                queryRequest.BaseUri(uri);
-            }
+            queryRequest.BaseUri(CachedQueryBaseUri);
             return QueryClient.QueryAsync<T>(queryRequest);
         }
 
@@ -597,8 +600,7 @@ namespace Couchbase.Core
             IQueryResult<T> result;
             try
             {
-                var uri = new Uri(GetBaseQueryUri());
-                result = QueryClient.Query<T>(uri, query);
+                result = QueryClient.Query<T>(CachedQueryBaseUri, query);
             }
             catch (Exception e)
             {
@@ -614,15 +616,12 @@ namespace Couchbase.Core
 
         public Task<IQueryResult<T>> SendAsync<T>(string query)
         {
-            var uri = new Uri(GetBaseQueryUri());
-            var task = QueryClient.QueryAsync<T>(uri, query);
-            return task;
+            return QueryClient.QueryAsync<T>(CachedQueryBaseUri, query);
         }
 
         public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
-            var uri = new Uri(GetBaseQueryUri());
-            toPrepare.BaseUri(uri);
+            toPrepare.BaseUri(CachedQueryBaseUri);
             return QueryClient.Prepare(toPrepare);
         }
 
@@ -632,64 +631,13 @@ namespace Couchbase.Core
             return Prepare(query);
         }
 
-        public string GetBaseViewUri(string bucketName)
-        {
-            if (string.IsNullOrWhiteSpace(_cachedQueryUrl))
-            {
-                const string uriPattern = @"{0}://{1}:{2}/{3}";
-                var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
-
-                _cachedViewUrl = string.Format(uriPattern,
-                    bucketConfig.UseSsl ? "https" : "http",
-                    _nodeAdapter.Hostname,
-                    bucketConfig.UseSsl ? _nodeAdapter.ViewsSsl : _nodeAdapter.Views,
-                    bucketName);
-            }
-
-            return _cachedViewUrl;
-        }
-
-
-        //TODO refactor to use CouchbaseApiHttps element when stabilized
-        public string GetBaseViewUri2(string bucketName)
-        {
-            var uri = _nodeAdapter.CouchbaseApiBase;
-            var index = uri.LastIndexOf("%", StringComparison.Ordinal);
-            if (index > 0)
-            {
-                uri = uri.Substring(0, index);
-            }
-
-            var bucketConfig = _clientConfiguration.BucketConfigs[bucketName];
-            if (bucketConfig.UseSsl)
-            {
-                var port = _nodeAdapter.ViewsSsl;
-                uri = uri.Replace((_nodeAdapter.Views).
-                    ToString(CultureInfo.InvariantCulture), port.
-                        ToString(CultureInfo.InvariantCulture));
-                uri = uri.Replace("http", "https");
-            }
-
-            return uri.Replace("$HOST", "localhost");
-        }
-
-        //TODO needs SSL support (when N1QL supports SSL)!
-        public string GetBaseQueryUri()
-        {
-            var sb = new StringBuilder();
-            sb.Append("http://");
-            sb.Append(EndPoint.Address);
-            sb.Append(":");
-            sb.Append(_nodeAdapter.N1QL);
-            sb.Append("/query");
-
-            return sb.ToString();
-        }
-
         public void MarkDead()
         {
             IsDown = true;
-            _heartBeatTimer.Start();
+            if (_heartBeatTimer != null)
+            {
+                _heartBeatTimer.Start();
+            }
         }
 
         public void Dispose()
@@ -736,7 +684,6 @@ namespace Couchbase.Core
             Dispose(false);
         }
 #endif
-
     }
 }
 

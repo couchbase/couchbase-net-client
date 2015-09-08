@@ -36,13 +36,18 @@ namespace Couchbase.Tests.Core.Buckets
             var bucket = _cluster.OpenBucket("beer-sample");
 
             var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true).
-                RawUri();
+                Development(true);
+
+
+            //the baseUri is set internally
+            //we don't care if the requests suceeds, just that the protocol and port are correct
+            var request = bucket.Query<dynamic>(query);
+            var rawUri = query.RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected.Port, query.Port);
-            Assert.AreEqual(expected.Scheme, query.Scheme);
-            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
+            Assert.AreEqual(expected.Port, rawUri.Port);
+            Assert.AreEqual(expected.Scheme, rawUri.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, rawUri.PathAndQuery);
         }
 
         [Test]
@@ -51,13 +56,17 @@ namespace Couchbase.Tests.Core.Buckets
             var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true).
-                RawUri();
+                Development(true);
+
+            //the baseUri is set internally
+            //we don't care if the requests suceeds, just that the protocol and port are correct
+            var request = bucket.Query<dynamic>(query);
+            var rawUri = query.RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected.Port, query.Port);
-            Assert.AreEqual(expected.Scheme, query.Scheme);
-            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
+            Assert.AreEqual(expected.Port, rawUri.Port);
+            Assert.AreEqual(expected.Scheme, rawUri.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, rawUri.PathAndQuery);
         }
 
         [Test]
@@ -66,13 +75,17 @@ namespace Couchbase.Tests.Core.Buckets
             var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
             var bucket = _cluster.OpenBucket("beer-sample");
             var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true).
-                RawUri();
+                Development(true);
+
+            //the baseUri is set internally
+            //we don't care if the requests suceeds, just that the protocol and port are correct
+            var request = bucket.Query<dynamic>(query);
+            var rawUri = query.RawUri();
 
             _cluster.CloseBucket(bucket);
-            Assert.AreEqual(expected.Port, query.Port);
-            Assert.AreEqual(expected.Scheme, query.Scheme);
-            Assert.AreEqual(expected.PathAndQuery, query.PathAndQuery);
+            Assert.AreEqual(expected.Port, rawUri.Port);
+            Assert.AreEqual(expected.Scheme, rawUri.Scheme);
+            Assert.AreEqual(expected.PathAndQuery, rawUri.PathAndQuery);
         }
 
         [TestFixtureTearDown]

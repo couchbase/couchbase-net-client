@@ -181,6 +181,7 @@
     <Compile Include="Utils\BufferExtensionTests.cs" />
     <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
     <Compile Include="Utils\UriExtensionTests.cs" />
+    <Compile Include="Utils\UriUtilTests.cs" />
     <Compile Include="VBucketTests.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -262,6 +263,9 @@
     </None>
     <None Include="Data\Configuration\nodesext-cb-beta-4.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Configuration\nodesext-with-json-and-kv.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Data\Configuration\pools.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Core;
 using Couchbase.Utils;
 
 namespace Couchbase.Views
@@ -12,7 +13,7 @@ namespace Couchbase.Views
     public class SpatialViewQuery : ISpatialViewQuery
     {
         //[bucket-name]/_design/[design-doc]/_spatial/[spatial-name]
-        private const string UriFormat = "{0}://{1}:{2}/{3}/_design/{4}/_spatial/{5}?";
+        private const string UriFormat = "{0}://{1}:{2}";
 
         //uri construction
         private Uri _baseUri;
@@ -69,10 +70,9 @@ namespace Couchbase.Views
         /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-        ISpatialViewQuery ISpatialViewQuery.BaseUri(string uri)
+        IViewQueryable IViewQueryable.BaseUri(Uri uri)
         {
-            _baseUri = new Uri(uri);
-            Host = _baseUri.Host;
+            _baseUri = uri;
             return this;
         }
 
@@ -248,18 +248,6 @@ namespace Couchbase.Views
         }
 
         /// <summary>
-        /// Sets the base uri for the query if it's not set in the constructor.
-        /// </summary>
-        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
-        /// <returns>An IViewQuery object for chaining</returns>
-        /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-        IViewQueryable IViewQueryable.BaseUri(string uri)
-        {
-            _baseUri = new Uri(uri);
-            return this;
-        }
-
-        /// <summary>
         /// Gets the port to use if the default port is overridden.
         /// </summary>
         /// <value>
@@ -313,24 +301,24 @@ namespace Couchbase.Views
         /// <returns></returns>
         public Uri RawUri()
         {
-            string host;
+            //for testing...otherwise set internally by the Server class
             if (_baseUri == null)
             {
-                host = string.IsNullOrWhiteSpace(Host) ? DefaultHost : Host;
+                var protocol = UseSsl ? Https : Http;
+                var port = UseSsl ? SslPort : Port;
+                _baseUri = new Uri(string.Format(UriFormat, protocol, DefaultHost, port));
             }
-            else
-            {
-                host = _baseUri.Host;
-            }
-            var protocol = UseSsl ? Https : Http;
-            var port = UseSsl ? SslPort : Port;
+            return new Uri(_baseUri + GetRelativeUri() + GetQueryParams());
+        }
+
+        public string GetRelativeUri()
+        {
+            const string relativeUri = "/{0}/_design/{1}/_spatial/{2}?";
             var view = _viewName;
             var designDoc = _designDoc;
             var bucket = string.IsNullOrWhiteSpace(BucketName) ? DefaultBucket : BucketName;
 
-            var uriString = string.Format(UriFormat, protocol, host, port, bucket, designDoc, view);
-
-            return new Uri(uriString + GetQueryParams());
+            return string.Format(relativeUri, bucket, designDoc, view);
         }
 
         public string GetQueryParams()

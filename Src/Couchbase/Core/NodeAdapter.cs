@@ -66,6 +66,7 @@ namespace Couchbase.Core
                 IndexStreamCatchup = _nodeExt.Services.IndexStreamCatchup;
                 IndexStreamMaint = _nodeExt.Services.IndexStreamMaint;
                 N1QL = _nodeExt.Services.N1QL;
+                N1QLSsl = _nodeExt.Services.N1QLSsl;
             }
         }
 
@@ -104,6 +105,8 @@ namespace Couchbase.Core
         public int IndexStreamMaint { get; set; }
 
         public int N1QL { get; set; }
+
+        public int N1QLSsl { get; set; }
 
 
         /// <summary>

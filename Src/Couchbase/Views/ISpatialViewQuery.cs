@@ -10,15 +10,6 @@ namespace Couchbase.Views
     public interface ISpatialViewQuery : IViewQueryable
     {
         /// <summary>
-        /// Sets the base uri for the query if it's not set in the constructor.
-        /// </summary>
-        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
-        /// <returns>An IViewQuery object for chaining</returns>
-        /// <remarks>Do not call from application level - for internal use only.</remarks>
-        /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
-        ISpatialViewQuery BaseUri(string uri);
-
-        /// <summary>
         /// The start range of the spatial query.
         /// </summary>
         /// <param name="startRange">The start range.</param>
