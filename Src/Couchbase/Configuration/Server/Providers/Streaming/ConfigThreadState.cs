@@ -102,6 +102,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                     bucketConfig.SurrogateHost = GetSurrogateHost(streamingUri);
                                     if (_configChangedDelegate != null)
                                     {
+                                        bucketConfig.Password = _bucketConfig.Password;
                                         _configChangedDelegate(bucketConfig);
                                     }
                                 }
