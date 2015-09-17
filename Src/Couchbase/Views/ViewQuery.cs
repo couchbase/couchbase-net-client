@@ -451,9 +451,14 @@ namespace Couchbase.Views
         public string GetRelativeUri()
         {
             var relativeUri = new StringBuilder();
-            relativeUri.Append(ForwardSlash);
-            relativeUri.Append(BucketName);
-            relativeUri.Append(ForwardSlash);
+            if (!string.IsNullOrWhiteSpace(BucketName) &&
+                string.IsNullOrWhiteSpace(_baseUri.PathAndQuery) || _baseUri.PathAndQuery.Equals("/"))
+            {
+                relativeUri.Append(ForwardSlash);
+                relativeUri.Append(BucketName);
+                relativeUri.Append(ForwardSlash);
+            }
+
             relativeUri.Append(Design);
             relativeUri.Append(ForwardSlash);
 

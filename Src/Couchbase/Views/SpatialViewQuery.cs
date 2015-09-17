@@ -14,6 +14,8 @@ namespace Couchbase.Views
     {
         //[bucket-name]/_design/[design-doc]/_spatial/[spatial-name]
         private const string UriFormat = "{0}://{1}:{2}";
+        const string RelativeUriWithBucket = "{0}/_design/{1}/_spatial/{2}?";
+        const string RelativeUri = "/_design/{0}/_spatial/{1}?";
 
         //uri construction
         private Uri _baseUri;
@@ -313,12 +315,16 @@ namespace Couchbase.Views
 
         public string GetRelativeUri()
         {
-            const string relativeUri = "/{0}/_design/{1}/_spatial/{2}?";
             var view = _viewName;
             var designDoc = _designDoc;
             var bucket = string.IsNullOrWhiteSpace(BucketName) ? DefaultBucket : BucketName;
 
-            return string.Format(relativeUri, bucket, designDoc, view);
+            if (!string.IsNullOrWhiteSpace(BucketName) &&
+                string.IsNullOrWhiteSpace(_baseUri.PathAndQuery) || _baseUri.PathAndQuery.Equals("/"))
+            {
+                return string.Format(RelativeUriWithBucket, bucket, designDoc, view);
+            }
+            return string.Format(RelativeUri, designDoc, view);
         }
 
         public string GetQueryParams()

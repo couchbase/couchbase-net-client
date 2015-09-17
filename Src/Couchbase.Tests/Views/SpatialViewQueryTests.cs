@@ -81,6 +81,30 @@ namespace Couchbase.Tests.Views
             var uri = query.RawUri();
             Assert.AreEqual(queryParams, uri.PathAndQuery);
         }
+
+        [Test]
+        public void When_IBucket_Executes_Query_Uri_Is_Properly_Formed()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket("travel-sample"))
+                {
+                    var query = new SpatialViewQuery().From("spatial", "routes")
+                         .Bucket("travel-sample")
+                         .Stale(StaleState.False)
+                         .ConnectionTimeout(60000)
+                         .Limit(10)
+                         .Skip(0);
+
+                    var result = bucket.Query<dynamic>(query);
+                    var uri = query.RawUri();
+
+                    var expected =
+                        "/travel-sample/_design/spatial/_spatial/routes?stale=false&connection_timeout=60000&limit=10&skip=0";
+                    Assert.AreEqual(expected, uri.PathAndQuery);
+                }
+            }
+        }
     }
 }
 
