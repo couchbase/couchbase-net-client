@@ -276,6 +276,9 @@
     <None Include="Data\Configuration\vbucket-forwardmap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Data\DesignDocs\beers_ext_spatial.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Data\DesignDocs\beers_ext.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

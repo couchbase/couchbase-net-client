@@ -1,4 +1,6 @@
-﻿
+﻿using System;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Couchbase.Tests.Utils;
 using Couchbase.Views;
@@ -9,21 +11,84 @@ namespace Couchbase.Tests
     [TestFixture]
     public class CouchbaseBucketSpatialViewTests
     {
+        [TestFixtureSetUp]
+        public void TestFixtureSetup()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket("beer-sample"))
+                {
+                    var manager = bucket.CreateManager("Administrator", "password");
+
+                    var get = manager.GetDesignDocument("beer_ext_spatial");
+                    if (!get.Success)
+                    {
+                        var designDoc = File.ReadAllText(@"Data\\DesignDocs\\beers_ext_spatial.json");
+                        var inserted = manager.InsertDesignDocument("beer_ext_spatial", designDoc);
+                        if (inserted.Success)
+                        {
+                            Console.WriteLine("Created 'beer_ext_spatial' design doc.");
+                        }
+                    }
+                }
+            }
+        }
+
         [Test]
-        public void Test()
+        public void When_BoundaryBox_Is_Provided_Results_Are_Constrained_By_it()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket("beer-sample"))
+                {
+                    var query = new SpatialViewQuery().From("beer_ext_spatial", "points")
+                         .Stale(StaleState.False)
+                         .StartRange(-10.37109375, 33.578014746143985)
+                         .EndRange(43.76953125, 71.9653876991313)
+                         .ConnectionTimeout(60000)
+                         .Limit(1)
+                         .Skip(0);
+
+                    var result = bucket.Query<dynamic>(query);
+                    Assert.AreEqual(1, result.Rows.Count());
+                }
+            }
+        }
+
+        [Test]
+        public void When_Geometry_Is_Emitted_By_Map_Function_Geometry_Is_Not_Null()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket("beer-sample"))
+                {
+                    var query = new SpatialViewQuery().From("beer_ext_spatial", "points")
+                         .Stale(StaleState.False)
+                         .ConnectionTimeout(60000)
+                         .Limit(1)
+                         .Skip(0);
+
+                    var result = bucket.Query<dynamic>(query);
+                    Assert.IsNotNull(result.Rows.First().Geometry);
+                }
+            }
+        }
+
+        [Test]
+        public void When_Geometry_Is_Not_Emitted_By_Map_Function_Geometry_Is_Null()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var query = new SpatialViewQuery().From("spatial", "routes")
-                         .Bucket("travel-sample")
                          .Stale(StaleState.False)
                          .ConnectionTimeout(60000)
-                         .Limit(10)
+                         .Limit(1)
                          .Skip(0);
 
                     var result = bucket.Query<dynamic>(query);
+                    Assert.IsNull(result.Rows.First().Geometry);
                 }
             }
         }

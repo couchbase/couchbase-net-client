@@ -1,0 +1,1 @@
+﻿{ "spatial": { "points": "function (doc) { if (doc.type == \"brewery\" && doc.geo.lon && doc.geo.lat) {emit({ \"type\": \"Point\", \"coordinates\": [doc.geo.lon, doc.geo.lat]}, null);}}" } }
