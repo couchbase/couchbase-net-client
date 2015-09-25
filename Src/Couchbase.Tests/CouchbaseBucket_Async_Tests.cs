@@ -1049,7 +1049,7 @@ namespace Couchbase.Tests
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds_Async";
             var config = new ClientConfiguration
             {
-                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
+                Servers = new List<Uri> {new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])},
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {

@@ -8,6 +8,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Management;
 using Couchbase.Utils;
@@ -136,7 +137,17 @@ namespace Couchbase
         public IClusterManager CreateManager(string username, string password)
         {
             var serverConfig = new HttpServerConfig(Configuration, username, password);
-            serverConfig.Initialize();
+            try
+            {
+                serverConfig.Initialize();
+            }
+            catch (BootstrapException e)
+            {
+                //if initializing a new cluster, we won't be able to bootstrap
+                //so Initialize will fail; you can still use the REST API methods
+                //that do not depend upon the API exposed by the config
+                Log.Info(e);
+            }
 
             return new ClusterManager(Configuration,
                 serverConfig,

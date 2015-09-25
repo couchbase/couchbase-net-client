@@ -26,11 +26,19 @@ namespace Couchbase.Management
     /// </summary>
     public class ClusterManager : IClusterManager
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILog Log = LogManager.GetLogger<ClusterManager>();
         private readonly ClientConfiguration _clientConfig;
         private readonly IServerConfig _serverConfig;
         private readonly string _username;
         private readonly string _password;
+        const string Localhost = "127.0.0.1";
+
+        static readonly List<CouchbaseService> Services = new List<CouchbaseService>
+        {
+            CouchbaseService.Index,
+            CouchbaseService.KV,
+            CouchbaseService.N1QL
+        };
 
         internal ClusterManager(ClientConfiguration clientConfig, IServerConfig serverConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
         {
@@ -64,8 +72,12 @@ namespace Couchbase.Management
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
 
-
-                var formData = new Dictionary<string, object> { { "hostname", ipAddress }, { "user", _username }, { "password", _password } };
+                var formData = new Dictionary<string, object>
+                {
+                    { "hostname", ipAddress },
+                    { "user", _username },
+                    { "password", _password }
+                };
                 var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
                 request.ContentLength = bytes.Length;
 
@@ -101,12 +113,7 @@ namespace Couchbase.Management
             return result;
         }
 
-        /// <summary>
-        /// Adds a node to the cluster.
-        /// </summary>
-        /// <param name="ipAddress">The IPAddress of the node.</param>
-        /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> AddNodeAsync(string ipAddress)
+        public async Task<IResult> AddNodeAsync(string ipAddress, params CouchbaseService[] services)
         {
             IResult result;
             try
@@ -128,12 +135,17 @@ namespace Couchbase.Management
                         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        var formValues = new Dictionary<string, string>
                         {
                             {"hostname", ipAddress},
                             {"user", _username},
                             {"password", _password}
-                        });
+                        };
+                        if (services != null && services.Any())
+                        {
+                            formValues.Add("services", ToArray(services));
+                        }
+                        request.Content = new FormUrlEncodedContent(formValues);
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
@@ -156,6 +168,17 @@ namespace Couchbase.Management
                 result = new DefaultResult(false, e.Message, e);
             }
             return result;
+        }
+
+
+        /// <summary>
+        /// Adds a node to the cluster.
+        /// </summary>
+        /// <param name="ipAddress">The IPAddress of the node.</param>
+        /// <returns>A boolean value indicating the result.</returns>
+        public Task<IResult> AddNodeAsync(string ipAddress)
+        {
+            return AddNodeAsync(ipAddress, null);
         }
 
         /// <summary>
@@ -610,6 +633,19 @@ namespace Couchbase.Management
         /// <summary>
         /// Creates a new bucket on the cluster
         /// </summary>
+        /// <param name="settings">The settings for the bucket.</param>
+        /// <returns></returns>
+        public Task<IResult> CreateBucketAsync(BucketSettings settings)
+        {
+            return CreateBucketAsync(settings.Name, settings.RamQuota, settings.BucketType, settings.ReplicaNumber,
+                settings.AuthType, settings.IndexReplicas, settings.FlushEnabled, settings.ParallelDbAndViewCompaction,
+                settings.SaslPassword, settings.ThreadNumber);
+        }
+
+
+        /// <summary>
+        /// Creates a new bucket on the cluster
+        /// </summary>
         /// <param name="name">Required parameter. Name for new bucket.</param>
         /// <param name="ramQuota">The RAM quota in megabytes. The default is 100.</param>
         /// <param name="bucketType">Required parameter. Type of bucket to be created. “Memcached” configures as Memcached bucket. “Couchbase” configures as Couchbase bucket</param>
@@ -886,6 +922,366 @@ namespace Couchbase.Management
                 api = string.Concat(api, "/", bucketName);
             }
             return new Uri(string.Format(api));
+        }
+
+        // ReSharper disable once InconsistentNaming
+        Uri GetAPIUri(string hostName, string uriFormat)
+        {
+            var protocol = _clientConfig.UseSsl ? "https" : "http";
+            var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+            return new Uri(string.Format(uriFormat, protocol, hostName, port));
+        }
+
+        static string ToArray(IList<CouchbaseService> services)
+        {
+            var type = typeof (CouchbaseService);
+            var sb = new StringBuilder(services.Count());
+            for (int i = 0; i < services.Count(); i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(",");
+                }
+                // ReSharper disable once PossibleNullReferenceException
+                sb.Append(Enum.GetName(type, services[i]).ToLower());
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Initializes the entry point (EP) node of the cluster; similar to using the Management Console to setup a cluster.
+        /// </summary>
+        /// <param name="hostName"></param>
+        /// <param name="path">The path to the data file.</param>
+        /// <param name="indexPath">The index path to data file.</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the operation.
+        /// </returns>
+        /// <remarks>
+        /// See: <a href="http://docs.couchbase.com/admin/admin/Misc/admin-datafiles.html" />
+        /// </remarks>
+        public async Task<IResult> InitializeClusterAsync(string hostName = "127.0.0.1", string path = "/opt/couchbase/var/lib/couchbase/data", string indexPath = "/opt/couchbase/var/lib/couchbase/data")
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/nodes/self/controller/settings";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            {"user", _username},
+                            {"password", _password},
+                            {"path", path},
+                            {"index_path", indexPath},
+                        });
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Renames the name of a node from it's default.
+        /// </summary>
+        /// <param name="hostName">Name of the host.</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the operation.
+        /// </returns>
+        /// <remarks>In most cases this should just be the IP or hostname of node.</remarks>
+        public async Task<IResult> RenameNodeAsync(string hostName = Localhost)
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/node/controller/rename";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            {"user", _username},
+                            {"password", _password},
+                            {"hostname", hostName}
+                        });
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Sets up the services that are available on a given node.
+        /// </summary>
+        /// <param name="hostName">The hostname or IP of the node.</param>
+        /// <param name="services">The services - e.g. query, kv, and/or index</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the operation.
+        /// </returns>
+        public Task<IResult> SetupServicesAsync(string hostName, params CouchbaseService[] services)
+        {
+            return SetupServicesAsync(hostName, new List<CouchbaseService>(services));
+        }
+
+        /// <summary>
+        /// Sets up the services that are available on a given node.
+        /// </summary>
+        /// <param name="hostName">The hostname or IP of the node.</param>
+        /// <param name="services">The services - e.g. query, kv, and/or index</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the operation.
+        /// </returns>
+        public async Task<IResult> SetupServicesAsync(string hostName = Localhost, List<CouchbaseService> services = null)
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/node/controller/setupServices";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                        services = services ?? Services;
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            {"user", _username},
+                            {"password", _password},
+                            {"services", ToArray(services)}
+                        });
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Configures the memory asynchronous.
+        /// </summary>
+        /// <param name="hostName">Name of the host.</param>
+        /// <param name="memoryQuota">The memory quota.</param>
+        /// <param name="indexMemQuota"></param>
+        /// <returns></returns>
+        public async Task<IResult> ConfigureMemoryAsync(string hostName, uint memoryQuota, uint indexMemQuota)
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/pools/default";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            {"indexMemoryQuota", indexMemQuota.ToString()},
+                            {"memoryQuota", memoryQuota.ToString()}
+                        });
+
+                        //indexMemoryQuota=256&memoryQuota=501
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Provisions the administartor account for an EP node.
+        /// </summary>
+        /// <param name="hostName">Name of the host.</param>
+        /// <returns></returns>
+        public async Task<IResult> ConfigureAdminAsync(string hostName)
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/settings/web";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            {"password", _password},
+                            {"username", _username},
+                            {"port", "SAME"}
+                        });
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Adds the sample bucket asynchronous.
+        /// </summary>
+        /// <param name="hostName">Name of the host.</param>
+        /// <param name="sampleBucketName">Name of the sample bucket.</param>
+        /// <returns></returns>
+        public async Task<IResult> AddSampleBucketAsync(string hostName, string sampleBucketName)
+        {
+            IResult result;
+            try
+            {
+                using (var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(_username, _password)
+                })
+                {
+                    using (var client = new HttpClient(handler))
+                    {
+                        const string uriFormat = "{0}://{1}:{2}/sampleBuckets/install";
+                        var uri = GetAPIUri(hostName, uriFormat);
+
+                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                        client.DefaultRequestHeaders.Accept.Add(contentType);
+                        client.DefaultRequestHeaders.Host = uri.Authority;
+
+                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                        request.Content = new StringContent("[\"" + sampleBucketName + "\"]");
+                        request.Content.Headers.ContentType = contentType;
+
+                        var task = client.PostAsync(uri, request.Content);
+
+                        var postResult = await task;
+
+                        result = await GetResult(postResult);
+                    }
+                }
+            }
+            catch (AggregateException e)
+            {
+                Log.Error(e);
+                result = new DefaultResult(false, e.Message, e);
+            }
+            return result;
         }
     }
 }

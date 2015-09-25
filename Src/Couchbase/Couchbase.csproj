@@ -206,6 +206,11 @@
     <Compile Include="IO\Operations\Unlock.cs" />
     <Compile Include="IO\RemoteHostTimeoutException.cs" />
     <Compile Include="IO\SocketAsyncState.cs" />
+    <Compile Include="Management\BucketSettings.cs" />
+    <Compile Include="Management\ClusterProvisioner.cs" />
+    <Compile Include="Management\ClusterSettings.cs" />
+    <Compile Include="Management\CouchbaseService.cs" />
+    <Compile Include="Management\CompositeResult.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />

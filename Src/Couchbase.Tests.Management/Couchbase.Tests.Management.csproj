@@ -68,6 +68,7 @@
   <ItemGroup>
     <Compile Include="BucketManagementTests.cs" />
     <Compile Include="ClusterManagerTests.cs" />
+    <Compile Include="CouchbaseProvisionerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
