@@ -301,7 +301,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IServer GetQueryNode()
         {
-            return QueryNodes.GetRandom();
+            return QueryNodes.Where(x=>!x.IsDown).GetRandom();
         }
 
         /// <summary>
@@ -319,7 +319,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IServer GetViewNode()
         {
-            return ViewNodes.GetRandom();
+            return ViewNodes.Where(x => !x.IsDown).GetRandom();
         }
 
         /// <summary>

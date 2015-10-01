@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Schema;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
@@ -123,6 +124,34 @@ namespace Couchbase.Core.Buckets
                 catch (TaskCanceledException)
                 {
                     return result;
+                }
+            }
+        }
+
+        static async Task<IQueryResult<T>> RetryQueryEveryAsync<T>(Func<IQueryRequest, IConfigInfo, Task<IQueryResult<T>>> execute,
+            IQueryRequest query,
+            IConfigInfo configInfo,
+            CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 10;
+            var attempts = 0;
+            while (true)
+            {
+                IResult result = await execute(query, configInfo).ContinueOnAnyContext();
+                if (result.ShouldRetry() || attempts >= maxAttempts)
+                {
+                    return (IQueryResult<T>)result;
+                }
+                Log.Debug(m => m("trying query again: {0}", 0));
+                var sleepTime = (int)Math.Pow(2, attempts++);
+                var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
+                try
+                {
+                    await task;
+                }
+                catch (TaskCanceledException)
+                {
+                    return (IQueryResult<T>)result;
                 }
             }
         }
@@ -697,6 +726,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="IQueryResult{T}" /> object that is the result of the query.
         /// </returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
             //Is the cluster configured for Data services?
@@ -708,13 +738,16 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
-                var server = ConfigInfo.GetQueryNode();
-                queryResult = server.Send<T>(queryRequest);
+                do
+                {
+                    var server = ConfigInfo.GetQueryNode();
+                    queryResult = server.Send<T>(queryRequest);
+                } while (!queryResult.Success && queryResult.ShouldRetry());
             }
             catch (Exception e)
             {
                 Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
+                const string message = "The query request failed, check Error and Exception fields for details.";
                 queryResult = new QueryResult<T>
                 {
                     Message = message,
@@ -732,25 +765,32 @@ namespace Couchbase.Core.Buckets
         /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
         /// <param name="queryRequest">The <see cref="IQueryRequest"/> object to send to the server.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
         {
-            var tcs = new TaskCompletionSource<IQueryResult<T>>();
-
             //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsQueryCapable) tcs.SetException(
-                new ServiceNotSupportedException("The cluster does not support Query services."));
+            if (!ConfigInfo.IsQueryCapable)
+            {
+                throw new ServiceNotSupportedException("The cluster does not support Query services.");
+            }
 
             IQueryResult<T> queryResult = null;
             try
             {
-                var server = ConfigInfo.GetQueryNode();
-                queryResult = await server.SendAsync<T>(queryRequest).ConfigureAwait(false);
-                tcs.TrySetResult(queryResult);
+                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewHardTimeout))
+                {
+                    queryResult = await RetryQueryEveryAsync(async (e, c) =>
+                    {
+                        var server = c.GetQueryNode();
+                        return await server.SendAsync<T>(queryRequest);
+                    },
+                    queryRequest, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+                }
             }
             catch (Exception e)
             {
                 Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
+                const string message = "The Query request failed, check Error and Exception fields for details.";
                 queryResult = new QueryResult<T>
                 {
                     Message = message,
@@ -758,7 +798,6 @@ namespace Couchbase.Core.Buckets
                     Success = false,
                     Exception = e
                 };
-                tcs.SetResult(queryResult);
             }
             return queryResult;
         }

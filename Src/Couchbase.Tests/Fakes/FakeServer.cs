@@ -154,17 +154,6 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        IQueryResult<QueryPlan> IServer.Prepare(IQueryRequest toPrepare)
-        {
-            throw new NotImplementedException();
-        }
-
-        IQueryResult<QueryPlan> IServer.Prepare(string statementToPrepare)
-        {
-            throw new NotImplementedException();
-        }
-
-
         public Uri CachedViewBaseUri
         {
             get { throw new NotImplementedException(); }

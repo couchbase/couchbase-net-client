@@ -58,10 +58,23 @@ namespace Couchbase.N1QL
         [JsonProperty("metrics")]
         public Metrics Metrics { get; internal set; }
 
-
-        public bool ShouldRetry()
+        bool IResult.ShouldRetry()
         {
-            throw new NotImplementedException();
+            var retry = false;
+            switch (Status)
+            {
+                case QueryStatus.Success:
+                case QueryStatus.Errors:
+                case QueryStatus.Running:
+                case QueryStatus.Completed:
+                case QueryStatus.Stopped:
+                case QueryStatus.Timeout:
+                    break;
+                case QueryStatus.Fatal:
+                    retry = true;
+                    break;
+            }
+            return retry;
         }
     }
 }

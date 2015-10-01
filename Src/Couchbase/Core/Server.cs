@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
@@ -92,10 +93,17 @@ namespace Couchbase.Core
             CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
             CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
 
-            if (IsDataNode)
+            if (IsDataNode || IsQueryNode)
             {
                 _lastIOErrorCheckedTime = DateTime.Now;
-                _isDown = _ioStrategy.ConnectionPool.InitializationFailed;
+
+                //On initialization, data nodes are authenticated, so they can start in a down state.
+                //If the node is down immediately start the timer, otherwise disable it.
+                if (IsDataNode)
+                {
+                    _isDown = _ioStrategy.ConnectionPool.InitializationFailed;
+                }
+
                 Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
 
                 //timer and node status
@@ -234,60 +242,127 @@ namespace Couchbase.Core
             get { return _ioErrorCount; }
         }
 
+        /// <summary>
+        /// Handles the Elapsed event of the _heartBeatTimer control which is enabled
+        /// whenever a node is unresponsive and possible offline. Once it is started,
+        /// the node will be flagged as <see cref="_isDown"/> (which will be true). When the node
+        /// is down, all operations (K/V, view and or query) that are mapped to this node will fail
+        /// with a <see cref="NodeUnavailableException"/> - however, since operations are retried,
+        /// it may be routed to a live node and succeed. The logs will reflect this but the result
+        /// to the user will be a successful execution of a given operation.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="args">The <see cref="System.Timers.ElapsedEventArgs"/> instance containing the event data.</param>
         private void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
         {
             Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
             _heartBeatTimer.Stop();
             if (_isDown)
             {
-                IConnection connection = null;
-                try
+                if (IsDataNode)
                 {
-                    //once we can connect, we need a sasl mechanism for auth
-                    CreateSaslMechanismIfNotExists();
-
-                    //if we have a sasl mechanism, we just try a noop
-                    connection = _ioStrategy.ConnectionPool.Acquire();
-                    var noop = new Noop(new DefaultTranscoder(), 1000);
-
-                    var result = _ioStrategy.Execute(noop);
-                    if (result.Success)
-                    {
-                        Log.InfoFormat("Successfully connected and marking node {0} as up.", EndPoint);
-                        _isDown = false;
-                        _heartBeatTimer.Stop();
-                    }
-                    else
-                    {
-                        Log.InfoFormat("The node {0} is still down: {1}", EndPoint, result.Status);
-                    }
+                    CheckDataNode();
                 }
-                catch (Exception e)
+                else if(IsQueryNode)
                 {
-                    Log.InfoFormat("The node {0} is still down: {1}", EndPoint, e.Message);
-                    //the node is down or unreachable
-                    _isDown = true;
-                    Log.Debug(e);
+                    CheckQueryNode();
                 }
-                finally
+            }
+        }
+
+        /// <summary>
+        /// If the node is strictly a query node, this method will send a simple statement to
+        /// be executed. If it returns successfully, then the node will be marked as not
+        /// <see cref="_isDown">down</see> and put back into rotation.
+        /// </summary>
+        void CheckQueryNode()
+        {
+            try
+            {
+                var query = new QueryRequest("SELECT 'PING!'").BaseUri(CachedQueryBaseUri);
+                var result = QueryClient.Query<dynamic>(query);
+                if (result.Success)
                 {
-                    //will be null if the node is dead
-                    if (connection != null)
+                    Log.InfoFormat("Successfully connected and marking query node {0} as up.", EndPoint);
+                    _isDown = false;
+                    _heartBeatTimer.Stop();
+                }
+                else
+                {
+                    Log.InfoFormat("The query node {0} is still down: {1}", EndPoint, result.Status);
+                }
+
+            }
+            catch (Exception e)
+            {
+
+                Log.InfoFormat("The query node {0} is still down: {1}", EndPoint, e.Message);
+                //the node is down or unreachable
+                _isDown = true;
+                Log.Debug(e);
+            }
+            finally
+            {
+                _heartBeatTimer.Start();
+            }
+        }
+
+        /// <summary>
+        /// If a data only node is flaged as down, this method will be invoked every <see cref="ClientConfiguration.NodeAvailableCheckInterval"/>.
+        /// When invoked, it will attempt to get a connection and perform a NOOP on it.
+        /// If the NOOP succeeds, then the node will be put back into rotation.
+        /// </summary>
+        void CheckDataNode()
+        {
+            IConnection connection = null;
+            try
+            {
+                //once we can connect, we need a sasl mechanism for auth
+                CreateSaslMechanismIfNotExists();
+
+                //if we have a sasl mechanism, we just try a noop
+                connection = _ioStrategy.ConnectionPool.Acquire();
+                var noop = new Noop(new DefaultTranscoder(), 1000);
+
+                var result = _ioStrategy.Execute(noop);
+                if (result.Success)
+                {
+                    Log.InfoFormat("Successfully connected and marking data node {0} as up.", EndPoint);
+                    _isDown = false;
+                    _heartBeatTimer.Stop();
+                }
+                else
+                {
+                    Log.InfoFormat("The data node {0} is still down: {1}", EndPoint, result.Status);
+                }
+            }
+                // ReSharper disable once CatchAllClause
+            catch (Exception e)
+            {
+                // ReSharper disable once HeapView.ObjectAllocation
+                Log.InfoFormat("The data node {0} is still down: {1}", EndPoint, e.Message);
+                //the node is down or unreachable
+                _isDown = true;
+                Log.Debug(e);
+            }
+            finally
+            {
+                //will be null if the node is dead
+                if (connection != null)
+                {
+                    if (_isDown)
                     {
-                        if (_isDown)
+                        if (connection.Socket.Connected)
                         {
-                            if (connection.Socket.Connected)
-                            {
-                                connection.IsDead = false;
-                            }
-                            _heartBeatTimer.Start();
+                            connection.IsDead = false;
                         }
-                        _ioStrategy.ConnectionPool.Release(connection);
-                    }
-                    else
-                    {
                         _heartBeatTimer.Start();
                     }
+                    _ioStrategy.ConnectionPool.Release(connection);
+                }
+                else
+                {
+                    _heartBeatTimer.Start();
                 }
             }
         }
@@ -307,6 +382,12 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// This method checks to see if the node has experianced a number of IO failures which exceed
+        /// the <see cref="ClientConfiguration.IOErrorThreshold"/> value defined in the configuration
+        /// within a specific duration specified by <see cref="ClientConfiguration.IOErrorCheckInterval"/>.
+        /// </summary>
+        /// <param name="isDead">if set to <c>true</c> is dead.</param>
         public void CheckOnline(bool isDead)
         {
             if (isDead && IsDataNode)
@@ -337,6 +418,11 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// If the node is down, handles the return result for a K/V operation.
+        /// </summary>
+        /// <param name="operation">The operation.</param>
+        /// <returns></returns>
         IOperationResult HandleNodeUnavailable(IOperation operation)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
@@ -347,6 +433,12 @@ namespace Couchbase.Core
             return  operation.GetResult();
         }
 
+        /// <summary>
+        /// If the node is down, handles the return result for a K/V operation.
+        /// </summary>
+        /// <typeparam name="T">The message body <see cref="Type"/>.</typeparam>
+        /// <param name="operation">The operation.</param>
+        /// <returns></returns>
         IOperationResult<T> HandleNodeUnavailable<T>(IOperation<T> operation)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
@@ -355,6 +447,25 @@ namespace Couchbase.Core
             operation.Exception = new NodeUnavailableException(msg);
             operation.HandleClientError(msg, ResponseStatus.NodeUnavailable);
             return operation.GetResultWithValue();
+        }
+
+        /// <summary>
+        /// If the node is down, handles the return result for a query operation.
+        /// </summary>
+        /// <typeparam name="T">The message body <see cref="Type"/>.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <returns></returns>
+        IQueryResult<T> HandleNodeUnavailable<T>(IQueryRequest query)
+        {
+            var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
+            return new QueryResult<T>
+            {
+                Exception = new NodeUnavailableException(msg),
+                Success = false,
+                Status = QueryStatus.Fatal
+            };
         }
 
         /// <summary>
@@ -566,19 +677,27 @@ namespace Couchbase.Core
         IQueryResult<T> IServer.Send<T>(IQueryRequest queryRequest)
         {
             IQueryResult<T> result;
-            try
+            if (_isDown)
             {
-                queryRequest.BaseUri(CachedQueryBaseUri);
-                result = QueryClient.Query<T>(queryRequest);
+                result = HandleNodeUnavailable<T>(queryRequest);
             }
-            catch (Exception e)
+            else
             {
-                result = new QueryResult<T>
+                try
                 {
-                    Exception = e,
-                    Message = e.Message,
-                    Success = false,
-                };
+                    queryRequest.BaseUri(CachedQueryBaseUri);
+                    result = QueryClient.Query<T>(queryRequest);
+                }
+                catch (Exception e)
+                {
+                    MarkDead();
+                    result = new QueryResult<T>
+                    {
+                        Exception = e,
+                        Message = e.Message,
+                        Success = false,
+                    };
+                }
             }
             return result;
         }
@@ -589,46 +708,32 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
         /// <param name="queryRequest">A <see cref="IQueryRequest" /> object.</param>
         /// <returns></returns>
-        Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
-        {
-            queryRequest.BaseUri(CachedQueryBaseUri);
-            return QueryClient.QueryAsync<T>(queryRequest);
-        }
-
-        IQueryResult<T> IServer.Send<T>(string query)
+        async Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
         {
             IQueryResult<T> result;
-            try
+            if (_isDown)
             {
-                result = QueryClient.Query<T>(CachedQueryBaseUri, query);
+                result = HandleNodeUnavailable<T>(queryRequest);
             }
-            catch (Exception e)
+            else
             {
-                result = new QueryResult<T>
+                try
                 {
-                    Exception = e,
-                    Message = e.Message,
-                    Success = false,
-                };
+                    queryRequest.BaseUri(CachedQueryBaseUri);
+                    result = await QueryClient.QueryAsync<T>(queryRequest);
+                }
+                catch (Exception e)
+                {
+                    MarkDead();
+                    result = new QueryResult<T>
+                    {
+                        Exception = e,
+                        Message = e.Message,
+                        Success = false
+                    };
+                }
             }
             return result;
-        }
-
-        public Task<IQueryResult<T>> SendAsync<T>(string query)
-        {
-            return QueryClient.QueryAsync<T>(CachedQueryBaseUri, query);
-        }
-
-        public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
-        {
-            toPrepare.BaseUri(CachedQueryBaseUri);
-            return QueryClient.Prepare(toPrepare);
-        }
-
-        public IQueryResult<QueryPlan> Prepare(string statementToPrepare)
-        {
-            IQueryRequest query = new QueryRequest(statementToPrepare);
-            return Prepare(query);
         }
 
         public void MarkDead()

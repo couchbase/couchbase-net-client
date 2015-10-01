@@ -132,14 +132,6 @@ namespace Couchbase.Core
         /// <param name="queryRequest">A <see cref="IQueryRequest"/> object.</param>
         Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest);
 
-        IQueryResult<T> Send<T>(string query);
-
-        Task<IQueryResult<T>> SendAsync<T>(string query);
-
-        IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare);
-
-        IQueryResult<QueryPlan> Prepare(string statementToPrepare);
-
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
