@@ -464,6 +464,7 @@ namespace Couchbase.Configuration.Client
         /// The maximum amount of time that a View will request take before timing out. Note this includes time for retries, etc.
         /// </summary>
         /// <remarks>Default is 30000ms</remarks>
+        [Obsolete("Use ClientConfiguration.ViewRequestTimeout")]
         public int ViewHardTimeout
         {
             get { return _viewHardTimeout; }

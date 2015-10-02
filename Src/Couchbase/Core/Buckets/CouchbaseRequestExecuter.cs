@@ -585,7 +585,7 @@ namespace Couchbase.Core.Buckets
             IViewResult<T> viewResult = null;
             try
             {
-                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewHardTimeout))
+                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
                     var task = RetryViewEveryAsync(async (e, c) =>
                     {
@@ -777,7 +777,7 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
-                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewHardTimeout))
+                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
                     queryResult = await RetryQueryEveryAsync(async (e, c) =>
                     {
