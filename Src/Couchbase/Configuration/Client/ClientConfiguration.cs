@@ -50,7 +50,7 @@ namespace Couchbase.Configuration.Client
             //For operation timing
             Timer = TimingFactory.GetTimer(Log);
 
-            QueryRequestTimeout = 70000;
+            QueryRequestTimeout = 75000;
             UseSsl = false;
             SslPort = 11207;
             ApiPort = 8092;
@@ -241,7 +241,7 @@ namespace Couchbase.Configuration.Client
         /// The query request timeout.
         /// </value>
         /// <remarks>The value must be positive.</remarks>
-        /// <remarks>The default client-side value is 70 seconds.</remarks>
+        /// <remarks>The default client-side value is 75 seconds.</remarks>
         /// <remarks>The default server-side timeout is zero; this is an infinite timeout.</remarks>
         public uint QueryRequestTimeout
         {
