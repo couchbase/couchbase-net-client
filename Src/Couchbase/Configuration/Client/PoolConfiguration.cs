@@ -139,6 +139,7 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>Default is 2500ms</remarks>
         /// <remarks>Operations exceeding this timeout will return the following message: "Timed out"</remarks>
+        [Obsolete("Use ClientConfiguration.DefaultOperationLifespan instead.")]
         public int OperationTimeout { get; set; }
 
         /// <summary>
