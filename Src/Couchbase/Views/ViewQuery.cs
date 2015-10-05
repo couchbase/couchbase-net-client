@@ -14,7 +14,7 @@ namespace Couchbase.Views
     /// </summary>
     public class ViewQuery : IViewQuery
     {
-        private const string UriFormat = "{0}://{1}:{2}/{3}";
+        private const string UriFormat = "{0}://{1}:{2}/{3}/";
         private readonly static ILog Log = LogManager.GetLogger<ViewQuery>();
         public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";

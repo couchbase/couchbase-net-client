@@ -11,7 +11,7 @@ namespace Couchbase.Utils
         public static string Https = "https";
         // ReSharper disable once InconsistentNaming
         public static string N1QLUriFormat = "{0}://{1}:{2}/query";
-        public static string ViewUriFormat = "{0}://{1}:{2}/{3}";
+        public static string ViewUriFormat = "{0}://{1}:{2}/{3}/";
 
         public static Uri GetViewBaseUri(INodeAdapter adapter, BucketConfiguration config)
         {
