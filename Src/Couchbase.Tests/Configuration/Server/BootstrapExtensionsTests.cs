@@ -22,9 +22,9 @@ namespace Couchbase.Tests.Configuration.Server
                     new Pool {Uri = @"/pools/default?uuid=7453ffa825acb58612182ed719eaf9a4"}
                 }
             };
-            var baseUri = new Uri("http://localhost:8091/pools");
+            var baseUri = new Uri("http://127.0.0.1:8091/pools");
             var actual = bootstrap.GetPoolsUri(baseUri);
-            var expected = new Uri(@"http://localhost:8091/pools/default?uuid=7453ffa825acb58612182ed719eaf9a4");
+            var expected = new Uri(@"http://127.0.0.1:8091/pools/default?uuid=7453ffa825acb58612182ed719eaf9a4");
             Assert.AreEqual(expected, actual);
         }
     }

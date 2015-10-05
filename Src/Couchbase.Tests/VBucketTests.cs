@@ -31,7 +31,7 @@ namespace Couchbase.Tests
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
+            var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name=="default");
             _vBucketServerMap = bucketConfig.VBucketServerMap;
 
             _servers = new Dictionary<IPAddress, IServer>();

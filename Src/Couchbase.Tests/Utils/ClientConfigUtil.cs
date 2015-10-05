@@ -13,13 +13,15 @@ namespace Couchbase.Tests.Utils
         /// <returns></returns>
         public static ClientConfiguration GetConfiguration()
         {
-            return new ClientConfiguration
+            var config = new ClientConfiguration
             {
                 Servers = new List<Uri>
                 {
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             };
+            config.Initialize();
+            return config;
         }
     }
 }

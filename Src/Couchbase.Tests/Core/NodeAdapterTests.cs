@@ -28,7 +28,7 @@ namespace Couchbase.Tests.Core
             Assert.AreEqual(18092, nodes[0].ViewsSsl);
             Assert.AreEqual(11210, nodes[0].KeyValue);
             Assert.AreEqual(11207, nodes[0].KeyValueSsl);
-            Assert.AreEqual(IPEndPointExtensions.GetEndPoint(@"localhost:8092"), nodes[0].GetIPEndPoint(8092));
+            Assert.AreEqual(IPEndPointExtensions.GetEndPoint(@"127.0.0.1:8092"), nodes[0].GetIPEndPoint(8092));
         }
 
         [Test]

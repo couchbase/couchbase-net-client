@@ -6,10 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Tests.Utils;
 using Couchbase.Views;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.Core.Buckets
+namespace Couchbase.Tests
 {
     [TestFixture]
     public class CouchbaseBucketViewTests
@@ -20,7 +21,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster("couchbaseClients/couchbase");
+            _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
             _serverIp = ConfigurationManager.AppSettings["serverIp"];
         }
 

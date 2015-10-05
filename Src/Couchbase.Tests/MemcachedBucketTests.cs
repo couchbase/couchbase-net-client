@@ -11,7 +11,7 @@ using Couchbase.IO;
 using Couchbase.Views;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.Core.Buckets
+namespace Couchbase.Tests
 {
     [TestFixture]
     public class MemcachedBucketTests
@@ -108,6 +108,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
+                bucket.Upsert(key, value);
                 var result = bucket.Get<string>(key);
 
                 Assert.IsTrue(result.Success);

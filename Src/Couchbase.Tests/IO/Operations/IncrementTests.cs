@@ -9,6 +9,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Utils;
 using Couchbase.Views;
 using NUnit.Framework;
 
@@ -23,7 +24,7 @@ namespace Couchbase.Tests.IO.Operations
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
-            _cluster = new Cluster();
+            _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
         }
 
         [Test]

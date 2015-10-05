@@ -6,6 +6,7 @@ using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Tests.Fakes;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Client
@@ -13,6 +14,8 @@ namespace Couchbase.Tests.Configuration.Client
     [TestFixture]
     public class ClientConfigurationTests
     {
+        private string _ipAddress = ConfigurationManager.AppSettings["serverIp"];
+
         [Test]
         public void Test_Default()
         {
@@ -270,19 +273,14 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_UseSsl_Is_False_At_Bucket_Level_Ssl_Is_Used()
         {
-            var remoteHost = ConfigurationManager.AppSettings["bootstrapUrl"];
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    {"beer-sample", new BucketConfiguration
+                    "default", new BucketConfiguration
                     {
                         UseSsl = true
-                    }}
-                },
-                 Servers = new List<Uri>
-                {
-                    new Uri(remoteHost)
+                    }
                 }
             };
             var cluster = new Cluster(config);
@@ -451,18 +449,17 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_EnhancedDurability_Is_Enabled_SupportsEnhancedDurability_Is_True()
         {
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
+
             using (var cluster = new Cluster(config))
             {
                 using (var bucket = cluster.OpenBucket())
@@ -475,15 +472,13 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_EnhancedDurability_Is_Not_Enabled_SupportsEnhancedDurability_Is_False()
         {
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = false
-                        }
+                        UseEnhancedDurability = false
                     }
                 }
             };
@@ -499,7 +494,7 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_Default_Configuration_Is_Used_SupportsEnhancedDurability_Is_False()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {

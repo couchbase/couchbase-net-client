@@ -91,7 +91,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_Hostname_Is_Provided_IPAdress_Is_Returned()
         {
-            var hostname = "localhost:8091";
+            var hostname = "127.0.0.1:8091";
             var expected = "127.0.0.1";
             var actual = IPEndPointExtensions.GetEndPoint(hostname);
             Assert.AreEqual(expected, actual.Address.ToString());

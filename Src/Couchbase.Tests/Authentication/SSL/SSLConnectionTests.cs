@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
@@ -25,7 +26,7 @@ namespace Couchbase.Tests.Authentication.SSL
             using (var ns = new NetworkStream(socket))
             {
                 var buffer = Encoding.UTF8.GetBytes("hello world!");
-                using (var ssls = new SslStream(ns))
+                using (var ssls = new SslStream(ns, true, ServerCertificateValidationCallback))
                 {
                     ssls.AuthenticateAsClient(serverIp);
                     Console.WriteLine("Is Encrypted: {0}", ssls.IsEncrypted);
@@ -36,6 +37,11 @@ namespace Couchbase.Tests.Authentication.SSL
                     socket.SendAsync(saea);
                 }
             }
+        }
+
+        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            return true;
         }
 
         void saea_Completed(object sender, SocketAsyncEventArgs e)

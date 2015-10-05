@@ -37,7 +37,6 @@ namespace Couchbase.Tests.Management
 
             var result = await provisioner.ProvisionSampleBucketAsync("beer-sample");
             Assert.IsTrue(result.Success);
-
             result = await provisioner.ProvisionSampleBucketAsync("travel-sample");
             Assert.IsTrue(result.Success);
 
@@ -59,14 +58,14 @@ namespace Couchbase.Tests.Management
                 });
             Assert.IsTrue(result.Success);*/
 
-             /*var results = await provisioner.ProvisionNodesAsync(CouchbaseService.Index,
+           var results = await provisioner.ProvisionNodesAsync(CouchbaseService.Index,
                 CouchbaseService.KV,
                 CouchbaseService.N1QL);
 
             foreach (var res in results.Results)
             {
                 Console.WriteLine(res.Message);
-            }*/
+            }
 
             var result = await provisioner.RebalanceClusterAsync();
             Console.WriteLine(result.Message);

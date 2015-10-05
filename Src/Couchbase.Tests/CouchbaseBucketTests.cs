@@ -13,13 +13,14 @@ using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Documents;
+using Couchbase.Tests.Utils;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using Wintellect;
 
-namespace Couchbase.Tests.Core.Buckets
+namespace Couchbase.Tests
 {
     [TestFixture]
     public class CouchbaseBucketTests
@@ -29,7 +30,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster("couchbaseClients/couchbase");
+            _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
         }
 
         [Test]
@@ -1220,13 +1221,11 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 items.Add("key"+ i, "Value" +i);
             }
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.PoolConfiguration = new PoolConfiguration
             {
-                PoolConfiguration = new PoolConfiguration
-                {
-                    MaxSize = 10,
-                    MinSize = 5
-                }
+                MaxSize = 10,
+                MinSize = 5
             };
             using(var cluster = new Cluster(config))
             using (var bucket = cluster.OpenBucket())
@@ -1360,14 +1359,18 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void When_Key_Does_Not_Exist_ReplicaRead_Returns_KeyNotFound()
         {
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri>
                 {
-                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
-                },
-                EnableConfigHeartBeat = false
+                    "default", new BucketConfiguration
+                    {
+                        UseEnhancedDurability = false
+                    },
+                }
             };
+            config.EnableConfigHeartBeat = false;
+
             using (var cluster = new Cluster(config))
             {
                 using (var bucket = cluster.OpenBucket())
@@ -1405,13 +1408,11 @@ namespace Couchbase.Tests.Core.Buckets
             {
                 items.Add("key" + i, "Value" + i);
             }
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.PoolConfiguration = new PoolConfiguration
             {
-                PoolConfiguration = new PoolConfiguration
-                {
-                    MaxSize = 10,
-                    MinSize = 5
-                }
+                MaxSize = 10,
+                MinSize = 5
             };
 
             using (var cluster = new Cluster(config))
@@ -1690,15 +1691,13 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
@@ -1718,15 +1717,13 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation()
         {
             const string key = "When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = false
-                        }
+                        UseEnhancedDurability = false
                     }
                 }
             };
@@ -1749,18 +1746,17 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
+
             using (var cluster = new Cluster(config))
             {
                 using (var bucket = cluster.OpenBucket())
@@ -1777,27 +1773,25 @@ namespace Couchbase.Tests.Core.Buckets
         /// Note: assumes a single node cluster with no replication.
         /// </summary>
         [Test]
-        public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails()
+        public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Two_Mutation_Fails()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "beer-sample", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
             using (var cluster = new Cluster(config))
             {
-                using (var bucket = cluster.OpenBucket())
+                using (var bucket = cluster.OpenBucket("beer-sample"))
                 {
                     bucket.Remove(key);
-                    var result = bucket.Insert(key, "foo", ReplicateTo.One);
+                    var result = bucket.Insert(key, "foo", ReplicateTo.Two);
                     Assert.IsFalse(result.Success);
                     Assert.AreEqual(Durability.NotSatisfied, result.Durability);
                     Assert.IsInstanceOf(typeof(ReplicaNotConfiguredException), result.Exception);
@@ -1812,16 +1806,13 @@ namespace Couchbase.Tests.Core.Buckets
         public void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };

@@ -19,6 +19,7 @@ using NUnit.Framework;
 using System.IO;
 using System.Threading;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Utils;
 
 namespace Couchbase.Tests
 {
@@ -165,7 +166,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_GetDocumentAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -183,7 +184,7 @@ namespace Couchbase.Tests
         [Test]
         public async void When_Key_Is_Locked_Mutate_Fails()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -200,7 +201,7 @@ namespace Couchbase.Tests
         [Test]
         public async void When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -376,7 +377,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_GetAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -396,7 +397,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_ReplaceAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -416,7 +417,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_RemoveAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -436,7 +437,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_UpsertAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -461,7 +462,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void Test_InsertAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -567,7 +568,7 @@ namespace Couchbase.Tests
         [Category("Couchbase")]
         public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -591,7 +592,7 @@ namespace Couchbase.Tests
         public async void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async()
         {
             const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -613,7 +614,7 @@ namespace Couchbase.Tests
         public async void When_Expiration_Is_2_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -663,7 +664,7 @@ namespace Couchbase.Tests
         public async void Test_AppendAsync_String()
         {
             const string key = "CouchbaseBucket.Test_AppendAsync";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -686,7 +687,7 @@ namespace Couchbase.Tests
         public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
         {
             const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -709,7 +710,7 @@ namespace Couchbase.Tests
         public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
         {
             const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -737,7 +738,7 @@ namespace Couchbase.Tests
         public async void Test_AppendAsync_ByteArray()
         {
             const string key = "CouchbaseBucket.Test_AppendAsync_ByteArray";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -761,7 +762,7 @@ namespace Couchbase.Tests
         public async void Test_PrependAsync()
         {
             const string key = "CouchbaseBucket.Test_PrependAsync";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -783,7 +784,7 @@ namespace Couchbase.Tests
         public async void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
         {
             const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -802,7 +803,7 @@ namespace Couchbase.Tests
         public async void Test_PrependAsync_ByteArray()
         {
             const string key = "CouchbaseBucket.Test_PrependAsync_ByteArray";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -825,7 +826,7 @@ namespace Couchbase.Tests
         public async void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -843,7 +844,7 @@ namespace Couchbase.Tests
         [Test]
         public async void When_Document_Size_Exceeds_Buffer_Length_Upsert_Succeeds()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
@@ -887,16 +888,13 @@ namespace Couchbase.Tests
         public async void When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation()
         {
             const string key = "When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation_Async";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = false
-                        }
+                        UseEnhancedDurability = false
                     }
                 }
             };
@@ -951,15 +949,13 @@ namespace Couchbase.Tests
         public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails_Async";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
@@ -983,16 +979,13 @@ namespace Couchbase.Tests
         public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds_Async";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
@@ -1015,16 +1008,13 @@ namespace Couchbase.Tests
         public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_And_PersistTo_Is_1_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds_Async";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri> { new Uri(ConfigurationManager.AppSettings["bootstrapUrl"]) },
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };
@@ -1047,16 +1037,13 @@ namespace Couchbase.Tests
         public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds_Async";
-            var config = new ClientConfiguration
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
-                Servers = new List<Uri> {new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])},
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
+                    "default", new BucketConfiguration
                     {
-                        "default", new BucketConfiguration
-                        {
-                            UseEnhancedDurability = true
-                        }
+                        UseEnhancedDurability = true
                     }
                 }
             };

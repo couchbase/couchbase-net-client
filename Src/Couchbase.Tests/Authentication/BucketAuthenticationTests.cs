@@ -5,6 +5,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 using System.Collections.Generic;
+using Couchbase.Tests.Utils;
 
 namespace Couchbase.Tests.Authentication
 {
@@ -14,9 +15,8 @@ namespace Couchbase.Tests.Authentication
         [Test]
         public void When_Valid_Credentials_Provided_Bucket_Created_Succesfully()
         {
-            var config = new ClientConfiguration
-            {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
+            var config = ClientConfigUtil.GetConfiguration();
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {
                         "authenticated",
@@ -25,8 +25,7 @@ namespace Couchbase.Tests.Authentication
                             BucketName = "authenticated"
                         }
                     }
-                }
-            };
+                };
 
             var cluster = new Cluster(config);
             var bucket = cluster.OpenBucket("authenticated", "secret");
@@ -44,20 +43,18 @@ namespace Couchbase.Tests.Authentication
         {
             try
             {
-                var config = new ClientConfiguration
+                var config = ClientConfigUtil.GetConfiguration();
+                config.BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    Servers = new List<Uri> { new Uri("http://127.0.0.1:8091") },
-                    BucketConfigs = new Dictionary<string, BucketConfiguration>
                     {
+                        "authenticated",
+                        new BucketConfiguration
                         {
-                            "authenticated",
-                            new BucketConfiguration
-                            {
-                                BucketName = "authenticated"
-                            }
+                            BucketName = "authenticated"
                         }
                     }
                 };
+
                 var cluster = new Cluster(config);
                 var bucket = cluster.OpenBucket("authenticated", "secretw");
                 cluster.CloseBucket(bucket);

@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Utils
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
-            var expected = new Uri("https://192.168.77.102:18092/default");
+            var expected = new Uri("https://192.168.77.102:18092/default/");
             var actual = UrlUtil.GetViewBaseUri(serverConfig.GetNodes().First(x => x.Hostname.Equals("192.168.77.102")), clientConfig);
             Assert.AreEqual(expected, actual);
         }
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.Utils
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
-            var expected = new Uri("http://192.168.77.102:8092/default");
+            var expected = new Uri("http://192.168.77.102:8092/default/");
             var actual = UrlUtil.GetViewBaseUri(serverConfig.GetNodes().First(x => x.Hostname.Equals("192.168.77.102")), clientConfig);
             Assert.AreEqual(expected, actual);
         }

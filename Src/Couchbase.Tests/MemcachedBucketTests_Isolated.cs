@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.Core.Buckets
+namespace Couchbase.Tests
 {
 // ReSharper disable once InconsistentNaming
     [TestFixture]

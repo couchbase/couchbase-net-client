@@ -10,7 +10,7 @@ using Couchbase.N1QL;
 using NUnit.Framework;
 using Couchbase.Utils;
 
-namespace Couchbase.Tests.N1QL
+namespace Couchbase.Tests
 {
     [TestFixture]
     public class CouchbaseBucketN1QlTests
@@ -27,6 +27,18 @@ namespace Couchbase.Tests.N1QL
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             });
+
+            /*using (var bucket = _cluster.OpenBucket())
+            {
+                var indexes = bucket.Query<dynamic>("SELECT * FROM system:indexes WHERE keyspace_id ='`travel-sample`' and name='#primary';");
+
+                foreach (var index in indexes.Rows)
+                {
+
+                }
+                bucket.Query<dynamic>("CREATE PRIMARY INDEX on `travel-sample` USING GSI;");
+                bucket.Query<dynamic>("CREATE PRIMARY INDEX on `beer-sample` USING GSI;");
+            }*/
         }
 
         [TearDown]

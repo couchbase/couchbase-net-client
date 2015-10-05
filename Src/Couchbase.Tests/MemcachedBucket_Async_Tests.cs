@@ -24,6 +24,7 @@ using NUnit.Framework;
 using System.IO;
 using System.Threading;
 using Couchbase.IO.Operations;
+using Couchbase.Tests.Utils;
 
 
 namespace Couchbase.Tests
@@ -261,7 +262,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_GetDocumentAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -281,7 +282,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_GetAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -301,7 +302,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_ReplaceAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -321,7 +322,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_RemoveAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -341,7 +342,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_UpsertAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -366,7 +367,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void Test_InsertAsync()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -414,7 +415,7 @@ namespace Couchbase.Tests
         [Category("Memcached")]
         public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
         {
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -438,7 +439,7 @@ namespace Couchbase.Tests
         public async void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async()
         {
             const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -460,7 +461,7 @@ namespace Couchbase.Tests
         public async void When_Expiration_Is_2_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -482,7 +483,7 @@ namespace Couchbase.Tests
         public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
         {
             const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -534,7 +535,7 @@ namespace Couchbase.Tests
         public async void Test_AppendAsync_String()
         {
             const string key = "MemcachedBucket.Test_AppendAsync";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -557,7 +558,7 @@ namespace Couchbase.Tests
         public async void Test_AppendAsync_ByteArray()
         {
             const string key = "MemcachedBucket.Test_AppendAsync_ByteArray";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -583,7 +584,7 @@ namespace Couchbase.Tests
         public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
         {
             const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -617,7 +618,7 @@ namespace Couchbase.Tests
         public async void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
         {
             const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -639,7 +640,7 @@ namespace Couchbase.Tests
         public async void Test_PrependAsync()
         {
             const string key = "MemcachedBucket.Test_PrependAsync";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -660,7 +661,7 @@ namespace Couchbase.Tests
         public async void Test_PrependAsync_ByteArray()
         {
             const string key = "MemcachedBucket.Test_PrependAsync_ByteArray";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {
@@ -682,7 +683,7 @@ namespace Couchbase.Tests
         public async void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async";
-            using (var cluster = new Cluster())
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket("memcached"))
                 {

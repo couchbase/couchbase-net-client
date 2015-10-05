@@ -10,7 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.Core.Buckets
+namespace Couchbase.Tests
 {
     [TestFixture]
     public class CouchbaseBucketViewSslTests

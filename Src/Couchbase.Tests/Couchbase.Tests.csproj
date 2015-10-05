@@ -94,10 +94,10 @@
     <Compile Include="Core\LifespanTests.cs" />
     <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
     <Compile Include="Utils\ClientConfigUtil.cs" />
-    <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
+    <Compile Include="CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserverTests.cs" />
-    <Compile Include="Core\Buckets\MemcachedBucketTests_Isolated.cs" />
+    <Compile Include="MemcachedBucketTests_Isolated.cs" />
     <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
     <Compile Include="Core\Diagnostics\OperationTimerTests.cs" />
     <Compile Include="Core\Diagnostics\TimerFactoryTests.cs" />
@@ -107,10 +107,10 @@
     <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
-    <Compile Include="Core\Buckets\CouchbaseBucketTests.cs" />
-    <Compile Include="Core\Buckets\CouchbaseBucket_View_Tests.cs" />
+    <Compile Include="CouchbaseBucketTests.cs" />
+    <Compile Include="CouchbaseBucket_View_Tests.cs" />
     <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
-    <Compile Include="Core\Buckets\MemcachedBucketTests.cs" />
+    <Compile Include="MemcachedBucketTests.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
     <Compile Include="Fakes\FakeConverter.cs" />
     <Compile Include="Fakes\FakeSerializer.cs" />
@@ -170,7 +170,7 @@
     <Compile Include="IO\Operations\SetTests.cs" />
     <Compile Include="IO\Operations\TouchOperationTests.cs" />
     <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
-    <Compile Include="N1QL\CouchbaseBucket_N1QL_Tests.cs" />
+    <Compile Include="CouchbaseBucket_N1QL_Tests.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
     <Compile Include="N1QL\QueryRequestTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

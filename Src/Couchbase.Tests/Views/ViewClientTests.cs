@@ -236,10 +236,9 @@ namespace Couchbase.Tests.Views
         public void Test_Geo_Spatial_View()
         {
             var uriString = ClientConfigUtil.GetConfiguration().Servers.First().ToString();
-            uriString = uriString.Replace("8091", "8092");
+            uriString = uriString.Replace("8091", "8092").Replace("pools", "travel-sample/");
 
             var query = new SpatialViewQuery().From("spatial", "routes")
-                .Bucket("travel-sample")
                 .Stale(StaleState.False)
                 .Limit(10)
                 .Skip(0)

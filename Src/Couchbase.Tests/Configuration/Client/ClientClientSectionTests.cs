@@ -12,10 +12,10 @@ namespace Couchbase.Tests.Configuration.Client
     public class ClientClientSectionTests
     {
         [Test]
-        public void When_GetSection_Called_Section_Is_QueryRequestTimeout_Defaults_To_70_Seconds()
+        public void When_GetSection_Called_Section_Is_QueryRequestTimeout_Defaults_To_75_Seconds()
         {
             var section =  (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase");
-            Assert.AreEqual(70000, section.QueryRequestTimeout);
+            Assert.AreEqual(75000, section.QueryRequestTimeout);
         }
 
         [Test]

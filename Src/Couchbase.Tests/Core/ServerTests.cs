@@ -84,7 +84,7 @@ namespace Couchbase.Tests.Core
                 new FakeTranscoder()))
             {
                 var uri = server.CachedViewBaseUri;
-                Assert.AreEqual("https://192.168.109.104:18092/default", uri);
+                Assert.AreEqual("https://192.168.109.104:18092/default/", uri.ToString());
             }
         }
 
@@ -95,7 +95,7 @@ namespace Couchbase.Tests.Core
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = true, Port = 18092}}
+                    {"default", new BucketConfiguration{BucketName = "default", UseSsl = true, Port = 18092}}
                 }
             };
 
@@ -115,7 +115,7 @@ namespace Couchbase.Tests.Core
                 new FakeTranscoder()))
             {
                 var uri = server.CachedViewBaseUri;
-                Assert.AreEqual(uri, "https://192.168.109.104:18092/beer-sample");
+                Assert.AreEqual("https://192.168.109.104:18092/default/", uri.ToString());
             }
         }
 
@@ -126,7 +126,7 @@ namespace Couchbase.Tests.Core
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
-                    {"beer-sample", new BucketConfiguration{BucketName = "beer-sample", UseSsl = false, Port = 18092}}
+                    {"default", new BucketConfiguration{BucketName = "default", UseSsl = false, Port = 18092}}
                 }
             };
 
@@ -146,7 +146,7 @@ namespace Couchbase.Tests.Core
                 new FakeTranscoder()))
             {
                 var uri = server.CachedViewBaseUri;
-                Assert.AreEqual(uri, "http://192.168.109.104:8092/beer-sample");
+                Assert.AreEqual("http://192.168.109.104:8092/default/", uri.ToString());
             }
         }
 
@@ -175,7 +175,7 @@ namespace Couchbase.Tests.Core
                 new FakeTranscoder()))
             {
                 var uri = server.CachedViewBaseUri;
-                Assert.AreEqual(uri, "http://192.168.109.104:8092/default");
+                Assert.AreEqual(uri, "http://192.168.109.104:8092/default/");
             }
         }
 

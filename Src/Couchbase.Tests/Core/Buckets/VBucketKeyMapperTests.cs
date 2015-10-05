@@ -29,7 +29,7 @@ namespace Couchbase.Tests.Core.Buckets
         [TestFixtureSetUp]
         public void SetUp()
         {
-            _bucketConfig = ConfigUtil.ServerConfig.Buckets.First();
+            _bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name =="default");
             _vBucketServerMap = _bucketConfig.VBucketServerMap;
 
             _servers = new Dictionary<IPAddress, IServer>();
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.IsNotNull(vBucket);
         }
 
-        [Test(Description = "Note, will probably only work on localhost")]
+        [Test(Description = "Note, will probably only work on 127.0.0.1")]
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
             const int actual = 389;

@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_GetIPAddress_Called_With_LocalHost_Returns_LoopBackIP()
         {
-            var uri = new Uri("http://localhost:8091/pools");
+            var uri = new Uri("http://127.0.0.1:8091/pools");
             var ipAddress = uri.GetIpAddress();
             Assert.AreEqual("127.0.0.1", ipAddress.ToString());
         }
@@ -38,7 +38,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_GetIPEndpoint_Called_With_LocalHost_Returns_LoopBackIP()
         {
-            var uri = new Uri("http://localhost:8091/pools");
+            var uri = new Uri("http://127.0.0.1:8091/pools");
             var ipEndPoint = uri.GetIPEndPoint(12101);
             Assert.AreEqual("127.0.0.1", ipEndPoint.Address.ToString());
         }

@@ -10,6 +10,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
@@ -23,7 +24,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var configuration = new ClientConfiguration();
+            var configuration = ClientConfigUtil.GetConfiguration();
             _provider = new HttpStreamingProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),

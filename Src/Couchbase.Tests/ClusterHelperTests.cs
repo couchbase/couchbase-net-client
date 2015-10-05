@@ -5,6 +5,7 @@ using System.Security.Authentication;
 using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 using NUnit.Framework.Constraints;
 
@@ -34,7 +35,7 @@ namespace Couchbase.Tests
         [Test]
         public void Test_OpenBucket()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             var cluster = ClusterHelper.Get();
             var bucket = cluster.OpenBucket();
             Assert.AreEqual("default", bucket.Name);
@@ -43,9 +44,7 @@ namespace Couchbase.Tests
         [Test]
         public void Test_GetBucket_Using_HttpStreamingProvider()
         {
-            var clientConfig = new ClientConfiguration();
-
-            ClusterHelper.Initialize(clientConfig);
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             _cluster = ClusterHelper.Get();
 
             const string expected = "default";
@@ -58,8 +57,7 @@ namespace Couchbase.Tests
         [Test]
         public void Test_GetBucket_Using_CarrierPublicationProvider()
         {
-            var config = new ClientConfiguration();
-            ClusterHelper.Initialize(config);
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             _cluster = ClusterHelper.Get();
 
             const string expected = "default";
@@ -73,7 +71,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Initialized_Get_Returns_Instance()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             var cluster = ClusterHelper.Get();
             Assert.IsNotNull(cluster);
             cluster.Dispose();
@@ -82,7 +80,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_OpenBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             _cluster = ClusterHelper.Get();
 
             var bucket1 = _cluster.OpenBucket("default");
@@ -94,7 +92,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_GetBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
 
             var bucket1 = ClusterHelper.GetBucket("default");
             var bucket2 = ClusterHelper.GetBucket("default");
@@ -105,7 +103,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Close_Called_Bucket_Count_Is_Zero()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
 
             Assert.AreEqual(0, ClusterHelper.Count());
             var bucket1 = ClusterHelper.GetBucket("default");
@@ -118,7 +116,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_RemoveBucket_Is_Called_Bucket_Count_Is_Zero()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
 
             //open a bucket and get the reference
             var bucket1 = ClusterHelper.GetBucket("default");
@@ -133,7 +131,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Bucket_Is_Opened_On_Two_Seperate_Threads_And_RemoveBucket_Is_Called_Count_Is_Zero()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
             var t1 = new Thread(OpenBucket);
             var t2 = new Thread(OpenBucket);
 
@@ -155,7 +153,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_A_Bucket_Instance_Is_Nulled_Its_Reference_Still_Exists()
         {
-            ClusterHelper.Initialize();
+            ClusterHelper.Initialize(ClientConfigUtil.GetConfiguration());
 
             var bucket1 = ClusterHelper.GetBucket("default");
             bucket1 = null;

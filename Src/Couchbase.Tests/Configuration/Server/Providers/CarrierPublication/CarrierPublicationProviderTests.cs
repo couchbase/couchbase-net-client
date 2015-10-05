@@ -9,6 +9,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
+using Couchbase.Tests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
@@ -22,7 +23,8 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         [TestFixtureSetUp]
         public void SetUp()
         {
-            var configuration = new ClientConfiguration();
+            var configuration = ClientConfigUtil.GetConfiguration();
+            configuration.Initialize();
             _provider = new CarrierPublicationProvider(
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
