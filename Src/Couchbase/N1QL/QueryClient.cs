@@ -351,6 +351,7 @@ namespace Couchbase.N1QL
                 {
                     var stream = e.Response.GetResponseStream();
                     queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                    queryResult.HttpStatusCode = ((HttpWebResponse) e.Response).StatusCode;
                 }
                 queryResult.Exception = e;
                 Log.Error(e);

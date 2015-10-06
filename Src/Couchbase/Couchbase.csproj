@@ -34,6 +34,13 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Release\Couchbase.NetClient.xml</DocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Common.Logging, Version=3.1.0.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -85,6 +92,7 @@
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserver.cs" />
     <Compile Include="Core\Buckets\MutationToken.cs" />
+    <Compile Include="Core\Lifespan.cs" />
     <Compile Include="Core\NodeAdapterExtensions.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />

@@ -91,6 +91,7 @@
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
     <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
+    <Compile Include="Core\LifespanTests.cs" />
     <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
     <Compile Include="Utils\ClientConfigUtil.cs" />
     <Compile Include="Core\Buckets\CouchbaseBucket_View_Ssl_Tests.cs" />
@@ -191,7 +192,9 @@
     <Compile Include="Views\ViewQueryTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Data\Configuration\bootstrap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

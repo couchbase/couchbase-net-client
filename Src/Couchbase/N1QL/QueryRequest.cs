@@ -7,6 +7,8 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Web;
 using System.Net;
+using Couchbase.Configuration.Client;
+using Couchbase.Core;
 
 namespace Couchbase.N1QL
 {
@@ -704,6 +706,25 @@ namespace Couchbase.N1QL
                 request = string.Empty;
             }
             return request;
+        }
+
+        /// <summary>
+        /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
+        /// configured for it in <see cref="ClientConfiguration.QueryRequestTimeout" />
+        /// </summary>
+        /// <value>
+        /// The lifespan.
+        /// </value>
+        Lifespan IQueryRequest.Lifespan { get; set; }
+
+        /// <summary>
+        /// True if the request exceeded it's <see cref="ClientConfiguration.QueryRequestTimeout" />
+        /// </summary>
+        /// <returns></returns>
+        bool IQueryRequest.TimedOut()
+        {
+            var temp = this as IQueryRequest;
+            return temp.Lifespan.TimedOut();
         }
     }
 }

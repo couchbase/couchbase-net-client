@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
@@ -71,6 +72,20 @@ namespace Couchbase.Tests.N1QL
                 var result = bucket.Query<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(10, result.Rows.Count);
+            }
+        }
+
+        [Test]
+        public void When_Bucket_Has_No_PrimaryIndex_Status_Is_Fatal()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest()
+                    .Statement("SELECT * FROM `default` LIMIT 10");
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsFalse(result.Success);
+                Assert.AreEqual(QueryStatus.Fatal, result.Status);
             }
         }
 

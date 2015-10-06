@@ -138,10 +138,13 @@ namespace Couchbase.Core.Buckets
             while (true)
             {
                 IResult result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (result.ShouldRetry() || attempts >= maxAttempts)
+                if (result.Success ||
+                    query.TimedOut() ||
+                    (result.ShouldRetry() && attempts >= maxAttempts))
                 {
                     return (IQueryResult<T>)result;
                 }
+
                 Log.Debug(m => m("trying query again: {0}", 0));
                 var sleepTime = (int)Math.Pow(2, attempts++);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
@@ -738,11 +741,16 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
+                queryRequest.Lifespan = new Lifespan
+                {
+                    CreationTime = DateTime.UtcNow,
+                    Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
+                };
                 do
                 {
                     var server = ConfigInfo.GetQueryNode();
                     queryResult = server.Send<T>(queryRequest);
-                } while (!queryResult.Success && queryResult.ShouldRetry());
+                } while (!queryResult.Success && queryResult.ShouldRetry() && !queryRequest.TimedOut());
             }
             catch (Exception e)
             {
@@ -777,6 +785,12 @@ namespace Couchbase.Core.Buckets
             IQueryResult<T> queryResult = null;
             try
             {
+                queryRequest.Lifespan = new Lifespan
+                {
+                    CreationTime = DateTime.UtcNow,
+                    Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
+                };
+
                 using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
                     queryResult = await RetryQueryEveryAsync(async (e, c) =>

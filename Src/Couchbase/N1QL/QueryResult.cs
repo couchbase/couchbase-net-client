@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using Couchbase.N1QL;
 using Newtonsoft.Json;
 
@@ -58,6 +59,9 @@ namespace Couchbase.N1QL
         [JsonProperty("metrics")]
         public Metrics Metrics { get; internal set; }
 
+        [JsonIgnore]
+        public HttpStatusCode HttpStatusCode { get; internal set; }
+
         bool IResult.ShouldRetry()
         {
             var retry = false;
@@ -68,9 +72,14 @@ namespace Couchbase.N1QL
                 case QueryStatus.Running:
                 case QueryStatus.Completed:
                 case QueryStatus.Stopped:
-                case QueryStatus.Timeout:
                     break;
+                case QueryStatus.Timeout:
                 case QueryStatus.Fatal:
+                    var status = (int) HttpStatusCode;
+                    if(status > 399 && status < 500)
+                    {
+                        break;
+                    }
                     retry = true;
                     break;
             }

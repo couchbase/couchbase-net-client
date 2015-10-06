@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Configuration.Client;
+using Couchbase.Core;
 
 namespace Couchbase.N1QL
 {
@@ -9,6 +11,15 @@ namespace Couchbase.N1QL
     /// <returns></returns>
     public interface IQueryRequest
     {
+        /// <summary>
+        /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
+        /// configured for it in <see cref="ClientConfiguration.QueryRequestTimeout"/>
+        /// </summary>
+        /// <value>
+        /// The lifespan.
+        /// </value>
+        Lifespan Lifespan { get; set; }
+
         /// <summary>
         /// Returns true if the request is not ad-hoc and has been optimized using <see cref="Prepared"/>.
         /// </summary>
@@ -28,6 +39,7 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
         bool HasBeenRetried { get; set; }
+
 
         /// <summary>
         ///  If set to false, the client will try to perform optimizations
@@ -242,5 +254,11 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <returns>The form values as a JSON object.</returns>
         string GetFormValuesAsJson();
+
+        /// <summary>
+        /// True if the request exceeded it's <see cref="ClientConfiguration.QueryRequestTimeout"/>
+        /// </summary>
+        /// <returns></returns>
+        bool TimedOut();
     }
 }
