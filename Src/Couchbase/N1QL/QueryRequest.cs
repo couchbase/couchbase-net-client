@@ -1,11 +1,8 @@
 ﻿
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using Newtonsoft.Json;
-using System.Web;
 using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
@@ -31,7 +28,7 @@ namespace Couchbase.N1QL
         private bool? _includeSignature;
         private dynamic _scanVector;
         private TimeSpan? _scanWait;
-        private bool _pretty = false;
+        private bool _pretty;
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
         private string _clientContextId;
         private Uri _baseUri;
@@ -41,9 +38,6 @@ namespace Couchbase.N1QL
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         private const string QueryArgPattern = "{0}={1}&";
-        private const string ParameterIdentifier = "$";
-        private const string LowerCaseTrue = "true";
-        private const string LowerCaseFalse = "false";
         public const string TimeoutArgPattern = "{0}={1}ms&";
         public const uint TimeoutDefault = 75000;
 
@@ -146,6 +140,7 @@ namespace Couchbase.N1QL
         /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         /// <remarks>Required if statement not provided, will erase a previously set Statement.</remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="preparedPlan"/> is <see langword="null" />.</exception>
         public IQueryRequest Prepared(QueryPlan preparedPlan, string originalStatement)
         {
             if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.EncodedPlan))
@@ -649,16 +644,6 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// JSON encodes the parameter and URI escapes the input parameter.
-        /// </summary>
-        /// <param name="parameter">The parameter to encode.</param>
-        /// <returns>A JSON and URI escaped copy of the parameter.</returns>
-        static string EncodeParameter(object parameter)
-        {
-            return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
-        }
-
-        /// <summary>
         /// Creates a new <see cref="QueryRequest"/> object.
         /// </summary>
         /// <returns></returns>
@@ -699,7 +684,7 @@ namespace Couchbase.N1QL
             string request;
             try
             {
-                request = GetBaseUri().ToString() + "[" + GetFormValuesAsJson() + "]";
+                request = GetBaseUri() + "[" + GetFormValuesAsJson() + "]";
             }
             catch
             {

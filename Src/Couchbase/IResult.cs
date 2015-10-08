@@ -23,6 +23,11 @@ namespace Couchbase
         /// </summary>
         Exception Exception { get; }
 
+        /// <summary>
+        /// If the response indicates the request is retryable, returns true.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>Intended for internal use only.</remarks>
         bool ShouldRetry();
     }
 }

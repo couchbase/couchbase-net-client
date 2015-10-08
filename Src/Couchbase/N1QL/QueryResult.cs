@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using Couchbase.N1QL;
 using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
@@ -10,7 +9,9 @@ namespace Couchbase.N1QL
     /// The result of a N1QL query.
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
-    /// <remarks>The dynamic keyword works well for the Type T.</remarks>
+    /// <remarks>
+    /// The dynamic keyword works well for the Type T.
+    /// </remarks>
     public class QueryResult<T> : IQueryResult<T>
     {
         public QueryResult()
@@ -35,33 +36,92 @@ namespace Couchbase.N1QL
         /// </summary>
         public Exception Exception { get; set; }
 
+        /// <summary>
+        /// Gets the request identifier.
+        /// </summary>
+        /// <value>
+        /// The request identifier.
+        /// </value>
         [JsonProperty("request_id")]
         public Guid RequestId { get; internal set; }
 
+        /// <summary>
+        /// Gets the clientContextID of the request, if one was supplied. Used for debugging.
+        /// </summary>
+        /// <value>
+        /// The client context identifier.
+        /// </value>
         [JsonProperty("client_context_id")]
         public string ClientContextId { get; internal set; }
 
+        /// <summary>
+        /// Gets the schema of the results. Present only when the query completes successfully.
+        /// </summary>
+        /// <value>
+        /// The signature of the schema of the request.
+        /// </value>
         [JsonProperty("signature")]
         public dynamic Signature { get; internal set; }
 
+        /// <summary>
+        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
+        /// </summary>
+        /// <value>
+        /// A a list of all the objects returned by the query.
+        /// </value>
         [JsonProperty("results")]
         public List<T> Rows { get; internal set; }
 
+        /// <summary>
+        /// Gets the status of the request; possible values are: success, running, errors, completed, stopped, timeout, fatal.
+        /// </summary>
+        /// <value>
+        /// The status of the request.
+        /// </value>
         [JsonProperty("status")]
         public QueryStatus Status { get; internal set; }
 
+        /// <summary>
+        /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
+        /// </summary>
+        /// <value>
+        /// The errors.
+        /// </value>
         [JsonProperty("errors")]
         public List<Error> Errors { get; internal set; }
 
+        /// <summary>
+        /// Gets a list of 0 or more warning objects; if a warning occurred during processing of the request, it will be represented by a warning object in this list.
+        /// </summary>
+        /// <value>
+        /// The warnings.
+        /// </value>
         [JsonProperty("warnings")]
         public List<Warning> Warnings { get; internal set; }
 
+        /// <summary>
+        /// Gets an object containing metrics about the request.
+        /// </summary>
+        /// <value>
+        /// The metrics.
+        /// </value>
         [JsonProperty("metrics")]
         public Metrics Metrics { get; internal set; }
 
+        /// <summary>
+        /// Gets the HTTP status code.
+        /// </summary>
+        /// <value>
+        /// The HTTP status code.
+        /// </value>
         [JsonIgnore]
         public HttpStatusCode HttpStatusCode { get; internal set; }
 
+        /// <summary>
+        /// If the response is retryable, returns true.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>Intended for internal use only.</remarks>
         bool IResult.ShouldRetry()
         {
             var retry = false;
