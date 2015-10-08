@@ -3117,6 +3117,17 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets the configuration for the bucket
+        /// </summary>
+        /// <value>
+        /// The configuration.
+        /// </value>
+        BucketConfiguration IBucket.Configuration
+        {
+            get { return _configInfo.ClientConfig.BucketConfigs[Name]; }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether enhanced durability is enabled.
         /// </summary>
         /// <value>
@@ -3223,6 +3234,7 @@ namespace Couchbase
             Dispose(false);
         }
 #endif
+
     }
 }
 

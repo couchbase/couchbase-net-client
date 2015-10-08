@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
 using Couchbase.N1QL;
@@ -1715,6 +1716,14 @@ namespace Couchbase.Core
         /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
         /// </value>
         bool SupportsEnhancedDurability { get; }
+
+        /// <summary>
+        /// Gets the configuration for the bucket
+        /// </summary>
+        /// <value>
+        /// The configuration.
+        /// </value>
+        BucketConfiguration Configuration { get; }
     }
 }
 
