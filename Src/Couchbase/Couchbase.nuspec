@@ -2,21 +2,22 @@
 <package >
   <metadata>
     <id>CouchbaseNetClient</id>
-    <version>2.0.1-beta</version>
+    <version>2.2.1</version>
     <title>$title$</title>
     <authors>Couchbase, Inc.</authors>
     <owners>Couchbase, Inc.</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
     <projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
-   <!-- <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>-->
+    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>The new and improved Couchbase client for .NET based languages!</description>
+    <description>The Couchbase authored new and improved client for .NET based languages!</description>
     <releaseNotes></releaseNotes>
-    <copyright>Copyright 2014</copyright>
+    <copyright>Copyright 2015</copyright>
     <tags>Couchbase nosql JSON database</tags>
     <dependencies>
       <group>
-        <dependency id="Newtonsoft.Json" />
+        <dependency id="Newtonsoft.Json" version="6.0.8"/>
+        <dependency id="Common.Logging" version="3.1.0"/>
       </group>
     </dependencies>
   </metadata>
