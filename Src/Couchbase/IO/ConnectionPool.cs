@@ -224,6 +224,7 @@ namespace Couchbase.IO
                 var interval = _configuration.CloseAttemptInterval;
 
                 T conn;
+
                 while (_refs.Count > 0)
                 {
                     if (_refs.TryTake(out conn) && !conn.HasShutdown)
@@ -251,8 +252,22 @@ namespace Couchbase.IO
 #if DEBUG
         ~ConnectionPool()
         {
-            Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
-            Dispose(false);
+            try
+            {
+                Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
+                Dispose(false);
+            }
+            catch (Exception e)
+            {
+                //TODO temp fix since they may getting finalized...
+                try
+                {
+                    Log.Debug(e);
+                }
+                catch
+                {
+                }
+            }
         }
 #endif
 
