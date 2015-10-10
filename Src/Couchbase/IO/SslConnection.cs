@@ -18,7 +18,7 @@ namespace Couchbase.IO
         private volatile bool _timingEnabled;
 
         internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter)
-            : this(connectionPool, socket, new SslStream(new NetworkStream(socket)), converter)
+            : this(connectionPool, socket, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter)
         {
         }
 
@@ -29,10 +29,9 @@ namespace Couchbase.IO
             _sslStream = sslStream;
             Configuration = ConnectionPool.Configuration;
             _timingEnabled = Configuration.EnableOperationTiming;
-            ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
         }
 
-        private bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
             return true;
