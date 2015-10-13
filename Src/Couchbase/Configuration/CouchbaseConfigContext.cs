@@ -160,7 +160,11 @@ namespace Couchbase.Configuration
                                     SaslFactory = SaslFactory
                                 };
                                 server.CreateSaslMechanismIfNotExists();
-                                SupportsEnhancedDurability = newIoStrategy.SupportsEnhancedDurability;
+
+                                //Note: "ioStrategy has" already made a HELO command to check if
+                                //the cluster supports enhanced durability so we are reusing the flag
+                                //instead of having "newIoStrategy" do it again, later.
+                                SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
                             }
                             else
                             {
