@@ -15,7 +15,7 @@ namespace Couchbase.Views
         //[bucket-name]/_design/[design-doc]/_spatial/[spatial-name]
         private const string UriFormat = "{0}://{1}:{2}";
         const string RelativeUriWithBucket = "{0}/_design/{1}/_spatial/{2}?";
-        const string RelativeUri = "/_design/{0}/_spatial/{1}?";
+        const string RelativeUri = "_design/{0}/_spatial/{1}?";
 
         //uri construction
         private Uri _baseUri;
