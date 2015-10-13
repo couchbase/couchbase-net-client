@@ -327,7 +327,6 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// The result of the operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         public IOperationResult<T> ReadFromReplica<T>(ReplicaRead<T> operation)
         {
             //Is the cluster configured for Data services?
@@ -368,7 +367,8 @@ namespace Couchbase.Core.Buckets
 
             if (!result.Success)
             {
-                if (operation.TimedOut() && result.Status != ResponseStatus.NoReplicasFound)
+                if (operation.TimedOut() &&
+                    (result.Status != ResponseStatus.NoReplicasFound && result.Status != ResponseStatus.KeyNotFound))
                 {
                     const string msg = "The operation has timed out.";
                     ((OperationResult)result).Message = msg;
