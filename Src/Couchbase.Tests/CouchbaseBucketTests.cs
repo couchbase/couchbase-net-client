@@ -1366,7 +1366,7 @@ namespace Couchbase.Tests
                     "default", new BucketConfiguration
                     {
                         UseEnhancedDurability = false
-                    },
+                    }
                 }
             };
             config.EnableConfigHeartBeat = false;
