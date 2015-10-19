@@ -15,6 +15,7 @@ namespace Couchbase.IO
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
         private Timer _asyncOperationTimer;
+        private readonly object _asyncTimoutLock = new object();
 
         public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
@@ -99,8 +100,12 @@ namespace Couchbase.IO
         {
             CancelTimerIfRunning();
 
+            Socket.Close();
+
             var socketAsyncState = (SocketAsyncState)state;
             var timeoutException = CreateTimeoutException();
+
+            Log.DebugFormat("Operation {0} timed out.", socketAsyncState.Opaque);
 
             MarkAsDead(socketAsyncState, timeoutException);
         }
@@ -255,7 +260,16 @@ namespace Couchbase.IO
 
                 //copy and send the remaining portion of the buffer
                 Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, state.SendOffset, bufferLength);
-                if (!Socket.SendAsync(_eventArgs))
+
+                bool sentAsync;
+                lock (_asyncTimoutLock)
+                {
+                    if (IsDead)
+                        return;
+                    sentAsync = Socket.SendAsync(_eventArgs);
+                }
+
+                if (!sentAsync)
                 {
                     OnCompleted(socket, e);
                 }
@@ -263,7 +277,16 @@ namespace Couchbase.IO
             else
             {
                 e.SetBuffer(state.SendOffset, Configuration.BufferSize);
-                if (!socket.ReceiveAsync(e))
+                bool recvdAsync;
+                lock (_asyncTimoutLock)
+                {
+                    if (IsDead)
+                        return;
+
+                    recvdAsync = socket.ReceiveAsync(e);
+                }
+
+                if (!recvdAsync)
                 {
                     OnCompleted(socket, e);
                 }
@@ -332,22 +355,27 @@ namespace Couchbase.IO
                     : Configuration.BufferSize;
 
                 e.SetBuffer(state.SendOffset, bufferSize);
-                if (!socket.ReceiveAsync(e))
-                {
-                    // Rather than calling OnCompleted again here
-                    // we return true to let `Recieve` know we are
-                    // ready for another recieve event.
-                    return true;
-                }
-            }
-            else
-            {
-                Log.Debug(
-                    m => m("Complete {0} with {1} on server {2}",
-                        state.Opaque, Identity, EndPoint));
 
-                SetCompleted(state);
+                bool recvdAsync;
+                lock (_asyncTimoutLock)
+                {
+                    if (IsDead)
+                        return false;
+
+                    recvdAsync = socket.ReceiveAsync(e);
+                }
+
+                // Rather than calling OnCompleted again here
+                // we return true to let `Recieve` know we are
+                // ready for another recieve event.
+                return !recvdAsync;
             }
+
+            Log.Debug(
+                m => m("Complete {0} with {1} on server {2}",
+                    state.Opaque, Identity, EndPoint));
+
+            SetCompleted(state);
             return false;
         }
 
@@ -401,12 +429,16 @@ namespace Couchbase.IO
         /// <param name="exception">The exception to set on the operation state.</param>
         private void MarkAsDead(SocketAsyncState state, Exception exception)
         {
-            IsDead = true;
-            state.Exception = exception;
+            lock (_asyncTimoutLock)
+            {
+                IsDead = true;
 
-            Log.Debug(m => m("Error: {0} - {1}", Identity, state.Exception));
+                state.Exception = exception;
 
-            SetCompleted(state);
+                Log.Debug(m => m("Error: {0} - {1}", Identity, state.Exception));
+
+                SetCompleted(state);
+            }
         }
 
         /// <summary>
