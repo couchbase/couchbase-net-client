@@ -11,7 +11,9 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -25,7 +27,74 @@ namespace Couchbase.UnitTests
     public class CouchbaseBucketTests
     {
 
-        
+        #region Exists/ExistsAsync
+
+        [TestCase(KeyState.FoundPersisted, true)]
+        [TestCase(KeyState.FoundNotPersisted, true)]
+        [TestCase(KeyState.NotFound, false)]
+        [TestCase(KeyState.LogicalDeleted, false)]
+        public void Exists_AnyKeyState_ReturnsExpectedResult(KeyState keyState, bool expectedResult)
+        {
+            // Arrange
+
+            var operationResult = new Mock<IOperationResult<ObserveState>>();
+            operationResult.SetupGet(m => m.Success).Returns(true);
+            operationResult.SetupGet(m => m.Status).Returns(ResponseStatus.Success);
+            operationResult.SetupGet(m => m.Value).Returns(new ObserveState()
+            {
+                KeyState = keyState
+            });
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            mockRequestExecuter.Setup(m => m.SendWithRetry(It.IsAny<Observe>())).Returns(operationResult.Object);
+
+            // Act
+
+            bool result;
+            using (var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder()))
+            {
+                result = bucket.Exists("key");
+            }
+
+            // Assert
+
+            Assert.AreEqual(expectedResult, result);
+        }
+
+        [TestCase(KeyState.FoundPersisted, true)]
+        [TestCase(KeyState.FoundNotPersisted, true)]
+        [TestCase(KeyState.NotFound, false)]
+        [TestCase(KeyState.LogicalDeleted, false)]
+        public void ExistsAsync_AnyKeyState_ReturnsExpectedResult(KeyState keyState, bool expectedResult)
+        {
+            // Arrange
+
+            var operationResult = new Mock<IOperationResult<ObserveState>>();
+            operationResult.SetupGet(m => m.Success).Returns(true);
+            operationResult.SetupGet(m => m.Status).Returns(ResponseStatus.Success);
+            operationResult.SetupGet(m => m.Value).Returns(new ObserveState()
+            {
+                KeyState = keyState
+            });
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            mockRequestExecuter.Setup(m => m.SendWithRetryAsync(It.IsAny<Observe>(), null, null)).Returns(Task.FromResult(operationResult.Object));
+
+            // Act
+
+            bool result;
+            using (var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder()))
+            {
+                result = bucket.ExistsAsync("key").Result;
+            }
+
+            // Assert
+
+            Assert.AreEqual(expectedResult, result);
+        }
+
+        #endregion
+
     }
 }
 

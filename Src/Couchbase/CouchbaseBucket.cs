@@ -40,7 +40,7 @@ namespace Couchbase
         private readonly IByteConverter _converter;
         private readonly ITypeTranscoder _transcoder;
         private readonly uint _operationLifespanTimeout;
-        private CouchbaseRequestExecuter _requestExecuter;
+        private IRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
 
         /// <summary>
@@ -66,6 +66,16 @@ namespace Couchbase
             _operationLifespanTimeout = _clusterController.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
+        }
+
+        /// <summary>
+        /// For unit testing purposes only
+        /// </summary>
+        internal CouchbaseBucket(IRequestExecuter requestExecuter, IByteConverter converter, ITypeTranscoder transcoder)
+        {
+            _requestExecuter = requestExecuter;
+            _converter = converter;
+            _transcoder = transcoder;
         }
 
         /// <summary>
@@ -136,7 +146,8 @@ namespace Couchbase
         {
             var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
             var result = _requestExecuter.SendWithRetry(observe);
-            return result.Success && result.Value.KeyState != KeyState.NotFound;
+            return result.Success && result.Value.KeyState != KeyState.NotFound
+                && result.Value.KeyState != KeyState.LogicalDeleted;
         }
 
         /// <summary>
@@ -157,7 +168,7 @@ namespace Couchbase
                 Durability = result.Durability,
                 Cas = result.Cas
             };
-            if (result.Value.KeyState != KeyState.NotFound)
+            if (result.Value.KeyState != KeyState.NotFound && result.Value.KeyState != KeyState.LogicalDeleted)
             {
                 ret.Value = true;
             }
@@ -175,7 +186,8 @@ namespace Couchbase
             CheckDisposed();
             var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
             var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
-            return result.Success && result.Value.KeyState != KeyState.NotFound;
+            return result.Success && result.Value.KeyState != KeyState.NotFound
+                && result.Value.KeyState != KeyState.LogicalDeleted;
         }
 
         /// <summary>
@@ -197,7 +209,7 @@ namespace Couchbase
                 Durability = result.Durability,
                 Cas = result.Cas
             };
-            if (result.Value.KeyState != KeyState.NotFound)
+            if (result.Value.KeyState != KeyState.NotFound && result.Value.KeyState != KeyState.LogicalDeleted)
             {
                 ret.Value = true;
             }
@@ -3203,7 +3215,10 @@ namespace Couchbase
             if (!_disposed)
             {
                 Log.Debug(m => m("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId));
-                _clusterController.DestroyBucket(this);
+                if (_clusterController != null)
+                {
+                    _clusterController.DestroyBucket(this);
+                }
                 if (disposing)
                 {
                     GC.SuppressFinalize(this);
