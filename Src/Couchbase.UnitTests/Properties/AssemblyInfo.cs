@@ -2,15 +2,14 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Couchbase SDK 2.0")]
-[assembly: AssemblyDescription("The official .NET SDK for Couchbase Server")]
+[assembly: AssemblyTitle("Couchbase.UnitTests")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Couchbase Inc.")]
-[assembly: AssemblyProduct("Couchbase")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("Couchbase.UnitTests")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -21,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("11f64121-1774-42f2-ba1a-c79e1f2d8896")]
+[assembly: Guid("FB724973-223F-472E-8B01-D63F4192E179")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -33,13 +32,6 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2.0.0.0")]
-[assembly: AssemblyFileVersion("2.0.0.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
-[assembly: InternalsVisibleTo("Couchbase.Tests")]
-[assembly: InternalsVisibleTo("Couchbase.UnitTests")]
-[assembly: InternalsVisibleTo("Couchbase.Linq.Tests")]
-[assembly: InternalsVisibleTo("Couchbase.Linq")]
-[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-[assembly: InternalsVisibleTo("Sdkd")]
-[assembly: InternalsVisibleTo("SdkdConsole")]
