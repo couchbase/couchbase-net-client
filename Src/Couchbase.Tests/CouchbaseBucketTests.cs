@@ -66,6 +66,18 @@ namespace Couchbase.Tests
             }
         }
 
+        [Test]
+        public void When_Key_Was_Just_Removed_Exists_Returns_False()
+        {
+            var key = "thekeythatdidexist";
+            using (var bucket = _cluster.OpenBucket())
+            {
+                bucket.Upsert(key, "somevalue");
+                bucket.Remove(key);
+                var result = bucket.Exists(key);
+                Assert.IsFalse(result);
+            }
+        }
 
         /// <summary>
         /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
