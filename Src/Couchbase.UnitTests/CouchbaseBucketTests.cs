@@ -95,6 +95,317 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region Upsert
+
+        #region Upsert Disposed Bucket
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDocument_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Document<FakeDocument>
+            {
+                Id = "key",
+                Content = new FakeDocument()
+            });
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDocumentReplicateTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Document<FakeDocument>
+            {
+                Id = "key",
+                Content = new FakeDocument()
+            },
+            ReplicateTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDocumentReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Document<FakeDocument>
+            {
+                Id = "key",
+                Content = new FakeDocument()
+            },
+            ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValue_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument());
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueReplicateTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), ReplicateTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueExpirationTS_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), TimeSpan.Zero);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueExpirationTSReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), TimeSpan.Zero, ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueExpiration_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0U);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueExpirationReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0U, ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueCas_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0UL);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueCasExpirationTS_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0UL, TimeSpan.Zero);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueCasExpirationTSReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0UL, TimeSpan.Zero, ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueCasExpiration_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0UL, 0U);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertKeyValueCasExpirationReplicateToPersistTo_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert("key", new FakeDocument(), 0UL, 0U, ReplicateTo.One, PersistTo.One);
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDictionary_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Dictionary<string, FakeDocument>
+            {
+                { "key", new FakeDocument() }
+            });
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDictionaryParallelOptions_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Dictionary<string, FakeDocument>
+            {
+                { "key", new FakeDocument() }
+            },
+            new ParallelOptions());
+        }
+
+        [Test()]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void UpsertDictionaryParallelOptionsRangeSize_DisposedBucket_ThrowsObjectDisposedException()
+        {
+            // Arrange
+
+            var mockRequestExecuter = new Mock<IRequestExecuter>();
+            var bucket = new CouchbaseBucket(mockRequestExecuter.Object, new DefaultConverter(), new DefaultTranscoder());
+            bucket.Dispose();
+
+            // Act
+
+            bucket.Upsert(new Dictionary<string, FakeDocument>
+            {
+                { "key", new FakeDocument() }
+            },
+            new ParallelOptions(), 0);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Helpers
+
+        private class FakeDocument
+        {
+        }
+
+        #endregion
+
     }
 }
 
