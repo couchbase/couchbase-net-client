@@ -2508,6 +2508,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -2572,6 +2573,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
@@ -2645,6 +2647,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
@@ -2664,6 +2667,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration
@@ -2704,6 +2708,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
@@ -2740,6 +2745,7 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
         {
+            CheckDisposed();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (items != null && items.Count > 0)
             {
@@ -2770,6 +2776,7 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
         {
+            CheckDisposed();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (items != null && items.Count > 0)
             {
@@ -2801,6 +2808,7 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
         {
+            CheckDisposed();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (items != null && items.Count > 0)
             {
