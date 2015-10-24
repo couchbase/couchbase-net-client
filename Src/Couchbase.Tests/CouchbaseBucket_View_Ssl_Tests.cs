@@ -32,11 +32,10 @@ namespace Couchbase.Tests
         [Test]
         public void When_UseSsl_True_CreateQuery_Returns_Https_Url()
         {
-            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/beer/_view/brewery_beers?limit=1");
             var bucket = _cluster.OpenBucket("beer-sample");
 
-            var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true);
+            var query = bucket.CreateQuery("beer", "brewery_beers").Limit(1);
 
 
             //the baseUri is set internally
@@ -53,10 +52,9 @@ namespace Couchbase.Tests
         [Test]
         public void When_UseSsl_True_CreateQuery2_Returns_Https_Url()
         {
-            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/beer/_view/brewery_beers?limit=1");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true);
+            var query = bucket.CreateQuery("beer", "brewery_beers").Limit(1);
 
             //the baseUri is set internally
             //we don't care if the requests suceeds, just that the protocol and port are correct
@@ -72,10 +70,9 @@ namespace Couchbase.Tests
         [Test]
         public void When_UseSsl_True_CreateQuery3_Returns_Https_Url()
         {
-            var expected = new Uri("https://localhost:18092/beer-sample/_design/dev_beer/_view/brewery_beers?");
+            var expected = new Uri("https://localhost:18092/beer-sample/_design/beer/_view/brewery_beers?limit=1");
             var bucket = _cluster.OpenBucket("beer-sample");
-            var query = bucket.CreateQuery("beer", "brewery_beers").
-                Development(true);
+            var query = bucket.CreateQuery("beer", "brewery_beers").Limit(1);
 
             //the baseUri is set internally
             //we don't care if the requests suceeds, just that the protocol and port are correct
