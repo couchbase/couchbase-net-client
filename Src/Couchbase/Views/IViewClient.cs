@@ -6,7 +6,7 @@ namespace Couchbase.Views
     /// <summary>
     /// An interface for client-side support for querying Couchbase views.
     /// </summary>
-    internal interface IViewClient
+    public interface IViewClient
     {
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> asynchronously against a View.

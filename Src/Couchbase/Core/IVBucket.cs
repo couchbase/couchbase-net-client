@@ -4,7 +4,7 @@ namespace Couchbase.Core
     /// <summary>
     /// Represents a VBucket partition in a Couchbase cluster
     /// </summary>
-    internal interface IVBucket : IMappedNode
+    public interface IVBucket : IMappedNode
     {
         /// <summary>
         /// Locates a replica for a given index.

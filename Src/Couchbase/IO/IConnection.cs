@@ -9,7 +9,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Represents a TCP connection to a Couchbase Server instance.
     /// </summary>
-    internal interface IConnection : IDisposable
+    public interface IConnection : IDisposable
     {
         /// <summary>
         /// The Socket used for IO.
@@ -116,6 +116,11 @@ namespace Couchbase.IO
         /// <c>true</c> if this instance has shutdown; otherwise, <c>false</c>.
         /// </value>
         bool HasShutdown { get; }
+
+        /// <summary>
+        /// Authenticates this instance.
+        /// </summary>
+        void Authenticate();
     }
 }
 

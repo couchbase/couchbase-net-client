@@ -8,7 +8,7 @@ using System.IO;
 
 namespace Couchbase.IO.Operations
 {
-    internal interface IOperation
+    public interface IOperation
     {
         OperationCode OperationCode { get; }
 

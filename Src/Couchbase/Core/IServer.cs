@@ -13,7 +13,7 @@ namespace Couchbase.Core
     /// <summary>
     /// Represents a Couchbase Server node on the network.
     /// </summary>
-    internal interface IServer : IDisposable, IQueryCacheInvalidator
+    public interface IServer : IDisposable, IQueryCacheInvalidator
     {
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.

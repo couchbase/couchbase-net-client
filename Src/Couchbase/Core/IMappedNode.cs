@@ -1,6 +1,6 @@
 ﻿namespace Couchbase.Core
 {
-    internal interface IMappedNode
+    public interface IMappedNode
     {
         IServer LocatePrimary();
 

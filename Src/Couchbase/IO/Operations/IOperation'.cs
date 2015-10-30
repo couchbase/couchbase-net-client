@@ -4,7 +4,7 @@ using Couchbase.Core.Transcoders;
 
 namespace Couchbase.IO.Operations
 {
-    internal interface IOperation<out T> : IOperation
+    public interface IOperation<out T> : IOperation
     {
         Couchbase.IOperationResult<T> GetResultWithValue();
 

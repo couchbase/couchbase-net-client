@@ -4,7 +4,7 @@ namespace Couchbase
     /// <summary>
     /// Provides a method signature for invalidating and clearing a cache.
     /// </summary>
-    interface IQueryCacheInvalidator
+    public interface IQueryCacheInvalidator
     {
         /// <summary>
         /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will

@@ -244,6 +244,14 @@ namespace Couchbase.IO
             _inUse = false;
             _timer.Dispose();
         }
+
+        /// <summary>
+        /// Authenticates this instance.
+        /// </summary>
+        public virtual void Authenticate()
+        {
+            //noop
+        }
     }
 }
 

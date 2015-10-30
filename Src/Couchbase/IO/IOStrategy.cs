@@ -9,7 +9,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Primary interface for the IO engine.
     /// </summary>
-    internal interface IOStrategy : IDisposable
+    public interface IOStrategy : IDisposable
     {
         /// <summary>
         /// Executes an operation for a given key.

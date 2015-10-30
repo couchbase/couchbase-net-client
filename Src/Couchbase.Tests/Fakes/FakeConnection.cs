@@ -125,5 +125,111 @@ namespace Couchbase.Tests.Fakes
         {
             get { throw new NotImplementedException(); }
         }
+
+        Socket IConnection.Socket
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        Guid IConnection.Identity
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        bool IConnection.IsAuthenticated
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        bool IConnection.IsSecure
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        EndPoint IConnection.EndPoint
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        bool IConnection.IsDead
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        void IConnection.SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        {
+            throw new NotImplementedException();
+        }
+
+        byte[] IConnection.Send(byte[] request)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool IConnection.InUse
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        void IConnection.MarkUsed(bool isUsed)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IConnection.CountdownToClose(uint interval)
+        {
+            throw new NotImplementedException();
+        }
+
+        int IConnection.MaxCloseAttempts
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        int IConnection.CloseAttempts
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        bool IConnection.IsDisposed
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        bool IConnection.HasShutdown
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        void IConnection.Authenticate()
+        {
+            throw new NotImplementedException();
+        }
+
+        void IDisposable.Dispose()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
