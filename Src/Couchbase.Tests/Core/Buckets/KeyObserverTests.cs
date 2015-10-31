@@ -38,7 +38,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer()));
 
@@ -65,7 +65,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -92,7 +92,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -129,7 +129,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -167,7 +167,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -204,7 +204,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -242,7 +242,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 
@@ -280,7 +280,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter()));
 

@@ -29,7 +29,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new ManualByteConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));
         }

@@ -46,7 +46,7 @@ namespace Couchbase.Tests.Configuration
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
             configInfo.LoadConfig();
 
@@ -101,7 +101,7 @@ namespace Couchbase.Tests.Configuration
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
@@ -132,7 +132,7 @@ namespace Couchbase.Tests.Configuration
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
@@ -189,7 +189,7 @@ namespace Couchbase.Tests.Configuration
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
 
             configInfo.LoadConfig();
@@ -219,7 +219,7 @@ namespace Couchbase.Tests.Configuration
                 clientConfig,
                 pool => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());

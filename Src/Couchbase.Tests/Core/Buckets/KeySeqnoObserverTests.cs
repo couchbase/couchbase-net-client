@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
@@ -47,7 +48,7 @@ namespace Couchbase.Tests.Core.Buckets
                 configuration,
                 (pool) => new DefaultIOStrategy(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultConverter(),
                 new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer()));
 
@@ -60,7 +61,7 @@ namespace Couchbase.Tests.Core.Buckets
             var mappedNode = keyMapper.MapKey(key);
             var node = mappedNode.LocatePrimary();
 
-            foreach (var server in configInfo.Servers)
+            foreach (var server in configInfo.Servers.Where(x=>x.IsDataNode))
             {
                 var hello = new Hello("couchbase-net-sdk/2.1.4", features.ToArray(), provider.Transcoder, 0, 0);
                 var result3 = server.Send(hello);

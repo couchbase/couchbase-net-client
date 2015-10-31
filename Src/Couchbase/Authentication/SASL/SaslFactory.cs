@@ -19,7 +19,7 @@ namespace Couchbase.Authentication.SASL
         /// </summary>
         public const uint DefaultTimeout = 2500; //2.5sec
 
-        public static Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> GetFactory3()
+        public static Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> GetFactory()
         {
             return (username, password, strategy, transcoder) =>
             {

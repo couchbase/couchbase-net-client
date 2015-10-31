@@ -59,7 +59,7 @@ namespace Couchbase.Core
                 connectionPool.Initialize();
                 return connectionPool;
             },
-            SaslFactory.GetFactory3(),
+            SaslFactory.GetFactory(),
             clientConfig.Converter(),
             clientConfig.Transcoder())
         {
@@ -81,7 +81,7 @@ namespace Couchbase.Core
                 }
                 connectionPool.Initialize();
                 return connectionPool;
-            }, SaslFactory.GetFactory3(),
+            }, SaslFactory.GetFactory(),
             clientConfig.Converter(),
             clientConfig.Transcoder())
         {

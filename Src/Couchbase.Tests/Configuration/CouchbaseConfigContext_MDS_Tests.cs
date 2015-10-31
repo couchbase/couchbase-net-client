@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Configuration
                 configuration,
                 pool => ioStrategy,
                 (c, e) => new FakeConnectionPool(),
-                SaslFactory.GetFactory3(),
+                SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
 
             _configContext.LoadConfig();

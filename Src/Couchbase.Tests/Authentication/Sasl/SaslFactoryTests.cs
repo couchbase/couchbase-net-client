@@ -34,14 +34,14 @@ namespace Couchbase.Tests.Authentication.Sasl
         [Test]
         public void Test_GetFactory()
         {
-            var factory = SaslFactory.GetFactory3();
+            var factory = SaslFactory.GetFactory();
             Assert.IsNotNull(factory);
         }
 
         [Test]
         public void When_PlainText_Provided_Factory_Returns_CramMd5Mechanism()
         {
-            var factory = SaslFactory.GetFactory3();
+            var factory = SaslFactory.GetFactory();
             var mechanism = factory("authenticated", "secret", _ioStrategy, new DefaultTranscoder());
             Assert.IsTrue(mechanism is CramMd5Mechanism);
         }
