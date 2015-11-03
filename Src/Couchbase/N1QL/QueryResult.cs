@@ -136,7 +136,7 @@ namespace Couchbase.N1QL
                 case QueryStatus.Timeout:
                 case QueryStatus.Fatal:
                     var status = (int) HttpStatusCode;
-                    if(status > 399 && status < 500)
+                    if(status > 399)
                     {
                         break;
                     }
