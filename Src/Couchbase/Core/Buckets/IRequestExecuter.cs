@@ -174,5 +174,10 @@ namespace Couchbase.Core.Buckets
         /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing asynchcronous operation.</returns>
         Task<IOperationResult<T>> ReadFromReplicaAsync<T>(ReplicaRead<T> operation);
+
+        /// <summary>
+        /// Updates the configuration.
+        /// </summary>
+        void UpdateConfig();
     }
 }

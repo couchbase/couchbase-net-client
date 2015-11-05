@@ -46,6 +46,9 @@ namespace Couchbase.Configuration
                 var nodes = bucketConfig.GetNodes();
                 if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || !Servers.Any() || force)
                 {
+                    Log.InfoFormat("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
+
+                    var queryUris = new ConcurrentBag<FailureCountingUri>();
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                     var servers = new Dictionary<IPAddress, IServer>();
                     foreach (var adapter in nodes)
@@ -53,12 +56,12 @@ namespace Couchbase.Configuration
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                         try
                         {
-                            Log.Info(
-                                m =>
-                                    m("o1-Creating the Servers {0} list using rev#{1}", Servers.Count(),
-                                        bucketConfig.Rev));
-
+                            Log.InfoFormat("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
                             IServer server;
+                            if (adapter.IsQueryNode)
+                            {
+                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                            }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
@@ -80,11 +83,14 @@ namespace Couchbase.Configuration
                         }
                         catch (Exception e)
                         {
-                            Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                            Log.ErrorFormat("Could not add server {0} for rev#{1}. Exception: {2}", endpoint, bucketConfig.Rev, e);
                         }
                     }
 
                     UpdateServices(servers);
+
+                    //for caching uri's
+                    Interlocked.Exchange(ref QueryUris, queryUris);
 
                     var old = Interlocked.Exchange(ref Servers, servers);
                     Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
@@ -96,6 +102,7 @@ namespace Couchbase.Configuration
                     {
                         foreach (var server in old.Values)
                         {
+                            Log.InfoFormat("Disposing node {0} from rev#{1}", server.EndPoint, server.Revision);
                             server.Dispose();
                         }
                         old.Clear();
@@ -132,6 +139,7 @@ namespace Couchbase.Configuration
                 Lock.EnterWriteLock();
                 Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
 
+                var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
@@ -146,9 +154,17 @@ namespace Couchbase.Configuration
                             server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                             supportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
                             SupportsEnhancedDurability = supportsEnhancedDurability;
+                            if (server.IsQueryNode)
+                            {
+                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                            }
                         }
                         else
                         {
+                            if (adapter.IsQueryNode)
+                            {
+                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                            }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
@@ -181,6 +197,9 @@ namespace Couchbase.Configuration
 
                 UpdateServices(servers);
 
+                //for caching uri's
+                Interlocked.Exchange(ref QueryUris, queryUris);
+
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
                 var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
@@ -208,6 +227,7 @@ namespace Couchbase.Configuration
             {
                 Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
+                var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
@@ -216,7 +236,11 @@ namespace Couchbase.Configuration
                     try
                     {
                         IServer server;
-                       if (adapter.IsDataNode) //a data node so create a connection pool
+                        if (adapter.IsQueryNode)
+                        {
+                            queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                        }
+                        if (adapter.IsDataNode) //a data node so create a connection pool
                         {
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                             var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
@@ -242,6 +266,9 @@ namespace Couchbase.Configuration
                 }
 
                 UpdateServices(servers);
+
+                //for caching uri's
+                Interlocked.Exchange(ref QueryUris, queryUris);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);

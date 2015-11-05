@@ -45,7 +45,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 foreach (var configInfo in Configs)
                 {
                     var value = configInfo.Value;
-                    foreach (var server in value.Servers.Where(x => !x.IsDown))
+                    foreach (var server in value.Servers.Where(x => !x.IsDown && x.IsDataNode))
                     {
                         try
                         {
@@ -121,7 +121,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             SaslFactory,
                             Transcoder);
 
-                        Log.Info(m => m("{0}", JsonConvert.SerializeObject(bucketConfig)));
+                        Log.Info(m => m("Bootstrap config: {0}", JsonConvert.SerializeObject(bucketConfig)));
 
                         configInfo.LoadConfig(ioStrategy);
                         Configs[bucketName] = configInfo;

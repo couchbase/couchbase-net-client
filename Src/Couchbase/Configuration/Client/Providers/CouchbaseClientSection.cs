@@ -395,6 +395,23 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (uint)this["ioErrorCheckInterval"]; }
             set { this["ioErrorCheckInterval"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets the query failed threshold for a <see cref="Uri"/> before it is flagged as "un-responsive".
+        /// Once flagged as "un-responsive", no requests will be sent to that node until a server re-config has occurred
+        /// and the <see cref="Uri"/> is added back into the pool. This is so the client will not send requests to
+        /// a server node which is unresponsive.
+        /// </summary>
+        /// <remarks>The default is 2.</remarks>
+        /// <value>
+        /// The query failed threshold.
+        /// </value>
+        [ConfigurationProperty("queryFailedThreshold", IsRequired = false, DefaultValue = 2)]
+        public int QueryFailedThreshold
+        {
+            get { return (int)this["queryFailedThreshold"]; }
+            set { this["queryFailedThreshold"] = value; }
+        }
     }
 }
 

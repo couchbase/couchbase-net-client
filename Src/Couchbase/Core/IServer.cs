@@ -147,6 +147,14 @@ namespace Couchbase.Core
         /// Creates the sasl mechanism using the <see cref="SaslFactory"/> provided if it is null.
         /// </summary>
         void CreateSaslMechanismIfNotExists();
+
+        /// <summary>
+        /// Gets the clustermap rev# of the <see cref="Server"/>.
+        /// </summary>
+        /// <value>
+        /// The revision.
+        /// </value>
+        int Revision { get; }
     }
 }
 

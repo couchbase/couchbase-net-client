@@ -73,6 +73,7 @@ namespace Couchbase.Configuration.Client
             BufferSize = 1024 * 16;
             DefaultOperationLifespan = 2500;//ms
             EnableTcpKeepAlives = true;
+            QueryFailedThreshold = 2;
 
             TcpKeepAliveTime = 2*60*60*1000;
             TcpKeepAliveInterval = 1000;
@@ -232,6 +233,18 @@ namespace Couchbase.Configuration.Client
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
+
+        /// <summary>
+        /// Gets or sets the query failed threshold for a <see cref="Uri"/> before it is flagged as "un-responsive".
+        /// Once flagged as "un-responsive", no requests will be sent to that node until a server re-config has occurred
+        /// and the <see cref="Uri"/> is added back into the pool. This is so the client will not send requests to
+        /// a server node which is unresponsive.
+        /// </summary>
+        /// <remarks>The default is 2.</remarks>
+        /// <value>
+        /// The query failed threshold.
+        /// </value>
+        public int QueryFailedThreshold { get; set; }
 
         /// <summary>
         /// Gets or sets the timeout for a N1QL query request; this correlates to the client-side timeout.

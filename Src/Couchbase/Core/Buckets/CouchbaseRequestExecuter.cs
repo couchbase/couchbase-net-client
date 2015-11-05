@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Schema;
@@ -26,6 +28,7 @@ namespace Couchbase.Core.Buckets
     internal class CouchbaseRequestExecuter : RequestExecuterBase
     {
         protected static readonly new ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
+        private object _syncObj = new object();
 
         public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
             string bucketName, ConcurrentDictionary<uint, IOperation> pending)
@@ -138,14 +141,13 @@ namespace Couchbase.Core.Buckets
             while (true)
             {
                 IResult result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (result.Success ||
-                    query.TimedOut() ||
-                    (result.ShouldRetry() && attempts >= maxAttempts))
+                if (result.Success || query.TimedOut() ||
+                    !result.ShouldRetry() || attempts >= maxAttempts)
                 {
                     return (IQueryResult<T>)result;
                 }
 
-                Log.Debug(m => m("trying query again: {0}", 0));
+                Log.Debug(m => m("trying query again: {0}", attempts));
                 var sleepTime = (int)Math.Pow(2, attempts++);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -748,8 +750,22 @@ namespace Couchbase.Core.Buckets
                 };
                 do
                 {
-                    var server = ConfigInfo.GetQueryNode();
+                    var attempts = 0;
+                    IServer server;
+                    while ((server = ConfigInfo.GetQueryNode()) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        Thread.Sleep((int)Math.Pow(2, attempts));
+                    }
+
                     queryResult = server.Send<T>(queryRequest);
+
+                    //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
+                    var exception = queryResult.Exception;
+                    if (exception != null)
+                    {
+                        UpdateConfig();
+                    }
                 } while (!queryResult.Success && queryResult.ShouldRetry() && !queryRequest.TimedOut());
             }
             catch (Exception e)
@@ -795,8 +811,29 @@ namespace Couchbase.Core.Buckets
                 {
                     queryResult = await RetryQueryEveryAsync(async (e, c) =>
                     {
-                        var server = c.GetQueryNode();
-                        return await server.SendAsync<T>(queryRequest);
+                        var attempts = 0;
+                        IServer server;
+                        while ((server = c.GetQueryNode()) == null)
+                        {
+                            if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                            Thread.Sleep((int)Math.Pow(2, attempts));
+                        }
+
+                        var result = await server.SendAsync<T>(queryRequest).ContinueOnAnyContext();
+                        if (!result.Success)
+                        {
+                            //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
+                            var exception = result.Exception;
+                            if (exception != null)
+                            {
+                                lock (_syncObj)
+                                {
+                                    Log.Trace("Request failed checking config:", exception);
+                                    UpdateConfig();
+                                }
+                            }
+                        }
+                        return result;
                     },
                     queryRequest, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
                 }

@@ -170,8 +170,8 @@ namespace Couchbase.IO
             if (acquireFailedCount >= _configuration.MaxAcquireIterationCount)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
-                const string msg = "Failed to acquire a pooled client connection after {0} tries.";
-                throw new ConnectionUnavailableException(msg, acquireFailedCount);
+                const string msg = "Failed to acquire a pooled client connection on {0} after {1} tries.";
+                throw new ConnectionUnavailableException(msg, EndPoint, acquireFailedCount);
             }
             return Acquire();
         }

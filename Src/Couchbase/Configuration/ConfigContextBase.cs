@@ -46,6 +46,8 @@ namespace Couchbase.Configuration
         public bool IsDataCapable { get; set; }
         public bool IsIndexCapable { get; set; }
 
+        public static ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
+
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IOStrategy> ioStrategyFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
@@ -59,6 +61,11 @@ namespace Couchbase.Configuration
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Transcoder = transcoder;
+        }
+
+        public static FailureCountingUri GetQueryUri()
+        {
+            return QueryUris.Where(x=>x.IsHealthy(2)).GetRandom();
         }
 
         protected ITypeTranscoder Transcoder { get; private set; }

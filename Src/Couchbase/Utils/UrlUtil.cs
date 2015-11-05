@@ -2,6 +2,7 @@
 using System.IO;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.N1QL;
 
 namespace Couchbase.Utils
 {
@@ -16,6 +17,11 @@ namespace Couchbase.Utils
         public static Uri GetViewBaseUri(INodeAdapter adapter, BucketConfiguration config)
         {
             return new Uri(GetViewBaseUriAsString(adapter, config));
+        }
+
+        public static FailureCountingUri GetFailureCountingBaseUri(INodeAdapter adapter, BucketConfiguration config)
+        {
+            return new FailureCountingUri(GetN1QLBaseUriAsString(adapter, config));
         }
 
         // ReSharper disable once InconsistentNaming

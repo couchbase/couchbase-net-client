@@ -243,6 +243,17 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Gets the clustermap rev# of the <see cref="Server" />.
+        /// </summary>
+        /// <value>
+        /// The revision.
+        /// </value>
+        public int Revision
+        {
+            get { return _bucketConfig.Rev; }
+        }
+
+        /// <summary>
         /// Handles the Elapsed event of the _heartBeatTimer control which is enabled
         /// whenever a node is unresponsive and possible offline. Once it is started,
         /// the node will be flagged as <see cref="_isDown"/> (which will be true). When the node
@@ -491,7 +502,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                    Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
                     result = _ioStrategy.Execute(operation);
                 }
                 catch (Exception e)
@@ -533,7 +544,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.Debug(m => m("Sending {0} using server {1}", operation.Key, EndPoint));
+                    Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
                     result = _ioStrategy.Execute(operation);
                 }
                 catch (Exception e)
@@ -739,7 +750,7 @@ namespace Couchbase.Core
         public void MarkDead()
         {
             IsDown = true;
-            if (_heartBeatTimer != null)
+            if (!_disposed && _heartBeatTimer != null)
             {
                 _heartBeatTimer.Start();
             }
@@ -767,18 +778,25 @@ namespace Couchbase.Core
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            lock (_syncObj)
             {
-                MarkDead();
-                if (disposing)
+                if (!_disposed)
                 {
-                    GC.SuppressFinalize(this);
+                    _disposed = true;
+                    IsDown = true;
+                    if (disposing)
+                    {
+                        GC.SuppressFinalize(this);
+                    }
+                    if (_heartBeatTimer != null)
+                    {
+                        _heartBeatTimer.Dispose();
+                    }
+                    if (_ioStrategy != null)
+                    {
+                        _ioStrategy.Dispose();
+                    }
                 }
-                if (_ioStrategy != null)
-                {
-                    _ioStrategy.Dispose();
-                }
-                _disposed = true;
             }
         }
 

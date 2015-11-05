@@ -12,7 +12,9 @@ namespace Couchbase.Core
         List<IConfigProvider> ConfigProviders { get; }
 
         ClientConfiguration Configuration { get; }
+
         IByteConverter Converter { get; }
+
         ITypeTranscoder Transcoder { get; }
 
         IConfigProvider GetProvider(string name);

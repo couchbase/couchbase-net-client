@@ -258,6 +258,7 @@
     <Compile Include="N1QL\QueryStatus.cs" />
     <Compile Include="N1QL\ScanConsistency.cs" />
     <Compile Include="N1QL\Severity.cs" />
+    <Compile Include="N1QL\FailureCountingUri.cs" />
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />

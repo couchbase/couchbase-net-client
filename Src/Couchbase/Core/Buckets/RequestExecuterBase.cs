@@ -387,7 +387,6 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// The <see cref="Task{IOperationResult}" /> object representing asynchcronous operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         public async Task<IOperationResult<T>> ReadFromReplicaAsync<T>(ReplicaRead<T> operation)
         {
             var tcs = new TaskCompletionSource<IOperationResult<T>>();
@@ -470,6 +469,23 @@ namespace Couchbase.Core.Buckets
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries and opaque{2}. Reason: {3}";
                 Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+            }
+        }
+
+        public void UpdateConfig()
+        {
+            var node = ConfigInfo.GetDataNode();
+            if (node != null && !node.IsDown)
+            {
+                Log.InfoFormat("Updating config on {0} using rev#{1}", node.EndPoint, node.Revision);
+                var result = node.Send(new Config(ClusterController.Transcoder,
+                    ConfigInfo.ClientConfig.DefaultOperationLifespan,
+                    node.EndPoint));
+
+                if (result.Success)
+                {
+                    ClusterController.NotifyConfigPublished(result.Value);
+                }
             }
         }
     }

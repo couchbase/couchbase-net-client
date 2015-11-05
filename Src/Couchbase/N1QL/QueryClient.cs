@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Security.AccessControl;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -112,7 +113,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
-            return  await ExecuteQueryAsync<QueryPlan>(query);
+            return await ExecuteQueryAsync<QueryPlan>(query).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -164,7 +165,7 @@ namespace Couchbase.N1QL
             //shortcut for adhoc requests
             if (queryRequest.IsAdHoc)
             {
-                return await ExecuteQueryAsync<T>(queryRequest);
+                return await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
             }
 
             //optimize, return an error result if optimization step cannot complete
@@ -180,11 +181,11 @@ namespace Couchbase.N1QL
             }
 
             //execute first attempt
-            var result = await ExecuteQueryAsync<T>(queryRequest);
+            var result = await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
             //if needed, do a second attempt after having cleared the cache
             if (CheckRetry<T>(queryRequest, result))
             {
-                return await RetryAsync<T>(queryRequest);
+                return await RetryAsync<T>(queryRequest).ContinueOnAnyContext();
             }
             else
             {
@@ -311,7 +312,6 @@ namespace Couchbase.N1QL
             }
         }
 
-
         /// <summary>
         /// Executes the <see cref="IQueryRequest"/> using HTTP POST to the Couchbase Server.
         /// </summary>
@@ -322,10 +322,11 @@ namespace Couchbase.N1QL
         IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
         {
             var queryResult = new QueryResult<T>();
+            var baseUri = ConfigContextBase.GetQueryUri();
             try
             {
-                var request = WebRequest.Create(queryRequest.GetBaseUri());
-                request.Timeout = (int)_clientConfig.QueryRequestTimeout;
+                var request = WebRequest.Create(baseUri);
+                request.Timeout = (int) _clientConfig.QueryRequestTimeout;
                 request.Method = "POST";
                 request.ContentType = "application/json";
 
@@ -343,7 +344,15 @@ namespace Couchbase.N1QL
                 {
                     queryResult = DataMapper.Map<QueryResult<T>>(stream);
                     queryResult.Success = queryResult.Status == QueryStatus.Success;
+                    queryResult.HttpStatusCode = queryResult.HttpStatusCode;
                 }
+                baseUri.ClearFailed();
+            }
+            catch (HttpRequestException e)
+            {
+                baseUri.IncrementFailed();
+                ProcessError(e, queryResult);
+                Log.Error(e);
             }
             catch (WebException e)
             {
@@ -373,25 +382,41 @@ namespace Couchbase.N1QL
         /// <remarks>The format for the querying is JSON</remarks>
         private async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
+            var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json")) {
                 try
                 {
-                    var request = await HttpClient.PostAsync(queryRequest.GetBaseUri(), content);
-                    using (var response = await request.Content.ReadAsStreamAsync())
+                    Log.TraceFormat("Sending: {0}", baseUri);
+                    var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
+                    using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         queryResult = DataMapper.Map<QueryResult<T>>(response);
                         queryResult.Success = queryResult.Status == QueryStatus.Success;
+                        queryResult.HttpStatusCode = request.StatusCode;
                     }
+                    baseUri.ClearFailed();
+                }
+                catch (HttpRequestException e)
+                {
+                    baseUri.IncrementFailed();
+                    ProcessError(e, queryResult);
+                    Log.Error(e);
                 }
                 catch (AggregateException ae)
                 {
                     ae.Flatten().Handle(e =>
                     {
-                        Log.Error(e);
+                        Log.InfoFormat("Failed: {0} {1}", baseUri, e);
                         ProcessError(e, queryResult);
                         return true;
                     });
+                }
+                catch (Exception e)
+                {
+                    Log.InfoFormat("Failed: {0} {1}", baseUri, e);
+                    Log.Info(e);
+                    ProcessError(e, queryResult);
                 }
             }
 
