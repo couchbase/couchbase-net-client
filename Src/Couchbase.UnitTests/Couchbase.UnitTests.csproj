@@ -69,7 +69,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\Serialization\DefaultSerializerTests.cs" />
+    <Compile Include="Core\Serialization\DeserializationOptionsTests.cs" />
     <Compile Include="CouchbaseBucketTests.cs" />
+    <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
