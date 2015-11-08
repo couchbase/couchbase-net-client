@@ -311,6 +311,24 @@ namespace Couchbase.N1QL
             }
         }
 
+        /// <summary>
+        /// Returns the <see cref="IDataMapper"/> to use for a given <see cref="IQueryRequest"/>
+        /// </summary>
+        /// <param name="queryRequest">Request to get the <see cref="IDataMapper"/> for</param>
+        /// <returns><see cref="IDataMapper"/> to use for the request</returns>
+        internal IDataMapper GetDataMapper(IQueryRequest queryRequest)
+        {
+            var requestWithMapper = queryRequest as IQueryRequestWithDataMapper;
+
+            if (requestWithMapper != null)
+            {
+                return requestWithMapper.DataMapper ?? DataMapper;
+            }
+            else
+            {
+                return DataMapper;
+            }
+        }
 
         /// <summary>
         /// Executes the <see cref="IQueryRequest"/> using HTTP POST to the Couchbase Server.
@@ -341,7 +359,7 @@ namespace Couchbase.N1QL
                 var response = request.GetResponse();
                 using (var stream = response.GetResponseStream())
                 {
-                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                    queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);
                     queryResult.Success = queryResult.Status == QueryStatus.Success;
                 }
             }
@@ -350,7 +368,7 @@ namespace Couchbase.N1QL
                 if (e.Response != null)
                 {
                     var stream = e.Response.GetResponseStream();
-                    queryResult = DataMapper.Map<QueryResult<T>>(stream);
+                    queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);
                     queryResult.HttpStatusCode = ((HttpWebResponse) e.Response).StatusCode;
                 }
                 queryResult.Exception = e;
@@ -380,7 +398,7 @@ namespace Couchbase.N1QL
                     var request = await HttpClient.PostAsync(queryRequest.GetBaseUri(), content);
                     using (var response = await request.Content.ReadAsStreamAsync())
                     {
-                        queryResult = DataMapper.Map<QueryResult<T>>(response);
+                        queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(response);
                         queryResult.Success = queryResult.Status == QueryStatus.Success;
                     }
                 }

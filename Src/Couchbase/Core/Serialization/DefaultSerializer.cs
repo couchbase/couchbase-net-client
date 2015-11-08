@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -8,8 +11,10 @@ namespace Couchbase.Core.Serialization
     /// <summary>
     /// The default serializer for the Couchbase.NET SDK. Uses Newtonsoft.JSON as the the serializer.
     /// </summary>
-    public class DefaultSerializer : ITypeSerializer
+    public class DefaultSerializer : IExtendedTypeSerializer
     {
+        #region Constructors
+
         public DefaultSerializer() : this(
             new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() },
             new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() })
@@ -20,6 +25,31 @@ namespace Couchbase.Core.Serialization
         {
             DeserializationSettings = deserializationSettings;
             SerializerSettings = serializerSettings;
+        }
+
+        #endregion
+
+        #region Fields
+
+        private JsonSerializerSettings _deserializationSettings;
+        private DeserializationOptions _deserializationOptions;
+
+        #endregion
+
+        #region Properties
+
+        private static readonly SupportedDeserializationOptions StaticSupportedDeserializationOptions =
+            new SupportedDeserializationOptions()
+            {
+                CustomObjectCreator = true
+            };
+
+        /// <summary>
+        /// Informs consumers what deserialization options this <see cref="IExtendedTypeSerializer"/> supports.
+        /// </summary>
+        public SupportedDeserializationOptions SupportedDeserializationOptions
+        {
+            get { return StaticSupportedDeserializationOptions; }
         }
 
         /// <summary>
@@ -36,8 +66,38 @@ namespace Couchbase.Core.Serialization
         /// <value>
         /// The incoming serializer settings.
         /// </value>
-        public JsonSerializerSettings DeserializationSettings { get; private set; }
+        public JsonSerializerSettings DeserializationSettings {
+            get { return _deserializationSettings; }
+            private set
+            {
+                _deserializationSettings = value;
 
+                EffectiveDeserializationSettings = GetDeserializationSettings(_deserializationSettings,
+                    _deserializationOptions);
+            }
+        }
+
+        /// <summary>
+        /// Provides custom deserialization options.  Options not listed in <see cref="IExtendedTypeSerializer.SupportedDeserializationOptions"/>
+        /// will be ignored.  If null, then defaults will be used.
+        /// </summary>
+        public DeserializationOptions DeserializationOptions
+        {
+            get { return _deserializationOptions; }
+            set
+            {
+                _deserializationOptions = value;
+
+                EffectiveDeserializationSettings = GetDeserializationSettings(_deserializationSettings,
+                    _deserializationOptions);
+            }
+        }
+
+        internal JsonSerializerSettings EffectiveDeserializationSettings { get; set; }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Deserializes the specified buffer into the <see cref="Type"/> T specified as a generic parameter.
@@ -49,7 +109,7 @@ namespace Couchbase.Core.Serialization
         /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
         public T Deserialize<T>(byte[] buffer, int offset, int length)
         {
-            T value = default (T);
+            T value = default(T);
             if (length == 0) return value;
             using (var ms = new MemoryStream(buffer, offset, length))
             {
@@ -57,7 +117,7 @@ namespace Couchbase.Core.Serialization
                 {
                     using (var jr = new JsonTextReader(sr))
                     {
-                        var serializer = JsonSerializer.Create(DeserializationSettings);
+                        var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
 
                         //use the following code block only for value types
                         //strangely enough Nullable<T> itself is a value type so we need to filter it out
@@ -109,8 +169,97 @@ namespace Couchbase.Core.Serialization
         {
             using (var streamReader = new StreamReader(stream))
             {
-                return JsonConvert.DeserializeObject<T>(streamReader.ReadToEnd(), DeserializationSettings);
+                return JsonConvert.DeserializeObject<T>(streamReader.ReadToEnd(), EffectiveDeserializationSettings);
             }
         }
+
+        /// <summary>
+        /// Get the name which will be used for a given member during serialization/deserialization.
+        /// </summary>
+        /// <param name="member">Returns the name of this member.</param>
+        /// <returns>
+        /// The name which will be used for a given member during serialization/deserialization,
+        /// or null if if will not be serialized.
+        /// </returns>
+        /// <remarks>
+        /// DefaultSerializer uses <see cref="JsonSerializerSettings.ContractResolver"/> from <see cref="SerializerSettings"/>
+        /// to determine the member name.
+        /// </remarks>
+        public string GetMemberName(MemberInfo member)
+        {
+            if (member == null)
+            {
+                throw new ArgumentNullException("member");
+            }
+
+            var contract = SerializerSettings.ContractResolver.ResolveContract(member.DeclaringType) as JsonObjectContract;
+
+            if (contract != null)
+            {
+                var property = contract.Properties.FirstOrDefault(
+                    p => p.UnderlyingName == member.Name && !p.Ignored);
+
+                if (property != null)
+                {
+                    return property.PropertyName;
+                }
+            }
+
+            // No match found, or property is ignored
+            return null;
+        }
+
+        protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions options)
+        {
+            if ((options == null) || !options.HasSettings)
+            {
+                // No custom deserialization, so use baseSettings directly
+
+                return baseSettings;
+            }
+
+            var settings = new JsonSerializerSettings()
+            {
+                Binder = baseSettings.Binder,
+                CheckAdditionalContent = baseSettings.CheckAdditionalContent,
+                ConstructorHandling = baseSettings.ConstructorHandling,
+                Context = baseSettings.Context,
+                ContractResolver = baseSettings.ContractResolver,
+                Converters = new List<JsonConverter>(baseSettings.Converters),
+                Culture = baseSettings.Culture,
+                DateFormatHandling = baseSettings.DateFormatHandling,
+                DateFormatString = baseSettings.DateFormatString,
+                DateParseHandling = baseSettings.DateParseHandling,
+                DateTimeZoneHandling = baseSettings.DateTimeZoneHandling,
+                DefaultValueHandling = baseSettings.DefaultValueHandling,
+                FloatFormatHandling = baseSettings.FloatFormatHandling,
+                FloatParseHandling = baseSettings.FloatParseHandling,
+                Formatting = baseSettings.Formatting,
+                MaxDepth = baseSettings.MaxDepth,
+                NullValueHandling = baseSettings.NullValueHandling,
+                ObjectCreationHandling = baseSettings.ObjectCreationHandling,
+                PreserveReferencesHandling = baseSettings.PreserveReferencesHandling,
+                ReferenceLoopHandling = baseSettings.ReferenceLoopHandling,
+                StringEscapeHandling = baseSettings.StringEscapeHandling,
+                TraceWriter = baseSettings.TraceWriter,
+                TypeNameAssemblyFormat = baseSettings.TypeNameAssemblyFormat,
+                TypeNameHandling = baseSettings.TypeNameHandling
+            };
+
+            if (baseSettings.ReferenceResolver != null)
+            {
+                // Backwards compatibility issue in Newtonsoft.Json 7.0.1 causes setting a null reference resolver to error instead of using default
+                settings.ReferenceResolver = baseSettings.ReferenceResolver;
+            }
+
+            if (options.CustomObjectCreator != null)
+            {
+                settings.Converters.Add(new JsonNetCustomObjectCreatorWrapper(options.CustomObjectCreator));
+            }
+
+            return settings;
+        }
+
+        #endregion
     }
 }

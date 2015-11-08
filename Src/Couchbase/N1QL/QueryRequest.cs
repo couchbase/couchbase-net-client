@@ -6,13 +6,14 @@ using Newtonsoft.Json;
 using System.Net;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.Views;
 
 namespace Couchbase.N1QL
 {
     /// <summary>
     /// Builds a N1QL query request.
     /// </summary>
-    public class QueryRequest : IQueryRequest
+    public class QueryRequest : IQueryRequestWithDataMapper
     {
         private string _statement;
         private QueryPlan _preparedPayload;
@@ -115,6 +116,12 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
         public bool HasBeenRetried { get; set; }
+
+        /// <summary>
+        /// Custom <see cref="IDataMapper"/> to use when deserializing query results.
+        /// </summary>
+        /// <remarks>Null will use the default <see cref="IDataMapper"/>.</remarks>
+        public IDataMapper DataMapper { get; set; }
 
         /// <summary>
         /// If set to false, the client will try to perform optimizations

@@ -113,8 +113,13 @@
     <Compile Include="Core\NodeAdapter.cs" />
     <Compile Include="Core\NodeUnavailableException.cs" />
     <Compile Include="Core\Serialization\DefaultSerializer.cs" />
+    <Compile Include="Core\Serialization\IExtendedTypeSerializer.cs" />
+    <Compile Include="Core\Serialization\ICustomObjectCreator.cs" />
     <Compile Include="Core\Serialization\ITypeSerializer.cs" />
+    <Compile Include="Core\Serialization\JsonNetCustomObjectCreatorWrapper.cs" />
     <Compile Include="Core\Serialization\SerializerFactory.cs" />
+    <Compile Include="Core\Serialization\SupportedDeserializationOptions.cs" />
+    <Compile Include="Core\Serialization\DeserializationOptions.cs" />
     <Compile Include="Core\Services\ServiceNotSupportedException.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
@@ -248,6 +253,7 @@
     <Compile Include="N1QL\Compression.cs" />
     <Compile Include="N1QL\Encoding.cs" />
     <Compile Include="N1QL\Format.cs" />
+    <Compile Include="N1QL\IQueryRequestWithDataMapper.cs" />
     <Compile Include="N1QL\Method.cs" />
     <Compile Include="N1QL\IQueryRequest.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
