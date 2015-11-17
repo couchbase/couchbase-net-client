@@ -264,9 +264,8 @@ namespace Couchbase.Core.Buckets
 
                     //Wait for all tasks to finish
                     await Task.WhenAll(tasks.ToArray()).ContinueOnAnyContext();
-                    var mutated = tasks.All(subtask => subtask.Result);
-
-                    return p.IsDurabilityMet() && !mutated;
+                    var notMutated = tasks.All(subtask => subtask.Result);
+                    return p.IsDurabilityMet() && notMutated;
                 }, observeParams, operation, _interval, cts.Token).ContinueOnAnyContext();
                 return task;
             }
@@ -365,8 +364,8 @@ namespace Couchbase.Core.Buckets
             var replicas = observeParams.GetReplicas();
 
             //Check each replica to see if has met the durability constraints specified. A mutation means we failed.
-            var mutated = replicas.All(index => CheckReplica(observeParams, operation, index));
-            return observeParams.IsDurabilityMet() && !mutated;
+            var notMutated = replicas.All(index => CheckReplica(observeParams, operation, index));
+            return observeParams.IsDurabilityMet() && notMutated;
         }
 
         /// <summary>
