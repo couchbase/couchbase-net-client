@@ -80,6 +80,14 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Returns the <see cref="ICluster"/> that this bucket belongs to
+        /// </summary>
+        public ICluster Cluster
+        {
+            get { return _clusterController != null ? _clusterController.Cluster : null; }
+        }
+
+        /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.
         /// </summary>
         /// <remarks>If the server is not available (<see cref="ServerUnavailableException"/>), will default to false.</remarks>

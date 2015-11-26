@@ -9,6 +9,8 @@ namespace Couchbase.Core
 {
     internal interface IClusterController : IConfigPublisher, IDisposable
     {
+        ICluster Cluster { get; }
+
         List<IConfigProvider> ConfigProviders { get; }
 
         ClientConfiguration Configuration { get; }
