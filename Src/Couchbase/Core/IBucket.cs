@@ -27,6 +27,11 @@ namespace Couchbase.Core
         Buckets.BucketTypeEnum BucketType { get; }
 
         /// <summary>
+        /// Returns the <see cref="ICluster"/> that this bucket belongs to
+        /// </summary>
+        ICluster Cluster { get; }
+
+        /// <summary>
         /// Checks for the existance of a given key.
         /// </summary>
         /// <param name="key">The key to check.</param>
