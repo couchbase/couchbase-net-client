@@ -477,6 +477,7 @@ namespace Couchbase.N1QL
         {
             const string message = "Check Exception and Error fields for details.";
             queryResult.Status = QueryStatus.Fatal;
+            queryResult.HttpStatusCode = HttpStatusCode.BadRequest;
             queryResult.Success = false;
             queryResult.Message = message;
             queryResult.Exception = ex;
