@@ -50,7 +50,7 @@ namespace Couchbase.Core
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
             this(ioStrategy,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration),
+                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
@@ -59,7 +59,7 @@ namespace Couchbase.Core
             IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
                 this(ioStrategy,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
+                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration, queryCache),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }

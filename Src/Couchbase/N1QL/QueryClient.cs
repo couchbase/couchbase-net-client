@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.AccessControl;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using Couchbase.Utils;
@@ -22,24 +24,29 @@ namespace Couchbase.N1QL
     internal class QueryClient : IQueryClient
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
-
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
-
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
+        private readonly IBucketConfig _bucketConfig;
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig)
-            : this(httpClient,dataMapper, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, IBucketConfig bucketConfig, ClientConfiguration clientConfig)
+            : this(httpClient,dataMapper, bucketConfig, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
         {
         }
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, IBucketConfig bucketConfig, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
             _clientConfig = clientConfig;
             HttpClient.Timeout = new TimeSpan(0, 0, 0, (int)_clientConfig.QueryRequestTimeout);
             _queryCache = queryCache;
+            _bucketConfig = bucketConfig;
+
+            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+               "Basic", Convert.ToBase64String(
+               System.Text.Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password))));
+
         }
 
         /// <summary>

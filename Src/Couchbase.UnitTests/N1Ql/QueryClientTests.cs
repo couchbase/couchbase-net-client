@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.N1QL;
 using Couchbase.Views;
 using Moq;
@@ -27,7 +28,7 @@ namespace Couchbase.UnitTests.N1Ql
 
             var queryRequest = new Mock<IQueryRequest>();
 
-            var queryClient = new QueryClient(new HttpClient(), dataMapper.Object, new ClientConfiguration(),
+            var queryClient = new QueryClient(new HttpClient(), dataMapper.Object, new BucketConfig(), new ClientConfiguration(),
                 new ConcurrentDictionary<string, QueryPlan>());
 
             // Act
@@ -49,7 +50,7 @@ namespace Couchbase.UnitTests.N1Ql
             var queryRequest = new Mock<IQueryRequestWithDataMapper>();
             queryRequest.SetupProperty(p => p.DataMapper, null);
 
-            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new ClientConfiguration(),
+            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new BucketConfig(), new ClientConfiguration(),
                 new ConcurrentDictionary<string, QueryPlan>());
 
             // Act
@@ -72,7 +73,7 @@ namespace Couchbase.UnitTests.N1Ql
             var queryRequest = new Mock<IQueryRequestWithDataMapper>();
             queryRequest.SetupProperty(p => p.DataMapper, requestDataMapper.Object);
 
-            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new ClientConfiguration(),
+            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new BucketConfig(), new ClientConfiguration(),
                 new ConcurrentDictionary<string, QueryPlan>());
 
             // Act
