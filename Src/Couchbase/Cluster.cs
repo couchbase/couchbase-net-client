@@ -54,8 +54,13 @@ namespace Couchbase
         /// </summary>
         /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
         public Cluster(ClientConfiguration configuration)
-            : this(configuration, new ClusterController(configuration))
         {
+            // can't use ": this(" to call the other constructor because we need to pass "this" to the ClusterController constructor
+            // so we have a bit of code duplication here
+
+            _configuration = configuration;
+            _clusterController = new ClusterController(this, configuration);
+            LogConfigurationAndVersion(_configuration);
         }
 
         /// <summary>

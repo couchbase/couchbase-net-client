@@ -95,6 +95,14 @@ namespace Couchbase
         public string Name { get; set; }
 
         /// <summary>
+        /// Returns the <see cref="ICluster"/> that this bucket belongs to
+        /// </summary>
+        public ICluster Cluster
+        {
+            get { return _clusterController != null ? _clusterController.Cluster : null; }
+        }
+
+        /// <summary>
         /// Called when a configuration update has occurred from the server.
         /// </summary>
         /// <param name="configInfo">The new configuration</param>

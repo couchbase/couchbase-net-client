@@ -43,6 +43,15 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public void Test_GetBucket_HasCluster()
+        {
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                Assert.AreEqual(_cluster, bucket.Cluster);
+            }
+        }
+
+        [Test]
         public void When_Key_Does_Not_Exist_Exists_Returns_False()
         {
             var key = "thekeythatdoesnotexists_perhaps";

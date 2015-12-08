@@ -65,6 +65,12 @@ namespace Couchbase.Core
         {
         }
 
+        public ClusterController(ICluster cluster, ClientConfiguration clientConfig)
+            : this(clientConfig)
+        {
+            Cluster = cluster;
+        }
+
         public ClusterController(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
             : this(clientConfig,
             ioStrategyFactory,
@@ -102,6 +108,8 @@ namespace Couchbase.Core
             Transcoder = transcoder;
             Initialize();
         }
+
+        public ICluster Cluster { get; private set; }
 
         public IByteConverter Converter { get; private set; }
 

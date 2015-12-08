@@ -192,7 +192,7 @@ namespace Couchbase
             }
 
             configuration.Initialize();
-            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
+            var factory = new Func<Cluster>(() => new Cluster(configuration));
             Initialize(factory);
         }
 
@@ -220,7 +220,7 @@ namespace Couchbase
             var configuration = new ClientConfiguration(configurationSection);
             configuration.Initialize();
 
-            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
+            var factory = new Func<Cluster>(() => new Cluster(configuration));
             Initialize(factory);
         }
 
