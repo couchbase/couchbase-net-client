@@ -21,14 +21,18 @@ namespace Couchbase.IO.Utils
         /// <remarks>Credit: <see href="http://blogs.msdn.com/b/lcleeton/archive/2006/09/15/754932.aspx"/></remarks>
         public static void SetKeepAlives(this Socket socket, bool on, uint time, uint interval)
         {
-            const uint temp = 0;
-            var values = new byte[Marshal.SizeOf(temp)*3];
-            BitConverter.GetBytes((uint) (on ? 1 : 0)).CopyTo(values, 0);
-            BitConverter.GetBytes(time).CopyTo(values, Marshal.SizeOf(temp));
-            BitConverter.GetBytes(interval).CopyTo(values, Marshal.SizeOf(temp)*2);
-            socket.IOControl(IOControlCode.KeepAliveValues, values, null);
-        }
-
+            // TODO: PlatformNotSupportedException
+            
+// #if DNXCORE50
+//            socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.KeepAlive, true);
+// #else            
+//             const uint temp = 0;
+//             var values = new byte[Marshal.SizeOf(temp)*3];
+//             BitConverter.GetBytes((uint) (on ? 1 : 0)).CopyTo(values, 0);
+//             BitConverter.GetBytes(time).CopyTo(values, Marshal.SizeOf(temp));
+//             BitConverter.GetBytes(interval).CopyTo(values, Marshal.SizeOf(temp)*2);
+//             socket.IOControl(IOControlCode.KeepAliveValues, values, null);
+// #endif
         }
     }
 }
