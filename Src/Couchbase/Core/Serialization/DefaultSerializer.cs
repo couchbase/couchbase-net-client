@@ -121,7 +121,7 @@ namespace Couchbase.Core.Serialization
 
                         //use the following code block only for value types
                         //strangely enough Nullable<T> itself is a value type so we need to filter it out
-                        if (typeof(T).IsValueType && (!typeof(T).IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
+                        if (typeof(T).GetTypeInfo().IsValueType && (!typeof(T).GetTypeInfo().IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
                         {
                             //we can't declare Nullable<T> because T is not restricted to struct in this method scope
                             object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));

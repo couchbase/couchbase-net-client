@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 
 namespace Couchbase.Utils
@@ -124,7 +125,7 @@ namespace Couchbase.Utils
                 var count = 0;
                 foreach (var item in array)
                 {
-                    if (item.GetType().BaseType == typeof (Array))
+                    if (item.GetType().GetTypeInfo().BaseType == typeof (Array))
                     {
                         var jagged = (Array)item;
                         foreach (var inner in jagged)

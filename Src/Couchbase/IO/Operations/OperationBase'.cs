@@ -2,6 +2,7 @@
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
 using System;
+using System.Reflection;
 
 namespace Couchbase.IO.Operations
 {
@@ -23,7 +24,7 @@ namespace Couchbase.IO.Operations
         public override byte[] CreateBody()
         {
             byte[] bytes;
-            if (typeof(T).IsValueType)
+            if (typeof(T).GetTypeInfo().IsValueType)
             {
                 bytes = Transcoder.Encode(RawValue, Flags, OperationCode);
             }
