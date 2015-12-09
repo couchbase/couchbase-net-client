@@ -25,20 +25,22 @@ namespace Couchbase.Utils
             IPAddress ipAddress = null;
             if (!IPAddress.TryParse(uri.Host, out ipAddress))
             {
-                try
-                {
-                    var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
-                    foreach (var host in hostEntry.AddressList)
-                    {
-                        if (host.AddressFamily != AddressFamily.InterNetwork) continue;
-                        ipAddress = host;
-                        break;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.Error("Could not resolve hostname to IP", e);
-                }
+                //TODO: find solution to resolve DNS
+                throw new UnsupportedAddressFamilyException(uri.OriginalString);
+                // try
+                // {
+                //     var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
+                //     foreach (var host in hostEntry.AddressList)
+                //     {
+                //         if (host.AddressFamily != AddressFamily.InterNetwork) continue;
+                //         ipAddress = host;
+                //         break;
+                //     }
+                // }
+                // catch (Exception e)
+                // {
+                //     Log.Error("Could not resolve hostname to IP", e);
+                // }
             }
             if (ipAddress == null)
             {
