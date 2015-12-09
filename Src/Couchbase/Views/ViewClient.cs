@@ -88,7 +88,8 @@ namespace Couchbase.Views
             try
             {
                 var request = WebRequest.Create(query.RawUri());
-                request.Timeout = _clientConfig.ViewRequestTimeout;
+                //TODO: implement timeout
+                // request.Timeout = _clientConfig.ViewRequestTimeout;
                 WriteAuthenticationHeaders(request, _bucketConfig.Name, _bucketConfig.Password);
                 using (var response = request.GetResponseAsync().Result as HttpWebResponse)
                 {

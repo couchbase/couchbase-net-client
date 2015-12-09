@@ -345,7 +345,8 @@ namespace Couchbase.N1QL
             try
             {
                 var request = WebRequest.Create(baseUri);
-                request.Timeout = (int) _clientConfig.QueryRequestTimeout;
+                //TODO: implement timeout
+                // request.Timeout = (int) _clientConfig.QueryRequestTimeout;
                 request.Method = "POST";
                 request.ContentType = "application/json";
 
