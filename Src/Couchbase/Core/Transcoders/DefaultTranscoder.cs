@@ -44,6 +44,7 @@ namespace Couchbase.Core.Transcoders
         {
             var dataFormat = DataFormat.Json;
             var typeCode = Type.GetTypeCode(typeof(T));
+            var typeCode = ((IConvertible)value).GetTypeCode();
             switch (typeCode)
             {
                 case TypeCode.Object:
@@ -274,6 +275,7 @@ namespace Couchbase.Core.Transcoders
             object value = default(T);
 
             var typeCode = Type.GetTypeCode(typeof(T));
+            var typeCode = ((IConvertible)value).GetTypeCode();
             switch (typeCode)
             {
                 case TypeCode.Empty:
