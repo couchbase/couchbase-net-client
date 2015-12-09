@@ -66,9 +66,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                         IBucketConfig newConfig;
                         var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
-                        using (var webClient = new AuthenticatingWebClient(bucketName, password))
+                        using (var webClient = new AuthenticatingHttpClient(bucketName, password))
                         {
-                            var body = webClient.DownloadString(uri);
+                            var body = webClient.GetStringAsync(uri).Result;
                             body = body.Replace("$HOST", uri.Host);
                             newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
                         }
@@ -124,6 +124,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                 var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler,
                     cancellationTokenSource.Token);
+                    
                 var thread = new Thread(configThreadState.ListenForConfigChanges)
                 {
                     IsBackground = true

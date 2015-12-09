@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -16,7 +17,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// <summary>
     /// A configuration info class for supporting HTTP streaming provider.
     /// </summary>
-    internal class HttpServerConfig : AuthenticatingWebClient, IServerConfig
+    internal class HttpServerConfig : AuthenticatingHttpClient, IServerConfig
     {
         private readonly static ILog Log = LogManager.GetLogger<HttpServerConfig>();
         private readonly ClientConfiguration _clientConfig;
@@ -81,7 +82,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 {
                     if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        throw new AuthenticationException(BucketName, e);
+                        throw new AuthenticationException(UserName, e);
                     }
                 }
             }
@@ -111,16 +112,21 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         T DownLoadConfig<T>(Uri uri)
         {
-            ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
-            var response = ReplaceHost(DownloadString(uri), uri);
+            //TODO: find the way for dnxcore50 System.Net.Http 
+            // ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
+            
+            var client = new HttpClient();
+            var str = client.GetStringAsync(uri).Result;
+            var response = ReplaceHost(str, uri);
+            
             return JsonConvert.DeserializeObject<T>(response);
         }
 
-        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
-            return true;
-        }
+        // private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        // {
+        //     Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
+        //     return true;
+        // }
 
         static string ReplaceHost(string response, Uri uri)
         {

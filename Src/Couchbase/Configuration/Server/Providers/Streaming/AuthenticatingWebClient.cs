@@ -1,22 +1,22 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
+using System.Net.Http;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
     /// <summary>
     /// Represents a WebClient capable of supporting SASL authentication.
     /// </summary>
-    internal class AuthenticatingWebClient : WebClient
+    internal class AuthenticatingHttpClient : HttpClient
     {
-        public AuthenticatingWebClient()
+        public AuthenticatingHttpClient()
             : this("default", string.Empty)
         {
         }
 
-        public AuthenticatingWebClient(string username, string password)
+        public AuthenticatingHttpClient(string username, string password) 
+            : base(new HttpClientHandler { Credentials = new NetworkCredential(username, password) })
         {
-            Credentials = new NetworkCredential(username, password);
-            BucketName = username;
+            UserName = username;
         }
 
         /// <summary>

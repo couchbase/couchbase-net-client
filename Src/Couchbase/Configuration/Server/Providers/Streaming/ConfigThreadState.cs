@@ -75,13 +75,15 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     var streamingUri = _bucketConfig.GetTerseStreamingUri(node, _bucketConfig.UseSsl);
                     Log.Info(m=>m("Listening to {0}", streamingUri));
 
-                    using (var webClient = new AuthenticatingWebClient(_bucketConfig.Name, _bucketConfig.Password))
-                    using (var stream = webClient.OpenRead(streamingUri))
+                    using (var httpClient = new AuthenticatingHttpClient(_bucketConfig.Name, _bucketConfig.Password))
+                    using (var stream = httpClient.GetStreamAsync(streamingUri).Result)
                     {
                         //this will cancel the infinite wait below - the temp variable removes
                         //chance of deadlock when dispose is called on the closure
-                        var temp = webClient;
-                        _cancellationToken.Register(temp.CancelAsync);
+                        
+                        var temp = httpClient;
+                        //TODO: can we use Dispose instead of Close?
+                        _cancellationToken.Register(temp.Dispose);
 
                         if (stream == null) return;
                         stream.ReadTimeout = Timeout.Infinite;
