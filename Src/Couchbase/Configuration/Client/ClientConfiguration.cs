@@ -24,7 +24,7 @@ namespace Couchbase.Configuration.Client
         private static readonly ILogger Log = new LoggerFactory().CreateLogger<ClientConfiguration>();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
-        private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
+        private readonly Uri _defaultServer = new Uri("http://127.0.0.1:8091/pools");
         private PoolConfiguration _poolConfiguration;
         private bool _poolConfigurationChanged;
         private List<Uri> _servers = new List<Uri>();
@@ -670,7 +670,7 @@ namespace Couchbase.Configuration.Client
                 const string msg = "One server is required for bootstrapping!";
                 throw new ArgumentNullException(msg);
             }
-            return uri.OriginalString != "http://localhost:8091/pools";
+            return uri.OriginalString != "http://127.0.0.1:8091/pools";
         }
 
         internal void Initialize()

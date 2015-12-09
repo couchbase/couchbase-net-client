@@ -29,7 +29,7 @@ namespace Couchbase.Core
                 Hostname = hostAndPorts[0];
                 if (Hostname.Contains("$HOST"))
                 {
-                    Hostname = "localhost";
+                    Hostname = "127.0.0.1";
                 }
                 MgmtApi = int.Parse(hostAndPorts[1]);
             }

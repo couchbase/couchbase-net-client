@@ -33,7 +33,7 @@ namespace Couchbase.Views
         private int? _connectionTimeout;
 
         //defaults
-        private const string DefaultHost = "localhost";
+        private const string DefaultHost = "127.0.0.1";
         private const uint DefaultPort = 8092;
         private const uint DefaultSslPort = 18092;
         private const string Http = "http";

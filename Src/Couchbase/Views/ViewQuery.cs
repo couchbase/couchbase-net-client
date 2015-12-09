@@ -22,8 +22,8 @@ namespace Couchbase.Views
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
         const string QueryArgPattern = "{0}={1}&";
-        private const string DefaultHost = "http://localhost:8092/";
-        private const string DefaultSslHost = "https://localhost:18092/";
+        private const string DefaultHost = "http://127.0.0.1:8092/";
+        private const string DefaultSslHost = "https://127.0.0.1:18092/";
         private const uint DefaultPort = 8092;
         private const uint DefaultSslPort = 18092;
         private const string Http = "http";
