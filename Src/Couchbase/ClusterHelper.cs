@@ -208,21 +208,23 @@ namespace Couchbase
             Initialize(factory);
         }
 
-        /// <summary>
-        /// Ctor for creating Cluster instance.
-        /// </summary>
-        /// <param name="configurationSectionName">The name of the configuration section to use.</param>
-        /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
-        public static void Initialize(string configurationSectionName)
-        {
-            var configurationSection =
-                (CouchbaseClientSection) ConfigurationManager.GetSection(configurationSectionName);
-            var configuration = new ClientConfiguration(configurationSection);
-            configuration.Initialize();
+        //TODO: refactor with future config system
+                
+        // /// <summary>
+        // /// Ctor for creating Cluster instance.
+        // /// </summary>
+        // /// <param name="configurationSectionName">The name of the configuration section to use.</param>
+        // /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
+        // public static void Initialize(string configurationSectionName)
+        // {
+        //     var configurationSection =
+        //         (CouchbaseClientSection) ConfigurationManager.GetSection(configurationSectionName);
+        //     var configuration = new ClientConfiguration(configurationSection);
+        //     configuration.Initialize();
 
-            var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
-            Initialize(factory);
-        }
+        //     var factory = new Func<Cluster>(() => new Cluster(configuration, new ClusterController(configuration)));
+        //     Initialize(factory);
+        // }
 
         /// <summary>
         /// Returns the number of <see cref="IBucket"/> instances internally cached by the <see cref="ClusterHelper"/>.
