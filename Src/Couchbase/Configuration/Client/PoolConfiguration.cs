@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Configuration;
-using Common.Logging;
-using Couchbase.Core;
 using Couchbase.IO;
 using Newtonsoft.Json;
 
@@ -21,7 +18,7 @@ namespace Couchbase.Configuration.Client
     /// SendTimeout = 15000;
     /// ConnectTimeout = 10000;
     /// </remarks>
-    public sealed class PoolConfiguration : ConfigurationElement
+    public sealed class PoolConfiguration
     {
         public const int DefaultSendTimeout = 15000;
 

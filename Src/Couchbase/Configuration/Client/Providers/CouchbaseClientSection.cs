@@ -1,14 +1,11 @@
-﻿using System;
-using System.Configuration;
-using Common.Logging;
-using Couchbase.Core;
+﻿using System.Collections.Generic;
 
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
     /// Allows the Client Configuration to be set through an App.config or a Web.config.
     /// </summary>
-    public sealed class CouchbaseClientSection : ConfigurationSection
+    public sealed class CouchbaseClientSection
     {
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
@@ -17,34 +14,17 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>This feature is only supported by Couchbase Cluster 3.0 and greater.</remarks>
         /// <remarks>Set to true to require all buckets to use SSL.</remarks>
         /// <remarks>Set to false and then set UseSSL at the individual Bucket level to use SSL on specific buckets.</remarks>
-        [ConfigurationProperty("useSsl", DefaultValue = false, IsRequired = false)]
-        public bool UseSsl
-        {
-            get { return (bool) this["useSsl"]; }
-            set { this["useSsl"] = value; }
-        }
+        public bool UseSsl { get; set; } = false;
 
         /// <summary>
         /// Sets the Couchbase Server's list of bootstrap URI's. The client will use the list to connect to initially connect to the cluster.
         /// </summary>
-        [ConfigurationProperty("servers", IsDefaultCollection = true)]
-        [ConfigurationCollection(typeof(UriElementCollection), AddItemName = "add", ClearItemsName = "clear", RemoveItemName = "remove")]
-        public UriElementCollection Servers
-        {
-            get { return (UriElementCollection) this["servers"]; }
-            set { this["servers"] = value; }
-        }
+        public IEnumerable<UriElement> Servers { get; set; } = new List<UriElement>();
 
         /// <summary>
         /// Allows specific configurations of Bucket's to be defined, overriding the parent's settings.
         /// </summary>
-        [ConfigurationProperty("buckets", IsDefaultCollection = true)]
-        [ConfigurationCollection(typeof(BucketElementCollection), AddItemName = "add", ClearItemsName = "clear", RemoveItemName = "remove")]
-        public BucketElementCollection Buckets
-        {
-            get { return (BucketElementCollection) this["buckets"]; }
-            set { this["buckets"] = value; }
-        }
+        public IEnumerable<BucketElement> Buckets { get; set; } = new List<BucketElement>();
 
         /// <summary>
         /// Overrides the default and sets the SSL port to use for Key/Value operations using the Binary Memcached protocol.
@@ -53,12 +33,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>Requires UseSSL to be true.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom SSL port.</remarks>
-        [ConfigurationProperty("sslPort", DefaultValue = 11207, IsRequired = false)]
-        public int SslPort
-        {
-            get { return (int)this["sslPort"]; }
-            set { this["sslPort"] = value; }
-        }
+        public int SslPort { get; set; } = 11207;
 
         /// <summary>
         /// Overrides the default and sets the Views REST API to use a custom port.
@@ -66,12 +41,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>The default and suggested port for the Views REST API is 8092.</remarks>
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Views REST API port.</remarks>
-        [ConfigurationProperty("apiPort", DefaultValue = 8092, IsRequired = false)]
-        public int ApiPort
-        {
-            get { return (int)this["apiPort"]; }
-            set { this["apiPort"] = value; }
-        }
+        public int ApiPort { get; set; } = 8092;
 
         /// <summary>
         /// Overrides the default and sets the Couchbase Management REST API to use a custom port.
@@ -79,12 +49,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>The default and suggested port for the Views REST API is 8091.</remarks>
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Management REST API port.</remarks>
-        [ConfigurationProperty("mgmtPort", DefaultValue = 8091, IsRequired = false)]
-        public int MgmtPort
-        {
-            get { return (int)this["mgmtPort"]; }
-            set { this["mgmtPort"] = value; }
-        }
+        public int MgmtPort { get; set; } = 8091;
 
         /// <summary>
         /// Overrides the default and sets the direct port to use for Key/Value operations using the Binary Memcached protocol.
@@ -92,12 +57,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>The default and suggested direct port is 11210.</remarks>
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom direct port.</remarks>
-        [ConfigurationProperty("directPort", DefaultValue = 11210, IsRequired = false)]
-        public int DirectPort
-        {
-            get { return (int)this["directPort"]; }
-            set { this["directPort"] = value; }
-        }
+        public int DirectPort { get; set; } = 11210;
 
         /// <summary>
         /// Overrides the default and sets the Couchbase Management REST API to use a custom SSL port.
@@ -106,12 +66,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>Requires UseSSL to be true.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Couchbase Management REST API SSL port.</remarks>
-        [ConfigurationProperty("httpsMgmtPort", DefaultValue = 18091, IsRequired = false)]
-        public int HttpsMgmtPort
-        {
-            get { return (int)this["httpsMgmtPort"]; }
-            set { this["httpsMgmtPort"] = value; }
-        }
+        public int HttpsMgmtPort { get; set; } = 18091;
 
         /// <summary>
         /// Overrides the default and sets the Couchbase Views REST API to use a custom SSL port.
@@ -120,134 +75,74 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>Only set if you wish to override the default behavior.</remarks>
         /// <remarks>Requires UseSSL to be true.</remarks>
         /// <remarks>The Couchbase Server/Cluster needs to be configured to use a custom Couchbase Views REST API SSL port.</remarks>
-        [ConfigurationProperty("httpsApiPort", DefaultValue = 18092, IsRequired = false)]
-        public int HttpsApiPort
-        {
-            get { return (int)this["httpsApiPort"]; }
-            set { this["httpsApiPort"] = value; }
-        }
+        public int HttpsApiPort { get; set; } = 18092;
 
         /// <summary>
         /// Gets or Sets the max time an observe operation will take before timing out.
         /// </summary>
-        [ConfigurationProperty("observeInterval", DefaultValue = 2, IsRequired = false)]
-        public int ObserveInterval
-        {
-            get { return (int)this["observeInterval"]; }
-            set { this["observeInterval"] = value; }
-        }
+        public int ObserveInterval { get; set; } = 2;
 
         /// <summary>
         /// Gets or Sets the interval between each observe attempt.
         /// </summary>
-        [ConfigurationProperty("observeTimeout", DefaultValue = 500, IsRequired = false)]
-        public int ObserveTimeout
-        {
-            get { return (int)this["observeTimeout"]; }
-            set { this["observeTimeout"] = value; }
-        }
+        public int ObserveTimeout { get; set; } = 500;
 
         /// <summary>
         /// The maximum number of times the client will retry a View operation if it has failed for a retriable reason.
         /// </summary>
-        [ConfigurationProperty("maxViewRetries", DefaultValue = 2, IsRequired = false)]
-        public int MaxViewRetries
-        {
-            get { return (int)this["maxViewRetries"]; }
-            set { this["maxViewRetries"] = value; }
-        }
+        public int MaxViewRetries { get; set; } = 2;
 
 
         /// <summary>
         /// The maximum number of times the client will retry a View operation if it has failed for a retriable reason.
         /// </summary>
-        [ConfigurationProperty("viewHardTimeout", DefaultValue = 30000, IsRequired = false)]
-        public int ViewHardTimeout
-        {
-            get { return (int)this["viewHardTimeout"]; }
-            set { this["viewHardTimeout"] = value; }
-        }
+        public int ViewHardTimeout { get; set; } = 30000;
 
         /// <summary>
         /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
         /// <remarks>The default is 10000ms.</remarks>
-        [ConfigurationProperty("heartbeatConfigInterval", DefaultValue = 10000, IsRequired = false)]
-        public int HeartbeatConfigInterval
-        {
-            get { return (int)this["heartbeatConfigInterval"]; }
-            set { this["heartbeatConfigInterval"] = value; }
-        }
+        public int HeartbeatConfigInterval { get; set; } = 10000;
 
         /// <summary>
         /// Enables configuration "heartbeat" checks.
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
         /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="HeartbeatConfigInterval"/> property.</remarks>
-        [ConfigurationProperty("enableConfigHeartBeat", DefaultValue = true, IsRequired = false)]
-        public bool EnableConfigHeartBeat
-        {
-            get { return (bool)this["enableConfigHeartBeat"]; }
-            set { this["enableConfigHeartBeat"] = value; }
-        }
+        public bool EnableConfigHeartBeat { get; set; } = true;
 
         /// <summary>
         /// Sets the timeout for each HTTP View request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>
         /// <remarks>The value must be greater than Zero.</remarks>
-        [ConfigurationProperty("viewRequestTimeout", DefaultValue = 75000, IsRequired = false)]
-        public int ViewRequestTimeout
-        {
-            get { return (int)this["viewRequestTimeout"]; }
-            set { this["viewRequestTimeout"] = value; }
-        }
+        public int ViewRequestTimeout { get; set; } = 75000;
 
         /// <summary>
         /// Sets the timeout for each HTTP N1QL query request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>
         /// <remarks>The value must be greater than Zero.</remarks>
-        [ConfigurationProperty("queryRequestTimeout", DefaultValue = "75000", IsRequired = false)]
-        public uint QueryRequestTimeout
-        {
-            get { return (uint)this["queryRequestTimeout"]; }
-            set { this["queryRequestTimeout"] = value; }
-        }
+        public uint QueryRequestTimeout { get; set; } = 75000;
 
         /// <summary>
         /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
         /// </summary>
         /// <remarks>The default is false.</remarks>
-        [ConfigurationProperty("expect100Continue", DefaultValue = false, IsRequired = false)]
-        public bool Expect100Continue
-        {
-            get { return (bool)this["expect100Continue"]; }
-            set { this["expect100Continue"] = value; }
-        }
+        public bool Expect100Continue { get; set; } = false;
 
         /// <summary>
         /// Writes the elasped time for an operation to the log appender. Disabled by default.
         /// </summary>
         /// <remarks>When enabled will cause severe performance degradation.</remarks>
         /// <remarks>Requires a <see cref="LogLevel"/>of DEBUG to be enabled as well.</remarks>
-        [ConfigurationProperty("enableOperationTiming", DefaultValue = false, IsRequired = false)]
-        public bool EnableOperationTiming
-        {
-            get { return (bool)this["enableOperationTiming"]; }
-            set { this["enableOperationTiming"] = value; }
-        }
+        public bool EnableOperationTiming { get; set; } = false;
 
         /// <summary>
         /// Gets or sets an uint value that determines the maximum lifespan of an operation before it is abandonned.
         /// </summary>
         /// <remarks>The default is 2500 (2.5 seconds).</remarks>
-        [ConfigurationProperty("operationLifespan", DefaultValue = (uint) 2500, IsRequired = false)]
-        public uint OperationLifespan
-        {
-            get { return (uint)this["operationLifespan"]; }
-            set { this["operationLifespan"] = value; }
-        }
+        public uint OperationLifespan { get; set; } = 2500;
 
         /// <summary>
         /// Gets or sets a value indicating whether enable TCP keep alives.
@@ -256,12 +151,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
         /// </value>
         /// <remarks>The default is true; TCP Keep Alives are enabled.</remarks>
-        [ConfigurationProperty("enableTcpKeepAlives", DefaultValue = true, IsRequired = false)]
-        public bool EnableTcpKeepAlives
-        {
-            get { return (bool)this["enableTcpKeepAlives"]; }
-            set { this["enableTcpKeepAlives"] = value; }
-        }
+        public bool EnableTcpKeepAlives { get; set; } = true;
 
         /// <summary>
         /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
@@ -270,12 +160,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// The TCP keep alive time in milliseconds.
         /// </value>
         /// <remarks>The default is 2hrs.</remarks>
-        [ConfigurationProperty("tcpKeepAliveTime", DefaultValue = ((uint)2 * 60 * 60 * 1000), IsRequired = false)]
-        public uint TcpKeepAliveTime
-        {
-            get { return (uint)this["tcpKeepAliveTime"]; }
-            set { this["tcpKeepAliveTime"] = value; }
-        }
+        public uint TcpKeepAliveTime { get; set; } = 2 * 60 * 60 * 1000;
 
         /// <summary>
         /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
@@ -284,12 +169,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// The TCP keep alive interval in milliseconds..
         /// </value>
         /// <remarks>The default is 1 second.</remarks>
-        [ConfigurationProperty("tcpKeepAliveInterval", DefaultValue = ((uint) 1000), IsRequired = false)]
-        public uint TcpKeepAliveInterval
-        {
-            get { return (uint) this["tcpKeepAliveInterval"]; }
-            set { this["tcpKeepAliveInterval"] = value; }
-        }
+        public uint TcpKeepAliveInterval { get; set; } = 1000;
 
         /// <summary>
         /// Gets or sets the transcoder.
@@ -297,12 +177,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The transcoder.
         /// </value>
-        [ConfigurationProperty("transcoder", IsRequired = false)]
-        public TranscoderElement Transcoder
-        {
-            get { return (TranscoderElement)this["transcoder"]; }
-            set { this["transcoder"] = value; }
-        }
+        public TranscoderElement Transcoder { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the converter.
@@ -310,12 +185,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The converter.
         /// </value>
-        [ConfigurationProperty("converter", IsRequired = false)]
-        public ConverterElement Converter
-        {
-            get { return (ConverterElement)this["converter"]; }
-            set { this["converter"] = value; }
-        }
+        public ConverterElement Converter { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the serializer.
@@ -323,12 +193,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The serializer.
         /// </value>
-        [ConfigurationProperty("serializer", IsRequired = false)]
-        public SerializerElement Serializer
-        {
-            get { return (SerializerElement)this["serializer"]; }
-            set { this["serializer"] = value; }
-        }
+        public SerializerElement Serializer { get; set; } = null;
 
         /// <summary>
         /// If the client detects that a node has gone offline it will check for connectivity at this interval.
@@ -337,12 +202,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The node available check interval.
         /// </value>
-        [ConfigurationProperty("nodeAvailableCheckInterval", DefaultValue = ((uint)1000), IsRequired = false)]
-        public uint NodeAvailableCheckInterval
-        {
-            get { return (uint)this["nodeAvailableCheckInterval"]; }
-            set { this["nodeAvailableCheckInterval"] = value; }
-        }
+        public uint NodeAvailableCheckInterval { get; set; } = 1000;
 
         /// <summary>
         /// Gets or sets the default connection pool settings.
@@ -350,12 +210,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The default connection pool settings.
         /// </value>
-        [ConfigurationProperty("connectionPool", IsRequired = false)]
-        public ConnectionPoolElement ConnectionPool
-        {
-            get { return (ConnectionPoolElement)this["connectionPool"]; }
-            set { this["connectionPool"] = value; }
-        }
+        public ConnectionPoolElement ConnectionPool { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the count of IO errors within a specific interval defined by the value of <see cref="IOErrorCheckInterval" />.
@@ -371,12 +226,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// </remarks>
         /// <remarks>The default is 10 errors.</remarks>
         /// <remarks>The lower limit is 0; the default will apply if this is exceeded.</remarks>
-        [ConfigurationProperty("ioErrorThreshold", IsRequired = false, DefaultValue = 10u)]
-        public uint IOErrorThreshold
-        {
-            get { return (uint)this["ioErrorThreshold"]; }
-            set { this["ioErrorThreshold"] = value; }
-        }
+        public uint IOErrorThreshold { get; set; } = 10u;
 
         /// <summary>
         /// Gets or sets the interval that the <see cref="IOErrorThreshold"/> will be checked. If the threshold is reached within the interval for a
@@ -389,12 +239,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// </value>
         /// <remarks>The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.</remarks>
         /// <remarks>The default is 500ms; use milliseconds to override this: 1000 = 1 second.</remarks>
-        [ConfigurationProperty("ioErrorCheckInterval", IsRequired = false, DefaultValue = 500u)]
-        public uint IOErrorCheckInterval
-        {
-            get { return (uint)this["ioErrorCheckInterval"]; }
-            set { this["ioErrorCheckInterval"] = value; }
-        }
+        public uint IOErrorCheckInterval { get; set; } = 500u;
 
         /// <summary>
         /// Gets or sets the query failed threshold for a <see cref="Uri"/> before it is flagged as "un-responsive".
@@ -406,12 +251,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The query failed threshold.
         /// </value>
-        [ConfigurationProperty("queryFailedThreshold", IsRequired = false, DefaultValue = 2)]
-        public int QueryFailedThreshold
-        {
-            get { return (int)this["queryFailedThreshold"]; }
-            set { this["queryFailedThreshold"] = value; }
-        }
+        public int QueryFailedThreshold { get; set; } = 2;
     }
 }
 

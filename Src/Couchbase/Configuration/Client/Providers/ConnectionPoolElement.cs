@@ -1,79 +1,46 @@
-﻿using System.Configuration;
-using Couchbase.IO;
-
-namespace Couchbase.Configuration.Client.Providers
+﻿namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
     /// Provides configuration support for the Bucket's <see cref="ConnectionPool{T}"/> object, which is pool of TCP connections.
     /// </summary>
-    public class ConnectionPoolElement : ConfigurationElement
+    public class ConnectionPoolElement
     {
         /// <summary>
         /// The name for the connection pool.
         /// </summary>
         /// <remarks>This is used internally and does not need to be set or customized.</remarks>
-        [ConfigurationProperty("name", DefaultValue = "default", IsRequired = false, IsKey = true)]
-        public string Name
-        {
-            get { return (string) this["name"]; }
-            set { this["name"] = value; }
-        }
+        public string Name { get; set; } = "default";
 
         /// <summary>
         /// The maximum number of TCP connections that the client will allocate for a given Bucket.
         /// </summary>
         /// <remarks>The default is two TCP connections per bucket.</remarks>
-        [ConfigurationProperty("maxSize", DefaultValue = 2, IsRequired = false)]
-        public int MaxSize
-        {
-            get { return (int) this["maxSize"]; }
-            set { this["maxSize"] = value; }
-        }
+        public int MaxSize { get; set; } = 2;
 
         /// <summary>
         /// The minimum number of TCP connections that the client will allocate for a given bucket.
         /// </summary>
         /// <remarks>The default is one TCP connection per bucket.</remarks>
         /// <remarks>The connection pool will add TCP connections until <see cref="MaxSize"/> is reached.</remarks>
-        [ConfigurationProperty("minSize", DefaultValue = 1, IsRequired = false)]
-        public int MinSize
-        {
-            get { return (int) this["minSize"]; }
-            set { this["minSize"] = value; }
-        }
+        public int MinSize { get; set; } = 1;
 
         /// <summary>
         /// The amount of time a thread will wait for a <see cref="IConnection"/> once the MaxSize of the pool has been reached and no TCP connections are available.
         /// </summary>
         /// <remarks>The default is 2500ms.</remarks>
-        [ConfigurationProperty("waitTimeout", DefaultValue = 2500, IsRequired = false)]
-        public int WaitTimeout
-        {
-            get { return (int)this["waitTimeout"]; }
-            set { this["waitTimeout"] = value; }
-        }
+        public int WaitTimeout { get; set; } = 2500;
 
         /// <summary>
         /// Wait up to the <see cref="ShutdownTimeout"/> to send or recieve data before closing the <see cref="IConnection"/>.
         /// </summary>
         /// <remarks>The default value is 10000ms.</remarks>
-        [ConfigurationProperty("shutdownTimeout", DefaultValue = 10000, IsRequired = false)]
-        public int ShutdownTimeout
-        {
-            get { return (int)this["shutdownTimeout"]; }
-            set { this["shutdownTimeout"] = value; }
-        }
+        public int ShutdownTimeout { get; set; } = 10000;
 
         /// <summary>
         /// Cancels a pending operation if it does not complete in the time given and marks the connection as dead.
         /// </summary>
         /// <remarks>The default value is 15000ms</remarks>
-        [ConfigurationProperty("sendTimeout", DefaultValue = 15000, IsRequired = false)]
-        public int SendTimeout
-        {
-            get { return (int) this["sendTimeout"]; }
-            set { this["sendTimeout"] = value; }
-        }
+        public int SendTimeout { get; set; } = 15000;
 
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
@@ -81,35 +48,20 @@ namespace Couchbase.Configuration.Client.Providers
         /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>
         /// <remarks>This feature is only supported by Couchbase Cluster 3.0 and greater.</remarks>
         /// <remarks>If the parent <see cref="CouchbaseClientSection"/>'s UseSSL is false, setting this to true will override that configuration and enable the Bucket to use SSL./></remarks>
-        [ConfigurationProperty("useSsl", DefaultValue = false, IsRequired = false)]
-        public bool UseSsl
-        {
-            get { return (bool)this["useSsl"]; }
-            set { this["useSsl"] = value; }
-        }
+        public bool UseSsl { get; set; } = false;
 
         /// <summary>
         /// The size of each buffer to allocate per TCP connection for sending and recieving Memcached operations
         /// </summary>
         /// <remarks>The default is 16K</remarks>
         /// <remarks>The total buffer size is BufferSize * PoolConfiguration.MaxSize</remarks>
-        [ConfigurationProperty("bufferSize", DefaultValue = 1024 * 16, IsRequired = false)]
-        public int BufferSize
-        {
-            get { return (int)this["bufferSize"]; }
-            set { this["bufferSize"] = value; }
-        }
+        public int BufferSize { get; set; } = 1024 * 16;
 
         /// <summary>
         /// The amount time allotted for the client to establish a TCP connection with a server before failing
         /// </summary>
         /// <remarks>The default value is 10000ms.</remarks>
-        [ConfigurationProperty("connectTimeout", DefaultValue = 10000, IsRequired = false)]
-        public int ConnectTimeout
-        {
-            get { return (int)this["connectTimeout"]; }
-            set { this["connectTimeout"] = value; }
-        }
+        public int ConnectTimeout { get; set; } = 10000;
 
         /// <summary>
         /// Gets or sets a value indicating whether enable TCP keep alives.
@@ -118,13 +70,8 @@ namespace Couchbase.Configuration.Client.Providers
         /// <c>true</c> to enable TCP keep alives; otherwise, <c>false</c>.
         /// </value>
         /// <remarks>The default is true; TCP Keep Alives are enabled.</remarks>
-        [ConfigurationProperty("enableTcpKeepAlives", DefaultValue = true, IsRequired = false)]
-        public bool EnableTcpKeepAlives
-        {
-            get { return (bool)this["enableTcpKeepAlives"]; }
-            set { this["enableTcpKeepAlives"] = value; }
-        }
-
+        public bool EnableTcpKeepAlives { get; set; } = true;
+        
         /// <summary>
         /// Specifies the timeout, in milliseconds, with no activity until the first keep-alive packet is sent.
         /// </summary>
@@ -132,12 +79,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// The TCP keep alive time in milliseconds.
         /// </value>
         /// <remarks>The default is 2hrs.</remarks>
-        [ConfigurationProperty("tcpKeepAliveTime", DefaultValue = ((uint)2 * 60 * 60 * 1000), IsRequired = false)]
-        public uint TcpKeepAliveTime
-        {
-            get { return (uint)this["tcpKeepAliveTime"]; }
-            set { this["tcpKeepAliveTime"] = value; }
-        }
+        public uint TcpKeepAliveTime { get; set; } = ((uint)2 * 60 * 60 * 1000);
 
         /// <summary>
         /// Specifies the interval, in milliseconds, between when successive keep-alive packets are sent if no acknowledgement is received.
@@ -146,12 +88,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// The TCP keep alive interval in milliseconds..
         /// </value>
         /// <remarks>The default is 1 second.</remarks>
-        [ConfigurationProperty("tcpKeepAliveInterval", DefaultValue = ((uint)1000), IsRequired = false)]
-        public uint TcpKeepAliveInterval
-        {
-            get { return (uint)this["tcpKeepAliveInterval"]; }
-            set { this["tcpKeepAliveInterval"] = value; }
-        }
+        public uint TcpKeepAliveInterval { get; set; } = 1000;
 
         /// <summary>
         /// Gets or sets the maximum number of times the client will try to close a <see cref="IConnection"/>
@@ -160,12 +97,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The maximum close attempts.
         /// </value>
-        [ConfigurationProperty("maxCloseAttempts", DefaultValue = (int)5, IsRequired = false)]
-        public int MaxCloseAttempts
-        {
-            get { return (int)this["maxCloseAttempts"]; }
-            set { this["maxCloseAttempts"] = value; }
-        }
+        public int MaxCloseAttempts { get; set; } = 5;
 
         /// <summary>
         /// Gets or sets the interval between close attempts on a <see cref="IConnection"/>
@@ -174,12 +106,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The close attempt interval.
         /// </value>
-        [ConfigurationProperty("closeAttemptInterval", DefaultValue = ((uint)100), IsRequired = false)]
-        public uint CloseAttemptInterval
-        {
-            get { return (uint)this["closeAttemptInterval"]; }
-            set { this["closeAttemptInterval"] = value; }
-        }
+        public uint CloseAttemptInterval  { get; set; } = 100;
     }
 }
 

@@ -1,22 +1,16 @@
 ﻿using System;
-using System.Configuration;
 
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
     /// Allows a server to be added to the bootstrap list within an <see cref="CouchbaseClientSection"/>.
     /// </summary>
-    public sealed class UriElement : ConfigurationElement
+    public sealed class UriElement
     {
         /// <summary>
         /// The <see cref="Uri"/> of the Couchbase server to connect to.
         /// </summary>
-        [ConfigurationProperty("uri", IsRequired = true, IsKey = true)]
-        public Uri Uri
-        {
-            get { return (Uri) this["uri"]; }
-            set { this["uri"] = value; }
-        }
+        public Uri Uri { get; set; }
     }
 }
 

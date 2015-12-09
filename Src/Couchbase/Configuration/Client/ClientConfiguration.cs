@@ -1,21 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
-using Couchbase.N1QL;
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
 {
@@ -25,7 +21,7 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public class ClientConfiguration
     {
-        private static readonly ILog Log = LogManager.GetLogger<ClientConfiguration>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<ClientConfiguration>();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
         private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
@@ -61,7 +57,7 @@ namespace Couchbase.Configuration.Client
             ObserveInterval = 10; //ms
             ObserveTimeout = 500; //ms
             MaxViewRetries = 2;
-            ViewHardTimeout = 30000; //ms
+            ViewRequestTimeout = 30000; //ms
             HeartbeatConfigInterval = 10000; //ms
             EnableConfigHeartBeat = true;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
@@ -130,7 +126,7 @@ namespace Couchbase.Configuration.Client
             ObserveInterval = section.ObserveInterval;
             ObserveTimeout = section.ObserveTimeout;
             MaxViewRetries = section.MaxViewRetries;
-            ViewHardTimeout = section.ViewHardTimeout;
+            ViewRequestTimeout = section.ViewHardTimeout;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             EnableConfigHeartBeat = section.EnableConfigHeartBeat;
@@ -198,34 +194,40 @@ namespace Couchbase.Configuration.Client
                 };
                 //Configuration properties (including elements) can not be null, but we can check if it was originally presnt in xml and skip it.
                 //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
-                if (bucket.ConnectionPool.ElementInformation.IsPresent)
-                {
-                    bucketConfiguration.PoolConfiguration = new PoolConfiguration
-                    {
-                        MaxSize = bucket.ConnectionPool.MaxSize,
-                        MinSize = bucket.ConnectionPool.MinSize,
-                        WaitTimeout = bucket.ConnectionPool.WaitTimeout,
-                        ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
-                        UseSsl = bucket.ConnectionPool.UseSsl,
-                        BufferSize = bucket.ConnectionPool.BufferSize,
-                        BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
-                        ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
-                        SendTimeout = bucket.ConnectionPool.SendTimeout,
-                        EnableTcpKeepAlives =
-                            keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
-                        TcpKeepAliveInterval =
-                            keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
-                        TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
-                        CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
-                        MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
-                        UseEnhancedDurability = bucket.UseEnhancedDurability,
-                        ClientConfiguration = this
-                    };
-                }
-                else
-                {
-                    bucketConfiguration.PoolConfiguration = PoolConfiguration;
-                }
+                
+                //TODO: use configuration api
+                
+                // if (bucket.ConnectionPool.ElementInformation.IsPresent)
+                // {
+                //     bucketConfiguration.PoolConfiguration = new PoolConfiguration
+                //     {
+                //         MaxSize = bucket.ConnectionPool.MaxSize,
+                //         MinSize = bucket.ConnectionPool.MinSize,
+                //         WaitTimeout = bucket.ConnectionPool.WaitTimeout,
+                //         ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
+                //         UseSsl = bucket.ConnectionPool.UseSsl,
+                //         BufferSize = bucket.ConnectionPool.BufferSize,
+                //         BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
+                //         ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
+                //         SendTimeout = bucket.ConnectionPool.SendTimeout,
+                //         EnableTcpKeepAlives =
+                //             keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
+                //         TcpKeepAliveInterval =
+                //             keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
+                //         TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
+                //         CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
+                //         MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
+                //         UseEnhancedDurability = bucket.UseEnhancedDurability,
+                //         ClientConfiguration = this
+                //     };
+                // }
+                // else
+                // {
+                //     bucketConfiguration.PoolConfiguration = PoolConfiguration;
+                // }
+                
+                bucketConfiguration.PoolConfiguration = PoolConfiguration;
+                
                 BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
 
@@ -316,6 +318,7 @@ namespace Couchbase.Configuration.Client
             get { return _ioErrorThreshold; }
             set
             {
+                //TODO: ??? value is unsigned
                 if (value > -1)
                 {
                     _ioErrorThreshold = value;
@@ -339,6 +342,7 @@ namespace Couchbase.Configuration.Client
             get { return _ioErrorCheckInterval; }
             set
             {
+                //TODO: ??? value is unsigned
                 if (value > -1)
                 {
                     _ioErrorCheckInterval = value;
@@ -571,32 +575,20 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.defaultconnectionlimit.aspx</remarks>
         /// <remarks>The default is set to 5 connections.</remarks>
-        public int DefaultConnectionLimit
-        {
-            get { return ServicePointManager.DefaultConnectionLimit; }
-            set { ServicePointManager.DefaultConnectionLimit = value; }
-        }
+        public int DefaultConnectionLimit { get; set; } = 5;
 
         /// <summary>
         /// Gets or sets the maximum idle time of a ServicePoint object used for making View and N1QL requests.
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.maxservicepointidletime.aspx</remarks>
-        public int MaxServicePointIdleTime
-        {
-            get { return ServicePointManager.MaxServicePointIdleTime; }
-            set { ServicePointManager.MaxServicePointIdleTime = value; }
-        }
+        public int MaxServicePointIdleTime { get; set; } = 10000;
 
         /// <summary>
         /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
         /// </summary>
         /// <remarks>The default is false, which overrides the <see cref="ServicePointManager"/>'s default of true.</remarks>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.expect100continue%28v=vs.110%29.aspx</remarks>
-        public bool Expect100Continue
-        {
-            get { return ServicePointManager.Expect100Continue; }
-            set { ServicePointManager.Expect100Continue = value; }
-        }
+        public bool Expect100Continue { get; set; } = false;
 
         /// <summary>
         /// Enables configuration "heartbeat" checks.

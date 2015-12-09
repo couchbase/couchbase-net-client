@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Couchbase.IO;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Client

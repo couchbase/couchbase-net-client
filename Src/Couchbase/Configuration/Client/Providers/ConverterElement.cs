@@ -1,13 +1,9 @@
-﻿using System.Configuration;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
-
-namespace Couchbase.Configuration.Client.Providers
+﻿namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
     /// A configuration element for registering custom <see cref="IByteConverter"/>s.
     /// </summary>
-    public sealed class ConverterElement : ConfigurationElement
+    public sealed class ConverterElement
     {
         public ConverterElement()
         {
@@ -21,12 +17,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The name.
         /// </value>
-        [ConfigurationProperty("name", IsRequired = true, IsKey = true)]
-        public string Name
-        {
-            get { return (string)this["name"]; }
-            set { this["name"] = value; }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Type"/> of the custom <see cref="IByteConverter"/>
@@ -34,11 +25,6 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// The type.
         /// </value>
-        [ConfigurationProperty("type", IsRequired = true, IsKey = false)]
-        public string Type
-        {
-            get { return (string)this["type"]; }
-            set { this["type"] = value; }
-        }
+        public string Type { get; set; }
     }
 }
