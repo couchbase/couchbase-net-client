@@ -22,15 +22,10 @@ namespace Couchbase.IO
             Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory = (p, c, b) =>
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
-                var waitHandle = asyncResult.AsyncWaitHandle;
+                //TODO: use p.Configuration.ConnectTimeout
+                socket.Connect(p.EndPoint);
 
-                if (waitHandle.WaitOne(p.Configuration.ConnectTimeout, true)
-                     && socket.Connected)
-                {
-                    socket.EndConnect(asyncResult);
-                }
-                else
+                if (!socket.Connected)
                 {
                     socket.Dispose();
                     const int connectionTimedOut = 10060;
