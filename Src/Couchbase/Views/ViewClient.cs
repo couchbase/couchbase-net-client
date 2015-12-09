@@ -95,7 +95,6 @@ namespace Couchbase.Views
                 {
                     var stream = response.GetResponseStream();
                     viewResult = Mapper.Map<ViewResult<T>>(stream);
-                    response.Close();
 
                     viewResult.Success = response.StatusCode == HttpStatusCode.OK;
                     viewResult.StatusCode = response.StatusCode;
