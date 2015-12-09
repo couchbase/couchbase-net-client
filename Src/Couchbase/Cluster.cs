@@ -38,16 +38,18 @@ namespace Couchbase
             : this(new ClientConfiguration())
         {
         }
-
-        /// <summary>
-        /// Ctor for creating Cluster instance using an App.Config or Web.config.
-        /// </summary>
-        /// <param name="configurationSectionName">The name of the configuration section to use.</param>
-        /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
-        public Cluster(string configurationSectionName)
-            : this(new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName)))
-        {
-        }
+        
+        //TODO: implement for new config system
+        
+        // /// <summary>
+        // /// Ctor for creating Cluster instance using an App.Config or Web.config.
+        // /// </summary>
+        // /// <param name="configurationSectionName">The name of the configuration section to use.</param>
+        // /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
+        // public Cluster(string configurationSectionName)
+        //     : this(new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName)))
+        // {
+        // }
 
         /// <summary>
         /// Ctor for creating Cluster instance with a custom <see cref="ClientConfiguration"/> configuration.
