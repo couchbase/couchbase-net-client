@@ -608,7 +608,7 @@ namespace Couchbase.Core
 
                 await operation.Completed(new SocketAsyncState
                 {
-                    Exception = new ServerException(msg),
+                    Exception = new Exception(msg),
                     Opaque = operation.Opaque,
                     Status = ResponseStatus.NodeUnavailable
                 });
