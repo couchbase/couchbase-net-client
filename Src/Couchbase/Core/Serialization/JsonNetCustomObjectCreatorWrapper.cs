@@ -42,7 +42,7 @@ namespace Couchbase.Core.Serialization
             object obj = _creator.CreateObject(objectType);
             if (obj == null)
             {
-                throw new ApplicationException("ICustomObjectCreator returned a null reference.");
+                throw new Exception("ICustomObjectCreator returned a null reference.");
             }
 
             serializer.Populate(reader, obj);
