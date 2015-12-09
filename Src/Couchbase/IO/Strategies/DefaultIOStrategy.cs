@@ -230,7 +230,7 @@ namespace Couchbase.IO.Strategies
             catch (Exception e)
             {
                 Log.Debug(e);
-                operation.Completed(new SocketAsyncState
+                await operation.Completed(new SocketAsyncState
                 {
                     Exception = e,
                     Opaque = operation.Opaque,
@@ -266,7 +266,7 @@ namespace Couchbase.IO.Strategies
             catch (Exception e)
             {
                 Log.Debug(e);
-                operation.Completed(new SocketAsyncState
+                await operation.Completed(new SocketAsyncState
                 {
                     Exception = e,
                     Opaque = operation.Opaque,
@@ -301,7 +301,7 @@ namespace Couchbase.IO.Strategies
              catch (Exception e)
              {
                  Log.Debug(e);
-                 operation.Completed(new SocketAsyncState
+                 await operation.Completed(new SocketAsyncState
                  {
                      Exception = e,
                      Opaque = operation.Opaque,
