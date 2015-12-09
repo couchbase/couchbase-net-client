@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Configuration
 {
@@ -22,10 +21,6 @@ namespace Couchbase.Configuration
 
         public ConfigException(string format, params object[] args)
             : base(string.Format(format, args))
-        {
-        }
-
-        protected ConfigException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

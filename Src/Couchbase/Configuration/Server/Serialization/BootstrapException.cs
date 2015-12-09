@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
@@ -14,10 +13,6 @@ namespace Couchbase.Configuration.Server.Serialization
         }
 
         public BootstrapException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected BootstrapException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

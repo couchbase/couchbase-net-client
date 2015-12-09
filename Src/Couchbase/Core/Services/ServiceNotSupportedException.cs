@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Core.Services
 {
@@ -16,11 +15,6 @@ namespace Couchbase.Core.Services
 
         public ServiceNotSupportedException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        protected ServiceNotSupportedException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Core
 {
@@ -22,10 +21,6 @@ namespace Couchbase.Core
         }
 
         public BucketNotFoundException(string message, string paramName) : base(message, paramName)
-        {
-        }
-
-        protected BucketNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

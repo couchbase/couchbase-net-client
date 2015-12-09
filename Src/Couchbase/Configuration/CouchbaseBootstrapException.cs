@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
-
 
 namespace Couchbase.Configuration
 {
@@ -20,13 +18,6 @@ namespace Couchbase.Configuration
 
         public CouchbaseBootstrapException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        /// <exception cref="ArgumentNullException">The <paramref name="info" /> parameter is null. </exception>
-        /// <exception cref="SerializationException">The class name is null or <see cref="P:System.Exception.HResult" /> is zero (0). </exception>
-        protected CouchbaseBootstrapException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

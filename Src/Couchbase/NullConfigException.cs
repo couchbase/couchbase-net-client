@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase
 {
@@ -14,10 +13,6 @@ namespace Couchbase
         }
 
         public NullConfigException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected NullConfigException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Core
 {
@@ -12,11 +11,7 @@ namespace Couchbase.Core
         public BucketAlreadyOpenException(string message) : base(message)
         {
         }
-
-        protected BucketAlreadyOpenException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
-
+        
         public BucketAlreadyOpenException(string message, Exception innerException) : base(message, innerException)
         {
         }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Core
 {
@@ -17,10 +16,6 @@ namespace Couchbase.Core
         }
 
         public InitializationException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected InitializationException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

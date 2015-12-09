@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Configuration
 {
@@ -17,10 +16,6 @@ namespace Couchbase.Configuration
         }
 
         public ConfigObserverNotFoundException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected ConfigObserverNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

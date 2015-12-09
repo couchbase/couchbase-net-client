@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Annotations;
@@ -26,11 +25,6 @@ namespace Couchbase
 
         public ServerUnavailableException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        public ServerUnavailableException([NotNull] SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }
