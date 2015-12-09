@@ -588,7 +588,7 @@ namespace Couchbase.Management
                 request.Credentials = new NetworkCredential(_username, _password);
 
                 var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
-                request.ContentLength = bytes.Length;
+                request.Headers[HttpResponseHeader.ContentLength] = bytes.Length.ToString();
 
                 using (var stream = request.GetRequestStream())
                 {

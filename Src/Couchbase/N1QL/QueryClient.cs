@@ -351,7 +351,7 @@ namespace Couchbase.N1QL
 
                 var json = queryRequest.GetFormValuesAsJson();
                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-                request.ContentLength = bytes.Length;
+                request.Headers[HttpResponseHeader.ContentLength] = bytes.Length.ToString();
 
                 using (var stream = request.GetRequestStream())
                 {
