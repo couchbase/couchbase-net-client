@@ -25,7 +25,7 @@ namespace Couchbase.IO
         protected volatile bool Disposed;
         private volatile bool _isDead;
         private volatile bool _inUse = false;
-        private System.Timers.Timer _timer;
+        private Timer _timer;
         private int _closeAttempts;
 
         protected ConnectionBase(Socket socket, IByteConverter converter)
@@ -204,16 +204,8 @@ namespace Couchbase.IO
         public void CountdownToClose(uint interval)
         {
             HasShutdown = true;
-            _timer = new System.Timers.Timer
-            {
-                Interval = interval,
-                AutoReset = false,
-                Enabled = true
-            };
-
-            //callback for timer
-            _timer.Elapsed += (o, args) =>
-            {
+            var timestamp = DateTime.Now;
+            _timer = new Timer((obj) =>{
                 _closeAttempts = Interlocked.Increment(ref _closeAttempts);
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
@@ -222,6 +214,9 @@ namespace Couchbase.IO
                 }
                 else
                 {
+                    //stop timer
+                    _timer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                    
                     //mark dead
                     IsDead = true;
 
@@ -230,7 +225,7 @@ namespace Couchbase.IO
                     Dispose();
                     Log.DebugFormat("Disposing {0} after {1}ms", _identity, args.SignalTime.Millisecond);
                 }
-            };
+            }, null, 0, (int)interval);
         }
 
         /// <summary>

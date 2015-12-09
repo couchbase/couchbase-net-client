@@ -9,7 +9,6 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -21,7 +20,6 @@ using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Utils;
 using Couchbase.Views;
-using Timer = System.Timers.Timer;
 
 namespace Couchbase.Core
 {
@@ -107,11 +105,11 @@ namespace Couchbase.Core
                 Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
 
                 //timer and node status
-                _heartBeatTimer = new Timer(_clientConfiguration.NodeAvailableCheckInterval)
-                {
-                    Enabled = _isDown
-                };
-                _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
+                _heartBeatTimer = new Timer(
+                    _heartBeatTimer_Elapsed, 
+                    null, 
+                    _isDown ? 0 : System.Threading.Timeout.Infinite,
+                    (int)_clientConfiguration.NodeAvailableCheckInterval);
             }
         }
 
@@ -264,19 +262,25 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="args">The <see cref="System.Timers.ElapsedEventArgs"/> instance containing the event data.</param>
-        private void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
+        private void _heartBeatTimer_Elapsed(object sender)
         {
             Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
-            _heartBeatTimer.Stop();
-            if (_isDown)
+            lock (_syncObj)
             {
-                if (IsDataNode)
+                if(!_disposed)
                 {
-                    CheckDataNode();
-                }
-                else if(IsQueryNode)
-                {
-                    CheckQueryNode();
+                    _heartBeatTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                    if (_isDown)
+                    {
+                        if (IsDataNode)
+                        {
+                            CheckDataNode();
+                        }
+                        else if(IsQueryNode)
+                        {
+                            CheckQueryNode();
+                        }
+                    }
                 }
             }
         }
@@ -296,7 +300,7 @@ namespace Couchbase.Core
                 {
                     Log.InfoFormat("Successfully connected and marking query node {0} as up.", EndPoint);
                     _isDown = false;
-                    _heartBeatTimer.Stop();
+                    _heartBeatTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
@@ -314,7 +318,7 @@ namespace Couchbase.Core
             }
             finally
             {
-                _heartBeatTimer.Start();
+                _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
             }
         }
 
@@ -340,7 +344,7 @@ namespace Couchbase.Core
                 {
                     Log.InfoFormat("Successfully connected and marking data node {0} as up.", EndPoint);
                     _isDown = false;
-                    _heartBeatTimer.Stop();
+                    _heartBeatTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
@@ -367,13 +371,13 @@ namespace Couchbase.Core
                         {
                             connection.IsDead = false;
                         }
-                        _heartBeatTimer.Start();
+                        _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
                     }
                     _ioStrategy.ConnectionPool.Release(connection);
                 }
                 else
                 {
-                    _heartBeatTimer.Start();
+                    _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
                 }
             }
         }
@@ -420,7 +424,7 @@ namespace Couchbase.Core
                                EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
 
                             _isDown = true;
-                            _heartBeatTimer.Start();
+                            _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
                         }
                         Interlocked.Exchange(ref _ioErrorCount, 0);
                         _lastIOErrorCheckedTime = DateTime.Now;
@@ -752,7 +756,7 @@ namespace Couchbase.Core
             IsDown = true;
             if (!_disposed && _heartBeatTimer != null)
             {
-                _heartBeatTimer.Start();
+                _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
             }
         }
 

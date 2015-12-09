@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
-using System.Timers;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -13,7 +12,7 @@ using Couchbase.IO.Operations;
 using System;
 using System.Net;
 using Newtonsoft.Json;
-using Timer = System.Timers.Timer;
+using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
@@ -28,17 +27,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
-        {
-            _heartBeat = new Timer
-            {
-                Interval = ClientConfig.HeartbeatConfigInterval,
-                Enabled = ClientConfig.EnableConfigHeartBeat,
-                AutoReset = false
-            };
-            _heartBeat.Elapsed += _heartBeat_Elapsed;
+        {            
+            _heartBeat = new Timer(
+                _heartBeat_Elapsed, 
+                null, 
+                ClientConfig.EnableConfigHeartBeat ? 0 : System.Threading.Timeout.Infinite,
+                System.Threading.Timeout.Infinite);
         }
 
-        void _heartBeat_Elapsed(object sender, ElapsedEventArgs args)
+        void _heartBeat_Elapsed(object sender)
         {
             try
             {
