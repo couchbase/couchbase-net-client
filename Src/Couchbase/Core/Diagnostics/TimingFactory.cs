@@ -1,5 +1,5 @@
 ﻿using System;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Diagnostics
 {
@@ -8,7 +8,7 @@ namespace Couchbase.Core.Diagnostics
         private static ITimingStore _store;
         private static volatile object _lockObj = new object();
 
-        public static Func<TimingLevel, object, IOperationTimer> GetTimer(ILog log)
+        public static Func<TimingLevel, object, IOperationTimer> GetTimer(ILogger log)
         {
             if (_store != null) return (level, target) => new OperationTimer(level, target, _store);
             lock (_lockObj)

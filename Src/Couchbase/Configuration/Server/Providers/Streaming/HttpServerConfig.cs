@@ -6,11 +6,11 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
@@ -19,7 +19,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal class HttpServerConfig : AuthenticatingHttpClient, IServerConfig
     {
-        private readonly static ILog Log = LogManager.GetLogger<HttpServerConfig>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<HttpServerConfig>();
+
         private readonly ClientConfiguration _clientConfig;
 
         public HttpServerConfig(ClientConfiguration clientConfig)
@@ -59,7 +60,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var success = false;
             try
             {
-                Log.Info(m=>m("Bootstrapping from {0}", server));
+                Log.Info($"Bootstrapping from {server}");
                 Bootstrap = DownLoadConfig<Bootstrap>(server);
                 Pools = DownLoadConfig<Pools>(Bootstrap.GetPoolsUri(server));
                 Buckets = DownLoadConfig<List<BucketConfig>>(Pools.GetBucketUri(server));
@@ -67,7 +68,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 UpdateUseSsl(Buckets);
                 BootstrapServer = server;
                 success = true;
-                Log.Info(m=>m("Bootstrapped from {0}", server));
+                Log.Info($"Bootstrapped from {server}");
             }
             catch (BootstrapException e)
             {
@@ -75,7 +76,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
             catch (WebException e)
             {
-                Log.Error(m=>m("Bootstrapping failed from {0}: {1}", server, e));
+                Log.Error($"Bootstrapping failed from {server}: {e}");
                 if (e.Status != WebExceptionStatus.ProtocolError) return success;
                 var response = e.Response as HttpWebResponse;
                 if (response != null)
@@ -124,7 +125,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         // private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         // {
-        //     Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
+        //     Log.Info($"Validating certificate: {sslPolicyErrors}");
         //     return true;
         // }
 

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections;
-using System.ServiceModel.Configuration;
 using System.Text;
-using Common.Logging;
-using Couchbase.Core;
-using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Couchbase.Utils;
 
 namespace Couchbase.Views
 {
@@ -15,7 +13,8 @@ namespace Couchbase.Views
     public class ViewQuery : IViewQuery
     {
         private const string UriFormat = "{0}://{1}:{2}/{3}/";
-        private readonly static ILog Log = LogManager.GetLogger<ViewQuery>();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<ViewQuery>();
+        
         public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";

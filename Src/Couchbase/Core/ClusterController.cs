@@ -1,11 +1,10 @@
-﻿using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading;
-using Common.Logging;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
@@ -16,18 +15,13 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Strategies;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using Newtonsoft.Json.Linq;
+using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
     internal sealed class ClusterController : IClusterController
     {
-        private readonly static ILog Log = LogManager.GetLogger<ClusterController>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<ClusterController>();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>();
@@ -42,7 +36,7 @@ namespace Couchbase.Core
             : this(clientConfig,
                 pool =>
                 {
-                    Log.Debug(m => m("Creating DefaultIOStrategy"));
+                    Log.Debug("Creating DefaultIOStrategy");
                     return new DefaultIOStrategy(pool);
                 },
             (config, endpoint) =>
@@ -165,7 +159,7 @@ namespace Couchbase.Core
                 //shortcircuit in case lock was waited upon because another thread bootstraped same bucket
                 if (_buckets.ContainsKey(bucketName))
                 {
-                    Log.DebugFormat("Bootstraping was already done, returning existing bucket {0}", bucketName);
+                    Log.Debug($"Bootstraping was already done, returning existing bucket {bucketName}");
                     return _buckets[bucketName];
                 }
                 //otherwise bootstrap a new bucket
@@ -175,7 +169,7 @@ namespace Couchbase.Core
                 {
                     try
                     {
-                        Log.DebugFormat("Trying to bootstrap with {0}.", provider);
+                        Log.Debug($"Trying to bootstrap with {provider}.");
                         var config = provider.GetConfig(bucketName, password);
                         IRefCountable refCountable = null;
                         switch (config.NodeLocator)
@@ -207,7 +201,7 @@ namespace Couchbase.Core
                         var configObserver = (IConfigObserver) bucket;
                         if (provider.ObserverExists(configObserver))
                         {
-                            Log.DebugFormat("Using existing bootstrap {0}.", provider);
+                            Log.Debug($"Using existing bootstrap {provider}.");
                             _clientConfig.UpdateBootstrapList(config.BucketConfig);
 
                             configObserver.NotifyConfigChanged(config);
@@ -218,7 +212,7 @@ namespace Couchbase.Core
                         if (provider.RegisterObserver(configObserver) &&
                             _buckets.TryAdd(bucket.Name, bucket))
                         {
-                            Log.DebugFormat("Successfully bootstrapped using {0}.", provider);
+                            Log.Debug($"Successfully bootstrapped using {provider}.");
                             _clientConfig.UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;

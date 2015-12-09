@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Utils
 {
@@ -11,7 +10,7 @@ namespace Couchbase.Utils
     /// </summary>
     public static class UriExtensions
     {
-        private readonly static ILog Log = LogManager.GetLogger("UriExtensions");
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger("UriExtensions");
 
         /// <summary>
         /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.

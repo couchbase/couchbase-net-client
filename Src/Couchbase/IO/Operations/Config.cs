@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Net;
+using Newtonsoft.Json;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
-using Newtonsoft.Json;
 
 namespace Couchbase.IO.Operations
 {

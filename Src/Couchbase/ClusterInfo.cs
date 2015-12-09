@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Specialized;
+using Newtonsoft.Json;
 using Couchbase.Configuration.Server;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core.Buckets;
+﻿using Couchbase.Core.Buckets;
 
 namespace Couchbase
 {

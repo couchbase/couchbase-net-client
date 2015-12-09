@@ -1,15 +1,15 @@
-using Common.Logging;
-using Couchbase.Configuration;
-using Couchbase.Core.Diagnostics;
-using Couchbase.IO;
-using Couchbase.IO.Operations;
-using Couchbase.N1QL;
-using Couchbase.Views;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Couchbase.Configuration;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
+using Couchbase.IO;
+using Couchbase.IO.Operations;
+using Couchbase.Views;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {
@@ -19,7 +19,7 @@ namespace Couchbase.Core.Buckets
     internal abstract class RequestExecuterBase : IRequestExecuter
     {
         protected readonly int OperationLifeSpan;
-        protected static readonly ILog Log = LogManager.GetLogger<RequestExecuterBase>();
+        protected static readonly ILogger Log = new LoggerFactory().CreateLogger<RequestExecuterBase>();
         protected readonly string BucketName;
         protected readonly IClusterController ClusterController;
         protected readonly Func<TimingLevel, object, IOperationTimer> Timer;
@@ -463,12 +463,12 @@ namespace Couchbase.Core.Buckets
             if (vBucket != null)
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message));
+                Log.Debug(string.Format(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message));
             }
             else
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries and opaque{2}. Reason: {3}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+                Log.Debug(string.Format(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
             }
         }
 
@@ -477,7 +477,7 @@ namespace Couchbase.Core.Buckets
             var node = ConfigInfo.GetDataNode();
             if (node != null && !node.IsDown)
             {
-                Log.InfoFormat("Updating config on {0} using rev#{1}", node.EndPoint, node.Revision);
+                Log.Info($"Updating config on {node.EndPoint} using rev#{node.Revision}");
                 var result = node.Send(new Config(ClusterController.Transcoder,
                     ConfigInfo.ClientConfig.DefaultOperationLifespan,
                     node.EndPoint));

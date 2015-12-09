@@ -1,9 +1,4 @@
-﻿using Common.Logging;
-using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
-using Couchbase.Views;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +7,10 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Couchbase.Configuration.Client;
+using Couchbase.Views;
+using Couchbase.Utils;
 
 namespace Couchbase.Management
 {
@@ -20,7 +19,7 @@ namespace Couchbase.Management
     /// </summary>
     public sealed class BucketManager : IBucketManager
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<BucketManager>();
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;
         private readonly string _password;
@@ -595,7 +594,7 @@ namespace Couchbase.Management
                 Success = httpResponseMessage.IsSuccessStatusCode,
                 Value = httpResponseMessage.IsSuccessStatusCode ? body : null
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 
@@ -608,7 +607,7 @@ namespace Couchbase.Management
                 Success = IsSuccessStatusCode(statusCode),
                 Value = IsSuccessStatusCode(statusCode) ? body : null
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 
@@ -624,7 +623,7 @@ namespace Couchbase.Management
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
                 Success = httpResponseMessage.IsSuccessStatusCode,
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 
@@ -636,7 +635,7 @@ namespace Couchbase.Management
                 Message = IsSuccessStatusCode(statusCode) ? "success" : body,
                 Success = IsSuccessStatusCode(statusCode),
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 

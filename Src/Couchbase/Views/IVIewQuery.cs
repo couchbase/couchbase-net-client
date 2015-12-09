@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using Couchbase.Core;
 
 namespace Couchbase.Views
 {

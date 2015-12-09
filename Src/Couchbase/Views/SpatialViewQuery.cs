@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Couchbase.Core;
 using Couchbase.Utils;
 
 namespace Couchbase.Views

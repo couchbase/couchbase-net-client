@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations.EnhancedDurability;
@@ -16,7 +16,7 @@ namespace Couchbase.Core.Buckets
         private readonly IConfigInfo _configInfo;
         private readonly int _interval;
         private readonly uint _timeout = 2500; //2.5sec;
-        private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<KeyObserver>();
         private readonly ITypeTranscoder _transcoder;
 
         /// <summary>

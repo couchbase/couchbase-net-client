@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
@@ -19,7 +19,7 @@ namespace Couchbase.Core.Buckets
         private readonly IConfigInfo _configInfo;
         private readonly int _interval;
         private readonly int _timeout;
-        private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<KeyObserver>();
         private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
@@ -238,7 +238,7 @@ namespace Couchbase.Core.Buckets
                     }
 
                     var result = master.Send(operation);
-                    Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
+                    Log.Debug($"Master {master.EndPoint} - {result.Value}");
                     var state = result.Value;
                     if (state.KeyState == p.Criteria.PersistState)
                     {
@@ -406,7 +406,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
         static async Task<bool> CheckReplicaAsync(ObserveParams observeParams, Observe operation, int replicaIndex)
         {
-            Log.Debug(m=>m("checking replica {0}", replicaIndex));
+            Log.Debug($"checking replica {replicaIndex}");
             if (observeParams.IsDurabilityMet()) return true;
 
              //clone the operation since we already checked the primary and we want to maintain internal state (opaque, timer, etc)
@@ -415,7 +415,7 @@ namespace Couchbase.Core.Buckets
             var replica = observeParams.VBucket.LocateReplica(replicaIndex);
             var result = await Task.Run(()=>replica.Send(operation)).ContinueOnAnyContext();
 
-            Log.Debug(m=>m("Replica {0} - {1} [0]", replica.EndPoint, result.Value, replicaIndex));
+            Log.Debug($"Replica {replica.EndPoint} - {result.Value} [{replicaIndex}]");
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {

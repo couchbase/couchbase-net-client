@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Couchbase.IO.Operations;
+﻿using Couchbase.IO.Operations;
 
 namespace Couchbase.IO.Utils
 {

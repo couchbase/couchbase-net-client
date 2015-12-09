@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 

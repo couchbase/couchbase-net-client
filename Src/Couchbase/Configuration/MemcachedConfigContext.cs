@@ -11,7 +11,6 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration
@@ -79,7 +78,7 @@ namespace Couchbase.Configuration
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                        Log.Error($"Could not add server {endpoint}. Exception: {e}");
                     }
                 }
 
@@ -138,7 +137,7 @@ namespace Couchbase.Configuration
                 }
                 catch (Exception e)
                 {
-                    Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                    Log.Error($"Could not add server {endpoint}. Exception: {e}");
                 }
             }
 

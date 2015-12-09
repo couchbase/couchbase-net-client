@@ -4,10 +4,10 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Providers.Streaming
 {
@@ -20,7 +20,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal sealed class ConfigThreadState
     {
-        private readonly static ILog Log = LogManager.GetLogger<ConfigThreadState>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<ConfigThreadState>();
+
         private readonly BucketConfig _bucketConfig;
         private readonly ConfigChanged _configChangedDelegate;
         private readonly ErrorOccurred _errorOccurredDelegate;
@@ -73,7 +74,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     nodes.Remove(node);
 
                     var streamingUri = _bucketConfig.GetTerseStreamingUri(node, _bucketConfig.UseSsl);
-                    Log.Info(m=>m("Listening to {0}", streamingUri));
+                    Log.Info($"Listening to {streamingUri}");
 
                     using (var httpClient = new AuthenticatingHttpClient(_bucketConfig.Name, _bucketConfig.Password))
                     using (var stream = httpClient.GetStreamAsync(streamingUri).Result)
@@ -94,10 +95,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             {
                                 if (config != String.Empty)
                                 {
-                                    Log.Info(m=>m("configuration changed count: {0}", count++));
-                                    Log.Info(m=>m("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId));
+                                    Log.Info($"configuration changed count: {count++}");
+                                    Log.Info($"Worker Thread: {Thread.CurrentThread.ManagedThreadId}");
                                     var config1 = config;
-                                    Log.Debug(m=>m("{0}", config1));
+                                    Log.Debug($"{config1}");
 
                                     config = config.Replace("$HOST", streamingUri.Host);
                                     var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);

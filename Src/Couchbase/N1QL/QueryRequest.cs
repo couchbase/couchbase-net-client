@@ -1,10 +1,9 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using Newtonsoft.Json;
-using System.Net;
-using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Views;
 

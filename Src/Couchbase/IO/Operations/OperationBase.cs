@@ -10,7 +10,6 @@ using Couchbase.Core.Buckets;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations

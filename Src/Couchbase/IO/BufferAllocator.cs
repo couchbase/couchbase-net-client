@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using Common.Logging;
+using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.IO
 {
@@ -12,7 +13,7 @@ namespace Couchbase.IO
     /// <remarks>Near identical to implementation found in MSDN documentation: http://msdn.microsoft.com/en-us/library/bb517542%28v=vs.110%29.aspx</remarks>
     internal sealed class BufferAllocator
     {
-        protected readonly static ILog Log = LogManager.GetLogger<BufferAllocator>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<BufferAllocator>();
         private readonly int _numberOfBytes;
         private readonly byte[] _buffer;
         private readonly Stack<int> _freeIndexPool;

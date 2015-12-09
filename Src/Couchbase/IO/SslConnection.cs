@@ -1,14 +1,13 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -33,7 +32,7 @@ namespace Couchbase.IO
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
+            Log.Info($"Validating certificate: {sslPolicyErrors}");
             return true;
         }
 
@@ -42,7 +41,7 @@ namespace Couchbase.IO
             try
             {
                 var targetHost = ConnectionPool.EndPoint.Address.ToString();
-                Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
+                Log.Warn($"Starting SSL encryption on {targetHost}");
                 _sslStream.AuthenticateAsClient(targetHost);
                 IsSecure = true;
             }
@@ -65,8 +64,7 @@ namespace Couchbase.IO
             {
                 //TODO: refactor logic
                 IsDead = true;
-                const string msg =
-                    "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
                 throw new IOException(msg);
             }
             
@@ -84,8 +82,6 @@ namespace Couchbase.IO
                 var result = _sslStream.WriteAsync(operation.WriteBuffer, 0, operation.WriteBuffer.Length).Wait(Configuration.SendTimeout);
                 if (!result)
                 {
-                    const string msg =
-                        "The connection has timed out while an operation was in flight. The default is 15000ms.";
                     const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
                     operation.HandleClientError(msg, ResponseStatus.ClientFailure);
                     IsDead = true;

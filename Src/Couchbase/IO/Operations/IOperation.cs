@@ -1,10 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
-using Couchbase.Core.Transcoders;
-using System;
-using System.IO;
 
 namespace Couchbase.IO.Operations
 {

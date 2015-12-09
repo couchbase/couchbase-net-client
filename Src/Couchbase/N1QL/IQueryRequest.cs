@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Couchbase.Configuration.Client;
 using Couchbase.Core;
 
 namespace Couchbase.N1QL

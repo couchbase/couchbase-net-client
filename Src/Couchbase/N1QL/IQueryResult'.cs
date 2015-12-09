@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Couchbase.N1QL;
-using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
 {

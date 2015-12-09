@@ -1,29 +1,27 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
 using Couchbase.N1QL;
-using Couchbase.Views;
 using Couchbase.Utils;
-using Newtonsoft.Json;
+using Couchbase.Views;
 
 namespace Couchbase
 {
@@ -33,7 +31,7 @@ namespace Couchbase
     /// </summary>
     public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator
     {
-        private readonly static ILog Log = LogManager.GetLogger<CouchbaseBucket>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<CouchbaseBucket>();
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
@@ -100,9 +98,7 @@ namespace Couchbase
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Config updated old/new: {0}, {1}",
-                _configInfo != null ? _configInfo.BucketConfig.Rev :
-                0, configInfo.BucketConfig.Rev));
+            Log.Info($"Config updated old/new: {_configInfo?.BucketConfig.Rev ?? 0}, {configInfo.BucketConfig.Rev}");
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
                 new CouchbaseRequestExecuter(_clusterController, _configInfo, Name, _pending));
@@ -132,7 +128,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -233,7 +229,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -407,7 +403,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -508,7 +504,7 @@ namespace Couchbase
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
+            Log.Debug($"Attempting dispose on thread {Thread.CurrentThread.ManagedThreadId}");
             ((IRefCountable)this).Release();
 
         }
@@ -851,7 +847,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -1302,7 +1298,7 @@ namespace Couchbase
             lock (RefCounts)
             {
                 var refCount = RefCounts.GetOrCreateValue(this);
-                Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
+                Log.Debug($"Creating bucket refCount# {refCount.Count}");
                 return Interlocked.Increment(ref refCount.Count);
             }
         }
@@ -1318,10 +1314,10 @@ namespace Couchbase
                 var refCount = RefCounts.GetOrCreateValue(this);
                 if (refCount.Count > 0)
                 {
-                    Log.DebugFormat("Current bucket refCount# {0}", refCount.Count);
+                    Log.Debug($"Current bucket refCount# {refCount.Count}");
                     Interlocked.Decrement(ref refCount.Count);
                     if (refCount.Count != 0) return refCount.Count;
-                    Log.DebugFormat("Removing bucket refCount# {0}", refCount.Count);
+                    Log.Debug($"Removing bucket refCount# {refCount.Count}");
                     RefCounts.Remove(this);
                     Dispose(true);
                 }
@@ -1391,7 +1387,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -1477,7 +1473,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info($"Requires retry {key}");
             }
             return operationResult;
         }
@@ -3130,7 +3126,7 @@ namespace Couchbase
                 }
                 catch (ServerUnavailableException e)
                 {
-                    Log.Info(m => m("Default to IsSecure false because of {0}", e));
+                    Log.Info($"Default to IsSecure false because of {e}");
                     return false;
                 }
             }
@@ -3200,7 +3196,7 @@ namespace Couchbase
                     var bucketConfig = operation.GetConfig();
                     if (bucketConfig != null)
                     {
-                        Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        Log.Info($"New config found {bucketConfig.Rev}|{_configInfo.BucketConfig.Rev}: {JsonConvert.SerializeObject(bucketConfig)}");
                         _clusterController.NotifyConfigPublished(bucketConfig);
                     }
                 }
@@ -3222,7 +3218,7 @@ namespace Couchbase
         {
             if (!_disposed)
             {
-                Log.Debug(m => m("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId));
+                Log.Debug($"Disposing on thread {Thread.CurrentThread.ManagedThreadId}");
                 if (_clusterController != null)
                 {
                     _clusterController.DestroyBucket(this);

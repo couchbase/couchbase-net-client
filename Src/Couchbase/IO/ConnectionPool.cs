@@ -2,13 +2,12 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Channels;
 using System.Threading;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO.Converters;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -17,7 +16,7 @@ namespace Couchbase.IO
     /// </summary>
     internal class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
     {
-        private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<T>>();
+        protected readonly static ILogger Log = new LoggerFactory().CreateLogger<ConnectionPool<T>>();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
         private readonly Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
@@ -110,8 +109,7 @@ namespace Couchbase.IO
                     try
                     {
                         var connection = _factory(this, _converter, _bufferAllocator);
-                        Log.Info(m => m("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
-                            EndPoint, connection.Identity, _identity, _disposed));
+                        Log.Info($"Initializing connection on [{EndPoint} | {connection.Identity}] - {_identity} - Disposed: {_disposed}");
 
                         _store.Enqueue(connection);
                         _refs.Add(connection);
@@ -119,7 +117,7 @@ namespace Couchbase.IO
                     }
                     catch (Exception e)
                     {
-                        Log.InfoFormat("Node {0} failed to initialize, reason: {1}", EndPoint, e);
+                        Log.Info($"Node {EndPoint} failed to initialize, reason: {e}");
                         InitializationFailed = true;
                         return;
                     }
@@ -140,8 +138,7 @@ namespace Couchbase.IO
             if (_store.TryDequeue(out connection) && !_disposed)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
-                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
-                    connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
+                Log.Debug($"Acquire existing: {connection.Identity} | {EndPoint} | [{_store.Count}, {_count}] - {_identity} - Disposed: {_disposed}");
 
                 connection.MarkUsed(true);
                 return connection;
@@ -155,8 +152,7 @@ namespace Couchbase.IO
                     connection = _factory(this, _converter, _bufferAllocator);
                     _refs.Add(connection);
 
-                    Log.Info(m => m("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
-                        connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
+                    Log.Info($"Acquire new: {connection.Identity} | {EndPoint} | [{_store.Count}, {_count}] - {_identity} - Disposed: {_disposed}");
 
                     Interlocked.Increment(ref _count);
                     Interlocked.Exchange(ref _acquireFailedCount, 0);
@@ -182,14 +178,13 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection)
         {
-            Log.Debug(m => m("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity));
+            Log.Debug($"Releasing: {connection.Identity} on {EndPoint} - {_identity}");
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
                 connection.Dispose();
                 Interlocked.Decrement(ref _count);
-                Log.Info(m => m("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
-                    connection.Identity, EndPoint, _identity, _store.Count, _count));
+                Log.Info($"Connection is dead: {connection.Identity} on {EndPoint} - {_identity} - [{_store.Count}, {_count}]");
 
                 if (Owner != null)
                 {
@@ -208,7 +203,7 @@ namespace Couchbase.IO
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing ConnectionPool for {0} - {1}", EndPoint, _identity));
+            Log.Debug($"Disposing ConnectionPool for {EndPoint} - {_identity}");
             Dispose(true);
         }
 
@@ -254,7 +249,7 @@ namespace Couchbase.IO
         {
             try
             {
-                Log.Debug(m => m("Finalizing ConnectionPool for {0}", EndPoint));
+                Log.Debug($"Finalizing ConnectionPool for {EndPoint}");
                 Dispose(false);
             }
             catch (Exception e)

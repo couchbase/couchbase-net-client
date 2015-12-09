@@ -1,9 +1,9 @@
-﻿using Common.Logging;
+﻿using System;
+using System.Text;
+using Microsoft.Extensions.Logging;
+using Couchbase.Core.Serialization;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using System;
-using System.Text;
-using Couchbase.Core.Serialization;
 
 namespace Couchbase.Core.Transcoders
 {
@@ -12,7 +12,7 @@ namespace Couchbase.Core.Transcoders
     /// </summary>
     public class DefaultTranscoder : ITypeTranscoder
     {
-        private static readonly ILog Log = LogManager.GetLogger<DefaultTranscoder>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<DefaultTranscoder>();
 
         public DefaultTranscoder()
             : this(new DefaultConverter())

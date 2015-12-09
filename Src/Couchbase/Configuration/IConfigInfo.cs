@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;

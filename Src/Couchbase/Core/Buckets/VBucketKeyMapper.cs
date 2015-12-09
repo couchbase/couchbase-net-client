@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Cryptography;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {
@@ -14,7 +14,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class VBucketKeyMapper : IKeyMapper
     {
-        private readonly static ILog Log = LogManager.GetLogger<VBucketKeyMapper>();
+        protected static readonly ILogger Log = new LoggerFactory().CreateLogger<VBucketKeyMapper>();
         private readonly int _mask = 1023;
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;
@@ -52,7 +52,7 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
-            Log.Debug(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
+            Log.Debug($"Using index {index} for key {key} - rev{Rev}");
 
             return _vBuckets[index];
         }
@@ -78,8 +78,7 @@ namespace Couchbase.Core.Buckets
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
 
-            Log.Info(m => m("Creating VBuckets {0} and FMaps {1} for Rev#{2}", vBucketMap.Length,
-                vBucketForwardMap == null ? 0: vBucketForwardMap.Length, Rev));
+            Log.Info($"Creating VBuckets {vBucketMap.Length} and FMaps {(vBucketForwardMap?.Length ?? 0)} for Rev#{Rev}");
 
             for (var i = 0; i < vBucketMap.Length; i++)
             {
@@ -105,7 +104,7 @@ namespace Couchbase.Core.Buckets
 
             if (vBucketMapForward != null)
             {
-                Log.Info(m => m("Creating VBucketMapForwards {0}", vBucketMapForward.Length));
+                Log.Info($"Creating VBucketMapForwards {vBucketMapForward.Length}");
 
                 for (var i = 0; i < vBucketMapForward.Length; i++)
                 {

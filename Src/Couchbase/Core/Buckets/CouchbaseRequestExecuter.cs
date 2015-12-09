@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Schema;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
 using Couchbase.IO;
@@ -17,7 +13,6 @@ using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Utils;
 using Couchbase.Views;
-using Newtonsoft.Json;
 
 namespace Couchbase.Core.Buckets
 {
@@ -26,8 +21,7 @@ namespace Couchbase.Core.Buckets
     /// against a persistent, Couchbase Bucket on a Couchbase cluster.
     /// </summary>
     internal class CouchbaseRequestExecuter : RequestExecuterBase
-    {
-        protected static readonly new ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
+    {      
         private object _syncObj = new object();
 
         public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
@@ -67,7 +61,7 @@ namespace Couchbase.Core.Buckets
                 var bucketConfig = operation.GetConfig();
                 if (bucketConfig != null)
                 {
-                    Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev));
+                    Log.Info($"New config found {bucketConfig.Rev}|{ConfigInfo.BucketConfig.Rev}");
                     Log.Debug(JsonConvert.SerializeObject(bucketConfig));
                     ClusterController.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
@@ -117,7 +111,7 @@ namespace Couchbase.Core.Buckets
                 {
                     return result;
                 }
-                Log.Debug(m => m("trying again: {0}", query.RetryAttempts));
+                Log.Debug($"trying again: {query.RetryAttempts}");
                 var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -147,7 +141,7 @@ namespace Couchbase.Core.Buckets
                     return (IQueryResult<T>)result;
                 }
 
-                Log.Debug(m => m("trying query again: {0}", attempts));
+                Log.Debug($"trying query again: {attempts}");
                 var sleepTime = (int)Math.Pow(2, attempts++);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -441,7 +435,7 @@ namespace Couchbase.Core.Buckets
             if(!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            if (Log.IsDebugEnabled && TimingEnabled)
+            if (Log.IsDebugEnabled() && TimingEnabled)
             {
                 operation.Timer = Timer;
                 operation.BeginTimer(TimingLevel.Three);
@@ -461,10 +455,7 @@ namespace Couchbase.Core.Buckets
 
                 if (operationResult.Success)
                 {
-                    Log.Debug(
-                        m =>
-                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult));
+                    Log.Debug($"Operation {operation.GetType().Name} succeeded {operation.Attempts} for key {operation.Key} : {operationResult}");
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -475,7 +466,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug($"Operation doesn't support retries for key {operation.Key}");
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
@@ -491,7 +482,7 @@ namespace Couchbase.Core.Buckets
                 LogFailure(operation, operationResult);
             }
 
-            if (Log.IsDebugEnabled && TimingEnabled)
+            if (Log.IsDebugEnabled() && TimingEnabled)
             {
                 operation.EndTimer(TimingLevel.Three);
             }
@@ -514,7 +505,7 @@ namespace Couchbase.Core.Buckets
             if (!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
 
-            if (Log.IsDebugEnabled && TimingEnabled)
+            if (Log.IsDebugEnabled() && TimingEnabled)
             {
                 operation.Timer = Timer;
                 operation.BeginTimer(TimingLevel.Three);
@@ -534,10 +525,7 @@ namespace Couchbase.Core.Buckets
 
                 if (operationResult.Success)
                 {
-                    Log.Debug(
-                        m =>
-                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult.Value));
+                    Log.Debug($"Operation {operation.GetType().Name} succeeded {operation.Attempts} for key {operation.Key} : {operationResult.Value}");
                     break;
                 }
                 if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -548,7 +536,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug($"Operation doesn't support retries for key {operation.Key}");
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
@@ -564,7 +552,7 @@ namespace Couchbase.Core.Buckets
                 LogFailure(operation, operationResult);
             }
 
-            if (Log.IsDebugEnabled && TimingEnabled)
+            if (Log.IsDebugEnabled() && TimingEnabled)
             {
                 operation.EndTimer(TimingLevel.Three);
             }
@@ -709,7 +697,7 @@ namespace Couchbase.Core.Buckets
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
                     Thread.Sleep((int)Math.Pow(2, attempts));
                 }
-                Log.Debug(m=>m("Starting send for {0} with {1}", operation.Opaque, server.EndPoint));
+                Log.Debug($"Starting send for {operation.Opaque} with {server.EndPoint}");
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -828,7 +816,7 @@ namespace Couchbase.Core.Buckets
                             {
                                 lock (_syncObj)
                                 {
-                                    Log.Trace("Request failed checking config:", exception);
+                                    Log.Error("Request failed checking config:", exception);
                                     UpdateConfig();
                                 }
                             }

@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
@@ -20,7 +19,7 @@ namespace Couchbase.Views
     internal class ViewClient : IViewClient
     {
         const string Success = "Success";
-        private readonly static ILog Log = LogManager.GetLogger<ViewClient>();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<ViewClient>();
         private readonly IBucketConfig _bucketConfig;
         private readonly ClientConfiguration _clientConfig;
 
@@ -63,7 +62,7 @@ namespace Couchbase.Views
                 ae.Flatten().Handle(e =>
                 {
                     ProcessError(e, viewResult);
-                    Log.Error(uri, e);
+                    Log.Error(uri.ToString(), e);
                     return true;
                 });
             }
@@ -71,7 +70,7 @@ namespace Couchbase.Views
             {
                 const string error = "The request has timed out.";
                 ProcessError(e, error, viewResult);
-                Log.Error(uri, e);
+                Log.Error(uri.ToString(), e);
             }
             return viewResult;
         }

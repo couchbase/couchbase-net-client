@@ -3,11 +3,9 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -16,7 +14,7 @@ namespace Couchbase.Configuration.Server.Providers
 {
     internal abstract class ConfigProviderBase : IConfigProvider
     {
-        protected readonly static ILog Log = LogManager.GetLogger<ConfigProviderBase>();
+        protected static readonly ILogger Log = new LoggerFactory().CreateLogger<ConfigProviderBase>();
         private readonly ClientConfiguration _clientConfig;
         private readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> _saslFactory;
         private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;

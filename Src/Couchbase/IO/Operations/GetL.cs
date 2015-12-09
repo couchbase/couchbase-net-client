@@ -1,6 +1,5 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 
 namespace Couchbase.IO.Operations
 {

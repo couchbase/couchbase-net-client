@@ -46,7 +46,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         try
                         {
-                            Log.Debug(m=>m("Config heartbeat on {0}.", server.EndPoint));
+                            Log.Debug($"Config heartbeat on {server.EndPoint}.");
                             var result = server.Send(
                                 new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
 
@@ -79,7 +79,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
         public override IConfigInfo GetConfig(string bucketName, string password)
         {
-            Log.Debug(m=>m("Getting config for bucket {0}", bucketName));
+            Log.Debug($"Getting config for bucket {bucketName}");
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
 
             //if the client is using a password make sure the client configuration references it
@@ -93,7 +93,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             CouchbaseConfigContext configInfo = null;
             foreach (var endPoint in bucketConfiguration.GetEndPoints())
             {
-                Log.Debug(m=>m("Bootstrapping with {0}", endPoint));
+                Log.Debug($"Bootstrapping with {endPoint}");
 
                 IOStrategy ioStrategy = null;
                 try
@@ -118,7 +118,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             SaslFactory,
                             Transcoder);
 
-                        Log.Info(m => m("Bootstrap config: {0}", JsonConvert.SerializeObject(bucketConfig)));
+                        Log.Info($"Bootstrap config: {JsonConvert.SerializeObject(bucketConfig)}");
 
                         configInfo.LoadConfig(ioStrategy);
                         Configs[bucketName] = configInfo;
@@ -136,30 +136,25 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     {
                         throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
                     }
-                    Log.Warn(m => m("Could not retrieve configuration for {0}. Reason: {1}",
-                        bucketName,
-                        operationResult.Message));
+                    Log.Warn($"Could not retrieve configuration for {bucketName}. Reason: {operationResult.Message}");
                 }
                 catch (ConfigException)
                 {
                     ioStrategy.Dispose();
-                    Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
+                    Log.Debug($"Bootstrapping with {endPoint} failed.");
                     throw;
                 }
                 catch (AuthenticationException e)
                 {
-                    const string msg =
-                        "A failure to authenticate may mean that the server has not joined the cluster" +
-                        " yet or that the Bucket does not exist. Please check that {0} has joined that" +
-                        " cluster and that the Bucket '{1}' exists.";
-
-                    Log.Warn(m => m(msg, endPoint, bucketName));
+                    Log.Warn($"A failure to authenticate may mean that the server has not joined the cluster" +
+                             " yet or that the Bucket does not exist. Please check that {endPoint} has joined that" +
+                             " cluster and that the Bucket '{bucketName}' exists.");
                     Log.Warn(e);
                     exceptions.Add(e);
                 }
                 catch (Exception e)
                 {
-                    Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
+                    Log.Debug($"Bootstrapping with {endPoint} failed.");
                     Log.Warn(e);
                     exceptions.Add(e);
                 }
@@ -203,11 +198,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         var oldBucketConfig = configInfo.BucketConfig;
                         if (bucketConfig.Rev > oldBucketConfig.Rev || !bucketConfig.Equals(oldBucketConfig) || force)
                         {
-                            Log.Info(
-                                m =>
-                                    m("Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force,
-                                        bucketConfig.Rev, oldBucketConfig.Rev,
-                                        JsonConvert.SerializeObject(bucketConfig)));
+                            Log.Info($"Config changed (forced:{force}) new Rev#{bucketConfig.Rev}" +
+                                      " | old Rev#{oldBucketConfig.Rev} CCCP: {JsonConvert.SerializeObject(bucketConfig)}");
 
                             //Set the password on the new server configuration
                             var clientBucketConfig = GetOrCreateConfiguration(bucketConfig.Name);
@@ -233,7 +225,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
             else
             {
-                Log.Warn(m => m("No ConfigObserver found for bucket [{0}]", bucketConfig.Name));
+                Log.Warn($"No ConfigObserver found for bucket [{bucketConfig.Name}]");
             }
         }
 
@@ -243,28 +235,28 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             if (ConfigObservers.TryRemove(observer.Name, out observerToRemove))
             {
                 var temp = observerToRemove;
-                Log.Info(m => m("Unregistering observer {0}", temp.Name));
+                Log.Info($"Unregistering observer {temp.Name}");
 
                 IConfigInfo configInfo;
                 if (Configs.TryRemove(observer.Name, out configInfo))
                 {
                     configInfo.Dispose();
-                    Log.Info(m => m("Removing config for observer {0}", observer.Name));
+                    Log.Info($"Removing config for observer {observer.Name}");
                 }
                 else
                 {
-                    Log.Warn(m => m("Could not remove config for {0}", observer.Name));
+                    Log.Warn($"Could not remove config for {observer.Name}");
                 }
             }
             else
             {
-                Log.Warn(m => m("Could not unregister observer {0}", observer.Name));
+                Log.Warn($"Could not unregister observer {observer.Name}");
             }
         }
 
         public override void Dispose()
         {
-            Log.Debug(m => m("Disposing ConfigurationProvider: {0}", GetType().Name));
+            Log.Debug($"Disposing ConfigurationProvider: {GetType().Name}");
             Dispose(true);
         }
 
@@ -297,7 +289,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 #if DEBUG
         ~CarrierPublicationProvider()
         {
-            Log.Debug(m => m("Finalizing ConfigurationProvider: {0}", GetType().Name));
+            Log.Debug($"Finalizing ConfigurationProvider: {GetType().Name}");
             Dispose(false);
         }
 #endif

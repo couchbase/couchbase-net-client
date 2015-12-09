@@ -1,5 +1,4 @@
 ﻿using System;
-using Couchbase.IO;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.Configuration.Server.Providers

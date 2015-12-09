@@ -1,24 +1,24 @@
-﻿ using System;
- using System.Collections.Concurrent;
- using System.Collections.Generic;
- using System.Linq;
- using System.Runtime.CompilerServices;
- using System.Threading;
- using System.Threading.Tasks;
- using Common.Logging;
- using Couchbase.Annotations;
- using Couchbase.Configuration;
- using Couchbase.Configuration.Client;
- using Couchbase.Configuration.Server.Providers;
- using Couchbase.Core;
- using Couchbase.Core.Buckets;
- using Couchbase.Core.Transcoders;
- using Couchbase.IO.Converters;
- using Couchbase.IO.Operations;
- using Couchbase.Management;
- using Couchbase.N1QL;
- using Couchbase.Views;
- using Couchbase.Utils;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Couchbase.Annotations;
+using Couchbase.Configuration;
+using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core;
+using Couchbase.Core.Buckets;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
+using Couchbase.Management;
+using Couchbase.N1QL;
+using Couchbase.Utils;
+using Couchbase.Views;
 
 namespace Couchbase
 {
@@ -27,7 +27,7 @@ namespace Couchbase
     /// </summary>
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
-        private static readonly ILog Log = LogManager.GetLogger<MemcachedBucket>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<MemcachedBucket>();
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
@@ -94,7 +94,7 @@ namespace Couchbase
                 }
                 catch (ServerUnavailableException e)
                 {
-                    Log.Info(m => m("Default to IsSecure false because of {0}", e));
+                    Log.Info($"Default to IsSecure false because of {e}");
                     return false;
                 }
             }
@@ -126,8 +126,7 @@ namespace Couchbase
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Config updated old/new: {0}, {1}",
-                _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
+            Log.Info($"Config updated old/new: {_configInfo?.BucketConfig.Rev ?? 0}, {configInfo.BucketConfig.Rev}");
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
                 new MemcachedRequestExecuter(_clusterController, _configInfo, Name, _pending));
@@ -1323,7 +1322,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
@@ -1499,7 +1498,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -1670,7 +1669,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
             PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");

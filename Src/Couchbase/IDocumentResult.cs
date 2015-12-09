@@ -1,5 +1,4 @@
-﻿using Couchbase.Core.Buckets;
-using Couchbase.IO;
+﻿using Couchbase.IO;
 
 namespace Couchbase
 {

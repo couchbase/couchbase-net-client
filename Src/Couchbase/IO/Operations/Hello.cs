@@ -1,5 +1,4 @@
 ﻿using System;
-using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
 

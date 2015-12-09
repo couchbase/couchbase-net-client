@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Couchbase.Core;
 
 namespace Couchbase.Configuration.Server.Serialization
 {

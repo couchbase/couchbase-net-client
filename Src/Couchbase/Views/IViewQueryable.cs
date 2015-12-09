@@ -1,5 +1,4 @@
 ﻿using System;
-using Couchbase.Core;
 
 namespace Couchbase.Views
 {

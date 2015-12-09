@@ -1,19 +1,14 @@
 ﻿using System;
-using System.Configuration;
-using System.Diagnostics;
 using System.Net.Http;
-using System.Reflection;
-using Common.Logging;
-using Couchbase.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Management;
 using Couchbase.Utils;
 using Couchbase.Views;
-using Newtonsoft.Json;
 
 namespace Couchbase
 {
@@ -22,7 +17,7 @@ namespace Couchbase
     /// </summary>
     public sealed class Cluster : ICluster
     {
-        private static readonly ILog Log = LogManager.GetLogger<Cluster>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<Cluster>();
         private const string DefaultBucket = "default";
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
@@ -195,18 +190,18 @@ namespace Couchbase
         public void Dispose()
         {
             Dispose(true);
-            Log.Debug(m => m("Disposing {0}", GetType().Name));
+            Log.Debug($"Disposing {GetType().Name}");
         }
 
         static void LogConfigurationAndVersion(ClientConfiguration configuration)
         {
             var version = CurrentAssembly.Version;
-            Log.Info(m=>m("Version: {0}", version));
+            Log.Info($"Version: {version}");
 
             try
             {
                 var config = JsonConvert.SerializeObject(configuration);
-                Log.Info(m => m("Configuration: {0}", config));
+                Log.Info($"Configuration: {config}");
             }
             catch (Exception e)
             {
@@ -243,7 +238,7 @@ namespace Couchbase
         ~Cluster()
         {
             Dispose(false);
-            Log.Debug(m=>m("Finalizing {0}", GetType().Name));
+            Log.Debug($"Finalizing {GetType().Name}");
         }
 #endif
     }

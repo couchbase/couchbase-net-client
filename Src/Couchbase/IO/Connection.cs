@@ -3,9 +3,9 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging.Factory;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -52,7 +52,7 @@ namespace Couchbase.IO
                 };
 
                 _eventArgs.UserToken = state;
-                Log.Debug(m => m("Sending {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
+                Log.Debug($"Sending {state.Opaque} with {Identity} on server {EndPoint}");
 
                 //set the buffer
                 var bufferLength = buffer.Length < Configuration.BufferSize
@@ -105,7 +105,7 @@ namespace Couchbase.IO
                 SendOffset = _eventArgs.Offset
             };
 
-            Log.DebugFormat("Sending opaque{0} on {1}", state.Opaque, Identity);
+            Log.Debug($"Sending opaque{state.Opaque} on {Identity}");
             _eventArgs.UserToken = state;
 
             //set the buffer
@@ -133,12 +133,12 @@ namespace Couchbase.IO
             //Check if an IO error occurred
             if (state.Exception != null)
             {
-                Log.DebugFormat("Connection {0} has failed with {1}", Identity, state.Exception);
+                Log.Debug($"Connection {Identity} has failed with {state.Exception}");
                 IsDead = true;
                 throw state.Exception;
             }
 
-            Log.DebugFormat("Complete opaque{0} on {1}", state.Opaque, Identity);
+            Log.Debug($"Complete opaque{state.Opaque} on {Identity}");
             //return the response bytes
             return state.Data.ToArray();
         }
@@ -218,7 +218,7 @@ namespace Couchbase.IO
             {
                 IsDead = true;
                 state.Exception = new SocketException((int) e.SocketError);
-                Log.Debug(m=>m("Error: {0} - {1}", Identity, state.Exception));
+                Log.Debug($"Error: {Identity} - {state.Exception}");
                 //if the callback is null we are in blocking mode
                 if (state.Completed == null)
                 {
@@ -242,13 +242,13 @@ namespace Couchbase.IO
             while (true)
             {
                 var state = (SocketAsyncState)e.UserToken;
-                Log.Debug(m => m("Receive {0} bytes for opaque{1} with {2} on server {3} offset{4}", e.BytesTransferred, state.Opaque, Identity, EndPoint, state.SendOffset));
+                Log.Debug($"Receive {e.BytesTransferred} bytes for opaque{state.Opaque} with {Identity} on server {EndPoint} offset{state.SendOffset}");
                 if (e.SocketError == SocketError.Success)
                 {
                     //socket was closed on recieving side
                     if (e.BytesTransferred == 0)
                     {
-                        Log.DebugFormat("Connection {0} has failed in receive with {1} bytes.", Identity, e.BytesTransferred);
+                        Log.Debug($"Connection {Identity} has failed in receive with {e.BytesTransferred} bytes.");
                         IsDead = true;
                         if (state.Completed == null)
                         {
@@ -271,7 +271,7 @@ namespace Couchbase.IO
                     //if first loop get the length of the body from the header
                     if (state.BodyLength == 0)
                     {
-                        state.BodyLength = Converter.ToInt32(state.Data.GetBuffer(), HeaderIndexFor.Body);
+                        state.BodyLength = Converter.ToInt32(state.Data.ToArray(), HeaderIndexFor.Body);
                     }
                     if (state.BytesReceived < state.BodyLength + 24)
                     {
@@ -291,12 +291,12 @@ namespace Couchbase.IO
                         //if the callback is null we are in blocking mode
                         if (state.Completed == null)
                         {
-                            Log.Debug(m => m("Complete with set {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
+                            Log.Debug($"Complete with set {state.Opaque} with {Identity} on server {EndPoint}");
                             _requestCompleted.Set();
                         }
                         else
                         {
-                            Log.Debug(m => m("Complete {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
+                            Log.Debug($"Complete {state.Opaque} with {Identity} on server {EndPoint}");
                             ConnectionPool.Release(this);
                             state.Completed(state);
                         }
@@ -306,7 +306,7 @@ namespace Couchbase.IO
                 {
                     IsDead = true;
                     state.Exception = new SocketException((int)e.SocketError);
-                    Log.Debug(m => m("Error: {0} - {1}", Identity, state.Exception));
+                    Log.Debug($"Error: {Identity} - {state.Exception}");
                     //if the callback is null we are in blocking mode
                     if (state.Completed == null)
                     {
@@ -330,7 +330,7 @@ namespace Couchbase.IO
         /// </summary>
         public override void Dispose()
         {
-            Log.DebugFormat("Disposing {0}", _identity);
+            Log.Debug($"Disposing {_identity}");
             if (Disposed || InUse && !IsDead) return;
             Disposed = true;
             IsDead = true;

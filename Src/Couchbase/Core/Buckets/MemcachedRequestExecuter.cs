@@ -2,10 +2,11 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {
@@ -17,7 +18,7 @@ namespace Couchbase.Core.Buckets
     /// Methods that are not implemented may throw a <see cref="NotSupportedException"/>.</remarks>
     internal class MemcachedRequestExecuter : RequestExecuterBase
     {
-        protected static readonly new ILog Log = LogManager.GetLogger<MemcachedRequestExecuter>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<MemcachedRequestExecuter>();
 
         public MemcachedRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
             string bucketName, ConcurrentDictionary<uint, IOperation> pending)
@@ -56,18 +57,17 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    Log.Debug($"Operation succeeded {operation.Attempts} for key {operation.Key}");
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
-                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, operationResult.Message));
+                    Log.Debug($"Operation retry {operation.Attempts} for key {operation.Key}. Reason: {operationResult.Message}");
                     Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
                 }
                 else
                 {
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug($"Operation doesn't support retries for key {operation.Key}");
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
@@ -104,18 +104,17 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    Log.Debug($"Operation succeeded {operation.Attempts} for key {operation.Key}");
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
-                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, operationResult.Message));
+                    Log.Debug($"Operation retry {operation.Attempts} for key {operation.Key}. Reason: {operationResult.Message}");
                     Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
                 }
                 else
                 {
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug($"Operation doesn't support retries for key {operation.Key}");
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);

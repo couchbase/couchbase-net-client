@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.Core.Serialization
+﻿namespace Couchbase.Core.Serialization
 {
     /// <summary>
     /// Options to control deserialization process in an <see cref="IExtendedTypeSerializer"/>.

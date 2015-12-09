@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Runtime.Remoting.Channels;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.N1QL;

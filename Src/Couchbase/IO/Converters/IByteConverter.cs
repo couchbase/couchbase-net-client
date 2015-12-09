@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.IO.Converters
+﻿namespace Couchbase.IO.Converters
 {
     /// <summary>
     /// Provides an interface for converting types and arrays before being sent or after being received across the network.

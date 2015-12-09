@@ -7,17 +7,17 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using Common.Logging;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Views;
-using System.Threading.Tasks;
-using Couchbase.Configuration.Server;
-
+using Couchbase.Utils;
 
 namespace Couchbase.Management
 {
@@ -26,7 +26,7 @@ namespace Couchbase.Management
     /// </summary>
     public class ClusterManager : IClusterManager
     {
-        private readonly static ILog Log = LogManager.GetLogger<ClusterManager>();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<ClusterManager>();
         private readonly ClientConfiguration _clientConfig;
         private readonly IServerConfig _serverConfig;
         private readonly string _username;
@@ -505,7 +505,7 @@ namespace Couchbase.Management
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
                 Success = httpResponseMessage.IsSuccessStatusCode,
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 
@@ -517,7 +517,7 @@ namespace Couchbase.Management
                 Message = IsSuccessStatusCode(statusCode) ? "success" : body,
                 Success = IsSuccessStatusCode(statusCode),
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug($"{body}");
             return result;
         }
 

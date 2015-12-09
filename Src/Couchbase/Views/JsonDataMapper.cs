@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Serialization;
-using Newtonsoft.Json;
 
 namespace Couchbase.Views
 {

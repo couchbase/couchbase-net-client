@@ -1,7 +1,4 @@
-﻿
-using System.ComponentModel;
-
-namespace Couchbase.IO
+﻿namespace Couchbase.IO
 {
     /// <summary>
     /// The response status for binary Memcached and Couchbase operations.

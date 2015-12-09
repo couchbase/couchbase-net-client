@@ -2,8 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Views;

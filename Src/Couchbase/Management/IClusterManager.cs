@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Net;
-using System.Runtime.InteropServices;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;

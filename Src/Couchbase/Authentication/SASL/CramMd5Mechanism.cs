@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Security.Cryptography;
 using System.Text;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
+using Couchbase.Utils;
 
 namespace Couchbase.Authentication.SASL
 {
@@ -17,7 +16,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal class CramMd5Mechanism : ISaslMechanism
     {
-        private static readonly ILog Log = LogManager.GetLogger<CramMd5Mechanism>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<CramMd5Mechanism>();
         private IOStrategy _ioStrategy;
         private ITypeTranscoder _transcoder;
 
@@ -93,7 +92,7 @@ namespace Couchbase.Authentication.SASL
             var temp = connection;
 
             var operation = new SaslStart(MechanismType, (VBucket)null, _transcoder, SaslFactory.DefaultTimeout);
-            Log.Debug(m => m("Authenticating socket {0} with opaque {1}", temp.Identity, operation.Opaque));
+            Log.Debug($"Authenticating socket {temp.Identity} with opaque {operation.Opaque}");
 
             var result = _ioStrategy.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
@@ -108,21 +107,21 @@ namespace Couchbase.Authentication.SASL
             if (result.Status == ResponseStatus.AuthenticationError)
             {
                 var tempResult = result;
-                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message));
+                Log.Debug($"Authentication for socket {temp.Identity} failed: {tempResult.Message}");
             }
             else if (result.Status != ResponseStatus.Success)
             {
                 var tempResult = result;
-                Log.Debug(m => m("Authentication for socket {0} failed for a non-auth related reason: {1} - {2}", temp.Identity, tempResult.Message, tempResult.Status));
+                Log.Debug($"Authentication for socket {temp.Identity} failed for a non-auth related reason: {tempResult.Message} - {tempResult.Status}");
                 if (operation.Exception != null)
                 {
-                    Log.Debug(m=>m("Throwing exception for connection {0}", temp.Identity));
+                    Log.Debug($"Throwing exception for connection {temp.Identity}");
                     throw operation.Exception;
                 }
             }
             else
             {
-                Log.Debug(m => m("Authentication for socket {0} succeeded.", temp.Identity));
+                Log.Debug($"Authentication for socket {temp.Identity} succeeded.");
             }
 
             return result.Status == ResponseStatus.Success;

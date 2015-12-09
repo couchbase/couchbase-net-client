@@ -5,11 +5,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Strategies
@@ -20,7 +19,7 @@ namespace Couchbase.IO.Strategies
     /// </summary>
     internal class DefaultIOStrategy : IOStrategy
     {
-        private readonly static ILog Log = LogManager.GetLogger<DefaultIOStrategy>();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<DefaultIOStrategy>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
@@ -33,7 +32,7 @@ namespace Couchbase.IO.Strategies
         /// <param name="connectionPool">The connection pool.</param>
         public DefaultIOStrategy(IConnectionPool connectionPool)
         {
-            Log.Debug(m=>m("Creating DefaultIOStrategy {0}", _identity));
+            Log.Debug($"Creating DefaultIOStrategy {_identity}");
             _connectionPool = connectionPool;
         }
 
@@ -44,7 +43,7 @@ namespace Couchbase.IO.Strategies
         /// <param name="saslMechanism">The sasl mechanism.</param>
         public DefaultIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
-            Log.Debug(m => m("Creating DefaultIOStrategy {0}", _identity));
+            Log.Debug($"Creating DefaultIOStrategy {_identity}");
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
         }
@@ -352,12 +351,12 @@ namespace Couchbase.IO.Strategies
                 var result = _saslMechanism.Authenticate(connection);
                 if (result)
                 {
-                    Log.Debug(m => m("Authenticated {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
+                    Log.Debug($"Authenticated {_saslMechanism.Username} using {_saslMechanism.GetType()} - {_identity}.");
                     connection.IsAuthenticated = true;
                 }
                 else
                 {
-                    Log.Debug(m => m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
+                    Log.Debug($"Could not authenticate {_saslMechanism.Username} using {_saslMechanism.GetType()} - {_identity}.");
                     throw new AuthenticationException(_saslMechanism.Username);
                 }
             }
@@ -411,7 +410,7 @@ namespace Couchbase.IO.Strategies
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
+            Log.Debug($"Disposing DefaultIOStrategy for {EndPoint} - {_identity}");
             Dispose(true);
         }
 
@@ -434,7 +433,7 @@ namespace Couchbase.IO.Strategies
 #if DEBUG
         ~DefaultIOStrategy()
         {
-            Log.Debug(m => m("Finalizing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
+            Log.Debug($"Finalizing DefaultIOStrategy for {EndPoint} - {_identity}");
             Dispose(false);
         }
 #endif

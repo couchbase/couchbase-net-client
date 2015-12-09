@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Couchbase.Core;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization

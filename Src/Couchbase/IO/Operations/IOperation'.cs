@@ -1,6 +1,4 @@
-﻿using System;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Transcoders;
+﻿using Couchbase.Core.Transcoders;
 
 namespace Couchbase.IO.Operations
 {

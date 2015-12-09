@@ -4,16 +4,17 @@ using System.Net.Sockets;
 using System.ServiceModel.Channels;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
     internal abstract class ConnectionBase : IConnection
     {
-        protected readonly static ILog Log = LogManager.GetLogger<ConnectionBase>();
+        protected readonly static ILogger Log = new LoggerFactory().CreateLogger<ConnectionBase>();
         protected readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
@@ -206,11 +207,11 @@ namespace Couchbase.IO
             HasShutdown = true;
             var timestamp = DateTime.Now;
             _timer = new Timer((obj) =>{
+                var elapsed =  (DateTime.Now - timestamp).Milliseconds;
                 _closeAttempts = Interlocked.Increment(ref _closeAttempts);
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
-                    Log.DebugFormat("Restarting timer for connection for {0} after {1}", _identity, args.SignalTime.Millisecond);
-                    _timer.Start();
+                    Log.Debug($"Restarting timer for connection for {_identity} after {elapsed}ms");
                 }
                 else
                 {
@@ -223,7 +224,7 @@ namespace Couchbase.IO
                     //this will call the derived classes Dispose method,
                     //which call the base.Dispose (on OperationBase) cleaning up the timer.
                     Dispose();
-                    Log.DebugFormat("Disposing {0} after {1}ms", _identity, args.SignalTime.Millisecond);
+                    Log.Debug($"Disposing {_identity} after {elapsed}ms");
                 }
             }, null, 0, (int)interval);
         }
@@ -234,7 +235,7 @@ namespace Couchbase.IO
         /// </summary>
         public virtual void Dispose()
         {
-            Log.DebugFormat("Disposing the timer for {0}", _identity);
+            Log.Debug($"Disposing the timer for {_identity}");
             if (_timer == null) return;
             _inUse = false;
             _timer.Dispose();

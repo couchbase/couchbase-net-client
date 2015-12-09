@@ -1,8 +1,5 @@
 ﻿using System;
-using System.ComponentModel;
 using Newtonsoft.Json;
-using System.Text;
-using Couchbase.N1QL;
 
 namespace Couchbase.Utils
 {

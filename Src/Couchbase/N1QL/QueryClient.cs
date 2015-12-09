@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.AccessControl;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Views;
-using Newtonsoft.Json;
 using Couchbase.Utils;
-using Couchbase.IO.Operations;
+using Couchbase.Views;
 
 namespace Couchbase.N1QL
 {
@@ -21,7 +17,7 @@ namespace Couchbase.N1QL
     /// </summary>
     internal class QueryClient : IQueryClient
     {
-        private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
+        private readonly static ILogger Log = new LoggerFactory().CreateLogger<QueryClient>();
 
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
 
@@ -269,8 +265,8 @@ namespace Couchbase.N1QL
                 var result = Prepare(originalRequest);
                 if (!result.Success)
                 {
-                    Log.WarnFormat("Failure to prepare plan for query {0} (it will be reattempted next time it is issued): {1}",
-                        originalStatement, result.GetErrorsAsString());
+                    Log.Warn($"Failure to prepare plan for query {originalStatement}" +
+                             " (it will be reattempted next time it is issued): {result.GetErrorsAsString()}");
                     throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
                 }
                 queryPlan = result.Rows.FirstOrDefault();
@@ -300,8 +296,8 @@ namespace Couchbase.N1QL
                 var result = await PrepareAsync(originalRequest);
                 if (!result.Success)
                 {
-                    Log.WarnFormat("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
-                        originalStatement, result.GetErrorsAsString());
+                    Log.Warn($"Failure to prepare async plan for query {originalStatement}" +
+                             " (it will be reattempted next time it is issued): {result.GetErrorsAsString()}");
                     throw new PrepareStatementException("Unable to optimize async statement: " + result.GetErrorsAsString());
                 }
                 queryPlan = result.Rows.FirstOrDefault();
@@ -407,7 +403,7 @@ namespace Couchbase.N1QL
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json")) {
                 try
                 {
-                    Log.TraceFormat("Sending: {0}", baseUri);
+                    Log.Trace("Sending: {baseUri}");
                     var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
                     using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
@@ -427,14 +423,14 @@ namespace Couchbase.N1QL
                 {
                     ae.Flatten().Handle(e =>
                     {
-                        Log.InfoFormat("Failed: {0} {1}", baseUri, e);
+                        Log.Info($"Failed: {baseUri} {e}");
                         ProcessError(e, queryResult);
                         return true;
                     });
                 }
                 catch (Exception e)
                 {
-                    Log.InfoFormat("Failed: {0} {1}", baseUri, e);
+                    Log.Info($"Failed: {baseUri} {e}");
                     Log.Info(e);
                     ProcessError(e, queryResult);
                 }

@@ -1,7 +1,4 @@
-﻿using System;
-using Couchbase.Core;
-
-namespace Couchbase
+﻿namespace Couchbase
 {
     internal interface IRefCountable
     {

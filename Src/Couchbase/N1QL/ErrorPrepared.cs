@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Couchbase
+﻿namespace Couchbase
 {
     /// <summary>
     /// An enum listing the N1QL codes that should trigger a retry for non adhoc queries.

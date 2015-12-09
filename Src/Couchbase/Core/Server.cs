@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
-using System.Runtime.Remoting;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -28,7 +24,7 @@ namespace Couchbase.Core
     /// </summary>
     internal class Server : IServer
     {
-        private static readonly ILog Log = LogManager.GetLogger<Server>();
+        protected static readonly ILogger Log = new LoggerFactory().CreateLogger<Server>();
         private readonly ClientConfiguration _clientConfiguration;
         private readonly BucketConfiguration _bucketConfiguration;
         private readonly IOStrategy _ioStrategy;
@@ -101,9 +97,9 @@ namespace Couchbase.Core
                 {
                     _isDown = _ioStrategy.ConnectionPool.InitializationFailed;
                 }
-
-                Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
-
+                                
+                Log.Info(string.Format("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint));
+                
                 //timer and node status
                 _heartBeatTimer = new Timer(
                     _heartBeatTimer_Elapsed, 
@@ -264,7 +260,7 @@ namespace Couchbase.Core
         /// <param name="args">The <see cref="System.Timers.ElapsedEventArgs"/> instance containing the event data.</param>
         private void _heartBeatTimer_Elapsed(object sender)
         {
-            Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
+            Log.Info($"Checking if node {EndPoint} is down: {_isDown}");
             lock (_syncObj)
             {
                 if(!_disposed)
@@ -298,20 +294,20 @@ namespace Couchbase.Core
                 var result = QueryClient.Query<dynamic>(query);
                 if (result.Success)
                 {
-                    Log.InfoFormat("Successfully connected and marking query node {0} as up.", EndPoint);
+                    Log.Info($"Successfully connected and marking query node {EndPoint} as up.");
                     _isDown = false;
                     _heartBeatTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
-                    Log.InfoFormat("The query node {0} is still down: {1}", EndPoint, result.Status);
+                    Log.Info($"The query node {EndPoint} is still down: {result.Status}");
                 }
 
             }
             catch (Exception e)
             {
 
-                Log.InfoFormat("The query node {0} is still down: {1}", EndPoint, e.Message);
+                Log.Info($"The query node {EndPoint} is still down: {e.Message}");
                 //the node is down or unreachable
                 _isDown = true;
                 Log.Debug(e);
@@ -342,20 +338,20 @@ namespace Couchbase.Core
                 var result = _ioStrategy.Execute(noop);
                 if (result.Success)
                 {
-                    Log.InfoFormat("Successfully connected and marking data node {0} as up.", EndPoint);
+                    Log.Info($"Successfully connected and marking data node {EndPoint} as up.");
                     _isDown = false;
                     _heartBeatTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
-                    Log.InfoFormat("The data node {0} is still down: {1}", EndPoint, result.Status);
+                    Log.Info($"The data node {EndPoint} is still down: {result.Status}");
                 }
             }
                 // ReSharper disable once CatchAllClause
             catch (Exception e)
             {
                 // ReSharper disable once HeapView.ObjectAllocation
-                Log.InfoFormat("The data node {0} is still down: {1}", EndPoint, e.Message);
+                Log.Info($"The data node {EndPoint} is still down: {e.Message}");
                 //the node is down or unreachable
                 _isDown = true;
                 Log.Debug(e);
@@ -413,15 +409,13 @@ namespace Couchbase.Core
                     var last = _lastIOErrorCheckedTime.AddMilliseconds(_clientConfiguration.IOErrorCheckInterval);
                     Interlocked.Increment(ref _ioErrorCount);
 
-                    Log.InfoFormat("Checking if node {0} should be down - last: {1}, current: {2}, count: {3}",
-                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+                    Log.Info($"Checking if node {EndPoint} should be down - last: {last.TimeOfDay}, current: {current.TimeOfDay}, count: {_ioErrorCount}");
 
                     if (_ioErrorCount > _clientConfiguration.IOErrorThreshold)
                     {
                         if(last < current)
                         {
-                            Log.InfoFormat("Marking node {0} as down - last: {1}, current: {2}, count: {3}",
-                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+                            Log.Info($"Marking node {EndPoint} as down - last: {last.TimeOfDay}, current: {current.TimeOfDay}, count: {_ioErrorCount}");
 
                             _isDown = true;
                             _heartBeatTimer.Change(0, (int)_clientConfiguration.NodeAvailableCheckInterval);
@@ -492,7 +486,7 @@ namespace Couchbase.Core
         /// </returns>
         public IOperationResult Send(IOperation operation)
         {
-            if (Log.IsDebugEnabled && _timingEnabled)
+            if (Log.IsDebugEnabled() && _timingEnabled)
             {
                 operation.BeginTimer(TimingLevel.Two);
             }
@@ -506,7 +500,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
+                    Log.Debug($"Sending {operation.GetType().Name} with key {operation.Key} using server {EndPoint}");
                     result = _ioStrategy.Execute(operation);
                 }
                 catch (Exception e)
@@ -516,7 +510,7 @@ namespace Couchbase.Core
                     result = operation.GetResult();
                 }
 
-                if (Log.IsDebugEnabled && _timingEnabled)
+                if (Log.IsDebugEnabled() && _timingEnabled)
                 {
                     operation.EndTimer(TimingLevel.Two);
                 }
@@ -534,7 +528,7 @@ namespace Couchbase.Core
         /// </returns>
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
-            if (Log.IsDebugEnabled && _timingEnabled)
+            if (Log.IsDebugEnabled() && _timingEnabled)
             {
                 operation.BeginTimer(TimingLevel.Two);
             }
@@ -548,7 +542,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
+                    Log.Debug($"Sending {operation.GetType().Name} with key {operation.Key} using server {EndPoint}");
                     result = _ioStrategy.Execute(operation);
                 }
                 catch (Exception e)
@@ -558,7 +552,7 @@ namespace Couchbase.Core
                     result = operation.GetResultWithValue();
                 }
 
-                if (Log.IsDebugEnabled && _timingEnabled)
+                if (Log.IsDebugEnabled() && _timingEnabled)
                 {
                     operation.EndTimer(TimingLevel.Two);
                 }
@@ -762,7 +756,7 @@ namespace Couchbase.Core
 
         public void Dispose()
         {
-            Log.Info(m => m("Disposing Server for {0}", EndPoint));
+            Log.Info($"Disposing Server for {EndPoint}");
             Dispose(true);
         }
 
@@ -807,7 +801,7 @@ namespace Couchbase.Core
 #if DEBUG
         ~Server()
         {
-            Log.Debug(m => m("Finalizing Server for {0}", EndPoint));
+            Log.Debug($"Finalizing Server for {EndPoint}");
             Dispose(false);
         }
 #endif

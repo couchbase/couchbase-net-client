@@ -1,5 +1,10 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -7,13 +12,8 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.Utils;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using Couchbase.N1QL;
+using Couchbase.Utils;
 
 namespace Couchbase.Configuration
 {
@@ -23,7 +23,7 @@ namespace Couchbase.Configuration
     /// </summary>
     internal abstract class ConfigContextBase : IConfigInfo
     {
-        protected static readonly ILog Log = LogManager.GetLogger<ConfigContextBase>();
+        protected static readonly ILogger Log = new LoggerFactory().CreateLogger<Cluster>();
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
@@ -165,7 +165,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IKeyMapper GetKeyMapper()
         {
-            Log.Debug(m=>m("Getting KeyMapper for rev#{0} on thread {1}", BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
+            Log.Debug($"Getting KeyMapper for rev#{BucketConfig.Rev} on thread {Thread.CurrentThread.ManagedThreadId}");
             return KeyMapper;
         }
 
@@ -243,7 +243,7 @@ namespace Couchbase.Configuration
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing ConfigContext"));
+            Log.Debug("Disposing ConfigContext");
             Dispose(true);
         }
 
@@ -283,7 +283,7 @@ namespace Couchbase.Configuration
         /// </summary>
         ~ConfigContextBase()
         {
-            Log.Debug(m => m("Finalizing ConfigContext for Rev#{0}", BucketConfig.Rev));
+            Log.Debug($"Finalizing ConfigContext for Rev#{BucketConfig.Rev}");
             Dispose(false);
         }
 #endif

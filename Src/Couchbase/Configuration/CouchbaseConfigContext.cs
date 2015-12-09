@@ -46,7 +46,7 @@ namespace Couchbase.Configuration
                 var nodes = bucketConfig.GetNodes();
                 if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || !Servers.Any() || force)
                 {
-                    Log.InfoFormat("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
+                    Log.Info($"o1-Creating the Servers {nodes.Count} list using rev#{bucketConfig.Rev}");
 
                     var queryUris = new ConcurrentBag<FailureCountingUri>();
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
@@ -56,7 +56,7 @@ namespace Couchbase.Configuration
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                         try
                         {
-                            Log.InfoFormat("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
+                            Log.Info($"Creating node {endpoint} for rev#{bucketConfig.Rev}");
                             IServer server;
                             if (adapter.IsQueryNode)
                             {
@@ -83,7 +83,7 @@ namespace Couchbase.Configuration
                         }
                         catch (Exception e)
                         {
-                            Log.ErrorFormat("Could not add server {0} for rev#{1}. Exception: {2}", endpoint, bucketConfig.Rev, e);
+                            Log.Error($"Could not add server {endpoint} for rev#{bucketConfig.Rev}. Exception: {e}");
                         }
                     }
 
@@ -93,7 +93,7 @@ namespace Couchbase.Configuration
                     Interlocked.Exchange(ref QueryUris, queryUris);
 
                     var old = Interlocked.Exchange(ref Servers, servers);
-                    Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                    Log.Info($"Creating the KeyMapper list using rev#{bucketConfig.Rev}");
                     var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
                     Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                     Interlocked.Exchange(ref _bucketConfig, bucketConfig);
@@ -102,7 +102,7 @@ namespace Couchbase.Configuration
                     {
                         foreach (var server in old.Values)
                         {
-                            Log.InfoFormat("Disposing node {0} from rev#{1}", server.EndPoint, server.Revision);
+                            Log.Info($"Disposing node {server.EndPoint} from rev#{server.Revision}");
                             server.Dispose();
                         }
                         old.Clear();
@@ -112,7 +112,7 @@ namespace Couchbase.Configuration
                 {
                     if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
                     {
-                        Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
+                        Log.Info($"Creating the KeyMapper list using rev#{bucketConfig.Rev}");
                         var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap,
                             bucketConfig.Rev);
                         Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
@@ -137,7 +137,7 @@ namespace Couchbase.Configuration
             try
             {
                 Lock.EnterWriteLock();
-                Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
+                Log.Info($"o2-Creating the Servers list using rev#{BucketConfig.Rev}");
 
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
@@ -191,7 +191,7 @@ namespace Couchbase.Configuration
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                        Log.Error($"Could not add server {endpoint}. Exception: {e}");
                     }
                 }
 
@@ -200,7 +200,7 @@ namespace Couchbase.Configuration
                 //for caching uri's
                 Interlocked.Exchange(ref QueryUris, queryUris);
 
-                Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
+                Log.Info($"Creating the KeyMapper list using rev#{BucketConfig.Rev}");
                 var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
@@ -225,7 +225,7 @@ namespace Couchbase.Configuration
             Lock.EnterWriteLock();
             try
             {
-                Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
+                Log.Info($"o3-Creating the Servers list using rev#{BucketConfig.Rev}");
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var servers = new Dictionary<IPAddress, IServer>();
@@ -261,7 +261,7 @@ namespace Couchbase.Configuration
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                        Log.Error($"Could not add server {endpoint}. Exception: {e}");
                     }
                 }
 

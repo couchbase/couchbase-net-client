@@ -1,8 +1,8 @@
-﻿    using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Common.Logging;
+using Microsoft.Extensions.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
 
@@ -13,7 +13,7 @@ namespace Couchbase.Core
     /// </summary>
     internal class VBucket : IVBucket
     {
-        private readonly static ILog Log = LogManager.GetLogger<VBucket>();
+        private static readonly ILogger Log = new LoggerFactory().CreateLogger<VBucket>();
         private readonly int[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly IDictionary<IPAddress, IServer> _cluster;
@@ -86,7 +86,7 @@ namespace Couchbase.Core
             }
             catch
             {
-                Log.Debug(m=>m("No server found for replica with index of {0}.", index));
+                Log.Debug($"No server found for replica with index of {index}.");
                 return null;
             }
         }
