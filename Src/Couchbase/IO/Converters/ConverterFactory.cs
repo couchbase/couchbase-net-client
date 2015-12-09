@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using Couchbase.Configuration.Client.Providers;
 
 namespace Couchbase.IO.Converters
@@ -25,7 +24,6 @@ namespace Couchbase.IO.Converters
         /// <returns>A func for creating custom <see cref="IByteConverter"/> instances.</returns>
         public static Func<IByteConverter> GetConverter(ConverterElement element)
         {
-            Assembly.GetExecutingAssembly();
             var type = Type.GetType(element.Type, true);
             return () => (IByteConverter) Activator.CreateInstance(type);
         }
