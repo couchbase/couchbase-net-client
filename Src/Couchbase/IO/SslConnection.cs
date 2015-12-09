@@ -60,28 +60,33 @@ namespace Couchbase.IO
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
             };
 
-            _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, state);
-            if (!SendEvent.WaitOne(Configuration.SendTimeout))
+            var result = _sslStream.WriteAsync(buffer, 0, buffer.Length).Wait(Configuration.SendTimeout);
+            if (!result)
             {
-                //TODO refactor logic
+                //TODO: refactor logic
                 IsDead = true;
                 const string msg =
                     "The connection has timed out while an operation was in flight. The default is 15000ms.";
                 throw new IOException(msg);
             }
+            
+            //TODO: refactor
+            var recv = BufferManager.TakeBuffer(1024);
+            _sslStream.ReadAsync(recv, 0, recv.Length);
 
-            return state.Data.ToArray();
+            return recv;
         }
 
         public override void Send<T>(IOperation<T> operation)
         {
             try
             {
-                _sslStream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
-                if (!SendEvent.WaitOne(Configuration.SendTimeout))
+                var result = _sslStream.WriteAsync(operation.WriteBuffer, 0, operation.WriteBuffer.Length).Wait(Configuration.SendTimeout);
+                if (!result)
                 {
                     const string msg =
                         "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                    const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
                     operation.HandleClientError(msg, ResponseStatus.ClientFailure);
                     IsDead = true;
                 }
@@ -89,65 +94,6 @@ namespace Couchbase.IO
             catch (Exception e)
             {
                 HandleException(e, operation);
-            }
-        }
-
-        private void SendCallback(IAsyncResult asyncResult)
-        {
-            var state = (SocketAsyncState)asyncResult.AsyncState;
-            try
-            {
-                _sslStream.EndWrite(asyncResult);
-                state.Buffer = BufferManager.TakeBuffer(1024);
-                _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
-            }
-            catch (Exception e)
-            {
-                if (state.Buffer != null)
-                {
-                    BufferManager.ReturnBuffer(state.Buffer);
-                }
-                throw;
-            }
-        }
-
-        private void ReceiveCallback(IAsyncResult asyncResult)
-        {
-            var state = (SocketAsyncState)asyncResult.AsyncState;
-            try
-            {
-                var bytesRecieved = _sslStream.EndRead(asyncResult);
-                state.BytesReceived += bytesRecieved;
-                if (state.BytesReceived == 0)
-                {
-                    BufferManager.ReturnBuffer(state.Buffer);
-                    SendEvent.Set();
-                    return;
-                }
-                if (state.BodyLength == 0)
-                {
-                    state.BodyLength = Converter.ToInt32(state.Buffer, HeaderIndexFor.Body);
-                }
-
-                state.Data.Write(state.Buffer, 0, bytesRecieved);
-
-                if (state.BytesReceived < state.BodyLength + 24)
-                {
-                    _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
-                }
-                else
-                {
-                    BufferManager.ReturnBuffer(state.Buffer);
-                    SendEvent.Set();
-                }
-            }
-            catch (Exception e)
-            {
-                if (state.Buffer != null)
-                {
-                    BufferManager.ReturnBuffer(state.Buffer);
-                }
-                throw;
             }
         }
 
