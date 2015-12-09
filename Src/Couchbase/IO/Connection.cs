@@ -342,13 +342,8 @@ namespace Couchbase.IO
                     if (Socket.Connected)
                     {
                         Socket.Shutdown(SocketShutdown.Both);
-                        Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                     }
-                    else
-                    {
-                        Socket.Close();
-                        Socket.Dispose();
-                    }
+                    Socket.Dispose();
                 }
                 //call the bases dispose to cleanup the timer
                 base.Dispose();

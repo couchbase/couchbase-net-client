@@ -32,7 +32,7 @@ namespace Couchbase.IO
                 }
                 else
                 {
-                    socket.Close();
+                    socket.Dispose();
                     const int connectionTimedOut = 10060;
                     throw new SocketException(connectionTimedOut);
                 }
