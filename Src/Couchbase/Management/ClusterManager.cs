@@ -377,7 +377,7 @@ namespace Couchbase.Management
                 request.Accept = request.ContentType = "application/x-www-form-urlencoded";
                 request.Credentials = new NetworkCredential(_username, _password);
 
-                using (var response = request.GetResponse() as HttpWebResponse)
+                using (var response = request.GetResponseAsync().Result as HttpWebResponse)
                 {
                     using (var reqStream = response.GetResponseStream())
                     {
@@ -590,12 +590,12 @@ namespace Couchbase.Management
                 var bytes = Encoding.UTF8.GetBytes(PostDataDicToString(formData));
                 request.Headers[HttpResponseHeader.ContentLength] = bytes.Length.ToString();
 
-                using (var stream = request.GetRequestStream())
+                using (var stream = request.GetRequestStreamAsync().Result)
                 {
                     stream.Write(bytes, 0, bytes.Length);
                 }
 
-                using (var response = request.GetResponse() as HttpWebResponse)
+                using (var response = request.GetResponseAsync().Result as HttpWebResponse)
                 {
                     using (var reqStream = response.GetResponseStream())
                     {

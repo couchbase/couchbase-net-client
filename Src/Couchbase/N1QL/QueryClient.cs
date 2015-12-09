@@ -353,12 +353,12 @@ namespace Couchbase.N1QL
                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                 request.Headers[HttpResponseHeader.ContentLength] = bytes.Length.ToString();
 
-                using (var stream = request.GetRequestStream())
+                using (var stream = request.GetRequestStreamAsync().Result)
                 {
                     stream.Write(bytes, 0, bytes.Length);
                 }
 
-                var response = request.GetResponse();
+                var response = request.GetResponseAsync().Result;
                 using (var stream = response.GetResponseStream())
                 {
                     queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);

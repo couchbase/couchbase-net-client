@@ -90,7 +90,7 @@ namespace Couchbase.Views
                 var request = WebRequest.Create(query.RawUri());
                 request.Timeout = _clientConfig.ViewRequestTimeout;
                 WriteAuthenticationHeaders(request, _bucketConfig.Name, _bucketConfig.Password);
-                using (var response = request.GetResponse() as HttpWebResponse)
+                using (var response = request.GetResponseAsync().Result as HttpWebResponse)
                 {
                     var stream = response.GetResponseStream();
                     viewResult = Mapper.Map<ViewResult<T>>(stream);
