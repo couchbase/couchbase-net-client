@@ -43,7 +43,6 @@ namespace Couchbase.Core.Transcoders
         public Flags GetFormat<T>(T value)
         {
             var dataFormat = DataFormat.Json;
-            var typeCode = Type.GetTypeCode(typeof(T));
             var typeCode = ((IConvertible)value).GetTypeCode();
             switch (typeCode)
             {
@@ -137,7 +136,6 @@ namespace Couchbase.Core.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Empty:
-                case TypeCode.DBNull:
                 case TypeCode.String:
                 case TypeCode.Char:
                     Converter.FromString(Convert.ToString(value), ref bytes, 0);
@@ -274,12 +272,10 @@ namespace Couchbase.Core.Transcoders
         {
             object value = default(T);
 
-            var typeCode = Type.GetTypeCode(typeof(T));
             var typeCode = ((IConvertible)value).GetTypeCode();
             switch (typeCode)
             {
                 case TypeCode.Empty:
-                case TypeCode.DBNull:
                 case TypeCode.String:
                     value = DecodeString(buffer, offset, length);
                     break;
