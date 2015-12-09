@@ -73,7 +73,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
             finally
             {
-                _heartBeat.Start();
+                _heartBeat.Change(0, (int)ClientConfig.HeartbeatConfigInterval);
             }
         }
 
