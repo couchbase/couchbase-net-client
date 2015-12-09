@@ -37,7 +37,7 @@ namespace Couchbase.IO
             return true;
         }
 
-        public void Authenticate()
+        public override void Authenticate()
         {
             try
             {
