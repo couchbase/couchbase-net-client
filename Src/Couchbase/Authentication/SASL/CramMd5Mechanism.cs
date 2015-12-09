@@ -2,6 +2,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Common.Logging;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -138,13 +140,11 @@ namespace Couchbase.Authentication.SASL
                 : Encoding.ASCII.GetBytes(challenge);
 
             string hex;
-            using (var hmac = new HMACMD5(Encoding.ASCII.GetBytes(Password)))
-            {
-                var encrypted = hmac.ComputeHash(data);
-                hex = BitConverter.ToString(encrypted).
-                    Replace("-", String.Empty).
-                    ToLower();
-            }
+			var encrypted = MacUtilities.CalculateMac("HMAC-MD5", new KeyParameter(Encoding.ASCII.GetBytes(Password)), data);
+			hex = BitConverter.ToString(encrypted).
+				Replace("-", String.Empty).
+				ToLower();
+            
             return string.Concat(Username, " ", hex);
         }
 
