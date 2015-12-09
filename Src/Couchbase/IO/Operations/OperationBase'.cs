@@ -36,8 +36,8 @@ namespace Couchbase.IO.Operations
 
             return bytes;
         }
-
-        public virtual IOperationResult<T> GetResultWithValue()
+        
+        public Couchbase.IOperationResult<T> GetResultWithValue()
         {
             var result = new OperationResult<T>();
             try
@@ -71,6 +71,7 @@ namespace Couchbase.IO.Operations
                     Data.Dispose();
                 }
             }
+            
             return result;
         }
 
