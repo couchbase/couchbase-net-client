@@ -227,6 +227,29 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Gets or sets the maximum number of concurrent connections allowed by a ServicePoint object used for making View and N1QL requests.
+        /// </summary>
+        /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.defaultconnectionlimit.aspx</remarks>
+        /// <remarks>The default is set to 5 connections.</remarks>
+        [ConfigurationProperty("defaultConnectionLimit", DefaultValue = 5, IsRequired = false)]
+        public int DefaultConnectionLimit
+        {
+            get { return (int)this["defaultConnectionLimit"]; }
+            set { this["defaultConnectionLimit"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum idle time of a ServicePoint object used for making View and N1QL requests.
+        /// </summary>
+        /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.maxservicepointidletime.aspx</remarks>
+        [ConfigurationProperty("maxServicePointIdleTime", DefaultValue = 1000, IsRequired = false)]
+        public int MaxServicePointIdleTime
+        {
+            get { return (int)this["maxServicePointIdleTime"]; }
+            set { this["maxServicePointIdleTime"] = value; }
+        }
+
+        /// <summary>
         /// Writes the elasped time for an operation to the log appender. Disabled by default.
         /// </summary>
         /// <remarks>When enabled will cause severe performance degradation.</remarks>

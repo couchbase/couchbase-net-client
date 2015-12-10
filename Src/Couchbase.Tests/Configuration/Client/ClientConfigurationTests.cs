@@ -502,6 +502,23 @@ namespace Couchbase.Tests.Configuration.Client
                 }
             }
         }
+
+        [Test]
+        public void When_DefaultConnectionLimit_Is_10_ServicePoint_ConnectionLimit_Is_10()
+        {
+            var config = new ClientConfiguration
+            {
+                DefaultConnectionLimit = 10,
+                Servers = new List<Uri>
+                {
+                    new Uri("http://10.141.111.108:8091/")
+                }
+            };
+            config.Initialize();
+
+            var servicePoint = ServicePointManager.FindServicePoint(config.Servers.First());
+            Assert.AreEqual(servicePoint.ConnectionLimit, 10);
+        }
     }
 }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
@@ -208,7 +209,8 @@ namespace Couchbase.Tests.Configuration
                 {
                     new Uri("http://127.0.0.1:8091")
                 },
-                UseSsl = false
+                UseSsl = false,
+                DefaultConnectionLimit = 10
             };
             clientConfig.Initialize();
 

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Common.Logging;
+using Couchbase.Configuration.Client;
 
 namespace Couchbase.Utils
 {
@@ -84,6 +85,20 @@ namespace Couchbase.Utils
                 throw new ArgumentException("port");
             }
             return new IPEndPoint(ipAddress, port);
+        }
+
+        public static void ConfigureServicePoint(this Uri uri, ClientConfiguration config)
+        {
+            var servicePoint = ServicePointManager.FindServicePoint(uri);
+            if (config.DefaultConnectionLimit > 0)
+            {
+                servicePoint.ConnectionLimit = config.DefaultConnectionLimit;
+            }
+            if (config.MaxServicePointIdleTime > 0)
+            {
+                servicePoint.MaxIdleTime = config.MaxServicePointIdleTime;
+            }
+            servicePoint.Expect100Continue = config.Expect100Continue;
         }
     }
 }

@@ -60,7 +60,9 @@ namespace Couchbase.Configuration
                             IServer server;
                             if (adapter.IsQueryNode)
                             {
-                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                queryUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
@@ -156,14 +158,18 @@ namespace Couchbase.Configuration
                             SupportsEnhancedDurability = supportsEnhancedDurability;
                             if (server.IsQueryNode)
                             {
-                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                queryUris.Add(uri);
                             }
                         }
                         else
                         {
                             if (adapter.IsQueryNode)
                             {
-                                queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                queryUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
@@ -238,7 +244,9 @@ namespace Couchbase.Configuration
                         IServer server;
                         if (adapter.IsQueryNode)
                         {
-                            queryUris.Add(UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig));
+                            var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                            uri.ConfigureServicePoint(ClientConfig);
+                            queryUris.Add(uri);
                         }
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {

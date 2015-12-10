@@ -14,6 +14,7 @@ using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -67,8 +68,12 @@ namespace Couchbase.Configuration.Client
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             ViewRequestTimeout = 75000; //ms
+
+            //service point settings
             DefaultConnectionLimit = 5; //connections
             Expect100Continue = false;
+            MaxServicePointIdleTime = 100;
+
             EnableOperationTiming = false;
             BufferSize = 1024 * 16;
             DefaultOperationLifespan = 2500;//ms
@@ -137,6 +142,8 @@ namespace Couchbase.Configuration.Client
             HeartbeatConfigInterval = section.HeartbeatConfigInterval;
             ViewRequestTimeout = section.ViewRequestTimeout;
             Expect100Continue = section.Expect100Continue;
+            DefaultConnectionLimit = section.DefaultConnectionLimit;
+            MaxServicePointIdleTime = section.MaxServicePointIdleTime;
             EnableOperationTiming = section.EnableOperationTiming;
             DefaultOperationLifespan = section.OperationLifespan;
             QueryRequestTimeout = section.QueryRequestTimeout;
@@ -571,32 +578,20 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.defaultconnectionlimit.aspx</remarks>
         /// <remarks>The default is set to 5 connections.</remarks>
-        public int DefaultConnectionLimit
-        {
-            get { return ServicePointManager.DefaultConnectionLimit; }
-            set { ServicePointManager.DefaultConnectionLimit = value; }
-        }
+        public int DefaultConnectionLimit { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum idle time of a ServicePoint object used for making View and N1QL requests.
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.maxservicepointidletime.aspx</remarks>
-        public int MaxServicePointIdleTime
-        {
-            get { return ServicePointManager.MaxServicePointIdleTime; }
-            set { ServicePointManager.MaxServicePointIdleTime = value; }
-        }
+        public int MaxServicePointIdleTime { get; set; }
 
         /// <summary>
         /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
         /// </summary>
         /// <remarks>The default is false, which overrides the <see cref="ServicePointManager"/>'s default of true.</remarks>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.expect100continue%28v=vs.110%29.aspx</remarks>
-        public bool Expect100Continue
-        {
-            get { return ServicePointManager.Expect100Continue; }
-            set { ServicePointManager.Expect100Continue = value; }
-        }
+        public bool Expect100Continue { get; set; }
 
         /// <summary>
         /// Enables configuration "heartbeat" checks.
@@ -650,6 +645,7 @@ namespace Couchbase.Configuration.Client
                 {
                     if (!Servers.Contains(uri))
                     {
+                        uri.ConfigureServicePoint(this);
                         Servers.Add(uri);
                     }
                 }
@@ -702,9 +698,11 @@ namespace Couchbase.Configuration.Client
                     }
                     else
                     {
-                        var newUri = _servers[i].ToString();
-                        newUri = string.Concat(newUri, newUri.EndsWith("/") ? "pools" : "/pools");
-                        _servers[i] = new Uri(newUri);
+                        var value = _servers[i].ToString();
+                        value = string.Concat(value, value.EndsWith("/") ? "pools" : "/pools");
+                        var uri = new Uri(value);
+                        uri.ConfigureServicePoint(this);
+                        _servers[i] = uri;
                     }
                 }
             }
@@ -761,6 +759,7 @@ namespace Couchbase.Configuration.Client
                             var oldUri = _servers[i];
                             var newUri = new Uri(string.Concat("https://", _servers[i].Host,
                                 ":", HttpsMgmtPort, oldUri.PathAndQuery));
+                            newUri.ConfigureServicePoint(this);
                             _servers[i] = newUri;
                         }
                     }
