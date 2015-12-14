@@ -86,5 +86,15 @@ namespace Couchbase.UnitTests.N1Ql
         }
 
         #endregion
+
+        [Test]
+        public void When_MaxServerParallism_Is_Set_Request_Has_It()
+        {
+            var queryRequest = new QueryRequest("SELECT * FROM default;");
+            queryRequest.MaxServerParallelism(4);
+
+            var query = queryRequest.GetFormValues();
+            Assert.AreEqual(4.ToString(), query["max_parallelism"]);
+        }
     }
 }

@@ -35,6 +35,7 @@ namespace Couchbase.N1QL
         private Uri _baseUri;
         private bool _prepareEncoded;
         private bool _adHoc = true;
+        private int? _maxServerParallelism;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -89,6 +90,7 @@ namespace Couchbase.N1QL
             public const string Pretty = "pretty";
             public const string Creds = "creds";
             public const string ClientContextId = "client_context_id";
+            public const string MaxServerParallelism = "max_parallelism";
         }
 
         /// <summary>
@@ -122,6 +124,24 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <remarks>Null will use the default <see cref="IDataMapper"/>.</remarks>
         public IDataMapper DataMapper { get; set; }
+
+
+        /// <summary>
+        /// Specifies the maximum parallelism for the query. A zero or negative value means the number of logical
+        /// cpus will be used as the parallelism for the query. There is also a server wide max_parallelism parameter
+        /// which defaults to 1. If a request includes max_parallelism, it will be capped by the server max_parallelism.
+        /// If a request does not include max_parallelism, the server wide max_parallelism will be used.
+        /// </summary>
+        /// <param name="parallelism"></param>
+        /// <returns></returns>
+        /// <value>
+        /// The maximum server parallelism.
+        /// </value>
+        public IQueryRequest MaxServerParallelism(int parallelism)
+        {
+            _maxServerParallelism = parallelism;
+            return this;
+        }
 
         /// <summary>
         /// If set to false, the client will try to perform optimizations
@@ -529,6 +549,10 @@ namespace Couchbase.N1QL
             //build the map of request parameters
             IDictionary<string, object> formValues = new Dictionary<string, object>();
 
+            if (_maxServerParallelism.HasValue)
+            {
+                formValues.Add(QueryParameters.MaxServerParallelism, _maxServerParallelism.Value.ToString());
+            }
             if (_prepareEncoded)
             {
                 formValues.Add(QueryParameters.Prepared, _preparedPayload.Name);

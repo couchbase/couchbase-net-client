@@ -40,6 +40,17 @@ namespace Couchbase.N1QL
         /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
         bool HasBeenRetried { get; set; }
 
+        /// <summary>
+        /// Specifies the maximum parallelism for the query. A zero or negative value means the number of logical
+        /// cpus will be used as the parallelism for the query. There is also a server wide max_parallelism parameter
+        /// which defaults to 1. If a request includes max_parallelism, it will be capped by the server max_parallelism.
+        /// If a request does not include max_parallelism, the server wide max_parallelism will be used.
+        /// </summary>
+        /// <value>
+        /// The maximum server parallelism.
+        /// </value>
+        IQueryRequest MaxServerParallelism(int parallelism);
+
 
         /// <summary>
         ///  If set to false, the client will try to perform optimizations

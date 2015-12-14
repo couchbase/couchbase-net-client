@@ -74,6 +74,19 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public void When_MaxServerParallelism_Is_Set_Request_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket())
+            {
+                var queryRequest = new QueryRequest("SELECT * FROM default LIMIT 10;");
+                queryRequest.MaxServerParallelism(4);
+
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
         public void Test_Query_With_QueryRequest()
         {
             using (var bucket = _cluster.OpenBucket())
