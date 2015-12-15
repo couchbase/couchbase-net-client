@@ -356,6 +356,11 @@ namespace Couchbase.N1QL
                 request.Method = "POST";
                 request.ContentType = "application/json";
 
+                var authType = "Basic";
+                var credBytes = System.Text.Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password));
+                var credentials = string.Concat(authType, " ", Convert.ToBase64String(credBytes));
+                request.Headers[HttpRequestHeader.Authorization] = credentials;
+
                 var json = queryRequest.GetFormValuesAsJson();
                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                 request.ContentLength = bytes.Length;

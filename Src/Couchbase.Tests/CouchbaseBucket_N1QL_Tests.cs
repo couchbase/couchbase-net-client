@@ -48,6 +48,62 @@ namespace Couchbase.Tests
         }
 
         [Test]
+        public void When_Bucket_Requires_Authentication_And_Credentials_Provided_Query_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
+            {
+                //NOTE: authenticated is password protected
+                const string query = "SELECT * FROM `authenticated` LIMIT 10";
+
+                var queryRequest = new QueryRequest(query);
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public void When_Bucket_Requires_Authentication_And_Credentials_NotProvided_Query_Fails()
+        {
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                //NOTE: authenticated is password protected
+                const string query = "SELECT * FROM `authenticated` LIMIT 10";
+
+                var queryRequest = new QueryRequest(query);
+                var result = bucket.Query<dynamic>(queryRequest);
+                Assert.IsFalse(result.Success);
+            }
+        }
+
+        [Test]
+        public async void When_Bucket_Requires_Authentication_And_Credentials_Provided_QueryAsync_Succeeds()
+        {
+            using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
+            {
+                //NOTE: authenticated is password protected
+                const string query = "SELECT * FROM `authenticated` LIMIT 10";
+
+                var queryRequest = new QueryRequest(query);
+                var result = await bucket.QueryAsync<dynamic>(queryRequest);
+                Assert.IsTrue(result.Success);
+            }
+        }
+
+        [Test]
+        public async void When_Bucket_Requires_Authentication_And_Credentials_NotProvided_QueryAsync_Fails()
+        {
+            using (var bucket = _cluster.OpenBucket("default"))
+            {
+                //NOTE: authenticated is password protected
+                const string query = "SELECT * FROM `authenticated` LIMIT 10";
+
+                var queryRequest = new QueryRequest(query);
+                var result = await bucket.QueryAsync<dynamic>(queryRequest);
+                Assert.IsFalse(result.Success);
+            }
+        }
+
+        [Test]
         public async void Test_QueryAsync()
         {
             using (var bucket = _cluster.OpenBucket())
