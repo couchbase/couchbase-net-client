@@ -27,18 +27,6 @@ namespace Couchbase.Tests
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 }
             });
-
-            /*using (var bucket = _cluster.OpenBucket())
-            {
-                var indexes = bucket.Query<dynamic>("SELECT * FROM system:indexes WHERE keyspace_id ='`travel-sample`' and name='#primary';");
-
-                foreach (var index in indexes.Rows)
-                {
-
-                }
-                bucket.Query<dynamic>("CREATE PRIMARY INDEX on `travel-sample` USING GSI;");
-                bucket.Query<dynamic>("CREATE PRIMARY INDEX on `beer-sample` USING GSI;");
-            }*/
         }
 
         [TearDown]
