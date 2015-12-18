@@ -134,12 +134,13 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public void Test_View_Query_Authenticated()
+        public async void Test_View_Query_Authenticated()
         {
             using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
             {
                 var manager = bucket.CreateManager("Administrator", "password");
-                manager.InsertDesignDocumentAsync("docs", File.ReadAllText(@"Data\\DesignDocs\\docs.json"));
+                var viewResult = await manager.InsertDesignDocumentAsync("docs", File.ReadAllText(@"Data\\DesignDocs\\docs.json"));
+
                 var query = bucket.CreateQuery("docs", "all_docs").
                     Development(false).
                     Limit(10);

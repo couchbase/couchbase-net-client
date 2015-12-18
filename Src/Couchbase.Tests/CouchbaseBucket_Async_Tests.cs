@@ -264,27 +264,6 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_NMV_Found_GetAsync_Will_Retry_Until_Timeout_Looped()
-        {
-            var connection = new FakeConnection();
-            connection.SetResponse(ResponsePackets.GET_WITH_NMV);
-            _connectionPool.AddConnection(connection);
-
-            var bucket = GetBucketForKey("key1");
-
-            var count = 0;
-            while (count < 2)
-            {
-                var result = await bucket.GetAsync<int>("key1");
-
-                Console.WriteLine(result.Message);
-                Assert.IsFalse(result.Success);
-                Assert.AreEqual(ResponseStatus.OperationTimeout, result.Status);
-                count++;
-            }
-        }
-
-        [Test]
         public async void When_Key_Does_Not_Exist_ReplaceAsync_Returns_KeyNotFound()
         {
             var connection = new FakeConnection();
