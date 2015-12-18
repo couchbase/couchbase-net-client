@@ -1,11 +1,5 @@
-﻿using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading;
-using Common.Logging;
+﻿using Common.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
@@ -15,13 +9,11 @@ using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core
 {
@@ -40,26 +32,9 @@ namespace Couchbase.Core
 
         public ClusterController(ClientConfiguration clientConfig)
             : this(clientConfig,
-                pool =>
-                {
-                    Log.Debug(m => m("Creating DefaultIOStrategy"));
-                    return new DefaultIOStrategy(pool);
-                },
-            (config, endpoint) =>
-            {
-                IConnectionPool connectionPool;
-                if (config.UseSsl)
-                {
-                    connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
-                }
-                else
-                {
-                    connectionPool = new ConnectionPool<Connection>(config, endpoint);
-                }
-                connectionPool.Initialize();
-                return connectionPool;
-            },
-            SaslFactory.GetFactory(),
+            clientConfig.IOServiceCreator,
+            clientConfig.ConnectionPoolCreator,
+            clientConfig.CreateSaslMechanism,
             clientConfig.Converter(),
             clientConfig.Transcoder())
         {
@@ -69,28 +44,6 @@ namespace Couchbase.Core
             : this(clientConfig)
         {
             Cluster = cluster;
-        }
-
-        public ClusterController(ClientConfiguration clientConfig, Func<IConnectionPool, IOStrategy> ioStrategyFactory)
-            : this(clientConfig,
-            ioStrategyFactory,
-            (config, endpoint) =>
-            {
-                IConnectionPool connectionPool;
-                if (config.UseSsl)
-                {
-                    connectionPool = new ConnectionPool<SslConnection>(config, endpoint);
-                }
-                else
-                {
-                    connectionPool = new ConnectionPool<Connection>(config, endpoint);
-                }
-                connectionPool.Initialize();
-                return connectionPool;
-            }, SaslFactory.GetFactory(),
-            clientConfig.Converter(),
-            clientConfig.Transcoder())
-        {
         }
 
         public ClusterController(ClientConfiguration clientConfig,

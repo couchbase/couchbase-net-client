@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using Common.Logging;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -12,7 +13,6 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
@@ -96,6 +96,15 @@ namespace Couchbase.Configuration.Client
             //the default transcoder
             Transcoder = TranscoderFactory.GetTranscoder(this);
 
+            //the default iostrategy
+            IOServiceCreator = IOStrategyFactory.GetFactory();
+
+            //the default connection pool creator
+            ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
+
+            //The default sasl mechanism creator
+            CreateSaslMechanism = SaslFactory.GetFactory();
+
             PoolConfiguration = new PoolConfiguration(this)
             {
                 BufferSize = BufferSize,
@@ -163,6 +172,15 @@ namespace Couchbase.Configuration.Client
             var keepAlivesChanged = EnableTcpKeepAlives != true ||
                                     TcpKeepAliveInterval != 1000 ||
                                     TcpKeepAliveTime != 2*60*60*1000;
+
+            //the default iostrategy - this should be refactored to come from the configsection
+            IOServiceCreator = IOStrategyFactory.GetFactory(section.IOService);
+
+            //the default connection pool creator
+            ConnectionPoolCreator = ConnectionPoolFactory.GetFactory(section.ConnectionPool);
+
+            //The default sasl mechanism creator
+            CreateSaslMechanism = SaslFactory.GetFactory();
 
             foreach (var server in section.Servers)
             {
@@ -381,10 +399,46 @@ namespace Couchbase.Configuration.Client
         public Func<ITypeSerializer> Serializer { get; set; }
 
         /// <summary>
+        /// Gets or sets the transporter for IO.
+        /// </summary>
+        /// <value>
+        /// The transporter.
+        /// </value>
+        [JsonIgnore]
+        public Func<IOStrategy> Transporter { get; set; }
+
+        /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.
         /// </summary>
         [JsonIgnore]
         public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
+
+        /// <summary>
+        /// A factory for creating the <see cref="IOStrategy"/> for this instance.
+        /// </summary>
+        /// <value>
+        /// The io strategy.
+        /// </value>
+        [JsonIgnore]
+        internal Func<IConnectionPool, IOStrategy> IOServiceCreator { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connection pool creator.
+        /// </summary>
+        /// <value>
+        /// The connection pool creator.
+        /// </value>
+        [JsonIgnore]
+        internal Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolCreator { get; set; }
+
+        /// <summary>
+        /// Gets or sets the create sasl mechanism.
+        /// </summary>
+        /// <value>
+        /// The create sasl mechanism.
+        /// </value>
+        [JsonIgnore]
+        internal Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
 
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.

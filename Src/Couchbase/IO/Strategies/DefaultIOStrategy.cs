@@ -9,7 +9,6 @@ using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Strategies
@@ -26,6 +25,7 @@ namespace Couchbase.IO.Strategies
         private volatile bool _disposed;
         private ISaslMechanism _saslMechanism;
         private readonly Guid _identity = Guid.NewGuid();
+        private object _syncObj = new object();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultIOStrategy"/> class.
@@ -90,8 +90,11 @@ namespace Couchbase.IO.Strategies
                 //A new connection will have to be authenticated
                 if (!connection.IsAuthenticated)
                 {
-                    Authenticate(connection);
-                    EnableEnhancedDurability(connection);
+                    lock (_syncObj)
+                    {
+                        Authenticate(connection);
+                        EnableEnhancedDurability(connection);
+                    }
                 }
 
                 //Send the request buffer and release the connection
@@ -150,8 +153,11 @@ namespace Couchbase.IO.Strategies
                 //A new connection will have to be authenticated
                 if (!connection.IsAuthenticated)
                 {
-                    Authenticate(connection);
-                    EnableEnhancedDurability(connection);
+                    lock (_syncObj)
+                    {
+                        Authenticate(connection);
+                        EnableEnhancedDurability(connection);
+                    }
                 }
 
                 //Send the request buffer and release the connection
@@ -259,7 +265,11 @@ namespace Couchbase.IO.Strategies
                 var connection = _connectionPool.Acquire();
                 if (!connection.IsAuthenticated)
                 {
-                    Authenticate(connection);
+                    lock (_syncObj)
+                    {
+                        Authenticate(connection);
+                        EnableEnhancedDurability(connection);
+                    }
                 }
                 await ExecuteAsync(operation, connection);
             }
@@ -294,7 +304,11 @@ namespace Couchbase.IO.Strategies
                 var connection = _connectionPool.Acquire();
                 if (!connection.IsAuthenticated)
                 {
-                    Authenticate(connection);
+                    lock (_syncObj)
+                    {
+                        Authenticate(connection);
+                        EnableEnhancedDurability(connection);
+                    }
                 }
                 await ExecuteAsync(operation, connection);
             }
@@ -347,18 +361,27 @@ namespace Couchbase.IO.Strategies
         /// <exception cref="System.Security.Authentication.AuthenticationException"></exception>
         private void Authenticate(IConnection connection)
         {
-            if (_saslMechanism != null)
+            if (!connection.IsAuthenticated)
             {
-                var result = _saslMechanism.Authenticate(connection);
-                if (result)
+                if (_saslMechanism != null)
                 {
-                    Log.Debug(m => m("Authenticated {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
-                    connection.IsAuthenticated = true;
-                }
-                else
-                {
-                    Log.Debug(m => m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username, _saslMechanism.GetType(), _identity));
-                    throw new AuthenticationException(_saslMechanism.Username);
+                    var result = _saslMechanism.Authenticate(connection);
+                    if (result)
+                    {
+                        Log.Debug(
+                            m =>
+                                m("Authenticated {0} using {1} - {2}.", _saslMechanism.Username,
+                                    _saslMechanism.GetType(), _identity));
+                        connection.IsAuthenticated = true;
+                    }
+                    else
+                    {
+                        Log.Debug(
+                            m =>
+                                m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username,
+                                    _saslMechanism.GetType(), _identity));
+                        throw new AuthenticationException(_saslMechanism.Username);
+                    }
                 }
             }
         }
@@ -373,6 +396,27 @@ namespace Couchbase.IO.Strategies
             if (config.UseEnhancedDurability)
             {
                 var features = new List<short> {(short) ServerFeatures.MutationSeqno};
+                var key = string.Format("couchbase-net-sdk/{0}", CurrentAssembly.Version);
+                var hello = new Hello(key, features.ToArray(), new DefaultTranscoder(), 0, 0);
+
+                var result = Execute(hello, connection);
+                if (result.Success && result.Value.Contains(features.First()))
+                {
+                    SupportsEnhancedDurability = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enables enhanced durability if it is configured and supported by the server.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        private void EnableEnhancedDurabilityAsync(IConnection connection)
+        {
+            var config = ConnectionPool.Configuration;
+            if (config.UseEnhancedDurability)
+            {
+                var features = new List<short> { (short)ServerFeatures.MutationSeqno };
                 var key = string.Format("couchbase-net-sdk/{0}", CurrentAssembly.Version);
                 var hello = new Hello(key, features.ToArray(), new DefaultTranscoder(), 0, 0);
 

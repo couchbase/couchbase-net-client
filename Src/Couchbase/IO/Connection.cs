@@ -16,7 +16,7 @@ namespace Couchbase.IO
         private readonly BufferAllocator _allocator;
         private readonly int Offset;
 
-        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
+        public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
         {
             ConnectionPool = connectionPool;

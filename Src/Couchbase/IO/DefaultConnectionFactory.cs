@@ -3,7 +3,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
 using Couchbase.IO.Utils;
 
 namespace Couchbase.IO
@@ -37,19 +36,15 @@ namespace Couchbase.IO
                     throw new SocketException(connectionTimedOut);
                 }
 
-                //TODO refactor
                 IConnection connection;
                 if (p.Configuration.UseSsl)
                 {
-                    var pool = p as ConnectionPool<SslConnection>;
-                    connection = new SslConnection(pool, socket, c);
-                    ((SslConnection)connection).Authenticate();
+                    connection = new SslConnection(p, socket, c);
+                    connection.Authenticate();
                 }
                 else
                 {
-                    //TODO this should be from T...
-                    var pool = p as ConnectionPool<Connection>;
-                    connection = new Connection(pool, socket, c, b);
+                    connection = Activator.CreateInstance(typeof(T), p, socket, c, b) as T;
                 }
                 //need to be able to completely disable the feature if false - this should work
                 if (p.Configuration.EnableTcpKeepAlives)

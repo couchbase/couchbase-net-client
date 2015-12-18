@@ -1,5 +1,4 @@
-﻿using System;
-using System.Configuration;
+﻿using System.Configuration;
 using Common.Logging;
 using Couchbase.Core;
 
@@ -351,6 +350,19 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (SerializerElement)this["serializer"]; }
             set { this["serializer"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the transporter for IO.
+        /// </summary>
+        /// <value>
+        /// The transporter.
+        /// </value>
+        [ConfigurationProperty("ioService", IsRequired = false)]
+        public IOServiceElement IOService
+        {
+            get { return (IOServiceElement)this["ioService"]; }
+            set { this["ioService"] = value; }
         }
 
         /// <summary>

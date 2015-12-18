@@ -17,12 +17,12 @@ namespace Couchbase.IO
         private readonly SslStream _sslStream;
         private volatile bool _timingEnabled;
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, IByteConverter converter)
+        public SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter)
         {
         }
 
-        internal SslConnection(ConnectionPool<SslConnection> connectionPool, Socket socket, SslStream sslStream, IByteConverter converter)
+        public SslConnection(IConnectionPool connectionPool, Socket socket, SslStream sslStream, IByteConverter converter)
             : base(socket, converter)
         {
             ConnectionPool = connectionPool;
@@ -37,7 +37,7 @@ namespace Couchbase.IO
             return true;
         }
 
-        public void Authenticate()
+        public override void Authenticate()
         {
             try
             {

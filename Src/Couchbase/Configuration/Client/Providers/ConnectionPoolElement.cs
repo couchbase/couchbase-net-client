@@ -9,6 +9,19 @@ namespace Couchbase.Configuration.Client.Providers
     public class ConnectionPoolElement : ConfigurationElement
     {
         /// <summary>
+        /// Gets or sets the <see cref="Type"/> of the custom <see cref="IConnectionPool"/>
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
+        [ConfigurationProperty("type", DefaultValue = "Couchbase.IO.ConnectionPool`1[Couchbase.IO.Connection], Couchbase.NetClient", IsRequired = false, IsKey = false)]
+        public string Type
+        {
+            get { return (string)this["type"]; }
+            set { this["type"] = value; }
+        }
+
+        /// <summary>
         /// The name for the connection pool.
         /// </summary>
         /// <remarks>This is used internally and does not need to be set or customized.</remarks>

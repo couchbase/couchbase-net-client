@@ -78,6 +78,7 @@
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
     <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
     <Compile Include="Configuration\Client\Providers\ConverterElement.cs" />
+    <Compile Include="Configuration\Client\Providers\IOServerElement.cs" />
     <Compile Include="Configuration\Client\Providers\SerializerElement.cs" />
     <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElement.cs" />
@@ -193,6 +194,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IO\ConnectionPoolFactory.cs" />
     <Compile Include="IQueryCacheInvalidator.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
