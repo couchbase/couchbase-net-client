@@ -55,11 +55,14 @@ namespace Couchbase.Configuration
         public override void LoadConfig(IBucketConfig bucketConfig, bool force = false)
         {
             if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
-            if (BucketConfig == null || !BucketConfig.Nodes.AreEqual<Node>(bucketConfig.Nodes) || force)
+
+            var nodes = bucketConfig.GetNodes();
+            if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || force)
             {
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
-                var nodes = bucketConfig.GetNodes();
+
+                Log.InfoFormat("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
                 foreach (var adapter in nodes)
                 {
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
