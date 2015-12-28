@@ -164,6 +164,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 if (Configs.TryGetValue(configObserver.Name, out configInfo))
                 {
                     var staleBucketConfig = configInfo.BucketConfig;
+
+                    Log.Info(m =>m("Config changed new Rev#{0} | old Rev#{1} HTTP: {2}",
+                        bucketConfig.Rev, staleBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+
                     if (bucketConfig.Rev > staleBucketConfig.Rev)
                     {
                         configInfo.LoadConfig(bucketConfig);
