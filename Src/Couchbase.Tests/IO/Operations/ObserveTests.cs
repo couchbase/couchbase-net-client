@@ -19,7 +19,7 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Test_Observe";
 
             var operation = new Observe(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(operation);
+            var result = IOService.Execute(operation);
             Console.WriteLine(result.Message);
             Assert.IsTrue(result.Success);
         }
@@ -31,17 +31,17 @@ namespace Couchbase.Tests.IO.Operations
             var remove = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             var set = new Set<int?>(key, 10, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
             Assert.IsTrue(result.Success);
 
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result1 = IOStrategy.Execute(get);
+            var result1 = IOService.Execute(get);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result.Cas, result1.Cas);
 
             await Task.Delay(100);
             var operation = new Observe(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result2 = IOStrategy.Execute(operation);
+            var result2 = IOService.Execute(operation);
 
             Assert.AreEqual(result1.Cas, result2.Value.Cas);
 

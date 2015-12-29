@@ -13,7 +13,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Represents a connection for pipelining Memcached requests/responses to and from a server.
     /// </summary>
-    internal class MultiplexedConnection : ConnectionBase
+    internal class MultiplexingConnection : ConnectionBase
     {
         private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
         private readonly Queue<SyncState> _statePool;
@@ -22,7 +22,7 @@ namespace Couchbase.IO
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
 
-        public MultiplexedConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
+        public MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
             BufferAllocator allocator)
             : base(socket, converter)
         {

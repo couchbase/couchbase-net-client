@@ -11,15 +11,15 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
-namespace Couchbase.IO.Strategies
+namespace Couchbase.IO.Services
 {
     // ReSharper disable once InconsistentNaming
     /// <summary>
-    /// The default strategy for performing IO
+    /// The default service for performing IO
     /// </summary>
-    internal class DefaultIOStrategy : IOStrategy
+    internal class PooledIOService : IIOService
     {
-        private readonly static ILog Log = LogManager.GetLogger<DefaultIOStrategy>();
+        private readonly static ILog Log = LogManager.GetLogger<PooledIOService>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
@@ -28,23 +28,23 @@ namespace Couchbase.IO.Strategies
         private object _syncObj = new object();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultIOStrategy"/> class.
+        /// Initializes a new instance of the <see cref="PooledIOService"/> class.
         /// </summary>
         /// <param name="connectionPool">The connection pool.</param>
-        public DefaultIOStrategy(IConnectionPool connectionPool)
+        public PooledIOService(IConnectionPool connectionPool)
         {
-            Log.Debug(m=>m("Creating DefaultIOStrategy {0}", _identity));
+            Log.Debug(m=>m("Creating PooledIOService {0}", _identity));
             _connectionPool = connectionPool;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultIOStrategy"/> class.
+        /// Initializes a new instance of the <see cref="PooledIOService"/> class.
         /// </summary>
         /// <param name="connectionPool">The connection pool.</param>
         /// <param name="saslMechanism">The sasl mechanism.</param>
-        public DefaultIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
+        public PooledIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
-            Log.Debug(m => m("Creating DefaultIOStrategy {0}", _identity));
+            Log.Debug(m => m("Creating PooledIOService {0}", _identity));
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
         }
@@ -327,7 +327,7 @@ namespace Couchbase.IO.Strategies
         }
 
         /// <summary>
-        /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy" /> instance is communicating with.
+        /// The IP endpoint of the node in the cluster that this <see cref="IIOService" /> instance is communicating with.
         /// </summary>
         public IPEndPoint EndPoint
         {
@@ -335,7 +335,7 @@ namespace Couchbase.IO.Strategies
         }
 
         /// <summary>
-        /// The <see cref="IConnectionPool" /> that this <see cref="IOStrategy" /> instance is using for acquiring <see cref="IConnection" />s.
+        /// The <see cref="IConnectionPool" /> that this <see cref="IIOService" /> instance is using for acquiring <see cref="IConnection" />s.
         /// </summary>
         public IConnectionPool ConnectionPool
         {
@@ -343,7 +343,7 @@ namespace Couchbase.IO.Strategies
         }
 
         /// <summary>
-        /// The SASL mechanism type the <see cref="IOStrategy" /> is using for authentication.
+        /// The SASL mechanism type the <see cref="IIOService" /> is using for authentication.
         /// </summary>
         /// <remarks>
         /// This could be PLAIN or CRAM-MD5 depending upon what the server supports.
@@ -455,7 +455,7 @@ namespace Couchbase.IO.Strategies
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
+            Log.Debug(m => m("Disposing PooledIOService for {0} - {1}", EndPoint, _identity));
             Dispose(true);
         }
 
@@ -476,9 +476,9 @@ namespace Couchbase.IO.Strategies
         }
 
 #if DEBUG
-        ~DefaultIOStrategy()
+        ~PooledIOService()
         {
-            Log.Debug(m => m("Finalizing DefaultIOStrategy for {0} - {1}", EndPoint, _identity));
+            Log.Debug(m => m("Finalizing PooledIOService for {0} - {1}", EndPoint, _identity));
             Dispose(false);
         }
 #endif

@@ -22,12 +22,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         private Timer _heartBeat;
 
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
+            : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
             _heartBeat = new Timer
             {
@@ -98,15 +98,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             {
                 Log.Debug(m=>m("Bootstrapping with {0}", endPoint));
 
-                IOStrategy ioStrategy = null;
+                IIOService ioService = null;
                 try
                 {
                     var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
-                    ioStrategy = IOStrategyFactory(connectionPool);
-                    var saslMechanism = SaslFactory(bucketName, password, ioStrategy, Transcoder);
-                    ioStrategy.SaslMechanism = saslMechanism;
+                    ioService = IOServiceFactory(connectionPool);
+                    var saslMechanism = SaslFactory(bucketName, password, ioService, Transcoder);
+                    ioService.SaslMechanism = saslMechanism;
 
-                    var operationResult = ioStrategy.Execute(
+                    var operationResult = ioService.Execute(
                         new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
 
                     if (operationResult.Success)
@@ -116,14 +116,14 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         bucketConfig.Password = password;
                         configInfo = new CouchbaseConfigContext(bucketConfig,
                             ClientConfig,
-                            IOStrategyFactory,
+                            IOServiceFactory,
                             ConnectionPoolFactory,
                             SaslFactory,
                             Transcoder);
 
                         Log.Info(m => m("Bootstrap config: {0}", JsonConvert.SerializeObject(bucketConfig)));
 
-                        configInfo.LoadConfig(ioStrategy);
+                        configInfo.LoadConfig(ioService);
                         Configs[bucketName] = configInfo;
                         break;
                     }
@@ -145,7 +145,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 catch (ConfigException)
                 {
-                    ioStrategy.Dispose();
+                    ioService.Dispose();
                     Log.Debug(m => m("Bootstrapping with {0} failed.", endPoint));
                     throw;
                 }
@@ -168,9 +168,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 }
                 finally
                 {
-                    if (ioStrategy != null && configInfo == null)
+                    if (ioService != null && configInfo == null)
                     {
-                        ioStrategy.Dispose();
+                        ioService.Dispose();
                     }
                 }
             }

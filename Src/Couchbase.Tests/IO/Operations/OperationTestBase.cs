@@ -8,7 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
@@ -18,7 +18,7 @@ namespace Couchbase.Tests.IO.Operations
 {
     public abstract class OperationTestBase
     {
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         protected ITypeTranscoder Transcoder = new DefaultTranscoder();
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
@@ -31,7 +31,7 @@ namespace Couchbase.Tests.IO.Operations
             EndPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, EndPoint);
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioService = new PooledIOService(_connectionPool);
             Transcoder = new DefaultTranscoder();
         }
 
@@ -44,7 +44,7 @@ namespace Couchbase.Tests.IO.Operations
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(IPEndPointExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue).Address,
-                    new Server(_ioStrategy,
+                    new Server(_ioService,
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -56,7 +56,7 @@ namespace Couchbase.Tests.IO.Operations
             return new VBucket(servers, 0, primary, replicas, bucketConfig.Rev, vBucketServerMap);
         }
 
-        internal IOStrategy IOStrategy { get { return _ioStrategy; } }
+        internal IIOService IOService { get { return _ioService; } }
 
         [TearDown]
         public virtual void TearDown()

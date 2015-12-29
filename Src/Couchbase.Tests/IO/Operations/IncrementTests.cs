@@ -33,21 +33,21 @@ namespace Couchbase.Tests.IO.Operations
             const string key = "Test_IncrementOperation";
 
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(delete);
+            var result = IOService.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
             var increment = new Increment(key, 0, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result1 = IOStrategy.Execute(increment);
+            var result1 = IOService.Execute(increment);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
 
             increment.Reset();
-            var result2 = IOStrategy.Execute(increment);
+            var result2 = IOService.Execute(increment);
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(1, result2.Value);
 
             var getOperation = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result3 = IOStrategy.Execute(getOperation);
+            var result3 = IOService.Execute(getOperation);
             var value = result3.Value;
             Assert.AreEqual(result2.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
         }

@@ -22,11 +22,11 @@ namespace Couchbase.Configuration
     internal sealed class CouchbaseConfigContext : ConfigContextBase
     {
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
-            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, transcoder)
+            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
         {
             //for caching query plans
             QueryCache = new ConcurrentDictionary<string, QueryPlan>();
@@ -68,14 +68,14 @@ namespace Couchbase.Configuration
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
-                                var ioStrategy = IOStrategyFactory(connectionPool);
+                                var ioService = IOServiceFactory(connectionPool);
 
-                                server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
+                                server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
                                 {
                                     SaslFactory = SaslFactory
                                 };
                                 server.CreateSaslMechanismIfNotExists();
-                                SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                                SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             }
                             else
                             {
@@ -133,7 +133,7 @@ namespace Couchbase.Configuration
         }
 
         /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
-        public void LoadConfig(IOStrategy ioStrategy)
+        public void LoadConfig(IIOService ioService)
         {
             var supportsEnhancedDurability = false;
             try
@@ -151,10 +151,10 @@ namespace Couchbase.Configuration
                     try
                     {
                         IServer server = null;
-                        if (Equals(ioStrategy.EndPoint, endpoint) || nodes.Count() == 1)
+                        if (Equals(ioService.EndPoint, endpoint) || nodes.Count() == 1)
                         {
-                            server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
-                            supportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                            server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                            supportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             SupportsEnhancedDurability = supportsEnhancedDurability;
                             if (server.IsQueryNode)
                             {
@@ -175,18 +175,18 @@ namespace Couchbase.Configuration
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
-                                var newIoStrategy = IOStrategyFactory(connectionPool);
+                                var newIoService = IOServiceFactory(connectionPool);
 
-                                server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                                server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
                                 {
                                     SaslFactory = SaslFactory
                                 };
                                 server.CreateSaslMechanismIfNotExists();
 
-                                //Note: "ioStrategy has" already made a HELO command to check if
+                                //Note: "ioService has" already made a HELO command to check if
                                 //the cluster supports enhanced durability so we are reusing the flag
-                                //instead of having "newIoStrategy" do it again, later.
-                                SupportsEnhancedDurability = ioStrategy.SupportsEnhancedDurability;
+                                //instead of having "newIoService" do it again, later.
+                                SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             }
                             else
                             {
@@ -252,14 +252,14 @@ namespace Couchbase.Configuration
                         {
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                             var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
-                            var newIoStrategy = IOStrategyFactory(connectionPool);
+                            var newIoService = IOServiceFactory(connectionPool);
 
-                            server = new Core.Server(newIoStrategy, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
+                            server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
                             {
                                 SaslFactory = SaslFactory
                             };
                             server.CreateSaslMechanismIfNotExists();
-                            SupportsEnhancedDurability = newIoStrategy.SupportsEnhancedDurability;
+                            SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
                         }
                         else
                         {

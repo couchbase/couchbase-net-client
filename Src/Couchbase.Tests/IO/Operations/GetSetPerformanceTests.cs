@@ -33,10 +33,10 @@ namespace Couchbase.Tests.IO.Operations
                     var set = new Set<int?>(key, 111, vbucket, transcoder, OperationLifespanTimeout);
                     var get = new Get<int?>(key, vbucket, transcoder, OperationLifespanTimeout);
 
-                    var result = IOStrategy.Execute(set);
+                    var result = IOService.Execute(set);
                     Assert.IsTrue(result.Success);
 
-                    var result1 = IOStrategy.Execute(get);
+                    var result1 = IOService.Execute(get);
                     Assert.IsTrue(result1.Success);
                     Assert.AreEqual(111, result1.Value);
                 }
@@ -58,11 +58,11 @@ namespace Couchbase.Tests.IO.Operations
                 {
                     var key = string.Format("key{0}", i);
                     var set = new Set<int?>(key, i, vbucket, transcoder, OperationLifespanTimeout);
-                    var result = IOStrategy.Execute(set);
+                    var result = IOService.Execute(set);
                     Assert.IsTrue(result.Success);
 
                     var get = new Get<int?>(key, vbucket, transcoder, OperationLifespanTimeout);
-                    var result1 = IOStrategy.Execute(get);
+                    var result1 = IOService.Execute(get);
                     Assert.IsTrue(result1.Success);
                     Assert.AreEqual(i, result1.Value);
                 });

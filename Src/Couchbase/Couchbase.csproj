@@ -78,7 +78,7 @@
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
     <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
     <Compile Include="Configuration\Client\Providers\ConverterElement.cs" />
-    <Compile Include="Configuration\Client\Providers\IOServerElement.cs" />
+    <Compile Include="Configuration\Client\Providers\IOServiceElement.cs" />
     <Compile Include="Configuration\Client\Providers\SerializerElement.cs" />
     <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
     <Compile Include="Configuration\Client\Providers\UriElement.cs" />
@@ -201,7 +201,7 @@
     <Compile Include="IO\AsyncState.cs" />
     <Compile Include="IO\BufferAllocator.cs" />
     <Compile Include="IO\Connection.cs" />
-    <Compile Include="IO\MultiplexedConnection.cs" />
+    <Compile Include="IO\MultiplexingConnection.cs" />
     <Compile Include="IO\Converters\ConverterFactory.cs" />
     <Compile Include="Core\DocumentMutationLostException.cs" />
     <Compile Include="IO\Operations\Hello.cs" />
@@ -230,7 +230,7 @@
     <Compile Include="Management\ClusterSettings.cs" />
     <Compile Include="Management\CouchbaseService.cs" />
     <Compile Include="Management\CompositeResult.cs" />
-    <Compile Include="IO\Strategies\MultiplexedIOStrategy.cs" />
+    <Compile Include="IO\Services\MultiplexingIOService.cs" />
     <Compile Include="IO\SyncState.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
@@ -291,7 +291,7 @@
     <Compile Include="IO\Converters\DefaultConverter.cs" />
     <Compile Include="IO\Converters\IByteConverter.cs" />
     <Compile Include="IO\IConnectionPool.cs" />
-    <Compile Include="IO\IOStrategyFactory.cs" />
+    <Compile Include="IO\IOServiceFactory.cs" />
     <Compile Include="IO\Converters\ManualByteConverter.cs" />
     <Compile Include="IO\Operations\Add.cs" />
     <Compile Include="IO\Operations\Append.cs" />
@@ -312,7 +312,7 @@
     <Compile Include="IO\Operations\Authentication\SaslStep.cs" />
     <Compile Include="IO\Operations\Replace.cs" />
     <Compile Include="IO\Operations\Set.cs" />
-    <Compile Include="IO\Strategies\DefaultIOStrategy.cs" />
+    <Compile Include="IO\Services\PooledIOService.cs" />
     <Compile Include="IO\SslConnection.cs" />
     <Compile Include="IO\Utils\BufferExtensions.cs" />
     <Compile Include="IResult.cs" />
@@ -329,7 +329,7 @@
     <Compile Include="IO\DefaultConnectionFactory.cs" />
     <Compile Include="IO\IConnection.cs" />
     <Compile Include="IO\IConnectionPool_T.cs" />
-    <Compile Include="IO\IOStrategy.cs" />
+    <Compile Include="IO\IIOService.cs" />
     <Compile Include="IO\Operations\IOperation.cs" />
     <Compile Include="Core\IServer.cs" />
     <Compile Include="Core\IVBucket.cs" />

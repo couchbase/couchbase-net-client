@@ -17,7 +17,7 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_NoOp()
         {
             var noop = new Noop(new DefaultTranscoder(), OperationLifespanTimeout);
-            var result = IOStrategy.Execute(noop);
+            var result = IOService.Execute(noop);
             Assert.IsTrue(result.Success);
         }
     }

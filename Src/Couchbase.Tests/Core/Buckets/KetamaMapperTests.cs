@@ -35,7 +35,7 @@ namespace Couchbase.Tests.Core.Buckets
             foreach (var node in bucketConfig.GetNodes())
             {
                 _servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                        node,
                        new ClientConfiguration(), bucketConfig,
                        new FakeTranscoder()));

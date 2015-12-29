@@ -9,11 +9,11 @@ using Couchbase.Utils;
 
 namespace Couchbase.Tests.Fakes
 {
-    internal class FakeIOStrategy : IOStrategy
+    internal class FakeIOService : IIOService
     {
         private ISaslMechanism _saslMechanism;
 
-        public FakeIOStrategy(IPEndPoint endPoint, IConnectionPool connectionPool, bool isSecure)
+        public FakeIOService(IPEndPoint endPoint, IConnectionPool connectionPool, bool isSecure)
         {
             EndPoint = endPoint;
             ConnectionPool = connectionPool;

@@ -13,7 +13,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Tests.Fakes;
 using Couchbase.Tests.IO.Operations;
 using Couchbase.Utils;
@@ -24,9 +24,9 @@ using NUnit.Framework.Constraints;
 namespace Couchbase.Tests.IO
 {
     [TestFixture]
-    public class DefaultIOStrategyTests
+    public class PooledIOServiceTests
     {
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
@@ -38,14 +38,14 @@ namespace Couchbase.Tests.IO
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();
-            _ioStrategy = new DefaultIOStrategy(_connectionPool, null);
+            _ioService = new PooledIOService(_connectionPool, null);
         }
 
         [Test]
         public void When_Authentication_Fails_AuthenticationException_Or_ConnectionUnavailableException_Is_Thrown()
         {
-            var authenticator = new CramMd5Mechanism(_ioStrategy, "authenticated", "secretw", new DefaultTranscoder());
-            _ioStrategy.SaslMechanism = authenticator;
+            var authenticator = new CramMd5Mechanism(_ioService, "authenticated", "secretw", new DefaultTranscoder());
+            _ioService.SaslMechanism = authenticator;
 
             //The first two iterations will throw auth exceptions and then a CUE;
             //you will never find yourself in an infinite loop waiting for connections that don't exist.
@@ -56,7 +56,7 @@ namespace Couchbase.Tests.IO
                 try
                 {
                     var config = new Config(new DefaultTranscoder(), OperationLifespan, UriExtensions.GetEndPoint(Address));
-                    var result = _ioStrategy.Execute(config);
+                    var result = _ioService.Execute(config);
                     Console.WriteLine(result.Success);
                 }
                 catch (Exception e)
@@ -105,9 +105,9 @@ namespace Couchbase.Tests.IO
             var mockedPool = new Mock<IConnectionPool>();
             mockedPool.Setup(x => x.Acquire()).Returns(mockedConnection.Object);
 
-            var strategy = new DefaultIOStrategy(mockedPool.Object, mockedSasl.Object);
+            var service = new PooledIOService(mockedPool.Object, mockedSasl.Object);
             var op = new Get<object>(string.Empty, null, new DefaultTranscoder(new DefaultConverter()), 100);
-            var result = strategy.Execute(op);
+            var result = service.Execute(op);
 
             Assert.AreEqual(ResponseStatus.TransportFailure, result.Status);
         }
@@ -124,9 +124,9 @@ namespace Couchbase.Tests.IO
             var mockedPool = new Mock<IConnectionPool>();
             mockedPool.Setup(x => x.Acquire()).Returns(mockedConnection.Object);
 
-            var strategy = new DefaultIOStrategy(mockedPool.Object, mockedSasl.Object);
+            var service = new PooledIOService(mockedPool.Object, mockedSasl.Object);
             var op = new Add<string>(string.Empty, "", null, new DefaultTranscoder(new DefaultConverter()), 100);
-            var result = strategy.Execute(op);
+            var result = service.Execute(op);
 
             Assert.AreEqual(ResponseStatus.ClientFailure, result.Status);
         }
@@ -134,7 +134,7 @@ namespace Couchbase.Tests.IO
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            _ioStrategy.Dispose();
+            _ioService.Dispose();
         }
     }
 }

@@ -21,24 +21,24 @@ namespace Couchbase.Tests.IO.Operations
 
             //clean up old keys
             var deleteOperation = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(deleteOperation);
+            IOService.Execute(deleteOperation);
 
             deleteOperation = new Delete(key + "!", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(deleteOperation);
+            IOService.Execute(deleteOperation);
 
             //create the key
             var set = new Set<string>(key, "Hello", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var addResult = IOStrategy.Execute(set);
+            var addResult = IOService.Execute(set);
             Assert.IsTrue(addResult.Success);
 
             var append = new Append<string>(key, "!", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(append);
+            var result = IOService.Execute(append);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(string.Empty, result.Value);
 
             var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.AreEqual(expected, getResult.Value);
         }
 

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
-using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
@@ -12,14 +11,14 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
-namespace Couchbase.IO.Strategies
+namespace Couchbase.IO.Services
 {
     /// <summary>
     /// An IO service that dispatches without using a pool.
     /// </summary>
-    internal class MultiplexedIOStrategy : IOStrategy
+    internal class MultiplexingIOService : IIOService
     {
-        private readonly static ILog Log = LogManager.GetLogger<MultiplexedIOStrategy>();
+        private readonly static ILog Log = LogManager.GetLogger<MultiplexingIOService>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
@@ -27,7 +26,7 @@ namespace Couchbase.IO.Strategies
         private IConnection _connection;
         private object _syncObj = new object();
 
-        public MultiplexedIOStrategy(IConnectionPool connectionPool)
+        public MultiplexingIOService(IConnectionPool connectionPool)
         {
             Log.Debug(m=>m("Creating IOService {0}", _identity));
             _connectionPool = connectionPool;
@@ -40,7 +39,7 @@ namespace Couchbase.IO.Strategies
             }
         }
 
-        public MultiplexedIOStrategy(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
+        public MultiplexingIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
             : this(connectionPool)
         {
             SaslMechanism = saslMechanism;
@@ -374,7 +373,7 @@ namespace Couchbase.IO.Strategies
         }
 
 #if DEBUG
-        ~MultiplexedIOStrategy()
+        ~MultiplexingIOService()
         {
             Log.Debug(m => m("Finalizing IOService for {0} - {1}", EndPoint, _identity));
             Dispose(false);

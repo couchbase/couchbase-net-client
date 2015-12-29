@@ -3,34 +3,34 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Utils;
 
 namespace Couchbase.Tests.Helpers
 {
     public static class ObjectFactory
     {
-        internal static IOStrategy CreateIOStrategy(string server)
+        internal static IIOService CreateIOService(string server)
         {
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(server));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
-            return ioStrategy;
+            var ioService = new PooledIOService(connectionPool);
+            return ioService;
         }
 
-        internal static IOStrategy CreateIOStrategy(Node node)
+        internal static IIOService CreateIOService(Node node)
         {
             var server = node.Hostname.Replace("8091", node.Ports.Direct.ToString(CultureInfo.InvariantCulture));
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(server));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
-            return ioStrategy;
+            var ioService = new PooledIOService(connectionPool);
+            return ioService;
         }
 
-        internal static IOStrategy CreateIOStrategy(INodeAdapter node)
+        internal static IIOService CreateIOService(INodeAdapter node)
         {
             var server = node.Hostname.Replace("8091", node.KeyValue.ToString(CultureInfo.InvariantCulture));
             var connectionPool = new ConnectionPool<Connection>(new PoolConfiguration(), UriExtensions.GetEndPoint(server));
-            var ioStrategy = new DefaultIOStrategy(connectionPool);
-            return ioStrategy;
+            var ioService = new PooledIOService(connectionPool);
+            return ioService;
         }
     }
 }

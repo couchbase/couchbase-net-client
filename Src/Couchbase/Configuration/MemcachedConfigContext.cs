@@ -22,11 +22,11 @@ namespace Couchbase.Configuration
     internal class MemcachedConfigContext : ConfigContextBase
     {
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
-            : base(bucketConfig, clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, transcoder)
+            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
         {
         }
 
@@ -71,8 +71,8 @@ namespace Couchbase.Configuration
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
                             var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
-                            var ioStrategy = IOStrategyFactory(connectionPool);
-                            var server = new Core.Server(ioStrategy, adapter, ClientConfig, bucketConfig, Transcoder)
+                            var ioService = IOServiceFactory(connectionPool);
+                            var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder)
                             {
                                 SaslFactory = SaslFactory
                             };
@@ -129,9 +129,9 @@ namespace Couchbase.Configuration
                     if (adapter.IsDataNode) //a data node so create a connection pool
                     {
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
-                        var ioStrategy = IOStrategyFactory(connectionPool);
+                        var ioService = IOServiceFactory(connectionPool);
 
-                        var server = new Core.Server(ioStrategy, adapter, ClientConfig, BucketConfig, Transcoder)
+                        var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder)
                         {
                             SaslFactory = SaslFactory
                         };

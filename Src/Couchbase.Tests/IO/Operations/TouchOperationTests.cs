@@ -22,18 +22,18 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             //Add the key
             var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var touch = new Touch(key, GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Expires = new TimeSpan(0, 0, 0, 3).ToTtl()
             };
 
-            var result = IOStrategy.Execute(touch);
+            var result = IOService.Execute(touch);
             Console.WriteLine(result.Message);
             Assert.IsTrue(result.Success);
         }

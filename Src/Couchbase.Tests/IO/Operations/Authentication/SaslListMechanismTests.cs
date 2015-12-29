@@ -5,7 +5,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -14,7 +14,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
     [TestFixture]
     public class SaslListMechanismTests
     {
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
@@ -25,13 +25,13 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioService = new PooledIOService(_connectionPool);
         }
 
         [Test]
         public void Test_SaslListMechanism()
         {
-            var response = _ioStrategy.Execute(new SaslList(new DefaultTranscoder(), OperationLifespan));
+            var response = _ioService.Execute(new SaslList(new DefaultTranscoder(), OperationLifespan));
             Assert.IsNotNullOrEmpty(response.Value);
             Console.WriteLine(response.Value);
             Assert.IsTrue(response.Success);

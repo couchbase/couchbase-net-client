@@ -15,15 +15,15 @@ namespace Couchbase.Tests.IO.Operations
             features.Add((short)ServerFeatures.MutationSeqno);
 
             var hello = new Hello("couchbase-net-sdk/2.1.4", features.ToArray(), Transcoder, 0, 0);
-            var result = IOStrategy.Execute(hello);
+            var result = IOService.Execute(hello);
             Assert.IsTrue(result.Success);
             var key = "bar";
 
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var deleteResult = IOStrategy.Execute(delete);
+            var deleteResult = IOService.Execute(delete);
 
             var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result2 =IOStrategy.Execute(add);
+            var result2 =IOService.Execute(add);
             Assert.IsNotNull(result2.Token);
         }
 
@@ -33,10 +33,10 @@ namespace Couchbase.Tests.IO.Operations
             var key = "bar";
 
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var deleteResult = IOStrategy.Execute(delete);
+            var deleteResult = IOService.Execute(delete);
 
             var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var addResult = IOStrategy.Execute(add);
+            var addResult = IOService.Execute(add);
             Assert.IsNotNull(addResult.Token);
             Assert.AreEqual(deleteResult.Token, addResult.Token);
         }
@@ -49,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
             features.Add((short)ServerFeatures.TcpNoDelay);
 
             var hello = new Hello("couchbase-net-sdk/2.1.4", features.ToArray(), Transcoder, 0, 0);
-            var result = IOStrategy.Execute(hello);
+            var result = IOService.Execute(hello);
             Assert.IsTrue(result.Success);
         }
 
@@ -59,7 +59,7 @@ namespace Couchbase.Tests.IO.Operations
             var features = new List<short>();
 
             var hello = new Hello("couchbase-net-sdk/2.1.4", features.ToArray(), Transcoder, 0, 0);
-            var result = IOStrategy.Execute(hello);
+            var result = IOService.Execute(hello);
             Assert.IsTrue(result.Success);
         }
 

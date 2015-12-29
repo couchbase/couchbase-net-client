@@ -15,12 +15,12 @@ namespace Couchbase.Authentication.SASL
     internal sealed class PlainTextMechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetLogger<PlainTextMechanism>();
-        private IOStrategy _strategy;
+        private IIOService _service;
         private readonly ITypeTranscoder _transcoder;
 
-        public PlainTextMechanism(IOStrategy strategy, ITypeTranscoder transcoder)
+        public PlainTextMechanism(IIOService service, ITypeTranscoder transcoder)
         {
-            _strategy = strategy;
+            _service = service;
             _transcoder = transcoder;
         }
 
@@ -31,20 +31,20 @@ namespace Couchbase.Authentication.SASL
             _transcoder = transcoder;
         }
 
-        public PlainTextMechanism(IOStrategy strategy, string username, string password, ITypeTranscoder transcoder)
+        public PlainTextMechanism(IIOService service, string username, string password, ITypeTranscoder transcoder)
         {
-            _strategy = strategy;
+            _service = service;
             Username = username;
             Password = password;
             _transcoder = transcoder;
         }
 
         /// <summary>
-        /// The I/O strategy to use <see cref="IOStrategy"/>
+        /// The I/O service to use <see cref="IOService"/>
         /// </summary>
-        public IOStrategy IOStrategy
+        public IIOService IOService
         {
-            set { _strategy = value; }
+            set { _service = value; }
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace Couchbase.Authentication.SASL
             try
             {
                 var operation = new SaslStart(MechanismType, GetAuthData(username, password), _transcoder, SaslFactory.DefaultTimeout);
-                var result = _strategy.Execute(operation, connection);
+                var result = _service.Execute(operation, connection);
 
                 if (!result.Success &&
                     result.Status == ResponseStatus.AuthenticationError)

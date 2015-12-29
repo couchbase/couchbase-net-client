@@ -12,7 +12,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -45,7 +45,7 @@ namespace Couchbase.Tests.Configuration
                     File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
-                pool => new DefaultIOStrategy(pool),
+                pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
@@ -100,7 +100,7 @@ namespace Couchbase.Tests.Configuration
                     File.ReadAllText("Data\\Configuration\\config-with-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
-                pool => new DefaultIOStrategy(pool),
+                pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
@@ -131,7 +131,7 @@ namespace Couchbase.Tests.Configuration
                     File.ReadAllText("Data\\Configuration\\config-with-long-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
-                pool => new DefaultIOStrategy(pool),
+                pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
@@ -188,7 +188,7 @@ namespace Couchbase.Tests.Configuration
 
             var configInfo = new CouchbaseConfigContext(bucket1070,
                 clientConfig,
-                pool => new DefaultIOStrategy(pool),
+                pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));
@@ -219,7 +219,7 @@ namespace Couchbase.Tests.Configuration
                     File.ReadAllText("Data\\Configuration\\carrier-publication-config.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
-                pool => new DefaultIOStrategy(pool),
+                pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));

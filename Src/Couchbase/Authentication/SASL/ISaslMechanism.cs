@@ -39,9 +39,9 @@ namespace Couchbase.Authentication.SASL
         bool Authenticate(IConnection connection);
 
         /// <summary>
-        /// The I/O strategy to use <see cref="IOStrategy"/>
+        /// The I/O service to use <see cref="IOService"/>
         /// </summary>
-        IOStrategy IOStrategy { set; }
+        IIOService IOService { set; }
     }
 }
 

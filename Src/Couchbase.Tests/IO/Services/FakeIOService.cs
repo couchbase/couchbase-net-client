@@ -10,15 +10,15 @@ using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Fakes;
 
-namespace Couchbase.Tests.IO.Strategies
+namespace Couchbase.Tests.IO.Services
 {
-    internal class FakeIOStrategy<TK>: IOStrategy where TK : IOperation
+    internal class FakeIOService<TK>: IIOService where TK : IOperation
     {
         private readonly TK _operation;
         private readonly IConnectionPool _connectionPool = new FakeConnectionPool();
         private ISaslMechanism _mechanism;
 
-        public FakeIOStrategy(TK operation)
+        public FakeIOService(TK operation)
         {
             _operation = operation;
         }
@@ -70,12 +70,12 @@ namespace Couchbase.Tests.IO.Strategies
             get { throw new NotImplementedException(); }
         }
 
-        Task IOStrategy.ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        Task IIOService.ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
             throw new NotImplementedException();
         }
 
-        Task IOStrategy.ExecuteAsync<T>(IOperation<T> operation)
+        Task IIOService.ExecuteAsync<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
@@ -96,38 +96,38 @@ namespace Couchbase.Tests.IO.Strategies
             throw new NotImplementedException();
         }
 
-        IOperationResult<T> IOStrategy.Execute<T>(IOperation<T> operation, IConnection connection)
+        IOperationResult<T> IIOService.Execute<T>(IOperation<T> operation, IConnection connection)
         {
             throw new NotImplementedException();
         }
 
-        IOperationResult<T> IOStrategy.Execute<T>(IOperation<T> operation)
+        IOperationResult<T> IIOService.Execute<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();
         }
 
-        IOperationResult IOStrategy.Execute(IOperation operation)
+        IOperationResult IIOService.Execute(IOperation operation)
         {
             throw new NotImplementedException();
         }
 
-        IPEndPoint IOStrategy.EndPoint
+        IPEndPoint IIOService.EndPoint
         {
             get { throw new NotImplementedException(); }
         }
 
-        IConnectionPool IOStrategy.ConnectionPool
+        IConnectionPool IIOService.ConnectionPool
         {
             get { throw new NotImplementedException(); }
         }
 
-        ISaslMechanism IOStrategy.SaslMechanism
+        ISaslMechanism IIOService.SaslMechanism
         {
             set { throw new NotImplementedException(); }
             get {  throw new NotImplementedException(); }
         }
 
-        bool IOStrategy.IsSecure
+        bool IIOService.IsSecure
         {
             get { throw new NotImplementedException(); }
         }

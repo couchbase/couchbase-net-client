@@ -41,20 +41,20 @@ namespace Couchbase.Tests.IO.Operations.EnhancedDurability
         {
             var key = "bar";
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var deleteResult = IOStrategy.Execute(delete);
+            var deleteResult = IOService.Execute(delete);
 
             var features = new List<short>();
             features.Add((short)ServerFeatures.MutationSeqno);
 
             var hello = new Hello("couchbase-net-sdk/2.1.4", features.ToArray(), Transcoder, 0, 0);
-            var result = IOStrategy.Execute(hello);
+            var result = IOService.Execute(hello);
             Assert.IsTrue(result.Success);
 
             var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result2 = IOStrategy.Execute(add);
+            var result2 = IOService.Execute(add);
 
             var observeSeqno = new ObserveSeqno(result2.Token, Transcoder, 1000);
-            var observeSeqnoResult = IOStrategy.Execute(observeSeqno);
+            var observeSeqnoResult = IOService.Execute(observeSeqno);
             Assert.IsTrue(observeSeqnoResult.Success);
         }
     }

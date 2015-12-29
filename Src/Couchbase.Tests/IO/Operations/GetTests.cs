@@ -21,15 +21,15 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             //Add the key
             var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
-            var result = IOStrategy.Execute(get);
+            var result = IOService.Execute(get);
             Assert.IsTrue(result.Success);
 
             var expected = new {foo = "foo"};
@@ -53,18 +53,18 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             //Add the key
             var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.String, get.Format);
 
-            var result = IOStrategy.Execute(get);
+            var result = IOService.Execute(get);
             Assert.IsTrue(result.Success);
 
             Assert.AreEqual(DataFormat.String, get.Format);
@@ -77,18 +77,18 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             //Add the key
             var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.Json, get.Format);
 
-            var result = IOStrategy.Execute(get);
+            var result = IOService.Execute(get);
             Assert.IsTrue(result.Success);
 
             Assert.AreEqual(DataFormat.Json, get.Format);
@@ -101,18 +101,18 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             //Add the key
             var add = new Add<byte[]>(key, new byte[] { 0x0 }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var get = new Get<byte[]>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
 
             get.CreateExtras();
             Assert.AreEqual(DataFormat.Binary, get.Format);
 
-            var result = IOStrategy.Execute(get);
+            var result = IOService.Execute(get);
             Assert.IsTrue(result.Success);
 
             Assert.AreEqual(DataFormat.Binary, get.Format);

@@ -38,7 +38,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 _servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -82,7 +82,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -105,7 +105,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -132,7 +132,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -161,7 +161,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -188,7 +188,7 @@ namespace Couchbase.Tests
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(node.GetIPAddress(),
-                    new Server(new FakeIOStrategy(node.GetIPEndPoint(), new FakeConnectionPool(), false),
+                    new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
                         new FakeTranscoder()));
@@ -211,7 +211,7 @@ namespace Couchbase.Tests
         public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
         {
             var server = new Server(
-               new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+               new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                new FakeConnectionPool(), false),
                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                new NodeExt()),
@@ -242,7 +242,7 @@ namespace Couchbase.Tests
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
             var server = new Server(
-                new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+                new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                 new FakeConnectionPool(), false),
                 new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                 new NodeExt()),
@@ -265,7 +265,7 @@ namespace Couchbase.Tests
         public void When_Replica_Index_Postive_LocatePrimary_Returns_It()
         {
             var server = new Server(
-                new FakeIOStrategy(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
+                new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                 new FakeConnectionPool(), false),
                 new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                 new NodeExt()),

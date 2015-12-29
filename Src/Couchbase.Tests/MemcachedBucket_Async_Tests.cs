@@ -48,7 +48,7 @@ namespace Couchbase.Tests
         {
             var config = new ClientConfiguration();
             var fakeServer = new FakeServer(_connectionPool, null, null, _endPoint,
-                new FakeIOStrategy(_endPoint, _connectionPool, false));
+                new FakeIOService(_endPoint, _connectionPool, false));
 
             var mappedNode = new Mock<IMappedNode>();
             mappedNode.Setup(x => x.LocatePrimary()).Returns(fakeServer);

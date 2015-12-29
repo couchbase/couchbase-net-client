@@ -19,25 +19,25 @@ namespace Couchbase.Authentication.SASL
         /// </summary>
         public const uint DefaultTimeout = 2500; //2.5sec
 
-        public static Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> GetFactory()
+        public static Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> GetFactory()
         {
-            return (username, password, strategy, transcoder) =>
+            return (username, password, service, transcoder) =>
             {
                 ISaslMechanism saslMechanism = null;
                 IConnection connection = null;
                 try
                 {
-                    connection = strategy.ConnectionPool.Acquire();
-                    var saslListResult = strategy.Execute(new SaslList(transcoder, DefaultTimeout), connection);
+                    connection = service.ConnectionPool.Acquire();
+                    var saslListResult = service.Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
                         if (saslListResult.Value.Contains("CRAM-MD5"))
                         {
-                            saslMechanism = new CramMd5Mechanism(strategy, username, password, transcoder);
+                            saslMechanism = new CramMd5Mechanism(service, username, password, transcoder);
                         }
                         else
                         {
-                            saslMechanism = new PlainTextMechanism(strategy, username, password, transcoder);
+                            saslMechanism = new PlainTextMechanism(service, username, password, transcoder);
                         }
                     }
                 }
@@ -49,7 +49,7 @@ namespace Couchbase.Authentication.SASL
                 {
                     if (connection != null)
                     {
-                        strategy.ConnectionPool.Release(connection);
+                        service.ConnectionPool.Release(connection);
                     }
                 }
                 return saslMechanism;

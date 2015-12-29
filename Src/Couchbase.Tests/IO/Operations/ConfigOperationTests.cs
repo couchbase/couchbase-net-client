@@ -4,20 +4,20 @@ using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Strategies;
 using Couchbase.Utils;
 using NUnit.Framework;
 using System;
 using System.Configuration;
 using System.IO;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO.Services;
 
 namespace Couchbase.Tests.IO.Operations
 {
     [TestFixture]
     public class ConfigOperationTests
     {
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
@@ -34,13 +34,13 @@ namespace Couchbase.Tests.IO.Operations
             };
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, _endPoint);
 
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioService = new PooledIOService(_connectionPool);
         }
 
         [Test]
         public void Test_GetConfig()
         {
-            var response = _ioStrategy.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
+            var response = _ioService.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);
             Console.WriteLine(response.Value.ToString());
@@ -49,10 +49,10 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig_Non_Default_Bucket()
         {
-            var saslMechanism = new PlainTextMechanism(_ioStrategy, "authenticated", "secret", new DefaultTranscoder());
-            _ioStrategy = new DefaultIOStrategy(_connectionPool, saslMechanism);
+            var saslMechanism = new PlainTextMechanism(_ioService, "authenticated", "secret", new DefaultTranscoder());
+            _ioService = new PooledIOService(_connectionPool, saslMechanism);
 
-            var response = _ioStrategy.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
+            var response = _ioService.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));
 
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.Value);

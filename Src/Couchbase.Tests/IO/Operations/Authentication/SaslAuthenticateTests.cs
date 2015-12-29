@@ -6,7 +6,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -15,7 +15,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
     [TestFixture]
     public class SaslAuthenticateTests
     {
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
@@ -26,14 +26,14 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioService = new PooledIOService(_connectionPool);
         }
 
         [Test]
         public void Test_SaslAuthenticate_Returns_AuthFailure_With_InvalidCredentials()
         {
             var operation = new SaslStart("PLAIN", GetAuthData("foo", "bar"), new DefaultTranscoder(), OperationLifespan);
-            var response = _ioStrategy.Execute(operation);
+            var response = _ioService.Execute(operation);
 
             Assert.AreEqual("Auth failure", response.Message);
             Assert.AreEqual(ResponseStatus.AuthenticationError, response.Status);
@@ -44,7 +44,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         public void Test_SaslAuthenticate_Returns_Succuss_With_ValidCredentials()
         {
             var operation = new SaslStart("PLAIN", GetAuthData("authenticated", "secret"), new DefaultTranscoder(), OperationLifespan);
-            var response = _ioStrategy.Execute(operation);
+            var response = _ioService.Execute(operation);
 
             Assert.AreEqual(ResponseStatus.Success, response.Status);
             Assert.IsTrue(response.Success);
@@ -54,7 +54,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         public void When_CRAM_MD5_Used_SaslStart_Returns_AuthenticationContinue()
         {
             var operation = new SaslStart("CRAM-MD5", (VBucket)null, new DefaultTranscoder(), OperationLifespan);
-            var response = _ioStrategy.Execute(operation);
+            var response = _ioService.Execute(operation);
 
             Assert.IsNotNullOrEmpty(response.Message);
             Assert.AreEqual(ResponseStatus.AuthenticationContinue, response.Status);

@@ -33,7 +33,7 @@ namespace Couchbase.Core
         private static readonly ILog Log = LogManager.GetLogger<Server>();
         private readonly ClientConfiguration _clientConfiguration;
         private readonly BucketConfiguration _bucketConfiguration;
-        private readonly IOStrategy _ioStrategy;
+        private readonly IIOService _ioService;
         private readonly INodeAdapter _nodeAdapter;
         private readonly ITypeTranscoder _typeTranscoder;
         private readonly IBucketConfig _bucketConfig;
@@ -46,31 +46,31 @@ namespace Couchbase.Core
         private DateTime _lastIOErrorCheckedTime;
         private readonly object _syncObj = new object();
 
-        public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
+        public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-            this(ioStrategy,
+            this(ioService,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
-        public Server(IOStrategy ioStrategy, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
+        public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
-                this(ioStrategy,
+                this(ioService,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration, queryCache),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
-        public Server(IOStrategy ioStrategy, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
+        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
-            if (ioStrategy != null)
+            if (ioService != null)
             {
-                _ioStrategy = ioStrategy;
-                _ioStrategy.ConnectionPool.Owner = this;
+                _ioService = ioService;
+                _ioService.ConnectionPool.Owner = this;
             }
             _nodeAdapter = nodeAdapter;
             _clientConfiguration = clientConfiguration;
@@ -101,7 +101,7 @@ namespace Couchbase.Core
                 //If the node is down immediately start the timer, otherwise disable it.
                 if (IsDataNode)
                 {
-                    _isDown = _ioStrategy.ConnectionPool.InitializationFailed;
+                    _isDown = _ioService.ConnectionPool.InitializationFailed;
                 }
 
                 Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
@@ -172,7 +172,7 @@ namespace Couchbase.Core
         /// <value>
         /// The sasl factory.
         /// </value>
-        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+        public Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
 
         /// <summary>
         /// Gets the remote <see cref="IPEndPoint"/> of this node.
@@ -182,7 +182,7 @@ namespace Couchbase.Core
         /// </value>
         public IPEndPoint EndPoint
         {
-            get { return IsDataNode ? _ioStrategy.EndPoint : _nodeAdapter.GetIPEndPoint(); }
+            get { return IsDataNode ? _ioService.EndPoint : _nodeAdapter.GetIPEndPoint(); }
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace Couchbase.Core
         /// </value>
         public IConnectionPool ConnectionPool
         {
-            get { return IsDataNode ? _ioStrategy.ConnectionPool : null; }
+            get { return IsDataNode ? _ioService.ConnectionPool : null; }
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace Couchbase.Core
         /// </value>
         public bool IsSecure
         {
-            get { return IsDataNode ? _ioStrategy.IsSecure : _clientConfiguration.UseSsl; }
+            get { return IsDataNode ? _ioService.IsSecure : _clientConfiguration.UseSsl; }
         }
 
         /// <summary>
@@ -332,10 +332,10 @@ namespace Couchbase.Core
                 CreateSaslMechanismIfNotExists();
 
                 //if we have a sasl mechanism, we just try a noop
-                connection = _ioStrategy.ConnectionPool.Acquire();
+                connection = _ioService.ConnectionPool.Acquire();
                 var noop = new Noop(new DefaultTranscoder(), 1000);
 
-                var result = _ioStrategy.Execute(noop);
+                var result = _ioService.Execute(noop);
                 if (result.Success)
                 {
                     Log.InfoFormat("Successfully connected and marking data node {0} as up.", EndPoint);
@@ -369,7 +369,7 @@ namespace Couchbase.Core
                         }
                         _heartBeatTimer.Start();
                     }
-                    _ioStrategy.ConnectionPool.Release(connection);
+                    _ioService.ConnectionPool.Release(connection);
                 }
                 else
                 {
@@ -383,12 +383,12 @@ namespace Couchbase.Core
         /// </summary>
         public void CreateSaslMechanismIfNotExists()
         {
-            if (_ioStrategy.SaslMechanism == null && SaslFactory != null)
+            if (_ioService.SaslMechanism == null && SaslFactory != null)
             {
-                _ioStrategy.SaslMechanism = SaslFactory(
+                _ioService.SaslMechanism = SaslFactory(
                     _bucketConfig.Name,
                     _bucketConfig.Password,
-                    _ioStrategy,
+                    _ioService,
                     _typeTranscoder);
             }
         }
@@ -504,7 +504,7 @@ namespace Couchbase.Core
                 try
                 {
                     Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
-                    result = _ioStrategy.Execute(operation);
+                    result = _ioService.Execute(operation);
                 }
                 catch (Exception e)
                 {
@@ -547,7 +547,7 @@ namespace Couchbase.Core
                 try
                 {
                     Log.Debug(m => m("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint));
-                    result = _ioStrategy.Execute(operation);
+                    result = _ioService.Execute(operation);
                 }
                 catch (Exception e)
                 {
@@ -588,7 +588,7 @@ namespace Couchbase.Core
                 });
                 return;
             }
-            await _ioStrategy.ExecuteAsync(operation);
+            await _ioService.ExecuteAsync(operation);
         }
 
         /// <summary>
@@ -614,7 +614,7 @@ namespace Couchbase.Core
                 });
                 return;
             }
-            await _ioStrategy.ExecuteAsync(operation);
+            await _ioService.ExecuteAsync(operation);
         }
 
         /// <summary>
@@ -804,9 +804,9 @@ namespace Couchbase.Core
                     {
                         _heartBeatTimer.Dispose();
                     }
-                    if (_ioStrategy != null)
+                    if (_ioService != null)
                     {
-                        _ioStrategy.Dispose();
+                        _ioService.Dispose();
                     }
                 }
             }

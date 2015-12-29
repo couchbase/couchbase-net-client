@@ -170,7 +170,7 @@
     <Compile Include="IO\Operations\SetOperationTests.cs" />
     <Compile Include="IO\Operations\SetTests.cs" />
     <Compile Include="IO\Operations\TouchOperationTests.cs" />
-    <Compile Include="IO\Strategies\FakeIOStrategy.cs" />
+    <Compile Include="IO\Services\FakeIOService.cs" />
     <Compile Include="CouchbaseBucket_N1QL_Tests.cs" />
     <Compile Include="N1QL\QueryClientTests.cs" />
     <Compile Include="N1QL\QueryRequestTests.cs" />

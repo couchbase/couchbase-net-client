@@ -13,13 +13,13 @@ namespace Couchbase.Tests.Fakes
 {
     internal class FakeServer : IServer
     {
-        public FakeServer(IConnectionPool connectionPool, IViewClient viewClient, IQueryClient queryClient, IPEndPoint endPoint, IOStrategy strategy)
+        public FakeServer(IConnectionPool connectionPool, IViewClient viewClient, IQueryClient queryClient, IPEndPoint endPoint, IIOService service)
         {
             ConnectionPool = connectionPool;
             ViewClient = viewClient;
             QueryClient = queryClient;
             EndPoint = endPoint;
-            Strategy = strategy;
+            Service = service;
         }
 
         public IConnectionPool ConnectionPool { get; private set; }
@@ -30,7 +30,7 @@ namespace Couchbase.Tests.Fakes
 
         public IPEndPoint EndPoint { get; private set; }
 
-        public IOStrategy Strategy { get; set; }
+        public IIOService Service { get; set; }
 
         public bool IsSecure { get; private set; }
 
@@ -38,15 +38,15 @@ namespace Couchbase.Tests.Fakes
 
         public Task SendAsync<T>(IOperation<T> operation)
         {
-            return Strategy.ExecuteAsync(operation);
+            return Service.ExecuteAsync(operation);
         }
 
         public Task SendAsync(IOperation operation)
         {
-            return Strategy.ExecuteAsync(operation);
+            return Service.ExecuteAsync(operation);
         }
 
-        public Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+        public Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
 
         public bool IsMgmtNode
         {

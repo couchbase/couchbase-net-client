@@ -9,7 +9,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Primary interface for the IO engine.
     /// </summary>
-    public interface IOStrategy : IDisposable
+    public interface IIOService : IDisposable
     {
         /// <summary>
         /// Executes an operation for a given key.
@@ -56,17 +56,17 @@ namespace Couchbase.IO
         Task ExecuteAsync<T>(IOperation<T> operation);
 
         /// <summary>
-        /// The IP endpoint of the node in the cluster that this <see cref="IOStrategy"/> instance is communicating with.
+        /// The IP endpoint of the node in the cluster that this <see cref="IIOService"/> instance is communicating with.
         /// </summary>
         IPEndPoint EndPoint { get; }
 
         /// <summary>
-        /// The <see cref="IConnectionPool"/> that this <see cref="IOStrategy"/> instance is using for acquiring <see cref="IConnection"/>s.
+        /// The <see cref="IConnectionPool"/> that this <see cref="IIOService"/> instance is using for acquiring <see cref="IConnection"/>s.
         /// </summary>
         IConnectionPool ConnectionPool { get; }
 
         /// <summary>
-        /// The SASL mechanism type the <see cref="IOStrategy"/> is using for authentication.
+        /// The SASL mechanism type the <see cref="IIOService"/> is using for authentication.
         /// </summary>
         /// <remarks>This could be PLAIN or CRAM-MD5 depending upon what the server supports.</remarks>
         ISaslMechanism SaslMechanism { set; get; }

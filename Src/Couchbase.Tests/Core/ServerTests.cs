@@ -35,8 +35,8 @@ namespace Couchbase.Tests.Core
             _endPoint = UriExtensions.GetEndPoint(_address);
             var configuration = new ClientConfiguration();
             var connectionPool = new FakeConnectionPool();
-            var ioStrategy = new FakeIOStrategy(_endPoint, connectionPool, false);
-            _server = new Server(ioStrategy,
+            var ioService = new FakeIOService(_endPoint, connectionPool, false);
+            _server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -74,10 +74,10 @@ namespace Couchbase.Tests.Core
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            using (var server = new Server(ioStrategy,
+            using (var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -105,10 +105,10 @@ namespace Couchbase.Tests.Core
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            using (var server = new Server(ioStrategy,
+            using (var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -136,10 +136,10 @@ namespace Couchbase.Tests.Core
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            using (var server = new Server(ioStrategy,
+            using (var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -165,10 +165,10 @@ namespace Couchbase.Tests.Core
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            using (var server = new Server(ioStrategy,
+            using (var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -193,10 +193,10 @@ namespace Couchbase.Tests.Core
             var nodes = config.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.103"));
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
             Assert.IsTrue(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsFalse(server.IsIndexNode);
@@ -218,10 +218,10 @@ namespace Couchbase.Tests.Core
             var nodes = config.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.101"));
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
             Assert.IsFalse(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsFalse(server.IsIndexNode);
@@ -243,10 +243,10 @@ namespace Couchbase.Tests.Core
             var nodes = config.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.102"));
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioStrategy, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
             Assert.IsFalse(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsTrue(server.IsIndexNode);
@@ -268,8 +268,8 @@ namespace Couchbase.Tests.Core
                 IOErrorCheckInterval = 100
             };
             var connectionPool = new FakeConnectionPool();
-            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
-            var server = new Server(ioStrategy,
+            var ioService = new FakeIOService(endPoint, connectionPool, false);
+            var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -304,8 +304,8 @@ namespace Couchbase.Tests.Core
                 IOErrorCheckInterval = 10
             };
             var connectionPool = new FakeConnectionPool();
-            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
-            var server = new Server(ioStrategy,
+            var ioService = new FakeIOService(endPoint, connectionPool, false);
+            var server = new Server(ioService,
                 node,
                 configuration,
                 config,
@@ -341,8 +341,8 @@ namespace Couchbase.Tests.Core
                 IOErrorCheckInterval = 100
             };
             var connectionPool = new FakeConnectionPool();
-            var ioStrategy = new FakeIOStrategy(endPoint, connectionPool, false);
-            var server = new Server(ioStrategy,
+            var ioService = new FakeIOService(endPoint, connectionPool, false);
+            var server = new Server(ioService,
                 node,
                 configuration,
                 config,

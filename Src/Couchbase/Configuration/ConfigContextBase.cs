@@ -28,9 +28,9 @@ namespace Couchbase.Configuration
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
         protected IDictionary<IPAddress, IServer> Servers = new Dictionary<IPAddress, IServer>();
-        protected Func<IConnectionPool, IOStrategy> IOStrategyFactory;
+        protected Func<IConnectionPool, IIOService> IOServiceFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
-        protected readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory;
+        protected readonly Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory;
         protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
@@ -49,14 +49,14 @@ namespace Couchbase.Configuration
         public static ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
         {
             _bucketConfig = bucketConfig;
             _clientConfig = clientConfig;
-            IOStrategyFactory = ioStrategyFactory;
+            IOServiceFactory = ioServiceFactory;
             ConnectionPoolFactory = connectionPoolFactory;
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;

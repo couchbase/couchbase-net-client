@@ -9,7 +9,6 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
 using Couchbase.Utils;
 using NUnit.Framework;
 

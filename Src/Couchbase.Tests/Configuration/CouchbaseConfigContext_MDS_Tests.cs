@@ -36,12 +36,12 @@ namespace Couchbase.Tests.Configuration
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
-            var ioStrategy = new FakeIOStrategy(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
+            var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
             _configContext = new CouchbaseConfigContext(config,
                 configuration,
-                pool => ioStrategy,
+                pool => ioService,
                 (c, e) => new FakeConnectionPool(),
                 SaslFactory.GetFactory(),
                 new DefaultTranscoder(new DefaultConverter()));

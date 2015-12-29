@@ -16,13 +16,13 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "OperationBaseTests.When_Type_Is_Int_DateFormat_Is_Json";
             var set = new Set<int?>(key, 100, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(set.Format, DataFormat.Json);
 
             var get = new Get<int>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
 
             Assert.IsTrue(getResult.Success);
             Assert.AreEqual(DataFormat.Json, get.Format);
@@ -34,13 +34,13 @@ namespace Couchbase.Tests.IO.Operations
         {
             const string key = "OperationBaseTests.When_Type_Is_String_DateFormat_Is_String";
             var set = new Set<string>(key, "somestring", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(set.Format, DataFormat.String);
 
             var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
 
             Assert.IsTrue(getResult.Success);
             Assert.AreEqual(DataFormat.String, get.Format);
@@ -58,13 +58,13 @@ namespace Couchbase.Tests.IO.Operations
             };
 
             var set = new Set<dynamic>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(set.Format, DataFormat.Json);
 
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
 
             Assert.IsTrue(getResult.Success);
             Assert.AreEqual(DataFormat.Json, get.Format);
@@ -109,12 +109,12 @@ namespace Couchbase.Tests.IO.Operations
 
             var value = new byte[] {1, 2, 3, 4};
             var set = new Set<byte[]>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var setResult = IOStrategy.Execute(set);
+            var setResult = IOService.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Binary, set.Format);
 
             var get = new Get<byte[]>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.IsTrue(getResult.Success);
 
             Assert.AreEqual(DataFormat.Binary, get.Format);
@@ -127,12 +127,12 @@ namespace Couchbase.Tests.IO.Operations
 
             var value = new { x = "hi", y = 14 };
             var set = new Set<dynamic>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var setResult = IOStrategy.Execute(set);
+            var setResult = IOService.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
 
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.AreEqual(DataFormat.Json, get.Format);
             Assert.IsTrue(getResult.Success);
         }
@@ -144,12 +144,12 @@ namespace Couchbase.Tests.IO.Operations
 
             var value = "hiho";
             var set = new Set<string>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var setResult = IOStrategy.Execute(set);
+            var setResult = IOService.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.String, set.Format);
 
             var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.AreEqual(DataFormat.String, get.Format);
             Assert.IsTrue(getResult.Success);
         }
@@ -161,12 +161,12 @@ namespace Couchbase.Tests.IO.Operations
 
             var value = 14;
             var set = new Set<int?>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var setResult = IOStrategy.Execute(set);
+            var setResult = IOService.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
 
             var get = new Get<int?>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.AreEqual(DataFormat.Json, get.Format);
             Assert.IsTrue(getResult.Success);
         }
@@ -178,12 +178,12 @@ namespace Couchbase.Tests.IO.Operations
 
             var value = 14.666m;
             var set = new Set<decimal?>(key, value, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var setResult = IOStrategy.Execute(set);
+            var setResult = IOService.Execute(set);
             Assert.IsTrue(setResult.Success);
             Assert.AreEqual(DataFormat.Json, set.Format);
 
             var get = new Get<decimal?>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var getResult = IOStrategy.Execute(get);
+            var getResult = IOService.Execute(get);
             Assert.AreEqual(DataFormat.Json, get.Format);
             Assert.IsTrue(getResult.Success);
         }

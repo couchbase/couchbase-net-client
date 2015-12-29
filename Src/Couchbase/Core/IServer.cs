@@ -138,7 +138,7 @@ namespace Couchbase.Core
         /// <value>
         /// The sasl factory.
         /// </value>
-        Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
+        Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
 
         Uri CachedViewBaseUri { get; }
         Uri CachedQueryBaseUri { get; }

@@ -24,9 +24,9 @@ namespace Couchbase.Core
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
         private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
-        private readonly Func<IConnectionPool, IOStrategy> _ioStrategyFactory;
+        private readonly Func<IConnectionPool, IIOService> _ioServiceFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> _saslFactory;
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
 
@@ -47,14 +47,14 @@ namespace Couchbase.Core
         }
 
         public ClusterController(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
         {
             _clientConfig = clientConfig;
-            _ioStrategyFactory = ioStrategyFactory;
+            _ioServiceFactory = ioServiceFactory;
             _connectionPoolFactory = connectionPoolFactory;
             _saslFactory = saslFactory;
             Converter = converter;
@@ -74,14 +74,14 @@ namespace Couchbase.Core
         {
             _clientConfig.Initialize();
             _configProviders.Add(new CarrierPublicationProvider(_clientConfig,
-                _ioStrategyFactory,
+                _ioServiceFactory,
                 _connectionPoolFactory,
                 _saslFactory,
                 Converter,
                 Transcoder));
 
             _configProviders.Add(new HttpStreamingProvider(_clientConfig,
-                _ioStrategyFactory,
+                _ioServiceFactory,
                 _connectionPoolFactory,
                 _saslFactory,
                 Converter,

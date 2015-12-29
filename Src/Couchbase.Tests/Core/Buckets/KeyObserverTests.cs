@@ -14,7 +14,7 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -36,7 +36,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -63,7 +63,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -90,7 +90,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -127,7 +127,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -165,7 +165,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -202,7 +202,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -240,7 +240,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
@@ -278,7 +278,7 @@ namespace Couchbase.Tests.Core.Buckets
 
             var provider = new CarrierPublicationProvider(
                 configuration,
-                (pool) => new DefaultIOStrategy(pool),
+                (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),

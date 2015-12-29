@@ -16,18 +16,18 @@ namespace Couchbase.Authentication.SASL
     internal class CramMd5Mechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetLogger<CramMd5Mechanism>();
-        private IOStrategy _ioStrategy;
+        private IIOService _ioService;
         private ITypeTranscoder _transcoder;
 
 
         /// <summary>
-        /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOStrategy"/>.
+        /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOService"/>.
         /// </summary>
-        /// <param name="ioStrategy">The I/O strategy to use.</param>
+        /// <param name="ioService">The I/O service to use.</param>
         /// <param name="transcoder"></param>
-        public CramMd5Mechanism(IOStrategy ioStrategy, ITypeTranscoder transcoder)
+        public CramMd5Mechanism(IIOService ioService, ITypeTranscoder transcoder)
         {
-            _ioStrategy = ioStrategy;
+            _ioService = ioService;
             _transcoder = transcoder;
         }
 
@@ -45,13 +45,13 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given username (which is a Couchbase Bucket) and password.
         /// </summary>
-        /// <param name="ioStrategy">The <see cref="IOStrategy"/>to use for I/O.</param>
+        /// <param name="ioService">The <see cref="IOService"/>to use for I/O.</param>
         /// <param name="username">The name of the Bucket you are connecting to.</param>
         /// <param name="password">The password for the Bucket.</param>
         /// <param name="transcoder"></param>
-        public CramMd5Mechanism(IOStrategy ioStrategy, string username, string password, ITypeTranscoder transcoder)
+        public CramMd5Mechanism(IIOService ioService, string username, string password, ITypeTranscoder transcoder)
         {
-            _ioStrategy = ioStrategy;
+            _ioService = ioService;
             Username = username;
             Password = password;
             _transcoder = transcoder;
@@ -93,14 +93,14 @@ namespace Couchbase.Authentication.SASL
             var operation = new SaslStart(MechanismType, (VBucket)null, _transcoder, SaslFactory.DefaultTimeout);
             Log.Debug(m => m("Authenticating socket {0} with opaque {1}", temp.Identity, operation.Opaque));
 
-            var result = _ioStrategy.Execute(operation, connection);
+            var result = _ioService.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
                 var challenge = result.Message;
                 var reply = ComputeResponse(challenge);
 
                 operation = new SaslStep(MechanismType, reply, _transcoder, SaslFactory.DefaultTimeout);
-                result = _ioStrategy.Execute(operation, connection);
+                result = _ioService.Execute(operation, connection);
             }
 
             if (result.Status == ResponseStatus.AuthenticationError)
@@ -159,12 +159,12 @@ namespace Couchbase.Authentication.SASL
         }
 
         /// <summary>
-        /// The <see cref="IOStrategy"/> to use for I/O connectivity with the Couchbase cluster or server.
+        /// The <see cref="IOService"/> to use for I/O connectivity with the Couchbase cluster or server.
         /// </summary>
         [Obsolete]
-        public IOStrategy IOStrategy
+        public IIOService IOService
         {
-            set { _ioStrategy = value; }
+            set { _ioService = value; }
         }
     }
 }

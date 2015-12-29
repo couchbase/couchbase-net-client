@@ -4,18 +4,18 @@ using Couchbase.IO;
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
-    /// A configuration element for registering custom <see cref="IOStrategy"/>s.
+    /// A configuration element for registering custom <see cref="IIOService"/>s.
     /// </summary>
     public class IOServiceElement : ConfigurationElement
     {
         public IOServiceElement()
         {
             Name = "default";
-            Type = "Couchbase.IO.Strategies.DefaultIOStrategy, Couchbase.NetClient";
+            Type = "Couchbase.IO.Services.PooledIOService, Couchbase.NetClient";
         }
 
         /// <summary>
-        /// Gets or sets the name of the custom <see cref="IOStrategy"/>
+        /// Gets or sets the name of the custom <see cref="IIOService"/>
         /// </summary>
         /// <value>
         /// The name.
@@ -28,7 +28,7 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="Type"/> of the custom <see cref="IOStrategy"/>
+        /// Gets or sets the <see cref="Type"/> of the custom <see cref="IIOService"/>
         /// </summary>
         /// <value>
         /// The type.

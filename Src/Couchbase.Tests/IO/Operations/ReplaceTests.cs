@@ -23,22 +23,22 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(delete);
+            var result = IOService.Execute(delete);
             Console.WriteLine(result.Message);
 
             //add the new doc
             var add = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result1 = IOStrategy.Execute(add);
+            var result1 = IOService.Execute(add);
             Assert.IsTrue(result1.Success);
 
             //replace it the old doc with a new one
             var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result2 = IOStrategy.Execute(replace);
+            var result2 = IOService.Execute(replace);
             Assert.IsTrue(result2.Success);
 
             //check that doc has been updated
             var get = new Get<dynamic>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result3 = IOStrategy.Execute(get);
+            var result3 = IOService.Execute(get);
             Assert.IsTrue(result3.Success);
             Assert.AreEqual(result3.Value.bar.Value, "bar");
         }
@@ -50,12 +50,12 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(delete);
+            var result = IOService.Execute(delete);
             Console.WriteLine(result.Message);
 
             //replace it the old doc with a new one
             var replace = new Replace<dynamic>(key, new { bar = "bar" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result2 = IOStrategy.Execute(replace);
+            var result2 = IOService.Execute(replace);
             Assert.IsFalse(result2.Success);
             Assert.AreEqual(ResponseStatus.KeyNotFound, result2.Status);
         }

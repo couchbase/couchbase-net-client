@@ -23,11 +23,11 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var deleteOperation = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result1 = IOStrategy.Execute(deleteOperation);
+            var result1 = IOService.Execute(deleteOperation);
             Console.WriteLine(result1.Message);
 
             var operation = new Add<dynamic>(key, new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(operation);
+            var result = IOService.Execute(operation);
             Assert.IsTrue(result.Success);
         }
 
@@ -35,7 +35,7 @@ namespace Couchbase.Tests.IO.Operations
         public void When_Key_Exists_Exist_Operation_Fails()
         {
             var operation = new Add<dynamic>("keythatdoesntexist", new { foo = "foo" }, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(operation);
+            var result = IOService.Execute(operation);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(ResponseStatus.KeyExists, result.Status);
         }

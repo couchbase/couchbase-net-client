@@ -96,8 +96,8 @@ namespace Couchbase.Configuration.Client
             //the default transcoder
             Transcoder = TranscoderFactory.GetTranscoder(this);
 
-            //the default iostrategy
-            IOServiceCreator = IOStrategyFactory.GetFactory();
+            //the default ioservice
+            IOServiceCreator = IOServiceFactory.GetFactory();
 
             //the default connection pool creator
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
@@ -173,8 +173,8 @@ namespace Couchbase.Configuration.Client
                                     TcpKeepAliveInterval != 1000 ||
                                     TcpKeepAliveTime != 2*60*60*1000;
 
-            //the default iostrategy - this should be refactored to come from the configsection
-            IOServiceCreator = IOStrategyFactory.GetFactory(section.IOService);
+            //the default ioservice - this should be refactored to come from the configsection
+            IOServiceCreator = IOServiceFactory.GetFactory(section.IOService);
 
             //the default connection pool creator
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory(section.ConnectionPool);
@@ -405,7 +405,7 @@ namespace Couchbase.Configuration.Client
         /// The transporter.
         /// </value>
         [JsonIgnore]
-        public Func<IOStrategy> Transporter { get; set; }
+        public Func<IIOService> Transporter { get; set; }
 
         /// <summary>
         /// A factory for creating <see cref="IOperationTimer"/>'s.
@@ -414,13 +414,13 @@ namespace Couchbase.Configuration.Client
         public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         /// <summary>
-        /// A factory for creating the <see cref="IOStrategy"/> for this instance.
+        /// A factory for creating the <see cref="IIOService"/> for this instance.
         /// </summary>
         /// <value>
-        /// The io strategy.
+        /// The io service.
         /// </value>
         [JsonIgnore]
-        internal Func<IConnectionPool, IOStrategy> IOServiceCreator { get; set; }
+        internal Func<IConnectionPool, IIOService> IOServiceCreator { get; set; }
 
         /// <summary>
         /// Gets or sets the connection pool creator.
@@ -438,7 +438,7 @@ namespace Couchbase.Configuration.Client
         /// The create sasl mechanism.
         /// </value>
         [JsonIgnore]
-        internal Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
+        internal Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
 
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.

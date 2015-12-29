@@ -15,7 +15,7 @@ namespace Couchbase.Tests.IO.Operations
         public void Test_Config()
         {
             var config = new Config(Transcoder, OperationLifespanTimeout, EndPoint);
-            var result = IOStrategy.Execute(config);
+            var result = IOService.Execute(config);
             Assert.IsTrue(result.Success);
         }
     }

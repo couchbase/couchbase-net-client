@@ -18,10 +18,10 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             var set = new Set<string>(key, "boo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
             Assert.IsTrue(result.Success);
         }
 
@@ -32,10 +32,10 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             var set = new Set<string>(key, "boo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
             Assert.IsTrue(result.Success);
         }
 
@@ -46,13 +46,13 @@ namespace Couchbase.Tests.IO.Operations
 
             //delete the value if it exists
             var delete = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            IOStrategy.Execute(delete);
+            IOService.Execute(delete);
 
             var add = new Add<string>(key, "foo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            Assert.IsTrue(IOStrategy.Execute(add).Success);
+            Assert.IsTrue(IOService.Execute(add).Success);
 
             var set = new Set<string>(key, "boo", GetVBucket(), Transcoder, OperationLifespanTimeout);
-            var result = IOStrategy.Execute(set);
+            var result = IOService.Execute(set);
             Assert.IsTrue(result.Success);
         }
 

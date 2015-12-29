@@ -30,12 +30,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private volatile bool _disposed;
 
         public HttpStreamingProvider(ClientConfiguration clientConfig,
-            Func<IConnectionPool, IOStrategy> ioStrategyFactory,
+            Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IOStrategy, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
-            : base(clientConfig, ioStrategyFactory, connectionPoolFactory, saslFactory, converter, transcoder)
+            : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
         }
 
@@ -217,7 +217,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 case NodeLocatorEnum.VBucket:
                     configInfo = new CouchbaseConfigContext(bucketConfig,
                         ClientConfig,
-                        IOStrategyFactory,
+                        IOServiceFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
                         Transcoder);
@@ -225,7 +225,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
                         ClientConfig,
-                        IOStrategyFactory,
+                        IOServiceFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
                         Transcoder);

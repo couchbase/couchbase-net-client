@@ -9,7 +9,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Strategies;
+using Couchbase.IO.Services;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -18,7 +18,7 @@ namespace Couchbase.Tests.Authentication.Sasl
     [TestFixture]
     public class SaslFactoryTests
     {
-        private DefaultIOStrategy _ioStrategy;
+        private PooledIOService _ioService;
         private IConnectionPool<Connection> _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
@@ -28,7 +28,7 @@ namespace Couchbase.Tests.Authentication.Sasl
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration { UseSsl = false };
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
-            _ioStrategy = new DefaultIOStrategy(_connectionPool);
+            _ioService = new PooledIOService(_connectionPool);
         }
 
         [Test]
@@ -42,7 +42,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void When_PlainText_Provided_Factory_Returns_CramMd5Mechanism()
         {
             var factory = SaslFactory.GetFactory();
-            var mechanism = factory("authenticated", "secret", _ioStrategy, new DefaultTranscoder());
+            var mechanism = factory("authenticated", "secret", _ioService, new DefaultTranscoder());
             Assert.IsTrue(mechanism is CramMd5Mechanism);
         }
     }
