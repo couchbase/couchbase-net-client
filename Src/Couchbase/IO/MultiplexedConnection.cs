@@ -35,7 +35,8 @@ namespace Couchbase.IO
             _statesInFlight = new ConcurrentDictionary<uint, IState>();
             _statePool = new Queue<SyncState>();
 
-            _receiveBuffer = new byte[128];
+            //allocate a buffer
+            _receiveBuffer = new byte[Configuration.BufferSize];
             _receiveBufferLength = 0;
 
             //Start a dedicated background thread for receiving server responses.
