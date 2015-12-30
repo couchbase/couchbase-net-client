@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,6 +60,48 @@ namespace Couchbase.Tests.IO
             var connection = _connectionPool.Acquire();
             Assert.IsTrue(connection.Socket.Connected);
             Assert.IsNotNull(connection);
+        }
+
+        [Test]
+        public void Test_Acquire_2ndRequest_Gets_Connection_From_Pool_While_1stRequest_Waits_For_Opening()
+        {
+            //Arrange
+            var ipEndpoint = UriExtensions.GetEndPoint(_address);
+            var factoryWithDelay = new Func<ConnectionPool<Connection>, IByteConverter, BufferAllocator, Connection>(
+                (a, b, c) =>
+                {
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    //remove sleep and use Moq for threads synchronization
+                    Thread.Sleep(500);
+                    return new Connection(a, socket, b, c);
+                });
+
+            _configuration = new PoolConfiguration(MaxSize, 1, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount);
+            _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factoryWithDelay, new DefaultConverter());
+            _connectionPool.Initialize();
+
+            //Act
+            var connectionFromPool = _connectionPool.Acquire();
+            var task1 = new Task<IConnection>(() => _connectionPool.Acquire());
+            var task2 = new Task<IConnection>(() => _connectionPool.Acquire());
+
+            task1.Start();
+            Thread.Sleep(100);
+            task2.Start();
+            //enqueue connection to pool
+            //at this point task2 should get released connection
+            _connectionPool.Release(connectionFromPool);
+
+            Task.WaitAll(task1, task2);
+
+            var connectionFromFactory = task1.Result;
+            var connectionFromPoolReleased = task2.Result;
+
+
+            //Assert
+            Assert.IsNotNull(connectionFromFactory);
+            Assert.AreNotEqual(connectionFromPool, connectionFromFactory);
+            Assert.AreEqual(connectionFromPool, connectionFromPoolReleased);
         }
 
         [Test]

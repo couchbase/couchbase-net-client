@@ -135,20 +135,19 @@ namespace Couchbase.IO
         /// <exception cref="ConnectionUnavailableException">thrown if a thread waits more than the <see cref="PoolConfiguration.MaxAcquireIterationCount"/>.</exception>
         public T Acquire()
         {
-            T connection;
+            T connection = AcquireFromPool();
 
-            if (_store.TryDequeue(out connection) && !_disposed)
-            {
-                Interlocked.Exchange(ref _acquireFailedCount, 0);
-                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
-                    connection.Identity, EndPoint, _store.Count, _count, _identity,_disposed));
-
-                connection.MarkUsed(true);
+            if (connection != null)
                 return connection;
-            }
 
             lock (_lock)
             {
+                //try to get connection from pool
+                //in case connection released while operation waited in Monitor.Enter (lock)
+                connection = AcquireFromPool();
+                if (connection != null)
+                    return connection;
+
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
                     Log.Info("Trying to acquire new connection!");
@@ -174,6 +173,27 @@ namespace Couchbase.IO
                 throw new ConnectionUnavailableException(msg, EndPoint, acquireFailedCount);
             }
             return Acquire();
+        }
+
+        /// <summary>
+        /// Returns a <see cref="IConnection"/> from the pool.
+        /// </summary>
+        /// <returns>A TCP <see cref="IConnection"/> object to a Couchbase Server.</returns>
+        private T AcquireFromPool()
+        {
+            T connection;
+
+            if (_store.TryDequeue(out connection) && !_disposed)
+            {
+                Interlocked.Exchange(ref _acquireFailedCount, 0);
+                Log.Debug(m => m("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                    connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed));
+
+                connection.MarkUsed(true);
+                return connection;
+            }
+
+            return null;
         }
 
         /// <summary>
