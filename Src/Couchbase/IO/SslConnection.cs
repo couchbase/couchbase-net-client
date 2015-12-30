@@ -9,6 +9,7 @@ using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -65,9 +66,8 @@ namespace Couchbase.IO
             {
                 //TODO refactor logic
                 IsDead = true;
-                const string msg =
-                    "The connection has timed out while an operation was in flight. The default is 15000ms.";
-                throw new IOException(msg);
+                var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
+                throw new RemoteHostTimeoutException(msg);
             }
 
             return state.Data.ToArray();
@@ -80,8 +80,7 @@ namespace Couchbase.IO
                 _sslStream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
                 if (!SendEvent.WaitOne(Configuration.SendTimeout))
                 {
-                    const string msg =
-                        "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                    var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
                     operation.HandleClientError(msg, ResponseStatus.ClientFailure);
                     IsDead = true;
                 }

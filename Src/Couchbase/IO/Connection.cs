@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Common.Logging.Factory;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -126,7 +127,7 @@ namespace Couchbase.IO
             if (!_requestCompleted.WaitOne(Configuration.SendTimeout))
             {
                 IsDead = true;
-                const string msg = "The connection has timed out while an operation was in flight. The default is 15000ms.";
+                var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
                 throw new RemoteHostTimeoutException(msg);
             }
 
