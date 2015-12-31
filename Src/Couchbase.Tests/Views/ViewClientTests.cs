@@ -239,6 +239,7 @@ namespace Couchbase.Tests.Views
             uriString = uriString.Replace("8091", "8092").Replace("pools", "travel-sample/");
 
             var query = new SpatialViewQuery().From("spatial", "routes")
+                .Bucket("travel-sample")
                 .Stale(StaleState.False)
                 .Limit(10)
                 .Skip(0)
@@ -246,7 +247,7 @@ namespace Couchbase.Tests.Views
 
              var client = new ViewClient(new HttpClient(),
                 new JsonDataMapper(ClientConfigUtil.GetConfiguration()),
-                new BucketConfig { Name = "travel-sample" },
+                new BucketConfig { Name = "travel-sample"},
                 new ClientConfiguration());
 
             var results = client.Execute<dynamic>(query);
