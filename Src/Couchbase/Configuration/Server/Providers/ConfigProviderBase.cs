@@ -106,7 +106,10 @@ namespace Couchbase.Configuration.Server.Providers
                 {
                     bucketConfiguration = new BucketConfiguration
                     {
-                        BucketName = bucketName
+                        BucketName = bucketName,
+                        PoolConfiguration = ClientConfig.PoolConfiguration,
+                        Servers = ClientConfig.Servers,
+                        UseSsl = ClientConfig.UseSsl
                     };
                 }
                 else
