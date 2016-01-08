@@ -199,8 +199,10 @@ namespace Couchbase.IO
                 lock (_lock)
                 {
                     T old;
-                    _refs.TryRemove(connection.Identity, out old);
-                    old.Dispose();
+                    if (_refs.TryRemove(connection.Identity, out old))
+                    {
+                        old.Dispose();
+                    }
                 }
             }
             else

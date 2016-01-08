@@ -289,8 +289,8 @@ namespace Couchbase.IO
 
         public override void Dispose()
         {
-            Log.DebugFormat("Disposing {0}", _identity);
             if (Disposed || InUse && !IsDead) return;
+            Log.DebugFormat("Disposing {0}", _identity);
             Disposed = true;
             IsDead = true;
 
