@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 using System.Net;
+using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Views;
@@ -36,6 +37,7 @@ namespace Couchbase.N1QL
         private bool _prepareEncoded;
         private bool _adHoc = true;
         private int? _maxServerParallelism;
+        private volatile uint _requestContextId;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -53,16 +55,17 @@ namespace Couchbase.N1QL
 
         public QueryRequest()
         {
+            _clientContextId = QuerySequenceGenerator.GetNextAsString();
         }
 
-        public QueryRequest(string statement)
+        public QueryRequest(string statement):this()
         {
             _statement = statement;
             _preparedPayload = null;
             _prepareEncoded = false;
         }
 
-        public QueryRequest(QueryPlan plan, string originalStatement)
+        public QueryRequest(QueryPlan plan, string originalStatement):this()
         {
             _statement = originalStatement;
             _preparedPayload = plan;
@@ -110,6 +113,18 @@ namespace Couchbase.N1QL
         public bool IsAdHoc
         {
             get { return _adHoc; }
+        }
+
+        /// <summary>
+        /// Gets the context identifier for the N1QL query request/response. Useful for debugging.
+        /// </summary>
+        /// <remarks>This value changes for every request./></remarks>
+        /// <value>
+        /// The context identifier.
+        /// </value>
+        public string CurrentContextId
+        {
+            get { return string.Format("{0}::{1}", _clientContextId, _requestContextId); }
         }
 
         /// <summary>
@@ -490,7 +505,11 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         public IQueryRequest ClientContextId(string clientContextId)
         {
-            _clientContextId = clientContextId;
+            //this is seeded in the ctor
+            if (clientContextId != null)
+            {
+                _clientContextId = clientContextId;
+            }
             return this;
         }
 
@@ -633,10 +652,9 @@ namespace Couchbase.N1QL
                 }
                 formValues.Add(QueryParameters.Creds, creds);
             }
-            if (!string.IsNullOrEmpty(_clientContextId))
-            {
-                formValues.Add(QueryParameters.ClientContextId, _clientContextId);
-            }
+
+            _requestContextId = QuerySequenceGenerator.GetNext();
+            formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
             return formValues;
         }
 

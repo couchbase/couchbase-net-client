@@ -370,23 +370,28 @@ namespace Couchbase.N1QL
                     stream.Write(bytes, 0, bytes.Length);
                 }
 
+                Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+
                 var response = request.GetResponse();
                 using (var stream = response.GetResponseStream())
                 {
                     queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);
                     queryResult.Success = queryResult.Status == QueryStatus.Success;
                     queryResult.HttpStatusCode = queryResult.HttpStatusCode;
+                    Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
                 }
                 baseUri.ClearFailed();
             }
             catch (HttpRequestException e)
             {
+                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                 baseUri.IncrementFailed();
                 ProcessError(e, queryResult);
                 Log.Error(e);
             }
             catch (WebException e)
             {
+                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                 if (e.Response != null)
                 {
                     var stream = e.Response.GetResponseStream();
@@ -398,6 +403,7 @@ namespace Couchbase.N1QL
             }
             catch (Exception e)
             {
+                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                 ProcessError(e, queryResult);
                 Log.Error(e);
             }
@@ -418,18 +424,20 @@ namespace Couchbase.N1QL
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json")) {
                 try
                 {
-                    Log.TraceFormat("Sending: {0}", baseUri);
+                    Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
                     using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(response);
                         queryResult.Success = queryResult.Status == QueryStatus.Success;
                         queryResult.HttpStatusCode = request.StatusCode;
+                        Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
                     }
                     baseUri.ClearFailed();
                 }
                 catch (HttpRequestException e)
                 {
+                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     baseUri.IncrementFailed();
                     ProcessError(e, queryResult);
                     Log.Error(e);
@@ -438,14 +446,14 @@ namespace Couchbase.N1QL
                 {
                     ae.Flatten().Handle(e =>
                     {
-                        Log.InfoFormat("Failed: {0} {1}", baseUri, e);
+                        Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         ProcessError(e, queryResult);
                         return true;
                     });
                 }
                 catch (Exception e)
                 {
-                    Log.InfoFormat("Failed: {0} {1}", baseUri, e);
+                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     Log.Info(e);
                     ProcessError(e, queryResult);
                 }

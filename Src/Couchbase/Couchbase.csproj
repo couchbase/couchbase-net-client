@@ -269,6 +269,7 @@
     <Compile Include="N1QL\Metrics.cs" />
     <Compile Include="N1QL\QueryPlan.cs" />
     <Compile Include="N1QL\QueryRequest.cs" />
+    <Compile Include="N1QL\QuerySequenceGenerator.cs" />
     <Compile Include="N1QL\QueryStatus.cs" />
     <Compile Include="N1QL\ScanConsistency.cs" />
     <Compile Include="N1QL\Severity.cs" />

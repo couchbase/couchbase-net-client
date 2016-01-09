@@ -271,5 +271,14 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <returns></returns>
         bool TimedOut();
+
+        /// <summary>
+        /// Gets the context identifier for the N1QL query request/response. Useful for debugging.
+        /// </summary>
+        /// <remarks>This value changes for every request./></remarks>
+        /// <value>
+        /// The context identifier.
+        /// </value>
+        string CurrentContextId { get; }
     }
 }

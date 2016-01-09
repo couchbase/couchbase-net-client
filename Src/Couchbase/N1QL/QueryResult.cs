@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
@@ -144,6 +145,18 @@ namespace Couchbase.N1QL
                     break;
             }
             return retry;
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat("ClientContextId: {0}", ClientContextId);
+            sb.AppendFormat("Message: {0}", Message);
+            foreach (var error in Errors)
+            {
+                sb.AppendFormat("Error: {0} {1}", error.Code, error.Message);
+            }
+            return sb.ToString();
         }
     }
 }
