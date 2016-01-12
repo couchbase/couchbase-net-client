@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
+using System.ServiceModel.Syndication;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Schema;
@@ -173,13 +174,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable)
-                throw new ServiceNotSupportedException("The cluster does not support Data services.");
-
             IOperationResult<T> result;
             try
             {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                }
+
                 result = SendWithRetry(operation);
                 if (result.Success)
                 {
@@ -247,13 +251,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable)
-                throw new ServiceNotSupportedException("The cluster does not support Data services.");
-
             IOperationResult result;
             try
             {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                }
+
                 result = SendWithRetry(operation);
                 if (result.Success)
                 {
@@ -322,13 +329,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable)
-                throw new ServiceNotSupportedException("The cluster does not support Data services.");
-
             IOperationResult<T> result;
             try
             {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                }
+
                 result = await SendWithRetryAsync(operation);
                 if (result.Success)
                 {
@@ -395,13 +405,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
-            //Is the cluster configured for View services?
-            if (!ConfigInfo.IsViewCapable)
-                throw new ServiceNotSupportedException("The cluster does not support View services.");
-
             IViewResult<T> viewResult = null;
             try
             {
+                //Is the cluster configured for View services?
+                if (!ConfigInfo.IsViewCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
+                }
+
                 do
                 {
                     var server = ConfigInfo.GetViewNode();
@@ -437,16 +450,23 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
-            //Is the cluster configured for Data services?
-            if(!ConfigInfo.IsDataCapable)
-                throw new ServiceNotSupportedException("The cluster does not support Data services.");
-
             if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.Timer = Timer;
                 operation.BeginTimer(TimingLevel.Three);
             }
 
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+            {
+                return  new OperationResult
+                {
+                    Success = false,
+                    Exception = new ServiceNotSupportedException(
+                    ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")),
+                    Status = ResponseStatus.ClientFailure
+                };
+            }
             IOperationResult operationResult = new OperationResult { Success = false };
             do
             {
@@ -510,14 +530,22 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable)
-                throw new ServiceNotSupportedException("The cluster does not support Data services.");
-
             if (Log.IsDebugEnabled && TimingEnabled)
             {
                 operation.Timer = Timer;
                 operation.BeginTimer(TimingLevel.Three);
+            }
+
+            //Is the cluster configured for Data services?
+            if (!ConfigInfo.IsDataCapable)
+            {
+                return new OperationResult<T>
+                {
+                    Success = false,
+                    Exception = new ServiceNotSupportedException(
+                    ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")),
+                    Status = ResponseStatus.ClientFailure
+                };
             }
 
             IOperationResult<T> operationResult = new OperationResult<T> { Success = false };
@@ -583,13 +611,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
-            //Is the cluster configured for View services?
-            if (!ConfigInfo.IsViewCapable)
-                throw new ServiceNotSupportedException("The cluster does not support View services.");
-
             IViewResult<T> viewResult = null;
             try
             {
+                //Is the cluster configured for View services?
+                if (!ConfigInfo.IsViewCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
+                }
+
                 using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
                     var task = RetryViewEveryAsync(async (e, c) =>
@@ -635,12 +666,15 @@ namespace Couchbase.Core.Buckets
             tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
 
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable) tcs.SetException(
-                new ServiceNotSupportedException("The cluster does not support Data services."));
-
             try
             {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    tcs.SetException(new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                }
+
                 var keyMapper = ConfigInfo.GetKeyMapper();
                 var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
                 operation.VBucket = vBucket;
@@ -687,12 +721,15 @@ namespace Couchbase.Core.Buckets
             tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
 
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsDataCapable) tcs.SetException(
-                new ServiceNotSupportedException("The cluster does not support Data services."));
-
             try
             {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    tcs.SetException(new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                }
+
                 var keyMapper = ConfigInfo.GetKeyMapper();
                 var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
                 operation.VBucket = vBucket;
@@ -734,15 +771,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsQueryCapable)
-            {
-                throw new ServiceNotSupportedException("The cluster does not support Query services.");
-            }
-
             IQueryResult<T> queryResult = null;
             try
             {
+                //Is the cluster configured for Query services?
+                if (!ConfigInfo.IsQueryCapable)
+                {
+                    throw new ServiceNotSupportedException
+                        (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                }
+
                 queryRequest.Lifespan = new Lifespan
                 {
                     CreationTime = DateTime.UtcNow,
@@ -792,15 +830,16 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
         {
-            //Is the cluster configured for Data services?
-            if (!ConfigInfo.IsQueryCapable)
-            {
-                throw new ServiceNotSupportedException("The cluster does not support Query services.");
-            }
-
             IQueryResult<T> queryResult = null;
             try
             {
+                //Is the cluster configured for Query services?
+                if (!ConfigInfo.IsQueryCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Query"));
+                }
+
                 queryRequest.Lifespan = new Lifespan
                 {
                     CreationTime = DateTime.UtcNow,

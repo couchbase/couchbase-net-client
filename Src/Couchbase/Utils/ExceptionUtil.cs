@@ -10,6 +10,10 @@ namespace Couchbase.Utils
 {
     public static class ExceptionUtil
     {
+        public static string ServiceNotSupportedMsg =
+            "A request has been made for a service that is not configured or supported by the cluster. " +
+            "Please check the cluster and enable or add a new node with the requested service: {0}.";
+
         public static string NodeUnavailableMsg =
             "The node {0} that the key was mapped to is either down or unreachable. " +
              "The SDK will continue to try to connect every {1}ms. " +
