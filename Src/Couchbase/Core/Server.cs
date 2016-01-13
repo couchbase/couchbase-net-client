@@ -735,7 +735,7 @@ namespace Couchbase.Core
                 try
                 {
                     queryRequest.BaseUri(CachedQueryBaseUri);
-                    result = await QueryClient.QueryAsync<T>(queryRequest);
+                    result = await QueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
                 }
                 catch (Exception e)
                 {
