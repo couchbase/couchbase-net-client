@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using Enyim.Caching.Memcached;
 
@@ -159,7 +160,36 @@ namespace Couchbase
 
         public void Reset()
         {
-            throw new NotImplementedException();
+            // discard any buffered data
+            _stream.Flush();
+
+            if (_helper2 != null) _helper2.DiscardBuffer();
+
+            int available = _socket.Available;
+
+            if (available > 0)
+            {
+                if (Log.IsWarnEnabled)
+                {
+                    Log.WarnFormat(
+                        "Socket bound to {0} has {1} unread data! This is probably a bug in the code. InstanceID was {2}.",
+                        _socket.RemoteEndPoint, available, this.InstanceId);
+                }
+
+                byte[] data = new byte[available];
+
+                Read(data, 0, available);
+
+                if (Log.IsWarnEnabled)
+                {
+                    Log.Warn(Encoding.ASCII.GetString(data));
+                }
+            }
+
+            if (Log.IsDebugEnabled)
+            {
+                Log.DebugFormat("Socket {0} was reset", this.InstanceId);
+            }
         }
 
         [Obsolete("Will be removed in later versions")]

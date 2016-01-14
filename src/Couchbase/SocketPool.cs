@@ -150,6 +150,10 @@ namespace Couchbase
                 {
                     socket = _queue.Dequeue();
                     socket.IsInUse = true;
+                    if (socket.IsAlive)
+                    {
+                        socket.Reset();
+                    }
                 }
                 catch (InvalidOperationException e)
                 {
