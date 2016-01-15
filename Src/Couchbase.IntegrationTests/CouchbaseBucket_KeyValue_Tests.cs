@@ -14,7 +14,7 @@ namespace Couchbase.IntegrationTests
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("current"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetCurrentConfiguration());
             _bucket = _cluster.OpenBucket();
         }
 

@@ -11,7 +11,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// </summary>
     public static class TestConfiguration
     {
-        public static ClientConfiguration GetConfiguration()
+        public static ClientConfiguration GetDefaultConfiguration()
         {
             return new ClientConfiguration
             {
@@ -23,19 +23,31 @@ namespace Couchbase.IntegrationTests.Utils
         }
 
         /// <summary>
-        /// Gets the configuration for a config section. The hostname and port will be pulled from the appsettings.
+        /// Gets the configuration for the "current" appSettings setting. The hostname and port will be pulled from the appsettings as well.
         /// </summary>
-        /// <param name="name">The name of the configuration section.</param>
         /// <returns></returns>
         /// <exception cref="ConfigurationErrorsException">A configuration file could not be loaded.</exception>
-        public static ClientConfiguration GetConfiguration(string name)
+        public static ClientConfiguration GetCurrentConfiguration()
         {
-            var configName = ConfigurationManager.AppSettings["current"];
-            var configuration = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/" + configName));
-            configuration.Servers = new List<Uri>
-            {
-                BuildBoostrapUrl()
-            };
+            return GetConfiguration(ConfigurationManager.AppSettings["current"]);
+        }
+
+        /// <summary>
+        /// Gets the configuration for a config section. The hostname and port will be pulled from the appsettings.
+        /// </summary>
+        /// <param name="sectionName"></param>
+        /// <returns></returns>
+        /// <exception cref="ConfigurationErrorsException">A configuration file could not be loaded.</exception>
+        public static ClientConfiguration GetConfiguration(string sectionName)
+        {
+            var configuration = new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/" + sectionName))
+                {
+                    Servers = new List<Uri>
+                    {
+                        BuildBoostrapUrl()
+                    }
+                };
             return configuration;
         }
 
