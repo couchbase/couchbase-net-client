@@ -8,16 +8,32 @@ namespace Couchbase.Configuration.Client.Providers
     /// </summary>
     public class ConnectionPoolElement : ConfigurationElement
     {
+        private const string DefaultTypeName =
+            "Couchbase.IO.ConnectionPool`1[Couchbase.IO.Connection], Couchbase.NetClient";
+
+        private const string DefaultSslTypeName =
+           "Couchbase.IO.ConnectionPool`1[Couchbase.IO.SslConnection], Couchbase.NetClient";
+
         /// <summary>
         /// Gets or sets the <see cref="Type"/> of the custom <see cref="IConnectionPool"/>
         /// </summary>
         /// <value>
         /// The type.
         /// </value>
-        [ConfigurationProperty("type", DefaultValue = "Couchbase.IO.ConnectionPool`1[Couchbase.IO.Connection], Couchbase.NetClient", IsRequired = false, IsKey = false)]
+        [ConfigurationProperty("type", DefaultValue = DefaultTypeName, IsRequired = false, IsKey = false)]
         public string Type
         {
-            get { return (string)this["type"]; }
+            get
+            {
+                var typeName = (string) this["type"];
+
+                //if ssl is enabled and no custom type is being used, default to the SslConnection class.
+                if (UseSsl && typeName.Equals(DefaultTypeName))
+                {
+                    typeName = DefaultSslTypeName;
+                }
+                return typeName;
+            }
             set { this["type"] = value; }
         }
 

@@ -194,7 +194,7 @@ namespace Couchbase.Configuration.Client
                 MinSize = section.ConnectionPool.MinSize,
                 WaitTimeout = section.ConnectionPool.WaitTimeout,
                 ShutdownTimeout = section.ConnectionPool.ShutdownTimeout,
-                UseSsl = section.ConnectionPool.UseSsl,
+                UseSsl = UseSsl ? UseSsl : section.ConnectionPool.UseSsl,
                 BufferSize = section.ConnectionPool.BufferSize,
                 BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
                 ConnectTimeout = section.ConnectionPool.ConnectTimeout,

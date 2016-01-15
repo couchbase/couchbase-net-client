@@ -5,6 +5,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -50,6 +51,70 @@ namespace Couchbase.IO
             catch (AuthenticationException e)
             {
                 Log.Error(e);
+            }
+        }
+
+        public override async void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
+        {
+            SocketAsyncState state = null;
+            byte[] buffer = null;
+            try
+            {
+                state = new SocketAsyncState
+                {
+                    Data = new MemoryStream(),
+                    Opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque),
+                    Buffer = request,
+                    Completed = callback
+                };
+
+                await _sslStream.WriteAsync(request, 0, request.Length);
+
+                state.Buffer = BufferManager.TakeBuffer(Configuration.BufferSize);
+                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, 0, Configuration.BufferSize);
+
+                //write the received buffer to the state obj
+                await state.Data.WriteAsync(state.Buffer, 0, state.BytesReceived);
+
+                state.BodyLength = Converter.ToInt32(state.Buffer, HeaderIndexFor.BodyLength);
+                while (state.BytesReceived < state.BodyLength + 24)
+                {
+                    var bufferLength = state.Buffer.Length - state.BytesSent < Configuration.BufferSize
+                        ? state.Buffer.Length - state.BytesSent
+                        : Configuration.BufferSize;
+
+                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, 0, bufferLength);
+                    await state.Data.WriteAsync(state.Buffer, 0, state.BytesReceived - (int)state.Data.Length);
+                }
+                await callback(state);
+            }
+            catch (Exception e)
+            {
+                IsDead = true;
+                if (state == null)
+                {
+                    callback(new SocketAsyncState
+                    {
+                        Exception = e,
+                        Status = (e is SocketException)
+                            ? ResponseStatus.TransportFailure
+                            : ResponseStatus.ClientFailure
+                    });
+                }
+                else
+                {
+                    state.Exception = e;
+                    state.Completed(state);
+                    Log.Debug(e);
+                }
+            }
+            finally
+            {
+                ConnectionPool.Release(this);
+                if (buffer != null)
+                {
+                    BufferManager.ReturnBuffer(buffer);
+                }
             }
         }
 

@@ -71,6 +71,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
+    <Compile Include="CouchbaseBucket_Ssl_Tests.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="GlobalSetup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\TestConfiguration.cs" />
