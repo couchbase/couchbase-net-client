@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
+    <Compile Include="GlobalSetup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\TestConfiguration.cs" />
   </ItemGroup>
