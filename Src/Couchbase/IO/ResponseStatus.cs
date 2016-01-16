@@ -1,6 +1,4 @@
 ﻿
-using System.ComponentModel;
-
 namespace Couchbase.IO
 {
     /// <summary>
@@ -137,6 +135,80 @@ namespace Couchbase.IO
         /// <summary>
         /// Document Mutation lost during a hard failover.
         /// </summary>
-        DocumentMutationLost = 0x0600
+        DocumentMutationLost = 0x0600,
+
+        /// <summary>
+        /// Subdocument error indicating the path inside the JSON is invalid.
+        /// </summary>
+        SubDocPathNotFound = 0xc0,
+
+        /// <summary>
+        /// Subdocument error indicating one of the path components was denoting a wrong type (eg. trying to access
+        /// an array index in an entry that isn't an array). Also for arithmetic operations when the value of the
+        /// path is not a number.
+        /// </summary>
+        SubDocPathMismatch = 0xc1,
+
+        /// <summary>
+        /// Subdocument error indicating that the path provided is invalid. For operations requiring an array index, this
+        /// is returned if the last component of that path isn't an array. Similarly for operations requiring a dictionary,
+        /// if the last component isn't a dictionary but eg. an array index.
+        /// </summary>
+        SubDocPathInvalid = 0xc2,
+
+        /// <summary>
+        ///  Subdocument error indicating that the path is too large (ie. the string is too long) or too deep (more that 32 components).
+        /// </summary>
+        SubDocPathTooBig = 0xc3,
+
+        /// <summary>
+        /// Subdocument error indicating that the target document's level of JSON nesting is too deep to be processed by the subdoc service.
+        /// </summary>
+        SubDocDocTooDeep = 0xc4,
+
+        /// <summary>
+        /// Subdocument error indicating that the target document is not flagged or recognized as JSON.
+        /// </summary>
+        SubDocCannotInsert = 0xc5,
+
+        /// <summary>
+        /// Subdocument error indicating that, for arithmetic subdoc operations, the existing number is already too large.
+        /// </summary>
+        SubDocDocNotJson = 0xc6,
+
+        /// <summary>
+        /// Subdocument error indicating that for arithmetic subdoc operations, the operation will make the value too large.
+        /// </summary>
+        SubDocNumRange = 0xc7,
+
+        /// <summary>
+        /// Subdocument error indicating that for arithmetic subdoc operations, the operation will make the value too large.
+        /// </summary>
+        SubDocDeltaRange = 0xc8,
+
+        /// <summary>
+        /// Subdocument error indicating that the last component of the path already exist despite the mutation operation
+        /// expecting it not to exist (the mutation was expecting to create only the last part of the path and store the
+        /// fragment there).
+        /// </summary>
+        SubDocPathExists = 0xc9,
+
+        /// <summary>
+        /// Subdocument error indicating that, in a multi-specification, an invalid combination of commands were specified,
+        /// including the case where too many paths were specified.
+        /// </summary>
+        SubDocValueTooDeep = 0xca,
+
+        /// <summary>
+        ///Subdocument error indicating that, in a multi-specification, an invalid combination of commands were specified,
+        ///including the case where too many paths were specified.
+        /// </summary>
+        SubDocInvalidCombo = 0xcb,
+
+        /// <summary>
+        /// Subdocument error indicating that, in a multi-specification, one or more commands failed to execute on a document
+        /// which exists (ie. the key was valid).
+        /// </summary>
+        SubDocMultiPathFailure = 0xcc
     }
 }

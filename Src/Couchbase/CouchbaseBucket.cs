@@ -15,10 +15,13 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.IO.SubDocument;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.SubDocument;
 using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Views;
@@ -31,7 +34,7 @@ namespace Couchbase
     /// Represents a persistent Couchbase Bucket and can be used for performing CRUD operations on documents,
     /// querying Views and executing N1QL queries.
     /// </summary>
-    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator
+    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator, ISubdocInvoker
     {
         private readonly static ILog Log = LogManager.GetLogger<CouchbaseBucket>();
         private readonly IClusterController _clusterController;
@@ -3266,6 +3269,31 @@ namespace Couchbase
         }
 #endif
 
+        #region sub document api
+
+        public IMutateInBuilder MutateIn(string key)
+        {
+            return new MutateInBuilder(this, key);
+        }
+
+        public ILookupInBuilder LookupIn(string key)
+        {
+            return new LookupInBuilder(this, key);
+        }
+
+        public IDocumentFragment<T> Invoke<T>(IMutateInBuilder builder)
+        {
+            var multiMutate = new MultiMutation<T>(builder.Key,(MutateInBuilder) builder, null, _transcoder, _operationLifespanTimeout);
+            return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiMutate);
+        }
+
+        public IDocumentFragment<T> Invoke<T>(ILookupInBuilder builder)
+        {
+            var multiLookup = new MultiLookup<T>(builder.Key, (LookupInBuilder)builder, null, _transcoder, _operationLifespanTimeout);
+            return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
+        }
+
+        #endregion
     }
 }
 

@@ -1729,6 +1729,10 @@ namespace Couchbase.Core
         /// The configuration.
         /// </value>
         BucketConfiguration Configuration { get; }
+
+        IMutateInBuilder MutateIn(string key);
+
+        ILookupInBuilder LookupIn(string key);
     }
 }
 

@@ -2237,6 +2237,20 @@ namespace Couchbase
             Dispose(false);
         }
 #endif
+
+        #region sub document api
+
+        public IMutateInBuilder MutateIn(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public ILookupInBuilder LookupIn(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        #endregion
     }
 }
 

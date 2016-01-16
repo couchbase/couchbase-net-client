@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
+    <Compile Include="CouchbaseBucket_SubDocument_Tests.cs" />
     <Compile Include="CouchbaseBucket_ViewQuery_Tests.cs" />
     <Compile Include="CouchbaseBucket_Ssl_Tests.cs">
       <SubType>Code</SubType>

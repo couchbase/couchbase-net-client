@@ -94,7 +94,13 @@
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserver.cs" />
     <Compile Include="Core\Buckets\MutationToken.cs" />
+    <Compile Include="Core\ILookupInBuilder.cs" />
+    <Compile Include="Core\IMutateInBuilder.cs" />
+    <Compile Include="Core\IO\SubDocument\ISubdocInvoker.cs" />
+    <Compile Include="Core\IO\SubDocument\SubDocOperationResult.cs" />
     <Compile Include="Core\Lifespan.cs" />
+    <Compile Include="Core\LookupInBuilder.cs" />
+    <Compile Include="Core\MutateInBuilder.cs" />
     <Compile Include="Core\NodeAdapterExtensions.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeExt.cs" />
     <Compile Include="Configuration\Server\Serialization\ServerGroups.cs" />
@@ -195,6 +201,12 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
+    <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
+    <Compile Include="IO\Operations\SubDocument\SubDocSingularBase.cs" />
+    <Compile Include="IO\Operations\SubDocument\SubGet.cs" />
+    <Compile Include="IO\Operations\SubDocument\SubReplace.cs" />
+    <Compile Include="IDocumentFragment%27.cs" />
     <Compile Include="IO\ConnectionPoolFactory.cs" />
     <Compile Include="IO\RemoteHostClosedException.cs" />
     <Compile Include="IQueryCacheInvalidator.cs" />
@@ -276,6 +288,7 @@
     <Compile Include="N1QL\Severity.cs" />
     <Compile Include="N1QL\FailureCountingUri.cs" />
     <Compile Include="N1QL\Warning.cs" />
+    <Compile Include="DocumentFragment%27.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />
@@ -375,9 +388,7 @@
     <Compile Include="N1QL\ErrorPrepared.cs" />
     <Compile Include="N1QL\PrepareStatementException.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Core\IO\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <None Include="Couchbase.nuspec" />
     <None Include="packages.config" />
