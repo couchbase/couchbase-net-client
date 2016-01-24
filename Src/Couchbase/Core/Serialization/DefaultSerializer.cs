@@ -169,7 +169,11 @@ namespace Couchbase.Core.Serialization
         {
             using (var streamReader = new StreamReader(stream))
             {
-                return JsonConvert.DeserializeObject<T>(streamReader.ReadToEnd(), EffectiveDeserializationSettings);
+                using (var reader = new JsonTextReader(streamReader))
+                {
+                    var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
+                    return serializer.Deserialize<T>(reader);
+                }
             }
         }
 

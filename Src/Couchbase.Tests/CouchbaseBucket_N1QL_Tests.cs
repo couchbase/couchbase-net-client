@@ -231,7 +231,7 @@ namespace Couchbase.Tests
 
                 var result = await bucket.QueryAsync<dynamic>(queryRequest);
                 Assert.IsTrue(result.Success);
-                Assert.IsNull(result.Metrics);
+                Assert.IsNull(result.Metrics.ElaspedTime);
             }
         }
 
