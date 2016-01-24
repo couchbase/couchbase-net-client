@@ -1,33 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+﻿
+using System.Runtime.Serialization;
 
 namespace Couchbase.N1QL
 {
     public class Metrics
     {
-        [JsonProperty("elapsedTime")]
+        [DataMember(Name = "elapsedTime")]
         public string ElaspedTime { get; set; }
 
-        [JsonProperty("executionTime")]
+        [DataMember(Name = "executionTime")]
         public string ExecutionTime { get; set; }
 
-        [JsonProperty("resultCount")]
+        [DataMember(Name = "resultCount")]
         public uint ResultCount { get; set; }
 
-        [JsonProperty("resultSize")]
+        [DataMember(Name = "resultSize")]
         public uint ResultSize { get; set; }
 
-        [JsonProperty("mutationCount")]
+        [DataMember(Name = "mutationCount")]
         public uint MutationCount { get; set; }
 
-        [JsonProperty("errorCount")]
+        [DataMember(Name = "errorCount")]
         public uint ErrorCount { get; set; }
 
-        [JsonProperty("warningCount")]
+        [DataMember(Name = "warningCount")]
         public uint WarningCount { get; set; }
     }
 }

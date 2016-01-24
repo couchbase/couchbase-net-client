@@ -1,27 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+﻿
+using System.Runtime.Serialization;
 
 namespace Couchbase.N1QL
 {
     public class Error
     {
-        [JsonProperty("msg")]
+        [DataMember(Name = "msg")]
         public string Message { get; set; }
 
-        [JsonProperty("code")]
+        [DataMember(Name = "code")]
         public int Code { get; set; }
 
-        [JsonProperty("name")]
+        [DataMember(Name = "name")]
         public string Name { get; set; }
 
-        [JsonProperty("sev")]
+        [DataMember(Name = "sev")]
         public Severity Severity { get; set; }
 
-        [JsonProperty("temp")]
+        [DataMember(Name = "temp")]
         public bool Temp { get; set; }
     }
 }

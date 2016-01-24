@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.Serialization;
 using System.Text;
-using Newtonsoft.Json;
 
 namespace Couchbase.N1QL
 {
@@ -13,6 +13,7 @@ namespace Couchbase.N1QL
     /// <remarks>
     /// The dynamic keyword works well for the Type T.
     /// </remarks>
+    [DataContract]
     public class QueryResult<T> : IQueryResult<T>
     {
         public QueryResult()
@@ -44,7 +45,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The request identifier.
         /// </value>
-        [JsonProperty("request_id")]
+        [DataMember(Name = "requestID")]
         public Guid RequestId { get; internal set; }
 
         /// <summary>
@@ -53,7 +54,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The client context identifier.
         /// </value>
-        [JsonProperty("client_context_id")]
+        [DataMember(Name = "clientContextID")]
         public string ClientContextId { get; internal set; }
 
         /// <summary>
@@ -62,7 +63,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The signature of the schema of the request.
         /// </value>
-        [JsonProperty("signature")]
+        [DataMember(Name = "signature")]
         public dynamic Signature { get; internal set; }
 
         /// <summary>
@@ -71,7 +72,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// A a list of all the objects returned by the query.
         /// </value>
-        [JsonProperty("results")]
+        [DataMember(Name="results")]
         public List<T> Rows { get; internal set; }
 
         /// <summary>
@@ -80,7 +81,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The status of the request.
         /// </value>
-        [JsonProperty("status")]
+        [DataMember(Name = "status")]
         public QueryStatus Status { get; internal set; }
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The errors.
         /// </value>
-        [JsonProperty("errors")]
+        [DataMember(Name = "errors")]
         public List<Error> Errors { get; internal set; }
 
         /// <summary>
@@ -98,7 +99,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The warnings.
         /// </value>
-        [JsonProperty("warnings")]
+        [DataMember(Name = "warnings")]
         public List<Warning> Warnings { get; internal set; }
 
         /// <summary>
@@ -107,7 +108,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The metrics.
         /// </value>
-        [JsonProperty("metrics")]
+        [DataMember(Name = "metrics")]
         public Metrics Metrics { get; internal set; }
 
         /// <summary>
@@ -116,7 +117,7 @@ namespace Couchbase.N1QL
         /// <value>
         /// The HTTP status code.
         /// </value>
-        [JsonIgnore]
+        [IgnoreDataMember]
         public HttpStatusCode HttpStatusCode { get; internal set; }
 
         /// <summary>
