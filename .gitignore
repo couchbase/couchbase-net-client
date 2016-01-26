@@ -1,6 +1,6 @@
 [Oo]bj/
 [Bb]in/
-packages
+packages/
 *.suo
 *.user
 /TestResults
