@@ -626,7 +626,7 @@ namespace Couchbase.Core.Buckets
                     var task = RetryViewEveryAsync(async (e, c) =>
                     {
                         var server = c.GetViewNode();
-                        return await server.SendAsync<T>(query);
+                        return await server.SendAsync<T>(query).ContinueOnAnyContext();
                     },
                     query, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
 
