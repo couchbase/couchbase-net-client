@@ -181,7 +181,6 @@ namespace Couchbase.Tests.N1QL
                 .Pretty(true)
                 .ReadOnly(false)
                 .ScanConsistency(ScanConsistency.RequestPlus)
-                .ScanVector("100") //TODO JSON object for sparse or array for full
                 .ScanWait(new TimeSpan(0, 0, 0, 0, 100))
                 .Signature(true)
                 .Timeout(new TimeSpan(0, 0, 0, 0, 10000))
@@ -260,7 +259,6 @@ namespace Couchbase.Tests.N1QL
             Assert.AreEqual(true, values["pretty"]);
             Assert.AreEqual(false, values["readonly"]);
             Assert.AreEqual("request_plus", values["scan_consistency"]);
-            Assert.AreEqual("100", values["scan_vector"]);
             Assert.AreEqual("100", values["scan_wait"]);
             Assert.AreEqual(true, values["signature"]);
             Assert.AreEqual("RLE", values["compression"]);

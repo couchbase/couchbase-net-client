@@ -25,7 +25,7 @@ namespace Couchbase.IO.Operations
         private const int DefaultOffset = 24;
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
-        protected static MutationToken DefaultMutationToken = new MutationToken(0, 0, 0);
+        protected static MutationToken DefaultMutationToken = new MutationToken(-1, -1, -1);
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {

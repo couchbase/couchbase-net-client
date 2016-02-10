@@ -152,9 +152,7 @@
     <Compile Include="Configuration\Server\Providers\IConfigProvider.cs" />
     <Compile Include="Configuration\Server\IServerConfig.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\ConfigThreadState.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfig.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfig.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProvider.cs" />
     <Compile Include="Configuration\Server\Providers\IConfigPublisher.cs" />
     <Compile Include="Configuration\Server\Serialization\AddNode.cs" />
@@ -203,6 +201,8 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="IDocument.cs" />
+    <Compile Include="IDocumentFragment.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />
@@ -299,6 +299,7 @@
     <Compile Include="N1QL\IQueryResult%27.cs" />
     <Compile Include="DefaultResult.cs" />
     <Compile Include="N1QL\Metrics.cs" />
+    <Compile Include="N1QL\MutationState.cs" />
     <Compile Include="N1QL\QueryPlan.cs" />
     <Compile Include="N1QL\QueryRequest.cs" />
     <Compile Include="N1QL\QuerySequenceGenerator.cs" />

@@ -21,6 +21,8 @@ namespace Couchbase.Core.Buckets
 
         public long SequenceNumber { get; private set; }
 
+        public string BucketRef { get; internal set; }
+
         public override bool Equals(object obj)
         {
             var other = obj as MutationToken;
@@ -48,6 +50,8 @@ namespace Couchbase.Core.Buckets
             sb.Append('}');
             return sb.ToString();
         }
+
+        internal bool IsSet { get { return VBucketId > 0 && VBucketUUID > 0 && SequenceNumber > 0; } }
     }
 }
 

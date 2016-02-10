@@ -183,15 +183,6 @@ namespace Couchbase.N1QL
         IQueryRequest ScanConsistency(ScanConsistency scanConsistency);
 
         /// <summary>
-        /// Specify the lower bound vector timestamp when using at_plus scan consistency.
-        /// </summary>
-        /// <param name="vector"></param>
-        ///<remarks>Required if <see cref="ScanConsistency"/> is AtPlus.</remarks>
-        ///<remarks>There are two formats: array of 1024 numbers, to specify a full scan vector and object containing vbucket/seqno pairs, to specify a sparse scan vector (e.g. { "5 ": 5409393,  "19": 47574574 })</remarks>
-        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-        IQueryRequest ScanVector(dynamic vector);
-
-        /// <summary>
         ///  Specifies the maximum time the client is willing to wait for an index to catch up to the vector timestamp in the request. If an index has to catch up, and the <see cref="ScanWait"/> time is exceed doing so, an error is returned.
         /// </summary>
         /// <param name="scanWait">The maximum time the client is willing to wait for index to catch up to the vector timestamp.</param>
@@ -280,5 +271,13 @@ namespace Couchbase.N1QL
         /// The context identifier.
         /// </value>
         string CurrentContextId { get; }
+
+        /// <summary>
+        /// Provides a means of ensuring "read your own wites" or RYOW consistency on the current query.
+        /// </summary>
+        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="N1QL.ScanConsistency.AtPlus"/>.</remarks>
+        /// <param name="mutationState">State of the mutation.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+        IQueryRequest ConsistentWith(MutationState mutationState);
     }
 }

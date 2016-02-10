@@ -1,11 +1,9 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using System.Net;
-using System.Threading;
-using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Views;
 
@@ -28,7 +26,6 @@ namespace Couchbase.N1QL
         private Compression? _compression;
         private ScanConsistency? _scanConsistency;
         private bool? _includeSignature;
-        private dynamic _scanVector;
         private TimeSpan? _scanWait;
         private bool _pretty;
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
@@ -38,6 +35,7 @@ namespace Couchbase.N1QL
         private bool _adHoc = true;
         private int? _maxServerParallelism;
         private volatile uint _requestContextId;
+        private Dictionary<string, Dictionary<string, List<object>>> _scanVectors;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -88,7 +86,7 @@ namespace Couchbase.N1QL
             public const string Compression = "compression";
             public const string Signature = "signature";
             public const string ScanConsistency = "scan_consistency";
-            public const string ScanVector = "scan_vector";
+            public const string ScanVectors = "scan_vectors";
             public const string ScanWait = "scan_wait";
             public const string Pretty = "pretty";
             public const string Creds = "creds";
@@ -140,6 +138,61 @@ namespace Couchbase.N1QL
         /// <remarks>Null will use the default <see cref="IDataMapper"/>.</remarks>
         public IDataMapper DataMapper { get; set; }
 
+        /// <summary>
+        /// Provides a means of ensuring "read your own writes" or RYOW consistency on the current query.
+        /// </summary>
+        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="N1QL.ScanConsistency.AtPlus"/>.</remarks>
+        /// <param name="mutationState">State of the mutation.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+        public IQueryRequest ConsistentWith(MutationState mutationState)
+        {
+            ScanConsistency(N1QL.ScanConsistency.AtPlus);
+            _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
+            foreach (var token in mutationState)
+            {
+                Dictionary<string, List<object>> vector;
+                if (_scanVectors.TryGetValue(token.BucketRef, out vector))
+                {
+                    var bucketId = token.VBucketId.ToString();
+                    List<object> bucketRef;
+                    if (vector.TryGetValue(bucketId, out bucketRef))
+                    {
+                        if ((long)bucketRef.First() < token.SequenceNumber)
+                        {
+                            vector[bucketId] = new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUUID.ToString()
+                            };
+                        }
+                    }
+                    else
+                    {
+                        vector.Add(token.VBucketId.ToString(),
+                            new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUUID.ToString()
+                            });
+                    }
+                }
+                else
+                {
+                    _scanVectors.Add(token.BucketRef, new Dictionary<string, List<object>>
+                    {
+                        {
+                            token.VBucketId.ToString(),
+                            new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUUID.ToString()
+                            }
+                        }
+                    });
+                }
+            }
+            return this;
+        }
 
         /// <summary>
         /// Specifies the maximum parallelism for the query. A zero or negative value means the number of logical
@@ -407,31 +460,18 @@ namespace Couchbase.N1QL
         /// <returns>
         /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">AtPlus and StatementPlus are not currently supported by CouchbaseServer.</exception>
-        /// <exception cref="NotSupportedException">AtPlus and StatementPlus are not currently supported by CouchbaseServer.</exception>
+        /// <exception cref="NotSupportedException">StatementPlus are not currently supported by CouchbaseServer.</exception>
         /// <remarks>
         /// Optional.
         /// </remarks>
         public IQueryRequest ScanConsistency(ScanConsistency scanConsistency)
         {
-            if (scanConsistency == N1QL.ScanConsistency.AtPlus ||
-                scanConsistency == N1QL.ScanConsistency.StatementPlus)
+            if (scanConsistency == N1QL.ScanConsistency.StatementPlus)
             {
                 throw new NotSupportedException(
                     "AtPlus and StatementPlus are not currently supported by CouchbaseServer.");
             }
             _scanConsistency = scanConsistency;
-            return this;
-        }
-
-        /// <summary>
-        /// Scans the vector.
-        /// </summary>
-        /// <param name="scanVector">The scan vector.</param>
-        /// <returns></returns>
-        public IQueryRequest ScanVector(dynamic scanVector)
-        {
-            _scanVector = scanVector;
             return this;
         }
 
@@ -631,9 +671,13 @@ namespace Couchbase.N1QL
             {
                 formValues.Add(QueryParameters.ScanConsistency, ScanConsistencyResolver[_scanConsistency.Value]);
             }
-            if (_scanVector != null)
+            if (_scanVectors != null)
             {
-                formValues.Add(QueryParameters.ScanVector, _scanVector);
+                if (_scanConsistency != N1QL.ScanConsistency.AtPlus)
+                {
+                    throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
+                }
+                formValues.Add(QueryParameters.ScanVectors, JsonConvert.SerializeObject(_scanVectors));
             }
             if (_scanWait.HasValue)
             {
