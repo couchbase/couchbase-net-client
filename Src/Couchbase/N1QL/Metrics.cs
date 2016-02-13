@@ -25,5 +25,8 @@ namespace Couchbase.N1QL
 
         [DataMember(Name = "warningCount")]
         public uint WarningCount { get; set; }
+
+        [DataMember(Name = "sortCount")]
+        public uint SortCount { get; set; }
     }
 }
