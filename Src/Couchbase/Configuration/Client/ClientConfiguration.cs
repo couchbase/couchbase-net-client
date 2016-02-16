@@ -215,6 +215,10 @@ namespace Couchbase.Configuration.Client
             IOServiceCreator = IOServiceFactory.GetFactory(section.IOService);
 
             //the default connection pool creator
+            if (section.UseSsl)
+            {
+                section.ConnectionPool.UseSsl = section.UseSsl;
+            }
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory(section.ConnectionPool);
 
             //The default sasl mechanism creator

@@ -209,6 +209,11 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (uint)this["closeAttemptInterval"]; }
             set { this["closeAttemptInterval"] = value; }
         }
+
+        public override bool IsReadOnly()
+        {
+            return false;
+        }
     }
 }
 
