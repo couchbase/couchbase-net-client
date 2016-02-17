@@ -12,6 +12,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Timer = System.Timers.Timer;
 
@@ -94,14 +95,18 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
             var exceptions = new List<Exception>();
             CouchbaseConfigContext configInfo = null;
-            foreach (var endPoint in bucketConfiguration.GetEndPoints())
+            foreach (var server in bucketConfiguration.Servers.Shuffle())
             {
+                var port = bucketConfiguration.UseSsl ? BucketConfiguration.SslPort : bucketConfiguration.Port;
+                var endPoint = server.GetIPEndPoint(port);
                 Log.Debug(m=>m("Bootstrapping with {0}", endPoint));
 
                 IIOService ioService = null;
                 try
                 {
-                    var connectionPool = ConnectionPoolFactory(bucketConfiguration.PoolConfiguration, endPoint);
+                    var poolConfig = bucketConfiguration.PoolConfiguration.Clone(server);
+                    var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
+
                     ioService = IOServiceFactory(connectionPool);
                     var saslMechanism = SaslFactory(bucketName, password, ioService, Transcoder);
                     ioService.SaslMechanism = saslMechanism;

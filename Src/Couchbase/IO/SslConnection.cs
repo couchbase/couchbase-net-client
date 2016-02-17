@@ -36,14 +36,14 @@ namespace Couchbase.IO
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
-            return true;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         public override void Authenticate()
         {
             try
             {
-                var targetHost = ConnectionPool.EndPoint.Address.ToString();
+                var targetHost = ConnectionPool.Configuration.Uri.Host;
                 Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
                 _sslStream.AuthenticateAsClient(targetHost);
                 IsSecure = true;

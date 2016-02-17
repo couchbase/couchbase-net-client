@@ -70,7 +70,8 @@ namespace Couchbase.Configuration
                     {
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
-                            var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
+                            var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                            var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
                             var ioService = IOServiceFactory(connectionPool);
                             var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder)
                             {
@@ -128,7 +129,8 @@ namespace Couchbase.Configuration
                 {
                     if (adapter.IsDataNode) //a data node so create a connection pool
                     {
-                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration, endpoint);
+                        var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
                         var ioService = IOServiceFactory(connectionPool);
 
                         var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder)

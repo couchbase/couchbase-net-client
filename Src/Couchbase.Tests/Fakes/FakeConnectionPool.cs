@@ -22,6 +22,8 @@ namespace Couchbase.Tests.Fakes
 
         public IPEndPoint EndPoint { get; set; }
 
+        public Uri Uri { get; set; }
+
         public IEnumerable<IConnection> Connections
         {
             get { return _connections; }
