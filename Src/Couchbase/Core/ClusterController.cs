@@ -126,8 +126,17 @@ namespace Couchbase.Core
                 //shortcircuit in case lock was waited upon because another thread bootstraped same bucket
                 if (_buckets.ContainsKey(bucketName))
                 {
-                    Log.DebugFormat("Bootstraping was already done, returning existing bucket {0}", bucketName);
-                    return _buckets[bucketName];
+                    IBucket existingBucket = _buckets[bucketName];
+                    if ((existingBucket as IRefCountable).AddRef() != -1)
+                    {
+                        Log.DebugFormat("Bootstraping was already done, returning existing bucket {0}", bucketName);
+                        return existingBucket; // This is the only short circuit. All other cases fall through to bootstrapping.
+                    }
+                    else
+                    {
+                        Log.DebugFormat("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
+                        DestroyBucket(existingBucket);
+                    }
                 }
                 //otherwise bootstrap a new bucket
                 var success = false;

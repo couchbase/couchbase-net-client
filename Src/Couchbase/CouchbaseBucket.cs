@@ -1304,14 +1304,21 @@ namespace Couchbase
         /// <summary>
         /// Increments the reference counter for this <see cref="IBucket"/> instance.
         /// </summary>
-        /// <returns>The current count of all <see cref="IBucket"/> references.</returns>
+        /// <returns>The current count of all <see cref="IBucket"/> references, or -1 if a reference could not be added because the bucket is disposed.</returns>
         int IRefCountable.AddRef()
         {
             lock (RefCounts)
             {
-                var refCount = RefCounts.GetOrCreateValue(this);
-                Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
-                return Interlocked.Increment(ref refCount.Count);
+                if (!_disposed)
+                {
+                    var refCount = RefCounts.GetOrCreateValue(this);
+                    Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
+                    return Interlocked.Increment(ref refCount.Count);
+                }
+                else
+                {
+                    return -1;
+                }
             }
         }
 
