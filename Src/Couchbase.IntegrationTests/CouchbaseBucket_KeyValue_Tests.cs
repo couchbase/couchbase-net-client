@@ -1,4 +1,8 @@
 ﻿
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
 using NUnit.Framework;
@@ -106,6 +110,18 @@ namespace Couchbase.IntegrationTests
             _bucket.Remove(key);
             var result = _bucket.Get<string>(key);
             Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+        }
+
+        [Test]
+        public void GetWithLock_WhenKeyIsLocked_ResponseStatusIsTemporaryFailure_And_MessageIsLOCK_ERROR()
+        {
+            _bucket.Upsert("roikatz", "bbbb");
+            var res1 = _bucket.GetWithLock<string>("roikatz", 30);
+            Assert.IsTrue(res1.Success);
+
+            var res2 = _bucket.GetWithLock<string>("roikatz", 30);
+            Assert.IsFalse(res2.Success);
+            Assert.AreEqual(ResponseStatus.TemporaryFailure, res2.Status);
         }
 
         [TestFixtureTearDown]
