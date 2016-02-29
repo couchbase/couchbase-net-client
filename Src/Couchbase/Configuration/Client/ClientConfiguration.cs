@@ -46,6 +46,44 @@ namespace Couchbase.Configuration.Client
         private uint _ioErrorCheckInterval;
         private uint _ioErrorThreshold;
 
+        public static class Defaults
+        {
+            public static uint QueryRequestTimeout = 75000;
+            public static bool UseSsl = false;
+            public static uint SslPort = 11207;
+            public static uint ApiPort = 8092;
+            public static uint DirectPort = 11210;
+            public static uint MgmtPort = 8091;
+            public static uint HttpsMgmtPort = 18091;
+            public static uint HttpsApiPort = 18092;
+            public static uint ObserveInterval = 10; //ms
+            public static uint ObserveTimeout = 500; //ms
+            public static uint MaxViewRetries = 2;
+            public static uint ViewHardTimeout = 30000; //ms
+            public static uint HeartbeatConfigInterval = 10000; //ms
+            public static bool EnableConfigHeartBeat = true;
+            public static uint ViewRequestTimeout = 75000; //ms
+
+            //service point settings
+            public static int DefaultConnectionLimit = 5; //connections
+            public static bool Expect100Continue = false;
+            public static uint MaxServicePointIdleTime = 100;
+
+            public static bool EnableOperationTiming = false;
+            public static uint BufferSize = 1024 * 16;
+            public static uint DefaultOperationLifespan = 2500;//ms
+            public static uint QueryFailedThreshold = 2;
+
+            //keep alive settings
+            public static bool EnableTcpKeepAlives = true;
+            public static uint TcpKeepAliveTime = 2*60*60*1000;
+            public static uint TcpKeepAliveInterval = 1000;
+
+            public static uint NodeAvailableCheckInterval = 1000;//ms
+            public static uint IOErrorCheckInterval = 500;
+            public static uint IOErrorThreshold = 10;
+        }
+
         public ClientConfiguration()
         {
             //For operation timing
@@ -177,6 +215,10 @@ namespace Couchbase.Configuration.Client
             IOServiceCreator = IOServiceFactory.GetFactory(section.IOService);
 
             //the default connection pool creator
+            if (section.UseSsl)
+            {
+                section.ConnectionPool.UseSsl = section.UseSsl;
+            }
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory(section.ConnectionPool);
 
             //The default sasl mechanism creator
@@ -740,6 +782,21 @@ namespace Couchbase.Configuration.Client
             if (PoolConfiguration.ClientConfiguration == null)
             {
                 PoolConfiguration.ClientConfiguration = this;
+            }
+            if (TcpKeepAliveTime != Defaults.TcpKeepAliveTime &&
+                PoolConfiguration.TcpKeepAliveTime == Defaults.TcpKeepAliveTime)
+            {
+                PoolConfiguration.TcpKeepAliveTime = TcpKeepAliveTime;
+            }
+            if (TcpKeepAliveInterval != Defaults.TcpKeepAliveInterval &&
+                PoolConfiguration.TcpKeepAliveInterval == Defaults.TcpKeepAliveInterval)
+            {
+                PoolConfiguration.TcpKeepAliveInterval = TcpKeepAliveInterval;
+            }
+            if (EnableTcpKeepAlives != Defaults.EnableTcpKeepAlives &&
+                PoolConfiguration.EnableTcpKeepAlives == Defaults.EnableTcpKeepAlives)
+            {
+                PoolConfiguration.EnableTcpKeepAlives = EnableTcpKeepAlives;
             }
 
             if (_serversChanged)

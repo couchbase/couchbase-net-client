@@ -26,7 +26,8 @@ namespace Couchbase.Tests.Authentication.Sasl
             var ipEndpoint = UriExtensions.GetEndPoint(_address.Replace("11210", "11207"));
             var connectionPoolConfig = new PoolConfiguration
             {
-                UseSsl = true
+                UseSsl = true,
+                Uri = new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
             };
             _connectionPool = new ConnectionPool<SslConnection>(connectionPoolConfig, ipEndpoint);
             _connectionPool.Initialize();

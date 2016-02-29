@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
@@ -36,14 +35,14 @@ namespace Couchbase.IO
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
-            return true;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         public override void Authenticate()
         {
             try
             {
-                var targetHost = ConnectionPool.EndPoint.Address.ToString();
+                var targetHost = ConnectionPool.Configuration.Uri.Host;
                 Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
                 _sslStream.AuthenticateAsClient(targetHost);
                 IsSecure = true;
@@ -57,7 +56,6 @@ namespace Couchbase.IO
         public override async void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
         {
             SocketAsyncState state = null;
-            byte[] buffer = null;
             try
             {
                 state = new SocketAsyncState
@@ -93,7 +91,7 @@ namespace Couchbase.IO
                 IsDead = true;
                 if (state == null)
                 {
-                    callback(new SocketAsyncState
+                    await callback(new SocketAsyncState
                     {
                         Exception = e,
                         Status = (e is SocketException)
@@ -104,16 +102,16 @@ namespace Couchbase.IO
                 else
                 {
                     state.Exception = e;
-                    state.Completed(state);
+                    await state.Completed(state);
                     Log.Debug(e);
                 }
             }
             finally
             {
                 ConnectionPool.Release(this);
-                if (buffer != null)
+                if (state != null && state.Buffer != null)
                 {
-                    BufferManager.ReturnBuffer(buffer);
+                    BufferManager.ReturnBuffer(state.Buffer);
                 }
             }
         }

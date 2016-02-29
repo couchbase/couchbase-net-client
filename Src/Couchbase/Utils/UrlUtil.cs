@@ -13,6 +13,12 @@ namespace Couchbase.Utils
         // ReSharper disable once InconsistentNaming
         public static string N1QLUriFormat = "{0}://{1}:{2}/query";
         public static string ViewUriFormat = "{0}://{1}:{2}/{3}/";
+        public static string BaseUriFormat = "{0}://{1}:{2}/pools";
+
+        public static Uri GetBaseUri(INodeAdapter adapter, BucketConfiguration config)
+        {
+            return new Uri(GetBaseUriAsString(adapter, config));
+        }
 
         public static Uri GetViewBaseUri(INodeAdapter adapter, BucketConfiguration config)
         {
@@ -48,6 +54,16 @@ namespace Couchbase.Utils
                 config.UseSsl ? Https : Http,
                 adapter.Hostname,
                 config.UseSsl ? adapter.N1QLSsl : adapter.N1QL);
+
+            return uriAsString;
+        }
+
+        public static string GetBaseUriAsString(INodeAdapter adapter, BucketConfiguration config)
+        {
+            var uriAsString = string.Format(BaseUriFormat,
+                config.UseSsl ? Https : Http,
+                adapter.Hostname,
+                config.UseSsl ? adapter.MgmtApiSsl: adapter.MgmtApi);
 
             return uriAsString;
         }

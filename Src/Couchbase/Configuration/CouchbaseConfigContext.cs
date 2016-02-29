@@ -67,7 +67,9 @@ namespace Couchbase.Configuration
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
-                                var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+
                                 var ioService = IOServiceFactory(connectionPool);
 
                                 server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
@@ -174,7 +176,9 @@ namespace Couchbase.Configuration
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
-                                var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+
                                 var newIoService = IOServiceFactory(connectionPool);
 
                                 server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
@@ -251,7 +255,9 @@ namespace Couchbase.Configuration
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
-                            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+                            var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                            var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+
                             var newIoService = IOServiceFactory(connectionPool);
 
                             server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)

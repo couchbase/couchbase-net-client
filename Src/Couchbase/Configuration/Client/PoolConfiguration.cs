@@ -211,6 +211,36 @@ namespace Couchbase.Configuration.Client
 
         [JsonIgnore]
         internal Func<PoolConfiguration, BufferAllocator> BufferAllocator { get; set; }
+
+        /// <summary>
+        /// The Uri for the specific node instance. Will only be non-null if <see cref="Clone"/> is called and a Uri is passed in.
+        /// </summary>
+        public Uri Uri { get; set; }
+
+        /// <summary>
+        /// Clones the current <see cref="PoolConfiguration"/> for a specific node. The <see cref="Uri"/> should match the node.
+        /// </summary>
+        /// <param name="uri">The specific node that this <see cref="PoolConfiguration"/> is targeting.</param>
+        /// <returns></returns>
+        public PoolConfiguration Clone(Uri uri)
+        {
+            return new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout,
+                ShutdownTimeout, OperationTimeout, MaxAcquireIterationCount,
+                ConnectTimeout, ClientConfiguration)
+            {
+                Uri = uri,
+                SendTimeout = SendTimeout,
+                BufferAllocator = BufferAllocator,
+                BufferSize = BufferSize,
+                CloseAttemptInterval = CloseAttemptInterval,
+                MaxCloseAttempts = MaxCloseAttempts,
+                UseEnhancedDurability = UseEnhancedDurability,
+                UseSsl = UseSsl,
+                TcpKeepAliveTime = TcpKeepAliveTime,
+                EnableTcpKeepAlives = EnableTcpKeepAlives,
+                TcpKeepAliveInterval = TcpKeepAliveInterval
+            };
+        }
     }
 }
 

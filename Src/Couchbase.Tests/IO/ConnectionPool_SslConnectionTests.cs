@@ -38,7 +38,8 @@ namespace Couchbase.Tests.IO
             var converter = new DefaultConverter();
             _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount)
             {
-                UseSsl = true
+                UseSsl = true,
+                Uri = new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
             };
             _connectionPool = new ConnectionPool<SslConnection>(_configuration, ipEndpoint, factory, converter);
             _connectionPool.Initialize();
