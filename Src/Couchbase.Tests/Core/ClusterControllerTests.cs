@@ -47,7 +47,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void Test_ConfigProviders_Is_Not_Empty()
         {
-           Assert.IsNotEmpty(_clusterManager.ConfigProviders);
+            Assert.IsNotEmpty(_clusterManager.ConfigProviders);
         }
 
         [Test]
@@ -176,6 +176,35 @@ namespace Couchbase.Tests.Core
             t2.Join();
 
             Assert.IsNotNull(bucket1);
+            Assert.AreSame(bucket1, bucket2);
+        }
+
+        [Test]
+        public async Task When_Disposing_Bucket_In_Parallel_Does_Not_Dispose_Referenced_Bucket()
+        {
+            var clusterController = new ClusterController(_clientConfig);
+            var cluster1 = new Cluster(_clientConfig, clusterController);
+            var cluster2 = new Cluster(_clientConfig, clusterController);
+
+            IBucket bucket1 = null;
+            IBucket bucket2 = null;
+
+            var t1 = new Thread(() =>
+            {
+                Thread.Sleep(100); // Give thread2 time to open the bucket
+                using (bucket1 = cluster1.OpenBucket("default", "")) { }
+            });
+
+            t1.Start();
+
+            using (bucket2 = cluster2.OpenBucket("default", ""))
+            {
+                Thread.Sleep(100); // Sleep while thread1 disposes the bucket
+                await bucket2.ExistsAsync("Key"); // Used to throw ObjectDisposedException
+            }
+
+            t1.Join();
+
             Assert.AreSame(bucket1, bucket2);
         }
     }
