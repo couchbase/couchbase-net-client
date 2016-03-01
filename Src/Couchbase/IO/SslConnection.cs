@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -55,6 +56,7 @@ namespace Couchbase.IO
 
         public override async void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
         {
+            ExceptionDispatchInfo capturedException = null;
             SocketAsyncState state = null;
             try
             {
@@ -89,22 +91,7 @@ namespace Couchbase.IO
             catch (Exception e)
             {
                 IsDead = true;
-                if (state == null)
-                {
-                    await callback(new SocketAsyncState
-                    {
-                        Exception = e,
-                        Status = (e is SocketException)
-                            ? ResponseStatus.TransportFailure
-                            : ResponseStatus.ClientFailure
-                    });
-                }
-                else
-                {
-                    state.Exception = e;
-                    await state.Completed(state);
-                    Log.Debug(e);
-                }
+                capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
             {
@@ -112,6 +99,27 @@ namespace Couchbase.IO
                 if (state != null && state.Buffer != null)
                 {
                     BufferManager.ReturnBuffer(state.Buffer);
+                }
+            }
+
+            if (capturedException != null)
+            {
+                var sourceException = capturedException.SourceException;
+                if (state == null)
+                {
+                    await callback(new SocketAsyncState
+                    {
+                        Exception = capturedException.SourceException,
+                        Status = (sourceException is SocketException)
+                            ? ResponseStatus.TransportFailure
+                            : ResponseStatus.ClientFailure
+                    });
+                }
+                else
+                {
+                    state.Exception = sourceException;
+                    await state.Completed(state);
+                    Log.Debug(sourceException);
                 }
             }
         }
@@ -163,7 +171,7 @@ namespace Couchbase.IO
                 state.Buffer = BufferManager.TakeBuffer(1024);
                 _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 if (state.Buffer != null)
                 {
