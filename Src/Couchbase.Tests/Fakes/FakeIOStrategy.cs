@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
@@ -173,6 +174,7 @@ namespace Couchbase.Tests.Fakes
         /// </remarks>
         public async Task ExecuteAsync(IOperation operation, IConnection connection)
         {
+            ExceptionDispatchInfo capturedException = null;
             try
             {
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
@@ -180,11 +182,16 @@ namespace Couchbase.Tests.Fakes
             }
             catch (Exception e)
             {
-                operation.Completed(new SocketAsyncState
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+
+            if (capturedException != null)
+            {
+                await operation.Completed(new SocketAsyncState
                 {
-                    Exception = e,
+                    Exception = capturedException.SourceException,
                     Opaque = operation.Opaque
-                });
+                }).ContinueOnAnyContext();
             }
         }
 

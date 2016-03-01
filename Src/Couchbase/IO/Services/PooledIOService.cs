@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -228,6 +229,7 @@ namespace Couchbase.IO.Services
         /// </remarks>
         public async Task ExecuteAsync(IOperation operation, IConnection connection)
         {
+            ExceptionDispatchInfo capturedException = null;
             try
             {
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
@@ -236,14 +238,12 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug(e);
-                operation.Completed(new SocketAsyncState
-                {
-                    Exception = e,
-                    Opaque = operation.Opaque,
-                    Status = (e is SocketException) ?
-                        ResponseStatus.TransportFailure :
-                        ResponseStatus.ClientFailure
-                });
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+
+            if (capturedException != null)
+            {
+                await HandleException(capturedException, operation);
             }
         }
 
@@ -260,6 +260,7 @@ namespace Couchbase.IO.Services
         /// </remarks>
         public async Task ExecuteAsync<T>(IOperation<T> operation)
         {
+            ExceptionDispatchInfo capturedException = null;
             try
             {
                 var connection = _connectionPool.Acquire();
@@ -276,14 +277,12 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug(e);
-                operation.Completed(new SocketAsyncState
-                {
-                    Exception = e,
-                    Opaque = operation.Opaque,
-                    Status = (e is SocketException) ?
-                        ResponseStatus.TransportFailure :
-                        ResponseStatus.ClientFailure
-                });
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+
+            if (capturedException != null)
+            {
+                await HandleException(capturedException, operation);
             }
         }
 
@@ -299,6 +298,7 @@ namespace Couchbase.IO.Services
         /// </remarks>
         public async Task ExecuteAsync(IOperation operation)
         {
+            ExceptionDispatchInfo capturedException = null;
             try
             {
                 var connection = _connectionPool.Acquire();
@@ -312,18 +312,29 @@ namespace Couchbase.IO.Services
                 }
                 await ExecuteAsync(operation, connection);
             }
-             catch (Exception e)
-             {
-                 Log.Debug(e);
-                 operation.Completed(new SocketAsyncState
-                 {
-                     Exception = e,
-                     Opaque = operation.Opaque,
-                     Status = (e is SocketException) ?
-                        ResponseStatus.TransportFailure :
-                        ResponseStatus.ClientFailure
-                 });
-             }
+            catch (Exception e)
+            {
+                Log.Debug(e);
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+
+            if (capturedException != null)
+            {
+                await HandleException(capturedException, operation);
+            }
+        }
+
+        async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
+        {
+            var sourceException = capturedException.SourceException;
+            await operation.Completed(new SocketAsyncState
+            {
+                Exception = sourceException,
+                Opaque = operation.Opaque,
+                Status = (sourceException is SocketException) ?
+                   ResponseStatus.TransportFailure :
+                   ResponseStatus.ClientFailure
+            }).ContinueOnAnyContext();
         }
 
         /// <summary>

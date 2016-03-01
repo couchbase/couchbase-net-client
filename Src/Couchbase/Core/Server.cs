@@ -580,12 +580,12 @@ namespace Couchbase.Core
                 var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
 
-                operation.Completed(new SocketAsyncState
+                await operation.Completed(new SocketAsyncState
                 {
                     Exception = new NodeUnavailableException(msg),
                     Opaque = operation.Opaque,
                     Status = ResponseStatus.NodeUnavailable
-                });
+                }).ContinueOnAnyContext();
                 return;
             }
             await _ioService.ExecuteAsync(operation);
@@ -606,12 +606,12 @@ namespace Couchbase.Core
                 var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
 
-                operation.Completed(new SocketAsyncState
+                await operation.Completed(new SocketAsyncState
                 {
                     Exception = new ServerException(msg),
                     Opaque = operation.Opaque,
                     Status = ResponseStatus.NodeUnavailable
-                });
+                }).ContinueOnAnyContext();
                 return;
             }
             await _ioService.ExecuteAsync(operation);
