@@ -375,7 +375,9 @@
     <Compile Include="N1QL\ErrorPrepared.cs" />
     <Compile Include="N1QL\PrepareStatementException.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Core\IO\" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="Couchbase.nuspec" />
     <None Include="packages.config" />
