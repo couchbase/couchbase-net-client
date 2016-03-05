@@ -12,10 +12,10 @@ namespace Couchbase.IO.Operations.SubDocument
 {
     internal class MultiMutation<T> : OperationBase<T>
     {
-        private readonly MutateInBuilder _builder;
+        private readonly MutateInBuilder<T> _builder;
         private readonly IList<SubDocOperationResult> _lookupCommands = new List<SubDocOperationResult>();
 
-        public MultiMutation(string key, MutateInBuilder mutateInBuilder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+        public MultiMutation(string key, MutateInBuilder<T> mutateInBuilder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
         {
             _builder = mutateInBuilder;
@@ -75,7 +75,7 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override IOperationResult<T> GetResultWithValue()
         {
-            var result = new DocumentFragment<T>();
+            var result = new DocumentFragment<T>(_builder);
             try
             {
                 result.Success = GetSuccess();

@@ -10,10 +10,10 @@ namespace Couchbase.IO.Operations.SubDocument
 {
     internal class MultiLookup<T> : OperationBase<T>
     {
-        private readonly LookupInBuilder _builder;
+        private readonly LookupInBuilder<T> _builder;
         private readonly IList<SubDocOperationResult> _lookupCommands = new List<SubDocOperationResult>();
 
-        public MultiLookup(string key, LookupInBuilder builder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+        public MultiLookup(string key, LookupInBuilder<T> builder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
         {
             _builder = builder;
@@ -112,7 +112,7 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override IOperationResult<T> GetResultWithValue()
         {
-            var result = new DocumentFragment<T>();
+            var result = new DocumentFragment<T>(_builder);
             try
             {
                 result.Success = GetSuccess();

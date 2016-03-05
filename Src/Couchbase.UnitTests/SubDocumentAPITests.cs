@@ -23,20 +23,20 @@ namespace Couchbase.UnitTests
             subDocResultMocked.Setup(x => x.Content<string>(It.IsAny<int>())).Returns("bar");
             subDocResultMocked.Setup(x => x.Exists(It.IsAny<string>())).Returns(true);
 
-            var lookupInMocked = new Mock<ILookupInBuilder>();
+            var lookupInMocked = new Mock<ILookupInBuilder<object>>();
             lookupInMocked.Setup(x => x.Get(It.IsAny<string>())).Returns(lookupInMocked.Object);
-            lookupInMocked.Setup(x => x.Execute<object>()).Returns(subDocResultMocked.Object);
+            lookupInMocked.Setup(x => x.Execute()).Returns(subDocResultMocked.Object);
 
             var bucketMocked = new Mock<IBucket>();
-            bucketMocked.Setup(x => x.LookupIn(It.IsAny<string>())).Returns(lookupInMocked.Object);
+            bucketMocked.Setup(x => x.LookupIn<object>(It.IsAny<string>())).Returns(lookupInMocked.Object);
 
             var bucket = bucketMocked.Object;
-            var subDocResult = bucket.LookupIn("thekey").
+            var subDocResult = bucket.LookupIn<object>("thekey").
                 Get("some.json.path").
-                Execute<object>();
+                Execute();
 
             var content = subDocResult.Content<string>("somepath");
-            var item = subDocResult.Content<dynamic>(1);
+            var item = subDocResult.Content<string>(1);
             var exists = subDocResult.Exists("somepathtosomewhere");
 
             Assert.AreEqual("foo", content);

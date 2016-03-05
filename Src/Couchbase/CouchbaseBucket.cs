@@ -3271,25 +3271,25 @@ namespace Couchbase
 
         #region sub document api
 
-        public IMutateInBuilder MutateIn(string key)
+        public IMutateInBuilder<TDocument> MutateIn<TDocument>(string key)
         {
-            return new MutateInBuilder(this, key);
+            return new MutateInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key);
         }
 
-        public ILookupInBuilder LookupIn(string key)
+        public ILookupInBuilder<TDocument> LookupIn<TDocument>(string key)
         {
-            return new LookupInBuilder(this, key);
+            return new LookupInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key);
         }
 
-        public IDocumentFragment<T> Invoke<T>(IMutateInBuilder builder)
+        public IDocumentFragment<T> Invoke<T>(IMutateInBuilder<T> builder)
         {
-            var multiMutate = new MultiMutation<T>(builder.Key,(MutateInBuilder) builder, null, _transcoder, _operationLifespanTimeout);
+            var multiMutate = new MultiMutation<T>(builder.Key, (MutateInBuilder<T>) builder, null, _transcoder, _operationLifespanTimeout);
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiMutate);
         }
 
-        public IDocumentFragment<T> Invoke<T>(ILookupInBuilder builder)
+        public IDocumentFragment<T> Invoke<T>(ILookupInBuilder<T> builder)
         {
-            var multiLookup = new MultiLookup<T>(builder.Key, (LookupInBuilder)builder, null, _transcoder, _operationLifespanTimeout);
+            var multiLookup = new MultiLookup<T>(builder.Key, (LookupInBuilder<T>) builder, null, _transcoder, _operationLifespanTimeout);
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
         }
 

@@ -27,8 +27,8 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_MultiCommands_ReturnsCorrectCount";
             _bucket.Upsert(key, new {foo = "bar", bar="foo"});
 
-            var builder = _bucket.LookupIn(key).Get("foo").Get("bar");
-            var result = (DocumentFragment<dynamic>)builder.Execute<dynamic>();
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo").Get("bar");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(2, result.Value.Count);
         }
@@ -39,8 +39,8 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_Get_PathExists_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.LookupIn(key).Get("foo");
-            var result = (DocumentFragment<dynamic>)builder.Execute<dynamic>();
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -51,8 +51,8 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_MultiCommands_ReturnsSubDocPathNotFound";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.LookupIn(key).Get("boo");
-            var result = (DocumentFragment<dynamic>)builder.Execute<dynamic>();
+            var builder = _bucket.LookupIn<dynamic>(key).Get("boo");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus("boo"));
@@ -64,8 +64,8 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_Get_PathExists_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.LookupIn(key).Get("foo");
-            var result = (DocumentFragment<dynamic>)builder.Execute<dynamic>();
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -76,8 +76,8 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_MultiCommands_ReturnsSubDocPathNotFound";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.LookupIn(key).Get("baz");
-            var result = (DocumentFragment<dynamic>)builder.Execute<dynamic>();
+            var builder = _bucket.LookupIn<dynamic>(key).Get("baz");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
@@ -93,8 +93,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_ValidPath_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string>()});
 
-            var builder = _bucket.MutateIn(key).Insert("bar.baz", "faz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("bar.baz", "faz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -105,8 +105,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_MissingParentAndCreateParentsIsTrue_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string>() });
 
-            var builder = _bucket.MutateIn(key).Insert("par.baz", "faz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("par.baz", "faz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -117,8 +117,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_MissingParentAndCreateParentsIsTrue_ReturnsSubDocPathExists";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string> {{ "baz", "foo"}}});
 
-            var builder = _bucket.MutateIn(key).Insert("bar.baz", "faz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("bar.baz", "faz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathExists, result.OpStatus(0));
@@ -130,8 +130,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_MissingParentAndCreateParentsIsTrue_ReturnsNotSuccess";
             _bucket.Insert(key, new { foo = "bar", bar = new Dictionary<string, string>() });
 
-            var builder = _bucket.MutateIn(key).Insert("par.baz", "faz", false);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("par.baz", "faz", false);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
@@ -143,8 +143,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_DuplicatePath_ReturnsSubDocPathExists";
             _bucket.Insert(key, new { foo = "bar", bar = new Dictionary<string, string> { {"baz", "faz"} } });
 
-            var builder = _bucket.MutateIn(key).Insert("bar.baz", "baz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("bar.baz", "baz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathExists, result.OpStatus(0));
@@ -156,8 +156,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_InsertDictionary_InvalidPath_ReturnsSubDocInvalidPath";
             _bucket.Insert(key, new { foo = "bar", bar = new Dictionary<string, string> { { "baz", "faz" } } });
 
-            var builder = _bucket.MutateIn(key).Insert("bar[0]", "baz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("bar[0]", "baz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathMismatch, result.OpStatus(0));
@@ -169,8 +169,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Upsert_Dictionary_ReturnsMuchSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string>() });
 
-            var builder = _bucket.MutateIn(key).Upsert("bar.baz", "faz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Upsert("bar.baz", "faz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -181,8 +181,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Upsert_Dictionary_MissingParentAndCreateParentsIsTrue_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string>() });
 
-            var builder = _bucket.MutateIn(key).Upsert("par.baz", "faz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Upsert("par.baz", "faz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -193,8 +193,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Upsert_Dictionary_MissingParentAndCreateParentsIsTrue_ReturnsNotSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string>() });
 
-            var builder = _bucket.MutateIn(key).Upsert("par.baz", "faz", false);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Upsert("par.baz", "faz", false);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
@@ -206,8 +206,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Upsert_Dictionary_DuplicatePath_ReturnsSucesss";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string> { { "baz", "faz" } } });
 
-            var builder = _bucket.MutateIn(key).Upsert("bar.baz", "baz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Upsert("bar.baz", "baz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -218,8 +218,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Upsert_Dictionary_InvalidPath_ReturnsSubDocInvalidPath";
             _bucket.Upsert(key, new { foo = "bar", bar = new Dictionary<string, string> { { "baz", "faz" } } });
 
-            var builder = _bucket.MutateIn(key).Upsert("bar[0]", "baz", true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Upsert("bar[0]", "baz", true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathMismatch, result.OpStatus(0));
@@ -236,8 +236,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Replace_WithInvalidPath_ReturnsSubPathMultiFailure";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.MutateIn(key).Replace("foo", "cas").Insert("bah", "bab", false).Replace("meh", "frack").Replace("hoo", "foo");
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "cas").Insert("bah", "bab", false).Replace("meh", "frack").Replace("hoo", "foo");
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(2));
@@ -249,8 +249,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Replace_WithValidPath_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.MutateIn(key).Replace("foo", "foo").Replace("bar", "bar");
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "foo").Replace("bar", "bar");
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -261,8 +261,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.MutateIn(key).Remove("foo").Replace("bar", "bar");
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Remove("foo").Replace("bar", "bar");
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -273,8 +273,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
-            var builder = _bucket.MutateIn(key).Remove("baz").Replace("bar", "bar");
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Remove("baz").Replace("bar", "bar");
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
@@ -290,8 +290,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_PushBack_WithValidPath_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new List<int> {1,2,3} });
 
-            var builder = _bucket.MutateIn(key).PushBack("bar", 4, false);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).PushBack("bar", 4, false);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -302,8 +302,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_PushBack_WithValidPath_ReturnsSubDocPathDoesNotExist";
             _bucket.Upsert(key, new { foo = "bar", bar = new List<int> { 1, 2, 3 } });
 
-            var builder = _bucket.MutateIn(key).PushBack("baz", 4, false);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).PushBack("baz", 4, false);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
@@ -315,8 +315,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Insert_WithValidPathAndCreate_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", count = 0 });
 
-            var builder = _bucket.MutateIn(key).Insert("baz", 1);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Insert("baz", 1);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -327,8 +327,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Insert_WithValidPathAndCreate_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = new List<int> {} });
 
-            var builder = _bucket.MutateIn(key).ArrayInsert("bar[0]", 1);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).ArrayInsert("bar[0]", 1);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -339,8 +339,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Insert_WithValidPathAndCreate_SubDocPathInvalid";
             _bucket.Upsert(key, new { foo = "bar", bar = new List<int> {0} });
 
-            var builder = _bucket.MutateIn(key).ArrayInsert("bar", 1);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).ArrayInsert("bar", 1);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
             Assert.AreEqual(ResponseStatus.SubDocPathInvalid, result.OpStatus(0));
@@ -352,8 +352,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_AddUnique_WithValidPathAndCreateParentsTrue_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", baz = new List<int> { 1, 2 } });
 
-            var builder = _bucket.MutateIn(key).AddUnique("anotherArray", "arrayInsert");
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).AddUnique("anotherArray", "arrayInsert");
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -364,8 +364,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_AddUnique_WithValidPathAndCreateAndNumeric_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", baz = new List<int> { 1, 2 } });
 
-            var builder = _bucket.MutateIn(key).AddUnique("anumericarray", 1);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).AddUnique("anumericarray", 1);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -376,8 +376,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_AddUnique_WithValidPathAndCreateAndNumeric_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", baz = new List<int> { 1, 2 } });
 
-            var builder = _bucket.MutateIn(key).ArrayInsert("baz[2]", 1);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).ArrayInsert("baz[2]", 1);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -390,8 +390,8 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Counter_WithInValidPathAndCreateParentsFalse_ReturnsSucess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", count=0 });
 
-            var builder = _bucket.MutateIn(key).Counter("baz", 1, false);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Counter("baz", 1, false);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
@@ -402,11 +402,11 @@ namespace Couchbase.IntegrationTests
             var key = "MutateIn_Counter_WithValidPathAndCreateParentsTrue_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo", count = 0 });
 
-            var builder = _bucket.MutateIn(key).Counter("baz", 1, true);
-            var result = builder.Execute<dynamic>();
+            var builder = _bucket.MutateIn<dynamic>(key).Counter("baz", 1, true);
+            var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
-        } 
+        }
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()

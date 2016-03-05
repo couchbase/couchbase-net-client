@@ -8,8 +8,8 @@ namespace Couchbase.Core.IO.SubDocument
 {
     internal interface ISubdocInvoker
     {
-        IDocumentFragment<T> Invoke<T>(IMutateInBuilder builder);
+        IDocumentFragment<T> Invoke<T>(IMutateInBuilder<T> builder);
 
-        IDocumentFragment<T> Invoke<T>(ILookupInBuilder builder);
+        IDocumentFragment<T> Invoke<T>(ILookupInBuilder<T> builder);
     }
 }

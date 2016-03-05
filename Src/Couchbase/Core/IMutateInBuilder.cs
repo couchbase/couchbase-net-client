@@ -1,9 +1,8 @@
-﻿
-using System;
+﻿using System;
 
 namespace Couchbase.Core
 {
-    public interface IMutateInBuilder
+    public interface IMutateInBuilder<TDocument>
     {
         long Cas { get; }
 
@@ -15,34 +14,34 @@ namespace Couchbase.Core
 
         ReplicateTo ReplicateTo { get; }
 
-        IMutateInBuilder Insert(string path, object value, bool createParents = true);
+        IMutateInBuilder<TDocument> Insert(string path, object value, bool createParents = true);
 
-        IMutateInBuilder Upsert(string path, object value, bool createParents = true);
+        IMutateInBuilder<TDocument> Upsert(string path, object value, bool createParents = true);
 
-        IMutateInBuilder Replace(string path, object value);
+        IMutateInBuilder<TDocument> Replace(string path, object value);
 
-        IMutateInBuilder Remove(string path);
+        IMutateInBuilder<TDocument> Remove(string path);
 
-        IMutateInBuilder PushBack(string path, object value, bool createParents = true);
+        IMutateInBuilder<TDocument> PushBack(string path, object value, bool createParents = true);
 
-        IMutateInBuilder PushFront(string path, object value, bool createParents = true);
+        IMutateInBuilder<TDocument> PushFront(string path, object value, bool createParents = true);
 
-        IMutateInBuilder ArrayInsert(string path, object value);
+        IMutateInBuilder<TDocument> ArrayInsert(string path, object value);
 
-        IMutateInBuilder AddUnique(string path, object value, bool createParents = true);
+        IMutateInBuilder<TDocument> AddUnique(string path, object value, bool createParents = true);
 
-        IMutateInBuilder Counter(string path, long delta, bool createParents = true);
+        IMutateInBuilder<TDocument> Counter(string path, long delta, bool createParents = true);
 
-        IMutateInBuilder WithExpiry(TimeSpan expiry);
+        IMutateInBuilder<TDocument> WithExpiry(TimeSpan expiry);
 
-        IMutateInBuilder WithCas(long cas);
+        IMutateInBuilder<TDocument> WithCas(long cas);
 
-        IMutateInBuilder WithDurability(PersistTo persistTo);
+        IMutateInBuilder<TDocument> WithDurability(PersistTo persistTo);
 
-        IMutateInBuilder WithDurability(ReplicateTo replicateTo);
+        IMutateInBuilder<TDocument> WithDurability(ReplicateTo replicateTo);
 
-        IMutateInBuilder WithDurability(PersistTo persistTo, ReplicateTo replicateTo);
+        IMutateInBuilder<TDocument> WithDurability(PersistTo persistTo, ReplicateTo replicateTo);
 
-        IDocumentFragment<T> Execute<T>();
+        IDocumentFragment<TDocument> Execute();
     }
 }

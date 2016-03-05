@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.IO;
+using Couchbase.Core.Serialization;
 
 namespace Couchbase
 {
@@ -10,11 +11,24 @@ namespace Couchbase
     /// Represents one more fragments of an <see cref="IDocument{T}"/> that is returned by the sub-document API.
     /// </summary>
     /// <typeparam name="TDocument">The document</typeparam>
-    public class DocumentFragment<TDocument> : OperationResult, IDocumentFragment<TDocument>
+    public class DocumentFragment<TDocument> : OperationResult, IDocumentFragment<TDocument>, ITypeSerializerProvider
     {
-        public DocumentFragment()
+        private readonly ITypeSerializerProvider _sourceTypeSerializerProvider;
+
+        public DocumentFragment(ITypeSerializerProvider sourceTypeSerializerProvider)
         {
-            Value= new List<SubDocOperationResult>();
+            if (sourceTypeSerializerProvider == null)
+            {
+                throw new ArgumentNullException("sourceTypeSerializerProvider");
+            }
+
+            _sourceTypeSerializerProvider = sourceTypeSerializerProvider;
+            Value = new List<SubDocOperationResult>();
+        }
+
+        public ITypeSerializer Serializer
+        {
+            get { return _sourceTypeSerializerProvider.Serializer; }
         }
 
         /// <summary>

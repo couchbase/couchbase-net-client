@@ -2240,12 +2240,12 @@ namespace Couchbase
 
         #region sub document api
 
-        public IMutateInBuilder MutateIn(string key)
+        public IMutateInBuilder<TDocument> MutateIn<TDocument>(string key)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public ILookupInBuilder LookupIn(string key)
+        public ILookupInBuilder<TDocument> LookupIn<TDocument>(string key)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

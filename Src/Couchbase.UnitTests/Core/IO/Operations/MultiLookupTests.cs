@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.SubDocument;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.SubDocument;
@@ -20,7 +21,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         public void Test()
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
-            var builder = new LookupInBuilder(mockedInvoker.Object, "mykey");
+            var builder = new LookupInBuilder<MyDoc>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
             var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null),
                 new DefaultTranscoder(new DefaultConverter()), 10);
@@ -44,7 +45,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             };
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
-            var builder = new LookupInBuilder(mockedInvoker.Object, "mykey");
+            var builder = new LookupInBuilder<MyDoc>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
             var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null),
                 new DefaultTranscoder(new DefaultConverter()), 10);

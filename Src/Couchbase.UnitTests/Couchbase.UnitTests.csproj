@@ -75,9 +75,11 @@
     <Compile Include="Core\LookupBuilderTests.cs" />
     <Compile Include="Core\Serialization\DefaultSerializerTests.cs" />
     <Compile Include="Core\Serialization\DeserializationOptionsTests.cs" />
+    <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs" />
     <Compile Include="CouchbaseBucketTests.cs" />
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SubdocExtensionTests.cs" />
     <Compile Include="SubDocumentAPITests.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,14 +1,14 @@
-﻿using System.ServiceModel.Syndication;
+﻿using System;
 
 namespace Couchbase.Core
 {
-    public interface ILookupInBuilder
+    public interface ILookupInBuilder<TDocument>
     {
-        ILookupInBuilder Get(string path);
+        ILookupInBuilder<TDocument> Get(string path);
 
-        ILookupInBuilder Exists(string path);
+        ILookupInBuilder<TDocument> Exists(string path);
 
-        IDocumentFragment<TContent> Execute<TContent>();
+        IDocumentFragment<TDocument> Execute();
 
         string Key { get; set; }
     }

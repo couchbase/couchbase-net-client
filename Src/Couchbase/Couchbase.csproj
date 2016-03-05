@@ -94,10 +94,12 @@
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserver.cs" />
     <Compile Include="Core\Buckets\MutationToken.cs" />
+    <Compile Include="Core\ExpressionVisitors\LambdaSimplifyingExpressionVisitor.cs" />
     <Compile Include="Core\ILookupInBuilder.cs" />
     <Compile Include="Core\IMutateInBuilder.cs" />
     <Compile Include="Core\IO\SubDocument\ISubdocInvoker.cs" />
     <Compile Include="Core\IO\SubDocument\SubDocOperationResult.cs" />
+    <Compile Include="Core\Serialization\ITypeSerializerProvider.cs" />
     <Compile Include="Core\Lifespan.cs" />
     <Compile Include="Core\LookupInBuilder.cs" />
     <Compile Include="Core\MutateInBuilder.cs" />
@@ -129,6 +131,7 @@
     <Compile Include="Core\Serialization\SupportedDeserializationOptions.cs" />
     <Compile Include="Core\Serialization\DeserializationOptions.cs" />
     <Compile Include="Core\Services\ServiceNotSupportedException.cs" />
+    <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitor.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Cluster.cs" />
@@ -289,6 +292,7 @@
     <Compile Include="N1QL\FailureCountingUri.cs" />
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="DocumentFragment%27.cs" />
+    <Compile Include="SubdocExtensions.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />
