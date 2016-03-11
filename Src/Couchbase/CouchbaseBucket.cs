@@ -24,6 +24,7 @@ using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.SubDocument;
 using Couchbase.Management;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Views;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -3377,6 +3378,20 @@ namespace Couchbase
 
             var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
+        }
+
+        #endregion
+
+        #region FTS
+
+        public ISearchQueryResult Query(SearchQuery searchQuery)
+        {
+            return _requestExecuter.SendWithRetry(searchQuery);
+        }
+
+        public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery)
+        {
+            return _requestExecuter.SendWithRetryAsync(searchQuery);
         }
 
         #endregion

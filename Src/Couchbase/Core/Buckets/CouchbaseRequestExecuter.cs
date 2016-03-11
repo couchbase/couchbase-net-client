@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
+using System.ServiceModel.Channels;
 using System.ServiceModel.Syndication;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ using Couchbase.Core.Services;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -763,6 +765,74 @@ namespace Couchbase.Core.Buckets
                 });
             }
             return tcs.Task;
+        }
+
+        public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
+        {
+            ISearchQueryResult searchResult = null;
+            try
+            {
+                if (!ConfigInfo.IsSearchCapable)
+                {
+                    throw new ServiceNotSupportedException
+                      (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "FTS"));
+                }
+
+                var attempts = 0;
+                IServer server;
+                while ((server = ConfigInfo.GetSearchNode()) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
+
+                searchResult = server.Send(searchQuery);
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                searchResult = new SearchQueryResult
+                {
+                    Status = SearchStatus.Failed,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return searchResult;
+        }
+
+        public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
+        {
+            ISearchQueryResult searchResult = null;
+            try
+            {
+                if (!ConfigInfo.IsSearchCapable)
+                {
+                    throw new ServiceNotSupportedException
+                      (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "FTS"));
+                }
+
+                var attempts = 0;
+                IServer server;
+                while ((server = ConfigInfo.GetSearchNode()) == null)
+                {
+                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                    Thread.Sleep((int)Math.Pow(2, attempts));
+                }
+
+                searchResult = await server.SendAsync(searchQuery);
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                searchResult = new SearchQueryResult
+                {
+                    Status = SearchStatus.Failed,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return searchResult;
         }
 
         /// <summary>

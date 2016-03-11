@@ -109,6 +109,14 @@ namespace Couchbase.Configuration
         bool IsIndexCapable { get; }
 
         /// <summary>
+        /// Gets a value indicating whether this server is supports FTS.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is search capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsSearchCapable { get; }
+
+        /// <summary>
         /// Gets a data node from the Servers collection.
         /// </summary>
         /// <returns></returns>
@@ -131,6 +139,12 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <returns></returns>
         IServer GetViewNode();
+
+        /// <summary>
+        /// Gets a search node from the servers collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetSearchNode();
     }
 }
 

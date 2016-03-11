@@ -14,7 +14,7 @@ namespace Couchbase.Views
         /// <typeparam name="T">The <see cref="IViewResult{T}"/>'s Type paramater.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> results of the query.</param>
         /// <returns>An object deserialized to it's T type.</returns>
-        T Map<T>(Stream stream);
+        T Map<T>(Stream stream) where T : class;
     }
 }
 

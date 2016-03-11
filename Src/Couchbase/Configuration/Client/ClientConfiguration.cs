@@ -42,7 +42,6 @@ namespace Couchbase.Configuration.Client
         private int _viewRequestTimeout;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
-        private uint _queryRequestTimeout;
         private uint _ioErrorCheckInterval;
         private uint _ioErrorThreshold;
 
@@ -63,6 +62,7 @@ namespace Couchbase.Configuration.Client
             public static uint HeartbeatConfigInterval = 10000; //ms
             public static bool EnableConfigHeartBeat = true;
             public static uint ViewRequestTimeout = 75000; //ms
+            public static uint SearchRequestTimeout = 75000; //ms
 
             //service point settings
             public static int DefaultConnectionLimit = 5; //connections
@@ -106,6 +106,7 @@ namespace Couchbase.Configuration.Client
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             ViewRequestTimeout = 75000; //ms
+            SearchRequestTimeout = Defaults.SearchRequestTimeout;
 
             //service point settings
             DefaultConnectionLimit = 5; //connections
@@ -194,6 +195,8 @@ namespace Couchbase.Configuration.Client
             EnableOperationTiming = section.EnableOperationTiming;
             DefaultOperationLifespan = section.OperationLifespan;
             QueryRequestTimeout = section.QueryRequestTimeout;
+            SearchRequestTimeout = section.SearchRequestTimeout;
+
             IOErrorCheckInterval = section.IOErrorCheckInterval;
             IOErrorThreshold = section.IOErrorThreshold;
 
@@ -323,11 +326,15 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The value must be positive.</remarks>
         /// <remarks>The default client-side value is 75 seconds.</remarks>
         /// <remarks>The default server-side timeout is zero; this is an infinite timeout.</remarks>
-        public uint QueryRequestTimeout
-        {
-            get { return _queryRequestTimeout; }
-            set { _queryRequestTimeout = value; }
-        }
+        public uint QueryRequestTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets the search request timeout.
+        /// </summary>
+        /// <value>
+        /// The search request timeout.
+        /// </value>
+        public uint SearchRequestTimeout { get; set; }
 
         /// <summary>
         /// If the client detects that a node has gone offline it will check for connectivity at this interval.

@@ -7,6 +7,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Views;
 
 namespace Couchbase.Tests.Fakes
@@ -28,9 +29,13 @@ namespace Couchbase.Tests.Fakes
 
         public IQueryClient QueryClient { get; private set; }
 
+        public ISearchClient SearchClient { get; internal set; }
+
         public IPEndPoint EndPoint { get; private set; }
 
         public IIOService Service { get; set; }
+
+        public bool IsSearchNode { get; private set; }
 
         public bool IsSecure { get; private set; }
 
@@ -39,6 +44,11 @@ namespace Couchbase.Tests.Fakes
         public Task SendAsync<T>(IOperation<T> operation)
         {
             return Service.ExecuteAsync(operation);
+        }
+
+        public ISearchQueryResult Send(SearchQuery searchQuery)
+        {
+            throw new NotImplementedException();
         }
 
         public Task SendAsync(IOperation operation)
@@ -84,6 +94,11 @@ namespace Couchbase.Tests.Fakes
         }
 
         public void CheckOnline(bool isDead)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery)
         {
             throw new NotImplementedException();
         }

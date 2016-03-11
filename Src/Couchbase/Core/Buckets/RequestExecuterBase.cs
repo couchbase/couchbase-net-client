@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Services;
+using Couchbase.Search;
 
 namespace Couchbase.Core.Buckets
 {
@@ -221,6 +222,31 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
         public virtual Task<N1QL.IQueryResult<T>> SendWithRetryAsync<T>(N1QL.IQueryRequest queryRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery" /> request to an FTS enabled node and returns the <see cref="ISearchQueryResult" />response.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="ISearchQueryResult" /> representing the response from the FTS service.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public virtual ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery" /> request to an FTS enabled node and returns the <see cref="ISearchQueryResult" />response.
+        /// </summary>
+        /// <param name="searchQuery"></param>
+        /// <returns>
+        /// A <see cref="Task{ISearchQueryResult}" /> representing the response from the FTS service.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public virtual Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
         {
             throw new NotImplementedException();
         }

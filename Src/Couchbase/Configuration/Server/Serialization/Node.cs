@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using Couchbase.Utils;
@@ -61,6 +62,9 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("ports")]
         public Ports Ports { get; set; }
+
+        [JsonProperty("services")]
+        public List<string> Services { get; set; }
 
         public IPEndPoint GetMemcachedEndPoint()
         {

@@ -29,6 +29,8 @@ namespace Couchbase.Core
         int N1QL { get; set; }
         // ReSharper disable once InconsistentNaming
         int N1QLSsl { get; set; }
+        int Fts { get; set; }
+        int FtsSsl { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IPEndPoint"/> for the KV port for this node.
@@ -79,5 +81,13 @@ namespace Couchbase.Core
         /// 	<c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
         bool IsQueryNode { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is search node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsSearchNode { get; }
     }
 }

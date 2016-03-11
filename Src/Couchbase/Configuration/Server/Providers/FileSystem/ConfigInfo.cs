@@ -153,6 +153,8 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         }
 
 
+        public bool IsSearchCapable { get; internal set; }
+
         public IServer GetDataNode()
         {
             throw new NotImplementedException();
@@ -169,6 +171,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         }
 
         public IServer GetViewNode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IServer GetSearchNode()
         {
             throw new NotImplementedException();
         }

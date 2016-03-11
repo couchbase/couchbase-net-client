@@ -277,7 +277,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 // Cleanup
 
-                var removeResult = await _bucketManager.RemoveDesignDocumentAsync("test");
+                var removeResult =  _bucketManager.RemoveDesignDocumentAsync("test").Result;
                 Assert.True(removeResult.Success);
             }
         }
@@ -355,7 +355,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 // Cleanup
 
-                var removeResult = await _bucketManager.RemoveDesignDocumentAsync("test");
+                var removeResult =  _bucketManager.RemoveDesignDocumentAsync("test").Result;
                 Assert.True(removeResult.Success);
             }
         }
@@ -407,7 +407,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 // Cleanup
 
-                var removeResult = await _bucketManager.RemoveDesignDocumentAsync("test");
+                var removeResult = _bucketManager.RemoveDesignDocumentAsync("test").Result;
                 Assert.True(removeResult.Success);
             }
         }

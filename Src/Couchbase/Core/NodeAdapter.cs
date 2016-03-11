@@ -67,6 +67,7 @@ namespace Couchbase.Core
                 IndexStreamMaint = _nodeExt.Services.IndexStreamMaint;
                 N1QL = _nodeExt.Services.N1QL;
                 N1QLSsl = _nodeExt.Services.N1QLSsl;
+                Fts = _nodeExt.Services.Fts;
             }
         }
 
@@ -108,6 +109,9 @@ namespace Couchbase.Core
 
         public int N1QLSsl { get; set; }
 
+        public int Fts { get; set; }
+
+        public int FtsSsl { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IPEndPoint" /> for the KV port for this node.
@@ -196,6 +200,17 @@ namespace Couchbase.Core
         public bool IsQueryNode
         {
             get { return N1QL > 0; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is search node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsSearchNode
+        {
+            get { return Fts > 0; }
         }
     }
 }

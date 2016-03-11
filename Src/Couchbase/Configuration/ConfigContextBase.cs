@@ -40,13 +40,16 @@ namespace Couchbase.Configuration
         protected List<IServer> ViewNodes;
         protected List<IServer> DataNodes;
         protected List<IServer> IndexNodes;
+        protected List<IServer> SearchNodes;
 
         public bool IsQueryCapable { get; set; }
         public bool IsViewCapable { get; set; }
         public bool IsDataCapable { get; set; }
         public bool IsIndexCapable { get; set; }
+        public bool IsSearchCapable { get; set; }
 
         public static ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
+        public static ConcurrentBag<FailureCountingUri> SearchUris = new ConcurrentBag<FailureCountingUri>();
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
@@ -66,6 +69,11 @@ namespace Couchbase.Configuration
         public static FailureCountingUri GetQueryUri()
         {
             return QueryUris.Where(x=>x.IsHealthy(2)).GetRandom();
+        }
+
+        public static FailureCountingUri GetSearchUri()
+        {
+            return SearchUris.Where(x => x.IsHealthy(2)).GetRandom();
         }
 
         protected ITypeTranscoder Transcoder { get; private set; }
@@ -327,6 +335,15 @@ namespace Couchbase.Configuration
         public IServer GetViewNode()
         {
             return ViewNodes.Where(x => !x.IsDown).GetRandom();
+        }
+
+        /// <summary>
+        /// Gets a search node from the servers collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetSearchNode()
+        {
+            return SearchNodes.Where(x => !x.IsDown).GetRandom();
         }
 
         /// <summary>

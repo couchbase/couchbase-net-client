@@ -17,6 +17,7 @@
  using Couchbase.IO.Operations;
  using Couchbase.Management;
  using Couchbase.N1QL;
+ using Couchbase.Search;
  using Couchbase.Views;
  using Couchbase.Utils;
 
@@ -2246,6 +2247,20 @@ namespace Couchbase
         }
 
         public ILookupInBuilder<TDocument> LookupIn<TDocument>(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        #endregion
+
+        #region FTS (Not Supported)
+
+        public ISearchQueryResult Query(SearchQuery query1)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<ISearchQueryResult> QueryAsync(SearchQuery query1)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

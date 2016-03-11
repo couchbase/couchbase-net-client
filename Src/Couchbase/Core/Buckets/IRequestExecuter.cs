@@ -6,6 +6,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Views;
 
 namespace Couchbase.Core.Buckets
@@ -87,6 +88,20 @@ namespace Couchbase.Core.Buckets
         /// <param name="queryRequest">The <see cref="IQueryRequest"/> object to send to the server.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
         Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest);
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery"/> request to an FTS enabled node and returns the <see cref="ISearchQueryResult"/>response.
+        /// </summary>
+        /// <param name="searchQuery">The <see cref="SearchQuery"/> object representing the search request with an index, a query and parameters.</param>
+        /// <returns>A <see cref="ISearchQueryResult"/> representing the response from the FTS service.</returns>
+        ISearchQueryResult SendWithRetry(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery"/> request to an FTS enabled node and returns the <see cref="ISearchQueryResult"/>response.
+        /// </summary>
+        /// <param name="searchQuery">The <see cref="SearchQuery"/> object representing the search request with an index, a query and parameters.</param>
+        /// <returns>A <see cref="Task{ISearchQueryResult}"/> representing the response from the FTS service.</returns>
+        Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery);
 
         /// <summary>
         /// Sends an operation to the server while observing it's durability requirements

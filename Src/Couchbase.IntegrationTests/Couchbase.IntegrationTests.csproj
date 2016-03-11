@@ -73,6 +73,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
+    <Compile Include="CouchbaseBucket_Search_Tests.cs" />
     <Compile Include="CouchbaseBucket_SubDocument_Tests.cs" />
     <Compile Include="CouchbaseBucket_N1QlQuery_Tests.cs" />
     <Compile Include="CouchbaseBucket_ViewQuery_Tests.cs" />

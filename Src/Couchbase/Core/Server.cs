@@ -19,6 +19,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Timer = System.Timers.Timer;
@@ -51,6 +52,7 @@ namespace Couchbase.Core
             this(ioService,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
+                    new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
@@ -60,11 +62,13 @@ namespace Couchbase.Core
                 this(ioService,
                     new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
                     new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration, queryCache),
+                    new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
-        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, INodeAdapter nodeAdapter,
+        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, ISearchClient searchClient,
+            INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
             if (ioService != null)
@@ -85,10 +89,12 @@ namespace Couchbase.Core
             IsQueryNode = _nodeAdapter.N1QL > 0;
             IsIndexNode = _nodeAdapter.IndexAdmin > 0;
             IsViewNode = _nodeAdapter.Views > 0;
+            IsSearchNode = _nodeAdapter.IsSearchNode;
 
             //View and query clients
             ViewClient = viewClient;
             QueryClient = queryClient;
+            SearchClient = searchClient;
 
             CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
             CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
@@ -165,7 +171,7 @@ namespace Couchbase.Core
         /// </value>
         public bool IsViewNode { get; private set; }
 
-
+        public bool IsSearchNode { get; private set; }
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
@@ -235,6 +241,8 @@ namespace Couchbase.Core
         /// The view client.
         /// </value>
         public IViewClient ViewClient { get; private set; }
+
+        public ISearchClient SearchClient { get; private set; }
 
         // ReSharper disable once InconsistentNaming
         public int IOErrorCount
@@ -476,6 +484,19 @@ namespace Couchbase.Core
                 Exception = new NodeUnavailableException(msg),
                 Success = false,
                 Status = QueryStatus.Fatal
+            };
+        }
+
+        ISearchQueryResult HandleNodeUnavailable(IFtsQuery query)
+        {
+            var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
+                    _clientConfiguration.NodeAvailableCheckInterval);
+
+            return new SearchQueryResult
+            {
+                Exception = new NodeUnavailableException(msg),
+                Success = false,
+                Status = SearchStatus.Failed
             };
         }
 
@@ -749,6 +770,58 @@ namespace Couchbase.Core
                 }
             }
             return result;
+        }
+
+        public async Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery)
+        {
+            ISearchQueryResult searchResult = null;
+            if (_isDown)
+            {
+                searchResult = HandleNodeUnavailable(searchQuery.Query);
+            }
+            else
+            {
+                try
+                {
+                    searchResult = await SearchClient.QueryAsync(searchQuery);
+                }
+                catch (Exception e)
+                {
+                    MarkDead();
+                    searchResult = new SearchQueryResult
+                    {
+                        Exception = e,
+                        Success = false
+                    };
+                }
+            }
+            return searchResult;
+        }
+
+        public ISearchQueryResult Send(SearchQuery searchQuery)
+        {
+            ISearchQueryResult searchResult = null;
+            if (_isDown)
+            {
+                searchResult = HandleNodeUnavailable(searchQuery.Query);
+            }
+            else
+            {
+                try
+                {
+                    searchResult = SearchClient.Query(searchQuery);
+                }
+                catch (Exception e)
+                {
+                    MarkDead();
+                    searchResult = new SearchQueryResult
+                    {
+                        Exception = e,
+                        Success = false
+                    };
+                }
+            }
+            return searchResult;
         }
 
         public void MarkDead()

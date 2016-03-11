@@ -87,7 +87,24 @@
     <Compile Include="N1Ql\N1qlRyowTests.cs" />
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Search\TermQueryTests.cs" />
+    <Compile Include="Search\SearchClientTests.cs" />
+    <Compile Include="Search\SearchParamsTests.cs" />
     <Compile Include="StringExtensionTests.cs" />
+    <Compile Include="Search\FtsDataMapperTests.cs" />
+    <Compile Include="Search\SearchQueryRequestTests.cs" />
+    <Compile Include="Search\StringQueryTests.cs" />
+    <Compile Include="Search\RegexpQueryTests.cs" />
+    <Compile Include="Search\PrefixQueryTests.cs" />
+    <Compile Include="Search\MatchQueryTests.cs" />
+    <Compile Include="Search\MatchPhraseQueryTests.cs" />
+    <Compile Include="Search\NumericRangeQueryTests.cs" />
+    <Compile Include="Search\DateRangeQueryTests.cs" />
+    <Compile Include="Search\DisjunctionQueryTests.cs" />
+    <Compile Include="Search\ConjunctionQueryTests.cs" />
+    <Compile Include="Search\IBucket_Search_Tests.cs" />
+    <Compile Include="Search\SearchFacetTests.cs" />
+    <Compile Include="Search\BooleanQueryTests.cs" />
     <Compile Include="SubdocExtensionTests.cs" />
     <Compile Include="SubDocumentAPITests.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
@@ -105,7 +122,11 @@
       <Name>Couchbase</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Search\search-response-success.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>

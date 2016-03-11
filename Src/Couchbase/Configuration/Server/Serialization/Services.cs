@@ -9,6 +9,9 @@ namespace Couchbase.Configuration.Server.Serialization
 {
     public class Services
     {
+        [JsonProperty("fts")]
+        public int Fts { get; set; }
+
         [JsonProperty("mgmt")]
         public int Mgmt { get; set; }
 

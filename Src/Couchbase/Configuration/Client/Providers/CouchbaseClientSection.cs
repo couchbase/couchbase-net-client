@@ -215,6 +215,18 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Sets the timeout for each FTS request.
+        /// </summary>
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        [ConfigurationProperty("searchRequestTimeout", DefaultValue = "75000", IsRequired = false)]
+        public uint SearchRequestTimeout
+        {
+            get { return (uint)this["searchRequestTimeout"]; }
+            set { this["searchRequestTimeout"] = value; }
+        }
+
+        /// <summary>
         /// Gets or sets a Boolean value that determines whether 100-Continue behavior is used.
         /// </summary>
         /// <remarks>The default is false.</remarks>

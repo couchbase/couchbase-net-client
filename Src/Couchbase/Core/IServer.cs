@@ -6,6 +6,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Views;
 
 namespace Couchbase.Core
@@ -55,6 +56,14 @@ namespace Couchbase.Core
         /// </value>
         bool IsViewNode { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is an FTS node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsSearchNode { get; }
+
         bool IsSecure { get; }
 
         void MarkDead();
@@ -67,9 +76,29 @@ namespace Couchbase.Core
 
         IQueryClient QueryClient { get; }
 
+        /// <summary>
+        /// Gets the <see cref="ISearchClient"/> for this node if <see cref="IsSearchNode"/> is <c>true</c>.
+        /// </summary>
+        /// <value>
+        /// The search client.
+        /// </value>
+        ISearchClient SearchClient { get; }
+
         IPEndPoint EndPoint { get; }
 
         void CheckOnline(bool isDead);
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery"/>  request to a Couchbase node that has FTS service configured asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="Task{ISearchQueryResult}"/> representing the response from the FTS service.</returns>
+        Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery"/>  request to a Couchbase node that has FTS service configured asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="ISearchQueryResult"/> representing the response from the FTS service.</returns>
+        ISearchQueryResult Send(SearchQuery searchQuery);
 
         /// <summary>
         /// Sends a key/value operation that contains no body to it's mapped server asynchronously.

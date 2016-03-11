@@ -48,6 +48,7 @@ namespace Couchbase.Configuration
                 {
                     Log.InfoFormat("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
 
+                    var searchUris = new ConcurrentBag<FailureCountingUri>();
                     var queryUris = new ConcurrentBag<FailureCountingUri>();
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                     var servers = new Dictionary<IPAddress, IServer>();
@@ -58,6 +59,12 @@ namespace Couchbase.Configuration
                         {
                             Log.InfoFormat("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
                             IServer server;
+                            if (adapter.IsSearchNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                searchUris.Add(uri);
+                            }
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
@@ -95,6 +102,7 @@ namespace Couchbase.Configuration
 
                     //for caching uri's
                     Interlocked.Exchange(ref QueryUris, queryUris);
+                    Interlocked.Exchange(ref SearchUris, searchUris);
 
                     var old = Interlocked.Exchange(ref Servers, servers);
                     Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
@@ -143,6 +151,7 @@ namespace Couchbase.Configuration
                 Lock.EnterWriteLock();
                 Log.Info(m => m("o2-Creating the Servers list using rev#{0}", BucketConfig.Rev));
 
+                var searchUris = new ConcurrentBag<FailureCountingUri>();
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
@@ -158,15 +167,27 @@ namespace Couchbase.Configuration
                             server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                             supportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             SupportsEnhancedDurability = supportsEnhancedDurability;
-                            if (server.IsQueryNode)
+                            if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
                                 uri.ConfigureServicePoint(ClientConfig);
                                 queryUris.Add(uri);
                             }
+                            if (adapter.IsSearchNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                searchUris.Add(uri);
+                            }
                         }
                         else
                         {
+                            if (adapter.IsSearchNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                uri.ConfigureServicePoint(ClientConfig);
+                                searchUris.Add(uri);
+                            }
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
@@ -209,6 +230,7 @@ namespace Couchbase.Configuration
 
                 //for caching uri's
                 Interlocked.Exchange(ref QueryUris, queryUris);
+                Interlocked.Exchange(ref SearchUris, searchUris);
 
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
                 var old = Interlocked.Exchange(ref Servers, servers);
@@ -237,6 +259,7 @@ namespace Couchbase.Configuration
             {
                 Log.Info(m => m("o3-Creating the Servers list using rev#{0}", BucketConfig.Rev));
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
+                var searchUris = new ConcurrentBag<FailureCountingUri>();
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
@@ -246,6 +269,12 @@ namespace Couchbase.Configuration
                     try
                     {
                         IServer server;
+                        if (adapter.IsSearchNode)
+                        {
+                            var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                            uri.ConfigureServicePoint(ClientConfig);
+                            searchUris.Add(uri);
+                        }
                         if (adapter.IsQueryNode)
                         {
                             var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
@@ -283,6 +312,7 @@ namespace Couchbase.Configuration
 
                 //for caching uri's
                 Interlocked.Exchange(ref QueryUris, queryUris);
+                Interlocked.Exchange(ref SearchUris, searchUris);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
@@ -349,6 +379,12 @@ namespace Couchbase.Configuration
             Interlocked.Exchange(ref IndexNodes, newIndexNodes);
             IsIndexCapable = ViewNodes.Count > 0;
 
+            var newSearchNodes = servers
+                .Where(x => x.Value.IsSearchNode)
+                .Select(x => x.Value)
+                .ToList();
+            Interlocked.Exchange(ref SearchNodes, newSearchNodes);
+            IsSearchCapable = SearchNodes.Count > 0;
         }
 
         internal List<IServer> GetServers()
@@ -360,7 +396,6 @@ namespace Couchbase.Configuration
         {
             return ((VBucketKeyMapper) KeyMapper).GetVBuckets();
         }
-
 
         /// <summary>
         /// Gets the query cache for the current instance. Each <see cref="IBucket" /> implementation instance has it's own for caching query plans.

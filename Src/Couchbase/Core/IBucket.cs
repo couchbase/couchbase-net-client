@@ -6,6 +6,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
 using Couchbase.N1QL;
+using Couchbase.Search;
 using Couchbase.Views;
 
 namespace Couchbase.Core
@@ -1733,6 +1734,10 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> MutateIn<TDocument>(string key);
 
         ILookupInBuilder<TDocument> LookupIn<TDocument>(string key);
+
+        ISearchQueryResult Query(SearchQuery searchQuery);
+
+        Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery);
     }
 }
 
