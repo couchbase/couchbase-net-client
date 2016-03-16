@@ -58,10 +58,10 @@ namespace Couchbase
             switch (Status)
             {
                 case ResponseStatus.VBucketBelongsToAnotherServer:
-                case ResponseStatus.NodeUnavailable:
                     return true;
                 case ResponseStatus.ClientFailure:
                     return IsClientFailureRetriable();
+                case ResponseStatus.NodeUnavailable:
                 case ResponseStatus.Success:
                 case ResponseStatus.KeyNotFound:
                 case ResponseStatus.KeyExists:
