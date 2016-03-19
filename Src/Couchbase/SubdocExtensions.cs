@@ -192,7 +192,7 @@ namespace Couchbase
         /// <param name="createParents">If true, create parents along the path if they don't exist.</param>
         /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
-        public static IMutateInBuilder<TDocument> PushBack<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
+        public static IMutateInBuilder<TDocument> ArrayAppend<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
             Expression<Func<TDocument, TContent>> path, TElement value, bool createParents)
             where TContent : ICollection<TElement>
         {
@@ -205,7 +205,7 @@ namespace Couchbase
                 throw new ArgumentNullException("path");
             }
 
-            return builder.PushBack(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
+            return builder.ArrayAppend(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
         }
 
         /// <summary>
@@ -221,7 +221,7 @@ namespace Couchbase
         /// <param name="createParents">If true, create parents along the path if they don't exist.</param>
         /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
-        public static IMutateInBuilder<TDocument> PushFront<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
+        public static IMutateInBuilder<TDocument> ArrayPrepend<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
             Expression<Func<TDocument, TContent>> path, TElement value, bool createParents)
             where TContent : ICollection<TElement>
         {
@@ -234,7 +234,7 @@ namespace Couchbase
                 throw new ArgumentNullException("path");
             }
 
-            return builder.PushFront(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
+            return builder.ArrayPrepend(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
         }
 
         /// <summary>
@@ -276,7 +276,7 @@ namespace Couchbase
         /// <param name="createParents">If true, create parents along the path if they don't exist.</param>
         /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
-        public static IMutateInBuilder<TDocument> AddUnique<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
+        public static IMutateInBuilder<TDocument> ArrayAddUnique<TDocument, TContent, TElement>(this IMutateInBuilder<TDocument> builder,
             Expression<Func<TDocument, TContent>> path, TElement value, bool createParents)
             where TContent : ICollection<TElement>
         {
@@ -289,7 +289,7 @@ namespace Couchbase
                 throw new ArgumentNullException("path");
             }
 
-            return builder.AddUnique(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
+            return builder.ArrayAddUnique(ParsePath(builder as ITypeSerializerProvider, path), value, createParents);
         }
 
         /// <summary>

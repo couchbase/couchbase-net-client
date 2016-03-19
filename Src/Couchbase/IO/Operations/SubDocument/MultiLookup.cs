@@ -5,13 +5,14 @@ using Couchbase.Core;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations.SubDocument
 {
     internal class MultiLookup<T> : OperationBase<T>
     {
         private readonly LookupInBuilder<T> _builder;
-        private readonly IList<SubDocOperationResult> _lookupCommands = new List<SubDocOperationResult>();
+        private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
 
         public MultiLookup(string key, LookupInBuilder<T> builder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
@@ -50,7 +51,7 @@ namespace Couchbase.IO.Operations.SubDocument
         public override byte[] CreateBody()
         {
             var buffer = new List<byte>();
-            foreach (var lookup in _builder.GetEnumerator())
+            foreach (var lookup in _builder)
             {
                 var opcode = (byte)lookup.OpCode;
                 var flags = new byte();//empty for lookups
@@ -99,7 +100,8 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 var command = _lookupCommands[commandIndex++];
                 command.Status = (ResponseStatus)Converter.ToUInt16(response, statusOffset);
-                command.Value = Transcoder.Serializer.Deserialize<object>(payLoad, 0, payLoad.Length);
+                command.ValueIsJson = payLoad.IsJson(0, bodyLength);
+                command.Bytes = payLoad;
 
                 statusOffset = valueOffset + bodyLength;
                 valueLengthOffset = statusOffset + 2;
@@ -121,7 +123,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<SubDocOperationResult>) GetValue();
+                result.Value = (IList<OperationSpec>) GetValue();
 
                 //clean up and set to null
                 if (!result.IsNmv())

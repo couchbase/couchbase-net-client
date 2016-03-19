@@ -159,20 +159,6 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest()
-        {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var queryRequest = new QueryRequest()
-                    .Statement("SELECT * FROM `beer-sample` LIMIT 10");
-
-                var result = await bucket.QueryAsync<dynamic>(queryRequest);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(10, result.Rows.Count);
-            }
-        }
-
-        [Test]
         public async void Test_QueryAsync_With_QueryRequest_With_PositionalParameters()
         {
             using (var bucket = _cluster.OpenBucket())

@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations.SubDocument
 {
     internal class MultiMutation<T> : OperationBase<T>
     {
         private readonly MutateInBuilder<T> _builder;
-        private readonly IList<SubDocOperationResult> _lookupCommands = new List<SubDocOperationResult>();
+        private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
 
         public MultiMutation(string key, MutateInBuilder<T> mutateInBuilder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
@@ -52,12 +52,12 @@ namespace Couchbase.IO.Operations.SubDocument
         public override byte[] CreateBody()
         {
             var buffer = new List<byte>();
-            foreach (var mutate in _builder.GetEnumerator())
+            foreach (var mutate in _builder)
             {
                 var opcode = (byte)mutate.OpCode;
                 var flags = (byte)(mutate.CreateParents ? 0x01 : 0x00);
                 var pathLength = Encoding.UTF8.GetByteCount(mutate.Path);
-                var fragment = mutate.Value == null ? new byte[0] : Transcoder.Serializer.Serialize(mutate.Value);
+                var fragment = mutate.Value == null ? new byte[0] : GetBytes(mutate);
 
                 var spec = new byte[pathLength + 8];
                 Converter.FromByte(opcode, spec, 0);
@@ -73,6 +73,16 @@ namespace Couchbase.IO.Operations.SubDocument
             return buffer.ToArray();
         }
 
+        byte[] GetBytes(OperationSpec spec)
+        {
+            var bytes = Transcoder.Serializer.Serialize(spec.Value);
+            if (spec.RemoveBrackets)
+            {
+                return bytes.StripBrackets();
+            }
+            return bytes;
+        }
+
         public override IOperationResult<T> GetResultWithValue()
         {
             var result = new DocumentFragment<T>(_builder);
@@ -84,7 +94,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<SubDocOperationResult>)GetValue();
+                result.Value = (IList<OperationSpec>)GetValue();
 
                 //clean up and set to null
                 if (!result.IsNmv())
@@ -110,9 +120,20 @@ namespace Couchbase.IO.Operations.SubDocument
             return result;
         }
 
+        public override void ReadExtras(byte[] buffer)
+        {
+            if (buffer.Length >= 40 && VBucket != null)
+            {
+                var uuid = Converter.ToInt64(buffer, 24);
+                var seqno = Converter.ToInt64(buffer, 32);
+                MutationToken = new MutationToken((short)VBucket.Index, uuid, seqno);
+            }
+        }
+
         public override T GetValue()
         {
             var response = Data.ToArray();
+            ReadExtras(response);
 
             //all mutations successful
             if(response.Length == HeaderLength) return (T)_lookupCommands;
@@ -136,7 +157,7 @@ namespace Couchbase.IO.Operations.SubDocument
                     {
                         var payLoad = new byte[valueLength];
                         System.Buffer.BlockCopy(response, valueOffset, payLoad, 0, valueLength);
-                        command.Value = Transcoder.Serializer.Deserialize<object>(payLoad, 0, payLoad.Length);
+                        command.Bytes = payLoad;
                     }
                     indexOffset = valueOffset + valueLength;
                     statusOffset = indexOffset + 1;
@@ -144,7 +165,7 @@ namespace Couchbase.IO.Operations.SubDocument
                     valueOffset = indexOffset + 7;
                 }
 
-                if (valueOffset > response.Length) break;
+                if (valueOffset + Header.ExtrasLength > response.Length) break;
             }
             return (T)_lookupCommands;
         }

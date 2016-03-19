@@ -3258,7 +3258,6 @@ namespace Couchbase
                 string.Equals(Name, other.Name);
         }
 
-
 #if DEBUG
         /// <summary>
         /// Finalizer for this <see cref="CouchbaseBucket"/> instance if not shutdown and disposed gracefully.
@@ -3283,13 +3282,77 @@ namespace Couchbase
 
         public IDocumentFragment<T> Invoke<T>(IMutateInBuilder<T> builder)
         {
+            var theBuilder = (MutateInBuilder<T>) builder;
+
+            //optimize for the single operation
+            if (builder.Count == 1)
+            {
+                SubDocSingularMutationBase<T> singleMutate = null;
+                var spec = theBuilder.FirstSpec();
+                switch (spec.OpCode)
+                {
+                    case OperationCode.SubArrayAddUnique:
+                        singleMutate = new SubArrayAddUnique<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubArrayInsert:
+                        singleMutate = new SubArrayInsert<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubArrayPushFirst:
+                        singleMutate = new SubArrayPushFirst<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubArrayPushLast:
+                        singleMutate = new SubArrayPushLast<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubCounter:
+                        singleMutate = new SubCounter<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubDelete:
+                        singleMutate = new SubDocDelete<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubDictAdd:
+                        singleMutate = new SubDocDictAdd<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubDictUpsert:
+                        singleMutate = new SubDocDictUpsert<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubReplace:
+                        singleMutate = new SubDocReplace<T>(theBuilder, theBuilder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    default:
+                        throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
+                }
+                return (DocumentFragment<T>)_requestExecuter.SendWithRetry(singleMutate);
+            }
+
             var multiMutate = new MultiMutation<T>(builder.Key, (MutateInBuilder<T>) builder, null, _transcoder, _operationLifespanTimeout);
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiMutate);
         }
 
         public IDocumentFragment<T> Invoke<T>(ILookupInBuilder<T> builder)
         {
-            var multiLookup = new MultiLookup<T>(builder.Key, (LookupInBuilder<T>) builder, null, _transcoder, _operationLifespanTimeout);
+            var theBuilder = (LookupInBuilder<T>) builder;
+
+            //optimize for the single operation
+            if (theBuilder.Count == 1)
+            {
+                SubDocSingularLookupBase<T> singleLookup = null;
+                var spec = theBuilder.FirstSpec();
+                switch (spec.OpCode)
+                {
+                    case OperationCode.SubGet:
+                        singleLookup = new SubGet<T>(theBuilder, theBuilder.Key, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    case OperationCode.SubExist:
+                        singleLookup = new SubExists<T>(theBuilder, theBuilder.Key, null, _transcoder, _operationLifespanTimeout);
+                        break;
+                    default:
+                        throw new NotSupportedException("Opcode is not supported for LookupInBuilder.");
+                }
+                return (DocumentFragment<T>)_requestExecuter.SendWithRetry(singleLookup);
+            }
+
+            //this is a multi operation
+            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
         }
 

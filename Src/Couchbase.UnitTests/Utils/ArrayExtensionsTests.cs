@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core.Serialization;
 using Couchbase.Utils;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.Utils
+namespace Couchbase.UnitTests.Utils
 {
     [TestFixture]
     public class ArrayExtensionsTests
@@ -163,6 +161,71 @@ namespace Couchbase.Tests.Utils
 
             Assert.AreEqual(null, random1);
             Assert.AreEqual(random1, random2);
+        }
+
+        [Test]
+        public void StripBrackets_IntList_RemovesBrackets()
+        {
+            //arrange
+            var serializer = new DefaultSerializer();
+            object values = new List<int> {1, 2, 3, 4};
+
+            //act
+            var valuesBytes = serializer.Serialize(values);
+            var actual = valuesBytes.StripBrackets();
+
+            //assert
+            var expected = new byte[] { 49, 44, 50, 44, 51, 44, 52 };
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void StripBrackets_StringList_RemovesBrackets()
+        {
+            //arrange
+            var serializer = new DefaultSerializer();
+            object values = new List<string> { "1", "2", "3", "4" };
+
+            //act
+            var valuesBytes = serializer.Serialize(values);
+            var actual = valuesBytes.StripBrackets();
+
+            //assert
+            var expected = new byte[] {0x22, 0x31, 0x22, 0x2c, 0x22, 0x32, 0x22, 0x2c, 0x22, 0x33, 0x22, 0x2c, 0x22, 0x34, 0x22};
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void StripBrackets_EmptyList_RemovesBrackets()
+        {
+            //arrange
+            var serializer = new DefaultSerializer();
+            object values = new List<int> { };
+
+            //act
+            var valuesBytes = serializer.Serialize(values);
+            var actual = valuesBytes.StripBrackets();
+
+            //assert
+            var expected = new byte[] { };
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void StripBrackets_WhenString_DoesNothing()
+        {
+            //arrange
+            var serializer = new DefaultSerializer();
+            object values = "howdy pardner";
+
+            //act
+            var valuesBytes = serializer.Serialize(values);
+            var actual = valuesBytes.StripBrackets();
+
+            //assert
+            var expected = new byte[] {
+                0x22, 0x68, 0x6f, 0x77, 0x64, 0x79, 0x20, 0x70, 0x61, 0x72, 0x64, 0x6e, 0x65, 0x72, 0x22 };
+            Assert.AreEqual(expected, actual);
         }
     }
 }

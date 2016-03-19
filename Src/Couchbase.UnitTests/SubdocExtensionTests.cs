@@ -178,45 +178,45 @@ namespace Couchbase.UnitTests
         }
 
         [Test]
-        public void PushBack_WithExpression_CallsPushBackWithString()
+        public void ArrayAppend_WithExpression_CallsPushBackWithString()
         {
             // Arrange
 
             var fakeValue = "abc";
 
             var builder = new Mock<IMutateInBuilder<MyDoc>>();
-            builder.Setup(m => m.PushBack(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
+            builder.Setup(m => m.ArrayAppend(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
                 .Returns((string path, object value, bool createParents) => builder.Object);
             builder.As<ITypeSerializerProvider>().Setup(m => m.Serializer).Returns(new DefaultSerializer());
 
             // Act
 
-            builder.Object.PushBack(p => p.Array, fakeValue, true);
+            builder.Object.ArrayAppend(p => p.Array, fakeValue, true);
 
             // Assert
 
-            builder.Verify(m => m.PushBack("`array`", fakeValue, true), Times.Once);
+            builder.Verify(m => m.ArrayAppend("`array`", fakeValue, true), Times.Once);
         }
 
         [Test]
-        public void PushFront_WithExpression_CallsPushFrontWithString()
+        public void ArrayPrepend_WithExpression_CallsPushFrontWithString()
         {
             // Arrange
 
             var fakeValue = "abc";
 
             var builder = new Mock<IMutateInBuilder<MyDoc>>();
-            builder.Setup(m => m.PushFront(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
+            builder.Setup(m => m.ArrayPrepend(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
                 .Returns((string path, object value, bool createParents) => builder.Object);
             builder.As<ITypeSerializerProvider>().Setup(m => m.Serializer).Returns(new DefaultSerializer());
 
             // Act
 
-            builder.Object.PushFront(p => p.Array, fakeValue, true);
+            builder.Object.ArrayPrepend(p => p.Array, fakeValue, true);
 
             // Assert
 
-            builder.Verify(m => m.PushFront("`array`", fakeValue, true), Times.Once);
+            builder.Verify(m => m.ArrayPrepend("`array`", fakeValue, true), Times.Once);
         }
 
         [Test]
@@ -248,17 +248,17 @@ namespace Couchbase.UnitTests
             var fakeValue = "abc";
 
             var builder = new Mock<IMutateInBuilder<MyDoc>>();
-            builder.Setup(m => m.AddUnique(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
+            builder.Setup(m => m.ArrayAddUnique(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<bool>()))
                 .Returns((string path, object value, bool createParents) => builder.Object);
             builder.As<ITypeSerializerProvider>().Setup(m => m.Serializer).Returns(new DefaultSerializer());
 
             // Act
 
-            builder.Object.AddUnique(p => p.Array, fakeValue, true);
+            builder.Object.ArrayAddUnique(p => p.Array, fakeValue, true);
 
             // Assert
 
-            builder.Verify(m => m.AddUnique("`array`", fakeValue, true), Times.Once);
+            builder.Verify(m => m.ArrayAddUnique("`array`", fakeValue, true), Times.Once);
         }
 
         [Test]

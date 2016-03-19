@@ -143,9 +143,46 @@ namespace Couchbase.Utils
             }
         }
 
+        /// <summary>
+        /// Converts an array to a JSON string.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <returns></returns>
         public static string ToJson(this IEnumerable array)
         {
             return JsonConvert.SerializeObject(array);
+        }
+
+        /// <summary>
+        /// Converts an array to a JSON string and optionally strips the begining and ending brackets.
+        /// </summary>
+        /// <param name="array">The array.</param>
+        /// <param name="stripBrackets">if set to <c>true</c> the brackets '[' and ']' will be removed.</param>
+        /// <returns>A JSON string array.</returns>
+        public static string ToJson(this IEnumerable array, bool stripBrackets)
+        {
+            if (stripBrackets)
+            {
+                return ToJson(array).TrimStart('[').TrimEnd(']');
+            }
+            return ToJson(array);
+        }
+
+        public static byte[] StripBrackets(this byte[] theArray)
+        {
+            if (theArray.Length > 1 && theArray[0] == 0x5b && theArray[theArray.Length-1] == 0x5d)
+            {
+                var newArray = new byte[theArray.Length - 2];
+                Buffer.BlockCopy(theArray, 1, newArray, 0, theArray.Length - 2);
+                return newArray;
+            }
+            return theArray;
+        }
+
+        public static bool IsJson(this byte[] theArray, int startIndex, int endIndex)
+        {
+            return (theArray.Length > 1 && theArray[startIndex] == 0x5b && theArray[endIndex] == 0x5d) ||
+                   (theArray.Length > 1 && theArray[startIndex] == 0x7b && theArray[endIndex] == 0x7d);
         }
     }
 }

@@ -79,13 +79,12 @@ namespace Couchbase.UnitTests.Core
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
-        public void AddUnique_ThrowsArgumentException_WhenPathIsEmpty(string path)
+        public void ArrayAddUnique_DoesNotThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.AddUnique(path, 0);
+            builder.ArrayAddUnique(path, 0);
         }
 
         [Test]
@@ -105,13 +104,24 @@ namespace Couchbase.UnitTests.Core
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
-        public void PushBack_ThrowsArgumentException_WhenPathIsEmpty(string path)
+        public void ArrayAppend_DoesNotThrowArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(),  "thekey");
 
-            builder.PushBack(path, 0, false);
+            builder.ArrayAppend(path, 0, false);
+        }
+
+        [Test]
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public void ArrayPrepend_DoesNotThrowArgumentException_WhenPathIsEmpty(string path)
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.ArrayPrepend(path, 0, false);
         }
     }
 }

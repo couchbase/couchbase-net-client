@@ -280,7 +280,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         }
 
         /// <summary>
-        /// Un-registers an observer, which is either a Couchbase or Memcached Bucket, from the Provider.
+        /// Un-registers an observer, which is either a Couchbase or Memcached Bucket, from the provider.
         /// </summary>
         /// <param name="observer"></param>
         public override void UnRegisterObserver(IConfigObserver observer)

@@ -23,7 +23,7 @@ namespace Couchbase
             }
 
             _sourceTypeSerializerProvider = sourceTypeSerializerProvider;
-            Value = new List<SubDocOperationResult>();
+            Value = new List<OperationSpec>();
         }
 
         public ITypeSerializer Serializer
@@ -52,7 +52,8 @@ namespace Couchbase
         /// <remarks>If no value exists, the default value for the <see cref="Type"/> will be returned.</remarks>
         public TContent Content<TContent>(string path)
         {
-            return (TContent) Value.Single(x => x.Path.Equals(path)).Value;
+            var spec = Value.Single(x => x.Path.Equals(path));
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes, 0, spec.Bytes.Length);
         }
 
         /// <summary>
@@ -64,7 +65,8 @@ namespace Couchbase
         /// <remarks>If no value exists, the default value for the <see cref="Type"/> will be returned.</remarks>
         public TContent Content<TContent>(int index)
         {
-            return (TContent) Value[index].Value;
+            var spec = Value[index];
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes, 0, spec.Bytes.Length);
         }
 
         /// <summary>
@@ -137,7 +139,7 @@ namespace Couchbase
         /// An adapter between <see cref="IOperationResult{T}"/> and the sub document API.
         /// </summary>
         /// <remarks>For internal use only.</remarks>
-        internal IList<SubDocOperationResult> Value { get; set; }
+        internal IList<OperationSpec> Value { get; set; }
     }
 }
 
