@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 
 namespace Couchbase.N1QL
 {
+    [DataContract]
     public class Error
     {
         [DataMember(Name = "msg")]
