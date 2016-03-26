@@ -69,6 +69,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BucketManagerTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Core\MutateInBuilderTests.cs" />
     <Compile Include="Core\IO\Operations\MultiLookupTests.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="CouchbaseBucketTests.cs" />
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringExtensionTests.cs" />
     <Compile Include="SubdocExtensionTests.cs" />
     <Compile Include="SubDocumentAPITests.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />

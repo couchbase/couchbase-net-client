@@ -184,6 +184,28 @@ namespace Couchbase.Utils
             return (theArray.Length > 1 && theArray[startIndex] == 0x5b && theArray[endIndex] == 0x5d) ||
                    (theArray.Length > 1 && theArray[startIndex] == 0x7b && theArray[endIndex] == 0x7d);
         }
+
+        /// <summary>Creates a string from a list with each value delimited by the value of <see cref="delimiter"/> and
+        /// each value "N1QL escaped" by backticks "`".
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="theArray">The array to construct the string from.</param>
+        /// <param name="delimiter">The value to delimit each value by.</param>
+        /// <returns>A string of the values of the array delimited by the <see cref="delimiter"/> and enclosed with backticks.</returns>
+        // ReSharper disable once InconsistentNaming
+        public static string ToDelimitedN1QLString<T>(this T[] theArray, char delimiter)
+        {
+            var theString = string.Empty;
+            for (var i = 0; i < theArray.Length; i++)
+            {
+                theString += theArray[i].ToString().N1QlEscape();
+                if (i != theArray.Length - 1)
+                {
+                    theString += string.Concat(delimiter, " ");
+                }
+            }
+            return theString;
+        }
     }
 }
 

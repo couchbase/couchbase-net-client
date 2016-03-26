@@ -260,6 +260,12 @@
     <Compile Include="Management\CompositeResult.cs" />
     <Compile Include="IO\Services\MultiplexingIOService.cs" />
     <Compile Include="IO\SyncState.cs" />
+    <Compile Include="Management\Indexes\IndexAlreadyExistsException.cs" />
+    <Compile Include="Management\Indexes\IndexDoesNotExistException.cs" />
+    <Compile Include="Management\Indexes\IndexInfo.cs" />
+    <Compile Include="Management\Indexes\IndexesNotReadyException.cs" />
+    <Compile Include="Management\Indexes\IndexResult.cs" />
+    <Compile Include="Management\Indexes\IndexType.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />

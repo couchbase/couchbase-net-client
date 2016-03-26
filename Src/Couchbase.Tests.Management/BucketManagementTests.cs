@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 
@@ -250,5 +248,44 @@ namespace Couchbase.Tests.Management
                 }
             }
         }
+
+#region Indexing API
+
+        [Test]
+        public void BuildDeferredIndexes_WhenSucceed_Returns_Success()
+        {
+            var configuration = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                }
+            };
+            using (var cluster = new Cluster(configuration))
+            {
+                using (var bucket = cluster.OpenBucket("beer-sample"))
+                {
+                    var manager = bucket.CreateManager("Administrator", "");
+                    Assert.IsTrue(manager.DropIndex("index1").Success);
+                    Assert.IsTrue(manager.DropIndex("index2").Success);
+
+                    Assert.IsTrue(manager.CreateIndex("index1", true, "name", "id").Success);
+                    Assert.IsTrue(manager.CreateIndex("index2", true, "name", "id").Success);
+
+                    var indexes = manager.ListIndexes();
+                    Assert.AreEqual("deferred", indexes.First(x => x.Name == "index1").State);
+                    Assert.AreEqual("deferred", indexes.First(x => x.Name == "index2").State);
+
+                    var buildResults = manager.BuildDeferredIndexes();
+                    Assert.IsTrue(buildResults.All(x=>x.Success));
+
+                    manager.ListIndexes().ToList().ForEach(Console.WriteLine);
+
+                    Assert.AreEqual("online", indexes.First(x => x.Name == "index1").State);
+                    Assert.AreEqual("online", indexes.First(x => x.Name == "index2").State);
+                }
+            }
+        }
+#endregion
     }
 }

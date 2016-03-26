@@ -31,6 +31,25 @@ namespace Couchbase.Utils
         {
             return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
         }
+
+        /// <summary>
+        /// Escape's a string with a N1QL delimiter - the backtick.
+        /// </summary>
+        /// <param name="theString">The string.</param>
+        /// <returns></returns>
+        public static string N1QlEscape(this string theString)
+        {
+            if (!theString.StartsWith("`", StringComparison.OrdinalIgnoreCase))
+            {
+                theString = theString.Insert(0, "`");
+            }
+            if (!theString.EndsWith("`", StringComparison.OrdinalIgnoreCase))
+            {
+                theString = theString.Insert(theString.Length, "`");
+            }
+
+            return theString;
+        }
     }
 }
 

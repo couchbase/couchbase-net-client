@@ -1,10 +1,9 @@
 ﻿using Common.Logging;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 using Couchbase.Views;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -12,27 +11,49 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Management.Indexes;
+using Couchbase.N1QL;
+using Couchbase.Utils;
+using Encoding = System.Text.Encoding;
 
 namespace Couchbase.Management
 {
     /// <summary>
     /// An intermediate class for doing management operations on a Bucket.
     /// </summary>
-    public sealed class BucketManager : IBucketManager
+    public class BucketManager : IBucketManager
     {
-        private readonly static ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;
         private readonly string _password;
+        private readonly IBucket _bucket;
 
-        internal BucketManager(string bucketName, ClientConfiguration clientConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
+        internal BucketManager(IBucket bucket, ClientConfiguration clientConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
         {
-            BucketName = bucketName;
+            _bucket = bucket;
+            BucketName = bucket.Name;
             _clientConfig = clientConfig;
             Mapper = mapper;
             HttpClient = httpClient;
             _password = password;
             _username = username;
+        }
+
+        /// <summary>
+        /// N1QL statements for creating and dropping indexes on the current bucket
+        /// </summary>
+        private static class Statements
+        {
+            public static string ListIndexes = "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{0}\" AND `using`=\"gsi\";";
+            public static string CreatePrimaryIndex = "CREATE PRIMARY INDEX ON {0} USING GSI WITH {{\"defer_build\":{1}}};";
+            public static string CreateNamedPrimaryIndex = "CREATE PRIMARY INDEX {0} ON {1} USING GSI WITH {{\"defer_build\":{2}}};";
+            public static string DropPrimaryIndex = "DROP PRIMARY INDEX ON {0} USING GSI;";
+            public static string DropNamedPrimaryIndex = "DROP INDEX {0}.{1} USING GSI;";
+            public static string DropIndex = "DROP INDEX {0}.{1} USING GSI;";
+            public static string CreateIndexWithFields = "CREATE INDEX {0} ON {1}({2}) USING GSI WITH {{\"defer_build\":{3}}};";
+            public static string BuildIndexes = "BUILD INDEX ON {0}({1}) USING GSI;";
         }
 
         public HttpClient HttpClient { get; private set; }
@@ -43,6 +64,323 @@ namespace Couchbase.Management
         /// The name of the Bucket.
         /// </summary>
         public string BucketName { get; private set; }
+
+        /// <summary>
+        /// Lists the indexes for the current <see cref="IBucket" />.
+        /// </summary>
+        /// <returns></returns>
+        public IndexResult ListIndexes()
+        {
+            var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
+            var result = _bucket.Query<IndexInfo>(request);
+
+            return new IndexResult
+            {
+                Value = result.Rows,
+                Exception = result.Exception,
+                Message = result.Message,
+                Success = result.Success
+            };
+        }
+
+        /// <summary>
+        /// Lists the indexes for a the current <see cref="IBucket" /> asynchronously.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<IndexResult> ListIndexesAsync()
+        {
+            var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
+            var result = await _bucket.QueryAsync<IndexInfo>(request);
+
+            return new IndexResult
+            {
+                Value = result.Rows,
+                Exception = result.Exception,
+                Message = result.Message,
+                Success = result.Success
+            };
+        }
+
+        /// <summary>
+        /// Creates the primary index for the current bucket if it doesn't already exist.
+        /// </summary>
+        /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        public IResult CreatePrimaryIndex(bool defer = false)
+        {
+            var statement = string.Format(Statements.CreatePrimaryIndex,
+                BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a primary index on the current <see cref="IBucket" /> asynchronously.
+        /// </summary>
+        /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> CreatePrimaryIndexAsync(bool defer = false)
+        {
+            var statement = string.Format(Statements.CreatePrimaryIndex,
+                BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a named primary index on the current <see cref="IBucket" /> asynchronously.
+        /// </summary>
+        /// <param name="customName">The name of the custom index.</param>
+        /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> CreateNamedPrimaryIndexAsync(string customName, bool defer = false)
+        {
+            var statement = string.Format(Statements.CreateNamedPrimaryIndex,
+                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a secondary index with optional fields asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        /// <param name="fields">The fields to index on.</param>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> CreateIndexAsync(string indexName, bool defer = false, params string[] fields)
+        {
+            var fieldStr = string.Empty;
+            if (fields != null)
+            {
+                fieldStr = fields.ToDelimitedN1QLString(',');
+            }
+
+            var statement = string.Format(Statements.CreateIndexWithFields,
+               indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops the primary index of the current <see cref="IBucket" /> asynchronously.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> DropPrimaryIndexAsync()
+        {
+            var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops the named primary index on the current <see cref="IBucket" /> asynchronously.
+        /// </summary>
+        /// <param name="customName">Name of the primary index to drop.</param>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> DropNamedPrimaryIndexAsync(string customName)
+        {
+            var statement = string.Format(Statements.DropNamedPrimaryIndex, BucketName.N1QlEscape(), customName.N1QlEscape());
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops an index by name asynchronously.
+        /// </summary>
+        /// <param name="name">The name of the index to drop.</param>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult> DropIndexAsync(string name)
+        {
+            var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
+            var result = ExecuteIndexRequestAsync(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Builds any indexes that have been created with the "defered" flag and are still in the "pending" state asynchronously.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
+        /// </returns>
+        public Task<IResult[]> BuildDeferredIndexesAsync()
+        {
+            var tasks = new List<Task<IResult>>();
+            var indexes = ListIndexes();
+
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (var index in indexes.Where(x => x.State == "pending" || x.State == "deferred"))
+            {
+                var statement = string.Format(Statements.BuildIndexes, BucketName.N1QlEscape(), index.Name.N1QlEscape());
+                var task = ExecuteIndexRequestAsync(statement);
+                tasks.Add(task);
+            }
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Watches the indexes asynchronously.
+        /// </summary>
+        /// <param name="watchList">The watch list.</param>
+        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
+        /// <param name="watchTimeout">The watch timeout.</param>
+        /// <param name="watchTimeUnit">The watch time unit.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<IResult<List<IndexInfo>>> WatchIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Creates a primary index on the current <see cref="IBucket" /> reference.
+        /// </summary>
+        /// <param name="customName">The name of the index.</param>
+        /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the request.
+        /// </returns>
+        public IResult CreateNamedPrimaryIndex(string customName, bool defer = false)
+        {
+            var statement = string.Format(Statements.CreateNamedPrimaryIndex,
+                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a secondary index on the current <see cref="IBucket" /> reference.
+        /// </summary>
+        /// <param name="indexName">Name of the index to create.</param>
+        /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
+        /// <param name="fields">The fields to index on.</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the request.
+        /// </returns>
+        public IResult CreateIndex(string indexName, bool defer = false, params string[] fields)
+        {
+            var fieldStr = fields.ToDelimitedN1QLString(',');
+            var statement = string.Format(Statements.CreateIndexWithFields,
+                indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower(CultureInfo.CurrentCulture));
+
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops the primary index on the current <see cref="IBucket" />.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the request.
+        /// </returns>
+        public IResult DropPrimaryIndex()
+        {
+            var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops the named primary index if it exists on the current <see cref="IBucket" />.
+        /// </summary>
+        /// <param name="customName">Name of primary index.</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the request.
+        /// </returns>
+        public IResult DropNamedPrimaryIndex(string customName)
+        {
+            var statement = string.Format(Statements.DropNamedPrimaryIndex, BucketName.N1QlEscape(), customName.N1QlEscape());
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Drops a secondary index on the current <see cref="IBucket" /> reference.
+        /// </summary>
+        /// <param name="name">The name of the secondary index to drop.</param>
+        /// <returns>
+        /// An <see cref="IResult" /> with the status of the request.
+        /// </returns>
+        public IResult DropIndex(string name)
+        {
+            var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
+            var result = ExecuteIndexRequest(statement);
+            return result;
+        }
+
+        /// <summary>
+        /// Builds any indexes that have been created with the "defer" flag and are still in the "pending" state on the current <see cref="IBucket" />.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IList{IResult}" /> with the status for each index built.
+        /// </returns>
+        public IList<IResult> BuildDeferredIndexes()
+        {
+            var results = new List<IResult>();
+            var indexes = ListIndexes();
+
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            var deferredIndexes = indexes.Where(x => x.State == "pending" || x.State == "deferred").ToList();
+            foreach (var index in deferredIndexes)
+            {
+                var statement = string.Format(Statements.BuildIndexes, BucketName.N1QlEscape(), index.Name.N1QlEscape());
+                var result = ExecuteIndexRequest(statement);
+                results.Add(result);
+            }
+            return results;
+        }
+
+        /// <summary>
+        /// Watches the indexes.
+        /// </summary>
+        /// <param name="watchList">The watch list.</param>
+        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
+        /// <param name="watchTimeout">The watch timeout.</param>
+        /// <param name="watchTimeUnit">The watch time unit.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IResult<List<IndexInfo>> WatchIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Executes the index request asynchronously.
+        /// </summary>
+        /// <param name="statement">The statement.</param>
+        /// <returns></returns>
+        protected virtual async Task<IResult> ExecuteIndexRequestAsync(string statement)
+        {
+            var request = new QueryRequest(statement);
+            return await _bucket.QueryAsync<IndexInfo>(request).ContinueOnAnyContext();
+        }
+
+        /// <summary>
+        /// Executes the index request syncronously.
+        /// </summary>
+        /// <param name="statement">The statement.</param>
+        /// <returns></returns>
+        protected virtual IResult ExecuteIndexRequest(string statement)
+        {
+            var request = new QueryRequest(statement);
+            return _bucket.Query<IndexInfo>(request);
+        }
 
         /// <summary>
         /// Inserts a design document containing a number of views.
@@ -521,7 +859,6 @@ namespace Couchbase.Management
             }
             return result;
         }
-
 
         /// <summary>
         /// Destroys all documents stored within a bucket.  This functionality must also be enabled within the server-side bucket settings for safety reasons.

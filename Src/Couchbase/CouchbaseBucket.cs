@@ -279,7 +279,7 @@ namespace Couchbase
 
         public IBucketManager CreateManager(string username, string password)
         {
-            return new BucketManager(Name,
+            return new BucketManager(this,
                 _configInfo.ClientConfig,
                 new HttpClient(),
                 new JsonDataMapper(_configInfo.ClientConfig),
