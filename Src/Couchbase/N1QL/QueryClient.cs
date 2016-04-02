@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.AccessControl;
+using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
@@ -347,67 +348,22 @@ namespace Couchbase.N1QL
         /// <remarks>The format for the querying is JSON</remarks>
         IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
         {
-            var queryResult = new QueryResult<T>();
-            var baseUri = ConfigContextBase.GetQueryUri();
+            // Cache and clear the current SynchronizationContext before we begin.
+            // This eliminates the chance for deadlocks when we wait on an async task sychronously.
+
+            var contextCache = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(null);
             try
             {
-                var request = WebRequest.Create(baseUri);
-                request.Timeout = (int) _clientConfig.QueryRequestTimeout;
-                request.Method = "POST";
-                request.ContentType = "application/json";
-
-                var authType = "Basic";
-                var credBytes = System.Text.Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password));
-                var credentials = string.Concat(authType, " ", Convert.ToBase64String(credBytes));
-                request.Headers[HttpRequestHeader.Authorization] = credentials;
-
-                var json = queryRequest.GetFormValuesAsJson();
-                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-                request.ContentLength = bytes.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                }
-
-                Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-
-                var response = request.GetResponse();
-                using (var stream = response.GetResponseStream())
-                {
-                    queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);
-                    queryResult.Success = queryResult.Status == QueryStatus.Success;
-                    queryResult.HttpStatusCode = queryResult.HttpStatusCode;
-                    Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
-                }
-                baseUri.ClearFailed();
+                return ExecuteQueryAsync<T>(queryRequest).Result;
             }
-            catch (HttpRequestException e)
+            finally
             {
-                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                baseUri.IncrementFailed();
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
-            catch (WebException e)
-            {
-                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                if (e.Response != null)
+                if (contextCache != null)
                 {
-                    var stream = e.Response.GetResponseStream();
-                    queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(stream);
-                    queryResult.HttpStatusCode = ((HttpWebResponse) e.Response).StatusCode;
+                    SynchronizationContext.SetSynchronizationContext(contextCache);
                 }
-                queryResult.Exception = e;
-                Log.Error(e);
             }
-            catch (Exception e)
-            {
-                Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                ProcessError(e, queryResult);
-                Log.Error(e);
-            }
-            return queryResult;
         }
 
         /// <summary>
