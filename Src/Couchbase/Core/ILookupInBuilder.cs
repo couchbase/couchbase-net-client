@@ -7,7 +7,7 @@ namespace Couchbase.Core
     /// Exposes a "builder" API for constructing a chain of read commands on a document within Couchbase.
     /// </summary>
     /// <typeparam name="TDocument">The type of the document.</typeparam>
-    public interface ILookupInBuilder<out TDocument> : ISubDocBuilder<TDocument>
+    public interface ILookupInBuilder<TDocument> : ISubDocBuilder<TDocument>
     {
         /// <summary>
         /// Gets the value at a specified N1QL path.

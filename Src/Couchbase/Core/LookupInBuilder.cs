@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Serialization;
 using Couchbase.IO.Operations;
@@ -123,6 +124,17 @@ namespace Couchbase.Core
         public IDocumentFragment<TDocument> Execute()
         {
             return _invoker.Invoke(this);
+        }
+
+        /// <summary>
+        /// Executes the chained operations.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IDocumentFragment`1" /> representing the results of the chained operations.
+        /// </returns>
+        public Task<IDocumentFragment<TDocument>> ExecuteAsync()
+        {
+            return _invoker.InvokeAsync(this);
         }
 
         /// <summary>

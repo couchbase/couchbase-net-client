@@ -6,7 +6,7 @@ namespace Couchbase.Core
     ///  Exposes the creation of a set of mutation operations to be performed.
     /// </summary>
     /// <typeparam name="TDocument">The strong typed document (POCO) reflecting the structure of the paths.</typeparam>
-    public interface IMutateInBuilder<out TDocument> : ISubDocBuilder<TDocument>
+    public interface IMutateInBuilder<TDocument> : ISubDocBuilder<TDocument>
     {
         /// <summary>
         /// A "check-and-set" value for ensuring that a document has not been modified by another thread.

@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO;
 using Newtonsoft.Json;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -782,6 +785,162 @@ namespace Couchbase.IntegrationTests
             public string baz { get; set; }
         }
         #endregion
+
+#region async
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task LookupIn_ExecuteAsync_GetsResult(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_ExecuteAsync_NoDeadlock";
+            await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo");
+
+            var result = await builder.ExecuteAsync();
+
+            Assert.AreEqual("bar", result.Content<string>(0));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task LookupInMulti_ExecuteAsync_GetsResult(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_ExecuteAsync_NoDeadlock";
+            await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo").Get("bar");
+
+            var result = await builder.ExecuteAsync();
+
+            Assert.AreEqual("bar", result.Content<string>(0));
+            Assert.AreEqual("foo", result.Content<string>(1));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_ExecuteAsync_NoDeadlock(bool useMutation)
+        {
+            // Using an asynchronous call within an MVC Web API action can cause
+            // a deadlock if you wait for the result synchronously.
+
+            Setup(useMutation);
+
+            var context = new Mock<SynchronizationContext>
+            {
+                CallBase = true
+            };
+
+            SynchronizationContext.SetSynchronizationContext(context.Object);
+            try
+            {
+                var key = "LookupIn_ExecuteAsync_NoDeadlock";
+                _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
+
+                var builder = _bucket.LookupIn<dynamic>(key).Get("foo");
+
+                builder.ExecuteAsync().Wait();
+
+                // If execution is incorrectly awaiting on the current SynchronizationContext
+                // We will see calls to Post or Send on the mock
+
+                context.Verify(m => m.Post(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+                context.Verify(m => m.Send(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+            }
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateIn_ExecuteAsync_ModifiesDocument(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "MutateIn_ExecuteAsync_ModifiesDocument";
+            await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "baz");
+
+            var result = await builder.ExecuteAsync();
+
+            Assert.IsTrue(result.Success);
+
+            var document = await _bucket.GetDocumentAsync<dynamic>(key);
+
+            Assert.AreEqual("baz", document.Content.foo.ToString());
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateInMulti_ExecuteAsync_ModifiesDocument(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "MutateIn_ExecuteAsync_ModifiesDocument";
+            await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "baz").Replace("bar", "fot");
+
+            var result = await builder.ExecuteAsync();
+
+            Assert.IsTrue(result.Success);
+
+            var document = await _bucket.GetDocumentAsync<dynamic>(key);
+
+            Assert.AreEqual("baz", document.Content.foo.ToString());
+            Assert.AreEqual("fot", document.Content.bar.ToString());
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_ExecuteAsync_NoDeadlock(bool useMutation)
+        {
+            // Using an asynchronous call within an MVC Web API action can cause
+            // a deadlock if you wait for the result synchronously.
+
+            Setup(useMutation);
+
+            var context = new Mock<SynchronizationContext>
+            {
+                CallBase = true
+            };
+
+            SynchronizationContext.SetSynchronizationContext(context.Object);
+            try
+            {
+                var key = "MutateIn_ExecuteAsync_NoDeadlock";
+                _bucket.Upsert(key, new {foo = "bar", bar = "foo"});
+
+                var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "baz");
+
+                builder.ExecuteAsync().Wait();
+
+                // If execution is incorrectly awaiting on the current SynchronizationContext
+                // We will see calls to Post or Send on the mock
+
+                context.Verify(m => m.Post(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+                context.Verify(m => m.Send(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+            }
+        }
+
+#endregion
 
         [TearDown]
         public void TestFixtureTearDown()
