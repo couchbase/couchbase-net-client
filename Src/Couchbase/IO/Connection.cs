@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging.Factory;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -15,7 +14,8 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
-        private readonly int Offset;
+        private Timer _asyncOperationTimer;
+        private readonly object _asyncTimoutLock = new object();
 
         public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
@@ -35,7 +35,6 @@ namespace Couchbase.IO
 
             //set the buffer to use with this saea instance
             _allocator.SetBuffer(_eventArgs);
-            Offset = _eventArgs.Offset;
         }
 
         public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
@@ -43,31 +42,28 @@ namespace Couchbase.IO
             SocketAsyncState state = null;
             try
             {
-                state = new SocketAsyncState
-                {
-                    Data = new MemoryStream(),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Buffer = buffer,
-                    Completed = callback,
-                    SendOffset = _eventArgs.Offset
-                };
+                state = BeginSend(buffer);
+                
+                // As this is going to be an async call we must register
+                // the callback in the async state.
+                state.Completed = callback;
 
-                _eventArgs.UserToken = state;
-                Log.Debug(m => m("Sending {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
+                // Create a timer to monitor this operation. When the operation completes
+                // it will be cancelled. If the operation doesn't complete before the send
+                // timeout expires then it will be responsible for cancelling the request.
+                _asyncOperationTimer = new Timer(
+                    OnAsyncTimeoutCallback, state,Timeout.Infinite, Timeout.Infinite);
 
-                //set the buffer
-                var bufferLength = buffer.Length < Configuration.BufferSize
-                    ? buffer.Length
-                    : Configuration.BufferSize;
-
-                _eventArgs.SetBuffer(state.SendOffset, bufferLength);
-                Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, state.SendOffset, bufferLength);
-
+                // Start the timer going. This is done after the previous line to ensure
+                // that _asyncOperationTimer is assigned to before the callback runs.
+                _asyncOperationTimer.Change(Configuration.SendTimeout, Timeout.Infinite);
+             
                 //Send the request
                 if (!Socket.SendAsync(_eventArgs))
                 {
                     OnCompleted(Socket, _eventArgs);
                 }
+
             }
             catch (Exception e)
             {
@@ -91,13 +87,52 @@ namespace Couchbase.IO
         }
 
         /// <summary>
-        /// Sends a memcached operation as a buffer to a the server.
+        /// Async Timer Callback
+        /// 
+        /// <para>
+        /// This callback is responsible for marking connections as dead if an async
+        /// operation times out. This is required to ensure that all operations
+        /// complete and to make sure dead connections are removed from the pool.
+        /// </para>
         /// </summary>
-        /// <param name="buffer">A memcached request buffer</param>
-        /// <returns>A memcached response buffer.</returns>
-        public override byte[] Send(byte[] buffer)
+        /// <param name="state">The <see cref="SocketAsyncState"/> object for the operation which timed out.</param>
+        private void OnAsyncTimeoutCallback(object state)
         {
-            //create the state object and set it
+            CancelTimerIfRunning();
+
+            Socket.Close();
+
+            var socketAsyncState = (SocketAsyncState)state;
+            var timeoutException = CreateTimeoutException();
+
+            Log.DebugFormat("Operation {0} timed out.", socketAsyncState.Opaque);
+
+            MarkAsDead(socketAsyncState, timeoutException);
+        }
+
+        /// <summary>
+        /// Cancel the Timer
+        /// </summary>
+        private void CancelTimerIfRunning()
+        {
+            if (_asyncOperationTimer != null)
+            {
+                _asyncOperationTimer.Dispose();
+                _asyncOperationTimer = null;
+            }
+        }
+
+        /// <summary>
+        /// Begin a Send Operation
+        /// <para>
+        /// Creates an async socket state object and prepares the buffer for
+        /// sending.
+        /// </para>
+        /// </summary>
+        /// <param name="buffer">The buffer to send</param>
+        /// <returns>Async state object ready to send.</returns>
+        private SocketAsyncState BeginSend(byte[] buffer)
+        {
             var state = new SocketAsyncState
             {
                 Data = new MemoryStream(),
@@ -105,9 +140,8 @@ namespace Couchbase.IO
                 Buffer = buffer,
                 SendOffset = _eventArgs.Offset
             };
-
-            Log.DebugFormat("Sending opaque{0} on {1}", state.Opaque, Identity);
             _eventArgs.UserToken = state;
+            Log.Debug(m => m("Sending {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
 
             //set the buffer
             var bufferLength = buffer.Length < Configuration.BufferSize
@@ -116,6 +150,17 @@ namespace Couchbase.IO
 
             _eventArgs.SetBuffer(state.SendOffset, bufferLength);
             Buffer.BlockCopy(buffer, 0, _eventArgs.Buffer, state.SendOffset, bufferLength);
+            return state;
+        }
+
+        /// <summary>
+        /// Sends a memcached operation as a buffer to a the server.
+        /// </summary>
+        /// <param name="buffer">A memcached request buffer</param>
+        /// <returns>A memcached response buffer.</returns>
+        public override byte[] Send(byte[] buffer)
+        {
+            var state = BeginSend(buffer);
 
             //Send the request
             if (!Socket.SendAsync(_eventArgs))
@@ -127,8 +172,7 @@ namespace Couchbase.IO
             if (!_requestCompleted.WaitOne(Configuration.SendTimeout))
             {
                 IsDead = true;
-                var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
-                throw new RemoteHostTimeoutException(msg);
+                throw CreateTimeoutException();
             }
 
             //Check if an IO error occurred
@@ -142,6 +186,17 @@ namespace Couchbase.IO
             Log.DebugFormat("Complete opaque{0} on {1}", state.Opaque, Identity);
             //return the response bytes
             return state.Data.ToArray();
+        }
+
+        /// <summary>
+        /// Creates a new RemoteHostTimeoutException
+        /// </summary>
+        /// <returns>The new <see cref="RemoteHostTimeoutException"/> object.</returns>
+        private static RemoteHostTimeoutException CreateTimeoutException()
+        {
+            return new RemoteHostTimeoutException(
+                "The connection has timed out while an operation was in " +
+                "flight. The default is 15000ms.");
         }
 
         /// <summary>
@@ -185,50 +240,55 @@ namespace Couchbase.IO
         private void Send(Socket socket, SocketAsyncEventArgs e)
         {
             var state = (SocketAsyncState)e.UserToken;
-            if (e.SocketError == SocketError.Success)
+
+            if (e.SocketError != SocketError.Success)
             {
-                state.BytesSent += e.BytesTransferred;
-                if (state.BytesSent < state.Buffer.Length)
+                MarkAsDead(state, (int)e.SocketError);
+                return;
+            }
+
+            state.BytesSent += e.BytesTransferred;
+            if (state.BytesSent < state.Buffer.Length)
+            {
+                //set the buffer length to send, but don't exceed the saea buffer size
+                var bufferLength = state.Buffer.Length - state.BytesSent < Configuration.BufferSize
+                    ? state.Buffer.Length - state.BytesSent
+                    : Configuration.BufferSize;
+
+                //reset the saea buffer
+                _eventArgs.SetBuffer(state.SendOffset, bufferLength);
+
+                //copy and send the remaining portion of the buffer
+                Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, state.SendOffset, bufferLength);
+
+                bool sentAsync;
+                lock (_asyncTimoutLock)
                 {
-                    //set the buffer length to send, but don't exceed the saea buffer size
-                    var bufferLength = state.Buffer.Length - state.BytesSent < Configuration.BufferSize
-                        ? state.Buffer.Length - state.BytesSent
-                        : Configuration.BufferSize;
-
-                    //reset the saea buffer
-                    _eventArgs.SetBuffer(state.SendOffset, bufferLength);
-
-                    //copy and send the remaining portion of the buffer
-                    Buffer.BlockCopy(state.Buffer, state.BytesSent, _eventArgs.Buffer, state.SendOffset, bufferLength);
-                    if (!Socket.SendAsync(_eventArgs))
-                    {
-                        OnCompleted(socket, e);
-                    }
+                    if (IsDead)
+                        return;
+                    sentAsync = Socket.SendAsync(_eventArgs);
                 }
-                else
+
+                if (!sentAsync)
                 {
-                    e.SetBuffer(state.SendOffset, Configuration.BufferSize);
-                    var willRaiseCompletedEvent = socket.ReceiveAsync(e);
-                    if (!willRaiseCompletedEvent)
-                    {
-                        OnCompleted(socket, e);
-                    }
+                    OnCompleted(socket, e);
                 }
             }
             else
             {
-                IsDead = true;
-                state.Exception = new SocketException((int) e.SocketError);
-                Log.Debug(m=>m("Error: {0} - {1}", Identity, state.Exception));
-                //if the callback is null we are in blocking mode
-                if (state.Completed == null)
+                e.SetBuffer(state.SendOffset, Configuration.BufferSize);
+                bool recvdAsync;
+                lock (_asyncTimoutLock)
                 {
-                    _requestCompleted.Set();
+                    if (IsDead)
+                        return;
+
+                    recvdAsync = socket.ReceiveAsync(e);
                 }
-                else
+
+                if (!recvdAsync)
                 {
-                    ConnectionPool.Release(this);
-                    state.Completed(state);
+                    OnCompleted(socket, e);
                 }
             }
         }
@@ -240,89 +300,144 @@ namespace Couchbase.IO
         /// <param name="e">The <see cref="SocketAsyncEventArgs"/> that is being used for the operation.</param>
         public void Receive(Socket socket, SocketAsyncEventArgs e)
         {
-            while (true)
+            while (DoReceive(socket, e))
             {
-                var state = (SocketAsyncState)e.UserToken;
-                Log.Debug(m => m("Receive {0} bytes for opaque{1} with {2} on server {3} offset{4}", e.BytesTransferred, state.Opaque, Identity, EndPoint, state.SendOffset));
-                if (e.SocketError == SocketError.Success)
-                {
-                    //socket was closed on recieving side
-                    if (e.BytesTransferred == 0)
-                    {
-                        Log.DebugFormat("Connection {0} has failed in receive with {1} bytes.", Identity, e.BytesTransferred);
-                        IsDead = true;
-                        if (state.Completed == null)
-                        {
-                            if (!Disposed)
-                            {
-                                _requestCompleted.Set();
-                            }
-                        }
-                        else
-                        {
-                            ConnectionPool.Release(this);
-                            state.Exception = new SocketException(10054);
-                            state.Completed(state);
-                        }
-                        break;
-                    }
-                    state.BytesReceived += e.BytesTransferred;
-                    state.Data.Write(e.Buffer, state.SendOffset, e.BytesTransferred);
+                // Keep on looping while there is more data to
+                // recieve.
+            }
+        }
+        
+        /// <summary>
+        /// Performs an Async Recieve Step
+        /// <para>
+        /// Completes an ansyc receive operation on a socket and returns a
+        /// status bool to indicate if more data is ready to be recieved.
+        /// </para>
+        /// </summary>
+        /// <param name="socket">The socket which the operation is taking place on.</param>
+        /// <param name="e">The SAEA for the current operation.</param>
+        /// <returns>True if there is more data to receive, fals otherwise</returns>
+        private bool DoReceive(Socket socket, SocketAsyncEventArgs e)
+        {
+            var state = (SocketAsyncState)e.UserToken;
+            Log.Debug(m => m("Receive {0} bytes for opaque{1} with {2} on server {3} offset{4}", e.BytesTransferred, state.Opaque, Identity, EndPoint, state.SendOffset));
 
-                    //if first loop get the length of the body from the header
-                    if (state.BodyLength == 0)
-                    {
-                        state.BodyLength = Converter.ToInt32(state.Data.GetBuffer(), HeaderIndexFor.Body);
-                    }
-                    if (state.BytesReceived < state.BodyLength + 24)
-                    {
-                        var bufferSize = state.BodyLength < Configuration.BufferSize
-                            ? state.BodyLength
-                            : Configuration.BufferSize;
+            // If there is a problem with the socket then abort this operation and
+            // mark as dead so the connection is removed from the pool.
+            if (e.SocketError != SocketError.Success)
+            {
+                MarkAsDead(state, (int)e.SocketError);
+                return false;
+            }
 
-                        e.SetBuffer(state.SendOffset, bufferSize);
-                        var willRaiseCompletedEvent = socket.ReceiveAsync(e);
-                        if (!willRaiseCompletedEvent)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        //if the callback is null we are in blocking mode
-                        if (state.Completed == null)
-                        {
-                            Log.Debug(m => m("Complete with set {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
-                            _requestCompleted.Set();
-                        }
-                        else
-                        {
-                            Log.Debug(m => m("Complete {0} with {1} on server {2}", state.Opaque, Identity, EndPoint));
-                            ConnectionPool.Release(this);
-                            state.Completed(state);
-                        }
-                    }
-                }
-                else
+            //socket was closed on recieving side
+            if (e.BytesTransferred == 0)
+            {
+                Log.DebugFormat("Connection {0} has failed in receive with {1} bytes.", Identity,
+                    e.BytesTransferred);
+                MarkAsDead(state, 10054);
+                return false;
+            }
+
+            state.BytesReceived += e.BytesTransferred;
+            state.Data.Write(e.Buffer, state.SendOffset, e.BytesTransferred);
+
+            //if first loop get the length of the body from the header
+            if (state.BodyLength == 0)
+            {
+                state.BodyLength = Converter.ToInt32(state.Data.GetBuffer(), HeaderIndexFor.Body);
+            }
+
+            if (state.BytesReceived < state.BodyLength + 24)
+            {
+                var bufferSize = state.BodyLength < Configuration.BufferSize
+                    ? state.BodyLength
+                    : Configuration.BufferSize;
+
+                e.SetBuffer(state.SendOffset, bufferSize);
+
+                bool recvdAsync;
+                lock (_asyncTimoutLock)
                 {
-                    IsDead = true;
-                    state.Exception = new SocketException((int)e.SocketError);
-                    Log.Debug(m => m("Error: {0} - {1}", Identity, state.Exception));
-                    //if the callback is null we are in blocking mode
-                    if (state.Completed == null)
-                    {
-                        if (!Disposed)
-                        {
-                            _requestCompleted.Set();
-                        }
-                    }
-                    else
-                    {
-                        ConnectionPool.Release(this);
-                        state.Completed(state);
-                    }
+                    if (IsDead)
+                        return false;
+
+                    recvdAsync = socket.ReceiveAsync(e);
                 }
-                break;
+
+                // Rather than calling OnCompleted again here
+                // we return true to let `Recieve` know we are
+                // ready for another recieve event.
+                return !recvdAsync;
+            }
+
+            Log.Debug(
+                m => m("Complete {0} with {1} on server {2}",
+                    state.Opaque, Identity, EndPoint));
+
+            SetCompleted(state);
+            return false;
+        }
+
+        /// <summary>
+        /// Set an Async Operation as Completed
+        /// </summary>
+        /// <param name="state">The state for the operation to complete</param>
+        private void SetCompleted(SocketAsyncState state)
+        {
+            CancelTimerIfRunning();
+
+            //if the callback is null we are in blocking mode
+            if (state.Completed == null)
+            {
+                if (!Disposed)
+                {
+                    _requestCompleted.Set();
+                }
+            }
+            else
+            {
+                ConnectionPool.Release(this);
+                state.Completed(state);
+            }
+        }
+
+        /// <summary>
+        /// Marks the current connection as dead
+        /// 
+        /// <para>
+        /// Ends the current request with a socket error. This is an overload
+        /// of <see cref="MarkAsDead(SocketAsyncState, Exception)"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="state">The state of the current operation</param>
+        /// <param name="error">The socket exception error number</param>
+        private void MarkAsDead(SocketAsyncState state, int error)
+        {
+            var ex = new SocketException(error);
+            MarkAsDead(state, ex);
+        }
+
+        /// <summary>
+        /// Marks the current connection as dead
+        /// 
+        /// <para>
+        /// Ends the current request with an error, and marks the connection as dead
+        /// so it can be removed from the conneciton pool.</para>
+        /// </summary>
+        /// <param name="state">The state of the current operation</param>
+        /// <param name="exception">The exception to set on the operation state.</param>
+        private void MarkAsDead(SocketAsyncState state, Exception exception)
+        {
+            lock (_asyncTimoutLock)
+            {
+                IsDead = true;
+
+                state.Exception = exception;
+
+                Log.Debug(m => m("Error: {0} - {1}", Identity, state.Exception));
+
+                SetCompleted(state);
             }
         }
 
@@ -351,12 +466,15 @@ namespace Couchbase.IO
                         Socket.Dispose();
                     }
                 }
+
                 //call the bases dispose to cleanup the timer
                 base.Dispose();
 
                 _allocator.ReleaseBuffer(_eventArgs);
                 _eventArgs.Dispose();
                 _requestCompleted.Dispose();
+
+                CancelTimerIfRunning();
             }
             catch (Exception e)
             {
