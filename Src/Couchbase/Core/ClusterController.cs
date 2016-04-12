@@ -113,7 +113,7 @@ namespace Couchbase.Core
             if (_clientConfig.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
                 && bucketConfig.Password != null)
             {
-                return CreateBucket(bucketName, bucketConfig.Password);
+                return CreateBucket(bucketConfig.BucketName, bucketConfig.Password);
             }
             return CreateBucket(bucketName, string.Empty);
         }
