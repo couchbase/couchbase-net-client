@@ -2,7 +2,6 @@
 using Common.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL
@@ -12,7 +11,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal static class SaslFactory
     {
-        private readonly static ILog Log = LogManager.GetLogger("SaslFactory");
+        private static readonly ILog Log = LogManager.GetLogger("SaslFactory");
 
         /// <summary>
         /// The default timeout for SASL-related operations.
@@ -31,13 +30,17 @@ namespace Couchbase.Authentication.SASL
                     var saslListResult = service.Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
+                        if (saslListResult.Value.Contains("SCRAM-SHA1"))
+                        {
+                            return new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha1);
+                        }
                         if (saslListResult.Value.Contains("CRAM-MD5"))
                         {
-                            saslMechanism = new CramMd5Mechanism(service, username, password, transcoder);
+                            return new CramMd5Mechanism(service, username, password, transcoder);
                         }
-                        else
+                        if (saslListResult.Value.Contains("PLAIN"))
                         {
-                            saslMechanism = new PlainTextMechanism(service, username, password, transcoder);
+                            return new PlainTextMechanism(service, username, password, transcoder);
                         }
                     }
                 }

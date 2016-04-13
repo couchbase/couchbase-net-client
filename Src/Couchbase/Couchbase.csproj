@@ -71,9 +71,11 @@
     <Compile Include="Authentication\AuthType.cs" />
     <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
+    <Compile Include="Authentication\SASL\MechanismType.cs" />
+    <Compile Include="Authentication\SASL\PBKDF2.cs" />
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslFactory.cs" />
-    <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
+    <Compile Include="Authentication\SASL\ScramShaMechanism.cs" />
     <Compile Include="ClusterHelper.cs" />
     <Compile Include="Configuration\Client\BucketDefinition.cs" />
     <Compile Include="Configuration\Client\ConnectionPoolDefinition.cs" />

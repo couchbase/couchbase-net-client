@@ -77,6 +77,7 @@
     <Compile Include="Management\ClusterManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Index_Tests.cs" />
+    <Compile Include="Authentication\ScramSha1MechanismTests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Core\Buckets\CouchbaseRequestExecutorTests.cs" />
     <Compile Include="Core\MutateInBuilderTests.cs" />

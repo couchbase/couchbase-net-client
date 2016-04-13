@@ -113,6 +113,7 @@
     <Compile Include="Management\MemcachedBucketManagerTests.cs" />
     <Compile Include="MutationTokenTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScramShaMechanismTests.cs" />
     <Compile Include="Utils\TestConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
