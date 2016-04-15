@@ -22,7 +22,7 @@
             return _server;
         }
 
-        public int Rev { get; internal set; }
+        public uint Rev { get; internal set; }
     }
 }
 

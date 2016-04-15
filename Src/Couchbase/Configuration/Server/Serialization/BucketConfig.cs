@@ -93,7 +93,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public string[] BucketCapabilities { get; set; }
 
         [JsonProperty("rev")]
-        public int Rev { get; set; }
+        public uint Rev { get; set; }
 
         public bool UseSsl { get; set; }
 

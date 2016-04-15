@@ -80,6 +80,8 @@ namespace Couchbase.IO.Operations
         IPEndPoint CurrentHost { get; set; }
 
         IOperation Clone();
+
+        uint LastConfigRevisionTried { get; set; }
     }
 }
 

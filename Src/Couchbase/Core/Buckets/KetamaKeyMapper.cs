@@ -38,6 +38,17 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Not Supported: This overload is only supported by Couchbase buckets.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="revision"></param>
+        /// <returns></returns>
+        public IMappedNode MapKey(string key, uint revision)
+        {
+            throw new NotSupportedException("This overload is only supported by Couchbase buckets.");
+        }
+
+        /// <summary>
         /// Finds the index of a node for a given key.
         /// </summary>
         /// <param name="key">The Key that the index belongs to.</param>
@@ -113,7 +124,7 @@ namespace Couchbase.Core.Buckets
             }
         }
 
-        public int Rev { get; set; }
+        public uint Rev { get; set; }
     }
 }
 

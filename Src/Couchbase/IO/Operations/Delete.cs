@@ -37,7 +37,8 @@ namespace Couchbase.IO.Operations
                 Cas = Cas,
                 CreationTime = CreationTime,
                 Opaque = Opaque,
-                MutationToken = MutationToken
+                MutationToken = MutationToken,
+                LastConfigRevisionTried = LastConfigRevisionTried
             };
             return cloned;
         }

@@ -23,7 +23,8 @@ namespace Couchbase.IO.Operations
                 Attempts = Attempts,
                 Cas = Cas,
                 CreationTime = CreationTime,
-                Opaque = Opaque
+                Opaque = Opaque,
+                LastConfigRevisionTried = LastConfigRevisionTried
             };
             return cloned;
         }

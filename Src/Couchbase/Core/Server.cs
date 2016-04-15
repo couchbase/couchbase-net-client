@@ -248,7 +248,7 @@ namespace Couchbase.Core
         /// <value>
         /// The revision.
         /// </value>
-        public int Revision
+        public uint Revision
         {
             get { return _bucketConfig.Rev; }
         }

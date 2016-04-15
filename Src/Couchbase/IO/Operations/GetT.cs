@@ -52,7 +52,8 @@ namespace Couchbase.IO.Operations
                 Attempts = Attempts,
                 Cas = Cas,
                 CreationTime = CreationTime,
-                Expires = Expires
+                Expires = Expires,
+                LastConfigRevisionTried = LastConfigRevisionTried
             };
             return cloned;
         }

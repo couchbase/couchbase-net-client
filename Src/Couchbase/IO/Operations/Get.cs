@@ -72,7 +72,8 @@ namespace Couchbase.IO.Operations
             {
                 Attempts = Attempts,
                 Cas = Cas,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                LastConfigRevisionTried = LastConfigRevisionTried
             };
             return cloned;
         }

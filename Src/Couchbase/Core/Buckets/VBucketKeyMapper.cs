@@ -21,7 +21,7 @@ namespace Couchbase.Core.Buckets
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly IDictionary<IPAddress, IServer> _servers;
 
-        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, int revision)
+        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, uint revision)
         {
             Rev = revision;
             _servers = servers;
@@ -55,6 +55,25 @@ namespace Couchbase.Core.Buckets
             Log.Trace(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
 
             return _vBuckets[index];
+        }
+
+        public IMappedNode MapKey(string key, uint revision)
+        {
+            //its a retry
+            if (revision > 0 && revision == Rev && HasForwardMap())
+            {
+                //use the fast-forward map
+                var index = GetIndex(key);
+                return _vForwardBuckets[index];
+            }
+
+            //use the vbucket map
+            return MapKey(key);
+        }
+
+        bool HasForwardMap()
+        {
+            return _vForwardBuckets.Count > 0;
         }
 
         public int GetIndex(string key)
@@ -131,7 +150,7 @@ namespace Couchbase.Core.Buckets
             return _vForwardBuckets;
         }
 
-        public int Rev { get; set; }
+        public uint Rev { get; set; }
     }
 }
 

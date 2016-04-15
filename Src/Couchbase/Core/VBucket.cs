@@ -18,7 +18,7 @@ namespace Couchbase.Core
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly IDictionary<IPAddress, IServer> _cluster;
 
-        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, int rev, VBucketServerMap vBucketServerMap)
+        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, uint rev, VBucketServerMap vBucketServerMap)
         {
             _cluster = cluster;
             Index = index;
@@ -121,7 +121,7 @@ namespace Couchbase.Core
         /// <value>
         /// The rev.
         /// </value>
-        public int Rev { get; internal set; }
+        public uint Rev { get; internal set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance has replicas.

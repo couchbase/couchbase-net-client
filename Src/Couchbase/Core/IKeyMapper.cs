@@ -7,7 +7,9 @@ namespace Couchbase.Core
     {
         IMappedNode MapKey(string key);
 
-        int Rev { get; set; }
+        IMappedNode MapKey(string key, uint revision);
+
+        uint Rev { get; set; }
     }
 }
 

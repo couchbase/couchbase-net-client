@@ -165,7 +165,7 @@ namespace Couchbase.Tests.Fakes
         }
 
 
-        public int Revision
+        public uint Revision
         {
             get { throw new NotImplementedException(); }
         }

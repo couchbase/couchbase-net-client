@@ -85,12 +85,13 @@ namespace Couchbase.Core.Buckets
         /// Gets the <see cref="Server"/> or node that a key has been mapped to.
         /// </summary>
         /// <param name="key">The key to get or set.</param>
+        /// <param name="revision">The rev # of the cluster map.</param>
         /// <param name="vBucket">The VBucket the key belongs to.</param>
         /// <returns>The <see cref="IServer"/> that the key is mapped to.</returns>
-        public IServer GetServer(string key, out IVBucket vBucket)
+        public IServer GetServer(string key, uint revision, out IVBucket vBucket)
         {
             var keyMapper = ConfigInfo.GetKeyMapper();
-            vBucket = (IVBucket) keyMapper.MapKey(key);
+            vBucket = (IVBucket) keyMapper.MapKey(key, revision);
             return vBucket.LocatePrimary();
         }
 
@@ -471,12 +472,13 @@ namespace Couchbase.Core.Buckets
             do
             {
                 IVBucket vBucket;
-                var server = GetServer(operation.Key, out vBucket);
+                var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
                 if (server == null)
                 {
                     continue;
                 }
                 operation.VBucket = vBucket;
+                operation.LastConfigRevisionTried = vBucket.Rev;
                 operationResult = server.Send(operation);
 
                 if (operationResult.Success)
@@ -552,12 +554,13 @@ namespace Couchbase.Core.Buckets
             do
             {
                 IVBucket vBucket;
-                var server = GetServer(operation.Key, out vBucket);
+                var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
                 if (server == null)
                 {
                     continue;
                 }
                 operation.VBucket = vBucket;
+                operation.LastConfigRevisionTried = vBucket.Rev;
                 operationResult = server.Send(operation);
 
                 if (operationResult.Success)
@@ -676,8 +679,9 @@ namespace Couchbase.Core.Buckets
                 }
 
                 var keyMapper = ConfigInfo.GetKeyMapper();
-                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
+                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
                 operation.VBucket = vBucket;
+                operation.LastConfigRevisionTried = vBucket.Rev;
 
                 operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
                     this, Pending, ClusterController, tcs, cts.Token);
@@ -731,8 +735,9 @@ namespace Couchbase.Core.Buckets
                 }
 
                 var keyMapper = ConfigInfo.GetKeyMapper();
-                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key);
+                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
                 operation.VBucket = vBucket;
+                operation.LastConfigRevisionTried = vBucket.Rev;
 
                 operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
                     this, Pending, ClusterController, tcs, cts.Token);

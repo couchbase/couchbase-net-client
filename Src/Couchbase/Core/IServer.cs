@@ -154,7 +154,7 @@ namespace Couchbase.Core
         /// <value>
         /// The revision.
         /// </value>
-        int Revision { get; }
+        uint Revision { get; }
     }
 }
 

@@ -73,6 +73,7 @@
     <Compile Include="Management\BucketManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Index_Tests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
+    <Compile Include="Core\Buckets\CouchbaseRequestExecutorTests.cs" />
     <Compile Include="Core\MutateInBuilderTests.cs" />
     <Compile Include="Core\IO\Operations\MultiLookupTests.cs" />
     <Compile Include="Core\LookupBuilderTests.cs" />

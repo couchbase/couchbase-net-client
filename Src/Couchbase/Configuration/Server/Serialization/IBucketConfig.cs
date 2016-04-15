@@ -83,7 +83,7 @@ namespace Couchbase.Configuration.Server.Serialization
         string TerseStreamingUri { get; set; }
 
         [JsonProperty("rev")]
-        int Rev { get; set; }
+        uint Rev { get; set; }
 
         string SurrogateHost { get; set; }
 

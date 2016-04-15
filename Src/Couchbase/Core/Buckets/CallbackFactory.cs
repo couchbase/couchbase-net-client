@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -65,7 +64,7 @@ namespace Couchbase.Core.Buckets
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
-                                    var mappedNode= keyMapper.MapKey(cloned.Key);
+                                    var mappedNode = keyMapper.MapKey(cloned.Key);
 
                                     IServer server;
                                     var attempts = 0;
@@ -245,8 +244,9 @@ namespace Couchbase.Core.Buckets
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
-                                    var vBucket = (IVBucket)keyMapper.MapKey(o.Key);
-                                    o.VBucket = vBucket;
+                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, cloned.LastConfigRevisionTried);
+                                    cloned.LastConfigRevisionTried = vBucket.Rev;
+                                    cloned.VBucket = vBucket;
 
                                     IServer server;
                                     var attempts = 0;
@@ -334,8 +334,9 @@ namespace Couchbase.Core.Buckets
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
-                                    var vBucket = (IVBucket)keyMapper.MapKey(o.Key);
-                                    o.VBucket = vBucket;
+                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, cloned.LastConfigRevisionTried);
+                                    cloned.LastConfigRevisionTried = vBucket.Rev;
+                                    cloned.VBucket = vBucket;
 
                                     IServer server;
                                     var attempts = 0;

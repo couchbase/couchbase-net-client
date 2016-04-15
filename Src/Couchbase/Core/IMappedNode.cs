@@ -4,7 +4,7 @@
     {
         IServer LocatePrimary();
 
-        int Rev { get; }
+        uint Rev { get; }
     }
 }
 

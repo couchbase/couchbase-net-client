@@ -433,6 +433,8 @@ namespace Couchbase.IO.Operations
             throw new NotImplementedException();
         }
 
+        public uint LastConfigRevisionTried { get; set; }
+
         public IPEndPoint CurrentHost { get; set; }
 
 #region "New" Write API Methods - override and implement these methods for new operations
