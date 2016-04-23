@@ -15,7 +15,6 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
-        private readonly int Offset;
 
         public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
@@ -34,8 +33,12 @@ namespace Couchbase.IO
             _eventArgs.Completed += OnCompleted;
 
             //set the buffer to use with this saea instance
-            _allocator.SetBuffer(_eventArgs);
-            Offset = _eventArgs.Offset;
+            if (!_allocator.SetBuffer(_eventArgs))
+            {
+                // failed to acquire a buffer because the allocator was exhausted
+
+                throw new ApplicationException("Unable to allocate a buffer for this connection because the BufferAllocator is exhausted.");
+            }
         }
 
         public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
@@ -326,6 +329,18 @@ namespace Couchbase.IO
             }
         }
 
+#if DEBUG
+        /// <summary>
+        /// Cleans up any non-reclaimed resources.
+        /// </summary>
+        /// <remarks>will run if Dispose is not called on a Connection instance.</remarks>
+        ~Connection()
+        {
+            Dispose();
+            Log.Debug(m => m("Finalizing {0}", GetType().Name));
+        }
+#endif
+
         /// <summary>
         /// Disposes the underlying socket and other objects used by this instance.
         /// </summary>
@@ -354,9 +369,21 @@ namespace Couchbase.IO
                 //call the bases dispose to cleanup the timer
                 base.Dispose();
 
-                _allocator.ReleaseBuffer(_eventArgs);
                 _eventArgs.Dispose();
                 _requestCompleted.Dispose();
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+            }
+
+            try
+            {
+                // Release the buffer in a separate try..catch block, because we want to ensure this happens
+                // even if other steps fail.  Otherwise we will run out of buffers when the ConnectionPool reaches
+                // its maximum size.
+
+                _allocator.ReleaseBuffer(_eventArgs);
             }
             catch (Exception e)
             {
