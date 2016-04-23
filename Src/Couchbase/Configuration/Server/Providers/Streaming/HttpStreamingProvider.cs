@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -23,7 +24,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     internal sealed class HttpStreamingProvider : ConfigProviderBase
     {
         private IServerConfig _serverConfig;
-        private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>(); 
+        private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
         private readonly ConcurrentDictionary<string, Thread> _threads = new ConcurrentDictionary<string, Thread>();
         private static readonly CountdownEvent CountdownEvent = new CountdownEvent(1);
         private static readonly AutoResetEvent RegisterEvent = new AutoResetEvent(true);
@@ -66,21 +67,28 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                         IBucketConfig newConfig;
                         var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
-                        using (var webClient = new AuthenticatingWebClient(bucketName, password))
+
+                        using (new SynchronizationContextExclusion())
                         {
-                            var body = webClient.DownloadString(uri);
-                            body = body.Replace("$HOST", uri.Host);
-                            newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
+                            using (
+                                var httpClient =
+                                    new HttpClient(new AuthenticatingHttpClientHandler(bucketName, password)))
+                            {
+                                var body = httpClient.GetStringAsync(uri).Result;
+                                body = body.Replace("$HOST", uri.Host);
+                                newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
+                            }
                         }
+
                         newConfig.Password = password;
                         configInfo = CreateConfigInfo(newConfig);
                         Configs[bucketName] = configInfo;
                         break;
 
                     }
-                    catch (WebException e)
+                    catch (AggregateException e)
                     {
-                        Log.Error(e);
+                        Log.Error(e.InnerException);
                     }
                     catch (IOException e)
                     {
@@ -158,7 +166,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             try
             {
                 ConfigLock.EnterWriteLock();
-                var configObserver = ConfigObservers[bucketConfig.Name];
+                IConfigObserver configObserver;
+                if (!ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
+                {
+                    // Observer has been unregistered
+                    return;
+                }
 
                 IConfigInfo configInfo;
                 if (Configs.TryGetValue(configObserver.Name, out configInfo))

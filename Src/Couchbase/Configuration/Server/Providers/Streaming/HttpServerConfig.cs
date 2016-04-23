@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -16,21 +17,29 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// <summary>
     /// A configuration info class for supporting HTTP streaming provider.
     /// </summary>
-    internal class HttpServerConfig : AuthenticatingWebClient, IServerConfig
+    internal class HttpServerConfig : IServerConfig
     {
         private readonly static ILog Log = LogManager.GetLogger<HttpServerConfig>();
         private readonly ClientConfiguration _clientConfig;
+        private readonly HttpClient _httpClient;
+        private readonly string _bucketName;
 
         public HttpServerConfig(ClientConfiguration clientConfig)
-            : base("default", string.Empty)
+            : this(clientConfig, "default", string.Empty)
         {
-            _clientConfig = clientConfig;
         }
 
-        public HttpServerConfig(ClientConfiguration clientConfig, string username, string password)
-            : base(username, password)
+        public HttpServerConfig(ClientConfiguration clientConfig, string bucketName, string password)
         {
             _clientConfig = clientConfig;
+            _bucketName = bucketName;
+
+            _httpClient = new HttpClient(new AuthenticatingHttpClientHandler(bucketName, password));
+        }
+
+        public string BucketName
+        {
+            get { return _bucketName; }
         }
 
         public Uri BootstrapServer { get; protected internal set; }
@@ -72,18 +81,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 Log.Error(e);
             }
-            catch (WebException e)
+            catch (Exception e)
             {
                 Log.Error(m=>m("Bootstrapping failed from {0}: {1}", server, e));
-                if (e.Status != WebExceptionStatus.ProtocolError) return success;
-                var response = e.Response as HttpWebResponse;
-                if (response != null)
-                {
-                    if (response.StatusCode == HttpStatusCode.Unauthorized)
-                    {
-                        throw new AuthenticationException(BucketName, e);
-                    }
-                }
             }
             return success;
         }
@@ -109,6 +109,37 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
         }
 
+        private string DownloadString(Uri uri)
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                try
+                {
+                    var response = _httpClient.GetAsync(uri).Result;
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        if (response.StatusCode == HttpStatusCode.Unauthorized)
+                        {
+                            throw new AuthenticationException(BucketName);
+                        }
+                        else
+                        {
+                            // Throws a more generic HttpRequestException
+                            response.EnsureSuccessStatusCode();
+                        }
+                    }
+
+                    return response.Content.ReadAsStringAsync().Result;
+                }
+                catch (AggregateException ex)
+                {
+                    // Unwrap the aggregate exception
+                    throw new HttpRequestException(ex.InnerException.Message, ex.InnerException);
+                }
+            }
+        }
+
         T DownLoadConfig<T>(Uri uri)
         {
             ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
@@ -126,6 +157,14 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         {
             const string placeholder = "$HOST";
             return response.Replace(placeholder, uri.Host);
+        }
+
+        public void Dispose()
+        {
+            if (_httpClient != null)
+            {
+                _httpClient.Dispose();
+            }
         }
     }
 }

@@ -88,6 +88,7 @@
     <Compile Include="Configuration\DefaultPorts.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
+    <Compile Include="Configuration\Server\Providers\Streaming\AuthenticatingHttpClientHandler.cs" />
     <Compile Include="Configuration\Server\Serialization\BucketConfigExtensions.cs" />
     <Compile Include="Configuration\Server\Serialization\Controller.cs" />
     <Compile Include="Configuration\Server\Serialization\Controllers.cs" />
@@ -150,9 +151,6 @@
     <Compile Include="Configuration\Server\Providers\IConfigObserver.cs" />
     <Compile Include="Configuration\Server\Providers\IConfigProvider.cs" />
     <Compile Include="Configuration\Server\IServerConfig.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\AuthenticatingWebClient.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Configuration\Server\Providers\Streaming\ConfigThreadState.cs" />
     <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfig.cs">
       <SubType>Component</SubType>
@@ -315,6 +313,7 @@
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />
     <Compile Include="Utils\QueryResultExtensions.cs" />
+    <Compile Include="Utils\SynchronizationContextExclusion.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Utils\UrlUtil.cs" />
