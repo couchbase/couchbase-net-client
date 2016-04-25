@@ -170,7 +170,7 @@ namespace Couchbase.Tests.Views
         }
 
         [Test]
-        public void When_Url_Is_Invalid_WebException_Is_Returned()
+        public void When_Url_Is_Invalid_Exception_Is_Returned()
         {
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
@@ -186,11 +186,11 @@ namespace Couchbase.Tests.Views
             Assert.IsNotNull(result.Rows);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
-            Assert.AreEqual(typeof(WebException), result.Exception.GetType());
+            Assert.IsNotNull(result.Exception);
         }
 
         [Test]
-        public void When_Url_Is_Invalid_WebException_Is_Returned_2()
+        public void When_Url_Is_Invalid_Exception_Is_Returned_2()
         {
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
@@ -206,7 +206,7 @@ namespace Couchbase.Tests.Views
             Assert.IsNotNull(result.Rows);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
-            Assert.AreEqual(typeof(WebException), result.Exception.GetType());
+            Assert.IsNotNull(result.Exception);
         }
 
         [Test]

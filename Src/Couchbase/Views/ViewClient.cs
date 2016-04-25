@@ -84,42 +84,13 @@ namespace Couchbase.Views
         /// <returns>The <see cref="IViewResult{T}"/> instance which is the results of the query.</returns>
         public IViewResult<T> Execute<T>(IViewQueryable query)
         {
-            var viewResult = new ViewResult<T>();
-            try
-            {
-                var request = WebRequest.Create(query.RawUri());
-                request.Timeout = _clientConfig.ViewRequestTimeout;
-                WriteAuthenticationHeaders(request, _bucketConfig.Name, _bucketConfig.Password);
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    var stream = response.GetResponseStream();
-                    viewResult = Mapper.Map<ViewResult<T>>(stream);
-                    response.Close();
+            // Cache and clear the current SynchronizationContext before we begin.
+            // This eliminates the chance for deadlocks when we wait on an async task sychronously.
 
-                    viewResult.Success = response.StatusCode == HttpStatusCode.OK;
-                    viewResult.StatusCode = response.StatusCode;
-                }
-            }
-            catch (WebException e)
+            using (new SynchronizationContextExclusion())
             {
-                if (e.Response != null)
-                {
-                    var stream = e.Response.GetResponseStream();
-                    if (stream != null && stream.Length > 0)
-                    {
-                        viewResult = Mapper.Map<ViewResult<T>>(stream);
-                    }
-                }
-                viewResult.Exception = e;
-                viewResult.StatusCode = GetStatusCode(e.Message);
-                Log.Error(e);
+                return ExecuteAsync<T>(query).Result;
             }
-            catch (Exception e)
-            {
-                ProcessError(e, viewResult);
-                Log.Error(e);
-            }
-            return viewResult;
         }
 
         static void WriteAuthenticationHeaders(WebRequest request, string username, string password)

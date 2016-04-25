@@ -22,6 +22,37 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void Test_QueryNoDeadlock()
+        {
+            // Using an asynchronous HttpClient request within an MVC Web API action may cause
+            // a deadlock when we wait for the result synchronously.
+
+            var context = new Mock<SynchronizationContext>
+            {
+                CallBase = true
+            };
+
+            SynchronizationContext.SetSynchronizationContext(context.Object);
+            try
+            {
+                var query = _bucket.CreateQuery("beer", "brewery_beers")
+                    .Limit(1);
+
+                _bucket.Query<dynamic>(query);
+
+                // If view queries are incorrectly awaiting on the current SynchronizationContext
+                // We will see calls to Post or Send on the mock
+
+                context.Verify(m => m.Post(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+                context.Verify(m => m.Send(It.IsAny<SendOrPostCallback>(), It.IsAny<object>()), Times.Never);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+            }
+        }
+
+        [Test]
         public void Test_QueryAsyncNoDeadlock()
         {
             // NCBC-1074 https://issues.couchbase.com/browse/NCBC-1074
