@@ -69,7 +69,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BucketManagerTests.cs" />
+    <Compile Include="Management\BucketManager_Tests.cs" />
+    <Compile Include="Management\BucketManager_Index_Tests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
     <Compile Include="Core\MutateInBuilderTests.cs" />
     <Compile Include="Core\IO\Operations\MultiLookupTests.cs" />
@@ -85,6 +86,7 @@
     <Compile Include="SubdocExtensionTests.cs" />
     <Compile Include="SubDocumentAPITests.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
+    <Compile Include="Utils\FakeHttpMessageHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

@@ -390,53 +390,10 @@ namespace Couchbase.Management
         /// <returns>A boolean value indicating the result.</returns>
         public IResult InsertDesignDocument(string designDocName, string designDoc)
         {
-            IResult result;
-            try
+            using (new SynchronizationContextExclusion())
             {
-                var server = _clientConfig.Servers.First();
-                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                var protocol = UseSsl() ? "https" : "http";
-                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
-
-                var request = WebRequest.Create(uri) as HttpWebRequest;
-                request.Method = "PUT";
-                request.Accept = request.ContentType = "application/json";
-                request.Credentials = new NetworkCredential(_username, _password);
-
-                var bytes = System.Text.Encoding.UTF8.GetBytes(designDoc);
-                request.ContentLength = bytes.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                }
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var reqStream = response.GetResponseStream())
-                    {
-                        result = GetResult(response.StatusCode, reqStream);
-                    }
-                }
+                return InsertDesignDocumentAsync(designDocName, designDoc).Result;
             }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var res = (HttpWebResponse)e.Response;
-                    var stream = e.Response.GetResponseStream();
-                    result = GetResultAsString(res.StatusCode, stream);
-                }
-                else result = WebRequestError(e);
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                result = WebRequestError(e);
-                Log.Error(e);
-            }
-            return result;
         }
 
         /// <summary>
@@ -450,35 +407,28 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                using (var client = CreateAuthenticatedHttpClient())
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                        var protocol = UseSsl() ? "https" : "http";
-                        var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                    var server = _clientConfig.Servers.First();
+                    const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                    var protocol = UseSsl() ? "https" : "http";
+                    var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
+                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
+                    client.DefaultRequestHeaders.Accept.Add(contentType);
+                    client.DefaultRequestHeaders.Host = uri.Authority;
 
-                        var request = new HttpRequestMessage(HttpMethod.Put, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    var request = new HttpRequestMessage(HttpMethod.Put, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
-                        request.Content = new StringContent(designDoc);
-                        request.Content.Headers.ContentType = contentType;
+                    request.Content = new StringContent(designDoc);
+                    request.Content.Headers.ContentType = contentType;
 
-                        var task = client.PutAsync(uri, request.Content);
-                        await task;
+                    var response = await client.PutAsync(uri, request.Content).ContinueOnAnyContext();
 
-                        result = await GetResult(task.Result);
-                    }
+                    result = await GetResult(response).ContinueOnAnyContext();
                 }
             }
             catch (AggregateException e)
@@ -518,45 +468,10 @@ namespace Couchbase.Management
         /// <returns>A design document object.</returns>
         public IResult<string> GetDesignDocument(string designDocName)
         {
-            IResult<string> result;
-            try
+            using (new SynchronizationContextExclusion())
             {
-                var server = _clientConfig.Servers.First();
-                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                var protocol = UseSsl() ? "https" : "http";
-                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
-
-                var request = WebRequest.Create(uri);
-                request.Method = "GET";
-                request.ContentType = "application/json";
-                request.Credentials = new NetworkCredential(_username, _password);
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var reqStream = response.GetResponseStream())
-                    {
-                        result = GetResultAsString(response.StatusCode, reqStream);
-                    }
-                }
+                return GetDesignDocumentAsync(designDocName).Result;
             }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var res = (HttpWebResponse)e.Response;
-                    var stream = e.Response.GetResponseStream();
-                    result = GetResultAsString(res.StatusCode, stream);
-                }
-                else result = new DefaultResult<string>(false, e.Message, e);
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                result = new DefaultResult<string>(false, e.Message, e);
-                Log.Error(e);
-            }
-            return result;
         }
 
         /// <summary>
@@ -569,36 +484,24 @@ namespace Couchbase.Management
             IResult<string> result;
             try
             {
-                using (var handler = new HttpClientHandler
+                using (var client = CreateAuthenticatedHttpClient())
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                        var protocol = UseSsl() ? "https" : "http";
-                        var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                    var server = _clientConfig.Servers.First();
+                    const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                    var protocol = UseSsl() ? "https" : "http";
+                    var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-                        var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
+                    client.DefaultRequestHeaders.Accept.Add(contentType);
+                    client.DefaultRequestHeaders.Host = uri.Authority;
+                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
-                        var task = client.GetAsync(uri);
-                        await task;
+                    var response = await client.GetAsync(uri).ContinueOnAnyContext();
 
-                        var taskResult = task.Result;
-                        var content = taskResult.Content;
-                        var stream = content.ReadAsStreamAsync();
-                        await stream;
-
-                        result = await GetResultAsString(task.Result);
-                    }
+                    result = await GetResultAsString(response).ContinueOnAnyContext();
                 }
             }
             catch (AggregateException e)
@@ -616,46 +519,10 @@ namespace Couchbase.Management
         /// <returns>A boolean value indicating the result.</returns>
         public IResult RemoveDesignDocument(string designDocName)
         {
-            IResult result;
-            try
+            using (new SynchronizationContextExclusion())
             {
-
-                var server = _clientConfig.Servers.First();
-                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                var protocol = UseSsl() ? "https" : "http";
-                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
-                var request = WebRequest.Create(uri) as HttpWebRequest;
-                request.Method = "DELETE";
-                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
-                request.Credentials = new NetworkCredential(_username, _password);
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var reqStream = response.GetResponseStream())
-                    {
-                        var message = GetString(reqStream);
-                        result = new DefaultResult(response.StatusCode == HttpStatusCode.OK, message, null);
-                    }
-                }
+                return RemoveDesignDocumentAsync(designDocName).Result;
             }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var res = (HttpWebResponse)e.Response;
-                    var stream = e.Response.GetResponseStream();
-                    result = GetResultAsString(res.StatusCode, stream);
-                }
-                else result = WebRequestError(e);
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                result = WebRequestError(e);
-                Log.Error(e);
-            }
-            return result;
         }
         /// <summary>
         /// Removes a design document.
@@ -667,36 +534,24 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                using (var client = CreateAuthenticatedHttpClient())
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                        var protocol = UseSsl() ? "https" : "http";
-                        var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                    var server = _clientConfig.Servers.First();
+                    const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                    var protocol = UseSsl() ? "https" : "http";
+                    var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-                        var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                    client.DefaultRequestHeaders.Accept.Add(contentType);
+                    client.DefaultRequestHeaders.Host = uri.Authority;
+                    var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
-                        var task = client.DeleteAsync(uri);
-                        await task;
+                    var response = await client.DeleteAsync(uri).ContinueOnAnyContext();
 
-                        var taskResult = task.Result;
-                        var content = taskResult.Content;
-                        var stream = content.ReadAsStreamAsync();
-                        await stream;
-
-                        result = await GetResult(task.Result);
-                    }
+                    result = await GetResult(response).ContinueOnAnyContext();
                 }
             }
             catch (AggregateException e)
@@ -715,45 +570,10 @@ namespace Couchbase.Management
         [Obsolete("Note that the overload which takes an 'includeDevelopment' is obsolete; the method will ignore the parameter value if passed.")]
         public IResult<string> GetDesignDocuments(bool includeDevelopment = false)
         {
-            IResult<string> result;
-            try
+            using (new SynchronizationContextExclusion())
             {
-                var server = _clientConfig.Servers.First();
-                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
-                var protocol = UseSsl() ? "https" : "http";
-                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
-
-                var request = WebRequest.Create(uri);
-                request.Method = "GET";
-                request.ContentType = "application/json";
-                request.Credentials = new NetworkCredential(_username, _password);
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var reqStream = response.GetResponseStream())
-                    {
-                        result = GetResultAsString(response.StatusCode, reqStream);
-                    }
-                }
+                return GetDesignDocumentsAsync(includeDevelopment).Result;
             }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var res = (HttpWebResponse)e.Response;
-                    var stream = e.Response.GetResponseStream();
-                    result = GetResultAsString(res.StatusCode, stream);
-                }
-                else result = new DefaultResult<string>(false, e.Message, e);
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                result = new DefaultResult<string>(false, e.Message, e);
-                Log.Error(e);
-            }
-            return result;
         }
 
         /// <summary>
@@ -766,31 +586,24 @@ namespace Couchbase.Management
             IResult<string> result;
             try
             {
-                using (var handler = new HttpClientHandler
+                using (var client = CreateAuthenticatedHttpClient())
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
-                        var protocol = UseSsl() ? "https" : "http";
-                        var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+                    var server = _clientConfig.Servers.First();
+                    const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
+                    var protocol = UseSsl() ? "https" : "http";
+                    var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-                        var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
+                    client.DefaultRequestHeaders.Accept.Add(contentType);
+                    client.DefaultRequestHeaders.Host = uri.Authority;
+                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
-                        var task = client.GetAsync(uri);
-                        await task;
+                    var response = await client.GetAsync(uri).ContinueOnAnyContext();
 
-                        result = await GetResultAsString(task.Result);
-                    }
+                    result = await GetResultAsString(response).ContinueOnAnyContext();
                 }
             }
             catch (AggregateException e)
@@ -807,57 +620,10 @@ namespace Couchbase.Management
         /// <returns>A <see cref="bool"/> indicating success.</returns>
         public IResult Flush()
         {
-            IResult result;
-            try
+            using (new SynchronizationContextExclusion())
             {
-                var server = _clientConfig.Servers.First();
-                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
-                var protocol = UseSsl() ? "https" : "http";
-                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
-
-                var request = WebRequest.Create(uri) as HttpWebRequest;
-                request.Method = "POST";
-                request.Accept = request.ContentType = "application/x-www-form-urlencoded";
-                request.Credentials = new NetworkCredential(_username, _password);
-                var formData = new Dictionary<string, object>
-                              {
-                                  {"user", _username},
-                                  {"password", _password}
-                              };
-                var bytes = System.Text.Encoding.UTF8.GetBytes(PostDataDicToString(formData));
-                request.ContentLength = bytes.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                }
-
-                using (var response = request.GetResponse() as HttpWebResponse)
-                {
-                    using (var reqStream = response.GetResponseStream())
-                    {
-                        var message = GetString(reqStream);
-                        result = new DefaultResult(response.StatusCode == HttpStatusCode.OK, message, null);
-                    }
-                }
+                return FlushAsync().Result;
             }
-            catch (WebException e)
-            {
-                if (e.Response != null)
-                {
-                    var stream = e.Response.GetResponseStream();
-                    result = WebRequestError(e, GetString(stream));
-                }
-                else result = WebRequestError(e);
-                Log.Error(e);
-            }
-            catch (Exception e)
-            {
-                result = WebRequestError(e);
-                Log.Error(e);
-            }
-            return result;
         }
 
         /// <summary>
@@ -869,38 +635,31 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                using (var client = CreateAuthenticatedHttpClient())
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    var server = _clientConfig.Servers.First();
+                    const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
+                    var protocol = UseSsl() ? "https" : "http";
+                    var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+
+                    var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+                    client.DefaultRequestHeaders.Accept.Add(contentType);
+                    client.DefaultRequestHeaders.Host = uri.Authority;
+                    var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+
+                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        var server = _clientConfig.Servers.First();
-                        const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
-                        var protocol = UseSsl() ? "https" : "http";
-                        var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                        var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+                        {"user", _username},
+                        {"password", _password}
+                    });
+                    request.Content.Headers.ContentType = contentType;
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    var response = await client.PostAsync(uri, request.Content).ContinueOnAnyContext();
 
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"user", _username},
-                            {"password", _password}
-                        });
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-                        await task;
-
-                        result = await GetResult(task.Result);
-                    }
+                    result = await GetResult(response).ContinueOnAnyContext();
                 }
             }
             catch (AggregateException e)
@@ -922,10 +681,8 @@ namespace Couchbase.Management
         private async Task<IResult<string>> GetResultAsString(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
-            var stream = content.ReadAsStreamAsync();
-            await stream;
+            var body = await content.ReadAsStringAsync().ContinueOnAnyContext();
 
-            var body = GetString(stream.Result);
             var result = new DefaultResult<string>
             {
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
@@ -936,26 +693,11 @@ namespace Couchbase.Management
             return result;
         }
 
-        private IResult<string> GetResultAsString(HttpStatusCode statusCode, Stream stream)
-        {
-            var body = GetString(stream);
-            var result = new DefaultResult<string>
-            {
-                Message = IsSuccessStatusCode(statusCode) ? "success" : body,
-                Success = IsSuccessStatusCode(statusCode),
-                Value = IsSuccessStatusCode(statusCode) ? body : null
-            };
-            Log.Debug(m => m("{0}", body));
-            return result;
-        }
-
         private async Task<IResult> GetResult(HttpResponseMessage httpResponseMessage)
         {
             var content = httpResponseMessage.Content;
-            var stream = content.ReadAsStreamAsync();
-            await stream;
+            var body = await content.ReadAsStringAsync().ContinueOnAnyContext();
 
-            var body = GetString(stream.Result);
             var result = new DefaultResult
             {
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
@@ -963,23 +705,6 @@ namespace Couchbase.Management
             };
             Log.Debug(m => m("{0}", body));
             return result;
-        }
-
-        private IResult GetResult(HttpStatusCode statusCode, Stream stream)
-        {
-            var body = GetString(stream);
-            var result = new DefaultResult
-            {
-                Message = IsSuccessStatusCode(statusCode) ? "success" : body,
-                Success = IsSuccessStatusCode(statusCode),
-            };
-            Log.Debug(m => m("{0}", body));
-            return result;
-        }
-
-        private bool IsSuccessStatusCode(HttpStatusCode statusCode)
-        {
-            return statusCode >= HttpStatusCode.OK && statusCode <= (HttpStatusCode)299;
         }
 
         private bool UseSsl()
@@ -991,24 +716,12 @@ namespace Couchbase.Management
             return _clientConfig.UseSsl;
         }
 
-        private IResult WebRequestError(Exception ex, string message = "")
+        protected internal virtual HttpClient CreateAuthenticatedHttpClient()
         {
-            return new DefaultResult(false, string.IsNullOrEmpty(message) ? ex.Message : message, ex);
-        }
-
-        private string PostDataDicToString(IDictionary<string, object> postDataDictionary)
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (var key in postDataDictionary.Keys)
+            return new HttpClient(new HttpClientHandler
             {
-                if (sb.Length > 0)
-                {
-                    sb.Append("&");
-                }
-
-                sb.Append(Uri.EscapeDataString(key) + "=" + Uri.EscapeDataString(postDataDictionary[key].ToString()));
-            }
-            return sb.ToString();
+                Credentials = new NetworkCredential(_username, _password)
+            });
         }
     }
 }

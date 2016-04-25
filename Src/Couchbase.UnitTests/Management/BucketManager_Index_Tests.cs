@@ -10,10 +10,10 @@ using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
 
-namespace Couchbase.UnitTests
+namespace Couchbase.UnitTests.Management
 {
     [TestFixture]
-    public class BucketManagerTests
+    public class BucketManagerIndexTests
     {
         [Test]
         public void ListIndexes_WhenSuccessful_ReturnSuccess()
