@@ -11,6 +11,9 @@ namespace Couchbase.Configuration.Server.Serialization
 // ReSharper disable once InconsistentNaming
         public string CompactDB { get; set; }
 
+        [JsonProperty("flush")]
+        public string Flush { get; set; }
+
         [JsonProperty("purgeDeletes")]
         public string PurgeDeletes { get; set; }
 

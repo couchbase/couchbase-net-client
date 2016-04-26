@@ -301,7 +301,7 @@ namespace Couchbase.Management
                 {"name", name},
                 {"authType", authType.ToString().ToLowerInvariant()},
                 {"bucketType", bucketType.ToString().ToLowerInvariant()},
-                {"flushEnabled", flushEnabled ? "0" : "1"},
+                {"flushEnabled", flushEnabled ? "1" : "0"},
                 {"proxyPort", 0.ToString(CultureInfo.InvariantCulture)},
                 {"parallelDBAndViewCompaction", parallelDbAndViewCompaction.ToString().ToLowerInvariant()},
                 {"ramQuotaMB", ramQuota.ToString(CultureInfo.InvariantCulture)},
@@ -464,7 +464,7 @@ namespace Couchbase.Management
             return new Uri(string.Format(uriFormat, protocol, hostName, port));
         }
 
-        private async Task<IResult> PostFormDataAsync(Uri uri, Dictionary<string, string> formData)
+        protected internal virtual async Task<IResult> PostFormDataAsync(Uri uri, Dictionary<string, string> formData)
         {
             IResult result;
             try

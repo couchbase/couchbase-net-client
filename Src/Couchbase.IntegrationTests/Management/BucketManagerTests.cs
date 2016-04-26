@@ -43,8 +43,7 @@ namespace Couchbase.IntegrationTests.Management
             _clusterManager = _cluster.CreateManager(ConfigurationManager.AppSettings["adminusername"],
                 ConfigurationManager.AppSettings["adminpassword"]);
 
-            // TODO: flushEnabled is set to false here to workaround NCBC-1107, and should be reversed once the bug is fixed
-            var createResult = _clusterManager.CreateBucket(BucketName, replicaNumber:ReplicaNumber.Zero, flushEnabled: false);
+            var createResult = _clusterManager.CreateBucket(BucketName, replicaNumber:ReplicaNumber.Zero, flushEnabled: true);
             Assert.True(createResult.Success);
 
             // Allow time for bucket to be created and configuration to propagate before beginning operations

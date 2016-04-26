@@ -54,7 +54,7 @@ namespace Couchbase.IntegrationTests.Utils
         public static Uri BuildBoostrapUrl()
         {
             var hostname = ConfigurationManager.AppSettings["hostname"];
-            var port = ConfigurationManager.AppSettings["port"];
+            var port = ConfigurationManager.AppSettings["bootport"];
             return new Uri(string.Format("http://{0}:{1}/", hostname, port));
         }
     }

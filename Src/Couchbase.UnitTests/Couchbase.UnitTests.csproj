@@ -69,6 +69,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Management\ClusterManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Index_Tests.cs" />
     <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />

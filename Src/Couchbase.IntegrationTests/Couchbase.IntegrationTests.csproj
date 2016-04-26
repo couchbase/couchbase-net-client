@@ -78,6 +78,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="GlobalSetup.cs" />
+    <Compile Include="Management\ClusterManagerTests.cs" />
     <Compile Include="Management\BucketManagerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\TestConfiguration.cs" />
