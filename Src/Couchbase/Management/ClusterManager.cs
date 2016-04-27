@@ -305,7 +305,7 @@ namespace Couchbase.Management
                 {"proxyPort", 0.ToString(CultureInfo.InvariantCulture)},
                 {"parallelDBAndViewCompaction", parallelDbAndViewCompaction.ToString().ToLowerInvariant()},
                 {"ramQuotaMB", ramQuota.ToString(CultureInfo.InvariantCulture)},
-                {"replicaIndex", indexReplicas ? "0" : "1"},
+                {"replicaIndex", indexReplicas ? "1" : "0"},
                 {"replicaNumber", ((int) replicaNumber).ToString(CultureInfo.InvariantCulture)},
                 {"saslPassword", saslPassword},
                 {"threadsNumber", ((int)threadNumber).ToString(CultureInfo.InvariantCulture)}

@@ -176,6 +176,86 @@ namespace Couchbase.IntegrationTests.Management
             }
         }
 
+        [Test]
+        public void CreateBucket_IndexReplicasTrue_IndexReplicasAreEnabled()
+        {
+            // Arrange
+
+            // Ensure the bucket doesn't already exist
+            _clusterManager.RemoveBucket(BucketName);
+            Thread.Sleep(250);
+
+            // Act
+
+            var result = _clusterManager.CreateBucket(BucketName, indexReplicas: true);
+
+            try
+            {
+                // Assert
+
+                Assert.NotNull(result);
+                Assert.True(result.Success);
+
+                Thread.Sleep(250);
+
+                var clusterInfo = _clusterManager.ClusterInfo();
+                Assert.True(clusterInfo.Success);
+
+                var bucketConfig = clusterInfo.Value.BucketConfigs().Find(p => p.Name == BucketName);
+                Assert.NotNull(bucketConfig);
+                Assert.IsTrue(bucketConfig.ReplicaIndex);
+            }
+            finally
+            {
+                // Cleanup
+
+                var removeResult = _clusterManager.RemoveBucket(BucketName);
+                Assert.True(removeResult.Success);
+
+                Thread.Sleep(250);
+            }
+        }
+
+        [Test]
+        public void CreateBucket_IndexReplicasFalse_IndexReplicasAreNotEnabled()
+        {
+            // Arrange
+
+            // Ensure the bucket doesn't already exist
+            _clusterManager.RemoveBucket(BucketName);
+            Thread.Sleep(250);
+
+            // Act
+
+            var result = _clusterManager.CreateBucket(BucketName, indexReplicas: false);
+
+            try
+            {
+                // Assert
+
+                Assert.NotNull(result);
+                Assert.True(result.Success);
+
+                Thread.Sleep(250);
+
+                var clusterInfo = _clusterManager.ClusterInfo();
+                Assert.True(clusterInfo.Success);
+
+                var bucketConfig = clusterInfo.Value.BucketConfigs().Find(p => p.Name == BucketName);
+                Assert.NotNull(bucketConfig);
+                Assert.IsFalse(bucketConfig.ReplicaIndex);
+            }
+            finally
+            {
+                // Cleanup
+
+                var removeResult = _clusterManager.RemoveBucket(BucketName);
+                Assert.True(removeResult.Success);
+
+                Thread.Sleep(250);
+            }
+        }
+
         #endregion
 
         [TestFixtureTearDown]

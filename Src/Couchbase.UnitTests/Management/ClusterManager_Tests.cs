@@ -79,6 +79,54 @@ namespace Couchbase.UnitTests.Management
                 Times.Once);
         }
 
+        [Test]
+        public void CreateBucket_IndexReplicasTrue_SendsWithCorrectParameter()
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new HttpClient(), new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "1")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            managerMock.Object.CreateBucket("test", indexReplicas: true);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "1")),
+                Times.Once);
+        }
+
+        [Test]
+        public void CreateBucket_IndexReplicasFalse_SendsWithCorrectParameter()
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new HttpClient(), new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            managerMock.Object.CreateBucket("test", indexReplicas: false);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")),
+                Times.Once);
+        }
+
         #endregion
     }
 }
