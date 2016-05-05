@@ -8,7 +8,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Contains Factory methods for creating <see cref="IIOService"/> implementations.
     /// </summary>
-    internal static class IOServiceFactory
+    public static class IOServiceFactory
     {
         /// <summary>
         /// Gets a <see cref="Func{IConnectionPool, IIOService}"/> that will create a <see cref="PooledIOService"/> instance.
@@ -44,10 +44,6 @@ namespace Couchbase.IO
             return (p) =>
             {
                 var type = typeof (T);
-                if (type == null)
-                {
-                    throw new TypeLoadException(string.Format("Could not create IIOService from factory."));
-                }
                 return (IIOService)Activator.CreateInstance(type, p);
             };
         }

@@ -14,7 +14,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
-    internal class SslConnection : ConnectionBase
+    public class SslConnection : ConnectionBase
     {
         private readonly SslStream _sslStream;
         private volatile bool _timingEnabled;

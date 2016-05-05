@@ -11,7 +11,7 @@ using Couchbase.IO.Operations;
 
 namespace Couchbase.IO
 {
-    internal abstract class ConnectionBase : IConnection
+    public abstract class ConnectionBase : IConnection
     {
         protected readonly static ILog Log = LogManager.GetLogger<ConnectionBase>();
         protected readonly Guid _identity = Guid.NewGuid();
@@ -33,7 +33,7 @@ namespace Couchbase.IO
         {
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager)
+        internal ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager)
         {
             _socket = socket;
             _state = asyncState;
@@ -42,7 +42,7 @@ namespace Couchbase.IO
             EndPoint = socket.RemoteEndPoint;
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager, IPEndPoint endPoint)
+        internal ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager, IPEndPoint endPoint)
         {
             _socket = socket;
             _state = asyncState;
@@ -51,7 +51,7 @@ namespace Couchbase.IO
             EndPoint = endPoint;
         }
 
-        public OperationAsyncState State
+        internal OperationAsyncState State
         {
             get { return _state; }
         }
