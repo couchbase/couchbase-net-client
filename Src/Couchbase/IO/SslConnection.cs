@@ -15,18 +15,18 @@ using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
-    internal class SslConnection : ConnectionBase
+    public class SslConnection : ConnectionBase
     {
         private readonly SslStream _sslStream;
         private volatile bool _timingEnabled;
 
-        public SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
+        internal SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter, allocator)
         {
 
         }
 
-        public SslConnection(IConnectionPool connectionPool, Socket socket, SslStream sslStream, IByteConverter converter, BufferAllocator allocator)
+        internal SslConnection(IConnectionPool connectionPool, Socket socket, SslStream sslStream, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter, allocator)
         {
             ConnectionPool = connectionPool;

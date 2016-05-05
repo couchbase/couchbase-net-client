@@ -10,14 +10,14 @@ using Couchbase.IO.Operations;
 
 namespace Couchbase.IO
 {
-    internal abstract class ConnectionBase : IConnection
+    public abstract class ConnectionBase : IConnection
     {
         protected readonly static ILog Log = LogManager.GetLogger<ConnectionBase>();
         protected readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
         protected readonly IByteConverter Converter;
-        protected readonly BufferAllocator BufferAllocator;
+        internal readonly BufferAllocator BufferAllocator;
         protected readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         protected IConnectionPool ConnectionPool;
         protected PoolConfiguration Configuration;
@@ -27,12 +27,12 @@ namespace Couchbase.IO
         private Timer _timer;
         private int _closeAttempts;
 
-        protected ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
+        internal ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
             : this(socket, new OperationAsyncState(), converter, bufferAllocator)
         {
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
+        internal ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
         {
             _socket = socket;
             _state = asyncState;
@@ -41,7 +41,7 @@ namespace Couchbase.IO
             EndPoint = socket.RemoteEndPoint;
         }
 
-        public OperationAsyncState State
+        internal OperationAsyncState State
         {
             get { return _state; }
         }

@@ -15,7 +15,7 @@ namespace Couchbase.IO
     /// <summary>
     /// Represents a pool of TCP connections to a Couchbase Server node.
     /// </summary>
-    internal class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
+    public class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
     {
         private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<IConnection>>();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
@@ -32,7 +32,7 @@ namespace Couchbase.IO
         private readonly IServer _owner;
         private readonly BufferAllocator _bufferAllocator;
 
-        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
+        internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
         {
         }
@@ -43,7 +43,7 @@ namespace Couchbase.IO
         /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
         /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
         /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
-        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
+        internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
         {
             _configuration = configuration;
             _factory = factory;

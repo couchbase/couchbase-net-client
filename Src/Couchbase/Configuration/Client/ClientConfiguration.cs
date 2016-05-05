@@ -527,7 +527,7 @@ namespace Couchbase.Configuration.Client
         /// The io service.
         /// </value>
         [JsonIgnore]
-        internal Func<IConnectionPool, IIOService> IOServiceCreator { get; set; }
+        public Func<IConnectionPool, IIOService> IOServiceCreator { get; set; }
 
         /// <summary>
         /// Gets or sets the connection pool creator.
@@ -536,7 +536,7 @@ namespace Couchbase.Configuration.Client
         /// The connection pool creator.
         /// </value>
         [JsonIgnore]
-        internal Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolCreator { get; set; }
+        public Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolCreator { get; set; }
 
         /// <summary>
         /// Gets or sets the create sasl mechanism.

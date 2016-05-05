@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Reflection;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -44,7 +45,11 @@ namespace Couchbase.IO
                 }
                 else
                 {
-                    connection = Activator.CreateInstance(typeof(T), p, socket, c, b) as T;
+                    connection = Activator.CreateInstance(typeof (T),
+                        BindingFlags.Instance | BindingFlags.NonPublic,
+                        null,
+                        new object[] {p, socket, c, b},
+                        null) as T;
                 }
                 //need to be able to completely disable the feature if false - this should work
                 if (p.Configuration.EnableTcpKeepAlives)

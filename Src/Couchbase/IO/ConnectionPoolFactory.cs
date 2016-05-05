@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Reflection;
 using Couchbase.Configuration.Client;
 
 #if NET45
@@ -11,7 +12,7 @@ namespace Couchbase.IO
     /// <summary>
     /// A factory creator for <see cref="IConnectionPool"/> instances.
     /// </summary>
-    internal class ConnectionPoolFactory
+    public class ConnectionPoolFactory
     {
         /// <summary>
         /// Gets the factory.
@@ -61,8 +62,11 @@ namespace Couchbase.IO
                 {
                     throw new TypeLoadException(string.Format("Could not find: {0}", typeName));
                 }
-                var connectionPool = (IConnectionPool)Activator.CreateInstance(type, config, endpoint);
-                return connectionPool;
+                return (IConnectionPool)Activator.CreateInstance(type,
+                    BindingFlags.Instance | BindingFlags.NonPublic,
+                    null,
+                    new object[] { config, endpoint},
+                    null);
             };
         }
 
@@ -75,12 +79,11 @@ namespace Couchbase.IO
             return (config, endpoint) =>
             {
                 var type = typeof (T);
-                if (type == null)
-                {
-                    throw new TypeLoadException(string.Format("Could not create ConnectionPool from Factory.")  );
-                }
-                var connectionPool = (IConnectionPool)Activator.CreateInstance(type, config, endpoint);
-                return connectionPool;
+                return (IConnectionPool)Activator.CreateInstance(type,
+                    BindingFlags.Instance | BindingFlags.NonPublic,
+                    null,
+                    new object[] { config, endpoint },
+                    null);
             };
         }
     }
