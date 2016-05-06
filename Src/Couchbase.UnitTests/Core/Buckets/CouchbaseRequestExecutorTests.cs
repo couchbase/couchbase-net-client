@@ -10,6 +10,7 @@ using Couchbase.Core;
 using NUnit.Framework;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Moq;
 
@@ -142,6 +143,47 @@ namespace Couchbase.UnitTests.Core.Buckets
             op.LastConfigRevisionTried = 2;
             var result = executor.SendWithRetry(op);
             Assert.AreEqual(op.VBucket.LocatePrimary().EndPoint, keyMapper.GetVBuckets().First().Value.LocatePrimary().EndPoint);
+        }
+
+        [Test]
+        public void ReadFromReplica_WhenKeyNotFound_ReturnsKeyNotFound()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var server1 = new Mock<IServer>();
+            server1.Setup(x => x.Send(It.IsAny<IOperation<dynamic>>())).Returns(new OperationResult<dynamic> { Status = ResponseStatus.KeyNotFound });
+            server1.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var server2 = new Mock<IServer>();
+            server2.Setup(x => x.Send(It.IsAny<IOperation<dynamic>>())).Returns(new OperationResult<dynamic> {Status = ResponseStatus.KeyNotFound});
+            server2.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091));
+
+            var vBucketServerMap = new VBucketServerMap
+            {
+                ServerList = new[]
+                {
+                    "localhost:8901",
+                    "255.255.0.0:8091"
+                },
+                VBucketMap = new[] { new[] { 0, 1 } },
+                VBucketMapForward = new[] { new[] { 1 } }
+            };
+            var keyMapper = new VBucketKeyMapper(new Dictionary<IPAddress, IServer>
+            {
+                { IPAddress.Loopback, server1.Object},
+                { IPAddress.Parse("255.255.0.0"), server2.Object}
+            }, vBucketServerMap, 3);
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsDataCapable).Returns(true);
+            configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            var op = new ReplicaRead<dynamic>("thekey", null, new DefaultTranscoder(), 100);
+            var result = executor.ReadFromReplica(op);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
     }
 }

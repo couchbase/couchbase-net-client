@@ -1378,6 +1378,55 @@ namespace Couchbase.Tests
             }
         }
 
+
+        [Test]
+        public void ReplicaRead_WhenDocDoesntExist_ReturnsKeyDoesNotExist()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKeyThatDoesNotExist";
+
+                    var result = bucket.GetFromReplica<string>(key);
+                    Assert.IsFalse(result.Success);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+                }
+            }
+        }
+
+        [Test]
+        public async void ReplicaReadAsync_WhenDocDoesntExist_ReturnsKeyDoesNotExist()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
+                },
+                EnableConfigHeartBeat = false
+            };
+            using (var cluster = new Cluster(config))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    const string key = "ReplicaKeyThatDoesNotExist";
+
+                    var result = await bucket.GetFromReplicaAsync<string>(key);
+                    Assert.IsFalse(result.Success);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+                }
+            }
+        }
+
         [Test]
         public void When_Key_Does_Not_Exist_ReplicaRead_Returns_KeyNotFound()
         {

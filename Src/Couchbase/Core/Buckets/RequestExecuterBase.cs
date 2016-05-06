@@ -67,7 +67,7 @@ namespace Couchbase.Core.Buckets
                     }
                     return result;
                 }
-                if (!result.IsNmv() && !operation.CanRetry())
+                if (!result.ShouldRetry() && !result.IsNmv() && !operation.CanRetry())
                 {
                     return result;
                 }
@@ -363,7 +363,7 @@ namespace Couchbase.Core.Buckets
                         Success = false
                     };
                 }
-            } while (!result.Success && !operation.TimedOut());
+            } while (result.ShouldRetry() && !result.Success && !operation.TimedOut());
 
             if (!result.Success)
             {
