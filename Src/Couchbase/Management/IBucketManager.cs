@@ -106,26 +106,30 @@ namespace Couchbase.Management
         /// Lists the indexes for the current <see cref="IBucketManager"/>.
         /// </summary>
         /// <returns></returns>
-        IndexResult ListIndexes();
+        // ReSharper disable once InconsistentNaming
+        IndexResult ListN1qlIndexes();
 
         /// <summary>
         /// Lists the indexes for the current <see cref="IBucketManager"/> asynchronously.
         /// </summary>
         /// <returns></returns>
-        Task<IndexResult> ListIndexesAsync();
+        // ReSharper disable once InconsistentNaming
+        Task<IndexResult> ListN1qlIndexesAsync();
 
         /// <summary>
         /// Creates the primary index for the current bucket if it doesn't already exist.
         /// </summary>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
-        IResult CreatePrimaryIndex(bool defer);
+        // ReSharper disable once InconsistentNaming
+        IResult CreateN1qlPrimaryIndex(bool defer);
 
         /// <summary>
         /// Creates a primary index on the current <see cref="IBucket"/> asynchronously.
         /// </summary>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult> CreatePrimaryIndexAsync(bool defer);
+        // ReSharper disable once InconsistentNaming
+        Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer);
 
         /// <summary>
         /// Creates a named primary index on the current <see cref="IBucket"/> asynchronously.
@@ -133,7 +137,8 @@ namespace Couchbase.Management
         /// <param name="customName">The name of the custom index.</param>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult> CreateNamedPrimaryIndexAsync(string customName, bool defer);
+        // ReSharper disable once InconsistentNaming
+        Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer);
 
         /// <summary>
         /// Creates a secondary index with optional fields asynchronously.
@@ -142,13 +147,15 @@ namespace Couchbase.Management
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <param name="fields">The fields to index on.</param>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult> CreateIndexAsync(string indexName, bool defer, string[] fields);
+        // ReSharper disable once InconsistentNaming
+        Task<IResult> CreateN1qlIndexAsync(string indexName, bool defer, string[] fields);
 
         /// <summary>
         /// Drops the primary index of the current <see cref="IBucket"/> asynchronously.
         /// </summary>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult> DropPrimaryIndexAsync();
+        // ReSharper disable once InconsistentNaming
+        Task<IResult> DropN1qlPrimaryIndexAsync();
 
         /// <summary>
         /// Drops the named primary index on the current <see cref="IBucket"/> asynchronously.
@@ -162,13 +169,15 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="name">The name of the index to drop.</param>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult> DropIndexAsync(string name);
+        // ReSharper disable once InconsistentNaming
+        Task<IResult> DropN1qlIndexAsync(string name);
 
         /// <summary>
         /// Builds any indexes that have been created with the "defer" flag and are still in the "pending" or "deferred" state asynchronously.
         /// </summary>
         /// <returns>A <see cref="Task{IResult}"/> for awaiting on that contains the result of the method.</returns>
-        Task<IResult[]> BuildDeferredIndexesAsync();
+        // ReSharper disable once InconsistentNaming
+        Task<IResult[]> BuildN1qlDeferredIndexesAsync();
 
         /// <summary>
         /// Watches the indexes asynchronously.
@@ -178,7 +187,8 @@ namespace Couchbase.Management
         /// <param name="watchTimeout">The watch timeout.</param>
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
-        Task<IResult<List<IndexInfo>>> WatchIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
+        // ReSharper disable once InconsistentNaming
+        Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
 
         /// <summary>
         /// Creates a primary index on the current <see cref="IBucket"/> reference.
@@ -186,7 +196,8 @@ namespace Couchbase.Management
         /// <param name="customName">The name of the index.</param>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <returns>An <see cref="IResult"/> with the status of the request.</returns>
-        IResult CreateNamedPrimaryIndex(string customName, bool defer);
+        // ReSharper disable once InconsistentNaming
+        IResult CreateN1qlPrimaryIndex(string customName, bool defer);
 
         /// <summary>
         /// Creates a secondary index on the current <see cref="IBucket"/> reference.
@@ -195,33 +206,38 @@ namespace Couchbase.Management
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <param name="fields">The fields to index on.</param>
         /// <returns>An <see cref="IResult"/> with the status of the request.</returns>
-        IResult CreateIndex(string indexName, bool defer, params string[] fields);
+        // ReSharper disable once InconsistentNaming
+        IResult CreateN1qlIndex(string indexName, bool defer, params string[] fields);
 
         /// <summary>
         /// Drops the primary index on the current <see cref="IBucket"/>.
         /// </summary>
         /// <returns>An <see cref="IResult"/> with the status of the request.</returns>
-        IResult DropPrimaryIndex();
+        // ReSharper disable once InconsistentNaming
+        IResult DropN1qlPrimaryIndex();
 
         /// <summary>
         /// Drops the named primary index if it exists on the current <see cref="IBucket"/>.
         /// </summary>
         /// <param name="customName">Name of primary index.</param>
         /// <returns>An <see cref="IResult"/> with the status of the request.</returns>
-        IResult DropNamedPrimaryIndex(string customName);
+        // ReSharper disable once InconsistentNaming
+        IResult DropN1qlPrimaryIndex(string customName);
 
         /// <summary>
         /// Drops a secondary index on the current <see cref="IBucket"/> reference.
         /// </summary>
         /// <param name="name">The name of the secondary index to drop.</param>
         /// <returns>An <see cref="IResult"/> with the status of the request.</returns>
-        IResult DropIndex(string name);
+        // ReSharper disable once InconsistentNaming
+        IResult DropN1qlIndex(string name);
 
         /// <summary>
         /// Builds any indexes that have been created with the "defer" flag and are still in the "pending" state on the current <see cref="IBucket"/>.
         /// </summary>
         /// <returns>An <see cref="IList{IResult}"/> with the status for each index built.</returns>
-        IList<IResult> BuildDeferredIndexes();
+        // ReSharper disable once InconsistentNaming
+        IList<IResult> BuildN1qlDeferredIndexes();
 
         /// <summary>
         /// Watches the indexes.
@@ -231,6 +247,7 @@ namespace Couchbase.Management
         /// <param name="watchTimeout">The watch timeout.</param>
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
-        IResult<List<IndexInfo>> WatchIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
+        // ReSharper disable once InconsistentNaming
+        IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
     }
 }

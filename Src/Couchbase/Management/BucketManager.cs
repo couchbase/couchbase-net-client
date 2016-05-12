@@ -69,7 +69,7 @@ namespace Couchbase.Management
         /// Lists the indexes for the current <see cref="IBucket" />.
         /// </summary>
         /// <returns></returns>
-        public IndexResult ListIndexes()
+        public IndexResult ListN1qlIndexes()
         {
             var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
             var result = _bucket.Query<IndexInfo>(request);
@@ -87,7 +87,7 @@ namespace Couchbase.Management
         /// Lists the indexes for a the current <see cref="IBucket" /> asynchronously.
         /// </summary>
         /// <returns></returns>
-        public async Task<IndexResult> ListIndexesAsync()
+        public async Task<IndexResult> ListN1qlIndexesAsync()
         {
             var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
             var result = await _bucket.QueryAsync<IndexInfo>(request);
@@ -105,7 +105,7 @@ namespace Couchbase.Management
         /// Creates the primary index for the current bucket if it doesn't already exist.
         /// </summary>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
-        public IResult CreatePrimaryIndex(bool defer = false)
+        public IResult CreateN1qlPrimaryIndex(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
                 BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -121,7 +121,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreatePrimaryIndexAsync(bool defer = false)
+        public Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
                 BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -138,7 +138,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreateNamedPrimaryIndexAsync(string customName, bool defer = false)
+        public Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
                 customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -156,7 +156,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreateIndexAsync(string indexName, bool defer = false, params string[] fields)
+        public Task<IResult> CreateN1qlIndexAsync(string indexName, bool defer = false, params string[] fields)
         {
             var fieldStr = string.Empty;
             if (fields != null)
@@ -177,7 +177,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> DropPrimaryIndexAsync()
+        public Task<IResult> DropN1qlPrimaryIndexAsync()
         {
             var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
             var result = ExecuteIndexRequestAsync(statement);
@@ -205,7 +205,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> DropIndexAsync(string name)
+        public Task<IResult> DropN1qlIndexAsync(string name)
         {
             var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
             var result = ExecuteIndexRequestAsync(statement);
@@ -218,10 +218,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult[]> BuildDeferredIndexesAsync()
+        public Task<IResult[]> BuildN1qlDeferredIndexesAsync()
         {
             var tasks = new List<Task<IResult>>();
-            var indexes = ListIndexes();
+            var indexes = ListN1qlIndexes();
 
             // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (var index in indexes.Where(x => x.State == "pending" || x.State == "deferred"))
@@ -242,7 +242,7 @@ namespace Couchbase.Management
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public Task<IResult<List<IndexInfo>>> WatchIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        public Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
         {
             throw new NotImplementedException();
         }
@@ -255,7 +255,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult CreateNamedPrimaryIndex(string customName, bool defer = false)
+        public IResult CreateN1qlPrimaryIndex(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
                 customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -273,7 +273,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult CreateIndex(string indexName, bool defer = false, params string[] fields)
+        public IResult CreateN1qlIndex(string indexName, bool defer = false, params string[] fields)
         {
             var fieldStr = fields.ToDelimitedN1QLString(',');
             var statement = string.Format(Statements.CreateIndexWithFields,
@@ -289,7 +289,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropPrimaryIndex()
+        public IResult DropN1qlPrimaryIndex()
         {
             var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -303,7 +303,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropNamedPrimaryIndex(string customName)
+        public IResult DropN1qlPrimaryIndex(string customName)
         {
             var statement = string.Format(Statements.DropNamedPrimaryIndex, BucketName.N1QlEscape(), customName.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -317,7 +317,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropIndex(string name)
+        public IResult DropN1qlIndex(string name)
         {
             var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -330,10 +330,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IList{IResult}" /> with the status for each index built.
         /// </returns>
-        public IList<IResult> BuildDeferredIndexes()
+        public IList<IResult> BuildN1qlDeferredIndexes()
         {
             var results = new List<IResult>();
-            var indexes = ListIndexes();
+            var indexes = ListN1qlIndexes();
 
             // ReSharper disable once LoopCanBeConvertedToQuery
             var deferredIndexes = indexes.Where(x => x.State == "pending" || x.State == "deferred").ToList();
@@ -355,7 +355,7 @@ namespace Couchbase.Management
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public IResult<List<IndexInfo>> WatchIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        public IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
         {
             throw new NotImplementedException();
         }

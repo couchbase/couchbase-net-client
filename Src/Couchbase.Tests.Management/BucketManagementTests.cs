@@ -266,20 +266,20 @@ namespace Couchbase.Tests.Management
                 using (var bucket = cluster.OpenBucket("beer-sample"))
                 {
                     var manager = bucket.CreateManager("Administrator", "");
-                    Assert.IsTrue(manager.DropIndex("index1").Success);
-                    Assert.IsTrue(manager.DropIndex("index2").Success);
+                    Assert.IsTrue(manager.DropN1qlIndex("index1").Success);
+                    Assert.IsTrue(manager.DropN1qlIndex("index2").Success);
 
-                    Assert.IsTrue(manager.CreateIndex("index1", true, "name", "id").Success);
-                    Assert.IsTrue(manager.CreateIndex("index2", true, "name", "id").Success);
+                    Assert.IsTrue(manager.CreateN1qlIndex("index1", true, "name", "id").Success);
+                    Assert.IsTrue(manager.CreateN1qlIndex("index2", true, "name", "id").Success);
 
-                    var indexes = manager.ListIndexes();
+                    var indexes = manager.ListN1qlIndexes();
                     Assert.AreEqual("deferred", indexes.First(x => x.Name == "index1").State);
                     Assert.AreEqual("deferred", indexes.First(x => x.Name == "index2").State);
 
-                    var buildResults = manager.BuildDeferredIndexes();
+                    var buildResults = manager.BuildN1qlDeferredIndexes();
                     Assert.IsTrue(buildResults.All(x=>x.Success));
 
-                    manager.ListIndexes().ToList().ForEach(Console.WriteLine);
+                    manager.ListN1qlIndexes().ToList().ForEach(Console.WriteLine);
 
                     Assert.AreEqual("online", indexes.First(x => x.Name == "index1").State);
                     Assert.AreEqual("online", indexes.First(x => x.Name == "index2").State);

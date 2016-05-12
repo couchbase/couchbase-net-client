@@ -55,5 +55,11 @@ namespace Couchbase.Management.Indexes
         /// </summary>
         [DataMember(Name = "index_key")]
         public dynamic IndexKey { get; set; }
+
+        /// <summary>
+        /// The predicate.
+        /// </summary>
+        [DataMember(Name="condition")]
+        public string Condtion { get; set; }
     }
 }

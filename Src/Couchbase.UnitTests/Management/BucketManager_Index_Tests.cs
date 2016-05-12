@@ -20,10 +20,10 @@ namespace Couchbase.UnitTests.Management
         {
             //arange
             var managerMock = new Mock<IBucketManager>();
-            managerMock.Setup(x => x.ListIndexes()).Returns(new IndexResult {Success = true});
+            managerMock.Setup(x => x.ListN1qlIndexes()).Returns(new IndexResult {Success = true});
 
             //act
-            var result = managerMock.Object.ListIndexes();
+            var result = managerMock.Object.ListN1qlIndexes();
 
             //assert
             Assert.IsTrue(result.Success);
@@ -34,7 +34,7 @@ namespace Couchbase.UnitTests.Management
         {
             //arange
             var managerMock = new Mock<IBucketManager>();
-            managerMock.Setup(x => x.ListIndexes()).Returns(new IndexResult
+            managerMock.Setup(x => x.ListN1qlIndexes()).Returns(new IndexResult
             {
                 Success = true,
                 Value = new List<IndexInfo>
@@ -44,7 +44,7 @@ namespace Couchbase.UnitTests.Management
             });
 
             //act
-            var result = managerMock.Object.ListIndexes();
+            var result = managerMock.Object.ListN1qlIndexes();
 
             //assert
             Assert.AreEqual(1, result.Value.Count);
@@ -55,14 +55,14 @@ namespace Couchbase.UnitTests.Management
         {
             //arange
             var managerMock = new Mock<IBucketManager>();
-            managerMock.Setup(x => x.ListIndexes()).Returns(new IndexResult
+            managerMock.Setup(x => x.ListN1qlIndexes()).Returns(new IndexResult
             {
                 Success = false,
                 Value = new List<IndexInfo>()
             });
 
             //act
-            var result = managerMock.Object.ListIndexes();
+            var result = managerMock.Object.ListN1qlIndexes();
 
             //assert
             Assert.AreEqual(0, result.Value.Count);
@@ -78,7 +78,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "DROP INDEX `beer-sample`.`theName` USING GSI;";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.DropIndex("theName");
+            var result = (DefaultResult<string>)bucketManager.DropN1qlIndex("theName");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -94,7 +94,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "DROP INDEX `beer-sample`.`theName` USING GSI;";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.DropIndexAsync("theName");
+            var result = (DefaultResult<string>) await bucketManager.DropN1qlIndexAsync("theName");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -110,7 +110,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE INDEX `theName` ON `beer-sample`(`name`, `id`) USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.CreateIndex("theName", false, "name", "id");
+            var result = (DefaultResult<string>)bucketManager.CreateN1qlIndex("theName", false, "name", "id");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -126,7 +126,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX ON `beer-sample` USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>) bucketManager.CreatePrimaryIndex();
+            var result = (DefaultResult<string>) bucketManager.CreateN1qlPrimaryIndex();
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -142,7 +142,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX ON `beer-sample` USING GSI WITH {\"defer_build\":true};";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.CreatePrimaryIndex(true);
+            var result = (DefaultResult<string>)bucketManager.CreateN1qlPrimaryIndex(true);
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -158,7 +158,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX `my_idx` ON `beer-sample` USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.CreateNamedPrimaryIndexAsync("my_idx");
+            var result = (DefaultResult<string>) await bucketManager.CreateN1qlPrimaryIndexAsync("my_idx");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -174,7 +174,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX `my_idx` ON `beer-sample` USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.CreateNamedPrimaryIndex("my_idx");
+            var result = (DefaultResult<string>)bucketManager.CreateN1qlPrimaryIndex("my_idx");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -190,7 +190,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX ON `beer-sample` USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.CreatePrimaryIndexAsync();
+            var result = (DefaultResult<string>) await bucketManager.CreateN1qlPrimaryIndexAsync();
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -206,7 +206,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE PRIMARY INDEX ON `beer-sample` USING GSI WITH {\"defer_build\":true};";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.CreatePrimaryIndexAsync(true);
+            var result = (DefaultResult<string>) await bucketManager.CreateN1qlPrimaryIndexAsync(true);
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -222,7 +222,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE INDEX `theName` ON `beer-sample`(`name`) USING GSI WITH {\"defer_build\":true};";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.CreateIndex("theName", true, "name");
+            var result = (DefaultResult<string>)bucketManager.CreateN1qlIndex("theName", true, "name");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -238,7 +238,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE INDEX `theName` ON `beer-sample`(`name`) USING GSI WITH {\"defer_build\":true};";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.CreateIndexAsync("theName", true, "name");
+            var result = (DefaultResult<string>) await bucketManager.CreateN1qlIndexAsync("theName", true, "name");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -254,7 +254,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE INDEX `theName` ON `beer-sample`(`name`, `id`) USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.CreateIndex("theName", false, "name", "id");
+            var result = (DefaultResult<string>)bucketManager.CreateN1qlIndex("theName", false, "name", "id");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -270,7 +270,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "CREATE INDEX `theName` ON `beer-sample`(`name`, `id`) USING GSI WITH {\"defer_build\":false};";
 
             //act
-            var result = (DefaultResult<string>) await bucketManager.CreateIndexAsync("theName", false, "name", "id");
+            var result = (DefaultResult<string>) await bucketManager.CreateN1qlIndexAsync("theName", false, "name", "id");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -286,7 +286,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "DROP INDEX `beer-sample`.`theName` USING GSI;";
 
             //act
-            var result = (DefaultResult<string>) bucketManager.DropNamedPrimaryIndex("theName");
+            var result = (DefaultResult<string>) bucketManager.DropN1qlPrimaryIndex("theName");
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -318,7 +318,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "DROP PRIMARY INDEX ON `beer-sample` USING GSI;";
 
             //act
-            var result = (DefaultResult<string>)bucketManager.DropPrimaryIndex();
+            var result = (DefaultResult<string>)bucketManager.DropN1qlPrimaryIndex();
 
             //assert
             Assert.AreEqual(expectedStatement, result.Value);
@@ -334,7 +334,7 @@ namespace Couchbase.UnitTests.Management
             var expectedStatement = "DROP PRIMARY INDEX ON `beer-sample` USING GSI;";
 
             //act
-            var result = await bucketManager.DropPrimaryIndexAsync();
+            var result = await bucketManager.DropN1qlPrimaryIndexAsync();
 
             //assert
             Assert.AreEqual(expectedStatement, ((DefaultResult<string>)result).Value);
