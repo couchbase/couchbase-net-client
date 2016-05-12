@@ -276,7 +276,6 @@ namespace Couchbase.IntegrationTests.Management
             finally
             {
                 // Cleanup
-
                 var removeResult =  _bucketManager.RemoveDesignDocumentAsync("test").Result;
                 Assert.True(removeResult.Success);
             }
@@ -354,8 +353,7 @@ namespace Couchbase.IntegrationTests.Management
             finally
             {
                 // Cleanup
-
-                var removeResult =  _bucketManager.RemoveDesignDocumentAsync("test").Result;
+                var removeResult = _bucketManager.RemoveDesignDocumentAsync("test").Result;
                 Assert.True(removeResult.Success);
             }
         }
