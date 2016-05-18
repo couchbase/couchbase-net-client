@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET45
+using System;
 using System.Configuration;
 
 namespace Couchbase.Configuration.Client.Providers
@@ -24,6 +25,8 @@ namespace Couchbase.Configuration.Client.Providers
         }
     }
 }
+
+#endif
 
 #region [ License information ]
 

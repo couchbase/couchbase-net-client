@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection.Emit;
 using Couchbase.IO;
 using Couchbase.Utils;
 
@@ -19,19 +20,32 @@ namespace Couchbase.Configuration.Client
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
 
+        public static class Defaults
+        {
+            public const int Port = 11210;
+            public const string Password = "";
+            public const string Username = "";
+            public const string BucketName = "default";
+            public const int ObserveInternal = 10; //ms
+            public const int ObserverTimeout = 500; //ms
+            public const int OperationLifespan = 2500; //ms
+            public const bool UseSsl = false;
+        }
+
         /// <summary>
         /// Default CTOR for localhost.
         /// </summary>
         public BucketConfiguration()
         {
             Servers = new List<Uri> { new Uri("http://localhost:8091/pools") };
-            Port = 11210;
-            Password = string.Empty;
-            Username = string.Empty;
-            BucketName = "default";
-            ObserveInterval = 10; //ms
-            ObserveTimeout = 500; //ms
-            _operationLifespan = 2500; //ms, work around property that flags as changed
+            Port = Defaults.Port;
+            Password = Defaults.Password;
+            Username = Defaults.Username;
+            BucketName = Defaults.BucketName;
+            ObserveInterval = Defaults.ObserveInternal; //ms
+            ObserveTimeout = Defaults.ObserverTimeout; //ms
+            _operationLifespan = Defaults.OperationLifespan; //ms, work around property that flags as changed
+            UseSsl = Defaults.UseSsl;
             PoolConfiguration = new PoolConfiguration();
         }
 

@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -29,7 +29,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -76,11 +76,17 @@
     <Compile Include="Authentication\SASL\SaslFactory.cs" />
     <Compile Include="Authentication\SASL\SaslMechanismType.cs" />
     <Compile Include="ClusterHelper.cs" />
+    <Compile Include="Configuration\Client\BucketDefinition.cs" />
+    <Compile Include="Configuration\Client\ConnectionPoolDefinition.cs" />
+    <Compile Include="Configuration\Client\CouchbaseClientDefinition.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElement.cs" />
     <Compile Include="Configuration\Client\Providers\BucketElementCollection.cs" />
     <Compile Include="Configuration\Client\Providers\ConnectionPoolElement.cs" />
     <Compile Include="Configuration\Client\Providers\CouchbaseClientSection.cs" />
     <Compile Include="Configuration\Client\Providers\ConverterElement.cs" />
+    <Compile Include="Configuration\Client\IBucketDefinition.cs" />
+    <Compile Include="Configuration\Client\IConnectionPoolDefinition.cs" />
+    <Compile Include="Configuration\Client\ICouchbaseClientDefinition.cs" />
     <Compile Include="Configuration\Client\Providers\IOServiceElement.cs" />
     <Compile Include="Configuration\Client\Providers\SerializerElement.cs" />
     <Compile Include="Configuration\Client\Providers\TranscoderElement.cs" />
@@ -358,6 +364,7 @@
     <Compile Include="Utils\SynchronizationContextExclusion.cs" />
     <Compile Include="Utils\TaskExtensions.cs" />
     <Compile Include="Utils\TimeSpanExtensions.cs" />
+    <Compile Include="Utils\TypecastingEnumerator.cs" />
     <Compile Include="Utils\UrlUtil.cs" />
     <Compile Include="Views\ISpatialViewQuery.cs" />
     <Compile Include="Views\IViewQueryable.cs" />

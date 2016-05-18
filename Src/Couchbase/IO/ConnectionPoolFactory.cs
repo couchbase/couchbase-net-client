@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Net;
 using Couchbase.Configuration.Client;
+
+#if NET45
 using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase.IO
 {
@@ -32,18 +35,31 @@ namespace Couchbase.IO
             };
         }
 
+#if NET45
+
         /// <summary>
         /// Gets the factory.
         /// </summary>
         /// <returns></returns>
         public static Func<PoolConfiguration, IPEndPoint, IConnectionPool> GetFactory(ConnectionPoolElement element)
         {
+            return GetFactory(element.Type);
+        }
+
+#endif
+
+        /// <summary>
+        /// Gets the factory.
+        /// </summary>
+        /// <returns></returns>
+        public static Func<PoolConfiguration, IPEndPoint, IConnectionPool> GetFactory(string typeName)
+        {
             return (config, endpoint) =>
             {
-                var type = Type.GetType(element.Type);
+                var type = Type.GetType(typeName);
                 if (type == null)
                 {
-                    throw new TypeLoadException(string.Format("Could not find: {0}", element.Type));
+                    throw new TypeLoadException(string.Format("Could not find: {0}", typeName));
                 }
                 var connectionPool = (IConnectionPool)Activator.CreateInstance(type, config, endpoint);
                 return connectionPool;

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Reflection;
+
+#if NET45
 using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase.IO.Converters
 {
@@ -18,6 +21,8 @@ namespace Couchbase.IO.Converters
             return () => new DefaultConverter();
         }
 
+#if NET45
+
         /// <summary>
         /// Gets a <see cref="Func{IByteConverter}"/> factory for custom <see cref="IByteConverter"/>s conifgured in the App.Config.
         /// </summary>
@@ -25,9 +30,21 @@ namespace Couchbase.IO.Converters
         /// <returns>A func for creating custom <see cref="IByteConverter"/> instances.</returns>
         public static Func<IByteConverter> GetConverter(ConverterElement element)
         {
+            return GetConverter(element.Type);
+        }
+
+#endif
+
+        /// <summary>
+        /// Gets a <see cref="Func{IByteConverter}"/> factory for custom <see cref="IByteConverter"/>s conifgured in the App.Config.
+        /// </summary>
+        /// <param name="typeName">The name of the type implementing <see cref="IByteConverter"/>.</param>
+        /// <returns>A func for creating custom <see cref="IByteConverter"/> instances.</returns>
+        public static Func<IByteConverter> GetConverter(string typeName)
+        {
             Assembly.GetExecutingAssembly();
-            var type = Type.GetType(element.Type, true);
-            return () => (IByteConverter) Activator.CreateInstance(type);
+            var type = Type.GetType(typeName, true);
+            return () => (IByteConverter)Activator.CreateInstance(type);
         }
     }
 }

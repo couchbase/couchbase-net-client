@@ -88,5 +88,25 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(ClientConfiguration.Defaults.TcpKeepAliveInterval, clientConfig.TcpKeepAliveInterval);
             Assert.AreEqual(10, clientConfig.PoolConfiguration.TcpKeepAliveInterval);
         }
+
+        [Test]
+        public void POCO_NoServers_DefaultsToLocalhost()
+        {
+            // Arrange
+
+            var clientDefinition = new CouchbaseClientDefinition()
+            {
+                Servers = null
+            };
+
+            // Act
+
+            var clientConfig = new ClientConfiguration(clientDefinition);
+
+            // Assert
+
+            Assert.AreEqual(1, clientConfig.Servers.Count);
+            Assert.AreEqual(ClientConfiguration.Defaults.Server, clientConfig.Servers.First());
+        }
     }
 }

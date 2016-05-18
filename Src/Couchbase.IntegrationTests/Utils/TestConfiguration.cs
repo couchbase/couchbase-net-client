@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
+using Microsoft.Extensions.Configuration;
 
 namespace Couchbase.IntegrationTests.Utils
 {
@@ -11,6 +12,8 @@ namespace Couchbase.IntegrationTests.Utils
     /// </summary>
     public static class TestConfiguration
     {
+        private static IConfigurationRoot _jsonConfiguration;
+
         public static ClientConfiguration GetDefaultConfiguration()
         {
             return new ClientConfiguration
@@ -56,6 +59,18 @@ namespace Couchbase.IntegrationTests.Utils
             var hostname = ConfigurationManager.AppSettings["hostname"];
             var port = ConfigurationManager.AppSettings["bootport"];
             return new Uri(string.Format("http://{0}:{1}/", hostname, port));
+        }
+
+        public static ClientConfiguration GetJsonConfiguration(string name)
+        {
+            if (_jsonConfiguration == null)
+            {
+                var builder = new ConfigurationBuilder();
+                builder.AddJsonFile("config.json");
+                _jsonConfiguration = builder.Build();
+            }
+
+            return new ClientConfiguration(_jsonConfiguration.Get<CouchbaseClientDefinition>(name));
         }
     }
 }

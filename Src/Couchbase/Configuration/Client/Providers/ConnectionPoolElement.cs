@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿#if NET45
+using System.Configuration;
 using Couchbase.IO;
 
 namespace Couchbase.Configuration.Client.Providers
@@ -6,7 +7,7 @@ namespace Couchbase.Configuration.Client.Providers
     /// <summary>
     /// Provides configuration support for the Bucket's <see cref="ConnectionPool{T}"/> object, which is pool of TCP connections.
     /// </summary>
-    public class ConnectionPoolElement : ConfigurationElement
+    public class ConnectionPoolElement : ConfigurationElement, IConnectionPoolDefinition
     {
         private const string DefaultTypeName =
             "Couchbase.IO.ConnectionPool`1[Couchbase.IO.Connection], Couchbase.NetClient";
@@ -216,6 +217,8 @@ namespace Couchbase.Configuration.Client.Providers
         }
     }
 }
+
+#endif
 
 #region [ License information ]
 

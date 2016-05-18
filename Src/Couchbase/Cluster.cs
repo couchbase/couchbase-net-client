@@ -6,7 +6,6 @@ using System.Reflection;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -14,6 +13,10 @@ using Couchbase.Management;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
+
+#if NET45
+using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase
 {
@@ -39,6 +42,18 @@ namespace Couchbase
         {
         }
 
+
+        /// <summary>
+        /// Ctor for creating Cluster instance using an <see cref="ICouchbaseClientDefinition"/>.
+        /// </summary>
+        /// <param name="definition">The configuration definition loaded from a configuration file.</param>
+        public Cluster(ICouchbaseClientDefinition definition)
+            : this(new ClientConfiguration(definition))
+        {
+        }
+
+#if NET45
+
         /// <summary>
         /// Ctor for creating Cluster instance using an App.Config or Web.config.
         /// </summary>
@@ -48,6 +63,8 @@ namespace Couchbase
             : this(new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName)))
         {
         }
+
+#endif
 
         /// <summary>
         /// Ctor for creating Cluster instance with a custom <see cref="ClientConfiguration"/> configuration.

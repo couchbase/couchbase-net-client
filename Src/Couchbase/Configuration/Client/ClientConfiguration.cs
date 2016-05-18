@@ -5,7 +5,6 @@ using System.Net;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
@@ -18,6 +17,10 @@ using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
+#if NET45
+using Couchbase.Configuration.Client.Providers;
+#endif
+
 namespace Couchbase.Configuration.Client
 {
     /// <summary>
@@ -29,7 +32,6 @@ namespace Couchbase.Configuration.Client
         private static readonly ILog Log = LogManager.GetLogger<ClientConfiguration>();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
-        private readonly Uri _defaultServer = new Uri("http://localhost:8091/pools");
         private PoolConfiguration _poolConfiguration;
         private bool _poolConfigurationChanged;
         private List<Uri> _servers = new List<Uri>();
@@ -47,6 +49,7 @@ namespace Couchbase.Configuration.Client
 
         public static class Defaults
         {
+            public static Uri Server = new Uri("http://localhost:8091/pools");
             public static uint QueryRequestTimeout = 75000;
             public static bool UseSsl = false;
             public static uint SslPort = 11207;
@@ -89,42 +92,42 @@ namespace Couchbase.Configuration.Client
             //For operation timing
             Timer = TimingFactory.GetTimer(Log);
 
-            QueryRequestTimeout = 75000;
-            UseSsl = false;
-            SslPort = 11207;
-            ApiPort = 8092;
-            DirectPort = 11210;
-            MgmtPort = 8091;
-            HttpsMgmtPort = 18091;
-            HttpsApiPort = 18092;
-            ObserveInterval = 10; //ms
-            ObserveTimeout = 500; //ms
-            MaxViewRetries = 2;
-            ViewHardTimeout = 30000; //ms
-            HeartbeatConfigInterval = 10000; //ms
-            EnableConfigHeartBeat = true;
+            QueryRequestTimeout = Defaults.QueryRequestTimeout;
+            UseSsl = Defaults.UseSsl;
+            SslPort = (int) Defaults.SslPort;
+            ApiPort = (int) Defaults.ApiPort;
+            DirectPort = (int) Defaults.DirectPort;
+            MgmtPort = (int) Defaults.MgmtPort;
+            HttpsMgmtPort = (int) Defaults.HttpsMgmtPort;
+            HttpsApiPort = (int) Defaults.HttpsApiPort;
+            ObserveInterval = (int) Defaults.ObserveInterval; //ms
+            ObserveTimeout = (int) Defaults.ObserveTimeout; //ms
+            MaxViewRetries = (int) Defaults.MaxViewRetries;
+            ViewHardTimeout = (int) Defaults.ViewHardTimeout; //ms
+            HeartbeatConfigInterval = Defaults.HeartbeatConfigInterval; //ms
+            EnableConfigHeartBeat = Defaults.EnableConfigHeartBeat;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            ViewRequestTimeout = 75000; //ms
+            ViewRequestTimeout = (int) Defaults.ViewRequestTimeout; //ms
             SearchRequestTimeout = Defaults.SearchRequestTimeout;
 
             //service point settings
-            DefaultConnectionLimit = 5; //connections
-            Expect100Continue = false;
-            MaxServicePointIdleTime = 100;
+            DefaultConnectionLimit = Defaults.DefaultConnectionLimit; //connections
+            Expect100Continue = Defaults.Expect100Continue;
+            MaxServicePointIdleTime = (int) Defaults.MaxServicePointIdleTime;
 
-            EnableOperationTiming = false;
-            BufferSize = 1024 * 16;
-            DefaultOperationLifespan = 2500;//ms
-            EnableTcpKeepAlives = true;
-            QueryFailedThreshold = 2;
+            EnableOperationTiming = Defaults.EnableOperationTiming;
+            BufferSize = (int) Defaults.BufferSize;
+            DefaultOperationLifespan = Defaults.DefaultOperationLifespan;//ms
+            EnableTcpKeepAlives = Defaults.EnableTcpKeepAlives;
+            QueryFailedThreshold = (int) Defaults.QueryFailedThreshold;
 
-            TcpKeepAliveTime = 2*60*60*1000;
-            TcpKeepAliveInterval = 1000;
+            TcpKeepAliveTime = Defaults.TcpKeepAliveTime;
+            TcpKeepAliveInterval = Defaults.TcpKeepAliveInterval;
 
-            NodeAvailableCheckInterval = 1000;//ms
-            IOErrorCheckInterval = 500;
-            IOErrorThreshold = 10;
+            NodeAvailableCheckInterval = Defaults.NodeAvailableCheckInterval;//ms
+            IOErrorCheckInterval = Defaults.IOErrorCheckInterval;
+            IOErrorThreshold = Defaults.IOErrorThreshold;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -157,7 +160,7 @@ namespace Couchbase.Configuration.Client
                     PoolConfiguration = PoolConfiguration,
                 }}
             };
-            Servers = new List<Uri> { _defaultServer };
+            Servers = new List<Uri> { Defaults.Server };
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -165,138 +168,166 @@ namespace Couchbase.Configuration.Client
             _poolConfigurationChanged = false;
         }
 
+        #if NET45
+
         /// <summary>
         /// For synchronization with App.config or Web.configs.
         /// </summary>
         /// <param name="section"></param>
-        public ClientConfiguration(CouchbaseClientSection section)
+        public ClientConfiguration(CouchbaseClientSection section) : this((ICouchbaseClientDefinition) section)
+        {
+        }
+
+        #endif
+
+        /// <summary>
+        /// For synchronization with App.config or Web.configs.
+        /// </summary>
+        /// <param name="definition"></param>
+        public ClientConfiguration(ICouchbaseClientDefinition definition)
         {
             Timer = TimingFactory.GetTimer(Log);
-            NodeAvailableCheckInterval = section.NodeAvailableCheckInterval;
-            UseSsl = section.UseSsl;
-            SslPort = section.SslPort;
-            ApiPort = section.ApiPort;
-            DirectPort = section.DirectPort;
-            MgmtPort = section.MgmtPort;
-            HttpsMgmtPort = section.HttpsMgmtPort;
-            HttpsApiPort = section.HttpsApiPort;
-            ObserveInterval = section.ObserveInterval;
-            ObserveTimeout = section.ObserveTimeout;
-            MaxViewRetries = section.MaxViewRetries;
-            ViewHardTimeout = section.ViewHardTimeout;
+            NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
+            UseSsl = definition.UseSsl;
+            SslPort = definition.SslPort;
+            ApiPort = definition.ApiPort;
+            DirectPort = definition.DirectPort;
+            MgmtPort = definition.MgmtPort;
+            HttpsMgmtPort = definition.HttpsMgmtPort;
+            HttpsApiPort = definition.HttpsApiPort;
+            ObserveInterval = definition.ObserveInterval;
+            ObserveTimeout = definition.ObserveTimeout;
+            MaxViewRetries = definition.MaxViewRetries;
+            ViewHardTimeout = definition.ViewHardTimeout;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-            EnableConfigHeartBeat = section.EnableConfigHeartBeat;
-            HeartbeatConfigInterval = section.HeartbeatConfigInterval;
-            ViewRequestTimeout = section.ViewRequestTimeout;
-            Expect100Continue = section.Expect100Continue;
-            DefaultConnectionLimit = section.DefaultConnectionLimit;
-            MaxServicePointIdleTime = section.MaxServicePointIdleTime;
-            EnableOperationTiming = section.EnableOperationTiming;
-            DefaultOperationLifespan = section.OperationLifespan;
-            QueryRequestTimeout = section.QueryRequestTimeout;
-            SearchRequestTimeout = section.SearchRequestTimeout;
+            EnableConfigHeartBeat = definition.EnableConfigHeartBeat;
+            HeartbeatConfigInterval = definition.HeartbeatConfigInterval;
+            ViewRequestTimeout = definition.ViewRequestTimeout;
+            Expect100Continue = definition.Expect100Continue;
+            DefaultConnectionLimit = definition.DefaultConnectionLimit;
+            MaxServicePointIdleTime = definition.MaxServicePointIdleTime;
+            EnableOperationTiming = definition.EnableOperationTiming;
+            DefaultOperationLifespan = definition.OperationLifespan;
+            QueryRequestTimeout = definition.QueryRequestTimeout;
+            SearchRequestTimeout = definition.SearchRequestTimeout;
 
-            IOErrorCheckInterval = section.IOErrorCheckInterval;
-            IOErrorThreshold = section.IOErrorThreshold;
+            IOErrorCheckInterval = definition.IOErrorCheckInterval;
+            IOErrorThreshold = definition.IOErrorThreshold;
 
             //transcoders, converters, and serializers...o mai.
-            Serializer = SerializerFactory.GetSerializer(this, section.Serializer);
-            Converter = ConverterFactory.GetConverter(section.Converter);
-            Transcoder = TranscoderFactory.GetTranscoder(this, section.Transcoder);
+            Serializer = definition.Serializer != null
+                ? SerializerFactory.GetSerializer(definition.Serializer)
+                : SerializerFactory.GetSerializer();
+            Converter = definition.Converter != null
+                ? ConverterFactory.GetConverter(definition.Converter)
+                : ConverterFactory.GetConverter();
+            Transcoder = definition.Transcoder != null
+                ? TranscoderFactory.GetTranscoder(this, definition.Transcoder)
+                : TranscoderFactory.GetTranscoder(this);
+            IOServiceCreator = definition.IOService != null
+                ? IOServiceFactory.GetFactory(definition.IOService)
+                : IOServiceFactory.GetFactory();
 
             //to enable tcp keep-alives
-            EnableTcpKeepAlives = section.EnableTcpKeepAlives;
-            TcpKeepAliveInterval = section.TcpKeepAliveInterval;
-            TcpKeepAliveTime = section.TcpKeepAliveTime;
+            EnableTcpKeepAlives = definition.EnableTcpKeepAlives;
+            TcpKeepAliveInterval = definition.TcpKeepAliveInterval;
+            TcpKeepAliveTime = definition.TcpKeepAliveTime;
 
             var keepAlivesChanged = EnableTcpKeepAlives != true ||
                                     TcpKeepAliveInterval != 1000 ||
                                     TcpKeepAliveTime != 2*60*60*1000;
 
-            //the default ioservice - this should be refactored to come from the configsection
-            IOServiceCreator = IOServiceFactory.GetFactory(section.IOService);
-
-            //the default connection pool creator
-            if (section.UseSsl)
-            {
-                section.ConnectionPool.UseSsl = section.UseSsl;
-            }
-            ConnectionPoolCreator = ConnectionPoolFactory.GetFactory(section.ConnectionPool);
-
             //The default sasl mechanism creator
             CreateSaslMechanism = SaslFactory.GetFactory();
 
-            foreach (var server in section.Servers)
+            foreach (var server in definition.Servers ?? new[] { Defaults.Server })
             {
-                Servers.Add(((UriElement)server).Uri);
+                Servers.Add(server);
                 _serversChanged = true;
             }
 
-            PoolConfiguration = new PoolConfiguration
+            if (definition.ConnectionPool != null)
             {
-                MaxSize = section.ConnectionPool.MaxSize,
-                MinSize = section.ConnectionPool.MinSize,
-                WaitTimeout = section.ConnectionPool.WaitTimeout,
-                ShutdownTimeout = section.ConnectionPool.ShutdownTimeout,
-                UseSsl = UseSsl ? UseSsl : section.ConnectionPool.UseSsl,
-                BufferSize = section.ConnectionPool.BufferSize,
-                BufferAllocator = (p) => new BufferAllocator(p.MaxSize * p.BufferSize, p.BufferSize),
-                ConnectTimeout = section.ConnectionPool.ConnectTimeout,
-                SendTimeout = section.ConnectionPool.SendTimeout,
-                EnableTcpKeepAlives = keepAlivesChanged ? EnableTcpKeepAlives : section.ConnectionPool.EnableTcpKeepAlives,
-                TcpKeepAliveInterval = keepAlivesChanged ? TcpKeepAliveInterval : section.ConnectionPool.TcpKeepAliveInterval,
-                TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : section.ConnectionPool.TcpKeepAliveTime,
-                CloseAttemptInterval = section.ConnectionPool.CloseAttemptInterval,
-                MaxCloseAttempts = section.ConnectionPool.MaxCloseAttempts,
-                ClientConfiguration = this
-            };
+                ConnectionPoolCreator = definition.ConnectionPool.Type != null
+                    ? ConnectionPoolFactory.GetFactory(definition.ConnectionPool.Type)
+                    : ConnectionPoolFactory.GetFactory();
+
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = definition.ConnectionPool.MaxSize,
+                    MinSize = definition.ConnectionPool.MinSize,
+                    WaitTimeout = definition.ConnectionPool.WaitTimeout,
+                    ShutdownTimeout = definition.ConnectionPool.ShutdownTimeout,
+                    UseSsl = UseSsl ? UseSsl : definition.ConnectionPool.UseSsl,
+                    BufferSize = definition.ConnectionPool.BufferSize,
+                    BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
+                    ConnectTimeout = definition.ConnectionPool.ConnectTimeout,
+                    SendTimeout = definition.ConnectionPool.SendTimeout,
+                    EnableTcpKeepAlives =
+                        keepAlivesChanged ? EnableTcpKeepAlives : definition.ConnectionPool.EnableTcpKeepAlives,
+                    TcpKeepAliveInterval =
+                        keepAlivesChanged ? TcpKeepAliveInterval : definition.ConnectionPool.TcpKeepAliveInterval,
+                    TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : definition.ConnectionPool.TcpKeepAliveTime,
+                    CloseAttemptInterval = definition.ConnectionPool.CloseAttemptInterval,
+                    MaxCloseAttempts = definition.ConnectionPool.MaxCloseAttempts,
+                    ClientConfiguration = this
+                };
+            }
+            else
+            {
+                ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
+                PoolConfiguration = new PoolConfiguration(this);
+            }
 
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
-            foreach (var bucketElement in section.Buckets)
+            if (definition.Buckets != null)
             {
-                var bucket = (BucketElement)bucketElement;
-                var bucketConfiguration = new BucketConfiguration
+                foreach (var bucket in definition.Buckets)
                 {
-                    BucketName = bucket.Name,
-                    UseSsl = bucket.UseSsl,
-                    Password = bucket.Password,
-                    ObserveInterval = bucket.ObserveInterval,
-                    DefaultOperationLifespan = bucket.OperationLifespan ??(uint) DefaultOperationLifespan,
-                    ObserveTimeout = bucket.ObserveTimeout,
-                    UseEnhancedDurability = bucket.UseEnhancedDurability
-                };
-                //Configuration properties (including elements) can not be null, but we can check if it was originally presnt in xml and skip it.
-                //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
-                if (bucket.ConnectionPool.ElementInformation.IsPresent)
-                {
-                    bucketConfiguration.PoolConfiguration = new PoolConfiguration
+                    var bucketConfiguration = new BucketConfiguration
                     {
-                        MaxSize = bucket.ConnectionPool.MaxSize,
-                        MinSize = bucket.ConnectionPool.MinSize,
-                        WaitTimeout = bucket.ConnectionPool.WaitTimeout,
-                        ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
-                        UseSsl = bucket.ConnectionPool.UseSsl,
-                        BufferSize = bucket.ConnectionPool.BufferSize,
-                        BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
-                        ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
-                        SendTimeout = bucket.ConnectionPool.SendTimeout,
-                        EnableTcpKeepAlives =
-                            keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
-                        TcpKeepAliveInterval =
-                            keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
-                        TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
-                        CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
-                        MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
-                        UseEnhancedDurability = bucket.UseEnhancedDurability,
-                        ClientConfiguration = this
+                        BucketName = bucket.Name,
+                        UseSsl = bucket.UseSsl,
+                        Password = bucket.Password,
+                        ObserveInterval = bucket.ObserveInterval,
+                        DefaultOperationLifespan = bucket.OperationLifespan ?? (uint) DefaultOperationLifespan,
+                        ObserveTimeout = bucket.ObserveTimeout,
+                        UseEnhancedDurability = bucket.UseEnhancedDurability
                     };
+
+                    //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
+                    if (bucket.ConnectionPool != null)
+                    {
+                        bucketConfiguration.PoolConfiguration = new PoolConfiguration
+                        {
+                            MaxSize = bucket.ConnectionPool.MaxSize,
+                            MinSize = bucket.ConnectionPool.MinSize,
+                            WaitTimeout = bucket.ConnectionPool.WaitTimeout,
+                            ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
+                            UseSsl = bucket.ConnectionPool.UseSsl,
+                            BufferSize = bucket.ConnectionPool.BufferSize,
+                            BufferAllocator = (p) => new BufferAllocator(p.MaxSize*p.BufferSize, p.BufferSize),
+                            ConnectTimeout = bucket.ConnectionPool.ConnectTimeout,
+                            SendTimeout = bucket.ConnectionPool.SendTimeout,
+                            EnableTcpKeepAlives =
+                                keepAlivesChanged ? EnableTcpKeepAlives : bucket.ConnectionPool.EnableTcpKeepAlives,
+                            TcpKeepAliveInterval =
+                                keepAlivesChanged ? TcpKeepAliveInterval : bucket.ConnectionPool.TcpKeepAliveInterval,
+                            TcpKeepAliveTime =
+                                keepAlivesChanged ? TcpKeepAliveTime : bucket.ConnectionPool.TcpKeepAliveTime,
+                            CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
+                            MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
+                            UseEnhancedDurability = bucket.UseEnhancedDurability,
+                            ClientConfiguration = this
+                        };
+                    }
+                    else
+                    {
+                        bucketConfiguration.PoolConfiguration = PoolConfiguration;
+                    }
+                    BucketConfigs.Add(bucket.Name, bucketConfiguration);
                 }
-                else
-                {
-                    bucketConfiguration.PoolConfiguration = PoolConfiguration;
-                }
-                BucketConfigs.Add(bucket.Name, bucketConfiguration);
             }
 
             //Set back to default

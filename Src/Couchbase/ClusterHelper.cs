@@ -6,8 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
+
+#if NET45
+using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase
 {
@@ -211,6 +214,21 @@ namespace Couchbase
         /// <summary>
         /// Ctor for creating Cluster instance.
         /// </summary>
+        /// <param name="definition">The configuration definition loaded from a configuration file.</param>
+        public static void Initialize(ICouchbaseClientDefinition definition)
+        {
+            var configuration = new ClientConfiguration(definition);
+            configuration.Initialize();
+
+            var factory = new Func<Cluster>(() => new Cluster(configuration));
+            Initialize(factory);
+        }
+
+#if NET45
+
+        /// <summary>
+        /// Ctor for creating Cluster instance.
+        /// </summary>
         /// <param name="configurationSectionName">The name of the configuration section to use.</param>
         /// <remarks>Note that <see cref="CouchbaseClientSection"/> needs include the sectionGroup name as well: "couchbaseSection/couchbase" </remarks>
         public static void Initialize(string configurationSectionName)
@@ -223,6 +241,8 @@ namespace Couchbase
             var factory = new Func<Cluster>(() => new Cluster(configuration));
             Initialize(factory);
         }
+
+#endif
 
         /// <summary>
         /// Returns the number of <see cref="IBucket"/> instances internally cached by the <see cref="ClusterHelper"/>.

@@ -1,5 +1,8 @@
-﻿using System.Configuration;
-using Common.Logging;
+﻿#if NET45
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
 using Couchbase.Core;
 
 namespace Couchbase.Configuration.Client.Providers
@@ -7,7 +10,7 @@ namespace Couchbase.Configuration.Client.Providers
     /// <summary>
     /// Allows the Client Configuration to be set through an App.config or a Web.config.
     /// </summary>
-    public sealed class CouchbaseClientSection : ConfigurationSection
+    public sealed class CouchbaseClientSection : ConfigurationSection, ICouchbaseClientDefinition
     {
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
@@ -459,8 +462,49 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (int)this["queryFailedThreshold"]; }
             set { this["queryFailedThreshold"] = value; }
         }
+
+        #region Additional ICouchbaseClientDefinition implementations
+
+        IEnumerable<Uri> ICouchbaseClientDefinition.Servers
+        {
+            get { return Servers.Cast<UriElement>().Select(p => p.Uri); }
+        }
+
+        IEnumerable<IBucketDefinition> ICouchbaseClientDefinition.Buckets
+        {
+            get { return Buckets.Cast<IBucketDefinition>(); }
+        }
+
+        IConnectionPoolDefinition ICouchbaseClientDefinition.ConnectionPool
+        {
+            get { return ConnectionPool.ElementInformation.IsPresent ? ConnectionPool : null; }
+        }
+
+        string ICouchbaseClientDefinition.Transcoder
+        {
+            get { return Transcoder.Type; }
+        }
+
+        string ICouchbaseClientDefinition.Converter
+        {
+            get { return Converter.Type; }
+        }
+
+        string ICouchbaseClientDefinition.Serializer
+        {
+            get { return Serializer.Type; }
+        }
+
+        string ICouchbaseClientDefinition.IOService
+        {
+            get { return IOService.Type; }
+        }
+
+        #endregion
     }
 }
+
+#endif
 
 #region [ License information ]
 

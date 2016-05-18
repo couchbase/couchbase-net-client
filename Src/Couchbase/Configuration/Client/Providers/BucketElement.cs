@@ -1,11 +1,12 @@
-﻿using System.Configuration;
+﻿#if NET45
+using System.Configuration;
 
 namespace Couchbase.Configuration.Client.Providers
 {
     /// <summary>
     /// Allows a Couchbase Server's Bucket to be configured.
     /// </summary>
-    public sealed class BucketElement : ConfigurationElement
+    public sealed class BucketElement : ConfigurationElement, IBucketDefinition
     {
         /// <summary>
         /// Gets or sets a value indicating whether to use enhanced durability if the
@@ -46,7 +47,7 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
-        /// The password used to connect to the bucket. 
+        /// The password used to connect to the bucket.
         /// </summary>
         /// <remarks>The password can be set within the Couchbase Management Console.</remarks>
         [ConfigurationProperty("password", DefaultValue = "", IsRequired = false)]
@@ -57,7 +58,7 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
-        /// Allows the default connection pool settings to be overridden. 
+        /// Allows the default connection pool settings to be overridden.
         /// </summary>
         /// <remarks>The default settings are: MinSize=1, MaxSize=2, WaitTimout=2500ms, ShutdownTimeout=10000ms.</remarks>
         [ConfigurationProperty("connectionPool", IsRequired = false)]
@@ -96,8 +97,19 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (uint?)this["operationLifespan"]; }
             set { this["operationLifespan"] = value; }
         }
+
+        #region Additional IBucketDefinition Implementations
+
+        IConnectionPoolDefinition IBucketDefinition.ConnectionPool
+        {
+            get { return ConnectionPool.ElementInformation.IsPresent ? ConnectionPool : null; }
+        }
+
+        #endregion
     }
 }
+
+#endif
 
 #region [ License information ]
 

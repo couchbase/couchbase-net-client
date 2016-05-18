@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿#if NET45
+using System.Configuration;
 using Couchbase.Core.Transcoders;
 
 namespace Couchbase.Configuration.Client.Providers
@@ -41,3 +42,5 @@ namespace Couchbase.Configuration.Client.Providers
         }
     }
 }
+
+#endif

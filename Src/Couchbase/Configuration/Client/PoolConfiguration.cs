@@ -25,23 +25,44 @@ namespace Couchbase.Configuration.Client
     {
         public const int DefaultSendTimeout = 15000;
 
+        public static class Defaults
+        {
+            public const int MaxSize = 2;
+            public const int MinSize = 1;
+            public const int WaitTimeout = 2500;
+            public const int ReceiveTimeout = 2500;
+            public const int ShutdownTimeout = 10000;
+            public const int OperationTimeout = 2500;
+            public const int MaxAcquireIterationCount = 5;
+            public const int SendTimeout = DefaultSendTimeout;
+            public const int BufferSize = 1024*16;
+            public const int ConnectTimeout = 10000;
+            public const bool EnableTcpKeepAlives = true;
+            public const uint TcpKeepAliveTime = 2*60*60*1000;
+            public const uint TcpKeepAliveInterval = 1000;
+            public const uint CloseAttemptInterval = 100;
+            public const int MaxCloseAttempts = 5;
+            public const bool UseEnhancedDurability = false;
+        }
+
         public PoolConfiguration(ClientConfiguration clientConfiguration = null)
         {
-            MaxSize = 2;
-            MinSize = 1;
-            WaitTimeout = 2500;
-            RecieveTimeout = 2500;
-            ShutdownTimeout = 10000;
-            OperationTimeout = 2500;
-            MaxAcquireIterationCount = 5;
-            SendTimeout = DefaultSendTimeout;
-            BufferSize = 1024 * 16;
-            ConnectTimeout = 10000;
-            EnableTcpKeepAlives = true;
-            TcpKeepAliveTime = (uint) 2*60*60*1000;
-            TcpKeepAliveInterval = (uint) 1000;
-            CloseAttemptInterval = 100u;
-            MaxCloseAttempts = 5;
+            MaxSize = Defaults.MaxSize;
+            MinSize = Defaults.MinSize;
+            WaitTimeout = Defaults.WaitTimeout;
+            RecieveTimeout = Defaults.ReceiveTimeout;
+            ShutdownTimeout = Defaults.ShutdownTimeout;
+            OperationTimeout = Defaults.OperationTimeout;
+            MaxAcquireIterationCount = Defaults.MaxAcquireIterationCount;
+            SendTimeout = Defaults.SendTimeout;
+            BufferSize = Defaults.BufferSize;
+            ConnectTimeout = Defaults.ConnectTimeout;
+            EnableTcpKeepAlives = Defaults.EnableTcpKeepAlives;
+            TcpKeepAliveTime = Defaults.TcpKeepAliveTime;
+            TcpKeepAliveInterval = Defaults.TcpKeepAliveInterval;
+            CloseAttemptInterval = Defaults.CloseAttemptInterval;
+            MaxCloseAttempts = Defaults.MaxCloseAttempts;
+            UseEnhancedDurability = Defaults.UseEnhancedDurability;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
