@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
-using System.Timers;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -14,11 +13,11 @@ using System;
 using System.Net;
 using Couchbase.Utils;
 using Newtonsoft.Json;
-using Timer = System.Timers.Timer;
+using Timer = System.Threading.Timer;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
-    internal sealed class CarrierPublicationProvider : ConfigProviderBase
+    internal class CarrierPublicationProvider : ConfigProviderBase
     {
         private Timer _heartBeat;
 
@@ -30,46 +29,20 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             ITypeTranscoder transcoder)
             : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
-            _heartBeat = new Timer
+
+            _heartBeat = new Timer(_heartBeat_Elapsed);
+
+            if (ClientConfig.EnableConfigHeartBeat)
             {
-                Interval = ClientConfig.HeartbeatConfigInterval,
-                Enabled = ClientConfig.EnableConfigHeartBeat,
-                AutoReset = false
-            };
-            _heartBeat.Elapsed += _heartBeat_Elapsed;
+                _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
+            }
         }
 
-        void _heartBeat_Elapsed(object sender, ElapsedEventArgs args)
+        internal virtual void _heartBeat_Elapsed(object state)
         {
             try
             {
-                foreach (var configInfo in Configs)
-                {
-                    var value = configInfo.Value;
-                    foreach (var server in value.Servers.Where(x => !x.IsDown && x.IsDataNode))
-                    {
-                        try
-                        {
-                            Log.Debug(m=>m("Config heartbeat on {0}.", server.EndPoint));
-                            var result = server.Send(
-                                new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
-
-                            if (result.Success && result.Status == ResponseStatus.Success)
-                            {
-                                var config = result.Value;
-                                if (config != null)
-                                {
-                                    UpdateConfig(result.Value);
-                                    break; //break on first success
-                                }
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Log.Warn(e);
-                        }
-                    }
-                }
+                GetUpdatedConfig();
             }
             catch (Exception e)
             {
@@ -77,7 +50,38 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
             finally
             {
-                _heartBeat.Start();
+                _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
+            }
+        }
+
+        internal virtual void GetUpdatedConfig()
+        {
+            foreach (var configInfo in Configs)
+            {
+                var value = configInfo.Value;
+                foreach (var server in value.Servers.Where(x => !x.IsDown && x.IsDataNode))
+                {
+                    try
+                    {
+                        Log.Debug(m => m("Config heartbeat on {0}.", server.EndPoint));
+                        var result = server.Send(
+                            new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
+
+                        if (result.Success && result.Status == ResponseStatus.Success)
+                        {
+                            var config = result.Value;
+                            if (config != null)
+                            {
+                                UpdateConfig(result.Value);
+                                break; //break on first success
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warn(e);
+                    }
+                }
             }
         }
 

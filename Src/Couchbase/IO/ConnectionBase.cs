@@ -25,7 +25,7 @@ namespace Couchbase.IO
         protected volatile bool Disposed;
         private volatile bool _isDead;
         private volatile bool _inUse = false;
-        private System.Timers.Timer _timer;
+        private Timer _timer;
         private int _closeAttempts;
 
         protected ConnectionBase(Socket socket, IByteConverter converter)
@@ -203,22 +203,17 @@ namespace Couchbase.IO
         /// <param name="interval">The interval to wait between close attempts.</param>
         public void CountdownToClose(uint interval)
         {
-            HasShutdown = true;
-            _timer = new System.Timers.Timer
-            {
-                Interval = interval,
-                AutoReset = false,
-                Enabled = true
-            };
+            var startTime = DateTime.Now;
 
-            //callback for timer
-            _timer.Elapsed += (o, args) =>
+            HasShutdown = true;
+            _timer = new Timer(state =>
             {
-                _closeAttempts = Interlocked.Increment(ref _closeAttempts);
+                IncrementCloseAttempts();
+
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
-                    Log.DebugFormat("Restarting timer for connection for {0} after {1}", _identity, args.SignalTime.Millisecond);
-                    _timer.Start();
+                    Log.DebugFormat("Restarting timer for connection for {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
+                    _timer.Change(interval, Timeout.Infinite);
                 }
                 else
                 {
@@ -228,9 +223,19 @@ namespace Couchbase.IO
                     //this will call the derived classes Dispose method,
                     //which call the base.Dispose (on OperationBase) cleaning up the timer.
                     Dispose();
-                    Log.DebugFormat("Disposing {0} after {1}ms", _identity, args.SignalTime.Millisecond);
+                    Log.DebugFormat("Disposing {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
                 }
-            };
+            },
+            null, interval, Timeout.Infinite);
+        }
+
+        /// <summary>
+        /// Increments the number of close attempts during CountdownToClose.
+        /// </summary>
+        /// <remarks>Primarily intented as a stub for unit testing CountdownToClose.</remarks>
+        internal virtual void IncrementCloseAttempts()
+        {
+            _closeAttempts = Interlocked.Increment(ref _closeAttempts);
         }
 
         /// <summary>

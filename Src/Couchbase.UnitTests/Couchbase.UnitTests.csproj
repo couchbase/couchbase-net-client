@@ -71,6 +71,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
+    <Compile Include="IO\ConnectionBaseTests.cs" />
     <Compile Include="Management\ClusterManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Index_Tests.cs" />

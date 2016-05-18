@@ -9,7 +9,6 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using Common.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -22,7 +21,7 @@ using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Utils;
 using Couchbase.Views;
-using Timer = System.Timers.Timer;
+using Timer = System.Threading.Timer;
 
 namespace Couchbase.Core
 {
@@ -113,11 +112,11 @@ namespace Couchbase.Core
                 Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
 
                 //timer and node status
-                _heartBeatTimer = new Timer(_clientConfiguration.NodeAvailableCheckInterval)
+                _heartBeatTimer = new Timer(_heartBeatTimer_Elapsed);
+                if (_isDown)
                 {
-                    Enabled = _isDown
-                };
-                _heartBeatTimer.Elapsed += _heartBeatTimer_Elapsed;
+                    StartHeartbeatTimer();
+                }
             }
         }
 
@@ -270,12 +269,9 @@ namespace Couchbase.Core
         /// it may be routed to a live node and succeed. The logs will reflect this but the result
         /// to the user will be a successful execution of a given operation.
         /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="System.Timers.ElapsedEventArgs"/> instance containing the event data.</param>
-        private void _heartBeatTimer_Elapsed(object sender, ElapsedEventArgs args)
+        private void _heartBeatTimer_Elapsed(object state)
         {
             Log.InfoFormat("Checking if node {0} is down: {1}", EndPoint, _isDown);
-            _heartBeatTimer.Stop();
             if (_isDown && !_disposed)
             {
                 if (IsDataNode)
@@ -304,7 +300,6 @@ namespace Couchbase.Core
                 {
                     Log.InfoFormat("Successfully connected and marking query node {0} as up.", EndPoint);
                     _isDown = false;
-                    _heartBeatTimer.Stop();
                 }
                 else
                 {
@@ -322,7 +317,7 @@ namespace Couchbase.Core
             }
             finally
             {
-                _heartBeatTimer.Start();
+                StartHeartbeatTimer();
             }
         }
 
@@ -348,7 +343,6 @@ namespace Couchbase.Core
                 {
                     Log.InfoFormat("Successfully connected and marking data node {0} as up.", EndPoint);
                     _isDown = false;
-                    _heartBeatTimer.Stop();
                 }
                 else
                 {
@@ -375,13 +369,13 @@ namespace Couchbase.Core
                         {
                             connection.IsDead = false;
                         }
-                        _heartBeatTimer.Start();
+                        StartHeartbeatTimer();
                     }
                     _ioService.ConnectionPool.Release(connection);
                 }
                 else
                 {
-                    _heartBeatTimer.Start();
+                    StartHeartbeatTimer();
                 }
             }
         }
@@ -428,7 +422,7 @@ namespace Couchbase.Core
                                EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
 
                             _isDown = true;
-                            _heartBeatTimer.Start();
+                            StartHeartbeatTimer();
                         }
                         Interlocked.Exchange(ref _ioErrorCount, 0);
                         _lastIOErrorCheckedTime = DateTime.Now;
@@ -831,7 +825,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    _heartBeatTimer.Start();
+                    StartHeartbeatTimer();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -858,6 +852,11 @@ namespace Couchbase.Core
         public int InvalidateQueryCache()
         {
             return QueryClient.InvalidateQueryCache();
+        }
+
+        private void StartHeartbeatTimer()
+        {
+            _heartBeatTimer.Change(_clientConfiguration.NodeAvailableCheckInterval, Timeout.Infinite);
         }
 
         private void Dispose(bool disposing)
