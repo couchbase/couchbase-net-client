@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.IO
             // Act/Assert
 
             // ReSharper disable once ObjectCreationAsStatement
-            var ex = Assert.Throws<ApplicationException>(() => new Connection(connectionPool.Object, socket, converter.Object, allocator.Object));
+            var ex = Assert.Throws<BufferUnavailableException>(() => new Connection(connectionPool.Object, socket, converter.Object, allocator.Object));
 
             Assert.True(ex.Message.Contains("BufferAllocator"));
         }

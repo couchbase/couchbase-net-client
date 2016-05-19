@@ -205,6 +205,7 @@
     <Compile Include="ClusterInfo.cs" />
     <Compile Include="IDocument.cs" />
     <Compile Include="IDocumentFragment.cs" />
+    <Compile Include="IO\BufferUnavailableException.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />

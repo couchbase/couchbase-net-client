@@ -37,7 +37,7 @@ namespace Couchbase.IO
             {
                 // failed to acquire a buffer because the allocator was exhausted
 
-                throw new ApplicationException("Unable to allocate a buffer for this connection because the BufferAllocator is exhausted.");
+                throw new BufferUnavailableException("Unable to allocate a buffer for this connection because the BufferAllocator is exhausted.");
             }
         }
 

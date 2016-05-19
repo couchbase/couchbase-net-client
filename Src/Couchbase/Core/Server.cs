@@ -623,7 +623,7 @@ namespace Couchbase.Core
 
                 await operation.Completed(new SocketAsyncState
                 {
-                    Exception = new ServerException(msg),
+                    Exception = new NodeUnavailableException(msg),
                     Opaque = operation.Opaque,
                     Status = ResponseStatus.NodeUnavailable
                 }).ContinueOnAnyContext();
