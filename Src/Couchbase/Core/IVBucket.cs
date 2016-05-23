@@ -41,6 +41,11 @@ namespace Couchbase.Core
         /// <c>true</c> if this instance has replicas; otherwise, <c>false</c>.
         /// </value>
         bool HasReplicas { get; }
+
+        /// <summary>
+        /// Name of the bucket this vBucket is associated with.
+        /// </summary>
+        string BucketName { get; }
     }
 }
 

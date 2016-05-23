@@ -14,13 +14,13 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetFormValues_WhenScanConsistenyIsAtPlus_ScanVectorsIsAddedToFormValues()
         {
             var document1 = new Mock<IDocument<dynamic>>();
-            document1.Setup(x => x.Token).Returns(new MutationToken(102, 22, 8282) {BucketRef = "bucket1_name" });
+            document1.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 22, 8282));
 
             var document2 = new Mock<IDocument<dynamic>>();
-            document2.Setup(x => x.Token).Returns(new MutationToken(123, 11, 8332) { BucketRef = "bucket1_name" });
+            document2.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 123, 11, 8332));
 
             var document3 = new Mock<IDocument<dynamic>>();
-            document3.Setup(x => x.Token).Returns(new MutationToken(133, 23, 333) { BucketRef = "bucket2_name" });
+            document3.Setup(x => x.Token).Returns(new MutationToken("bucket2_name", 133, 23, 333));
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
@@ -36,13 +36,13 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetFormValues_MultipleTokensSameVBucketId_HighestSequenceNumberIsUsed()
         {
             var document1 = new Mock<IDocument<dynamic>>();
-            document1.Setup(x => x.Token).Returns(new MutationToken(102, 22, 8282) { BucketRef = "bucket1_name" });
+            document1.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 22, 8282));
 
             var document2 = new Mock<IDocument<dynamic>>();
-            document2.Setup(x => x.Token).Returns(new MutationToken(102, 11, 8332) { BucketRef = "bucket1_name" });
+            document2.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 11, 8332));
 
             var document3 = new Mock<IDocument<dynamic>>();
-            document3.Setup(x => x.Token).Returns(new MutationToken(133, 23, 333) { BucketRef = "bucket2_name" });
+            document3.Setup(x => x.Token).Returns(new MutationToken("bucket2_name", 133, 23, 333));
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
@@ -58,13 +58,13 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetFormValues_MultipleTokensSameVBucketId_HighestSequenceNumberIsUsed2()
         {
             var document1 = new Mock<IDocument<dynamic>>();
-            document1.Setup(x => x.Token).Returns(new MutationToken(102, 22, 9999) { BucketRef = "bucket1_name" });
+            document1.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 22, 9999));
 
             var document2 = new Mock<IDocument<dynamic>>();
-            document2.Setup(x => x.Token).Returns(new MutationToken(102, 11, 8332) { BucketRef = "bucket1_name" });
+            document2.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 11, 8332));
 
             var document3 = new Mock<IDocument<dynamic>>();
-            document3.Setup(x => x.Token).Returns(new MutationToken(133, 23, 333) { BucketRef = "bucket2_name" });
+            document3.Setup(x => x.Token).Returns(new MutationToken("bucket2_name", 133, 23, 333));
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
@@ -86,7 +86,7 @@ namespace Couchbase.UnitTests.N1Ql
         public void MutationState_WhenDocumentDoesNotContainMutationToken_ThrowsArgumentException()
         {
             var document1 = new Mock<IDocument<dynamic>>();
-            document1.Setup(x => x.Token).Returns(new MutationToken(-1, -1, -1));
+            document1.Setup(x => x.Token).Returns(new MutationToken(null, -1, -1, -1));
             Assert.Throws<ArgumentException>(() => new MutationState().Add(document1.Object));
         }
 
@@ -94,7 +94,7 @@ namespace Couchbase.UnitTests.N1Ql
         public void MutationState_WhenDocumentFragementDoesNotContainMutationToken_ThrowsArgumentException()
         {
             var fragment = new Mock<IDocumentFragment<dynamic>>();
-            fragment.Setup(x => x.Token).Returns(new MutationToken(-1, -1, -1));
+            fragment.Setup(x => x.Token).Returns(new MutationToken(null, -1, -1, -1));
             Assert.Throws<ArgumentException>(() => new MutationState().Add(fragment.Object));
         }
 
@@ -102,13 +102,13 @@ namespace Couchbase.UnitTests.N1Ql
         public void MutationState_WhenScanConsistencyIsNotAtPlus_ThrowsArgumentException()
         {
             var document1 = new Mock<IDocument<dynamic>>();
-            document1.Setup(x => x.Token).Returns(new MutationToken(102, 22, 8282) { BucketRef = "bucket1_name" });
+            document1.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 102, 22, 8282));
 
             var document2 = new Mock<IDocument<dynamic>>();
-            document2.Setup(x => x.Token).Returns(new MutationToken(123, 11, 8332) { BucketRef = "bucket1_name" });
+            document2.Setup(x => x.Token).Returns(new MutationToken("bucket1_name", 123, 11, 8332));
 
             var document3 = new Mock<IDocument<dynamic>>();
-            document3.Setup(x => x.Token).Returns(new MutationToken(133, 23, 333) { BucketRef = "bucket2_name" });
+            document3.Setup(x => x.Token).Returns(new MutationToken("bucket2_name", 133, 23, 333));
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).

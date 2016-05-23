@@ -91,6 +91,23 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void Test_Upsert_GetsMutationTokenWithBucketRef()
+        {
+            // https://issues.couchbase.com/browse/NCBC-1119
+
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            var result = _bucket.Upsert(key, value);
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.IsNotNull(result.Token);
+            Assert.IsTrue(result.Token.IsSet);
+            Assert.AreEqual(_bucket.Name, result.Token.BucketRef);
+        }
+
+        [Test]
         public void Test_Insert()
         {
             var key = "thekey";

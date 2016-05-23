@@ -305,7 +305,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void When_ReplicateTo_Is_Greater_Than_PersistTo_Length_Of_Replicas_Is_ReplicateTo()
         {
-            var vBucket = new VBucket(null, 0, 0, new[] {0, 2, 1}, 0, new VBucketServerMap {ServerList = new string[]{}});
+            var vBucket = new VBucket(null, 0, 0, new[] {0, 2, 1}, 0, new VBucketServerMap {ServerList = new string[]{}}, "default");
             var expected = new[] {0, 2};
             var observer = new KeyObserver(null, 10, 500);
             var actual = observer.GetReplicas(vBucket, ReplicateTo.Two, PersistTo.One);
@@ -316,7 +316,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void When_PersistTo_Is_Greater_Than_ReplicateTo_Length_Of_Replicas_Is_PersistTo()
         {
-            var vBucket = new VBucket(null, 0, 0, new[] { 0, 2, 1 }, 0, new VBucketServerMap { ServerList = new string[] { } });
+            var vBucket = new VBucket(null, 0, 0, new[] { 0, 2, 1 }, 0, new VBucketServerMap { ServerList = new string[] { } }, "default");
             var expected = new[] { 0, 2 };
             var observer = new KeyObserver(null, 10, 500);
             var actual = observer.GetReplicas(vBucket, ReplicateTo.One, PersistTo.Two);
@@ -327,7 +327,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void When_No_Replicas_Are_Found_GetReplicas_Returns_Empty_List()
         {
-            var vBucket = new VBucket(null, 0, 0, new[] { -1, -1, -1 }, 0, new VBucketServerMap { ServerList = new string[] { } });
+            var vBucket = new VBucket(null, 0, 0, new[] { -1, -1, -1 }, 0, new VBucketServerMap { ServerList = new string[] { } }, "default");
             var expected = new int[] {};
             var observer = new KeyObserver(null, 10, 500);
             var actual = observer.GetReplicas(vBucket, ReplicateTo.One, PersistTo.Two);

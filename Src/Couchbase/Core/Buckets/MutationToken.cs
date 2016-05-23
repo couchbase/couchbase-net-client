@@ -1,4 +1,4 @@
-﻿
+﻿using System;
 using System.Text;
 
 namespace Couchbase.Core.Buckets
@@ -8,8 +8,15 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     public sealed class MutationToken
     {
+        [Obsolete("The constructor with a bucketRef parameter should be used to create a MutationToken.")]
         public MutationToken(short vBucketId, long vBucketUUID, long sequenceNumber)
+            : this(null, vBucketId, vBucketUUID, sequenceNumber)
         {
+        }
+
+        public MutationToken(string bucketRef, short vBucketId, long vBucketUUID, long sequenceNumber)
+        {
+            BucketRef = bucketRef;
             VBucketId = vBucketId;
             VBucketUUID = vBucketUUID;
             SequenceNumber = sequenceNumber;
@@ -21,13 +28,14 @@ namespace Couchbase.Core.Buckets
 
         public long SequenceNumber { get; private set; }
 
-        public string BucketRef { get; internal set; }
+        public string BucketRef { get; private set; }
 
         public override bool Equals(object obj)
         {
             var other = obj as MutationToken;
             if (this == other) return true;
             if (other == null) return false;
+            if (BucketRef != other.BucketRef) return false;
             if (VBucketId != other.VBucketId) return false;
             if (VBucketUUID != other.VBucketUUID) return false;
             return SequenceNumber == other.SequenceNumber;
@@ -38,20 +46,27 @@ namespace Couchbase.Core.Buckets
             var result = (int) (VBucketId ^ (VBucketId >> 32));
             result = 31*result + (int) (VBucketUUID ^ (VBucketUUID >> 32));
             result = 31*result + (int) (SequenceNumber ^ (SequenceNumber >> 32));
+
+            if (BucketRef != null)
+            {
+                result = 31*result + BucketRef.GetHashCode();
+            }
+
             return result;
         }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder("mt{");
-            sb.AppendFormat("vbID= {0}", VBucketId);
+            sb.AppendFormat("bRef={0}", BucketRef ?? "");
+            sb.AppendFormat(", vbID= {0}", VBucketId);
             sb.AppendFormat(", vbUUID={0}", VBucketUUID);
             sb.AppendFormat(", seqno={0}", SequenceNumber);
             sb.Append('}');
             return sb.ToString();
         }
 
-        internal bool IsSet { get { return VBucketId > 0 && VBucketUUID > 0 && SequenceNumber > 0; } }
+        internal bool IsSet { get { return BucketRef != null && VBucketId > 0 && VBucketUUID > 0 && SequenceNumber > 0; } }
     }
 }
 

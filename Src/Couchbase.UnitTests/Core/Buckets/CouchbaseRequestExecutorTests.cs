@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             {
                 { IPAddress.Loopback, server1.Object},
                 { IPAddress.Parse("255.255.0.0"), server2.Object}
-            }, vBucketServerMap, 2);
+            }, vBucketServerMap, 2, "default");
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
@@ -89,7 +89,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             {
                 { IPAddress.Loopback, server1.Object},
                 { IPAddress.Parse("255.255.0.0"), server2.Object}
-            }, vBucketServerMap, 1);
+            }, vBucketServerMap, 1, "default");
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
@@ -131,7 +131,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             {
                 { IPAddress.Loopback, server1.Object},
                 { IPAddress.Parse("255.255.0.0"), server2.Object}
-            }, vBucketServerMap, 3);
+            }, vBucketServerMap, 3, "default");
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
@@ -173,7 +173,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             {
                 { IPAddress.Loopback, server1.Object},
                 { IPAddress.Parse("255.255.0.0"), server2.Object}
-            }, vBucketServerMap, 3);
+            }, vBucketServerMap, 3, "default");
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);

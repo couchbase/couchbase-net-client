@@ -53,7 +53,7 @@ namespace Couchbase.Tests.IO.Operations
             var vBucketMap = vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
             var replicas = new int[]{vBucketMap[1]};
-            return new VBucket(servers, 0, primary, replicas, bucketConfig.Rev, vBucketServerMap);
+            return new VBucket(servers, 0, primary, replicas, bucketConfig.Rev, vBucketServerMap, "default");
         }
 
         internal IIOService IOService { get { return _ioService; } }

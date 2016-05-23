@@ -47,7 +47,7 @@ namespace Couchbase.Tests
             var vBucketMap = _vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
             var replicas = new int[]{vBucketMap[1]};
-            _vBucket = new VBucket(_servers, 0, primary, replicas, bucketConfig.Rev, _vBucketServerMap);
+            _vBucket = new VBucket(_servers, 0, primary, replicas, bucketConfig.Rev, _vBucketServerMap, "default");
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace Couchbase.Tests
                         new FakeTranscoder()));
             }
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             const int expected = 3;
@@ -111,7 +111,7 @@ namespace Couchbase.Tests
                         new FakeTranscoder()));
             }
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             var index = mapper.GetIndex("somekey");
@@ -138,7 +138,7 @@ namespace Couchbase.Tests
                         new FakeTranscoder()));
             }
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
             var vBucket = (IVBucket)mapper.MapKey("somekey");
 
             foreach (var index in vBucket.Replicas)
@@ -167,7 +167,7 @@ namespace Couchbase.Tests
                         new FakeTranscoder()));
             }
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
 
             //maps to -1 primary
             const string key = "somekey0";
@@ -197,7 +197,7 @@ namespace Couchbase.Tests
             //remove one server
             servers.Remove(_vBucketServerMap.IPEndPoints.Skip(1).First().Address);
 
-            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+            var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
 
             //maps to -1 primary
             const string key = "somekey23";
@@ -225,7 +225,7 @@ namespace Couchbase.Tests
                     {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
                     {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
                 },
-                100, -1, new[] {2}, 0, new VBucketServerMap {ServerList = new []{"127.0.0.1:10210"}});
+                100, -1, new[] {2}, 0, new VBucketServerMap {ServerList = new []{"127.0.0.1:10210"}}, "default");
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
         }
@@ -233,7 +233,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_1_LocatePrimary_Returns_Random_Server()
         {
-            var vbucket = new VBucket(new Dictionary<IPAddress, IServer>{}, 100, -1, new[] { 0 }, 0, new VBucketServerMap{ ServerList = new []{ "127.0.0.1:10210" }});
+            var vbucket = new VBucket(new Dictionary<IPAddress, IServer>{}, 100, -1, new[] { 0 }, 0, new VBucketServerMap{ ServerList = new []{ "127.0.0.1:10210" }}, "default");
             var found = vbucket.LocatePrimary();
             Assert.IsNull(found);//should be null
         }
@@ -256,7 +256,7 @@ namespace Couchbase.Tests
                     {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
                     {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
                 },
-                100, -1, new[] { -1 }, 0,  new VBucketServerMap{ ServerList = new[] { "127.0.0.1:10210" }});
+                100, -1, new[] { -1 }, 0,  new VBucketServerMap{ ServerList = new[] { "127.0.0.1:10210" }}, "default");
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
         }
@@ -279,7 +279,7 @@ namespace Couchbase.Tests
                     {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
                     {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
                 },
-                100, -1, new[] { 0 }, 0, new VBucketServerMap { ServerList = new[] { "127.0.0.1:10210", "127.0.0.2:10210" } });
+                100, -1, new[] { 0 }, 0, new VBucketServerMap { ServerList = new[] { "127.0.0.1:10210", "127.0.0.2:10210" } }, "default");
             var found = vbucket.LocatePrimary();
             Assert.IsNotNull(found);
         }

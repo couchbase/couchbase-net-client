@@ -46,7 +46,7 @@ namespace Couchbase.Tests.Core.Buckets
         [Test]
         public void TestMapKey()
         {
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev);
+            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev, _bucketConfig.Name);
             var vBucket = mapper.MapKey(Key);
             Assert.IsNotNull(vBucket);
         }
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.Core.Buckets
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
             const int actual = 389;
-            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev);
+            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev, _bucketConfig.Name);
             var vBucket = (IVBucket)mapper.MapKey(Key);
             Assert.AreEqual(vBucket.Index, actual);
         }

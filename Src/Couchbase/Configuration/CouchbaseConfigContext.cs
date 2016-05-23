@@ -106,7 +106,7 @@ namespace Couchbase.Configuration
 
                     var old = Interlocked.Exchange(ref Servers, servers);
                     Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
-                    var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev);
+                    var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
                     Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                     Interlocked.Exchange(ref _bucketConfig, bucketConfig);
 
@@ -126,7 +126,7 @@ namespace Couchbase.Configuration
                     {
                         Log.Info(m => m("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev));
                         var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap,
-                            bucketConfig.Rev);
+                            bucketConfig.Rev, bucketConfig.Name);
                         Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                         Interlocked.Exchange(ref _bucketConfig, bucketConfig);
                     }
@@ -234,7 +234,7 @@ namespace Couchbase.Configuration
 
                 Log.Info(m => m("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev));
                 var old = Interlocked.Exchange(ref Servers, servers);
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev, BucketConfig.Name);
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {
@@ -315,7 +315,7 @@ namespace Couchbase.Configuration
                 Interlocked.Exchange(ref SearchUris, searchUris);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev, BucketConfig.Name);
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {

@@ -23,7 +23,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new LookupInBuilder<MyDoc>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null),
+            var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null, "default"),
                 new DefaultTranscoder(new DefaultConverter()), 10);
 
             builder.Get("foo.bar");
@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new LookupInBuilder<MyDoc>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null),
+            var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null, "default"),
                 new DefaultTranscoder(new DefaultConverter()), 10);
 
             op.Data.Write(response, 0, response.Length);

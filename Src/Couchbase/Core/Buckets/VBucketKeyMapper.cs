@@ -20,8 +20,9 @@ namespace Couchbase.Core.Buckets
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly IDictionary<IPAddress, IServer> _servers;
+        private readonly string _bucketName;
 
-        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, uint revision)
+        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, uint revision, string bucketName)
         {
             Rev = revision;
             _servers = servers;
@@ -29,6 +30,7 @@ namespace Couchbase.Core.Buckets
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();
             _mask = _vBuckets.Count-1;
+            _bucketName = bucketName;
         }
 
         /// <summary>
@@ -108,7 +110,7 @@ namespace Couchbase.Core.Buckets
                 {
                     replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap));
+                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap, "default"));
             }
             return vBuckets;
         }
@@ -134,7 +136,7 @@ namespace Couchbase.Core.Buckets
                     {
                         replicas[r - 1] = vBucketMapForward[i][r];
                     }
-                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap));
+                    vBucketMapForwards.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
                 }
             }
             return vBucketMapForwards;

@@ -33,7 +33,7 @@ namespace Couchbase.IO.Operations
             {
                 var uuid = Converter.ToInt64(buffer, 24);
                 var seqno = Converter.ToInt64(buffer, 32);
-                MutationToken = new MutationToken((short)VBucket.Index, uuid, seqno);
+                MutationToken = new MutationToken(VBucket.BucketName, (short)VBucket.Index, uuid, seqno);
             }
         }
 

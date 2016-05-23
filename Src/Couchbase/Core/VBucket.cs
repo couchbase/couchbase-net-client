@@ -18,7 +18,7 @@ namespace Couchbase.Core
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly IDictionary<IPAddress, IServer> _cluster;
 
-        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, uint rev, VBucketServerMap vBucketServerMap)
+        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, uint rev, VBucketServerMap vBucketServerMap, string bucketName)
         {
             _cluster = cluster;
             Index = index;
@@ -26,6 +26,7 @@ namespace Couchbase.Core
             _replicas = replicas;
             Rev = rev;
             _vBucketServerMap = vBucketServerMap;
+            BucketName = bucketName;
         }
 
         /// <summary>
@@ -133,6 +134,8 @@ namespace Couchbase.Core
         {
             get { return _replicas.Any(x => x > -1); }
         }
+
+        public string BucketName { get; private set; }
     }
 }
 
