@@ -57,11 +57,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
         /// </value>
-        public bool UseEnhancedDurability
-        {
-            get { return PoolConfiguration.UseEnhancedDurability; }
-            set { PoolConfiguration.UseEnhancedDurability = value; }
-        }
+        public bool UseEnhancedDurability { get; set; }
 
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
@@ -192,6 +188,14 @@ namespace Couchbase.Configuration.Client
                 endPoints.Add(endPoint);
             }
             return endPoints;
+        }
+
+        public PoolConfiguration ClonePoolConfiguration(Uri server)
+        {
+            var poolConfig = PoolConfiguration.Clone(server);
+            poolConfig.UseEnhancedDurability = UseEnhancedDurability;
+            poolConfig.UseSsl = UseSsl;
+            return poolConfig;
         }
     }
 }

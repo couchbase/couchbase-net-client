@@ -325,6 +325,8 @@ namespace Couchbase.Configuration.Client
                     else
                     {
                         bucketConfiguration.PoolConfiguration = PoolConfiguration;
+                        bucketConfiguration.PoolConfiguration.UseSsl = bucketConfiguration.UseSsl;
+                        bucketConfiguration.PoolConfiguration.UseEnhancedDurability = bucketConfiguration.UseEnhancedDurability;
                     }
                     BucketConfigs.Add(bucket.Name, bucketConfiguration);
                 }

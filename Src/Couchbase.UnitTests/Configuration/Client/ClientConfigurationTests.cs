@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Client.Providers;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Configuration.Client
@@ -107,6 +109,68 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.AreEqual(1, clientConfig.Servers.Count);
             Assert.AreEqual(ClientConfiguration.Defaults.Server, clientConfig.Servers.First());
+        }
+
+        [Test]
+        public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurability_UseEnhancedDurabilityIsTrue()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.IsTrue(clientConfig.BucketConfigs["beer-sample"].UseEnhancedDurability);
+        }
+
+        [Test]
+        public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurabilityIsFalse_UseEnhancedDurabilityIsFalse()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.IsFalse(clientConfig.BucketConfigs["default1"].UseEnhancedDurability);
+        }
+
+        [Test]
+        public void BucketConfiguration_NoPoolConfigurationDefinedAndUseSsl_UseSslIsTrue()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.IsTrue(clientConfig.BucketConfigs["beer-sample"].UseSsl);
+        }
+
+        [Test]
+        public void BucketConfiguration_NoPoolConfigurationDefinedAndUseSsl_UseSslIsFalse()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.IsFalse(clientConfig.BucketConfigs["default1"].UseSsl);
+        }
+
+        [Test]
+        public void BucketConfiguration_PoolConfigurationDefined_UsesConfiguredSettings()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.AreEqual(15, clientConfig.BucketConfigs["default1"].PoolConfiguration.MinSize);
+            Assert.AreEqual(20, clientConfig.BucketConfigs["default1"].PoolConfiguration.MaxSize);
+        }
+
+        [Test]
+        public void BucketConfiguration_NoPoolConfigurationDefined_UsesDerivedPoolSettings()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            //assert
+            Assert.AreEqual(5, clientConfig.BucketConfigs["beer-sample"].PoolConfiguration.MinSize);
+            Assert.AreEqual(10, clientConfig.BucketConfigs["beer-sample"].PoolConfiguration.MaxSize);
         }
     }
 }

@@ -108,7 +108,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 IIOService ioService = null;
                 try
                 {
-                    var poolConfig = bucketConfiguration.PoolConfiguration.Clone(server);
+                    var poolConfig = bucketConfiguration.ClonePoolConfiguration(server);
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
 
                     ioService = IOServiceFactory(connectionPool);
