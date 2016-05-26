@@ -300,6 +300,19 @@ namespace Couchbase.Configuration.Client
         /// </value>
         public int QueryFailedThreshold { get; set; }
 
+        /// <summary>
+        /// If TLS/SSL is enabled via <see cref="UseSsl"/> setting  this to <c>true</c> will disable hostname validation when authenticating
+        /// connections to Couchbase Server. This is typically done in test or development enviroments where a domain name (FQDN) has not been
+        /// specified for the bootstrap uri's <see cref="Servers"/> and the IP address is used to validate the certificate, which will fail with
+        /// a RemoteCertificateNameMismatch error.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to ignore hostname validation of the certificate if you are using IP's and not a FQDN to bootstrap; otherwise, <c>false</c>.
+        /// </value>
+        /// <remarks>Note: this is a global setting - it applies to all <see cref="ICluster"/> and <see cref="IBucket"/> references within a process.</remarks>
+        [JsonProperty("ignoreRemoteCertificateNameMismatch")]
+        public bool IgnoreRemoteCertificateNameMismatch { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;

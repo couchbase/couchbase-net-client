@@ -7,6 +7,7 @@ using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Utils;
@@ -35,7 +36,15 @@ namespace Couchbase.IO
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            Log.Info(m => m("Validating certificate: {0}", sslPolicyErrors));
+            Log.Info(m => m("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors));
+
+            if (ClientConfiguration.IgnoreRemoteCertificateNameMismatch)
+            {
+                if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
+                {
+                    return true;
+                }
+            }
             return sslPolicyErrors == SslPolicyErrors.None;
         }
 

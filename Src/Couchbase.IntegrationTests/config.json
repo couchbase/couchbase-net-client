@@ -1,6 +1,7 @@
 ﻿{
   "basic": {
     "enableConfigHeartbeat": false,
+    "ignoreRemoteCertificateNameMismatch":  true,
     "servers": [
       "http://127.0.0.1:8091/"
     ],

@@ -98,6 +98,7 @@
   <ItemGroup>
     <Compile Include="Configuration\Client\JsonConfiguration_Multiplex_Tests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_KeyValue_Tests.cs" />
+    <Compile Include="Configuration\Client\JsonConfiguration_Tests.cs" />
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
     <Compile Include="CouchbaseBucket_Search_Tests.cs" />
     <Compile Include="CouchbaseBucket_SubDocument_Tests.cs" />

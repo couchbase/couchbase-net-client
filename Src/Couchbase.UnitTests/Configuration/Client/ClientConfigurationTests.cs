@@ -172,5 +172,14 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(5, clientConfig.BucketConfigs["beer-sample"].PoolConfiguration.MinSize);
             Assert.AreEqual(10, clientConfig.BucketConfigs["beer-sample"].PoolConfiguration.MaxSize);
         }
+
+        [Test]
+        public void ClientConfiguration_IgnoreHostnameValidation()
+        {
+            //arrange/act
+            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            Assert.IsTrue(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
+        }
     }
 }
