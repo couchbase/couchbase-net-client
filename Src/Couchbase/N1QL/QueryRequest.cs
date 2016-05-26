@@ -677,7 +677,7 @@ namespace Couchbase.N1QL
                 {
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
                 }
-                formValues.Add(QueryParameters.ScanVectors, JsonConvert.SerializeObject(_scanVectors));
+                formValues.Add(QueryParameters.ScanVectors, _scanVectors);
             }
             if (_scanWait.HasValue)
             {

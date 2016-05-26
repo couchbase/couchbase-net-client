@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.N1QL;
 using Moq;
 using NUnit.Framework;
 
@@ -76,6 +77,39 @@ namespace Couchbase.IntegrationTests
             {
                 SynchronizationContext.SetSynchronizationContext(null);
             }
+        }
+
+        [Test]
+        public void Test_ReadYourOwnWrite()
+        {
+            var doc = new Document<DocumentContent>
+            {
+                Id = "Test_ReadYourOwnWrite",
+                Content = new DocumentContent()
+                {
+                    Value = new Random().Next(0, 100000)
+                }
+            };
+
+            var result = _bucket.Upsert(doc);
+            Assert.True(result.Success);
+
+            var state = MutationState.From(result.Document);
+
+            var request = new QueryRequest("SELECT d.* FROM default as d WHERE `value` = $1 LIMIT 1")
+                .AddPositionalParameter(doc.Content.Value)
+                .ConsistentWith(state);
+
+            var queryResult = _bucket.Query<DocumentContent>(request);
+
+            Assert.True(queryResult.Success);
+            Assert.IsNotEmpty(queryResult.Rows);
+            Assert.AreEqual(doc.Content.Value, queryResult.Rows.First().Value);
+        }
+
+        public class DocumentContent
+        {
+            public int Value { get; set; }
         }
 
         [TestFixtureTearDown]
