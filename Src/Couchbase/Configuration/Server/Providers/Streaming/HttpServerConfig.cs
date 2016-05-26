@@ -149,8 +149,16 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            Log.Info(m=>m("Validating certificate: {0}", sslPolicyErrors));
-            return true;
+            Log.Info(m => m("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors));
+
+            if (ClientConfiguration.IgnoreRemoteCertificateNameMismatch)
+            {
+                if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
+                {
+                    return true;
+                }
+            }
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         static string ReplaceHost(string response, Uri uri)
