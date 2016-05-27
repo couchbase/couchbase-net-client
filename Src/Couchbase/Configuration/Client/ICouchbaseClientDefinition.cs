@@ -307,5 +307,12 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>Note: this is a global setting - it applies to all <see cref="ICluster"/> and <see cref="IBucket"/> references within a process.</remarks>
         bool IgnoreRemoteCertificateNameMismatch { get; set; }
+
+        /// Gets or sets a value indicating whether use IP version 6 addresses.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if <c>true</c> IP version 6 addresses will be used; otherwise, <c>false</c>.
+        /// </value>
+        bool UseInterNetworkV6Addresses { get; set; }
     }
 }

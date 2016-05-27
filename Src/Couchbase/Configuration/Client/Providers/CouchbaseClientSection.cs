@@ -475,8 +475,21 @@ namespace Couchbase.Configuration.Client.Providers
         [ConfigurationProperty("ignoreRemoteCertificateNameMismatch", IsRequired = false, DefaultValue = false)]
         public bool IgnoreRemoteCertificateNameMismatch
         {
-            get { return (bool)this["ignoreRemoteCertificateNameMismatch"]; }
+            get { return (bool) this["ignoreRemoteCertificateNameMismatch"]; }
             set { this["ignoreRemoteCertificateNameMismatch"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether use IP version 6 addresses.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if <c>true</c> IP version 6 addresses will be used; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("useInterNetworkV6Addresses", IsRequired = false, DefaultValue = false)]
+        public bool UseInterNetworkV6Addresses
+        {
+            get { return (bool)this["useInterNetworkV6Addresses"]; }
+            set { this["useInterNetworkV6Addresses"] = value; }
         }
 
         #region Additional ICouchbaseClientDefinition implementations

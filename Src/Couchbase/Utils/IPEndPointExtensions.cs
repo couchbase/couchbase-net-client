@@ -22,7 +22,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(address[0], out ipAddress))
             {
                 var uri = new Uri(String.Format("http://{0}", address[0]));
-                ipAddress = uri.GetIpAddress();
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");
@@ -43,7 +43,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(address, out ipAddress))
             {
                 var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress();
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");
@@ -61,7 +61,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(address, out ipAddress))
             {
                 var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress();
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");
@@ -78,7 +78,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(address, out ipAddress))
             {
                 var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress();
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");

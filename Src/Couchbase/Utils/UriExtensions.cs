@@ -12,16 +12,16 @@ namespace Couchbase.Utils
     /// </summary>
     public static class UriExtensions
     {
-        private readonly static ILog Log = LogManager.GetLogger("UriExtensions");
+        private static readonly ILog Log = LogManager.GetLogger("UriExtensions");
 
         /// <summary>
         /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.
         /// </summary>
         /// <param name="uri">The <see cref="Uri"/> to resolve the <see cref="IPAddress"/> from.</param>
+        /// <param name="useInterNetworkV6Addresses"></param>
         /// <returns>An <see cref="IPAddress"/> reference.</returns>
-        /// <exception cref="UnsupportedAddressFamilyException"></exception>
-        /// <remarks>Only returns IPV4 Addresses!</remarks>
-        public static IPAddress GetIpAddress(this Uri uri)
+        /// <remarks>Only returns IPV4 Addresses unless <see cref="useInterNetworkV6Addresses"/> is true!</remarks>
+        public static IPAddress GetIpAddress(this Uri uri, bool useInterNetworkV6Addresses)
         {
             IPAddress ipAddress = null;
             if (!IPAddress.TryParse(uri.Host, out ipAddress))
@@ -29,11 +29,27 @@ namespace Couchbase.Utils
                 try
                 {
                     var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
-                    foreach (var host in hostEntry.AddressList)
+
+                    //use ip6 addresses only if configured
+                    var hosts = useInterNetworkV6Addresses
+                        ? hostEntry.AddressList.Where(x => x.AddressFamily == AddressFamily.InterNetworkV6)
+                        : hostEntry.AddressList.Where(x => x.AddressFamily == AddressFamily.InterNetwork);
+
+                    foreach (var host in hosts)
                     {
-                        if (host.AddressFamily != AddressFamily.InterNetwork) continue;
                         ipAddress = host;
                         break;
+                    }
+
+                    //default back to IPv4 addresses if no IPv6 can be resolved
+                    if (useInterNetworkV6Addresses && ipAddress == null)
+                    {
+                        hosts = hostEntry.AddressList.Where(x => x.AddressFamily == AddressFamily.InterNetwork);
+                        foreach (var host in hosts)
+                        {
+                            ipAddress = host;
+                            break;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -57,7 +73,7 @@ namespace Couchbase.Utils
 // ReSharper disable once InconsistentNaming
         public static IPEndPoint GetIPEndPoint(this Uri uri, int port)
         {
-            var ipAddress = uri.GetIpAddress();
+            var ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
             return new IPEndPoint(ipAddress, port);
         }
 
@@ -73,7 +89,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(address[0], out ipAddress))
             {
                 var uri = new Uri(String.Format("http://{0}", server));
-                ipAddress = uri.GetIpAddress();
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
                 if(ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");

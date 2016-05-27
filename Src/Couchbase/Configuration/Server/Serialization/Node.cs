@@ -66,7 +66,7 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("services")]
         public List<string> Services { get; set; }
 
-        public IPEndPoint GetMemcachedEndPoint()
+        public IPEndPoint GetMemcachedEndPoint(bool useInterNetworkV6Addresses)
         {
             var hostName = Hostname.Replace(HostToken, LocalHost);
             hostName = hostName.Replace(ViewPort, Ports.Direct.ToString(CultureInfo.InvariantCulture));

@@ -244,6 +244,8 @@ namespace Couchbase.Configuration.Client
             //NOTE: this is a global setting and applies to all instances
             IgnoreRemoteCertificateNameMismatch = definition.IgnoreRemoteCertificateNameMismatch;
 
+            UseInterNetworkV6Addresses = definition.UseInterNetworkV6Addresses;
+
             foreach (var server in definition.Servers ?? new[] { Defaults.Server })
             {
                 Servers.Add(server);
@@ -418,6 +420,14 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>Note: this is a global setting - it applies to all <see cref="ICluster"/> and <see cref="IBucket"/> references within a process.</remarks>
         public static bool IgnoreRemoteCertificateNameMismatch { get; set; }
+
+        /// Gets or sets a value indicating whether use IP version 6 addresses.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if <c>true</c> IP version 6 addresses will be used; otherwise, <c>false</c>.
+        /// </value>
+        public static bool UseInterNetworkV6Addresses { get; set; }
+
 
         /// <summary>
         /// Gets or sets the count of IO errors within a specific interval defined by the value of <see cref="IOErrorCheckInterval" />.

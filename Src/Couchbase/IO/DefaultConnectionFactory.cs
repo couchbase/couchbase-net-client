@@ -20,7 +20,7 @@ namespace Couchbase.IO
         {
             Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory = (p, c, b) =>
             {
-                var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                var socket = new Socket(p.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
                 var waitHandle = asyncResult.AsyncWaitHandle;
 
