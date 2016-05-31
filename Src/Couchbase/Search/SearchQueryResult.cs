@@ -30,7 +30,7 @@ namespace Couchbase.Search
 
         public IEnumerator<ISearchQueryRow> GetEnumerator()
         {
-            throw new NotImplementedException();
+            return Hits.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
