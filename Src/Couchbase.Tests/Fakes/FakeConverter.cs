@@ -5,6 +5,26 @@ namespace Couchbase.Tests.Fakes
 {
     public class FakeConverter : IByteConverter
     {
+        public bool ToBoolean(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public float ToSingle(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public DateTime ToDateTime(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double ToDouble(byte[] buffer, int offset, bool useNbo)
+        {
+            throw new NotImplementedException();
+        }
+
         public byte ToByte(byte[] buffer, int offset)
         {
             throw new NotImplementedException();

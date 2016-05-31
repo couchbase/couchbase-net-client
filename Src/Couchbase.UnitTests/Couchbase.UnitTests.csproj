@@ -74,7 +74,9 @@
   <ItemGroup>
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
+    <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />
     <Compile Include="IO\ConnectionBaseTests.cs" />
+    <Compile Include="IO\Converters\DefaultConverterTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticationTests.cs" />
     <Compile Include="Management\ClusterManager_Tests.cs" />
     <Compile Include="Management\BucketManager_Tests.cs" />

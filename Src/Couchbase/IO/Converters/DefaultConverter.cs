@@ -33,6 +33,79 @@ namespace Couchbase.IO.Converters
         }
 
         /// <summary>
+        /// Reads a <see cref="bool" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        public bool ToBoolean(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 1;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToBoolean(array, 0);
+            }
+            return BitConverter.ToBoolean(buffer, offset);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="float" /> from a buffer starting from a given offset..
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        public float ToSingle(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 4;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToSingle(array, 0);
+            }
+            return BitConverter.ToSingle(buffer, offset);
+        }
+
+        /// <summary>
+        /// Reads a <see cref="DateTime" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public DateTime ToDateTime(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 8;
+                var array = CopyAndReverse(buffer, offset, length);
+                return DateTime.FromBinary(BitConverter.ToInt64(array, 0));
+            }
+            return DateTime.FromBinary(BitConverter.ToInt64(buffer, offset));
+        }
+
+        /// <summary>
+        /// Reads a <see cref="Double" /> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        public double ToDouble(byte[] buffer, int offset, bool useNbo)
+        {
+            if (useNbo)
+            {
+                const int length = 8;
+                var array = CopyAndReverse(buffer, offset, length);
+                return BitConverter.ToDouble(array, 0);
+            }
+            return BitConverter.ToDouble(buffer, offset);
+        }
+
+        /// <summary>
         /// Reads a <see cref="Byte" /> from a buffer starting from a given offset.
         /// </summary>
         /// <param name="buffer">The buffer.</param>

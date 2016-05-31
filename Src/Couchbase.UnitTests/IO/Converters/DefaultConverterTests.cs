@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
-using Couchbase.IO;
 using Couchbase.IO.Converters;
 using NUnit.Framework;
 
-namespace Couchbase.Tests.IO.Converters
+namespace Couchbase.UnitTests.IO.Converters
 {
     [TestFixture]
     public sealed class DefaultConverterTests
@@ -23,14 +19,14 @@ namespace Couchbase.Tests.IO.Converters
                 0x80, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00, 
+                0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             };
         }
-        /* 
+        /*
             Field        (offset) (value)
             Magic        (0)    : 0x80
             Opcode       (1)    : 0x00
@@ -45,6 +41,108 @@ namespace Couchbase.Tests.IO.Converters
             Key          (24-29): The textual string: "Hello"
             Value               : None
          */
+
+        [Test]
+        public void Test_ToBoolean()
+        {
+            var converter = new DefaultConverter();
+            bool theBool = true;
+            var bytes =  BitConverter.GetBytes(theBool);
+            var actual = converter.ToBoolean(bytes, 0, false);
+            const bool expected = true;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToBoolean_UseNbo()
+        {
+            var converter = new DefaultConverter();
+            bool theBool = true;
+            var bytes = BitConverter.GetBytes(theBool).Reverse().ToArray();
+            var actual = converter.ToBoolean(bytes, 0, true);
+            const bool expected = true;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToDouble_UseNbo()
+        {
+            var converter = new DefaultConverter();
+            double theDouble = 2.3d;
+
+            var bytes = BitConverter.GetBytes(theDouble).Reverse().ToArray();
+            var actual = converter.ToDouble(bytes, 0, true);
+            const double expected = 2.3d;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToDouble()
+        {
+            var converter = new DefaultConverter();
+            double theDouble = 2.3d;
+
+            var bytes = BitConverter.GetBytes(theDouble);
+            var actual = converter.ToDouble(bytes, 0, false);
+            const double expected = 2.3d;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToSingle_UseNbo()
+        {
+            var converter = new DefaultConverter();
+            float theDouble = 2.3f;
+
+            var bytes = BitConverter.GetBytes(theDouble).Reverse().ToArray();
+            var actual = converter.ToSingle(bytes, 0, true);
+            const float expected = 2.3f;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToSingle()
+        {
+            var converter = new DefaultConverter();
+            float theSingle = 2.3f;
+
+            var bytes = BitConverter.GetBytes(theSingle);
+            var actual = converter.ToSingle(bytes, 0, false);
+            const float expected = 2.3f;
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToDateTime()
+        {
+            var converter = new DefaultConverter();
+            var theDateTime = new DateTime(1972, 12, 7);
+
+            var bytes = BitConverter.GetBytes(theDateTime.ToBinary());
+            var actual = converter.ToDateTime(bytes, 0, false);
+            var expected = new DateTime(1972, 12, 7);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public void Test_ToDateTime_UseNbo()
+        {
+            var converter = new DefaultConverter();
+            var theDateTime = new DateTime(1972, 12, 7);
+
+            var bytes = BitConverter.GetBytes(theDateTime.ToBinary()).Reverse().ToArray();
+            var actual = converter.ToDateTime(bytes, 0, true);
+            var expected = new DateTime(1972, 12, 7);
+
+            Assert.AreEqual(expected, actual);
+        }
 
         [Test]
         public void Test_ToByte()

@@ -143,7 +143,6 @@
     <Compile Include="Fakes\SlowSet.cs" />
     <Compile Include="Helpers\OperationTimer.cs" />
     <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
-    <Compile Include="IO\Converters\DefaultConverterTests.cs" />
     <Compile Include="IO\Converters\ManualByteConverterTests.cs" />
     <Compile Include="IO\DefaultIOStrategyTests.cs" />
     <Compile Include="IO\Operations\AddOperationTests.cs" />

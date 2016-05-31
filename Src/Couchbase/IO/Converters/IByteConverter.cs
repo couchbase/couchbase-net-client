@@ -12,6 +12,42 @@ namespace Couchbase.IO.Converters
     public interface IByteConverter
     {
         /// <summary>
+        /// Reads a <see cref="bool"/> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        bool ToBoolean(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="float"/> from a buffer starting from a given offset..
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        float ToSingle(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// Reads a <see cref="DateTime"/> from a buffer starting from a given offset.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        DateTime ToDateTime(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
+        /// To the double.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset.</param>
+        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
+        /// <returns></returns>
+        double ToDouble(byte[] buffer, int offset, bool useNbo);
+
+        /// <summary>
         /// Reads a <see cref="Byte"/> from a buffer starting from a given offset.
         /// </summary>
         /// <param name="buffer">The buffer.</param>

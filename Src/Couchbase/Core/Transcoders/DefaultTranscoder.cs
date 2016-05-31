@@ -40,7 +40,7 @@ namespace Couchbase.Core.Transcoders
         /// </summary>
         public IByteConverter Converter { get; set; }
 
-        public Flags GetFormat<T>(T value)
+        public virtual Flags GetFormat<T>(T value)
         {
             var dataFormat = DataFormat.Json;
             var typeCode = Type.GetTypeCode(typeof(T));
@@ -87,7 +87,7 @@ namespace Couchbase.Core.Transcoders
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public byte[] Encode<T>(T value, Flags flags, OperationCode opcode)
+        public virtual byte[] Encode<T>(T value, Flags flags, OperationCode opcode)
         {
             byte[] bytes;
             switch (flags.DataFormat)
@@ -130,7 +130,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public byte[] Encode<T>(T value, TypeCode typeCode, OperationCode opcode)
+        public virtual byte[] Encode<T>(T value, TypeCode typeCode, OperationCode opcode)
         {
             var bytes = new byte[] { };
             switch (typeCode)
@@ -201,7 +201,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="opcode"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
-        public T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OperationCode opcode)
+        public virtual T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
             object value = default(T);
             switch (flags.DataFormat)
@@ -269,7 +269,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="length">The length.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public T Decode<T>(byte[] buffer, int offset, int length, OperationCode opcode)
+        public virtual T Decode<T>(byte[] buffer, int offset, int length, OperationCode opcode)
         {
             object value = default(T);
 
@@ -374,7 +374,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns></returns>
-        public T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
+        public virtual T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
             return Serializer.Deserialize<T>(buffer, offset, length);
         }
@@ -389,7 +389,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="flags">The flags used to encode the payload.</param>
         /// <param name="opcode"></param>
         /// <returns></returns>
-        public T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OperationCode opcode)
+        public virtual T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OperationCode opcode)
         {
             return Decode<T>(buffer.Array, offset, length, flags, opcode);
         }
@@ -399,7 +399,7 @@ namespace Couchbase.Core.Transcoders
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public byte[] SerializeAsJson(object value)
+        public virtual byte[] SerializeAsJson(object value)
         {
             return Serializer.Serialize(value);
         }
@@ -411,7 +411,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns></returns>
-        private string DecodeString(byte[] buffer, int offset, int length)
+        protected string DecodeString(byte[] buffer, int offset, int length)
         {
             var result = string.Empty;
             if (buffer != null && buffer.Length > 0 && length > 0)
@@ -428,7 +428,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns></returns>
-        private char DecodeChar(byte[] buffer, int offset, int length)
+        protected char DecodeChar(byte[] buffer, int offset, int length)
         {
             char result = default(char);
             if (buffer != null && buffer.Length > 0 && length > 0)
@@ -454,7 +454,7 @@ namespace Couchbase.Core.Transcoders
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns></returns>
-        private byte[] DecodeBinary(byte[] buffer, int offset, int length)
+        protected byte[] DecodeBinary(byte[] buffer, int offset, int length)
         {
             var temp = new byte[length];
             Buffer.BlockCopy(buffer, offset, temp, 0, length);

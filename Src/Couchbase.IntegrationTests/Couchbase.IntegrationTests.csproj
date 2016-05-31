@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>5</LangVersion>
@@ -28,7 +28,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;NET45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>5</LangVersion>
@@ -99,6 +99,7 @@
     <Compile Include="Configuration\Client\JsonConfiguration_Multiplex_Tests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_KeyValue_Tests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_Tests.cs" />
+    <Compile Include="Core\Transcoders\BinaryToJsonTranscoder_Tests.cs" />
     <Compile Include="CouchbaseBucket_KeyValue_Tests.cs" />
     <Compile Include="CouchbaseBucket_Search_Tests.cs" />
     <Compile Include="CouchbaseBucket_SubDocument_Tests.cs" />
@@ -142,7 +143,7 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

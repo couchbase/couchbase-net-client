@@ -147,6 +147,7 @@
     <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitor.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
+    <Compile Include="Core\Transcoders\BinaryToJsonTranscoder.cs" />
     <Compile Include="Cluster.cs" />
     <Compile Include="Configuration\Client\BucketConfiguration.cs" />
     <Compile Include="Configuration\Client\ClientConfiguration.cs" />
