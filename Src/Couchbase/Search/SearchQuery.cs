@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.N1QL;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -8,6 +9,11 @@ namespace Couchbase.Search
     /// </summary>
     public sealed class SearchQuery
     {
+        public SearchQuery()
+        {
+            SearchParams = new SearchParams();
+        }
+
         /// <summary>
         /// The virtual path template for the API
         /// </summary>
@@ -57,6 +63,115 @@ namespace Couchbase.Search
                 throw new InvalidOperationException("The index name must be provided.");
             }
             return string.Format(ApiPath, Index);
+        }
+
+        /// <summary>
+        /// Limits the number of matching results from a returned result-set.
+        /// </summary>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public SearchQuery Limit(int limit)
+        {
+            SearchParams.Limit(limit);
+            return this;
+        }
+
+        /// <summary>
+        /// Skip indicates how many matching results to skip on the result set before returing matches.
+        /// </summary>
+        /// <param name="skip"></param>
+        /// <returns></returns>
+        public SearchQuery Skip(int skip)
+        {
+            SearchParams.Skip(skip);
+            return this;
+        }
+
+        /// <summary>
+        /// If true, the response will include additional search score explanations.
+        /// </summary>
+        /// <param name="explain"></param>
+        /// <returns></returns>
+        public SearchQuery Explain(bool explain)
+        {
+            SearchParams.Explain(explain);
+            return this;
+        }
+
+        /// <summary>
+        /// Allows setting of additional highlighting on the result set of matching terms.
+        /// </summary>
+        /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
+        /// <returns></returns>
+        public SearchQuery Highlighting(HighLightStyle highLightStyle)
+        {
+            SearchParams.Highlighting(highLightStyle);
+            return this;
+        }
+
+        /// <summary>
+        /// Allows setting of additional highlighting on the result set of matching terms.
+        /// </summary>
+        /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
+        /// <param name="fields">The specific terms or fields to highlight.</param>
+        /// <returns></returns>
+        public SearchQuery Highlighting(HighLightStyle highLightStyle, params string[] fields)
+        {
+            SearchParams.Highlighting(highLightStyle, fields);
+            return this;
+        }
+
+        /// <summary>
+        /// List of fields values that should be returned in the result assuming that they were indexed.
+        /// </summary>
+        /// <param name="fields">The indexed fields to return.</param>
+        /// <returns></returns>
+        public SearchQuery Fields(params string[] fields)
+        {
+            SearchParams.Fields(fields);
+            return this;
+        }
+
+        /// <summary>
+        ///   <see cref="ISearchFacet" />s used to aggregate information collected on a particluar result set.
+        /// </summary>
+        /// <param name="searchFacets">The <see cref="ISearchFacet" /> to aggreate information on.</param>
+        /// <returns></returns>
+        public SearchQuery Facets(params ISearchFacet[] searchFacets)
+        {
+            SearchParams.Facets(searchFacets);
+            return this;
+        }
+
+        /// <summary>
+        /// The server side timeout allows to specify an upper boundary of request execution so that it potentially doesn't run infinitely.
+        /// </summary>
+        /// <param name="timeout">The max length of time that that will be given to execute the query.</param>
+        /// <returns></returns>
+        public SearchQuery Timeout(TimeSpan timeout)
+        {
+            SearchParams.Timeout(timeout);
+            return this;
+        }
+
+        /// <summary>
+        /// The <see cref="ScanConsistency" /> you require for you <see cref="ISearchQueryResult" />s.
+        /// </summary>
+        /// <param name="consistency">The <see cref="ScanConsistency" /> for documents to be included in the query results.</param>
+        /// <returns></returns>
+        public SearchQuery WithConsistency(ScanConsistency consistency)
+        {
+            SearchParams.WithConsistency(consistency);
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the JSON representation of this object.
+        /// </summary>
+        /// <returns></returns>
+        public JObject ToJson()
+        {
+            return SearchParams.ToJson();
         }
     }
 }

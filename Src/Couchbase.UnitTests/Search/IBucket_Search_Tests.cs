@@ -23,12 +23,10 @@ namespace Couchbase.UnitTests.Search
 
             var bucket = bucketMock.Object;
             var searchQuery = new Mock<IFtsQuery>().Object;
-            var searchParams = new Mock<ISearchParams>().Object;
 
             var searchQueryResult = bucket.Query(new SearchQuery
             {
                 Index = "foo",
-                SearchParams = searchParams,
                 Query = searchQuery
             });
         }

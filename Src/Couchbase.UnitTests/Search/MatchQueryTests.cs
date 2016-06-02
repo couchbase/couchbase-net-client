@@ -54,12 +54,14 @@ namespace Couchbase.UnitTests.Search
         public void Export_ReturnsValidJson()
         {
             var query = new MatchQuery("somematchquery").Boost(2.2);
-            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{}}},\"size\":10,\"from\":20,\"highlight\":{\"style\":null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true,\"query\":{\"query\":\"somematchquery\",\"boost\":2.2}}";
-            var actual = query.Export(new SearchParams().
+            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{}}},\"size\":10,\"from\":20,\"explain\":true,\"query\":{\"match\":\"somematchquery\",\"boost\":2.2,\"field\":null,\"analyzer\":null,\"prefix_length\":0,\"fuzziness\":0}}";
+            var actual = query.Export(new SearchQuery().
                 Skip(20).
                 Limit(10).Explain(true).
                 Timeout(TimeSpan.FromMilliseconds(10000)).
-                WithConsistency(ScanConsistency.AtPlus));
+#pragma warning disable 618
+                WithConsistency(ScanConsistency.AtPlus).SearchParams);
+#pragma warning restore 618
 
             Assert.AreEqual(expected, actual.ToString().Replace("\r\n", "").Replace(" ", ""));
         }

@@ -35,8 +35,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsTrue(response.Errors.First().Contains("Requested resource not found."));
         }
@@ -59,8 +58,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsTrue(response.Errors.First().Contains("rest_auth: preparePerm, err: index not found"));
         }
@@ -83,8 +81,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsTrue(response.Exception.Message.Contains("404"));
         }
@@ -107,8 +104,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsTrue(response.Exception.Message.Contains("403"));
         }
@@ -131,8 +127,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(1, response.ErrorCount);
         }
@@ -155,8 +150,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(1, response.ErrorCount);
         }
@@ -179,8 +173,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.TotalCount);
         }
@@ -203,8 +196,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.SuccessCount);
         }
@@ -227,8 +219,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.SuccessCount);
         }
@@ -251,8 +242,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsFalse(response.Success);
         }
@@ -275,8 +265,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsFalse(response.Success);
         }
@@ -299,8 +288,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.TotalHits);
         }
@@ -323,8 +311,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.TotalHits);
         }
@@ -348,8 +335,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.MaxScore);
         }
@@ -372,8 +358,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.AreEqual(0, response.MaxScore);
         }
@@ -397,8 +382,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsEmpty(response.Facets);
         }
@@ -421,8 +405,7 @@ namespace Couchbase.UnitTests.Search
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
-                Query = new MatchQuery("foo"),
-                SearchParams = new SearchParams()
+                Query = new MatchQuery("foo")
             });
             Assert.IsEmpty(response.Facets);
         }

@@ -17,14 +17,11 @@ namespace Couchbase.IntegrationTests
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                      var query = new MatchQuery("inn");
-                     var searchParams = new SearchParams().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000));
-
                      var results = bucket.Query(new SearchQuery
                      {
                          Index = "idx_travel",
-                         Query = query,
-                         SearchParams = searchParams
-                     });
+                         Query = query
+                     }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)));
 
                      Assert.IsTrue(results.Success);
                 }
@@ -39,14 +36,12 @@ namespace Couchbase.IntegrationTests
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var query = new MatchQuery("inn");
-                    var searchParams = new SearchParams().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000));
 
                     var results = await bucket.QueryAsync(new SearchQuery
                     {
                         Index = "idx_travel",
-                        Query = query,
-                        SearchParams = searchParams
-                    });
+                        Query = query
+                    }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)));
 
                     Assert.IsTrue(results.Success);
                 }
@@ -61,14 +56,11 @@ namespace Couchbase.IntegrationTests
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var query = new MatchQuery("inn");
-                    var searchParams = new SearchParams().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000));
-
                     var results = bucket.Query(new SearchQuery
                     {
                         Index = "id_travel",
-                        Query = query,
-                        SearchParams = searchParams
-                    });
+                        Query = query
+                    }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)));
 
                     Assert.IsFalse(results.Success);
                 }
@@ -85,13 +77,11 @@ namespace Couchbase.IntegrationTests
                     var results = bucket.Query(new SearchQuery
                     {
                         Index = "id_travel",
-                        Query = new MatchQuery("inn"),
-                        SearchParams = new SearchParams().Facets(
+                        Query = new MatchQuery("inn")
+                    }.Facets(
                         new TermFacet("termfacet", "thefield", 10),
-                        new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now,
-                            DateTime.Now.AddDays(1)),
-                        new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f))
-                    });
+                        new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
+                        new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)));
 
                     Assert.IsFalse(results.Success);
                 }

@@ -94,7 +94,6 @@
     <Compile Include="Search\SearchParamsTests.cs" />
     <Compile Include="StringExtensionTests.cs" />
     <Compile Include="Search\FtsDataMapperTests.cs" />
-    <Compile Include="Search\SearchQueryRequestTests.cs" />
     <Compile Include="Search\StringQueryTests.cs" />
     <Compile Include="Search\RegexpQueryTests.cs" />
     <Compile Include="Search\PrefixQueryTests.cs" />
