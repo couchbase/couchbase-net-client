@@ -27,27 +27,18 @@ namespace Couchbase.IO
         private Timer _timer;
         private int _closeAttempts;
 
-        protected ConnectionBase(Socket socket, IByteConverter converter)
-            : this(socket, new OperationAsyncState(), converter, new BufferAllocator(24 * 1000, 1024))
+        protected ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
+            : this(socket, new OperationAsyncState(), converter, bufferAllocator)
         {
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferManager)
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
         {
             _socket = socket;
             _state = asyncState;
             Converter = converter;
-            BufferAllocator = bufferManager;
+            BufferAllocator = bufferAllocator;
             EndPoint = socket.RemoteEndPoint;
-        }
-
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferManager, IPEndPoint endPoint)
-        {
-            _socket = socket;
-            _state = asyncState;
-            Converter = converter;
-            BufferAllocator = bufferManager;
-            EndPoint = endPoint;
         }
 
         public OperationAsyncState State

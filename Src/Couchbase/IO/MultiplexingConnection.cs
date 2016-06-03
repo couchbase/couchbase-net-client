@@ -24,7 +24,7 @@ namespace Couchbase.IO
 
         public MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
             BufferAllocator allocator)
-            : base(socket, converter)
+            : base(socket, converter, allocator)
         {
             ConnectionPool = connectionPool;
             Configuration = ConnectionPool.Configuration;

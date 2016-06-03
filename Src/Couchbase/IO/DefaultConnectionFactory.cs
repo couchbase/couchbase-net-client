@@ -39,7 +39,7 @@ namespace Couchbase.IO
                 IConnection connection;
                 if (p.Configuration.UseSsl)
                 {
-                    connection = new SslConnection(p, socket, c);
+                    connection = new SslConnection(p, socket, c, b);
                     connection.Authenticate();
                 }
                 else

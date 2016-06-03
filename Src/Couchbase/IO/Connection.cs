@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging.Factory;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -14,10 +13,9 @@ namespace Couchbase.IO
     {
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
-        private readonly BufferAllocator _allocator;
 
         public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
-            : base(socket, converter)
+            : base(socket, converter, allocator)
         {
             ConnectionPool = connectionPool;
             Configuration = ConnectionPool.Configuration;
@@ -25,15 +23,13 @@ namespace Couchbase.IO
             //set the max close attempts so that a connection in use is not disposed
             MaxCloseAttempts = Configuration.MaxCloseAttempts;
 
-            _allocator = allocator;
-
             //create a seae with an accept socket and completed event
             _eventArgs = new SocketAsyncEventArgs();
             _eventArgs.AcceptSocket = socket;
             _eventArgs.Completed += OnCompleted;
 
             //set the buffer to use with this saea instance
-            if (!_allocator.SetBuffer(_eventArgs))
+            if (!BufferAllocator.SetBuffer(_eventArgs))
             {
                 // failed to acquire a buffer because the allocator was exhausted
 
@@ -383,7 +379,7 @@ namespace Couchbase.IO
                 // even if other steps fail.  Otherwise we will run out of buffers when the ConnectionPool reaches
                 // its maximum size.
 
-                _allocator.ReleaseBuffer(_eventArgs);
+                BufferAllocator.ReleaseBuffer(_eventArgs);
             }
             catch (Exception e)
             {
