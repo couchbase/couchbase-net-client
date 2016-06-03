@@ -61,7 +61,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -212,6 +211,7 @@
     <Compile Include="IDocument.cs" />
     <Compile Include="IDocumentFragment.cs" />
     <Compile Include="IO\BufferUnavailableException.cs" />
+    <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />

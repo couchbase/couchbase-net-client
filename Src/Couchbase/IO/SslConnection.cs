@@ -79,21 +79,21 @@ namespace Couchbase.IO
 
                 await _sslStream.WriteAsync(request, 0, request.Length);
 
-                state.Buffer = BufferManager.TakeBuffer(Configuration.BufferSize);
-                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, 0, Configuration.BufferSize);
+                state.SetIOBuffer(BufferAllocator.GetBuffer());
+                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength);
 
                 //write the received buffer to the state obj
-                await state.Data.WriteAsync(state.Buffer, 0, state.BytesReceived);
+                await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived);
 
-                state.BodyLength = Converter.ToInt32(state.Buffer, HeaderIndexFor.BodyLength);
+                state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.BodyLength);
                 while (state.BytesReceived < state.BodyLength + 24)
                 {
-                    var bufferLength = state.Buffer.Length - state.BytesSent < Configuration.BufferSize
-                        ? state.Buffer.Length - state.BytesSent
-                        : Configuration.BufferSize;
+                    var bufferLength = state.BufferLength - state.BytesSent < state.BufferLength
+                        ? state.BufferLength - state.BytesSent
+                        : state.BufferLength;
 
-                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, 0, bufferLength);
-                    await state.Data.WriteAsync(state.Buffer, 0, state.BytesReceived - (int)state.Data.Length);
+                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, bufferLength);
+                    await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length);
                 }
                 await callback(state);
             }
@@ -105,9 +105,9 @@ namespace Couchbase.IO
             finally
             {
                 ConnectionPool.Release(this);
-                if (state != null && state.Buffer != null)
+                if (state.IOBuffer != null)
                 {
-                    BufferManager.ReturnBuffer(state.Buffer);
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
                 }
             }
 
@@ -177,14 +177,14 @@ namespace Couchbase.IO
             try
             {
                 _sslStream.EndWrite(asyncResult);
-                state.Buffer = BufferManager.TakeBuffer(1024);
-                _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
+                state.SetIOBuffer(BufferAllocator.GetBuffer());
+                _sslStream.BeginRead(state.Buffer, state.BufferOffset, state.BufferLength, ReceiveCallback, state);
             }
             catch (Exception)
             {
-                if (state.Buffer != null)
+                if (state.IOBuffer != null)
                 {
-                    BufferManager.ReturnBuffer(state.Buffer);
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
                 }
                 throw;
             }
@@ -199,32 +199,32 @@ namespace Couchbase.IO
                 state.BytesReceived += bytesRecieved;
                 if (state.BytesReceived == 0)
                 {
-                    BufferManager.ReturnBuffer(state.Buffer);
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
                     SendEvent.Set();
                     return;
                 }
                 if (state.BodyLength == 0)
                 {
-                    state.BodyLength = Converter.ToInt32(state.Buffer, HeaderIndexFor.Body);
+                    state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.Body);
                 }
 
-                state.Data.Write(state.Buffer, 0, bytesRecieved);
+                state.Data.Write(state.Buffer, state.BufferOffset, bytesRecieved);
 
                 if (state.BytesReceived < state.BodyLength + 24)
                 {
-                    _sslStream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
+                    _sslStream.BeginRead(state.Buffer, state.BufferOffset, state.BufferLength, ReceiveCallback, state);
                 }
                 else
                 {
-                    BufferManager.ReturnBuffer(state.Buffer);
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
                     SendEvent.Set();
                 }
             }
             catch (Exception e)
             {
-                if (state.Buffer != null)
+                if (state.IOBuffer != null)
                 {
-                    BufferManager.ReturnBuffer(state.Buffer);
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
                 }
                 throw;
             }

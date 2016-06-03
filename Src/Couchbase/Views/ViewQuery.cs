@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.ServiceModel.Configuration;
 using System.Text;
 using Common.Logging;
 using Couchbase.Core;

@@ -14,7 +14,7 @@ namespace Couchbase.IO
     {
         protected readonly static ILog Log = LogManager.GetLogger<BufferAllocator>();
         private readonly int _numberOfBytes;
-        private readonly byte[] _buffer;
+        private byte[] _buffer;
         private readonly Stack<int> _freeIndexPool;
         private readonly int _bufferSize;
         private int _currentIndex;
@@ -25,7 +25,20 @@ namespace Couchbase.IO
             _currentIndex = 0;
             _bufferSize = bufferSize;
             _freeIndexPool = new Stack<int>();
-            _buffer = new byte[_numberOfBytes];
+        }
+
+        private void EnsureBufferAllocated()
+        {
+            // Delay allocation of the overall buffer until the first buffer is requested.  This will improve memory
+            // utilization for cases where the BufferAllocator is created but never used.  For example, ConnectionBase
+            // has a BufferAllocator but not all connection types use it.
+
+            if (_buffer == null)
+            {
+                Log.DebugFormat("Allocating {0} bytes for buffer", _numberOfBytes);
+
+                _buffer = new byte[_numberOfBytes];
+            }
         }
 
         /// <summary>
@@ -37,6 +50,8 @@ namespace Couchbase.IO
         {
             lock (_freeIndexPool)
             {
+                EnsureBufferAllocated();
+
                 var isBufferSet = true;
                 if (_freeIndexPool.Count > 0)
                 {
@@ -59,17 +74,58 @@ namespace Couchbase.IO
         }
 
         /// <summary>
+        /// Returns an <see cref="IOBuffer"/>.
+        /// </summary>
+        /// <returns>The <see cref="IOBuffer"/>, or null if no buffer is available.</returns>
+        public virtual IOBuffer GetBuffer()
+        {
+            lock (_freeIndexPool)
+            {
+                EnsureBufferAllocated();
+
+                if (_freeIndexPool.Count > 0)
+                {
+                    return new IOBuffer(_buffer, _freeIndexPool.Pop(), _bufferSize);
+                }
+                else
+                {
+                    if ((_numberOfBytes - _bufferSize) >= _currentIndex)
+                    {
+                        var result = new IOBuffer(_buffer, _currentIndex, _bufferSize);
+                        _currentIndex += _bufferSize;
+                        return result;
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Releases the buffer allocate to a <see cref="SocketAsyncEventArgs"/> instance.
         /// </summary>
         /// <param name="eventArgs">The SAEA instance the buffer will be released from.</param>
         public void ReleaseBuffer(SocketAsyncEventArgs eventArgs)
         {
+            ReleaseBuffer(eventArgs.Offset);
+            eventArgs.SetBuffer(null, 0, 0);
+        }
+
+        /// <summary>
+        /// Releases the buffer allocated to an <see cref="IOBuffer"/> instance.
+        /// </summary>
+        /// <param name="buffer">The instance the buffer will be released from.</param>
+        public void ReleaseBuffer(IOBuffer buffer)
+        {
+            ReleaseBuffer(buffer.Offset);
+        }
+
+        private void ReleaseBuffer(int offset)
+        {
             lock (_freeIndexPool)
             {
                 try
                 {
-                    _freeIndexPool.Push(eventArgs.Offset);
-                    eventArgs.SetBuffer(null, 0, 0);
+                    _freeIndexPool.Push(offset);
                 }
                 catch (Exception e)
                 {

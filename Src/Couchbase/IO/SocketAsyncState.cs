@@ -18,7 +18,23 @@ namespace Couchbase.IO
 
         public uint Opaque { get; set; }
 
-        public byte[] Buffer { get; set; }
+        private byte[] _buffer;
+        public byte[] Buffer
+        {
+            get { return _buffer; }
+            set
+            {
+                _buffer = value;
+
+                // For compatibility with direct assignments for classes not using IOBuffer
+                BufferOffset = 0;
+                BufferLength = value != null ? value.Length : 0;
+            }
+        }
+
+        public int BufferOffset { get; private set; }
+
+        public int BufferLength { get; private set; }
 
         public Exception Exception { get; set; }
 
@@ -29,6 +45,29 @@ namespace Couchbase.IO
         /// The purpose is to handle client side errors
         /// </summary>
         public ResponseStatus Status { get; set; }
+
+        // ReSharper disable once InconsistentNaming
+        internal IOBuffer IOBuffer { get; private set; }
+
+        // ReSharper disable once InconsistentNaming
+        internal void SetIOBuffer(IOBuffer ioBuffer)
+        {
+            if (ioBuffer != null)
+            {
+                IOBuffer = ioBuffer;
+
+                // Buffer must be assigned first, as it will reset BufferOffset and BufferLength
+                Buffer = ioBuffer.Buffer;
+
+                BufferOffset = ioBuffer.Offset;
+                BufferLength = ioBuffer.Length;
+            }
+            else
+            {
+                IOBuffer = null;
+                Buffer = null;
+            }
+        }
     }
 
     #region [ License information ]

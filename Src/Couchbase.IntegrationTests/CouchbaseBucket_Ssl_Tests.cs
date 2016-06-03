@@ -1,6 +1,9 @@
-﻿
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -73,6 +76,25 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, value);
             var result = _bucket.Get<string>(key);
             Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public void Test_MultiGet()
+        {
+            // This test helps to ensure that the SSL connections are performing well under load
+            // and there are no buffer overlap issues when multiple commands are issued via an SslConnection
+
+            var keys = Enumerable.Range(0, 100).Select(p => "thekey" + p);
+            var value = "thevalue";
+
+            Parallel.ForEach(keys, key =>
+            {
+                _bucket.Upsert(key, value);
+
+                var result = _bucket.Get<string>(key);
+
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
+            });
         }
 
         [Test]

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.ServiceModel.Channels;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
@@ -18,7 +17,7 @@ namespace Couchbase.IO
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
         protected readonly IByteConverter Converter;
-        protected readonly BufferManager BufferManager;
+        protected readonly BufferAllocator BufferAllocator;
         protected readonly AutoResetEvent SendEvent = new AutoResetEvent(false);
         protected IConnectionPool ConnectionPool;
         protected PoolConfiguration Configuration;
@@ -29,25 +28,25 @@ namespace Couchbase.IO
         private int _closeAttempts;
 
         protected ConnectionBase(Socket socket, IByteConverter converter)
-            : this(socket, new OperationAsyncState(), converter, BufferManager.CreateBufferManager(1024 * 1000, 1024))
+            : this(socket, new OperationAsyncState(), converter, new BufferAllocator(24 * 1000, 1024))
         {
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager)
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferManager)
         {
             _socket = socket;
             _state = asyncState;
             Converter = converter;
-            BufferManager = bufferManager;
+            BufferAllocator = bufferManager;
             EndPoint = socket.RemoteEndPoint;
         }
 
-        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferManager bufferManager, IPEndPoint endPoint)
+        protected ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferManager, IPEndPoint endPoint)
         {
             _socket = socket;
             _state = asyncState;
             Converter = converter;
-            BufferManager = bufferManager;
+            BufferAllocator = bufferManager;
             EndPoint = endPoint;
         }
 
