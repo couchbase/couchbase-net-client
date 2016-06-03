@@ -512,7 +512,7 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = operation.Clone();
-                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
+                    Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {
@@ -594,7 +594,7 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = (IOperation<T>)operation.Clone();
-                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
+                    Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {

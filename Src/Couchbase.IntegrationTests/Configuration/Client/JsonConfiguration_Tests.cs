@@ -33,6 +33,22 @@ namespace Couchbase.IntegrationTests.Configuration.Client
             //assert
             Assert.IsFalse(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
         }
+
+        [Test]
+        public void ClientConfiguration_VBucketRetrySleepTime_DefaultsTo100ms()
+        {
+            var config = Utils.TestConfiguration.GetJsonConfiguration("basic");
+
+            Assert.AreEqual(100, config.VBucketRetrySleepTime);
+        }
+
+        [Test]
+        public void ClientConfiguration_VBucketRetrySleepTime_Is200ms()
+        {
+            var config = Utils.TestConfiguration.GetJsonConfiguration("multiplexio");
+
+            Assert.AreEqual(200, config.VBucketRetrySleepTime);
+        }
     }
 }
 

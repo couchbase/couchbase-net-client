@@ -327,6 +327,14 @@ namespace Couchbase.Configuration.Client
         /// </value>
         public bool UseInterNetworkV6Addresses { get; set; }
 
+        /// <summary>
+        /// Gets or sets the VBucket retry sleep time: the default is 100ms.
+        /// </summary>
+        /// <value>
+        /// The VBucket retry sleep time.
+        /// </value>
+        [JsonProperty("vBucketRetrySleepTime")]
+        public uint VBucketRetrySleepTime { get; set; }
 
         public CouchbaseClientDefinition()
         {
@@ -359,6 +367,7 @@ namespace Couchbase.Configuration.Client
             IOErrorThreshold = ClientConfiguration.Defaults.IOErrorThreshold;
             IOErrorCheckInterval = ClientConfiguration.Defaults.IOErrorCheckInterval;
             QueryFailedThreshold = (int)ClientConfiguration.Defaults.QueryFailedThreshold;
+            VBucketRetrySleepTime = ClientConfiguration.Defaults.VBucketRetrySleepTime;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

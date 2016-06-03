@@ -61,9 +61,10 @@ namespace Couchbase.Core.Buckets
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
+                    var result = operationResult;
                     Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, operationResult.Message));
-                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
+                    operation.Key, result.Message));
+                    Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {
@@ -109,9 +110,10 @@ namespace Couchbase.Core.Buckets
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
+                    var result = operationResult;
                     Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, operationResult.Message));
-                    Thread.Sleep((int)Math.Pow(2, operation.Attempts++));
+                    operation.Key, result.Message));
+                    Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {

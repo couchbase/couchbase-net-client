@@ -26,6 +26,7 @@ namespace Couchbase.Core.Buckets
         protected readonly Func<TimingLevel, object, IOperationTimer> Timer;
         protected volatile bool TimingEnabled;
         protected readonly ConcurrentDictionary<uint, IOperation> Pending;
+        protected readonly int VBucketRetrySleepTime;
 
         protected RequestExecuterBase(IClusterController clusterController, IConfigInfo configInfo, string bucketName, ConcurrentDictionary<uint, IOperation> pending)
         {
@@ -35,6 +36,7 @@ namespace Couchbase.Core.Buckets
             OperationLifeSpan = (int)ClusterController.Configuration.DefaultOperationLifespan;
             Pending = pending;
             Timer = ClusterController.Configuration.Timer;
+            VBucketRetrySleepTime = (int)configInfo.ClientConfig.VBucketRetrySleepTime;
             ConfigInfo = configInfo;
         }
 
@@ -74,8 +76,7 @@ namespace Couchbase.Core.Buckets
                 }
 
                 operation.Attempts++;
-                var sleepTime = (int)Math.Pow(2, operation.Attempts * 2);
-                var task = Task.Delay(sleepTime, cancellationToken).ConfigureAwait(false);
+                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ConfigureAwait(false);
                 try
                 {
                     await task;
@@ -122,8 +123,7 @@ namespace Couchbase.Core.Buckets
                     return result;
                 }
                 operation.Attempts++;
-                var sleepTime = (int)Math.Pow(2, operation.Attempts * 2);
-                var task = Task.Delay(sleepTime, cancellationToken).ConfigureAwait(false);
+                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ConfigureAwait(false);
                 try
                 {
                     await task;

@@ -12,6 +12,7 @@
     ]
   },
   "multiplexio": {
+    "vBucketRetrySleepTime": 200,
     "enableConfigHeartbeat": false,
     "servers": [
       "http://127.0.0.1:8091/"

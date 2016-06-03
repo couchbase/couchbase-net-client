@@ -181,5 +181,22 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.IsTrue(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
         }
+
+        [Test]
+        public void ClientConfiguration_VBucketRetrySleepTime_DefaultsTo100ms()
+        {
+            var config = new ClientConfiguration();
+
+            Assert.AreEqual(100, config.VBucketRetrySleepTime);
+        }
+
+        [Test]
+        public void ClientConfigSection_VBucketRetrySleepTime_DefaultsTo100ms()
+        {
+            //arrange/act
+            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            Assert.AreEqual(100, config.VBucketRetrySleepTime);
+        }
     }
 }

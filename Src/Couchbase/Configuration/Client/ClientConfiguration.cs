@@ -68,6 +68,7 @@ namespace Couchbase.Configuration.Client
             public static bool EnableConfigHeartBeat = true;
             public static uint ViewRequestTimeout = 75000; //ms
             public static uint SearchRequestTimeout = 75000; //ms
+            public static uint VBucketRetrySleepTime = 100; //ms
 
             //service point settings
             public static int DefaultConnectionLimit = 5; //connections
@@ -113,6 +114,7 @@ namespace Couchbase.Configuration.Client
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             ViewRequestTimeout = (int) Defaults.ViewRequestTimeout; //ms
             SearchRequestTimeout = Defaults.SearchRequestTimeout;
+            VBucketRetrySleepTime = Defaults.VBucketRetrySleepTime;
 
             //service point settings
             DefaultConnectionLimit = Defaults.DefaultConnectionLimit; //connections
@@ -215,6 +217,7 @@ namespace Couchbase.Configuration.Client
             QueryRequestTimeout = definition.QueryRequestTimeout;
             EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
+            VBucketRetrySleepTime = definition.VBucketRetrySleepTime;
 
             IOErrorCheckInterval = definition.IOErrorCheckInterval;
             IOErrorThreshold = definition.IOErrorThreshold;
@@ -345,6 +348,14 @@ namespace Couchbase.Configuration.Client
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
+
+        /// <summary>
+        /// Gets or sets the VBucket retry sleep time: the default is 100ms.
+        /// </summary>
+        /// <value>
+        /// The VBucket retry sleep time.
+        /// </value>
+        public uint VBucketRetrySleepTime { get; set; }
 
         /// <summary>
         /// Gets or sets the query failed threshold for a <see cref="Uri"/> before it is flagged as "un-responsive".

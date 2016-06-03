@@ -500,8 +500,22 @@ namespace Couchbase.Configuration.Client.Providers
         [ConfigurationProperty("useInterNetworkV6Addresses", IsRequired = false, DefaultValue = false)]
         public bool UseInterNetworkV6Addresses
         {
-            get { return (bool)this["useInterNetworkV6Addresses"]; }
+            get { return (bool) this["useInterNetworkV6Addresses"]; }
             set { this["useInterNetworkV6Addresses"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the VBucket retry sleep time: the default is 100ms.
+        /// </summary>
+        /// <value>
+        /// The VBucket retry sleep time.
+        /// </value>
+        [ConfigurationProperty("vBucketRetrySleepTime", IsRequired = false, DefaultValue = 100u)]
+        public uint VBucketRetrySleepTime
+        {
+            get { return (uint)this["vBucketRetrySleepTime"]; }
+            set { this["vBucketRetrySleepTime"] = value; }
+
         }
 
         #region Additional ICouchbaseClientDefinition implementations
