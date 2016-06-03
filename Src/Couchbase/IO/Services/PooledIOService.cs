@@ -18,7 +18,7 @@ namespace Couchbase.IO.Services
     /// <summary>
     /// The default service for performing IO
     /// </summary>
-    internal class PooledIOService : IIOService
+    public class PooledIOService : IIOService
     {
         private readonly static ILog Log = LogManager.GetLogger<PooledIOService>();
         private readonly IConnectionPool _connectionPool;

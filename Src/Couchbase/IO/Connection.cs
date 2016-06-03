@@ -10,13 +10,13 @@ using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
-    internal class Connection : ConnectionBase
+    public class Connection : ConnectionBase
     {
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
         private readonly BufferAllocator _allocator;
 
-        public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
+        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter)
         {
             ConnectionPool = connectionPool;

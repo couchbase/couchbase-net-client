@@ -11,7 +11,7 @@ namespace Couchbase.IO
     /// <summary>
     /// A factory creator for <see cref="IConnectionPool"/> instances.
     /// </summary>
-    internal class ConnectionPoolFactory
+    public class ConnectionPoolFactory
     {
         /// <summary>
         /// Gets the factory.
@@ -75,10 +75,6 @@ namespace Couchbase.IO
             return (config, endpoint) =>
             {
                 var type = typeof (T);
-                if (type == null)
-                {
-                    throw new TypeLoadException(string.Format("Could not create ConnectionPool from Factory.")  );
-                }
                 var connectionPool = (IConnectionPool)Activator.CreateInstance(type, config, endpoint);
                 return connectionPool;
             };

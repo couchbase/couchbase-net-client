@@ -17,7 +17,7 @@ namespace Couchbase.IO.Services
     /// <summary>
     /// An IO service that dispatches without using a pool.
     /// </summary>
-    internal class MultiplexingIOService : IIOService
+    public class MultiplexingIOService : IIOService
     {
         private readonly static ILog Log = LogManager.GetLogger<MultiplexingIOService>();
         private readonly IConnectionPool _connectionPool;
