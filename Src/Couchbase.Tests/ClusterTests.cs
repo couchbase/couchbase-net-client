@@ -67,7 +67,7 @@ namespace Couchbase.Tests
             catch (AggregateException e)
             {
                 e = e.Flatten();
-                if (!(e.InnerException is AuthenticationException))
+                if (e.InnerExceptions.All(x => x.GetType() != typeof (AuthenticationException)))
                 {
                     Assert.Fail("Expected authentication exception, got " + e.InnerException);
                 }
