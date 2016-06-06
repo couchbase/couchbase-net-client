@@ -52,7 +52,7 @@ namespace Couchbase.IO
         {
             try
             {
-                var targetHost = ConnectionPool.Configuration.Uri.Host;
+                var targetHost = EndPoint.ToString().Split(':')[0];
                 Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
                 _sslStream.AuthenticateAsClient(targetHost);
                 IsSecure = true;

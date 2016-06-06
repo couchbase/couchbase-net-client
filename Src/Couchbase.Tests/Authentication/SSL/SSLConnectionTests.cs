@@ -41,7 +41,7 @@ namespace Couchbase.Tests.Authentication.SSL
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            return true;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         void saea_Completed(object sender, SocketAsyncEventArgs e)
