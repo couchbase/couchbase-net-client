@@ -146,7 +146,7 @@ namespace Couchbase.Tests
                     Limit(10);
 
                 var result = bucket.Query<dynamic>(query);
-                Assert.AreEqual("", result.Message);
+                Assert.IsTrue(result.Success);
                 Assert.GreaterOrEqual(result.TotalRows, 0);
             }
         }
@@ -1804,8 +1804,8 @@ namespace Couchbase.Tests
                 {
                     bucket.Remove(key);
                     var result = bucket.Insert(key, "foo");
-                    Assert.AreEqual(0, result.Token.SequenceNumber);
-                    Assert.AreEqual(0, result.Token.VBucketUUID);
+                    Assert.AreEqual(-1, result.Token.SequenceNumber);
+                    Assert.AreEqual(-1, result.Token.VBucketUUID);
                 }
             }
         }
