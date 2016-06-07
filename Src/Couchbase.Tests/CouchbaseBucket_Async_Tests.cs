@@ -883,8 +883,8 @@ namespace Couchbase.Tests
                 {
                     bucket.Remove(key);
                     var result = await bucket.InsertAsync(key, "foo");
-                    Assert.AreEqual(0, result.Token.SequenceNumber);
-                    Assert.AreEqual(0, result.Token.VBucketUUID);
+                    Assert.AreEqual(-1, result.Token.SequenceNumber);
+                    Assert.AreEqual(-1, result.Token.VBucketUUID);
                 }
             }
         }

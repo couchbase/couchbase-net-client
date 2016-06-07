@@ -73,8 +73,8 @@ namespace Couchbase.Configuration
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
-                                var poolConfiguration = ClientConfig.BucketConfigs[bucketConfig.Name].PoolConfiguration;
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
 
                                 var ioService = IOServiceFactory(connectionPool);
@@ -196,8 +196,8 @@ namespace Couchbase.Configuration
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
-                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
 
                                 var newIoService = IOServiceFactory(connectionPool);
@@ -283,8 +283,8 @@ namespace Couchbase.Configuration
                         }
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
-                            var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].PoolConfiguration;
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                            var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                             var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
 
                             var newIoService = IOServiceFactory(connectionPool);
