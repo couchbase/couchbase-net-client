@@ -50,7 +50,10 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
             finally
             {
-                _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
+                if (!Disposed)
+                {
+                    _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
+                }
             }
         }
 
