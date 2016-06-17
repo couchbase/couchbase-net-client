@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>CouchbaseNetClient</id>
-    <version>2.2.1</version>
+    <version>2.3.0</version>
     <title>$title$</title>
     <authors>Couchbase, Inc.</authors>
     <owners>Couchbase, Inc.</owners>
@@ -12,12 +12,12 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The Couchbase authored new and improved client for .NET based languages!</description>
     <releaseNotes></releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2016</copyright>
     <tags>Couchbase nosql JSON database</tags>
     <dependencies>
       <group>
         <dependency id="Newtonsoft.Json" version="6.0.8"/>
-        <dependency id="Common.Logging" version="3.1.0"/>
+        <dependency id="Common.Logging" version="3.3.1"/>
       </group>
     </dependencies>
   </metadata>
