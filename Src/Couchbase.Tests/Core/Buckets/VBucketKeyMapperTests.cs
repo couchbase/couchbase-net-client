@@ -60,6 +60,16 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.AreEqual(vBucket.Index, actual);
         }
 
+        [Test]
+        public void VBucket_HasCorrectBucketname()
+        {
+            var expected = "travel-sample";
+            IKeyMapper mapper = new VBucketKeyMapper(_servers, _vBucketServerMap, _bucketConfig.Rev, expected);
+            var vBucket = (IVBucket)mapper.MapKey(Key);
+
+            Assert.AreEqual(expected, vBucket.BucketName);
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {

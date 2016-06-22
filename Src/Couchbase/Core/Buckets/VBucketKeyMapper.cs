@@ -27,10 +27,10 @@ namespace Couchbase.Core.Buckets
             Rev = revision;
             _servers = servers;
             _vBucketServerMap = vBucketServerMap;
+            _bucketName = bucketName;
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();
-            _mask = _vBuckets.Count-1;
-            _bucketName = bucketName;
+            _mask = _vBuckets.Count - 1;
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace Couchbase.Core.Buckets
                 {
                     replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap, "default"));
+                vBuckets.Add(i, new VBucket(_servers, i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
             }
             return vBuckets;
         }
