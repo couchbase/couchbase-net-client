@@ -35,9 +35,14 @@ namespace Couchbase
     /// Represents a persistent Couchbase Bucket and can be used for performing CRUD operations on documents,
     /// querying Views and executing N1QL queries.
     /// </summary>
+    /// <seealso cref="Couchbase.Core.IBucket" />
+    /// <seealso cref="Couchbase.Configuration.Server.Providers.IConfigObserver" />
+    /// <seealso cref="Couchbase.IRefCountable" />
+    /// <seealso cref="Couchbase.IQueryCacheInvalidator" />
+    /// <seealso cref="Couchbase.Core.IO.SubDocument.ISubdocInvoker" />
     public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator, ISubdocInvoker
     {
-        private readonly static ILog Log = LogManager.GetLogger<CouchbaseBucket>();
+        private static readonly ILog Log = LogManager.GetLogger<CouchbaseBucket>();
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
@@ -538,6 +543,21 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a list of documents by their given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="ids">The documents primary keys.</param>
+        /// <returns>
+        /// The <see cref="Task{IDocumentResult}" /> array representing the asynchronous operation results.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            ids.ToList().ForEach(id => tasks.Add(GetDocumentAsync<T>(id)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
         /// Gets a value for a given key.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
@@ -967,6 +987,48 @@ namespace Couchbase
         {
             var result = Insert(document.Id, document.Content, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc=>tasks.Add(InsertAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo, persistTo)));
+            return Task.WhenAll(tasks);
         }
 
         /// <summary>
@@ -1867,6 +1929,54 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IOperationResult>>();
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            var tasks = new List<Task<IOperationResult>>();
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var tasks = new List<Task<IOperationResult>>();
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo, persistTo)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
         /// Removes a document for a given key from the database as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
@@ -2226,6 +2336,27 @@ namespace Couchbase
         public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return ReplaceAsync(document, replicateTo, PersistTo.Zero);
+        }
+
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc, replicateTo)));
+            return Task.WhenAll(tasks);
+        }
+
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc, replicateTo, persistTo)));
+            return Task.WhenAll(tasks);
         }
 
         /// <summary>
@@ -2908,6 +3039,54 @@ namespace Couchbase
                 tcs.SetException(e);
             }
             return await tcs.Task.ContinueOnAnyContext();
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo, persistTo)));
+            return Task.WhenAll(tasks);
         }
 
         /// <summary>

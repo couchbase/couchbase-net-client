@@ -26,6 +26,9 @@ namespace Couchbase
     /// <summary>
     /// Represents an in-memory bucket for storing Key/Value pairs. Most often used as a distributed cache.
     /// </summary>
+    /// <seealso cref="Couchbase.Core.IBucket" />
+    /// <seealso cref="Couchbase.Configuration.Server.Providers.IConfigObserver" />
+    /// <seealso cref="Couchbase.IRefCountable" />
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
         private static readonly ILog Log = LogManager.GetLogger<MemcachedBucket>();
@@ -168,12 +171,12 @@ namespace Couchbase
 
         public ObserveResponse Observe(string key, ulong cas, bool remove, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         public Task<ObserveResponse> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -217,6 +220,22 @@ namespace Couchbase
         {
             var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -531,11 +550,50 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An object implementing <see cref="IDocumentResult{T}" /> with information regarding the operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>
+        /// An object implementing the <see cref="IOperationResult{T}" />interface.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
@@ -589,6 +647,46 @@ namespace Couchbase
         {
             var result = Insert(document.Id, document.Content, document.Expiry.ToTtl());
             return new DocumentResult<T>(result, document.Id);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -814,6 +912,21 @@ namespace Couchbase
         {
             var result = Get<T>(id);
             return new DocumentResult<T>(result, id);
+        }
+
+        /// <summary>
+        /// Gets a list of documents by there given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="ids">The documents primary keys.</param>
+        /// <returns>
+        /// The <see cref="Task{IDocumentResult}" /> array representing the asynchronous operation results.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            ids.ToList().ForEach(id => tasks.Add(GetDocumentAsync<T>(id)));
+            return Task.WhenAll(tasks);
         }
 
         /// <summary>
@@ -1327,13 +1440,53 @@ namespace Couchbase
             return await tcs.Task.ContinueOnAnyContext();
         }
 
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="IBucket" /> on a Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="IDocument{T}" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
         public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo,
             PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -1508,7 +1661,37 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A <see cref="Task{IDocumentResult}" /> list.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -1790,10 +1973,55 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents)
+        {
+            var tasks = new List<Task<IOperationResult>>();
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A list of <see cref="Task{IOperationResult}" /> objects representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
 
         /// <summary>
         /// Removes a document for a given key from the database as an asynchronous operation.

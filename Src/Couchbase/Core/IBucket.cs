@@ -123,6 +123,33 @@ namespace Couchbase.Core
         Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}"/> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents);
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}"/> into a bucket asynchronously..
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo);
+
+        /// <summary>
+        /// Upserts a list of <see cref="IDocument{T}"/> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -477,6 +504,33 @@ namespace Couchbase.Core
         Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo);
 
         /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}"/> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents);
+
+        /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}"/> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo);
+
+        /// <summary>
+        /// Replaces a list of <see cref="IDocument{T}"/> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>A <see cref="Task{IDocumentResult}"/> list.</returns>
+        Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
         /// Replaces a document if it exists, otherwise fails.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -784,6 +838,32 @@ namespace Couchbase.Core
         /// <returns>An object implementing <see cref="IDocumentResult{T}"/> with information regarding the operation.</returns>
         IDocumentResult<T> Insert<T>(IDocument<T> document);
 
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns></returns>
+        Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents);
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns></returns>
+        Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo);
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns></returns>
+        Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists as an asynchronous operation.
@@ -1048,6 +1128,33 @@ namespace Couchbase.Core
         Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo);
 
         /// <summary>
+        /// Removes a list of <see cref="IDocument"/> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <returns>A list of <see cref="Task{IOperationResult}"/> objects representing the asynchronous operation.</returns>
+        Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents);
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument"/> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>A list of <see cref="Task{IOperationResult}"/> objects representing the asynchronous operation.</returns>
+        Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo);
+
+        /// <summary>
+        /// Removes a list of <see cref="IDocument"/> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>A list of <see cref="Task{IOperationResult}"/> objects representing the asynchronous operation.</returns>
+        Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo);
+
+        /// <summary>
         /// Removes a document for a given key from the database.
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
@@ -1238,6 +1345,14 @@ namespace Couchbase.Core
         /// <param name="id">The documents primary key.</param>
         /// <returns>The <see cref="Task{IDocumentResult}"/> object representing the asynchronous operation.</returns>
         Task<IDocumentResult<T>> GetDocumentAsync<T>(string id);
+
+        /// <summary>
+        /// Gets a list of documents by their given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="ids">The documents primary keys.</param>
+        /// <returns>The <see cref="Task{IDocumentResult}"/> array representing the asynchronous operation results.</returns>
+        Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids);
 
         /// <summary>
         /// Gets value for a given key

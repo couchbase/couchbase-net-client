@@ -1,7 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
@@ -140,6 +140,116 @@ namespace Couchbase.IntegrationTests
             Assert.IsFalse(res2.Success);
             Assert.AreEqual(ResponseStatus.TemporaryFailure, res2.Status);
         }
+
+        #region Batch Async Operations
+
+        [Test]
+        public async void UpsertAsync_Batch()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "UpsertAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "UpsertAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "UpsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = results.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
+        public async void ReplaceAsync_Batch()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "ReplaceAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "ReplaceAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "ReplaceAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsReplaced = await _bucket.ReplaceAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsReplaced.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
+        public async void RemoveAsync_Batch()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "RemoveAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "RemoveAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "RemoveAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsRemoved = await _bucket.RemoveAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsRemoved.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
+        public async void InsertAsync_Batch()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "InsertAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "InsertAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "InsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.RemoveAsync(documents).ConfigureAwait(false);
+            var resultsInsert = await _bucket.InsertAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsInsert.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+
+        [Test]
+        public async void GetAsync_Batch()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "GetAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "GetAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "GetAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsGet = await _bucket.GetDocumentsAsync<object>(documents.Select(x=>x.Id)).ConfigureAwait(false);
+            Assert.AreEqual(3, resultsGet.Length);
+            var trueForAll = resultsGet.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        public class Cat
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
+        }
+
+        #endregion
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
