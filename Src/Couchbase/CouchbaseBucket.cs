@@ -283,6 +283,14 @@ namespace Couchbase
             return result;
         }
 
+        /// <summary>
+        /// Creates a <see cref="BucketManager" /> instance for managing buckets.
+        /// </summary>
+        /// <param name="username">The administrators username</param>
+        /// <param name="password">The administrators username</param>
+        /// <returns>
+        /// A <see cref="BucketManager" /> instance.
+        /// </returns>
         public IBucketManager CreateManager(string username, string password)
         {
             return new BucketManager(this,

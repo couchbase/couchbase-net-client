@@ -69,7 +69,7 @@ namespace Couchbase.Management
         /// Lists the indexes for the current <see cref="IBucket" />.
         /// </summary>
         /// <returns></returns>
-        public IndexResult ListN1qlIndexes()
+        public virtual IndexResult ListN1qlIndexes()
         {
             var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
             var result = _bucket.Query<IndexInfo>(request);
@@ -87,7 +87,7 @@ namespace Couchbase.Management
         /// Lists the indexes for a the current <see cref="IBucket" /> asynchronously.
         /// </summary>
         /// <returns></returns>
-        public async Task<IndexResult> ListN1qlIndexesAsync()
+        public virtual async Task<IndexResult> ListN1qlIndexesAsync()
         {
             var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
             var result = await _bucket.QueryAsync<IndexInfo>(request);
@@ -105,7 +105,7 @@ namespace Couchbase.Management
         /// Creates the primary index for the current bucket if it doesn't already exist.
         /// </summary>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
-        public IResult CreateN1qlPrimaryIndex(bool defer = false)
+        public virtual IResult CreateN1qlPrimaryIndex(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
                 BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -121,7 +121,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer = false)
+        public virtual Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
                 BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -138,7 +138,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer = false)
+        public virtual Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
                 customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -156,7 +156,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> CreateN1qlIndexAsync(string indexName, bool defer = false, params string[] fields)
+        public virtual Task<IResult> CreateN1qlIndexAsync(string indexName, bool defer = false, params string[] fields)
         {
             var fieldStr = string.Empty;
             if (fields != null)
@@ -177,7 +177,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> DropN1qlPrimaryIndexAsync()
+        public virtual Task<IResult> DropN1qlPrimaryIndexAsync()
         {
             var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
             var result = ExecuteIndexRequestAsync(statement);
@@ -191,7 +191,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> DropNamedPrimaryIndexAsync(string customName)
+        public virtual Task<IResult> DropNamedPrimaryIndexAsync(string customName)
         {
             var statement = string.Format(Statements.DropNamedPrimaryIndex, BucketName.N1QlEscape(), customName.N1QlEscape());
             var result = ExecuteIndexRequestAsync(statement);
@@ -205,7 +205,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult> DropN1qlIndexAsync(string name)
+        public virtual Task<IResult> DropN1qlIndexAsync(string name)
         {
             var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
             var result = ExecuteIndexRequestAsync(statement);
@@ -218,7 +218,7 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        public Task<IResult[]> BuildN1qlDeferredIndexesAsync()
+        public virtual Task<IResult[]> BuildN1qlDeferredIndexesAsync()
         {
             var tasks = new List<Task<IResult>>();
             var indexes = ListN1qlIndexes();
@@ -242,7 +242,7 @@ namespace Couchbase.Management
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        public virtual Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
         {
             throw new NotImplementedException();
         }
@@ -255,7 +255,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult CreateN1qlPrimaryIndex(string customName, bool defer = false)
+        public virtual IResult CreateN1qlPrimaryIndex(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
                 customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
@@ -273,7 +273,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult CreateN1qlIndex(string indexName, bool defer = false, params string[] fields)
+        public virtual IResult CreateN1qlIndex(string indexName, bool defer = false, params string[] fields)
         {
             var fieldStr = fields.ToDelimitedN1QLString(',');
             var statement = string.Format(Statements.CreateIndexWithFields,
@@ -289,7 +289,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropN1qlPrimaryIndex()
+        public virtual IResult DropN1qlPrimaryIndex()
         {
             var statement = string.Format(Statements.DropPrimaryIndex, BucketName.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -303,7 +303,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropN1qlPrimaryIndex(string customName)
+        public virtual IResult DropN1qlPrimaryIndex(string customName)
         {
             var statement = string.Format(Statements.DropNamedPrimaryIndex, BucketName.N1QlEscape(), customName.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -317,7 +317,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        public IResult DropN1qlIndex(string name)
+        public virtual IResult DropN1qlIndex(string name)
         {
             var statement = string.Format(Statements.DropIndex, BucketName.N1QlEscape(), name.N1QlEscape());
             var result = ExecuteIndexRequest(statement);
@@ -330,7 +330,7 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IList{IResult}" /> with the status for each index built.
         /// </returns>
-        public IList<IResult> BuildN1qlDeferredIndexes()
+        public virtual IList<IResult> BuildN1qlDeferredIndexes()
         {
             var results = new List<IResult>();
             var indexes = ListN1qlIndexes();
@@ -355,7 +355,7 @@ namespace Couchbase.Management
         /// <param name="watchTimeUnit">The watch time unit.</param>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        public virtual IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
         {
             throw new NotImplementedException();
         }
@@ -388,7 +388,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult InsertDesignDocument(string designDocName, string designDoc)
+        public virtual IResult InsertDesignDocument(string designDocName, string designDoc)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -402,7 +402,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> InsertDesignDocumentAsync(string designDocName, string designDoc)
+        public virtual async Task<IResult> InsertDesignDocumentAsync(string designDocName, string designDoc)
         {
             IResult result;
             try
@@ -445,7 +445,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult UpdateDesignDocument(string designDocName, string designDoc)
+        public virtual IResult UpdateDesignDocument(string designDocName, string designDoc)
         {
             return InsertDesignDocument(designDocName, designDoc);
         }
@@ -456,7 +456,7 @@ namespace Couchbase.Management
         /// <param name="designDocName">The name of the design document.</param>
         /// <param name="designDoc">A design document JSON string.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public Task<IResult> UpdateDesignDocumentAsync(string designDocName, string designDoc)
+        public virtual Task<IResult> UpdateDesignDocumentAsync(string designDocName, string designDoc)
         {
             return InsertDesignDocumentAsync(designDocName, designDoc);
         }
@@ -466,7 +466,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A design document object.</returns>
-        public IResult<string> GetDesignDocument(string designDocName)
+        public virtual IResult<string> GetDesignDocument(string designDocName)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -479,7 +479,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A design document object.</returns>
-        public async Task<IResult<string>> GetDesignDocumentAsync(string designDocName)
+        public virtual async Task<IResult<string>> GetDesignDocumentAsync(string designDocName)
         {
             IResult<string> result;
             try
@@ -517,7 +517,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult RemoveDesignDocument(string designDocName)
+        public virtual IResult RemoveDesignDocument(string designDocName)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -529,7 +529,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="designDocName">The name of the design document.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> RemoveDesignDocumentAsync(string designDocName)
+        public virtual async Task<IResult> RemoveDesignDocumentAsync(string designDocName)
         {
             IResult result;
             try
@@ -568,7 +568,7 @@ namespace Couchbase.Management
         /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
         /// <returns>The design document as a string.</returns>
         [Obsolete("Note that the overload which takes an 'includeDevelopment' is obsolete; the method will ignore the parameter value if passed.")]
-        public IResult<string> GetDesignDocuments(bool includeDevelopment = false)
+        public virtual IResult<string> GetDesignDocuments(bool includeDevelopment = false)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -581,7 +581,7 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="includeDevelopment">Whether or not to show development design documents in the results.</param>
         /// <returns>The design document as a string.</returns>
-        public async Task<IResult<string>> GetDesignDocumentsAsync(bool includeDevelopment = false)
+        public virtual async Task<IResult<string>> GetDesignDocumentsAsync(bool includeDevelopment = false)
         {
             IResult<string> result;
             try
@@ -630,7 +630,7 @@ namespace Couchbase.Management
         /// Destroys all documents stored within a bucket.  This functionality must also be enabled within the server-side bucket settings for safety reasons.
         /// </summary>
         /// <returns>A <see cref="bool"/> indicating success.</returns>
-        public async Task<IResult> FlushAsync()
+        public virtual async Task<IResult> FlushAsync()
         {
             IResult result;
             try
@@ -668,14 +668,6 @@ namespace Couchbase.Management
                 result = new DefaultResult(false, e.Message, e);
             }
             return result;
-        }
-
-        private static string GetString(Stream stream)
-        {
-            using (var sr = new StreamReader(stream))
-            {
-                return sr.ReadToEnd();
-            }
         }
 
         private async Task<IResult<string>> GetResultAsString(HttpResponseMessage httpResponseMessage)

@@ -2,6 +2,7 @@
  using System.Collections.Concurrent;
  using System.Collections.Generic;
  using System.Linq;
+ using System.Net.Http;
  using System.Runtime.CompilerServices;
  using System.Threading;
  using System.Threading.Tasks;
@@ -922,7 +923,7 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> array representing the asynchronous operation results.
         /// </returns>
-        public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids)
+            public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids)
         {
             var tasks = new List<Task<IDocumentResult<T>>>();
             ids.ToList().ForEach(id => tasks.Add(GetDocumentAsync<T>(id)));
@@ -1411,9 +1412,22 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <summary>
+        /// Creates a <see cref="MemcachedBucketManager" /> instance for managing buckets.
+        /// </summary>
+        /// <param name="username">The administrators username</param>
+        /// <param name="password">The administrators username</param>
+        /// <returns>
+        /// A <see cref="MemcachedBucketManager" /> instance.
+        /// </returns>
         public IBucketManager CreateManager(string username, string password)
         {
-            throw new NotSupportedException();
+            return new MemcachedBucketManager(this,
+               _configInfo.ClientConfig,
+               new HttpClient(),
+               new JsonDataMapper(_configInfo.ClientConfig),
+               username,
+               password);
         }
 
         /// <summary>
