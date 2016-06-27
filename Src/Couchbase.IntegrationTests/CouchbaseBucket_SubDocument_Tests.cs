@@ -167,9 +167,69 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
         }
 
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_SinglePath_Exists_FailsWhenPathDoesNotExist(bool useMutation)
+        {
+            Setup(useMutation);
+            var doc = new Document<dynamic>
+            {
+                Id = "Foo::123",
+                Content = new
+                {
+                    Username = "mgroves",
+                    Profile = new
+                    {
+                        PhoneNumber = "123-456-7890",
+                        Address = new
+                        {
+                            Street = "123 Main Rd",
+                            City = "Columbus",
+                            State = "Ohio"
+                        }
+                    }
+                }
+            };
+            _bucket.Upsert(doc);
+
+            var subDoc2 = _bucket.LookupIn<dynamic>("Foo::123").Exists("profile.address.province").Execute();
+            Assert.IsFalse(subDoc2.Exists("profile.address.province"));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_SinglePath_Exists_SucceedsWhenPathExists(bool useMutation)
+        {
+            Setup(useMutation);
+            var doc = new Document<dynamic>
+            {
+                Id = "Foo::123",
+                Content = new
+                {
+                    Username = "mgroves",
+                    Profile = new
+                    {
+                        PhoneNumber = "123-456-7890",
+                        Address = new
+                        {
+                            Street = "123 Main Rd",
+                            City = "Columbus",
+                            State = "Ohio"
+                        }
+                    }
+                }
+            };
+            _bucket.Upsert(doc);
+
+            var subDoc = _bucket.LookupIn<dynamic>("Foo::123").Exists("profile.address.state").Execute();
+            Assert.IsTrue(subDoc.Exists("profile.address.state"));
+        }
+
         #endregion
 
-#region Dictionary Insertion Commands
+        #region Dictionary Insertion Commands
 
         [Test]
         [TestCase(true)]

@@ -99,7 +99,8 @@ namespace Couchbase
         /// <returns><s>true</s> if that path is part of the successful result set, <s>false</s> in any other case.</returns>
         public bool Exists(string path)
         {
-            return Value.Any(x => x.Path.Equals(path));
+            var entry = Value.First(x => x.Path.Equals(path));
+            return (entry != null && entry.Status == ResponseStatus.Success);
         }
 
         /// <summary>
