@@ -133,10 +133,10 @@ namespace Couchbase.IntegrationTests
         public void GetWithLock_WhenKeyIsLocked_ResponseStatusIsTemporaryFailure_And_MessageIsLOCK_ERROR()
         {
             _bucket.Upsert("roikatz", "bbbb");
-            var res1 = _bucket.GetWithLock<string>("roikatz", 30);
+            var res1 = _bucket.GetAndLock<string>("roikatz", 30);
             Assert.IsTrue(res1.Success);
 
-            var res2 = _bucket.GetWithLock<string>("roikatz", 30);
+            var res2 = _bucket.GetAndLock<string>("roikatz", 30);
             Assert.IsFalse(res2.Success);
             Assert.AreEqual(ResponseStatus.TemporaryFailure, res2.Status);
         }

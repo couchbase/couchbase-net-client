@@ -752,6 +752,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
         /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
         /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        [Obsolete("NCBC-1146: GetWithLock has been renamed to GetAndLock.")]
         public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
         {
             const uint defaultExpiration = 15;
@@ -776,11 +777,52 @@ namespace Couchbase
         /// <returns>
         /// An <see cref="IOperationResult{T}" /> with the value.
         /// </returns>
+        [Obsolete("NCBC-1146: GetWithLock has been renamed to GetAndLock.")]
         public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
         {
             //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
             //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
             return GetWithLock<T>(key, (uint)expiration.TotalSeconds);
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
+        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        public IOperationResult<T> GetAndLock<T>(string key, uint expiration)
+        {
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                Expiration = expiration
+            };
+            return _requestExecuter.SendWithRetry(getl);
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// An <see cref="IOperationResult{T}" /> with the value.
+        /// </returns>
+        public IOperationResult<T> GetAndLock<T>(string key, TimeSpan expiration)
+        {
+            //note expiration.ToTtl() is not the best choice here since it enforces TTL limits which are
+            //much higher than lock duration limits. Just convert to seconds and let overload do the checking.
+            return GetAndLock<T>(key, (uint)expiration.TotalSeconds);
         }
 
         /// <summary>
@@ -792,6 +834,7 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
+        [Obsolete("NCBC-1146: GetWithLockAsync has been renamed to GetAndLockAsync.")]
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration)
         {
             const uint defaultExpiration = 15;
@@ -816,11 +859,49 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
+        [Obsolete("NCBC-1146: GetWithLockAsync has been renamed to GetAndLockAsync.")]
         public Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration)
         {
             return GetWithLockAsync<T>(key, (uint)expiration.TotalSeconds);
         }
 
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, uint expiration)
+        {
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                Expiration = expiration
+            };
+            return _requestExecuter.SendWithRetryAsync(getl);
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>
+        /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, TimeSpan expiration)
+        {
+            return GetAndLockAsync<T>(key, (uint)expiration.TotalSeconds);
+        }
 
         /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created

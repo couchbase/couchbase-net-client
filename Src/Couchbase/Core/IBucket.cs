@@ -1422,16 +1422,8 @@ namespace Couchbase.Core
         /// <param name="key">The key of the document to retrieve.</param>
         /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        [Obsolete("NCBC-1146: GetWithLock has been renamed to GetAndLock.")]
         IOperationResult<T> GetWithLock<T>(string key, uint expiration);
-
-        /// <summary>
-        /// Gets a document and locks it for a specified time period as an asynchronous operation.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
-        /// <param name="key">The key of the document to retrieve.</param>
-        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
-        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
-        Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration);
 
         /// <summary>
         /// Gets a document and locks it for a specified time period.
@@ -1440,19 +1432,67 @@ namespace Couchbase.Core
         /// <param name="key">The key of the document to retrieve.</param>
         /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
-        IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration);
+        IOperationResult<T> GetAndLock<T>(string key, uint expiration);
 
-         /// <summary>
+        /// <summary>
         /// Gets a document and locks it for a specified time period as an asynchronous operation.
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
         /// <param name="key">The key of the document to retrieve.</param>
         /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        [Obsolete("NCBC-1146: GetWithLockAsync has been renamed to GetAndLockAsync.")]
+        Task<IOperationResult<T>> GetWithLockAsync<T>(string key, uint expiration);
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        Task<IOperationResult<T>> GetAndLockAsync<T>(string key, uint expiration);
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        [Obsolete("NCBC-1146: GetWithLock has been renamed to GetAndLock.")]
+        IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
+        IOperationResult<T> GetAndLock<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        [Obsolete("NCBC-1146: GetWithLockAsync has been renamed to GetAndLockAsync.")]
         Task<IOperationResult<T>> GetWithLockAsync<T>(string key, TimeSpan expiration);
 
         /// <summary>
-        /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/>.
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        Task<IOperationResult<T>> GetAndLockAsync<T>(string key, TimeSpan expiration);
+
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="GetAndLock{T}"/>.
         /// </summary>
         /// <param name="key">The key of the document to unlock.</param>
         /// <param name="cas">The 'check and set' value to use as a comparison</param>
@@ -1460,7 +1500,7 @@ namespace Couchbase.Core
         IOperationResult Unlock(string key, ulong cas);
 
         /// <summary>
-        /// Unlocks a key that was locked with <see cref="GetWithLock{T}"/> as an asynchronous operation.
+        /// Unlocks a key that was locked with <see cref="GetAndLock{T}"/> as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key of the document to unlock.</param>
         /// <param name="cas">The 'check and set' value to use as a comparison</param>

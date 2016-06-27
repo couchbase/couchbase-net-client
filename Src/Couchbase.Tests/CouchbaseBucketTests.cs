@@ -785,7 +785,7 @@ namespace Couchbase.Tests
             {
                 var key = "When_Key_Is_Locked_Mutate_Fails";
                 Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success);
-                var getl = bucket.GetWithLock<string>(key, 15);
+                var getl = bucket.GetAndLock<string>(key, 15);
                 Assert.IsTrue(getl.Success);
                 var upsert = bucket.Upsert(key, "{'name':'value2'}");
                 Assert.IsFalse(upsert.Success);
@@ -800,7 +800,7 @@ namespace Couchbase.Tests
                 var key = "When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked";
                 Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success); //succeed
 
-                var getl = bucket.GetWithLock<string>(key, 15);
+                var getl = bucket.GetAndLock<string>(key, 15);
                 Assert.IsTrue(getl.Success); //will succeed
 
                 var unlock = bucket.Unlock(key, getl.Cas);

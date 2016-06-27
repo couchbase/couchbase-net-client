@@ -1087,7 +1087,27 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        public IOperationResult<T> GetAndLock<T>(string key, uint expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, uint expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         public IOperationResult<T> GetWithLock<T>(string key, TimeSpan expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IOperationResult<T> GetAndLock<T>(string key, TimeSpan expiration)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, TimeSpan expiration)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
