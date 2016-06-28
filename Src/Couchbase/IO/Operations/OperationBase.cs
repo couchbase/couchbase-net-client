@@ -273,6 +273,7 @@ namespace Couchbase.IO.Operations
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
+                result.Id = Key;
 
                 //clean up and set to null
                 if (!result.IsNmv())

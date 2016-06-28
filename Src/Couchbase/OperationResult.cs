@@ -2,6 +2,8 @@
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {
@@ -101,6 +103,29 @@ namespace Couchbase
         public bool IsNmv()
         {
             return Status == ResponseStatus.VBucketBelongsToAnotherServer;
+        }
+
+        /// <summary>
+        /// Gets the id or key for the document.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
+        public string Id { get; internal set; }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return new JObject(
+                new JProperty("id", Id),
+                new JProperty("cas", Cas),
+                new JProperty("token", Token != null ? Token.ToString() : null)).
+                ToString(Formatting.None);
         }
     }
 }

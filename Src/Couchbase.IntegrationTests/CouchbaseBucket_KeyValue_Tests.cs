@@ -1,8 +1,6 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using Couchbase.Configuration.Client;
+﻿using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO;
 using NUnit.Framework;
@@ -77,6 +75,42 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, value);
             var result = _bucket.Get<string>(key);
             Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public void Get_IdIsInOperationResult()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value);
+            var result = _bucket.Get<string>(key);
+            Assert.AreEqual(key, result.Id);
+        }
+
+        [Test]
+        public void GetDocument_IdIsInOperationResult()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value);
+            var result = _bucket.GetDocument<string>(key);
+            Assert.AreEqual(key, result.Id);
+        }
+
+        [Test]
+        public async Task GetDocumentAsync_IdIsInOperationResult()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value);
+            var result = await _bucket.GetDocumentAsync<string>(key).ConfigureAwait(false);
+            Assert.AreEqual(key, result.Id);
         }
 
         [Test]

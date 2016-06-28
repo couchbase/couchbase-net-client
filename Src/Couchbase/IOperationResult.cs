@@ -39,6 +39,14 @@ namespace Couchbase
         /// </summary>
         /// <returns>Returns true if <see cref="ResponseStatus"/> is a VBucketBelongsToAnotherServer.</returns>
         bool IsNmv();
+
+        /// <summary>
+        /// Gets the id or key for the document.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
+        string Id { get; }
     }
 }
 #region [ License information ]

@@ -1,5 +1,7 @@
 ﻿using System;
 using Couchbase.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {
@@ -18,6 +20,7 @@ namespace Couchbase
                 Content = result.Value,
                 Token = result.Token
             };
+            Id = id;
             Content = Document.Content;
             Message = result.Message;
             Status = result.Status;
@@ -46,6 +49,14 @@ namespace Couchbase
         public ResponseStatus Status { get; internal set; }
 
         /// <summary>
+        /// Gets the id or key for the document.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
+        public string Id { get; internal set; }
+
+        /// <summary>
         /// The actual value stored within Couchbase
         /// </summary>
         public T Content { get; set; }
@@ -55,10 +66,34 @@ namespace Couchbase
         /// </summary>
         public System.Exception Exception { get; set; }
 
-
         public bool ShouldRetry()
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            string content = null;
+            try
+            {
+                content = JsonConvert.SerializeObject(Content);
+            }
+            catch
+            {
+                // ignored
+            }
+            return new JObject(
+                new JProperty("id", Id),
+                new JProperty("cas", Document != null ? Document.Cas : 0),
+                new JProperty("token", Document != null && Document.Token != null ? Document.Token.ToString() : null),
+                new JProperty("content", content)).
+                ToString(Formatting.None);
         }
     }
 }

@@ -12,6 +12,14 @@ namespace Couchbase
         /// The response status returned by the server when fulfilling the request.
         /// </summary>
         ResponseStatus Status { get; }
+
+        /// <summary>
+        /// Gets the id or key for the document.
+        /// </summary>
+        /// <value>
+        /// The identifier.
+        /// </value>
+        string Id { get; }
     }
 
     #region [ License information ]

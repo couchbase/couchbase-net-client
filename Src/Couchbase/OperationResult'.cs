@@ -1,4 +1,6 @@
-﻿
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Couchbase
 {
     /// <summary>
@@ -11,6 +13,31 @@ namespace Couchbase
         /// The value of the key retrieved from Couchbase Server.
         /// </summary>
         public T Value { get; internal set; }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            string content = null;
+            try
+            {
+                content = JsonConvert.SerializeObject(Value, Formatting.None);
+            }
+            catch
+            {
+                // ignored
+            }
+            return new JObject(
+                new JProperty("id", Id),
+                new JProperty("cas", Cas),
+                new JProperty("token", Token != null ? Token.ToString() : null),
+                new JProperty("content", content)).
+                ToString(Formatting.None);
+        }
     }
 }
 #region [ License information ]

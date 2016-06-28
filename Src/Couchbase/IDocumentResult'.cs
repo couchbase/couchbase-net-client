@@ -1,6 +1,4 @@
-﻿using Couchbase.IO;
-
-namespace Couchbase
+﻿namespace Couchbase
 {
     /// <summary>
     /// The return type for "document" centric operation requests.

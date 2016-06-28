@@ -183,7 +183,8 @@ namespace Couchbase
                 Message = result.Message,
                 Exception = result.Exception,
                 Durability = result.Durability,
-                Cas = result.Cas
+                Cas = result.Cas,
+                Id = key
             };
             if (result.Value.KeyState != KeyState.NotFound && result.Value.KeyState != KeyState.LogicalDeleted)
             {
@@ -224,7 +225,8 @@ namespace Couchbase
                 Message = result.Message,
                 Exception = result.Exception,
                 Durability = result.Durability,
-                Cas = result.Cas
+                Cas = result.Cas,
+                Id = key
             };
             if (result.Value.KeyState != KeyState.NotFound && result.Value.KeyState != KeyState.LogicalDeleted)
             {

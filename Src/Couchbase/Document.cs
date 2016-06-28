@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core.Buckets;
+﻿using Couchbase.Core.Buckets;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase
 {
@@ -43,6 +40,31 @@ namespace Couchbase
         /// <remarks>Note: this is used internally for enhanced durability if supported by
         /// the Couchbase server version and enabled by configuration.</remarks>
         public MutationToken Token { get; internal set; }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            string content = null;
+            try
+            {
+                content = JsonConvert.SerializeObject(Content);
+            }
+            catch
+            {
+                // ignored
+            }
+            return new JObject(
+                new JProperty("id", Id),
+                new JProperty("cas", Cas),
+                new JProperty("token", Token != null ? Token.ToString() : null),
+                new JProperty("content", content)).
+                ToString(Formatting.None);
+        }
     }
 }
 #region [ License information ]
