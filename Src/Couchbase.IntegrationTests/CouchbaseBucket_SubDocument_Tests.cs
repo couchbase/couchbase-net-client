@@ -229,7 +229,7 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
-        #region Dictionary Insertion Commands
+#region Dictionary Insertion Commands
 
         [Test]
         [TestCase(true)]
@@ -403,7 +403,7 @@ namespace Couchbase.IntegrationTests
         }
 
 
-        #endregion
+#endregion
 
 #region Generic Modification Commands
 
@@ -441,7 +441,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         [TestCase(true)]
         [TestCase(false)]
-        public void MutateIn_Delete_WithValidPath_ReturnsSuccess(bool useMutation)
+        public void MutateIn_Remove_MultiWithValidPath_ReturnsSuccess(bool useMutation)
         {
             Setup(useMutation);
             var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
@@ -456,7 +456,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         [TestCase(true)]
         [TestCase(false)]
-        public void MutateIn_Delete_WithInValidPath_ReturnsSubDocPathNotFound(bool useMutation)
+        public void MutateIn_Remove_MultiWithInValidPath_ReturnsSubDocPathNotFound(bool useMutation)
         {
             Setup(useMutation);
             var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
@@ -469,9 +469,40 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
         }
 
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_Remove_SingleWithValidPath_ReturnsSuccess(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
+            _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Remove("foo");
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_Remove_SingleWithInValidPath_ReturnsSubDocPathNotFound(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_Delete_WithValidPath_ReturnsSuccess";
+            _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Remove("baz");
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.SubDocMultiPathFailure, result.Status);
+            Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
+        }
+
         #endregion
 
-#region Array commands
+        #region Array commands
 
         [Test]
         [TestCase(true)]
