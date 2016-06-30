@@ -100,7 +100,7 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 var command = _lookupCommands[commandIndex++];
                 command.Status = (ResponseStatus)Converter.ToUInt16(response, statusOffset);
-                command.ValueIsJson = payLoad.IsJson(0, bodyLength);
+                command.ValueIsJson = payLoad.IsJson(0, bodyLength - 1);
                 command.Bytes = payLoad;
 
                 statusOffset = valueOffset + bodyLength;

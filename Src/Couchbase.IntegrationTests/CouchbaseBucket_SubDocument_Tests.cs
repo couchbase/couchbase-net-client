@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IO;
-using Newtonsoft.Json;
 using Moq;
 using NUnit.Framework;
 
@@ -402,10 +401,54 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.SubDocPathMismatch, result.OpStatus(0));
         }
 
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Get_SucceedsWhenPathIsHiearchial(bool useMutation)
+        {
+            Setup(useMutation);
+            const string id = "puppy";
+            _bucket.Upsert(new Document<dynamic>
+            {
+                Id = id,
+                Content = new
+                {
+                    Type = "dog",
+                    Breed = "Pitbull/Chihuahua",
+                    Name = "Puppy",
+                    Toys = new List<string> {"squeaker", "ball", "shoe"},
+                    Owner = new
+                    {
+                        Type = "servant",
+                        Name = "Don Knotts",
+                        Age = 63
+                    },
+                    Attributes = new Dictionary<string, object>
+                    {
+                        {"Fleas", true},
+                        {"Color", "white"},
+                        {"EyeColor", "brown"},
+                        {"Age", 5},
+                        {"Dirty", true},
+                        {"Sex", "female"}
+                    },
+                    Counts = new List<object> {1}
+                }
+            });
 
-#endregion
+            var builder = _bucket.LookupIn<dynamic>(id).
+                Get("type").
+                Get("name").
+                Get("owner").
+                Exists("notfound");
 
-#region Generic Modification Commands
+            var fragment = builder.Execute();
+            Assert.IsTrue(fragment.OpStatus("type") == ResponseStatus.Success);
+        }
+
+        #endregion
+
+        #region Generic Modification Commands
 
         [Test]
         [TestCase(true)]
@@ -500,9 +543,9 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.SubDocPathNotFound, result.OpStatus(0));
         }
 
-        #endregion
+#endregion
 
-        #region Array commands
+#region Array commands
 
         [Test]
         [TestCase(true)]
@@ -1031,7 +1074,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-#endregion
+        #endregion
 
         [TearDown]
         public void TestFixtureTearDown()
