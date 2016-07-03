@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
@@ -21,20 +22,32 @@ namespace Couchbase.IO
         {
             Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory = (p, c, b) =>
             {
-                var socket = new Socket(p.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                var asyncResult = socket.BeginConnect(p.EndPoint, null, null);
-                var waitHandle = asyncResult.AsyncWaitHandle;
 
-                if (waitHandle.WaitOne(p.Configuration.ConnectTimeout, true)
-                     && socket.Connected)
+                var socket = new Socket(p.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+                var waitHandle = new ManualResetEvent(false);
+                var asyncEventArgs = new SocketAsyncEventArgs
                 {
-                    socket.EndConnect(asyncResult);
+                    RemoteEndPoint = p.EndPoint
+                };
+                asyncEventArgs.Completed += delegate { waitHandle.Set(); };
+
+                if (socket.ConnectAsync(asyncEventArgs))
+                {
+                    // True means the connect command is running asynchronously, so we need to wait for completion
+
+                    if (!waitHandle.WaitOne(p.Configuration.ConnectTimeout))
+                    {
+                        socket.Dispose();
+                        const int connectionTimedOut = 10060;
+                        throw new SocketException(connectionTimedOut);
+                    }
                 }
-                else
+
+                if ((asyncEventArgs.SocketError != SocketError.Success) || !socket.Connected)
                 {
-                    socket.Close();
-                    const int connectionTimedOut = 10060;
-                    throw new SocketException(connectionTimedOut);
+                    socket.Dispose();
+                    throw new SocketException((int)asyncEventArgs.SocketError);
                 }
 
                 IConnection connection;
