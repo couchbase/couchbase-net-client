@@ -154,9 +154,12 @@ namespace Couchbase.N1QL
             var sb = new StringBuilder();
             sb.AppendFormat("ClientContextId: {0}", ClientContextId);
             sb.AppendFormat("Message: {0}", Message);
-            foreach (var error in Errors)
+            if (Errors != null)
             {
-                sb.AppendFormat("Error: {0} {1}", error.Code, error.Message);
+                foreach (var error in Errors)
+                {
+                    sb.AppendFormat("Error: {0} {1}", error.Code, error.Message);
+                }
             }
             return sb.ToString();
         }
