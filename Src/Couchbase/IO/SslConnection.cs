@@ -1,11 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
@@ -55,8 +57,26 @@ namespace Couchbase.IO
             {
                 var targetHost = EndPoint.ToString().Split(':')[0];
                 Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
-                _sslStream.AuthenticateAsClient(targetHost);
+
+                using (new SynchronizationContextExclusion())
+                {
+                    _sslStream.AuthenticateAsClientAsync(targetHost).Wait();
+                }
+
                 IsSecure = true;
+            }
+            catch (AggregateException e)
+            {
+                var authException = e.InnerExceptions.OfType<AuthenticationException>().FirstOrDefault();
+
+                if (authException != null)
+                {
+                    Log.Error(authException);
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (AuthenticationException e)
             {
@@ -78,13 +98,13 @@ namespace Couchbase.IO
                     Completed = callback
                 };
 
-                await _sslStream.WriteAsync(request, 0, request.Length);
+                await _sslStream.WriteAsync(request, 0, request.Length).ConfigureAwait(false);
 
                 state.SetIOBuffer(BufferAllocator.GetBuffer());
-                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength);
+                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength).ConfigureAwait(false);
 
                 //write the received buffer to the state obj
-                await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived);
+                await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived).ConfigureAwait(false);
 
                 state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.BodyLength);
                 while (state.BytesReceived < state.BodyLength + 24)
@@ -93,10 +113,10 @@ namespace Couchbase.IO
                         ? state.BufferLength - state.BytesSent
                         : state.BufferLength;
 
-                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, bufferLength);
-                    await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length);
+                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, bufferLength).ConfigureAwait(false);
+                    await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length).ConfigureAwait(false);
                 }
-                await callback(state);
+                await callback(state).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -123,12 +143,12 @@ namespace Couchbase.IO
                         Status = (sourceException is SocketException)
                             ? ResponseStatus.TransportFailure
                             : ResponseStatus.ClientFailure
-                    });
+                    }).ConfigureAwait(false);
                 }
                 else
                 {
                     state.Exception = sourceException;
-                    await state.Completed(state);
+                    await state.Completed(state).ConfigureAwait(false);
                     Log.Debug(sourceException);
                 }
             }
@@ -136,19 +156,82 @@ namespace Couchbase.IO
 
         public override byte[] Send(byte[] buffer)
         {
+            using (new SynchronizationContextExclusion())
+            {
+                // Token will cancel automatically after timeout
+                var cancellationTokenSource = new CancellationTokenSource(Configuration.SendTimeout);
+
+                try
+                {
+                    var task = SendAsync(buffer, cancellationTokenSource.Token);
+
+                    task.Wait(cancellationTokenSource.Token);
+
+                    return task.Result;
+                }
+                catch (AggregateException ex)
+                {
+                    //TODO refactor logic
+                    IsDead = true;
+
+                    if (ex.InnerException is TaskCanceledException)
+                    {
+                        // Timeout expired and cancellation token source was triggered
+                        var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
+                        throw new RemoteHostTimeoutException(msg);
+                    }
+                    else
+                    {
+                        // Rethrow the aggregate exception
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private async Task<byte[]> SendAsync(byte[] buffer, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var state = new SocketAsyncState
             {
                 Data = new MemoryStream(),
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
             };
 
-            _sslStream.BeginWrite(buffer, 0, buffer.Length, SendCallback, state);
-            if (!SendEvent.WaitOne(Configuration.SendTimeout))
+            await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+
+            try
             {
-                //TODO refactor logic
-                IsDead = true;
-                var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
-                throw new RemoteHostTimeoutException(msg);
+                state.SetIOBuffer(BufferAllocator.GetBuffer());
+
+                while (state.BytesReceived < state.BodyLength + 24)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var bytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength, cancellationToken).ConfigureAwait(false);
+                    state.BytesReceived += bytesReceived;
+
+                    if (state.BytesReceived == 0)
+                    {
+                        // No more bytes were received, go ahead and exit the loop
+                        break;
+                    }
+                    if (state.BodyLength == 0)
+                    {
+                        // Reading header, so get the BodyLength
+                        state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.Body);
+                    }
+
+                    state.Data.Write(state.Buffer, state.BufferOffset, bytesReceived);
+                }
+            }
+            finally
+            {
+                if (state.IOBuffer != null)
+                {
+                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
+                }
             }
 
             return state.Data.ToArray();
@@ -156,79 +239,7 @@ namespace Couchbase.IO
 
         public override void Send<T>(IOperation<T> operation)
         {
-            try
-            {
-                _sslStream.BeginWrite(operation.WriteBuffer, 0, operation.WriteBuffer.Length, SendCallback, operation);
-                if (!SendEvent.WaitOne(Configuration.SendTimeout))
-                {
-                    var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
-                    operation.HandleClientError(msg, ResponseStatus.ClientFailure);
-                    IsDead = true;
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(e, operation);
-            }
-        }
-
-        private void SendCallback(IAsyncResult asyncResult)
-        {
-            var state = (SocketAsyncState)asyncResult.AsyncState;
-            try
-            {
-                _sslStream.EndWrite(asyncResult);
-                state.SetIOBuffer(BufferAllocator.GetBuffer());
-                _sslStream.BeginRead(state.Buffer, state.BufferOffset, state.BufferLength, ReceiveCallback, state);
-            }
-            catch (Exception)
-            {
-                if (state.IOBuffer != null)
-                {
-                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
-                }
-                throw;
-            }
-        }
-
-        private void ReceiveCallback(IAsyncResult asyncResult)
-        {
-            var state = (SocketAsyncState)asyncResult.AsyncState;
-            try
-            {
-                var bytesRecieved = _sslStream.EndRead(asyncResult);
-                state.BytesReceived += bytesRecieved;
-                if (state.BytesReceived == 0)
-                {
-                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
-                    SendEvent.Set();
-                    return;
-                }
-                if (state.BodyLength == 0)
-                {
-                    state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.Body);
-                }
-
-                state.Data.Write(state.Buffer, state.BufferOffset, bytesRecieved);
-
-                if (state.BytesReceived < state.BodyLength + 24)
-                {
-                    _sslStream.BeginRead(state.Buffer, state.BufferOffset, state.BufferLength, ReceiveCallback, state);
-                }
-                else
-                {
-                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
-                    SendEvent.Set();
-                }
-            }
-            catch (Exception e)
-            {
-                if (state.IOBuffer != null)
-                {
-                    BufferAllocator.ReleaseBuffer(state.IOBuffer);
-                }
-                throw;
-            }
+            throw new NotImplementedException();
         }
 
         /// <summary>
