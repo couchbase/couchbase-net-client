@@ -2,10 +2,12 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Serialization;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
@@ -15,7 +17,7 @@ namespace Couchbase.Core
     /// <typeparam name="TDocument">The type of the document.</typeparam>
     /// <seealso cref="Couchbase.Core.ILookupInBuilder{TDocument}" />
     /// <seealso cref="Couchbase.Core.Serialization.ITypeSerializerProvider" />
-    public class LookupInBuilder<TDocument> : ILookupInBuilder<TDocument>, IEnumerable<OperationSpec>
+    public class LookupInBuilder<TDocument> : ILookupInBuilder<TDocument>, IEnumerable<OperationSpec>, IEquatable<LookupInBuilder<TDocument>>
     {
         private readonly ISubdocInvoker _invoker;
         private readonly ConcurrentQueue<OperationSpec> _commands = new ConcurrentQueue<OperationSpec>();
@@ -48,6 +50,19 @@ namespace Couchbase.Core
             _invoker = invoker;
             _serializer = serializer;
             Key = key;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LookupInBuilder{TDocument}"/> class.
+        /// </summary>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="serializer">The serializer.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="specs">The specs.</param>
+        internal LookupInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key, IEnumerable<OperationSpec> specs)
+            : this(invoker, serializer, key)
+        {
+            _commands = new ConcurrentQueue<OperationSpec>(specs);
         }
 
         /// <summary>
@@ -143,21 +158,24 @@ namespace Couchbase.Core
         /// <returns></returns>
         IEnumerator<OperationSpec> IEnumerable<OperationSpec>.GetEnumerator()
         {
-            while (!_commands.IsEmpty)
-            {
-                OperationSpec command;
-                if (_commands.TryDequeue(out command))
-                {
-                    yield return command;
-                }
-            }
+            return _commands.GetEnumerator();
         }
 
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
+        /// </returns>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((IEnumerable<OperationSpec>) this).GetEnumerator();
         }
 
+        /// <summary>
+        /// Gets the <see cref="OperationSpec"/> in the first position.
+        /// </summary>
+        /// <returns></returns>
         internal OperationSpec FirstSpec()
         {
             OperationSpec command;
@@ -166,6 +184,36 @@ namespace Couchbase.Core
                 return command;
             }
             return command;
+        }
+
+        /// <summary>
+        /// Creates a new object that is a copy of the current instance.
+        /// </summary>
+        /// <returns>
+        /// A new object that is a copy of this instance.
+        /// </returns>
+        public object Clone()
+        {
+            var clonedSpecs = _commands.Select(spec => spec.Clone() as OperationSpec).ToList();
+            return new LookupInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
+        }
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
+        /// </returns>
+        public bool Equals(LookupInBuilder<TDocument> other)
+        {
+            if (other == null) return false;
+            if (_commands.ToArray().AreEqual<OperationSpec>(other._commands.ToArray())
+                && Key == other.Key)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

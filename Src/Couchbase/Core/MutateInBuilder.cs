@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Serialization;
@@ -16,7 +17,7 @@ namespace Couchbase.Core
     /// <typeparam name="TDocument">The type of the document.</typeparam>
     /// <seealso cref="Couchbase.Core.IMutateInBuilder{TDocument}" />
     /// <seealso cref="Couchbase.Core.Serialization.ITypeSerializerProvider" />
-    public class MutateInBuilder<TDocument> : IMutateInBuilder<TDocument>,  IEnumerable<OperationSpec>
+    public class MutateInBuilder<TDocument> : IMutateInBuilder<TDocument>,  IEnumerable<OperationSpec>, IEquatable<MutateInBuilder<TDocument>>
     {
         private readonly ISubdocInvoker _invoker;
         private readonly ConcurrentQueue<OperationSpec> _commands = new ConcurrentQueue<OperationSpec>();
@@ -54,6 +55,19 @@ namespace Couchbase.Core
             Expiry = new TimeSpan();
             PersistTo = PersistTo.Zero;
             ReplicateTo = ReplicateTo.Zero;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LookupInBuilder{TDocument}"/> class.
+        /// </summary>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="serializer">The serializer.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="specs">The specs.</param>
+        internal MutateInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key, IEnumerable<OperationSpec> specs)
+            : this(invoker, serializer, key)
+        {
+            _commands = new ConcurrentQueue<OperationSpec>(specs);
         }
 
         /// <summary>
@@ -602,14 +616,7 @@ namespace Couchbase.Core
         /// <returns></returns>
         IEnumerator<OperationSpec> IEnumerable<OperationSpec>.GetEnumerator()
         {
-            while (!_commands.IsEmpty)
-            {
-                OperationSpec command;
-                if (_commands.TryDequeue(out command))
-                {
-                    yield return command;
-                }
-            }
+            return _commands.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -625,6 +632,36 @@ namespace Couchbase.Core
                 return command;
             }
             return command;
+        }
+
+        /// <summary>
+        /// Creates a new object that is a copy of the current instance.
+        /// </summary>
+        /// <returns>
+        /// A new object that is a copy of this instance.
+        /// </returns>
+        public object Clone()
+        {
+            var clonedSpecs = _commands.Select(spec => spec.Clone() as OperationSpec).ToList();
+            return new MutateInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
+        }
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
+        /// </returns>
+        public bool Equals(MutateInBuilder<TDocument> other)
+        {
+            if (other == null) return false;
+            if (_commands.ToArray().AreEqual<OperationSpec>(other._commands.ToArray())
+                && Key == other.Key)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

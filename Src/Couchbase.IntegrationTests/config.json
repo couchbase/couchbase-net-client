@@ -3,7 +3,7 @@
     "enableConfigHeartbeat": false,
     "ignoreRemoteCertificateNameMismatch":  true,
     "servers": [
-      "http://127.0.0.1:8091/"
+      "http://10.141.150.101:8091/"
     ],
     "buckets": [
       {
@@ -15,7 +15,7 @@
     "vBucketRetrySleepTime": 200,
     "enableConfigHeartbeat": false,
     "servers": [
-      "http://127.0.0.1:8091/"
+      "http://10.141.150.101:8091/"
     ],
     "connectionPool": {
       "type": "Couchbase.IO.ConnectionPool`1[Couchbase.IO.MultiplexingConnection], Couchbase.NetClient"

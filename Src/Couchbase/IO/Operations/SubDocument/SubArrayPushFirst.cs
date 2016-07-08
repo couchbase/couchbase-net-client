@@ -16,5 +16,20 @@ namespace Couchbase.IO.Operations.SubDocument
         {
             get { return OperationCode.SubArrayPushFirst; }
         }
+
+        /// <summary>
+        /// Clones this instance.
+        /// </summary>
+        /// <returns></returns>
+        public override IOperation Clone()
+        {
+            return new SubArrayPushFirst<T>((MutateInBuilder<T>)((MutateInBuilder<T>)Builder).Clone(), Key, VBucket, Transcoder, Timeout)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime,
+                LastConfigRevisionTried = LastConfigRevisionTried
+            };
+        }
     }
 }

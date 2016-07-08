@@ -9,7 +9,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations.SubDocument
 {
-    internal class MultiLookup<T> : OperationBase<T>
+    internal class MultiLookup<T> : OperationBase<T>, IEquatable<MultiLookup<T>>
     {
         private readonly LookupInBuilder<T> _builder;
         private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
@@ -147,6 +147,49 @@ namespace Couchbase.IO.Operations.SubDocument
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Clones this instance.
+        /// </summary>
+        /// <returns></returns>
+        public override IOperation Clone()
+        {
+            return new MultiLookup<T>(Key, (LookupInBuilder<T>)_builder.Clone(), VBucket, Transcoder, Timeout)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime,
+                LastConfigRevisionTried = LastConfigRevisionTried
+            };
+        }
+
+        /// <summary>
+        /// Determines whether this instance can be retried.
+        /// </summary>
+        /// <returns></returns>
+        public override bool CanRetry()
+        {
+            return true;
+        }
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
+        /// </returns>
+        public bool Equals(MultiLookup<T> other)
+        {
+            if (other == null) return false;
+            if (Cas == other.Cas &&
+                _builder.Equals(other._builder) &&
+                Key == other.Key)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

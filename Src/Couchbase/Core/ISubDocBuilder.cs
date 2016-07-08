@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.SubDocument;
@@ -5,7 +6,7 @@ using Couchbase.Core.Serialization;
 
 namespace Couchbase.Core
 {
-    public interface ISubDocBuilder<TDocument> : ITypeSerializerProvider
+    public interface ISubDocBuilder<TDocument> : ITypeSerializerProvider, ICloneable
     {
         /// <summary>
         /// Executes the chained operations.

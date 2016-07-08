@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core;
+﻿using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.IO.SubDocument;
+using Couchbase.Core.Serialization;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations.SubDocument;
 using Moq;
 using NUnit.Framework;
@@ -45,12 +42,127 @@ namespace Couchbase.UnitTests
         }
 
         [Test]
-        public void Get_AnyKey_WithPath_ExepectedResult()
+        public void Get_AnyKey_WithPath_ExpectedResult()
         {
             var mockSubdocResult = new Mock<IDocumentFragment<object>>();
-
             var mockRequestExecuter = new Mock<IRequestExecuter>();
-            //mockRequestExecuter.Setup(x => x.SendWithRetry(It.IsAny<SubGet<object>>())).Returns(mockSubdocResult.Object);
+            mockRequestExecuter.Setup(x => x.SendWithRetry(It.IsAny<SubGet<object>>())).Returns(mockSubdocResult.Object);
+        }
+
+        [Test]
+        public void SubDocDelete_WillRetry_IfHasCas()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Remove("somepath");
+            var op = new SubDocDelete<dynamic>(builder, "thekey", new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10) {Cas = 100};
+
+            Assert.IsTrue(op.CanRetry());
+        }
+
+        [Test]
+        public void SubDocDelete_WillNotRetry_IfCasIsZero()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Remove("somepath");
+            var op = new SubDocDelete<dynamic>(builder, "thekey", new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 0 };
+
+            Assert.IsFalse(op.CanRetry());
+        }
+
+        [Test]
+        public void MultiMutation_WillRetry_IfHasCas()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Remove("somepath");
+            var op = new MultiMutation<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10){Cas = 100};
+
+            Assert.IsTrue(op.CanRetry());
+        }
+
+        [Test]
+        public void MultiMutation_WillNotRetry_IfCasIsZero()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Remove("somepath");
+            var op = new MultiMutation<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 0 };
+
+            Assert.IsFalse(op.CanRetry());
+        }
+
+        [Test]
+        public void MultiLookup_WillRetry_IfHasCas()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Get("pathone");
+            builder.Get("pathtwo");
+            var op = new MultiLookup<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 100 };
+
+            Assert.IsTrue(op.CanRetry());
+        }
+
+        [Test]
+        public void MultiLookup_WillRetry_IfCasIsZero()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Get("pathone");
+            builder.Get("pathtwo");
+            var op = new MultiLookup<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 0 };
+
+            Assert.IsTrue(op.CanRetry());
+        }
+
+        [Test]
+        public void MultiLookup_Clone()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Get("pathone");
+            builder.Get("pathtwo");
+            var op = new MultiLookup<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 100 };
+
+            var cloned = (MultiLookup<dynamic>)op.Clone();
+            Assert.AreEqual(op, cloned);
+        }
+
+        [Test]
+        public void MultiMutate_Clone()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.Remove("somepath");
+            builder.ArrayPrepend("pathone", 10);
+            var op = new MultiMutation<dynamic>("thekey", builder, new Mock<IVBucket>().Object,
+                new Mock<ITypeTranscoder>().Object, 10)
+            { Cas = 100 };
+
+            var cloned = (MultiMutation<dynamic>) op.Clone();
+            Assert.AreEqual(op, cloned);
         }
     }
 }

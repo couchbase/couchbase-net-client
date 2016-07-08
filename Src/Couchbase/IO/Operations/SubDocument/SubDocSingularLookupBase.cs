@@ -51,5 +51,10 @@ namespace Couchbase.IO.Operations.SubDocument
         {
             Converter.FromInt16(PathLength, buffer, offset);
         }
+
+        public override bool CanRetry()
+        {
+            return true;
+        }
     }
 }

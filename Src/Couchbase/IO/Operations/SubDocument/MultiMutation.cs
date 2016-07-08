@@ -10,7 +10,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations.SubDocument
 {
-    internal class MultiMutation<T> : OperationBase<T>
+    internal class MultiMutation<T> : OperationBase<T>, IEquatable<MultiMutation<T>>
     {
         private readonly MutateInBuilder<T> _builder;
         private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
@@ -188,6 +188,40 @@ namespace Couchbase.IO.Operations.SubDocument
         public override OperationCode OperationCode
         {
             get { return OperationCode.SubMultiMutation; }
+        }
+
+        /// <summary>
+        /// Clones this instance.
+        /// </summary>
+        /// <returns></returns>
+        public override IOperation Clone()
+        {
+            return new MultiMutation<T>(Key, (MutateInBuilder<T>)_builder.Clone(), VBucket, Transcoder, Timeout)
+            {
+                Attempts = Attempts,
+                Cas = Cas,
+                CreationTime = CreationTime,
+                LastConfigRevisionTried = LastConfigRevisionTried
+            };
+        }
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
+        /// </returns>
+        public bool Equals(MultiMutation<T> other)
+        {
+            if (other == null) return false;
+            if (Cas == other.Cas &&
+                _builder.Equals(other._builder) &&
+                Key == other.Key)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

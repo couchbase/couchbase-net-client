@@ -1137,6 +1137,23 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Count(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_MultiCommands_ReturnsCorrectCount";
+            _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<dynamic>(key).Get("fo4").Get("bar");
+            var result = builder.Execute();
+
+            Assert.AreEqual(2, result.Count());
+        }
+
+
         [TearDown]
         public void TestFixtureTearDown()
         {
