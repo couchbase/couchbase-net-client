@@ -218,6 +218,18 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Gets or sets whether the elasped client time, elasped cluster time and query statement for a N1QL query requst are written to the log appender.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/>of INFO to be enabled as well.</remarks>
+        [ConfigurationProperty("enableQueryTiming", DefaultValue = false, IsRequired = false)]
+        public bool EnableQueryTiming
+        {
+            get { return (bool) this["enableQueryTiming"]; }
+            set { this["enableQueryTiming"] = value; }
+        }
+
+        /// <summary>
         /// Sets the timeout for each FTS request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>

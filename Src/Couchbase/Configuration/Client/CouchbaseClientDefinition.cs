@@ -138,6 +138,13 @@ namespace Couchbase.Configuration.Client
         public uint QueryRequestTimeout { get; set; }
 
         /// <summary>
+        /// If true, writes the elasped client time, elasped cluster time and query strement for a N1QL query request to the log appender. Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/> of INFO to be enabled as well.</remarks>
+        public bool EnableQueryTiming { get; set; }
+
+        /// <summary>
         /// The timeout for each FTS request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>
@@ -338,6 +345,7 @@ namespace Couchbase.Configuration.Client
             EnableConfigHeartBeat = ClientConfiguration.Defaults.EnableConfigHeartBeat;
             ViewRequestTimeout = (int)ClientConfiguration.Defaults.ViewRequestTimeout;
             QueryRequestTimeout = ClientConfiguration.Defaults.QueryRequestTimeout;
+            EnableQueryTiming = ClientConfiguration.Defaults.EnableQueryTiming;
             SearchRequestTimeout = ClientConfiguration.Defaults.SearchRequestTimeout;
             Expect100Continue = ClientConfiguration.Defaults.Expect100Continue;
             DefaultConnectionLimit = ClientConfiguration.Defaults.DefaultConnectionLimit;

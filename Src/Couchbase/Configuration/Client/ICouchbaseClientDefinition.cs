@@ -134,6 +134,13 @@ namespace Couchbase.Configuration.Client
         uint QueryRequestTimeout { get; }
 
         /// <summary>
+        /// If true, writes the elasped client time, elasped cluster time and query strement for a N1QL query request to the log appender. Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/> of INFO to be enabled as well.</remarks>
+        bool EnableQueryTiming { get; set; }
+
+        /// <summary>
         /// The timeout for each FTS request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>

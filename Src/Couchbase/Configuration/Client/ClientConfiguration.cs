@@ -46,11 +46,13 @@ namespace Couchbase.Configuration.Client
         private bool _operationLifespanChanged;
         private uint _ioErrorCheckInterval;
         private uint _ioErrorThreshold;
+        private bool _enableQueryTiming;
 
         public static class Defaults
         {
             public static Uri Server = new Uri("http://localhost:8091/pools");
             public static uint QueryRequestTimeout = 75000;
+            public static bool EnableQueryTiming = false;
             public static bool UseSsl = false;
             public static uint SslPort = 11207;
             public static uint ApiPort = 8092;
@@ -93,6 +95,7 @@ namespace Couchbase.Configuration.Client
             Timer = TimingFactory.GetTimer(Log);
 
             QueryRequestTimeout = Defaults.QueryRequestTimeout;
+            EnableQueryTiming = Defaults.EnableQueryTiming;
             UseSsl = Defaults.UseSsl;
             SslPort = (int) Defaults.SslPort;
             ApiPort = (int) Defaults.ApiPort;
@@ -210,6 +213,7 @@ namespace Couchbase.Configuration.Client
             EnableOperationTiming = definition.EnableOperationTiming;
             DefaultOperationLifespan = definition.OperationLifespan;
             QueryRequestTimeout = definition.QueryRequestTimeout;
+            EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
 
             IOErrorCheckInterval = definition.IOErrorCheckInterval;
@@ -365,6 +369,13 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The default client-side value is 75 seconds.</remarks>
         /// <remarks>The default server-side timeout is zero; this is an infinite timeout.</remarks>
         public uint QueryRequestTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the elasped client time, elasped cluster time and query statement for a N1QL query requst are written to the log appender. Disabled by default.
+        /// </summary>
+        /// <remarks>When enabled will cause severe performance degradation.</remarks>
+        /// <remarks>Requires a <see cref="LogLevel"/>of INFO to be enabled as well.</remarks>
+        public bool EnableQueryTiming { get; set; }
 
         /// <summary>
         /// Gets or sets the search request timeout.

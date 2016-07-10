@@ -12,6 +12,7 @@ using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using Couchbase.Utils;
@@ -377,17 +378,23 @@ namespace Couchbase.N1QL
         {
             var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
-            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json")) {
+            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json"))
+            {
                 try
                 {
-                    Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
-                    using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                    using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), _clientConfig.EnableQueryTiming))
                     {
-                        queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(response);
-                        queryResult.Success = queryResult.Status == QueryStatus.Success;
-                        queryResult.HttpStatusCode = request.StatusCode;
-                        Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
+                        Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
+                        using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                        {
+                            queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(response);
+                            queryResult.Success = queryResult.Status == QueryStatus.Success;
+                            queryResult.HttpStatusCode = request.StatusCode;
+                            Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
+
+                            timer.ClusterElapsedTime = queryResult.Metrics.ElaspedTime;
+                        }
                     }
                     baseUri.ClearFailed();
                 }
