@@ -138,6 +138,11 @@ namespace Couchbase.IO
         DocumentMutationLost = 0x0600,
 
         /// <summary>
+        /// A document mutation was detected on the document being observed.
+        /// </summary>
+        DocumentMutationDetected = 0x0601,
+
+        /// <summary>
         /// Subdocument error indicating the path inside the JSON is invalid.
         /// </summary>
         SubDocPathNotFound = 0xc0,

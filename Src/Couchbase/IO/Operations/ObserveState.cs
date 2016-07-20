@@ -15,6 +15,11 @@
         public KeyState KeyState { get; set; }
 
         public ulong Cas { get; set; }
+
+        public override string ToString()
+        {
+            return KeyState.ToString();
+        }
     }
 }
 

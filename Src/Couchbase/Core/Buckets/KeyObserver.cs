@@ -248,12 +248,14 @@ namespace Couchbase.Core.Buckets
                     //Key mutation detected so fail
                     if (p.HasMutated(state.Cas))
                     {
-                        return false;
+                        Log.Debug(m => m("Mutation detected {0} - {1} - opaque: {2}", master.EndPoint, result.Value, operation.Opaque));
+                        throw new DocumentMutationException(string.Format("Document mutation detected during observe for key '{0}'", key));
                     }
 
                     //Check if durability requirements have been met
                     if (p.IsDurabilityMet())
                     {
+                        Log.Debug(m => m("Durability met {0} - {1} - opaque: {2}", master.EndPoint, result.Value, operation.Opaque));
                         return true;
                     }
 
@@ -265,7 +267,10 @@ namespace Couchbase.Core.Buckets
                     //Wait for all tasks to finish
                     await Task.WhenAll(tasks.ToArray()).ContinueOnAnyContext();
                     var notMutated = tasks.All(subtask => subtask.Result);
-                    return p.IsDurabilityMet() && notMutated;
+                    Log.Debug(m => m("Not Mutated = {0} {1} - {2} - opaque: {3}", notMutated, master.EndPoint, result.Value, operation.Opaque));
+                    var durabilityMet = p.IsDurabilityMet();
+                    Log.Debug(m => m("DurabilityMet = {0} {1} - {2} - opaque: {3}", durabilityMet, master.EndPoint, result.Value, operation.Opaque));
+                    return durabilityMet && notMutated;
                 }, observeParams, operation, _interval, cts.Token).ContinueOnAnyContext();
                 return task;
             }
@@ -405,7 +410,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
         static async Task<bool> CheckReplicaAsync(ObserveParams observeParams, Observe operation, int replicaIndex)
         {
-            Log.Debug(m=>m("checking replica {0}", replicaIndex));
+            Log.Debug(m=>m("checking replica {0} - opaque: {1}", replicaIndex, operation.Opaque));
             if (observeParams.IsDurabilityMet()) return true;
 
              //clone the operation since we already checked the primary and we want to maintain internal state (opaque, timer, etc)
@@ -414,7 +419,7 @@ namespace Couchbase.Core.Buckets
             var replica = observeParams.VBucket.LocateReplica(replicaIndex);
             var result = await Task.Run(()=>replica.Send(operation)).ContinueOnAnyContext();
 
-            Log.Debug(m=>m("Replica {0} - {1} {2}", replica.EndPoint, result.Value.KeyState, replicaIndex));
+            Log.Debug(m=>m("Replica {0} - {1} {2} - opaque: {3}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque));
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {

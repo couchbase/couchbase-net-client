@@ -340,7 +340,7 @@ namespace Couchbase.Core.Buckets
                         ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
                 }
 
-                result = await SendWithRetryAsync(operation);
+                result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
                 if (result.Success)
                 {
                     var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
@@ -350,22 +350,28 @@ namespace Couchbase.Core.Buckets
                         var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
                             config.ObserveInterval, (uint) config.ObserveTimeout);
 
-                        var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo);
+                        var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo)
+                            .ContinueOnAnyContext();
+
                         result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
                     }
                     else
                     {
                         var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
                             config.ObserveInterval, config.ObserveTimeout);
 
-                        var observed =
-                            await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                        var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo)
+                            .ContinueOnAnyContext();
+
                         result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
                     }
                 }
                 else
                 {
                     result.Durability = Durability.NotSatisfied;
+                    ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
                 }
             }
             catch (ReplicaNotConfiguredException e)
@@ -374,7 +380,8 @@ namespace Couchbase.Core.Buckets
                 {
                     Exception = e,
                     Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied
+                    Durability = Durability.NotSatisfied,
+                    Success = false
                 };
             }
             catch (DocumentMutationLostException e)
@@ -383,7 +390,18 @@ namespace Couchbase.Core.Buckets
                 {
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
+            }
+            catch (DocumentMutationException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationDetected,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
                 };
             }
             catch (Exception e)
@@ -391,7 +409,8 @@ namespace Couchbase.Core.Buckets
                 result = new OperationResult<T>
                 {
                     Exception = e,
-                    Status = ResponseStatus.ClientFailure
+                    Status = ResponseStatus.ClientFailure,
+                    Success = false
                 };
             }
             return result;
