@@ -7,8 +7,8 @@ namespace Couchbase.IO.Operations.SubDocument
 {
     internal abstract class SubDocSingularMutationBase<T> : SubDocSingularBase<T>
     {
-        protected SubDocSingularMutationBase(ISubDocBuilder<T> builder, string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(builder, key, value, vBucket, transcoder, opaque, timeout)
+        protected SubDocSingularMutationBase(ISubDocBuilder<T> builder, string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(builder, key, vBucket, transcoder, opaque, timeout)
         {
         }
 
@@ -57,7 +57,7 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override byte[] CreateBody()
         {
-            var bytes = Transcoder.Serializer.Serialize(RawValue);
+            var bytes = Transcoder.Serializer.Serialize(CurrentSpec.Value);
             if (CurrentSpec.RemoveBrackets)
             {
                 return bytes.StripBrackets();

@@ -15,8 +15,8 @@ namespace Couchbase.IO.Operations.SubDocument
         protected ITypeSerializerProvider Builder;
         protected OperationSpec CurrentSpec;
 
-        protected SubDocSingularBase(ISubDocBuilder<T> builder, string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(key, value, vBucket, transcoder, opaque, timeout)
+        protected SubDocSingularBase(ISubDocBuilder<T> builder, string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(key, default(T), vBucket, transcoder, opaque, timeout)
         {
             Builder = builder;
         }

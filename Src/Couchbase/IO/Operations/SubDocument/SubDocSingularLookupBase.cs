@@ -6,11 +6,6 @@ namespace Couchbase.IO.Operations.SubDocument
 {
     internal abstract class SubDocSingularLookupBase<T> : SubDocSingularBase<T>
     {
-        protected SubDocSingularLookupBase(ISubDocBuilder<T> builder, string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(builder, key, value, vBucket, transcoder, opaque, timeout)
-        {
-        }
-
         protected SubDocSingularLookupBase(ISubDocBuilder<T> builder, string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(builder, key, vBucket, transcoder, timeout)
         {

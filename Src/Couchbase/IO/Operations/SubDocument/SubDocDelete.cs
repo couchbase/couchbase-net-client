@@ -13,8 +13,8 @@ namespace Couchbase.IO.Operations.SubDocument
     /// <seealso cref="Couchbase.IO.Operations.SubDocument.SubDocSingularMutationBase{T}" />
     internal class SubDocDelete<T> : SubDocSingularMutationBase<T>
     {
-        public SubDocDelete(MutateInBuilder<T> builder, string key, T value, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
-            : base(builder, key, value, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
+        public SubDocDelete(MutateInBuilder<T> builder, string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(builder, key, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
             CurrentSpec = builder.FirstSpec();
             Path = CurrentSpec.Path;

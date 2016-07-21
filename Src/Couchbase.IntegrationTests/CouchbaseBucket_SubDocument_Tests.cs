@@ -45,7 +45,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         [TestCase(true)]
         [TestCase(false)]
-        public void LookupIn_Get_PathExists_ReturnsSuccess(bool useMutation)
+        public void LookupIn_Get_PathExists_ReturnsValue(bool useMutation)
         {
             Setup(useMutation);
             Setup(useMutation);
@@ -56,6 +56,24 @@ namespace Couchbase.IntegrationTests
             var result = (DocumentFragment<dynamic>)builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual("bar", result.Content<string>("foo"));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Get_PocoPathExists_ReturnsValue(bool useMutation)
+        {
+            Setup(useMutation);
+            Setup(useMutation);
+            var key = "LookupIn_Get_PathExists_ReturnsSuccess";
+            _bucket.Upsert(key, new SimpleDoc { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<SimpleDoc>(key).Get("foo");
+            var result = (DocumentFragment<SimpleDoc>)builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual("bar", result.Content<string>("foo"));
         }
 
         [Test]
@@ -479,6 +497,39 @@ namespace Couchbase.IntegrationTests
             var result = builder.Execute();
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_Replace_SinglePocoWithValidPath_ReturnsSuccess(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_Replace_WithValidPath_ReturnsSuccess";
+            _bucket.Upsert(key, new SimpleDoc() { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<SimpleDoc>(key).Replace("foo", "foo");
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_Replace_SinglePocoWithValidPath_ValueChanges(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_Replace_WithValidPath_ReturnsSuccess";
+            _bucket.Upsert(key, new SimpleDoc() { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<SimpleDoc>(key).Replace("foo", "foo");
+            builder.Execute();
+
+            var result = _bucket.Get<SimpleDoc>(key);
+
+            Assert.True(result.Success);
+            Assert.AreEqual("foo", result.Value.foo);
         }
 
         [Test]
@@ -1072,6 +1123,16 @@ namespace Couchbase.IntegrationTests
             {
                 SynchronizationContext.SetSynchronizationContext(null);
             }
+        }
+
+        #endregion
+
+        #region helpers
+
+        private class SimpleDoc
+        {
+            public string foo { get; set; }
+            public string bar { get; set; }
         }
 
         #endregion

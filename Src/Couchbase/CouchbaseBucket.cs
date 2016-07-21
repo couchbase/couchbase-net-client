@@ -3564,23 +3564,23 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubArrayAddUnique:
-                    return new SubArrayAddUnique<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubArrayInsert:
-                    return new SubArrayInsert<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubArrayPushFirst:
-                    return new SubArrayPushFirst<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubArrayPushLast:
-                    return new SubArrayPushLast<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubCounter:
-                    return new SubCounter<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubDelete:
-                    return new SubDocDelete<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubDictAdd:
-                    return new SubDocDictAdd<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubDictUpsert:
-                    return new SubDocDictUpsert<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 case OperationCode.SubReplace:
-                    return new SubDocReplace<T>(builder, builder.Key, (T)spec.Value, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }
