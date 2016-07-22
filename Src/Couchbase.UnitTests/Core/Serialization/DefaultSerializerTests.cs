@@ -42,6 +42,52 @@ namespace Couchbase.UnitTests.Core.Serialization
             Assert.AreEqual(effectiveSettings, serializer.Object.EffectiveDeserializationSettings);
         }
 
+        [Test]
+        public void JsonSettings_With_Null_ContractResolver_Defaults_To_DefaultContractResolver()
+        {
+            JsonConvert.DefaultSettings = null; // no default settings available
+
+            // Arrange
+            var deserializationSettings = new JsonSerializerSettings
+            {
+                ContractResolver = null
+            };
+            var serializationSettings = new JsonSerializerSettings
+            {
+                ContractResolver = null
+            };
+
+            // Act
+            var serializer = new DefaultSerializer(deserializationSettings, serializationSettings);
+
+            // Assert
+            Assert.IsInstanceOf<DefaultContractResolver>(serializer.DeserializationSettings.ContractResolver);
+            Assert.IsInstanceOf<DefaultContractResolver>(serializer.SerializerSettings.ContractResolver);
+        }
+
+        [Test]
+        public void JsonSettings_With_Null_ContractResolver_Uses_JsonConvert_Default_ContractResolver_If_Available()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            };
+
+            var deserializationSettings = new JsonSerializerSettings
+            {
+                ContractResolver = null
+            };
+            var serializationSettings = new JsonSerializerSettings
+            {
+                ContractResolver = null
+            };
+
+            var serializer = new DefaultSerializer(deserializationSettings, serializationSettings);
+
+            Assert.IsInstanceOf<CamelCasePropertyNamesContractResolver>(serializer.DeserializationSettings.ContractResolver);
+            Assert.IsInstanceOf<CamelCasePropertyNamesContractResolver>(serializer.SerializerSettings.ContractResolver);
+        }
+
         #endregion
 
         #region Deserialize With ICustomObjectCreator

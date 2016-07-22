@@ -25,6 +25,29 @@ namespace Couchbase.Core.Serialization
         {
             DeserializationSettings = deserializationSettings;
             SerializerSettings = serializerSettings;
+
+            // If unassigned, set default ContractResovler for both DeserializationSettings and SerializerSettingssettings
+            if (DeserializationSettings.ContractResolver == null)
+            {
+                DeserializationSettings.ContractResolver = GetDefaultContractResolver();
+            }
+            if (SerializerSettings.ContractResolver == null)
+            {
+                SerializerSettings.ContractResolver = GetDefaultContractResolver();
+            }
+        }
+
+        private static IContractResolver GetDefaultContractResolver()
+        {
+            // Would be nice to use null propagation here (requires C# 6)
+            if (JsonConvert.DefaultSettings != null &&
+                JsonConvert.DefaultSettings() != null &&
+                JsonConvert.DefaultSettings().ContractResolver != null)
+            {
+                return JsonConvert.DefaultSettings().ContractResolver;
+            }
+
+            return new DefaultContractResolver();
         }
 
         #endregion
