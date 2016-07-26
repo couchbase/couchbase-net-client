@@ -122,7 +122,7 @@ namespace Couchbase.Configuration.Server.Providers
                         Servers = defaultConfig.Servers,
                         Port = defaultConfig.Port,
                         Username = defaultConfig.Username,
-                        Password = defaultConfig.Password,
+                        Password = string.Empty,
                         UseSsl = defaultConfig.UseSsl
                     };
                 }
