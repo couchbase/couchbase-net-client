@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 ﻿using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using NUnit.Framework;
 
@@ -284,6 +287,51 @@ namespace Couchbase.IntegrationTests
         }
 
         #endregion
+
+        [Test]
+        public async void Insert_WithObserve_DocumentMutationException_IsNotThrown()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
+            {
+                using (var bucket = cluster.OpenBucket("default"))
+                {
+                    var inserts = new List<Task<IOperationResult<string>>>();
+                    var deletes = new List<string>();
+                    for (var i = 0; i < 10; i++)
+                    {
+                        deletes.Add("key" + i);
+                        inserts.Add(bucket.InsertAsync("key" + i, "{\"data\":" + i + "}", ReplicateTo.Zero,
+                            PersistTo.One));
+                    }
+                    bucket.Remove(deletes);
+                    var results = await Task.WhenAll(inserts).ConfigureAwait(false);
+                    Assert.IsTrue(results.ToList().TrueForAll(x => x.Status == ResponseStatus.Success));
+                }
+            }
+        }
+
+        [Test]
+        public async void Insert_WithObserve_DocumentMutationDetected_IsFound()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
+            {
+                using (var bucket = cluster.OpenBucket("default"))
+                {
+                    var insertsAndUpdates = new List<Task<IOperationResult<string>>>();
+                    var deletes = new List<string>();
+                    for (var i = 0; i < 10; i++)
+                    {
+                        deletes.Add("key" + i);
+                        insertsAndUpdates.Add(bucket.InsertAsync("key" + i, "{\"data\":" + i + "}", ReplicateTo.Zero,
+                            PersistTo.One));
+                        insertsAndUpdates.Add(bucket.UpsertAsync("key" + i, "{\"updatad\":" + i + "}"));
+                    }
+                    bucket.Remove(deletes);
+                    var results = await Task.WhenAll(insertsAndUpdates).ConfigureAwait(false);
+                    Assert.IsTrue(results.ToList().Exists(x => x.Status == ResponseStatus.DocumentMutationDetected));
+                }
+            }
+        }
 
         [TestFixtureTearDown]
         public void TestFixtureTearDown()

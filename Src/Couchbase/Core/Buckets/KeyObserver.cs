@@ -48,7 +48,7 @@ namespace Couchbase.Core.Buckets
 
             public bool HasMutated(ulong cas)
             {
-                return Cas != cas;
+                return cas > 0 && Cas != cas;
             }
 
             /// <summary>

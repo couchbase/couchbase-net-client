@@ -20,7 +20,7 @@ namespace Couchbase.IntegrationTests.Utils
             {
                 Servers = new List<Uri>
                 {
-                    BuildBoostrapUrl()
+                    BuildBootStrapUrl()
                 }
             };
         }
@@ -48,13 +48,13 @@ namespace Couchbase.IntegrationTests.Utils
                 {
                     Servers = new List<Uri>
                     {
-                        BuildBoostrapUrl()
+                        BuildBootStrapUrl()
                     }
                 };
             return configuration;
         }
 
-        public static Uri BuildBoostrapUrl()
+        public static Uri BuildBootStrapUrl()
         {
             var hostname = ConfigurationManager.AppSettings["hostname"];
             var port = ConfigurationManager.AppSettings["bootport"];
