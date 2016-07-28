@@ -90,7 +90,7 @@ namespace Couchbase.Management
         public virtual async Task<IndexResult> ListN1qlIndexesAsync()
         {
             var request = new QueryRequest(string.Format(Statements.ListIndexes, BucketName));
-            var result = await _bucket.QueryAsync<IndexInfo>(request);
+            var result = await _bucket.QueryAsync<IndexInfo>(request).ContinueOnAnyContext();
 
             return new IndexResult
             {

@@ -85,7 +85,7 @@ namespace Couchbase.Management
                 formData.Add("services", ToArray(services));
             }
 
-            return await PostFormDataAsync(uri, formData);
+            return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
 
 
@@ -129,7 +129,7 @@ namespace Couchbase.Management
                 {"password", _password}
             };
 
-            return await PostFormDataAsync(uri, formData);
+            return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -161,7 +161,7 @@ namespace Couchbase.Management
                 {"password", _password}
             };
 
-            return await PostFormDataAsync(uri, formData);
+            return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace Couchbase.Management
                         {"password", _password}
                     };
 
-            return await PostFormDataAsync(uri, formData);
+            return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -311,7 +311,7 @@ namespace Couchbase.Management
                 {"threadsNumber", ((int)threadNumber).ToString(CultureInfo.InvariantCulture)}
             };
 
-            return await PostFormDataAsync(uri, formData);
+            return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -355,9 +355,9 @@ namespace Couchbase.Management
                             Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
 
                         var task = client.DeleteAsync(uri);
-                        await task;
+                        await task.ContinueOnAnyContext();
 
-                        result = await GetResult(task.Result);
+                        result = await GetResult(task.Result).ContinueOnAnyContext();
                     }
                 }
             }
@@ -421,7 +421,7 @@ namespace Couchbase.Management
         {
             var content = httpResponseMessage.Content;
             var stream = content.ReadAsStreamAsync();
-            await stream;
+            await stream.ContinueOnAnyContext();
 
             var body = GetString(stream.Result);
             var result = new DefaultResult
@@ -488,9 +488,9 @@ namespace Couchbase.Management
                         request.Content.Headers.ContentType = contentType;
 
                         var task = client.PostAsync(uri, request.Content);
-                        await task;
+                        await task.ContinueOnAnyContext();
 
-                        result = await GetResult(task.Result);
+                        result = await GetResult(task.Result).ContinueOnAnyContext();
                     }
                 }
             }
@@ -564,9 +564,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
@@ -619,9 +619,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
@@ -688,9 +688,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
@@ -743,9 +743,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
@@ -792,9 +792,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
@@ -840,9 +840,9 @@ namespace Couchbase.Management
 
                         var task = client.PostAsync(uri, request.Content);
 
-                        var postResult = await task;
+                        var postResult = await task.ContinueOnAnyContext();
 
-                        result = await GetResult(postResult);
+                        result = await GetResult(postResult).ContinueOnAnyContext();
                     }
                 }
             }
