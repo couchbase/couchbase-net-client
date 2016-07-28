@@ -232,7 +232,7 @@ namespace Couchbase.IO
 
                 if (state != null)
                 {
-                    state.Complete(response);
+                    Task.Run(()=> state.Complete(response));
                 }
             }
 
@@ -281,7 +281,8 @@ namespace Couchbase.IO
                     foreach (IState state in _statesInFlight.Values)
                     {
                         //this hould have a correct handling where some kind of exception is thrown in the unblocked method
-                        state.Complete(null);
+                        var state1 = state;
+                        Task.Run(() => state1.Complete(null));
                     }
                 }
             }

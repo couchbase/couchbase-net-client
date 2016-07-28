@@ -289,9 +289,10 @@ namespace Couchbase.IntegrationTests
         #endregion
 
         [Test]
+        [Description("This specifically tests for deadlocks in MultiplexingConnection and UseEnhancedDurability is true - seqno based observe.")]
         public async void Insert_WithObserve_DocumentMutationException_IsNotThrown()
         {
-            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("multiplexio")))
             {
                 using (var bucket = cluster.OpenBucket("default"))
                 {
@@ -311,6 +312,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        [Description("This specifically tests a configuration where UseEnhancedDurability is false - CAS based observe.")]
         public async void Insert_WithObserve_DocumentMutationDetected_IsFound()
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
