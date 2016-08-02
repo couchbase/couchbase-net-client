@@ -33,6 +33,16 @@ namespace Couchbase.Utils
 
         public static string RemoteHostClosedMsg = "The remote host ({0}) has gracefully closed this connection.";
 
+        public static string TemporaryLockErrorMsg = "A temporary lock error was detected for key: {0}";
+
+        public static string DocumentExistsMsg = "An existing document was found for key: {0}";
+
+        public static string DocumentNotFoundMsg = "No document found for key: {0}";
+
+        public static string CasMismatchMsg = "The CAS value has changed for key: {0}";
+
+        public static string InvalidOpCodeMsg = "Unknown status for opcode {0} and key {1}: {2}";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);
@@ -41,6 +51,11 @@ namespace Couchbase.Utils
         public static string GetMessage(string msg, params object[] args)
         {
             return string.Format(msg, args);
+        }
+
+        public static string WithParams(this string msg, params object[] args)
+        {
+            return GetMessage(msg, args);
         }
     }
 }

@@ -45,7 +45,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
-            IOperationResult<T> operationResult = new OperationResult<T> { Success = false };
+            IOperationResult<T> operationResult = new OperationResult<T>
+            {
+                Success = false, OpCode = operation.OperationCode
+            };
             do
             {
                 var server = GetServer(operation.Key);
@@ -68,6 +71,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
+                    ((OperationResult)operationResult).SetException();
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }
@@ -94,7 +98,10 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
-            IOperationResult operationResult = new OperationResult { Success = false };
+            IOperationResult operationResult = new OperationResult
+            {
+                Success = false, OpCode = operation.OperationCode
+            };
             do
             {
                 var server = GetServer(operation.Key);
@@ -117,6 +124,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
+                    ((OperationResult)operationResult).SetException();
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }

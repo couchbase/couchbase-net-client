@@ -294,7 +294,8 @@ namespace Couchbase.Core.Buckets
                     Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied
+                    Durability = Durability.NotSatisfied,
+                    OpCode = operation.OperationCode
                 };
             }
             catch (DocumentMutationLostException e)
@@ -304,7 +305,8 @@ namespace Couchbase.Core.Buckets
                     Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied
+                    Durability = Durability.NotSatisfied,
+                    OpCode = operation.OperationCode
                 };
             }
             catch (Exception e)
@@ -313,7 +315,8 @@ namespace Couchbase.Core.Buckets
                 {
                     Id = operation.Key,
                     Exception = e,
-                    Status = ResponseStatus.ClientFailure
+                    Status = ResponseStatus.ClientFailure,
+                    OpCode = operation.OperationCode
                 };
             }
             return result;
@@ -484,16 +487,17 @@ namespace Couchbase.Core.Buckets
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
             {
-                return  new OperationResult
+                return new OperationResult
                 {
                     Id = operation.Key,
                     Success = false,
                     Exception = new ServiceNotSupportedException(
                     ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")),
-                    Status = ResponseStatus.ClientFailure
+                    Status = ResponseStatus.ClientFailure,
+                    OpCode = operation.OperationCode
                 };
             }
-            IOperationResult operationResult = new OperationResult { Success = false };
+            IOperationResult operationResult = new OperationResult { Success = false, OpCode = operation.OperationCode};
             do
             {
                 IVBucket vBucket;
@@ -522,6 +526,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
+                    ((OperationResult)operationResult).SetException();
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }
@@ -576,7 +581,7 @@ namespace Couchbase.Core.Buckets
                 };
             }
 
-            IOperationResult<T> operationResult = new OperationResult<T> { Success = false };
+            IOperationResult<T> operationResult = new OperationResult<T> { Success = false, OpCode = operation.OperationCode };
             do
             {
                 IVBucket vBucket;
@@ -605,6 +610,7 @@ namespace Couchbase.Core.Buckets
                 }
                 else
                 {
+                    ((OperationResult)operationResult).SetException();
                     Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
                     break;
                 }

@@ -76,6 +76,7 @@
     <Compile Include="Authentication\SASL\PlainTextMechanism.cs" />
     <Compile Include="Authentication\SASL\SaslFactory.cs" />
     <Compile Include="Authentication\SASL\ScramShaMechanism.cs" />
+    <Compile Include="CasMismatchException.cs" />
     <Compile Include="ClusterHelper.cs" />
     <Compile Include="Configuration\Client\BucketDefinition.cs" />
     <Compile Include="Configuration\Client\ConnectionPoolDefinition.cs" />
@@ -211,6 +212,8 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="DocumentAlreadyExistsException.cs" />
+    <Compile Include="DocumentDoesNotExistException.cs" />
     <Compile Include="IDocument.cs" />
     <Compile Include="IDocumentFragment.cs" />
     <Compile Include="IO\BufferUnavailableException.cs" />
@@ -363,6 +366,7 @@
     <Compile Include="Search\SearchStatus.cs" />
     <Compile Include="Search\TermFacet.cs" />
     <Compile Include="SubdocExtensions.cs" />
+    <Compile Include="TemporaryLockFailureException.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Services;
 using Couchbase.Search;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {

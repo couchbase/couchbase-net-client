@@ -1,7 +1,9 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -114,6 +116,14 @@ namespace Couchbase
         public string Id { get; internal set; }
 
         /// <summary>
+        /// Gets the <see cref="OperationCode"/> for the operation.
+        /// </summary>
+        /// <value>
+        /// The op code.
+        /// </value>
+        public OperationCode OpCode { get; internal set; }
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
@@ -126,6 +136,78 @@ namespace Couchbase
                 new JProperty("cas", Cas),
                 new JProperty("token", Token != null ? Token.ToString() : null)).
                 ToString(Formatting.None);
+        }
+
+        /// <summary>
+        /// Sets the <see cref="Exception"/> based upon the <see cref="Status"/> returned by the server.
+        /// </summary>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+        internal void SetException()
+        {
+            switch (Status)
+            {
+                case ResponseStatus.None:
+                case ResponseStatus.Success:
+                    break;
+                case ResponseStatus.KeyNotFound:
+                    Exception = new DocumentDoesNotExistException(ExceptionUtil.DocumentNotFoundMsg.WithParams(Id));
+                    break;
+                case ResponseStatus.KeyExists:
+                    if (OpCode != OperationCode.Add)
+                    {
+                        Exception = new CasMismatchException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                    }
+                    else
+                    {
+                        Exception = new DocumentAlreadyExistsException(ExceptionUtil.DocumentExistsMsg.WithParams(Id));
+                    }
+                    break;
+                case ResponseStatus.ValueTooLarge:
+                case ResponseStatus.InvalidArguments:
+                case ResponseStatus.ItemNotStored:
+                case ResponseStatus.IncrDecrOnNonNumericValue:
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                case ResponseStatus.AuthenticationError:
+                case ResponseStatus.AuthenticationContinue:
+                case ResponseStatus.InvalidRange:
+                case ResponseStatus.UnknownCommand:
+                case ResponseStatus.OutOfMemory:
+                case ResponseStatus.NotSupported:
+                case ResponseStatus.InternalError:
+                case ResponseStatus.Busy:
+                case ResponseStatus.TemporaryFailure:
+                    if (Message != null && Message.Contains("LOCK_ERROR"))
+                    {
+                        Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Id));
+                    }
+                    break;
+                case ResponseStatus.ClientFailure:
+                case ResponseStatus.OperationTimeout:
+                case ResponseStatus.NoReplicasFound:
+                case ResponseStatus.NodeUnavailable:
+                case ResponseStatus.TransportFailure:
+                case ResponseStatus.DocumentMutationLost:
+                    break;
+                case ResponseStatus.DocumentMutationDetected:
+                    Exception = new CasMismatchException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                    break;
+                case ResponseStatus.SubDocPathNotFound:
+                case ResponseStatus.SubDocPathMismatch:
+                case ResponseStatus.SubDocPathInvalid:
+                case ResponseStatus.SubDocPathTooBig:
+                case ResponseStatus.SubDocDocTooDeep:
+                case ResponseStatus.SubDocCannotInsert:
+                case ResponseStatus.SubDocDocNotJson:
+                case ResponseStatus.SubDocNumRange:
+                case ResponseStatus.SubDocDeltaRange:
+                case ResponseStatus.SubDocPathExists:
+                case ResponseStatus.SubDocValueTooDeep:
+                case ResponseStatus.SubDocInvalidCombo:
+                case ResponseStatus.SubDocMultiPathFailure:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(ExceptionUtil.InvalidOpCodeMsg.WithParams(OpCode, Id, Status));
+            }
         }
     }
 }

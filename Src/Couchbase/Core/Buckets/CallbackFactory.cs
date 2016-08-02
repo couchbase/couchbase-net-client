@@ -81,6 +81,7 @@ namespace Couchbase.Core.Buckets
                             }
                             else
                             {
+                                ((OperationResult)result).SetException();
                                 tcs.SetResult(result);
                             }
                         }
@@ -169,6 +170,7 @@ namespace Couchbase.Core.Buckets
                             }
                             else
                             {
+                                ((OperationResult)result).SetException();
                                 tcs.SetResult(result);
                             }
                         }
@@ -263,6 +265,7 @@ namespace Couchbase.Core.Buckets
                             }
                             else
                             {
+                                ((OperationResult)result).SetException();
                                 tcs.SetResult(result);
                             }
                         }
@@ -353,6 +356,7 @@ namespace Couchbase.Core.Buckets
                             }
                             else
                             {
+                                ((OperationResult)result).SetException();
                                 tcs.SetResult(result);
                             }
                         }
@@ -409,7 +413,8 @@ namespace Couchbase.Core.Buckets
                                 controller.NotifyConfigPublished(config);
                             }
                         }
-                       tcs.SetResult(result);
+                        ((OperationResult)result).SetException();
+                        tcs.SetResult(result);
                     }
                     catch (Exception e)
                     {
@@ -460,6 +465,7 @@ namespace Couchbase.Core.Buckets
                                 controller.NotifyConfigPublished(config);
                             }
                         }
+                        ((OperationResult)result).SetException();
                         tcs.SetResult(result);
                     }
                     catch (Exception e)

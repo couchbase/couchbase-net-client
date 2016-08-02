@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 ﻿using System.Threading.Tasks;
@@ -6,6 +6,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -358,13 +359,124 @@ namespace Couchbase.IntegrationTests
             var doc = new Document<dynamic>
             {
                 Id = key,
-                Content = new { Name = "foo" }
+                Content = new {Name = "foo"}
             };
 
             await _bucket.RemoveAsync(key);
             var result = await _bucket.InsertAsync(doc);
 
             Assert.AreEqual(doc.Id, result.Id);
+        }
+
+        public void Replace_DocumentDoesNotExistException()
+        {
+            //setup
+
+            var key = "Replace_DocumentDoesNotExistException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
+
+            //act
+            var result = _bucket.Replace(new Document<dynamic> {Id = key, Content = new {name="foo"}});
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
+        }
+
+        [Test]
+        public async void ReplaceAsync_DocumentDoesNotExistException()
+        {
+            //setup
+            var key = "ReplaceAsync_DocumentDoesNotExistException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+
+            //act
+            var result = await _bucket.ReplaceAsync(new Document<dynamic> { Id = key, Content = new { name = "foo" } }).ContinueOnAnyContext();
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
+        }
+
+        [Test]
+        public void Insert_DocumentAlreadyExistsException()
+        {
+            //setup
+            var key = "Insert_DocumentAlreadyExistsException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+            _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+
+            //act
+            var result = _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
+        }
+
+        [Test]
+        public async void InsertAsync_DocumentAlreadyExistsException()
+        {
+            //setup
+            var key = "Insert_DocumentAlreadyExistsException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+            _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+
+            //act
+            var result = await _bucket.InsertAsync(new Document<dynamic> { Id = key, Content = new { name = "foo" } }).ContinueOnAnyContext();
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
+        }
+
+        [Test]
+        public void GetAndLock_TemporaryLockFailureException()
+        {
+            //setup
+            var key = "GetAndLock_TemporaryLockFailureException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+            _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+            _bucket.GetAndLock<dynamic>(key, new TimeSpan(0, 0, 0, 5));
+
+            //act
+            var result = _bucket.GetAndLock<dynamic>(key, new TimeSpan(0, 0, 0, 5));
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(TemporaryLockFailureException));
+        }
+
+        [Test]
+        public void Replace_WithCasAndMutated_CasMismatchException()
+        {
+            //setup
+            var key = "ReplaceWithCas_CasMismatchException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+
+            var docWithCas = _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+            _bucket.Upsert(new Document<dynamic> {Id = key, Content = new {name = "foochanged!"}});
+
+            //act
+            var result = _bucket.Replace(new Document<dynamic> { Id = key,
+                Content = new { name = "foobarr" }, Cas = docWithCas.Document.Cas});
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
+        }
+
+        [Test]
+        public async void ReplaceAsync_WithCasAndMutated_CasMismatchException()
+        {
+            //setup
+            var key = "ReplaceWithCas_CasMismatchException";
+            _bucket.Remove(new Document<dynamic> { Id = key });
+
+            var docWithCas = _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
+            _bucket.Upsert(new Document<dynamic> { Id = key, Content = new { name = "foochanged!" } });
+
+            //act
+            var result = await _bucket.ReplaceAsync(new Document<dynamic> {
+                Id = key, Content = new { name = "foobarr" },
+                Cas = docWithCas.Document.Cas }).ContinueOnAnyContext();
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
         }
 
         [TestFixtureTearDown]

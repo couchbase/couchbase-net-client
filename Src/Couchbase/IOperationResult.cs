@@ -47,6 +47,14 @@ namespace Couchbase
         /// The identifier.
         /// </value>
         string Id { get; }
+
+        /// <summary>
+        /// Gets the op code.
+        /// </summary>
+        /// <value>
+        /// The op code.
+        /// </value>
+        OperationCode OpCode { get; }
     }
 }
 #region [ License information ]

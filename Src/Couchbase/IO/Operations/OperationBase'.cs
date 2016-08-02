@@ -50,6 +50,7 @@ namespace Couchbase.IO.Operations
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
                 result.Id = Key;
+                result.OpCode = OperationCode;
 
                 //clean up and set to null
                 if (!result.IsNmv())

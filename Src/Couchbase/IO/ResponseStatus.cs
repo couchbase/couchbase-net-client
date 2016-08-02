@@ -38,7 +38,7 @@ namespace Couchbase.IO
         InvalidArguments = 0x0004,
 
         /// <summary>
-        /// The item could be stored in the database
+        /// The item could not be stored in the database
         /// </summary>
         ItemNotStored = 0x0005,
 
