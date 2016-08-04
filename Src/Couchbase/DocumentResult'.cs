@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.Core.Buckets;
 using Couchbase.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,17 +12,33 @@ namespace Couchbase
     /// <typeparam name="T">The type the value of the document will be.</typeparam>
     public class DocumentResult<T> : IDocumentResult<T>
     {
-        public DocumentResult(IOperationResult<T> result, string id)
+        public DocumentResult(IOperationResult<T> result)
         {
             Document = new Document<T>
             {
                 Cas = result.Cas,
-                Id = id,
+                Id = result.Id,
                 Content = result.Value,
                 Token = result.Token
             };
-            Id = id;
+            Id = Document.Id;
             Content = Document.Content;
+            Message = result.Message;
+            Status = result.Status;
+            Success = result.Success;
+            Exception = result.Exception;
+        }
+
+        public DocumentResult(IOperationResult<T> result, IDocument<T> document)
+        {
+            Document = document as Document<T>;
+            if (Document != null)
+            {
+                Id = Document.Id = result.Id;
+                Document.Cas = result.Cas;
+            }
+            Token = result.Token;
+            Content = document.Content;
             Message = result.Message;
             Status = result.Status;
             Success = result.Success;
@@ -65,6 +82,7 @@ namespace Couchbase
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
         public System.Exception Exception { get; set; }
+        public MutationToken Token { get; private set; }
 
         public bool ShouldRetry()
         {

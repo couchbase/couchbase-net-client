@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Schema;
 using Common.Logging;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
 using Couchbase.IO;
@@ -216,6 +211,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.NoReplicasFound,
                     Durability = Durability.NotSatisfied
@@ -225,6 +221,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationLost,
                     Durability = Durability.NotSatisfied
@@ -234,6 +231,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 };
@@ -293,6 +291,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.NoReplicasFound,
                     Durability = Durability.NotSatisfied
@@ -302,6 +301,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationLost,
                     Durability = Durability.NotSatisfied
@@ -311,6 +311,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 };
@@ -378,6 +379,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.NoReplicasFound,
                     Durability = Durability.NotSatisfied,
@@ -388,6 +390,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationLost,
                     Durability = Durability.NotSatisfied,
@@ -398,6 +401,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.DocumentMutationDetected,
                     Durability = Durability.NotSatisfied,
@@ -408,6 +412,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure,
                     Success = false
@@ -481,6 +486,7 @@ namespace Couchbase.Core.Buckets
             {
                 return  new OperationResult
                 {
+                    Id = operation.Key,
                     Success = false,
                     Exception = new ServiceNotSupportedException(
                     ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")),
@@ -562,6 +568,7 @@ namespace Couchbase.Core.Buckets
             {
                 return new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Success = false,
                     Exception = new ServiceNotSupportedException(
                     ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")),
@@ -720,6 +727,7 @@ namespace Couchbase.Core.Buckets
             {
                 tcs.TrySetResult(new OperationResult<T>
                 {
+                   Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 });
@@ -777,6 +785,7 @@ namespace Couchbase.Core.Buckets
             {
                 tcs.TrySetResult(new OperationResult
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 });

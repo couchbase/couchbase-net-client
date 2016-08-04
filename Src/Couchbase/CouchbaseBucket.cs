@@ -679,7 +679,7 @@ namespace Couchbase
         public IDocumentResult<T> GetDocument<T>(string id)
         {
             var result = Get<T>(id);
-            return new DocumentResult<T>(result, id);
+            return new DocumentResult<T>(result);
         }
 
         /// <summary>
@@ -694,7 +694,7 @@ namespace Couchbase
             try
             {
                 var result = await GetAsync<T>(id).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, id));
+                tcs.SetResult(new DocumentResult<T>(result));
             }
             catch (Exception e)
             {
@@ -1077,7 +1077,7 @@ namespace Couchbase
         public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
             var result = Insert(document.Id, document.Content, document.Expiry.ToTtl());
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -1208,7 +1208,7 @@ namespace Couchbase
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Insert(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo);
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -1295,7 +1295,7 @@ namespace Couchbase
             try
             {
                 var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {
@@ -1334,7 +1334,7 @@ namespace Couchbase
             try
             {
                 var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {
@@ -1607,7 +1607,7 @@ namespace Couchbase
         public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration)
         {
             var result = GetAndTouch<T>(key, expiration);
-            return new DocumentResult<T>(result, key);
+            return new DocumentResult<T>(result);
         }
 
 
@@ -1623,7 +1623,7 @@ namespace Couchbase
             try
             {
                 var result = await GetAndTouchAsync<T>(key, expiration).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, key));
+                tcs.SetResult(new DocumentResult<T>(result));
             }
             catch (Exception e)
             {
@@ -2164,7 +2164,7 @@ namespace Couchbase
         public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
             var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -2317,7 +2317,7 @@ namespace Couchbase
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo);
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -2406,7 +2406,7 @@ namespace Couchbase
             try
             {
                 var result = await ReplaceAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {
@@ -2468,7 +2468,7 @@ namespace Couchbase
             {
                 var result = await ReplaceAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
                     replicateTo, persistTo).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {
@@ -2737,7 +2737,7 @@ namespace Couchbase
         public IDocumentResult<T> Upsert<T>(IDocument<T> document)
         {
             var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -2874,7 +2874,7 @@ namespace Couchbase
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo);
-            return new DocumentResult<T>(result, document.Id);
+            return new DocumentResult<T>(result, document);
         }
 
         /// <summary>
@@ -3083,7 +3083,7 @@ namespace Couchbase
             try
             {
                 var result = await UpsertAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {
@@ -3123,7 +3123,7 @@ namespace Couchbase
             {
                 var result = await UpsertAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
                     replicateTo, persistTo).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document.Id));
+                tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
             {

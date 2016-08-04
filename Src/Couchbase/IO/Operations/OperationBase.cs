@@ -264,7 +264,7 @@ namespace Couchbase.IO.Operations
 
         public IOperationResult GetResult()
         {
-            var result = new OperationResult();
+            var result = new OperationResult {Id = Key};
             try
             {
                 result.Success = GetSuccess();
@@ -273,7 +273,6 @@ namespace Couchbase.IO.Operations
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Id = Key;
 
                 //clean up and set to null
                 if (!result.IsNmv())

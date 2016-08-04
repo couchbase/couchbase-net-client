@@ -384,6 +384,7 @@ namespace Couchbase.Core.Buckets
                 {
                     result = new OperationResult<T>
                     {
+                        Id = operation.Key,
                         Status = ResponseStatus.NoReplicasFound,
                         Message = "No replicas found; have you configured the bucket for replica reads?",
                         Success = false
@@ -446,6 +447,7 @@ namespace Couchbase.Core.Buckets
             {
                 result = new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Status = ResponseStatus.NoReplicasFound,
                     Message = "No replicas found; have you configured the bucket for replica reads?",
                     Success = false

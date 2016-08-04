@@ -38,7 +38,7 @@ namespace Couchbase.IO.Operations
 
         public virtual IOperationResult<T> GetResultWithValue()
         {
-            var result = new OperationResult<T>();
+            var result = new OperationResult<T> {Id = Key};
             try
             {
                 var value = GetValue();

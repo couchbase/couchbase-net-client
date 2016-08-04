@@ -172,6 +172,7 @@ namespace Couchbase.Core.Buckets
             {
                 tcs.TrySetResult(new OperationResult<T>
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 });
@@ -215,6 +216,7 @@ namespace Couchbase.Core.Buckets
             {
                 tcs.TrySetResult(new OperationResult
                 {
+                    Id = operation.Key,
                     Exception = e,
                     Status = ResponseStatus.ClientFailure
                 });

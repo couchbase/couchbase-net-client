@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests
                 Cas = 10202020202,
                 Id = "foo",
                 Value = new { Name = "ted", Age = 10 }
-            }, "foo");
+            });
 
             var expected = "{\"id\":\"foo\",\"cas\":10202020202,\"token\":null,\"content\":\"{\\\"Name\\\":\\\"ted\\\",\\\"Age\\\":10}\"}";
             Assert.AreEqual(expected, result.ToString());
@@ -67,7 +67,7 @@ namespace Couchbase.UnitTests
                 Cas = 10202020202,
                 Id = "foo",
                 Value = new { Name = "ted", Age = 10 }
-            }, "foo");
+            });
 
             var expected = "{\"id\":\"foo\",\"cas\":10202020202,\"token\":null,\"content\":\"{\\\"Name\\\":\\\"ted\\\",\\\"Age\\\":10}\"}";
             Assert.AreEqual(expected, result.Document.ToString());

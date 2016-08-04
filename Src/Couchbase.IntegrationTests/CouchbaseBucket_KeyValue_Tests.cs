@@ -335,6 +335,38 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Test]
+        public async void InsertAsync_ReturnsDocument()
+        {
+            var key = "InsertAsync_ReturnsDocument";
+            var doc = new Document<dynamic>
+            {
+                Id = key,
+                Content = new {Name = "foo"}
+            };
+
+            await _bucket.RemoveAsync(key);
+            var result = await _bucket.InsertAsync(doc);
+
+            Assert.AreEqual(doc.Content, result.Content);
+        }
+
+        [Test]
+        public async void InsertAsync_ReturnsId()
+        {
+            var key = "InsertAsync_ReturnsDocument";
+            var doc = new Document<dynamic>
+            {
+                Id = key,
+                Content = new { Name = "foo" }
+            };
+
+            await _bucket.RemoveAsync(key);
+            var result = await _bucket.InsertAsync(doc);
+
+            Assert.AreEqual(doc.Id, result.Id);
+        }
+
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
