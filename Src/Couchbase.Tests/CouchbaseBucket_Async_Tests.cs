@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.IO.Operations;
 using Couchbase.Tests.Utils;
 
@@ -28,7 +29,7 @@ namespace Couchbase.Tests
     {
         readonly IPEndPoint _endPoint = UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
         private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
-        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource("Data\\Configuration\\config-revision-8934.json"));
         readonly IByteConverter _converter = new DefaultConverter();
         readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
@@ -74,7 +75,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Add_Succeeds_InsertAsync_Returns_Success()
+        public async Task When_Add_Succeeds_InsertAsync_Returns_Success()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.ADD_SUCCESS);
@@ -88,7 +89,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Add_Fails_InsertAsync_Returns_KEY_EXISTS()
+        public async Task When_Add_Fails_InsertAsync_Returns_KEY_EXISTS()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.Add_FAILED_KEY_EXISTS);
@@ -102,7 +103,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Exists_GetDocumentAsync_Returns_Success()
+        public async Task When_Key_Exists_GetDocumentAsync_Returns_Success()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.GET_OPAQUE_5_SUCCESS);
@@ -116,7 +117,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Lock_Acquired_GetWithLockReturns_Success()
+        public async Task When_Lock_Acquired_GetWithLockReturns_Success()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.GET_WITH_LOCK_SUCCESS);
@@ -131,7 +132,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Does_Not_Exist_RemoveAsync_Returns_KeyNotFound()
+        public async Task When_Key_Does_Not_Exist_RemoveAsync_Returns_KeyNotFound()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.REMOVE_KEYNOTFOUND);
@@ -146,7 +147,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Found_RemoveAsync_Returns_Success()
+        public async Task When_Key_Found_RemoveAsync_Returns_Success()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.REMOVE_SUCCESS);
@@ -164,7 +165,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_GetDocumentAsync()
+        public async Task Test_GetDocumentAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -182,7 +183,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Is_Locked_Mutate_Fails()
+        public async Task When_Key_Is_Locked_Mutate_Fails()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -199,7 +200,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked()
+        public async Task When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -221,7 +222,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Is_Found_GetAsync_Returns_True()
+        public async Task When_Key_Is_Found_GetAsync_Returns_True()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.GET_OPAQUE_5_SUCCESS);
@@ -235,7 +236,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Is_Not_Found_GetAsync_Returns_False()
+        public async Task When_Key_Is_Not_Found_GetAsync_Returns_False()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.GET_KEY_NOT_FOUND);
@@ -249,7 +250,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_NMV_Found_GetAsync_Will_Retry_Until_Timeout()
+        public async Task When_NMV_Found_GetAsync_Will_Retry_Until_Timeout()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.GET_WITH_NMV);
@@ -264,7 +265,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Does_Not_Exist_ReplaceAsync_Returns_KeyNotFound()
+        public async Task When_Key_Does_Not_Exist_ReplaceAsync_Returns_KeyNotFound()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.REPLACE_KEYNOTFOUND);
@@ -279,7 +280,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Found_ReplaceAsync_Returns_Success()
+        public async Task When_Key_Found_ReplaceAsync_Returns_Success()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.REPLACE_SUCCESS);
@@ -292,7 +293,7 @@ namespace Couchbase.Tests
             Assert.IsTrue(result.Success);
         }
 
-        public async void When_Key_Does_Not_Exist_UpsertAsync_Succeeds()
+        public async Task When_Key_Does_Not_Exist_UpsertAsync_Succeeds()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.UPSERT_NOKEY_SUCCESS);
@@ -307,7 +308,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Does_Exist_UpsertAsync_Succeeds()
+        public async Task When_Key_Does_Exist_UpsertAsync_Succeeds()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.UPSERT_KEYEXISTS_SUCCESS);
@@ -322,7 +323,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Found_InsertAsync_Returns_KeyExists()
+        public async Task When_Key_Found_InsertAsync_Returns_KeyExists()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.INSERT_KEYEXISTS);
@@ -337,7 +338,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Does_Not_Exist_InsertAsync_Succeeds()
+        public async Task When_Key_Does_Not_Exist_InsertAsync_Succeeds()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
@@ -354,7 +355,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_GetAsync()
+        public async Task Test_GetAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -374,7 +375,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_ReplaceAsync()
+        public async Task Test_ReplaceAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -394,7 +395,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_RemoveAsync()
+        public async Task Test_RemoveAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -414,7 +415,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_UpsertAsync()
+        public async Task Test_UpsertAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -439,7 +440,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_InsertAsync()
+        public async Task Test_InsertAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -458,7 +459,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_ReplicaReadAsync()
+        public async Task Test_ReplicaReadAsync()
         {
             var config = new ClientConfiguration
             {
@@ -492,7 +493,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Does_Not_Exist_ReplicaReadAsync_Returns_KeyNotFound()
+        public async Task When_Does_Not_Exist_ReplicaReadAsync_Returns_KeyNotFound()
         {
             var config = new ClientConfiguration
             {
@@ -515,7 +516,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Not_Found_ExistAsync_Returns_False()
+        public async Task When_Key_Not_Found_ExistAsync_Returns_False()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.OBSERVE_KEYEXISTS);
@@ -529,7 +530,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Key_Found_ExistAsync_Returns_True()
+        public async Task When_Key_Found_ExistAsync_Returns_True()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.OBSERVE_KEY_DNE);
@@ -545,7 +546,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
+        public async Task When_Integer_Is_Incremented_By_Default_Value_Increases_By_One_Async()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -568,7 +569,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async()
+        public async Task When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async()
         {
             const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -590,7 +591,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Expiration_Is_2_Key_Expires_After_2_Seconds_Async()
+        public async Task When_Expiration_Is_2_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -608,7 +609,7 @@ namespace Couchbase.Tests
             }
         }
 
-        public async void Test_Prepend_Async()
+        public async Task Test_Prepend_Async()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
@@ -623,7 +624,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_AppendAsync()
+        public async Task Test_AppendAsync()
         {
             var connection = new FakeConnection();
             connection.SetResponse(ResponsePackets.INSERT_SUCCESS);
@@ -640,7 +641,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_AppendAsync_String()
+        public async Task Test_AppendAsync_String()
         {
             const string key = "CouchbaseBucket.Test_AppendAsync";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -663,7 +664,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
+        public async Task When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async()
         {
             const string key = "When_Integer_Is_Decremented_By_Default_Value_Decreases_By_One_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -686,7 +687,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
+        public async Task When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async()
         {
             const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -714,7 +715,7 @@ namespace Couchbase.Tests
             }
         }
 
-        public async void Test_AppendAsync_ByteArray()
+        public async Task Test_AppendAsync_ByteArray()
         {
             const string key = "CouchbaseBucket.Test_AppendAsync_ByteArray";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -738,7 +739,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void Test_PrependAsync()
+        public async Task Test_PrependAsync()
         {
             const string key = "CouchbaseBucket.Test_PrependAsync";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -760,7 +761,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
+        public async Task When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async()
         {
             const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -779,7 +780,7 @@ namespace Couchbase.Tests
             }
         }
 
-        public async void Test_PrependAsync_ByteArray()
+        public async Task Test_PrependAsync_ByteArray()
         {
             const string key = "CouchbaseBucket.Test_PrependAsync_ByteArray";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -802,7 +803,7 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
-        public async void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
+        public async Task When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async()
         {
             const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds_Async";
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -821,13 +822,13 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Document_Size_Exceeds_Buffer_Length_Upsert_Succeeds()
+        public async Task When_Document_Size_Exceeds_Buffer_Length_Upsert_Succeeds()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
                 using (var bucket = cluster.OpenBucket())
                 {
-                    var json = File.ReadAllText(@"Data\\bigger-than-buffer-doc.json");
+                    var json = ResourceHelper.ReadResource(@"Data\bigger-than-buffer-doc.json");
                     var result = await bucket.UpsertAsync("XyxyUserW4thPxrmiss1onInfa-10984_async", json);
                     Assert.AreEqual(ResponseStatus.Success, result.Status);
                 }
@@ -835,7 +836,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation()
+        public async Task When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_MutationToken_Is_Populated_For_Mutation_Async";
             var config = new ClientConfiguration
@@ -864,7 +865,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation()
+        public async Task When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation()
         {
             const string key = "When_EnhancedDurability_Is_Not_Enabled_MutationToken_Is_Default_For_Mutation_Async";
             var config = ClientConfigUtil.GetConfiguration();
@@ -893,7 +894,7 @@ namespace Couchbase.Tests
         /// Note: assumes a single node cluster with no replication.
         /// </summary>
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds()
+        public async Task When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_Zero_Mutation_Succeeds_Async";
             var config = new ClientConfiguration
@@ -925,7 +926,7 @@ namespace Couchbase.Tests
         /// Note: assumes a single node cluster with no replication.
         /// </summary>
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails()
+        public async Task When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_One_Mutation_Fails_Async";
             var config = ClientConfigUtil.GetConfiguration();
@@ -955,7 +956,7 @@ namespace Couchbase.Tests
         /// Note: assumes a cluster with replication set to 2
         /// </summary>
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds()
+        public async Task When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds_Async";
             var config = ClientConfigUtil.GetConfiguration();
@@ -984,7 +985,7 @@ namespace Couchbase.Tests
         /// Note: assumes a cluster with replication set to 2
         /// </summary>
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_And_PersistTo_Is_1_Mutation_Succeeds()
+        public async Task When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_And_PersistTo_Is_1_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_2_Mutation_Succeeds_Async";
             var config = ClientConfigUtil.GetConfiguration();
@@ -1013,7 +1014,7 @@ namespace Couchbase.Tests
         /// Note: assumes a cluster with replication set to 3
         /// </summary>
         [Test]
-        public async void When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds()
+        public async Task When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds()
         {
             const string key = "When_EnhancedDurability_Is_Enabled_And_ReplicateTo_Is_3_Mutation_Succeeds_Async";
             var config = ClientConfigUtil.GetConfiguration();

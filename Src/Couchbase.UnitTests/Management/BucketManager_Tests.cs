@@ -19,8 +19,8 @@ namespace Couchbase.UnitTests.Management
         private IBucket _mockBucket;
         private ClientConfiguration _clientConfiguration;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var mockBucket = new Mock<IBucket>();
             mockBucket.SetupGet(m => m.Name).Returns("test");
@@ -51,6 +51,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -75,6 +77,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -98,6 +102,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -128,6 +134,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
@@ -152,6 +160,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
@@ -175,6 +185,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+            managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
@@ -205,6 +217,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -229,6 +243,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -252,6 +268,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -282,6 +300,10 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.UpdateDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -306,6 +328,10 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.UpdateDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -329,6 +355,10 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.UpdateDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.InsertDesignDocumentAsync(It.IsAny<string>(), It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -359,6 +389,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.RemoveDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -383,6 +415,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.RemoveDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -406,6 +440,8 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
+            managerMock.Setup(x => x.RemoveDesignDocumentAsync(It.IsAny<string>())).CallBase();
 
             // Act
 
@@ -436,6 +472,7 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.FlushAsync()).CallBase();
 
             // Act
 
@@ -460,6 +497,7 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.FlushAsync()).CallBase();
 
             // Act
 
@@ -483,6 +521,7 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+            managerMock.Setup(x => x.FlushAsync()).CallBase();
 
             // Act
 

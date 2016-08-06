@@ -25,10 +25,10 @@ namespace Couchbase.Tests.Core
         private IServer _server;
         private IPEndPoint _endPoint;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var node = config.GetNodes().First();
 
@@ -68,7 +68,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -99,7 +99,7 @@ namespace Couchbase.Tests.Core
                 }
             };
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -130,7 +130,7 @@ namespace Couchbase.Tests.Core
                 }
             };
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -159,7 +159,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -188,7 +188,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -213,7 +213,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -238,7 +238,7 @@ namespace Couchbase.Tests.Core
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 
@@ -257,7 +257,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_IOErrorThreshold_Is_Met_By_IOErrorInterval_IsDead_Returns_True()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var node = config.GetNodes().First();
 
@@ -293,7 +293,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_IOErrorThreshold_IsNot_Met_Within_IOErrorInterval_IsDead_Returns_False()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var node = config.GetNodes().First();
 
@@ -330,7 +330,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_IOErrorThreshold_IsNot_Met_By_IOErrorInterval_NodeUnavailableException_Is_Thrown()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\nodesext-cb-beta-4.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var node = config.GetNodes().First();
 
@@ -367,8 +367,8 @@ namespace Couchbase.Tests.Core
             });
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _server.Dispose();
         }

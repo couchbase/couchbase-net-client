@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         private IConfigProvider _provider;
         private const string BucketName = "default";
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var configuration = ClientConfigUtil.GetConfiguration();
@@ -90,7 +90,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             Assert.IsNotNull(configInfo);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             _provider.Dispose();

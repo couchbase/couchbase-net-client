@@ -17,7 +17,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         private BucketConfig _bucket2;
         private BucketConfig _bucket3;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             _bucket1 = new BucketConfig
@@ -136,7 +136,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void Test_BucketConfig_Nodes()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\terse-bucket-ssl.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\terse-bucket-ssl.json");
             var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             Assert.AreEqual(2, bucket.Nodes.Count());
@@ -190,7 +190,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_AutoCompaction_Enabled_Undefined_Values_Serialization_Succeeds()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-autocompaction.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-autocompaction.json");
             var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
             Assert.IsNotNull(bucket);
         }

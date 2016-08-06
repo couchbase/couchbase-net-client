@@ -26,7 +26,7 @@ namespace Couchbase.Tests.IO.Operations
         protected static readonly uint OperationLifespanTimeout = 2500; //2.5sec
 
         [SetUp]
-        public virtual void TestFixtureSetUp()
+        public virtual void OneTimeSetUp()
         {
             EndPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();

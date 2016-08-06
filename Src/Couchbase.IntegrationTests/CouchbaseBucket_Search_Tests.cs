@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -29,7 +30,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_Async()
+        public async Task Test_Async()
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {

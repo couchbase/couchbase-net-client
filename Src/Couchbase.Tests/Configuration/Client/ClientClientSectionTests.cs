@@ -46,7 +46,7 @@ namespace Couchbase.Tests.Configuration.Client
             var servers = new UriElement[section.Servers.Count];
 // ReSharper disable once CoVariantArrayConversion
             section.Servers.CopyTo(servers, 0);
-            Assert.IsNotNullOrEmpty(servers[0].Uri.OriginalString);
+            Assert.That(() => !string.IsNullOrEmpty(servers[0].Uri.OriginalString));
         }
 
         [Test]

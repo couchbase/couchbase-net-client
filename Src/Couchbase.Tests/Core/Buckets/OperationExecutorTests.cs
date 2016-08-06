@@ -36,7 +36,7 @@ namespace Couchbase.Tests.Core.Buckets
 
         readonly IPEndPoint _endPoint = UriExtensions.GetEndPoint(ConfigurationManager.AppSettings["OperationTestAddress"]);
         private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
-        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+        readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource("Data\\Configuration\\config-revision-8934.json"));
         readonly IByteConverter _converter = new DefaultConverter();
         readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer());
 
@@ -77,7 +77,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public async void Test_Executer()
+        public async Task Test_Executer()
         {
             IConfigInfo configInfo;
             var controller = GetBucketForKey("thekey", out configInfo);
@@ -125,7 +125,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public async void When_Operation_WriteAsync_Faults_Success_Is_False()
+        public async Task When_Operation_WriteAsync_Faults_Success_Is_False()
         {
             IConfigInfo configInfo;
             var controller = GetBucketForKey("thekey", out configInfo);

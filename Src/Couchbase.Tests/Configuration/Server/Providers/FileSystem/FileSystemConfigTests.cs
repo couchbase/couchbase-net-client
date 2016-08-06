@@ -9,9 +9,11 @@ namespace Couchbase.Tests.Configuration.Server.Providers.FileSystem
         private const string BootstrapFilePath = @"Data\\Configuration\\bootstrap.json";
         private FileSystemConfig _config;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
+            ConfigUtil.EnsureConfigExtracted();
+
             _config = new FileSystemConfig(BootstrapFilePath);
             _config.Initialize();
         }

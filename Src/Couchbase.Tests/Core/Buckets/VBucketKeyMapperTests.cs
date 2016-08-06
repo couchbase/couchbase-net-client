@@ -26,7 +26,7 @@ namespace Couchbase.Tests.Core.Buckets
         private VBucketServerMap _vBucketServerMap;
         private IBucketConfig _bucketConfig;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             _bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name =="default");
@@ -70,8 +70,8 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.AreEqual(expected, vBucket.BucketName);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             foreach (var server in _servers.Values)
             {

@@ -8,8 +8,8 @@ namespace Couchbase.Tests.IO.Operations
     {
         private Cluster _cluster;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster("couchbaseClients/couchbase");
 
@@ -70,8 +70,8 @@ namespace Couchbase.Tests.IO.Operations
             }
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             using (var bucket = _cluster.OpenBucket())
             {

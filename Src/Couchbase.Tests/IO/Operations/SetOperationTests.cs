@@ -13,8 +13,8 @@ namespace Couchbase.Tests.IO.Operations
     {
         private Cluster _cluster;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster("couchbaseClients/couchbase");
         }
@@ -79,7 +79,7 @@ namespace Couchbase.Tests.IO.Operations
             public int Age { get; set; }
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             _cluster.Dispose();

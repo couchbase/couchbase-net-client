@@ -20,7 +20,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [SetUp]
-        public void TestFixtureSetUp()
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -125,7 +125,6 @@ namespace Couchbase.Tests.Authentication.Sasl
         }
 
         [Test]
-        [ExpectedException(typeof(SocketException))]
         public void When_IOException_Occurs_Authenticate_Throws_Exception()
         {
             var authenticator = new CramMd5Mechanism(_ioService, "default", string.Empty, new DefaultTranscoder());
@@ -134,7 +133,7 @@ namespace Couchbase.Tests.Authentication.Sasl
             var connection = _ioService.ConnectionPool.Acquire();
             connection.Socket.Disconnect(false);
 
-            authenticator.Authenticate(connection);
+            Assert.Throws<SocketException>(() => authenticator.Authenticate(connection));
         }
 
         [TearDown]

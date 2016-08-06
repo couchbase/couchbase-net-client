@@ -14,65 +14,60 @@ namespace Couchbase.UnitTests.Core
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void Replace_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.Replace(path, "somevalue");
+            Assert.Throws<ArgumentException>(() => builder.Replace(path, "somevalue"));
         }
 
         [Test]
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void Upsert_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.Upsert(path, "somevalue", false);
+            Assert.Throws<ArgumentException>(() => builder.Upsert(path, "somevalue", false));
         }
 
         [Test]
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void Insert_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.Insert(path, "somevalue", false);
+            Assert.Throws<ArgumentException>(() => builder.Insert(path, "somevalue", false));
         }
 
         [Test]
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void Remove_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.Remove(path);
+            Assert.Throws<ArgumentException>(() => builder.Remove(path));
         }
 
         [Test]
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void Counter_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.Counter(path, 0, false);
+            Assert.Throws<ArgumentException>(() => builder.Counter(path, 0, false));
         }
 
         [Test]
@@ -91,13 +86,12 @@ namespace Couchbase.UnitTests.Core
         [TestCase(null)]
         [TestCase("")]
         [TestCase(" ")]
-        [ExpectedException(typeof(ArgumentException))]
         public void ArrayInsert_ThrowsArgumentException_WhenPathIsEmpty(string path)
         {
             var mockedInvoker = new Mock<ISubdocInvoker>();
             var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
 
-            builder.ArrayInsert(path, 0);
+            Assert.Throws<ArgumentException>(() => builder.ArrayInsert(path, 0));
         }
 
         [Test]

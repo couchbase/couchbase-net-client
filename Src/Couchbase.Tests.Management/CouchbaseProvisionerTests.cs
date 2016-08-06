@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Buckets;
@@ -13,7 +14,7 @@ namespace Couchbase.Tests.Management
     public class CouchbaseProvisionerTests
     {
         [Test]
-        public async void Test_Creating_A_Cluster()
+        public async Task Test_Creating_A_Cluster()
         {
             var config = new ClientConfiguration
             {

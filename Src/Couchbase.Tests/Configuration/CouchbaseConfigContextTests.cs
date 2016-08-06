@@ -42,7 +42,7 @@ namespace Couchbase.Tests.Configuration
 
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-revision-8934.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-revision-8934.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new PooledIOService(pool),
@@ -65,7 +65,7 @@ namespace Couchbase.Tests.Configuration
 
             var bucketConfig2 =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-revision-9958.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-revision-9958.json"));
             configInfo.LoadConfig(bucketConfig2);
 
             servers = configInfo.GetServers();
@@ -97,7 +97,7 @@ namespace Couchbase.Tests.Configuration
 
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-with-fqdn-servers.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-with-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new PooledIOService(pool),
@@ -128,7 +128,7 @@ namespace Couchbase.Tests.Configuration
 
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-with-long-fqdn-servers.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-with-long-fqdn-servers.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new PooledIOService(pool),
@@ -150,10 +150,10 @@ namespace Couchbase.Tests.Configuration
             //same config versions but vbucketmap is different
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-rev4456-v1.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-rev4456-v1.json"));
             var bucketConfig2 =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\config-rev4456-v2.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\config-rev4456-v2.json"));
 
             //the configs are not equal, but what is different?
             Assert.IsFalse(bucketConfig2.Equals(bucketConfig));
@@ -179,11 +179,11 @@ namespace Couchbase.Tests.Configuration
             };
             clientConfig.Initialize();
 
-            var json1070 = File.ReadAllText(@"Data\\Configuration\\config-1070.json");
+            var json1070 = ResourceHelper.ReadResource(@"Data\Configuration\config-1070.json");
             var bucket1070 = JsonConvert.DeserializeObject<BucketConfig>(json1070);
 
             //same config but has vbucketforwardmaps
-            var json1071 = File.ReadAllText(@"Data\\Configuration\\config-1071.json");
+            var json1071 = ResourceHelper.ReadResource(@"Data\Configuration\config-1071.json");
             var bucket1071 = JsonConvert.DeserializeObject<BucketConfig>(json1071);
 
             var configInfo = new CouchbaseConfigContext(bucket1070,
@@ -216,7 +216,7 @@ namespace Couchbase.Tests.Configuration
 
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\carrier-publication-config.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\carrier-publication-config.json"));
             var configInfo = new CouchbaseConfigContext(bucketConfig,
                 clientConfig,
                 pool => new PooledIOService(pool),

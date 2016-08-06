@@ -18,7 +18,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         private IServerConfig _serverConfig;
         private string _serverIp;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             _serverIp = ConfigurationManager.AppSettings["serverIp"];
@@ -53,7 +53,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             Assert.IsNull(_serverConfig.StreamingHttp);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             _serverConfig.Dispose();

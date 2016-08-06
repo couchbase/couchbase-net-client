@@ -14,8 +14,8 @@ namespace Couchbase.IntegrationTests
         private ICluster _cluster;
         private IBucket _bucket;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
             _bucket = _cluster.OpenBucket();
@@ -84,8 +84,8 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
             _cluster.Dispose();

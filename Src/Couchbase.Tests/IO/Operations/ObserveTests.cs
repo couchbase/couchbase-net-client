@@ -25,7 +25,7 @@ namespace Couchbase.Tests.IO.Operations
         }
 
         [Test]
-        public async void Test_Observe2()
+        public async Task Test_Observe2()
         {
             const string key = "Test_Observe2";
             var remove = new Delete(key, GetVBucket(), Transcoder, OperationLifespanTimeout);

@@ -20,8 +20,8 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -56,7 +56,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             var operation = new SaslStart("CRAM-MD5", (VBucket)null, new DefaultTranscoder(), OperationLifespan);
             var response = _ioService.Execute(operation);
 
-            Assert.IsNotNullOrEmpty(response.Message);
+            Assert.That(() => !string.IsNullOrEmpty(response.Message));
             Assert.AreEqual(ResponseStatus.AuthenticationContinue, response.Status);
             Assert.IsFalse(response.Success);
         }
@@ -73,7 +73,7 @@ namespace Couchbase.Tests.IO.Operations.Authentication
             return sb.ToString();
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             _connectionPool.Dispose();

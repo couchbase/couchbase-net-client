@@ -23,8 +23,8 @@ namespace Couchbase.Tests.Views
 
         private Uri _baseUri;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _baseUri = new Uri(string.Format("http://{0}:8092/", _server));
 
@@ -37,7 +37,7 @@ namespace Couchbase.Tests.Views
                     var get = manager.GetDesignDocument("beer_ext");
                     if (!get.Success)
                     {
-                        var designDoc = File.ReadAllText(@"Data\\DesignDocs\\beers_ext.json");
+                        var designDoc = ResourceHelper.ReadResource(@"Data\DesignDocs\beers_ext.json");
                         var inserted = manager.InsertDesignDocument("beer_ext", designDoc);
                         if (inserted.Success)
                         {

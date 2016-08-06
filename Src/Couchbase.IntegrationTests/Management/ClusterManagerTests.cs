@@ -20,8 +20,8 @@ namespace Couchbase.IntegrationTests.Management
         private ICluster _cluster;
         private IClusterManager _clusterManager;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
             _clusterManager = _cluster.CreateManager(ConfigurationManager.AppSettings["adminusername"],
@@ -123,7 +123,7 @@ namespace Couchbase.IntegrationTests.Management
 
                 var bucketConfig = clusterInfo.Value.BucketConfigs().Find(p => p.Name == BucketName);
                 Assert.NotNull(bucketConfig);
-                Assert.IsNotNullOrEmpty(bucketConfig.Controllers.Flush);
+                Assert.That(() => !string.IsNullOrEmpty(bucketConfig.Controllers.Flush));
             }
             finally
             {
@@ -163,7 +163,7 @@ namespace Couchbase.IntegrationTests.Management
 
                 var bucketConfig = clusterInfo.Value.BucketConfigs().Find(p => p.Name == BucketName);
                 Assert.NotNull(bucketConfig);
-                Assert.IsNullOrEmpty(bucketConfig.Controllers.Flush);
+                Assert.That(() => string.IsNullOrEmpty(bucketConfig.Controllers.Flush));
             }
             finally
             {
@@ -258,8 +258,8 @@ namespace Couchbase.IntegrationTests.Management
 
         #endregion
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _clusterManager.RemoveBucket(BucketName);
             _cluster.Dispose();

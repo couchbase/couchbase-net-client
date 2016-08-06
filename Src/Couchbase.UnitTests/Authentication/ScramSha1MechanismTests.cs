@@ -126,7 +126,7 @@ namespace Couchbase.UnitTests.Authentication
             string username = "authenticated";
 
             var mech = new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha256);
-            Assert.IsNotNullOrEmpty(mech.ClientNonce);
+            Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
         }
 
         [Test]
@@ -138,7 +138,7 @@ namespace Couchbase.UnitTests.Authentication
             string username = "authenticated";
 
             var mech = new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha256);
-            Assert.IsNotNullOrEmpty(mech.ClientNonce);
+            Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
         }
     }
 }

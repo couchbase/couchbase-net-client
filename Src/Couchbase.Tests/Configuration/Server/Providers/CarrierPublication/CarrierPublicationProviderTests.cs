@@ -20,7 +20,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
         private CarrierPublicationProvider _provider;
         private const string BucketName = "default";
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var configuration = ClientConfigUtil.GetConfiguration();

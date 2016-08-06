@@ -10,10 +10,12 @@ namespace Couchbase.Tests.Configuration.Server.Providers.FileSystem
         private const string PoolsPath = @"Data\\Configuration\\bootstrap.json";
         private FileSystemConfig _serverConfig;
         private FileSystemConfigProvider _provider;
-        
-        [TestFixtureSetUp]
+
+        [OneTimeSetUp]
         public void TestFixureSetup()
         {
+            ConfigUtil.EnsureConfigExtracted();
+
             _serverConfig = new FileSystemConfig(PoolsPath);
             _serverConfig.Initialize();
             _provider = new FileSystemConfigProvider(_serverConfig, null, PoolsPath);

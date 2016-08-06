@@ -19,7 +19,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_NodeExt_And_UseSsl_Is_True_IPEndpoint_Uses_Port_11207()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
@@ -31,7 +31,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_NodeExt_And_UseSsl_Is_False_IPEndpoint_Uses_Port_11210()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_Node_And_UseSsl_Is_True_IPEndPoint_Uses_Port_11207()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_Node_And_UseSsl_Is_True_IPEndPoint_Uses_Port_11210()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false};
 
@@ -67,7 +67,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_NodeAdapter_And_UseSsl_Is_True_IPEndPoint_Uses_Port_11207()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
@@ -79,7 +79,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_NodeAdapter_And_UseSsl_Is_True_IPEndPoint_Uses_Port_11210()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 

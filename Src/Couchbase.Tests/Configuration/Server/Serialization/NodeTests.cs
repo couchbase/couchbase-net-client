@@ -15,7 +15,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         private Node _node2;
         private Node _node3;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             _node1 = new Node

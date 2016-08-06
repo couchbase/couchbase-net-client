@@ -17,8 +17,8 @@ namespace Couchbase.Tests
     {
         private ICluster _cluster;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var bootstrapUrl = ConfigurationManager.AppSettings["bootstrapUrl"];
             var config = new ClientConfiguration
@@ -85,8 +85,8 @@ namespace Couchbase.Tests
             Assert.AreEqual(expected.PathAndQuery, rawUri.PathAndQuery);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             if (_cluster != null)
             {

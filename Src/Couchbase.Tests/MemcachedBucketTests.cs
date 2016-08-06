@@ -59,26 +59,11 @@ namespace Couchbase.Tests
 
 
         [Test]
-        [ExpectedException(typeof(AuthenticationException))]
         public void Test_That_OpenBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {
-            try
-            {
-                using (var bucket = _cluster.OpenBucket("doesnotexist"))
-                {
-                    Assert.IsNotNull(bucket);
-                }
-            }
-            catch (AggregateException e)
-            {
-                foreach (var exception in e.InnerExceptions)
-                {
-                    if (exception.GetType() == typeof(AuthenticationException))
-                    {
-                        throw exception;
-                    }
-                }
-            }
+            var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
+
+            Assert.True(ex.InnerExceptions.OfType<AuthenticationException>().Any());
         }
 
         [Test]
@@ -279,54 +264,51 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_Query_Called_On_Memcached_Bucket_With_N1QL_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
                 const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
-                bucket.Query<dynamic>(query);
+
+                Assert.Throws<NotSupportedException>(() => bucket.Query<dynamic>(query));
             }
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_Query_Called_On_Memcached_Bucket_With_ViewQuery_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
                 var query = new ViewQuery();
-                bucket.Query<dynamic>(query);
+
+                Assert.Throws<NotSupportedException>(() => bucket.Query<dynamic>(query));
             }
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_CreateQuery_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery("designdoc", "view", true);
+                Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view", true));
             }
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_CreateQuery2_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery("designdoc", "view");
+                var ex = Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view"));
             }
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_CreateQuery3_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
             using (var bucket = _cluster.OpenBucket("memcached"))
             {
-                var query = bucket.CreateQuery("designdoc", "view", true);
+                var ex = Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view", true));
             }
         }
 
@@ -758,7 +740,7 @@ namespace Couchbase.Tests
         }
 
         [TearDown]
-        public void TestFixtureTearDown()
+        public void OneTimeTearDown()
         {
             _cluster.Dispose();
         }

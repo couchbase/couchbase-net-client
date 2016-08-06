@@ -15,7 +15,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_UseSsl_True_N1QL_Uri_Contains_Https()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\nodesext-with-json-and-kv.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\nodesext-with-json-and-kv.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
@@ -27,7 +27,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_UseSsl_True_N1QL_Uri_Contains_Http()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\nodesext-with-json-and-kv.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\nodesext-with-json-and-kv.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
@@ -39,7 +39,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_UseSsl_True_View_Uri_Contains_Https()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\nodesext-with-json-and-kv.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\nodesext-with-json-and-kv.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
@@ -51,7 +51,7 @@ namespace Couchbase.Tests.Utils
         [Test]
         public void When_UseSsl_True_View_Uri_Contains_Http()
         {
-            var serverConfigJson = File.ReadAllText("Data\\Configuration\\nodesext-with-json-and-kv.json");
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\nodesext-with-json-and-kv.json");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
             var clientConfig = new BucketConfiguration { UseSsl = false };
 

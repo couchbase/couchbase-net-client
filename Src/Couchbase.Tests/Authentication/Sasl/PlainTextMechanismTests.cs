@@ -18,7 +18,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [SetUp]
-        public void TestFixtureSetUp()
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();

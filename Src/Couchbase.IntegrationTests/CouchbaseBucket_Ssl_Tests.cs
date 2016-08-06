@@ -14,15 +14,15 @@ namespace Couchbase.IntegrationTests
         private ICluster _cluster;
         private IBucket _bucket;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("ssl"));
             _bucket = _cluster.OpenBucket();
         }
 
         [Test]
-        public async void Test_GetAsync()
+        public async Task Test_GetAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -34,7 +34,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_UpsertAsync()
+        public async Task Test_UpsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -45,7 +45,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_InsertAsync()
+        public async Task Test_InsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -56,7 +56,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_RemoveAsync()
+        public async Task Test_RemoveAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -142,7 +142,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_When_Buffer_Is_Smaller_Than_Payload_Return_Success()
+        public async Task InsertAsync_When_Buffer_Is_Smaller_Than_Payload_Return_Success()
         {
             var key = "thekey";
             var value = new string[1024 * 17];//default buffer is ~16kb
@@ -168,7 +168,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_And_GetAsync_When_Buffer_Is_Smaller_Than_Payload_Return_Success()
+        public async Task InsertAsync_And_GetAsync_When_Buffer_Is_Smaller_Than_Payload_Return_Success()
         {
             var key = "thekey";
             var value = new string[1024 * 17];//default buffer is ~16kb
@@ -182,8 +182,8 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(value, result.Value);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
             _cluster.Dispose();

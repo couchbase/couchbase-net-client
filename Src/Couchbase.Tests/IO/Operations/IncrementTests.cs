@@ -21,9 +21,9 @@ namespace Couchbase.Tests.IO.Operations
         private Cluster _cluster;
 
         [SetUp]
-        public override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
         }
 

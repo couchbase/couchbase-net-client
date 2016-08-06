@@ -20,7 +20,9 @@ namespace Couchbase.UnitTests.IO
         {
             // Arrange
 
-            var connection = new Mock<ConnectionBase>(null, null, null, null, null)
+            var socket = new Mock<Socket>(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            var connection = new Mock<ConnectionBase>(socket.Object, null, null, null)
             {
                 CallBase = true
             };
@@ -52,7 +54,9 @@ namespace Couchbase.UnitTests.IO
         {
             // Arrange
 
-            var connection = new Mock<ConnectionBase>(null, null, null, null, null)
+            var socket = new Mock<Socket>(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            var connection = new Mock<ConnectionBase>(socket.Object, null, null, null)
             {
                 CallBase = true
             };

@@ -2,6 +2,7 @@
 using Couchbase.Core.Buckets;
 using Couchbase.N1QL;
 using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.N1Ql
@@ -29,7 +30,7 @@ namespace Couchbase.UnitTests.N1Ql
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[8282,\"22\"],\"123\":[8332,\"11\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, JsonConvert.SerializeObject(actual));
         }
 
         [Test]
@@ -51,7 +52,7 @@ namespace Couchbase.UnitTests.N1Ql
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[8332,\"11\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, JsonConvert.SerializeObject(actual));
         }
 
         [Test]
@@ -73,7 +74,7 @@ namespace Couchbase.UnitTests.N1Ql
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[9999,\"22\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, JsonConvert.SerializeObject(actual));
         }
 
         [Test]

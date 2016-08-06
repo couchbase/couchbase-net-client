@@ -19,8 +19,8 @@ namespace Couchbase.IntegrationTests.Management
         private IBucket _bucket;
         private IBucketManager _bucketManager;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
             _clusterManager = _cluster.CreateManager(ConfigurationManager.AppSettings["adminusername"],
@@ -122,8 +122,8 @@ namespace Couchbase.IntegrationTests.Management
         #endregion
 
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
 

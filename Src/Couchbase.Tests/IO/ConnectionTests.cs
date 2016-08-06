@@ -22,7 +22,7 @@ namespace Couchbase.Tests.IO
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
         [SetUp]
-        public void TestFixtureSetUp()
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -131,7 +131,7 @@ namespace Couchbase.Tests.IO
         }
 
         [TearDown]
-        public void TestFixtureTearDown()
+        public void OneTimeTearDown()
         {
             _connectionPool.Dispose();
         }

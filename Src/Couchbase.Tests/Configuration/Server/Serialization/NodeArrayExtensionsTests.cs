@@ -11,7 +11,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_Nodes_And_ServersList_Are_Out_Of_Order_Reorder_Servers_To_ServersList()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-nodes-and-serverslist-out-of-order.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-nodes-and-serverslist-out-of-order.json");
             var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             Assert.AreEqual(bucket.Nodes[0].Hostname.Split(':')[0], bucket.VBucketServerMap.ServerList[0].Split(':')[0]);
@@ -30,7 +30,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_ServerList_IsEmpty_Nodes_Are_Returned()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-nodes-and-serverslist-out-of-order.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-nodes-and-serverslist-out-of-order.json");
             var bucket = JsonConvert.DeserializeObject<BucketConfig>(json);
             bucket.VBucketServerMap.ServerList = new string[0];
 

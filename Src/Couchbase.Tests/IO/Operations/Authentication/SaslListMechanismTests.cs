@@ -19,8 +19,8 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -32,12 +32,12 @@ namespace Couchbase.Tests.IO.Operations.Authentication
         public void Test_SaslListMechanism()
         {
             var response = _ioService.Execute(new SaslList(new DefaultTranscoder(), OperationLifespan));
-            Assert.IsNotNullOrEmpty(response.Value);
+            Assert.That(() => !string.IsNullOrEmpty(response.Value));
             Console.WriteLine(response.Value);
             Assert.IsTrue(response.Success);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             _connectionPool.Dispose();

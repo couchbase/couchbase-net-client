@@ -24,7 +24,7 @@ namespace Couchbase.Tests.IO.Operations
         private IPEndPoint _endPoint;
 
         [SetUp]
-        public void TestFixtureSetUp()
+        public void OneTimeSetUp()
         {
             _endPoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration

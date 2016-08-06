@@ -25,10 +25,10 @@ namespace Couchbase.Tests.Core.Buckets
         private KetamaKeyMapper _keyMapper;
         private Dictionary<IPAddress, IServer> _servers;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             _servers = new Dictionary<IPAddress, IServer>();
@@ -71,10 +71,10 @@ namespace Couchbase.Tests.Core.Buckets
             Assert.AreEqual(263, index);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
-            
+
         }
     }
 }

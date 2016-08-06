@@ -12,7 +12,9 @@ namespace Couchbase.Tests
     [SetUpFixture]
     public class GlobalSetup
     {
-        [SetUp]
+        public static readonly List<Action> TearDownSteps = new List<Action>();
+
+        [OneTimeSetUp]
         public void BuildPrimaryIndexes()
         {
             using (var cluster = new Cluster(new ClientConfiguration
@@ -50,6 +52,24 @@ namespace Couchbase.Tests
                     }
                 }
             }
+        }
+
+        [OneTimeTearDown]
+        public void RunTearDownSteps()
+        {
+            foreach (var step in TearDownSteps)
+            {
+                try
+                {
+                    step.Invoke();
+                }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch
+                {
+                }
+            }
+
+            TearDownSteps.Clear();
         }
     }
 }

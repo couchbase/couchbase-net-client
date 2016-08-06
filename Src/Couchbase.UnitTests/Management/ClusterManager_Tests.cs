@@ -17,8 +17,8 @@ namespace Couchbase.UnitTests.Management
     {
         private ClientConfiguration _clientConfiguration;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _clientConfiguration = new ClientConfiguration()
             {

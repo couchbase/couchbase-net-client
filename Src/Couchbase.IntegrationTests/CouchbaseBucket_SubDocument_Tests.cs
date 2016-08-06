@@ -1155,7 +1155,7 @@ namespace Couchbase.IntegrationTests
 
 
         [TearDown]
-        public void TestFixtureTearDown()
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
             _cluster.Dispose();

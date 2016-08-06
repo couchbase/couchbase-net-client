@@ -28,7 +28,7 @@ namespace Couchbase.Tests
         private IDictionary<IPAddress, IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name=="default");
@@ -75,7 +75,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replica_Count_Is_Equal()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
@@ -98,7 +98,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replicas_Are_Equal()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
@@ -125,7 +125,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_LocateReplica_Returns_Correct_Server()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-replicas-complete.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
@@ -154,7 +154,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Primary_Is_Negative_Random_Server_Returned()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
@@ -181,7 +181,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Primary_Index_Is_Greater_Than_Cluster_Count_Random_Server_Returned()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\config-with-negative-one-primary.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
             var servers = new Dictionary<IPAddress, IServer>();
@@ -284,7 +284,7 @@ namespace Couchbase.Tests
             Assert.IsNotNull(found);
         }
 
-         [TestFixtureTearDown]
+         [OneTimeTearDown]
         public void TearDown()
         {
              foreach (var server in _servers.Values)

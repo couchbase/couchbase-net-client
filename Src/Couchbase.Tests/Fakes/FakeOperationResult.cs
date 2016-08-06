@@ -24,7 +24,7 @@ namespace Couchbase.Tests.Fakes
 
         public IBucketConfig GetConfig()
         {
-            string text = File.ReadAllText(@"Data\\Configuration\\carrier-publication-config.json");
+            string text = ResourceHelper.ReadResource(@"Data\Configuration\carrier-publication-config.json");
             return JsonConvert.DeserializeObject<BucketConfig>(text);
         }
 

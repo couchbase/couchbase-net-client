@@ -228,7 +228,6 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
         public void When_NotSupportedException_Thrown_When_Proxy_Port_Is_Configured()
         {
             var configuration = new ClientConfiguration {PoolConfiguration = {MaxSize = 10, MinSize = 10}};
@@ -247,7 +246,7 @@ namespace Couchbase.Tests.Configuration.Client
 
             configuration.BucketConfigs.Clear();
             configuration.BucketConfigs.Add("authenticated", bc);
-            configuration.Initialize();
+            Assert.Throws<NotSupportedException>(() => configuration.Initialize());
         }
 
         [Test]
@@ -385,12 +384,11 @@ namespace Couchbase.Tests.Configuration.Client
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void When_Servers_Is_Empty_ArgumentNullException_Is_Thrown()
         {
             var couchbaseConfiguration = new ClientConfiguration();
             couchbaseConfiguration.Servers.Clear();
-            Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
+            Assert.Throws<ArgumentNullException>(() => couchbaseConfiguration.HasServersChanged());
         }
 
         [Test]

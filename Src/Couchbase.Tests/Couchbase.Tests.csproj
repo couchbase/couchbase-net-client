@@ -57,8 +57,9 @@
       <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    <Reference Include="nunit.framework, Version=3.4.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.4.0\lib\net45\nunit.framework.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -96,6 +97,7 @@
     <Compile Include="Core\LifespanTests.cs" />
     <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
     <Compile Include="GlobalSetup.cs" />
+    <Compile Include="ResourceHelper.cs" />
     <Compile Include="N1QL\QueryTimerTests.cs" />
     <Compile Include="Utils\ClientConfigUtil.cs" />
     <Compile Include="CouchbaseBucket_View_Ssl_Tests.cs" />
@@ -199,108 +201,108 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
-    <None Include="Data\Configuration\bootstrap.json">
+    <EmbeddedResource Include="Data\Configuration\bootstrap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\bucketconfig-host-placeholder.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\bucketconfig-host-placeholder.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\buckets.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\buckets.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\carrier-publication-config.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\carrier-publication-config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\cb4-config-4-nodes.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\cb4-config-4-nodes.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-1070.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-1070.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-1071.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-1071.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-nodes-and-serverslist-out-of-order.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-nodes-and-serverslist-out-of-order.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-rev4456-v1.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-rev4456-v1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-rev4456-v2.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-rev4456-v2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-revision-8934.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-revision-8934.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-revision-9958.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-revision-9958.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-autocompaction.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-autocompaction.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-fqdn-servers.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-fqdn-servers.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-long-fqdn-servers.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-long-fqdn-servers.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-negative-one-primary.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-negative-one-primary.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-nodes-ext.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-nodes-ext.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-replicas-complete.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-replicas-complete.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\config-with-replicas-incomplete.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\config-with-replicas-incomplete.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\couchbase-2_5_1-couchbase_config.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\couchbase-2_5_1-couchbase_config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\couchbase-2_5_1-memcached_config.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\couchbase-2_5_1-memcached_config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\couchbase-4.0-rev839.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\couchbase-4.0-rev839.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\couchbase-4.0-rev855.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\couchbase-4.0-rev855.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\nodesext-cb-beta-4.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\nodesext-cb-beta-4.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\nodesext-with-json-and-kv.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\nodesext-with-json-and-kv.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\pools.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\pools.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\terse-bucket-ssl.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\terse-bucket-ssl.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\Configuration\vbucket-forwardmap.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Configuration\vbucket-forwardmap.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\DesignDocs\beers_ext_spatial.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\DesignDocs\beers_ext_spatial.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\DesignDocs\beers_ext.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\DesignDocs\beers_ext.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\DesignDocs\docs.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\DesignDocs\docs.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\DesignDocs\by_field2.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\DesignDocs\by_field2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\N1QL\prepared-statement.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\N1QL\prepared-statement.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\bigger-than-buffer-doc.json">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\bigger-than-buffer-doc.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -310,26 +312,26 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\Configuration\bucketsStreaming-default.json">
+    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-default.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\Configuration\bucketsStreaming-test.json">
+    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-test.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Data\Configuration\bucketsStreaming-memcached.json">
+    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-memcached.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Content Include="config-example.xml" />
-    <None Include="Data\DesignDocs\by_field.json">
+    <EmbeddedResource Include="Data\DesignDocs\by_field.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\N1QL\HelloWorld.json" />
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\N1QL\HelloWorld.json" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

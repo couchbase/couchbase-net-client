@@ -85,7 +85,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void DropIndexAsync_WhenNamed_ReturnsValidStatement()
+        public async Task DropIndexAsync_WhenNamed_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void CreateNamedPrimaryIndexAsync_WithDeferFalse_ReturnsValidStatement()
+        public async Task CreateNamedPrimaryIndexAsync_WithDeferFalse_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -181,7 +181,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void CreatePrimaryIndexAsync_WithDeferFalse_ReturnsValidStatement()
+        public async Task CreatePrimaryIndexAsync_WithDeferFalse_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -197,7 +197,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void CreatePrimaryIndexAsync_WithDeferTrue_ReturnsValidStatement()
+        public async Task CreatePrimaryIndexAsync_WithDeferTrue_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -229,7 +229,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void CreateIndexAsync_WhenNamedAndDefer_ReturnsValidStatement()
+        public async Task CreateIndexAsync_WhenNamedAndDefer_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -261,7 +261,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void CreateIndexAsync_WhenNamedAndManyFields_ReturnsValidStatement()
+        public async Task CreateIndexAsync_WhenNamedAndManyFields_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -293,7 +293,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void DropNamedPrimaryIndexAsync_WhenNamedAndManyFields_ReturnsValidStatement()
+        public async Task DropNamedPrimaryIndexAsync_WhenNamedAndManyFields_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();
@@ -325,7 +325,7 @@ namespace Couchbase.UnitTests.Management
         }
 
         [Test]
-        public async void DropPrimaryIndexAsync_ReturnsValidStatement()
+        public async Task DropPrimaryIndexAsync_ReturnsValidStatement()
         {
             //arange
             var mockBucket = new Mock<IBucket>();

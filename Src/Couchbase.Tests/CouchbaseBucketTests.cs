@@ -27,8 +27,8 @@ namespace Couchbase.Tests
     {
         private ICluster _cluster;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
         }
@@ -92,26 +92,11 @@ namespace Couchbase.Tests
         /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(AuthenticationException))]
         public void Test_That_GetBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {
-            try
-            {
-                using (var bucket = _cluster.OpenBucket("doesnotexist"))
-                {
-                    Assert.AreEqual("doesnotexist", bucket.Name);
-                }
-            }
-            catch (AggregateException e)
-            {
-                foreach (var exception in e.InnerExceptions)
-                {
-                    if (exception.GetType() == typeof (AuthenticationException))
-                    {
-                        throw exception;
-                    }
-                }
-            }
+            var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
+
+            Assert.True(ex.InnerExceptions.OfType<AuthenticationException>().Any());
         }
 
         [Test]
@@ -124,22 +109,19 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        [ExpectedException(typeof(AggregateException))]
         public void Test_That_Bucket_That_Doesnt_Exist_Throws_ConfigException()
         {
-            using (var bucket = _cluster.OpenBucket("authenicated", "secret"))
-            {
-                Assert.IsNull(bucket);
-            }
+            Assert.Throws<AggregateException>(() => _cluster.OpenBucket("authenicated", "secret"));
         }
 
         [Test]
-        public async void Test_View_Query_Authenticated()
+        public async Task Test_View_Query_Authenticated()
         {
             using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
             {
                 var manager = bucket.CreateManager("Administrator", "password");
-                var viewResult = await manager.InsertDesignDocumentAsync("docs", File.ReadAllText(@"Data\\DesignDocs\\docs.json"));
+                var viewResult = await manager.InsertDesignDocumentAsync("docs", ResourceHelper.ReadResource(@"Data\DesignDocs\docs.json"));
+                Assert.IsTrue(viewResult.Success);
 
                 var query = bucket.CreateQuery("docs", "all_docs").
                     Development(false).
@@ -681,7 +663,7 @@ namespace Couchbase.Tests
                 var result = bucket.Upsert(document);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(result.Status, ResponseStatus.Success);
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.That(() => string.IsNullOrEmpty(result.Message));
             }
         }
 
@@ -720,7 +702,7 @@ namespace Couchbase.Tests
                 var result = bucket.Replace(document2);
                 Assert.IsTrue(result.Success);
                 Assert.AreEqual(result.Status, ResponseStatus.Success);
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.That(() => string.IsNullOrEmpty(result.Message));
 
                 var get = bucket.GetDocument<dynamic>(id);
                 Assert.AreEqual("Geoff", get.Content.name.Value);//Name is a jsonobject, so use Value
@@ -1090,7 +1072,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_CAS_Changed_ObserveAsync_Returns_DurabilityNotSatisfied()
+        public async Task When_CAS_Changed_ObserveAsync_Returns_DurabilityNotSatisfied()
         {
             var key = "When_CAS_Changed_ObserveAsync_Returns_DurabilityNotSatisfied";
             var value = "Test_ObserveAsync_Insert_value";
@@ -1122,7 +1104,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied()
+        public async Task When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied()
         {
             var key = "When_CAS_Changed_ObserveAsync_Returns_DurabilitySatisfied";
             var value = "Test_ObserveAsync_value";
@@ -1325,7 +1307,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync()
+        public async Task Test_QueryAsync()
         {
             using (var bucket = _cluster.OpenBucket("beer-sample"))
             {
@@ -1404,7 +1386,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void ReplicaReadAsync_WhenDocDoesntExist_ReturnsKeyDoesNotExist()
+        public async Task ReplicaReadAsync_WhenDocDoesntExist_ReturnsKeyDoesNotExist()
         {
             var config = new ClientConfiguration
             {
@@ -1752,7 +1734,7 @@ namespace Couchbase.Tests
         {
             using (var bucket = _cluster.OpenBucket())
             {
-                var json = File.ReadAllText(@"Data\\bigger-than-buffer-doc.json");
+                var json = ResourceHelper.ReadResource(@"Data\\bigger-than-buffer-doc.json");
                 var result = bucket.Upsert("XyxyUserW4thPxrmiss1onInfa-10984", json);
                 Assert.AreEqual(ResponseStatus.Success, result.Status);
             }
@@ -1899,8 +1881,8 @@ namespace Couchbase.Tests
             }
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.Dispose();
         }

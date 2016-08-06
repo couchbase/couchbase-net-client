@@ -19,17 +19,16 @@ namespace Couchbase.Tests
     {
         private ICluster _cluster;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
         }
 
         [Test]
-        [ExpectedException(typeof(InitializationException))]
         public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
         {
             ClusterHelper.Close();
-            var cluster = ClusterHelper.Get();
+            var ex = Assert.Throws<InitializationException>(() => ClusterHelper.Get());
         }
 
         [Test]

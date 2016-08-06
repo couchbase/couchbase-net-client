@@ -67,7 +67,7 @@ namespace Couchbase.Tests.IO
         }
 
         [TearDown]
-        public void TestFixtureTearDown()
+        public void OneTimeTearDown()
         {
             _connectionPool.Dispose();
         }

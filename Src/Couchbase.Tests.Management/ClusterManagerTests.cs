@@ -371,7 +371,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_InitializeCluster()
+        public async Task Test_InitializeCluster()
         {
             var configuration = new ClientConfiguration
             {
@@ -391,7 +391,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_Rename()
+        public async Task Test_Rename()
         {
             var configuration = new ClientConfiguration
             {
@@ -410,7 +410,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_SetupServices()
+        public async Task Test_SetupServices()
         {
             var configuration = new ClientConfiguration
             {
@@ -430,7 +430,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_ConfigureMemory()
+        public async Task Test_ConfigureMemory()
         {
             var configuration = new ClientConfiguration
             {
@@ -449,7 +449,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_ConfigureAdmin()
+        public async Task Test_ConfigureAdmin()
         {
             var configuration = new ClientConfiguration
             {
@@ -468,7 +468,7 @@ namespace Couchbase.Tests.Management
         }
 
         [Test]
-        public async void Test_CreateSampleBuckets()
+        public async Task Test_CreateSampleBuckets()
         {
             var configuration = new ClientConfiguration
             {

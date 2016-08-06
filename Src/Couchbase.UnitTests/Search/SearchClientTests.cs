@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Search
     public class SearchClientTests
     {
         [Test]
-        public async void Query_WhenInvalidUri_ReturnsErrorMessage()
+        public async Task Query_WhenInvalidUri_ReturnsErrorMessage()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.102:8091/"));//assume invalid uri
             var fakeMessageHandler = new FakeMessageHandler
@@ -41,7 +41,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_Returns403()
+        public async Task Query_WhenInvalidIndexName_Returns403()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -64,7 +64,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_Returns404()
+        public async Task Query_WhenInvalidUri_Returns404()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void QueryAsync_WhenInvalidIndexName_Returns403()
+        public async Task QueryAsync_WhenInvalidIndexName_Returns403()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -110,7 +110,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_ReturnsErrorCountOfOne()
+        public async Task Query_WhenInvalidIndexName_ReturnsErrorCountOfOne()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -133,7 +133,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_ReturnsErrorCountOfOne()
+        public async Task Query_WhenInvalidUri_ReturnsErrorCountOfOne()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -156,7 +156,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_ReturnsTotalCountOfZero()
+        public async Task Query_WhenInvalidIndexName_ReturnsTotalCountOfZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -179,7 +179,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_ReturnsSuccessCountOfZero()
+        public async Task Query_WhenInvalidIndexName_ReturnsSuccessCountOfZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_ReturnsSuccessCountOfZero()
+        public async Task Query_WhenInvalidUri_ReturnsSuccessCountOfZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -225,7 +225,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_ReturnsSuccessFalse()
+        public async Task Query_WhenInvalidIndexName_ReturnsSuccessFalse()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -248,7 +248,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_ReturnsSuccessFalse()
+        public async Task Query_WhenInvalidUri_ReturnsSuccessFalse()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -271,7 +271,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidIndexName_ReturnsHitsEqualToZero()
+        public async Task Query_WhenInvalidIndexName_ReturnsHitsEqualToZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -294,7 +294,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_ReturnsHitsEqualToZero()
+        public async Task Query_WhenInvalidUri_ReturnsHitsEqualToZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -318,7 +318,7 @@ namespace Couchbase.UnitTests.Search
 
 
         [Test]
-        public async void Query_WhenInvalidIndexName_MaxScoreIsZero()
+        public async Task Query_WhenInvalidIndexName_MaxScoreIsZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -341,7 +341,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_MaxScoreIsZero()
+        public async Task Query_WhenInvalidUri_MaxScoreIsZero()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -365,7 +365,7 @@ namespace Couchbase.UnitTests.Search
 
 
         [Test]
-        public async void Query_WhenInvalidIndexName_FacetsIsEmpty()
+        public async Task Query_WhenInvalidIndexName_FacetsIsEmpty()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
@@ -388,7 +388,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public async void Query_WhenInvalidUri_FacetsIsEmpty()
+        public async Task Query_WhenInvalidUri_FacetsIsEmpty()
         {
             ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler

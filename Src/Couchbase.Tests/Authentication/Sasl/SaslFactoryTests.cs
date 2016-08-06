@@ -22,8 +22,8 @@ namespace Couchbase.Tests.Authentication.Sasl
         private IConnectionPool<Connection> _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration { UseSsl = false };

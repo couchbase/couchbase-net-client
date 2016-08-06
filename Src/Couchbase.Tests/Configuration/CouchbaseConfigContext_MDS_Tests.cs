@@ -21,7 +21,7 @@ namespace Couchbase.Tests.Configuration
     {
         private CouchbaseConfigContext _configContext;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             var configuration = new ClientConfiguration
@@ -30,7 +30,7 @@ namespace Couchbase.Tests.Configuration
             };
             configuration.Initialize();
 
-            var json = File.ReadAllText(@"Data\\Configuration\\cb4-config-4-nodes.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var config = JsonConvert.DeserializeObject<BucketConfig>(json);
             var nodes = config.GetNodes();
 

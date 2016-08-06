@@ -18,8 +18,8 @@ namespace Couchbase.Tests
         private ICluster _cluster;
         private string _serverIp;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(ClientConfigUtil.GetConfiguration());
             _serverIp = ConfigurationManager.AppSettings["serverIp"];
@@ -71,8 +71,8 @@ namespace Couchbase.Tests
             }
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             if (_cluster != null)
             {

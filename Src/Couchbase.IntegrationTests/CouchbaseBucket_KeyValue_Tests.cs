@@ -17,15 +17,15 @@ namespace Couchbase.IntegrationTests
         private ICluster _cluster;
         private IBucket _bucket;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetCurrentConfiguration());
             _bucket = _cluster.OpenBucket();
         }
 
         [Test]
-        public async void Test_GetAsync()
+        public async Task Test_GetAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -37,7 +37,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_UpsertAsync()
+        public async Task Test_UpsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -48,7 +48,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_InsertAsync()
+        public async Task Test_InsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -59,7 +59,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void Test_RemoveAsync()
+        public async Task Test_RemoveAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -182,7 +182,7 @@ namespace Couchbase.IntegrationTests
         #region Batch Async Operations
 
         [Test]
-        public async void UpsertAsync_Batch()
+        public async Task UpsertAsync_Batch()
         {
             var documents = new List<IDocument<object>>
             {
@@ -201,7 +201,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void ReplaceAsync_Batch()
+        public async Task ReplaceAsync_Batch()
         {
             var documents = new List<IDocument<object>>
             {
@@ -221,7 +221,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void RemoveAsync_Batch()
+        public async Task RemoveAsync_Batch()
         {
             var documents = new List<IDocument<object>>
             {
@@ -241,7 +241,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_Batch()
+        public async Task InsertAsync_Batch()
         {
             var documents = new List<IDocument<object>>
             {
@@ -262,7 +262,7 @@ namespace Couchbase.IntegrationTests
 
 
         [Test]
-        public async void GetAsync_Batch()
+        public async Task GetAsync_Batch()
         {
             var documents = new List<IDocument<object>>
             {
@@ -291,7 +291,7 @@ namespace Couchbase.IntegrationTests
 
         [Test]
         [Description("This specifically tests for deadlocks in MultiplexingConnection and UseEnhancedDurability is true - seqno based observe.")]
-        public async void Insert_WithObserve_DocumentMutationException_IsNotThrown()
+        public async Task Insert_WithObserve_DocumentMutationException_IsNotThrown()
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("multiplexio")))
             {
@@ -314,7 +314,7 @@ namespace Couchbase.IntegrationTests
 
         [Test]
         [Description("This specifically tests a configuration where UseEnhancedDurability is false - CAS based observe.")]
-        public async void Insert_WithObserve_DocumentMutationDetected_IsFound()
+        public async Task Insert_WithObserve_DocumentMutationDetected_IsFound()
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
             {
@@ -337,7 +337,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_ReturnsDocument()
+        public async Task InsertAsync_ReturnsDocument()
         {
             var key = "InsertAsync_ReturnsDocument";
             var doc = new Document<dynamic>
@@ -353,7 +353,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_ReturnsId()
+        public async Task InsertAsync_ReturnsId()
         {
             var key = "InsertAsync_ReturnsDocument";
             var doc = new Document<dynamic>
@@ -383,7 +383,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void ReplaceAsync_DocumentDoesNotExistException()
+        public async Task ReplaceAsync_DocumentDoesNotExistException()
         {
             //setup
             var key = "ReplaceAsync_DocumentDoesNotExistException";
@@ -412,7 +412,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_DocumentAlreadyExistsException()
+        public async Task InsertAsync_DocumentAlreadyExistsException()
         {
             //setup
             var key = "Insert_DocumentAlreadyExistsException";
@@ -461,7 +461,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void ReplaceAsync_WithCasAndMutated_CasMismatchException()
+        public async Task ReplaceAsync_WithCasAndMutated_CasMismatchException()
         {
             //setup
             var key = "ReplaceWithCas_CasMismatchException";
@@ -479,8 +479,8 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
             _cluster.Dispose();

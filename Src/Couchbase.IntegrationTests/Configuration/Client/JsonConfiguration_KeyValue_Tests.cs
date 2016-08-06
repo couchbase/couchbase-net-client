@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
@@ -14,15 +15,15 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         private ICluster _cluster;
         private IBucket _bucket;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetJsonConfiguration("basic"));
             _bucket = _cluster.OpenBucket();
         }
 
         [Test]
-        public async void Test_GetAsync()
+        public async Task Test_GetAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -34,7 +35,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         }
 
         [Test]
-        public async void Test_UpsertAsync()
+        public async Task Test_UpsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -45,7 +46,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         }
 
         [Test]
-        public async void Test_InsertAsync()
+        public async Task Test_InsertAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -56,7 +57,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         }
 
         [Test]
-        public async void Test_RemoveAsync()
+        public async Task Test_RemoveAsync()
         {
             var key = "thekey";
             var value = "thevalue";
@@ -111,8 +112,8 @@ namespace Couchbase.IntegrationTests.Configuration.Client
             Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
             _cluster.Dispose();

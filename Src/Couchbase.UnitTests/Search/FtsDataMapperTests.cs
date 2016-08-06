@@ -1,8 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Resources;
 using Couchbase.Search;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace Couchbase.UnitTests.Search
 {
@@ -13,7 +16,7 @@ namespace Couchbase.UnitTests.Search
         public void Success_WhenSuccess_IsTrue()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -25,7 +28,8 @@ namespace Couchbase.UnitTests.Search
         public void Count_WhenSuccess_Returns32()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            var fileStream = OpenResource("search-response-success.js");
+            using (var stream = fileStream)
             {
                 var result = mapper.Map(stream);
 
@@ -37,7 +41,7 @@ namespace Couchbase.UnitTests.Search
         public void MaxScore_WhenSuccess_ReturnsDouble()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -49,7 +53,7 @@ namespace Couchbase.UnitTests.Search
         public void Took_WhenSuccess_Returns123165714()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -61,7 +65,7 @@ namespace Couchbase.UnitTests.Search
         public void TotalHits_WhenSuccess_Returns116()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -73,7 +77,7 @@ namespace Couchbase.UnitTests.Search
         public void ErrorCount_WhenSuccess_ReturnsZero()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -85,7 +89,7 @@ namespace Couchbase.UnitTests.Search
         public void HitsCount_WhenSuccess_ReturnsPageSize()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -97,7 +101,7 @@ namespace Couchbase.UnitTests.Search
         public void Hits_WhenSuccess_ReturnsValidData()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = File.OpenRead("Search\\search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.js"))
             {
                 var result = mapper.Map(stream);
 
@@ -107,6 +111,11 @@ namespace Couchbase.UnitTests.Search
                 Assert.AreEqual(0.907210290772297, first.Score);
                Assert.AreEqual("1.5 miles of the old Plymouth-Tavistock Great Western line, restored by local enthusiasts. Runs a number of old steam engines and other stock, which take visitors up this historic stretch of railway into Plym Woods.", first.Fields.First().Value);
             }
+        }
+
+        private Stream OpenResource(string resourceName)
+        {
+            return Assembly.GetExecutingAssembly().GetManifestResourceStream(typeof(FtsDataMapperTests), resourceName);
         }
     }
 }

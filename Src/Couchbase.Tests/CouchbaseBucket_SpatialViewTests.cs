@@ -11,8 +11,8 @@ namespace Couchbase.Tests
     [TestFixture]
     public class CouchbaseBucketSpatialViewTests
     {
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
             {
@@ -23,7 +23,7 @@ namespace Couchbase.Tests
                     var get = manager.GetDesignDocument("beer_ext_spatial");
                     if (!get.Success)
                     {
-                        var designDoc = File.ReadAllText(@"Data\\DesignDocs\\beers_ext_spatial.json");
+                        var designDoc = ResourceHelper.ReadResource(@"Data\DesignDocs\beers_ext_spatial.json");
                         var inserted = manager.InsertDesignDocument("beer_ext_spatial", designDoc);
                         if (inserted.Success)
                         {

@@ -38,11 +38,9 @@ namespace Couchbase.Tests.Authentication
         /// Note that Couchbase Server returns an auth error if the bucket doesn't exist.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(AuthenticationException))]
         public void When_InValid_Credentials_Provided_Bucket_Created_UnSuccesfully()
         {
-            try
-            {
+            var ex = Assert.Throws<AggregateException>(() => {
                 var config = ClientConfigUtil.GetConfiguration();
                 config.BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
@@ -59,17 +57,9 @@ namespace Couchbase.Tests.Authentication
                 var bucket = cluster.OpenBucket("authenticated", "secretw");
                 cluster.CloseBucket(bucket);
                 Assert.IsNotNull(bucket);
-            }
-            catch (AggregateException e)
-            {
-                foreach (var exception in e.InnerExceptions)
-                {
-                    if (exception.GetType() == typeof (AuthenticationException))
-                    {
-                        throw exception;
-                    }
-                }
-            }
+            });
+
+            Assert.True(ex.InnerExceptions.OfType<AuthenticationException>().Any());
         }
     }
 }

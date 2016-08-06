@@ -31,8 +31,8 @@ namespace Couchbase.Tests.IO
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const uint OperationLifespan = 2500; //ms
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
@@ -87,7 +87,7 @@ namespace Couchbase.Tests.IO
                 var result = operation.GetResult();
                 Assert.IsTrue(result.Success);
                 Assert.IsNull(result.Exception);
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.That(() => string.IsNullOrEmpty(result.Message));
                 tcs.SetResult(result);
                 return tcs.Task;
             };
@@ -131,8 +131,8 @@ namespace Couchbase.Tests.IO
             Assert.AreEqual(ResponseStatus.ClientFailure, result.Status);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             _ioService.Dispose();
         }

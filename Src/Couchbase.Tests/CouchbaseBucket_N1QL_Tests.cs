@@ -64,7 +64,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Bucket_Requires_Authentication_And_Credentials_Provided_QueryAsync_Succeeds()
+        public async Task When_Bucket_Requires_Authentication_And_Credentials_Provided_QueryAsync_Succeeds()
         {
             using (var bucket = _cluster.OpenBucket("authenticated", "secret"))
             {
@@ -78,7 +78,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Bucket_Requires_Authentication_And_Credentials_NotProvided_QueryAsync_Fails()
+        public async Task When_Bucket_Requires_Authentication_And_Credentials_NotProvided_QueryAsync_Fails()
         {
             using (var bucket = _cluster.OpenBucket("default"))
             {
@@ -92,7 +92,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync()
+        public async Task Test_QueryAsync()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -159,7 +159,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest_With_PositionalParameters()
+        public async Task Test_QueryAsync_With_QueryRequest_With_PositionalParameters()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -174,7 +174,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest_With_NamedParameters()
+        public async Task Test_QueryAsync_With_QueryRequest_With_NamedParameters()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -189,7 +189,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest_With_Timeout()
+        public async Task Test_QueryAsync_With_QueryRequest_With_Timeout()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -206,7 +206,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest_With_Metrics_false()
+        public async Task Test_QueryAsync_With_QueryRequest_With_Metrics_false()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -222,7 +222,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void Test_QueryAsync_With_QueryRequest_With_Metrics_true()
+        public async Task Test_QueryAsync_With_QueryRequest_With_Metrics_true()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -238,7 +238,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Signature_Is_False_Signature_Is_Not_Returned()
+        public async Task When_Signature_Is_False_Signature_Is_Not_Returned()
         {
             using (var bucket = _cluster.OpenBucket())
             {
@@ -255,7 +255,7 @@ namespace Couchbase.Tests
         }
 
         [Test]
-        public async void When_Statement_Is_InValid_Errors_Are_Returned()
+        public async Task When_Statement_Is_InValid_Errors_Are_Returned()
         {
             using (var bucket = _cluster.OpenBucket())
             {

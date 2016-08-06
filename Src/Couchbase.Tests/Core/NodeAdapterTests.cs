@@ -19,7 +19,7 @@ namespace Couchbase.Tests.Core
         {
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\carrier-publication-config.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\carrier-publication-config.json"));
 
             var nodes = bucketConfig.GetNodes();
             Assert.AreEqual(8091, nodes[0].MgmtApi);
@@ -36,7 +36,7 @@ namespace Couchbase.Tests.Core
         {
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\couchbase-2_5_1-couchbase_config.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\couchbase-2_5_1-couchbase_config.json"));
 
             var nodes = bucketConfig.GetNodes();
             foreach (var node in nodes)
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.Core
         {
             var bucketConfig =
                 JsonConvert.DeserializeObject<BucketConfig>(
-                    File.ReadAllText("Data\\Configuration\\couchbase-2_5_1-memcached_config.json"));
+                    ResourceHelper.ReadResource("Data\\Configuration\\couchbase-2_5_1-memcached_config.json"));
 
             var nodes = bucketConfig.GetNodes();
             foreach (var node in nodes)

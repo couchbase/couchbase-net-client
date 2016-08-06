@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.N1QL;
@@ -137,7 +138,7 @@ namespace Couchbase.Tests.N1QL
             Assert.IsNotNull(result.Rows);
 
             var beer = result.Rows.First();
-            Assert.IsNotNullOrEmpty(beer.Name);
+            Assert.That(() => !string.IsNullOrEmpty(beer.Name));
         }
 
         [Test]
@@ -209,7 +210,7 @@ namespace Couchbase.Tests.N1QL
 
 
         [Test]
-        public async void Test_QueryAsync_POST_Named_Parameters()
+        public async Task Test_QueryAsync_POST_Named_Parameters()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
@@ -228,7 +229,7 @@ namespace Couchbase.Tests.N1QL
         }
 
         [Test]
-        public async void Test_QueryAsync_POST_Positional_Parameters()
+        public async Task Test_QueryAsync_POST_Positional_Parameters()
         {
             var config = new ClientConfiguration();
             var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);

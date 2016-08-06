@@ -18,7 +18,7 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         private VBucketServerMap _vBucketServerMap2;
         private VBucketServerMap _vBucketServerMap3;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             _vBucketServerMap1 = new VBucketServerMap
@@ -63,11 +63,11 @@ namespace Couchbase.Tests.Configuration.Server.Serialization
         [Test]
         public void When_VBucketForwardMaps_Exists_Equality_Is_Compared()
         {
-            var json1070 = File.ReadAllText(@"Data\\Configuration\\config-1070.json");
+            var json1070 = ResourceHelper.ReadResource(@"Data\Configuration\config-1070.json");
             var bucket1070 = JsonConvert.DeserializeObject<BucketConfig>(json1070);
 
             //same config but has vbucketforwardmaps
-            var json1071 = File.ReadAllText(@"Data\\Configuration\\config-1071.json");
+            var json1071 = ResourceHelper.ReadResource(@"Data\Configuration\config-1071.json");
             var bucket1071 = JsonConvert.DeserializeObject<BucketConfig>(json1071);
 
             Assert.IsFalse(bucket1070.Equals(bucket1071));

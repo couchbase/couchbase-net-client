@@ -35,7 +35,7 @@ namespace Couchbase.Tests.Core
         private const uint OperationLifespan = 2500; //ms
         private IPEndPoint _endPoint;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             _endPoint = UriExtensions.GetEndPoint(_address);
@@ -115,7 +115,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_Config_Contains_HOST_UpdateBoostrapList_Succeeds()
         {
-            var json = File.ReadAllText(@"Data\\Configuration\\bucketconfig-host-placeholder.json");
+            var json = ResourceHelper.ReadResource(@"Data\Configuration\bucketconfig-host-placeholder.json");
             var bytes = Encoding.UTF8.GetBytes(json);
             var totalBytes = new byte[24 + bytes.Length];
             bytes.CopyTo(totalBytes, 24);

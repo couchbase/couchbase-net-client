@@ -15,11 +15,11 @@ namespace Couchbase.Tests.Core
         {
             var rev839 =
                JsonConvert.DeserializeObject<BucketConfig>(
-                   File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev839.json"));
+                   ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev839.json"));
 
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev839.GetNodes().AreEqual(rev855.GetNodes()));
         }
@@ -29,11 +29,11 @@ namespace Couchbase.Tests.Core
         {
             var rev839 =
                JsonConvert.DeserializeObject<BucketConfig>(
-                   File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev839.json"));
+                   ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev839.json"));
 
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev855.GetNodes().AreEqual(rev839.GetNodes()));
         }
@@ -43,7 +43,7 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
 
             Assert.IsTrue(rev855.GetNodes().AreEqual(rev855.GetNodes()));
         }
@@ -53,7 +53,7 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev855.GetNodes().AreEqual(null));
         }
@@ -63,7 +63,7 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 File.ReadAllText("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(NodeAdapterExtensions.AreEqual(null, rev855.GetNodes()));
         }

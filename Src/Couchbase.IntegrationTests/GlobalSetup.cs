@@ -10,7 +10,7 @@ namespace Couchbase.IntegrationTests
     [SetUpFixture]
     public class GlobalSetup
     {
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             ClusterHelper.Initialize(Utils.TestConfiguration.GetCurrentConfiguration());

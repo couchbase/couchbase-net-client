@@ -50,7 +50,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public async void When_Observing_Key_During_RemoveAsync_Durability_Constraint_Is_Reached()
+        public async Task When_Observing_Key_During_RemoveAsync_Durability_Constraint_Is_Reached()
         {
             var configuration = new ClientConfiguration
             {
@@ -114,7 +114,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public async void When_Observing_Key_During_AddAsync_Durability_Constraint_Is_Reached()
+        public async Task When_Observing_Key_During_AddAsync_Durability_Constraint_Is_Reached()
         {
             var configuration = new ClientConfiguration
             {
@@ -189,7 +189,7 @@ namespace Couchbase.Tests.Core.Buckets
         }
 
         [Test]
-        public async void When_Mutation_Happens_Observe_Fails_Async()
+        public async Task When_Mutation_Happens_Observe_Fails_Async()
         {
             var configuration = new ClientConfiguration
             {
@@ -265,7 +265,7 @@ namespace Couchbase.Tests.Core.Buckets
 
 
         [Test]
-        public async void Test_Timeout_Add_PersistTo_Master_Async()
+        public async Task Test_Timeout_Add_PersistTo_Master_Async()
         {
             var configuration = new ClientConfiguration
             {
