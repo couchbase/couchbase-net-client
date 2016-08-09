@@ -50,6 +50,7 @@ namespace Couchbase.Tests
             mockConfigInfo.Setup(x => x.BucketConfig).Returns(_bucketConfig);
             mockConfigInfo.Setup(x => x.GetServer()).Returns(fakeServer);
             mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);
+            mockConfigInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
 
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(config);
