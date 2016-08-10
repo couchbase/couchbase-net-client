@@ -11,3 +11,4 @@ packages/
 *.testsettings
 *.sln.docstates
 couchbase-net-client.userprefs
+.idea
