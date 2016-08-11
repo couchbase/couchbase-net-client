@@ -404,11 +404,5 @@ namespace Couchbase.Tests.Core.Transcoders
             var result = transcoder.Decode<byte[]>(legacyByteArray, 28, 4, flags, OperationCode.Get);
             Assert.AreEqual("test", Encoding.UTF8.GetString(result));
         }
-
-        [Test]
-        public void When_Transcoding_Int_From_1_3_Client_Value_Is_Correct()
-        {
-            const string KEY = "NUMERIC_TEST_KEY";
-        }
     }
 }

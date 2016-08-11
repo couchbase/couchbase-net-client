@@ -10,10 +10,14 @@ namespace Couchbase
     {
         private static readonly Dictionary<ScanConsistency, string> ScanConsistencyResolver = new Dictionary<ScanConsistency, string>
         {
+#pragma warning disable 618
             {N1QL.ScanConsistency.AtPlus, "at_plus"},
+#pragma warning restore 618
             {N1QL.ScanConsistency.NotBounded, "not_bounded"},
             {N1QL.ScanConsistency.RequestPlus, "request_plus"},
+#pragma warning disable 618
             {N1QL.ScanConsistency.StatementPlus, "statement_plus"}
+#pragma warning restore 618
         };
 
         /// <summary>

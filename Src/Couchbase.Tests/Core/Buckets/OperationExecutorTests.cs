@@ -38,7 +38,9 @@ namespace Couchbase.Tests.Core.Buckets
         private readonly FakeConnectionPool _connectionPool = new FakeConnectionPool();
         readonly IBucketConfig _bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource("Data\\Configuration\\config-revision-8934.json"));
         readonly IByteConverter _converter = new DefaultConverter();
-        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer());
+#pragma warning disable 618
+        readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer());
+#pragma warning restore 618
 
         internal IClusterController GetBucketForKey(string key, out IConfigInfo configInfo)
         {

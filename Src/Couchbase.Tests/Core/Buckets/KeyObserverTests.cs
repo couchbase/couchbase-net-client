@@ -40,7 +40,9 @@ namespace Couchbase.Tests.Core.Buckets
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
                 new DefaultConverter(),
-                new DefaultTranscoder(new ManualByteConverter(), new DefaultSerializer()));
+#pragma warning disable 618
+                new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer()));
+#pragma warning restore 618
 
             var configInfo = provider.GetConfig("default");
 

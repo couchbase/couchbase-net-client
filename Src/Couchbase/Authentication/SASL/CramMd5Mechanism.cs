@@ -21,7 +21,9 @@ namespace Couchbase.Authentication.SASL
 
 
         /// <summary>
+#pragma warning disable 612
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOService"/>.
+#pragma warning restore 612
         /// </summary>
         /// <param name="ioService">The I/O service to use.</param>
         /// <param name="transcoder"></param>
@@ -45,7 +47,9 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given username (which is a Couchbase Bucket) and password.
         /// </summary>
+#pragma warning disable 612
         /// <param name="ioService">The <see cref="IOService"/>to use for I/O.</param>
+#pragma warning restore 612
         /// <param name="username">The name of the Bucket you are connecting to.</param>
         /// <param name="password">The password for the Bucket.</param>
         /// <param name="transcoder"></param>

@@ -29,7 +29,6 @@ namespace Couchbase.IO
         private ConcurrentDictionary<Guid, T> _refs = new ConcurrentDictionary<Guid, T>();
         private Guid _identity = Guid.NewGuid();
         private int _acquireFailedCount;
-        private readonly IServer _owner;
         private readonly BufferAllocator _bufferAllocator;
 
         internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
@@ -255,8 +254,6 @@ namespace Couchbase.IO
                 _disposed = true;
                 var interval = _configuration.CloseAttemptInterval;
 
-                const int maxAttempts = 10;
-                var attempts = 0;
                 foreach (var key in _refs.Keys)
                 {
                     Log.DebugFormat("Trying to close conn {0}", key);
@@ -275,7 +272,9 @@ namespace Couchbase.IO
                                 if (!conn.InUse)
                                 {
                                     conn.Dispose();
-                                    _refs.TryRemove(key, out conn);
+
+                                    T storedConn;
+                                    _refs.TryRemove(key, out storedConn);
                                 }
                             }
                         }

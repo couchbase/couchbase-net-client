@@ -326,7 +326,9 @@ namespace Couchbase.Tests
             const string key = "when_custom_Transcoder_Upsert_uses_it";
             var clientConfiguration = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"))
             {
+#pragma warning disable 618
                 SerializationSettings = new JsonSerializerSettings
+#pragma warning restore 618
                 {
                     TypeNameHandling = TypeNameHandling.Objects
                 }

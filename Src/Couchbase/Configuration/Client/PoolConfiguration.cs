@@ -50,9 +50,13 @@ namespace Couchbase.Configuration.Client
             MaxSize = Defaults.MaxSize;
             MinSize = Defaults.MinSize;
             WaitTimeout = Defaults.WaitTimeout;
+#pragma warning disable 612
             RecieveTimeout = Defaults.ReceiveTimeout;
+#pragma warning restore 612
             ShutdownTimeout = Defaults.ShutdownTimeout;
+#pragma warning disable 618
             OperationTimeout = Defaults.OperationTimeout;
+#pragma warning restore 618
             MaxAcquireIterationCount = Defaults.MaxAcquireIterationCount;
             SendTimeout = Defaults.SendTimeout;
             BufferSize = Defaults.BufferSize;
@@ -76,9 +80,13 @@ namespace Couchbase.Configuration.Client
             MaxSize = maxSize;
             MinSize = minSize;
             WaitTimeout = waitTimeout;
+#pragma warning disable 612
             RecieveTimeout = receiveTimeout;
+#pragma warning restore 612
             ShutdownTimeout = shutdownTimeout;
+#pragma warning disable 618
             OperationTimeout = operationTimeout;
+#pragma warning restore 618
             MaxAcquireIterationCount = maxAcquireIterationCount;
             ClientConfiguration = clientConfiguration;
             ConnectTimeout = connectTimeout;
@@ -245,9 +253,11 @@ namespace Couchbase.Configuration.Client
         /// <returns></returns>
         public PoolConfiguration Clone(Uri uri)
         {
+#pragma warning disable 612, 618
             return new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout,
                 ShutdownTimeout, OperationTimeout, MaxAcquireIterationCount,
                 ConnectTimeout, ClientConfiguration)
+#pragma warning restore 612, 618
             {
                 Uri = uri,
                 SendTimeout = SendTimeout,

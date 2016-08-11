@@ -134,12 +134,16 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+#pragma warning disable 618
             managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+#pragma warning restore 618
             managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
+#pragma warning disable 618
             var result = managerMock.Object.GetDesignDocuments();
+#pragma warning restore 618
 
             // Assert
 
@@ -160,12 +164,16 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+#pragma warning disable 618
             managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+#pragma warning restore 618
             managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
+#pragma warning disable 618
             var result = managerMock.Object.GetDesignDocuments();
+#pragma warning restore 618
 
             // Assert
 
@@ -185,12 +193,16 @@ namespace Couchbase.UnitTests.Management
             var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
+#pragma warning disable 618
             managerMock.Setup(x => x.GetDesignDocuments(It.IsAny<bool>())).CallBase();
+#pragma warning restore 618
             managerMock.Setup(x => x.GetDesignDocumentsAsync(It.IsAny<bool>())).CallBase();
 
             // Act
 
+#pragma warning disable 618
             var result = managerMock.Object.GetDesignDocuments();
+#pragma warning restore 618
 
             // Assert
 

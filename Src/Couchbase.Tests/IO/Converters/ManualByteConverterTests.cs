@@ -49,7 +49,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToByte()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToByte(_buffer, 0);
             const int expected = 128;
 
@@ -59,7 +61,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToInt16()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToInt16(_buffer, 2);
             const int expected = 5;
 
@@ -69,7 +73,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToUInt16()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToUInt16(_buffer, 2);
             const uint expected = 5u;
 
@@ -79,7 +85,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToInt32()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToInt32(_buffer, 8);
             const uint expected = 5u;
 
@@ -89,7 +97,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_ToUInt32()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToUInt32(_buffer, 8);
             const int expected = 5;
 
@@ -102,7 +112,9 @@ namespace Couchbase.Tests.IO.Converters
             const int offset = 24;
             const int length = 5;
 
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = converter.ToString(_buffer, offset, length);
             const string expected = "Hello";
 
@@ -122,7 +134,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt16()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[8];
             converter.FromInt16(5, actual, 2);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -133,7 +147,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt16()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[8];
             converter.FromUInt16(5, actual, 2);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -144,7 +160,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt32()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[11];
             converter.FromInt32(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -155,7 +173,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt32()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[11];
             converter.FromUInt32(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -166,7 +186,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromInt64()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[15];
             converter.FromInt64(5, actual, 3);
             var expected = new byte[] { 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -177,7 +199,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromUInt64()
         {
+#pragma warning disable 618
             var converter = new ManualByteConverter();
+#pragma warning restore 618
             var actual = new byte[15];
             converter.FromUInt64(5, actual, 3);
             var expected = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00 };
@@ -188,9 +212,6 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test()
         {
-            int i = 1;
-            var bits = BitConverter.GetBytes(i);
-
             var bytes = new byte[] {0x00, 0x00, 0x00, 0x01};
             var expected = 1;
 

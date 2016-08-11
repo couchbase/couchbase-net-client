@@ -100,7 +100,7 @@ namespace Couchbase.IO.Operations.EnhancedDurability
         /// Clones this instance.
         /// </summary>
         /// <returns></returns>
-        public virtual IOperation Clone()
+        public override IOperation Clone()
         {
             var cloned = new ObserveSeqno(MutationToken, Transcoder, Timeout)
             {

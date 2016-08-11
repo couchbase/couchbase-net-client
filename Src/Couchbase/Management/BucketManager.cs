@@ -24,7 +24,7 @@ namespace Couchbase.Management
     /// </summary>
     public class BucketManager : IBucketManager
     {
-        private static readonly ILog Log = LogManager.GetCurrentClassLogger();
+        private static readonly ILog Log = LogManager.GetLogger<BucketManager>();
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;
         private readonly string _password;

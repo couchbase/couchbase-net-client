@@ -125,7 +125,9 @@ namespace Couchbase.Tests
             _connectionPool.AddConnection(connection);
 
             var bucket = GetBucketForKey("key1");
+#pragma warning disable 618
             var result = await bucket.GetWithLockAsync<string>("key1", new TimeSpan(0, 0, 0, 2));
+#pragma warning restore 618
 
             Console.WriteLine(result.Message);
             Assert.IsTrue(result.Success);
@@ -192,7 +194,9 @@ namespace Couchbase.Tests
                 {
                     var key = "When_Key_Is_Locked_Mutate_Fails";
                     Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success);
+#pragma warning disable 618
                     var getl = await bucket.GetWithLockAsync<string>(key, 15);
+#pragma warning restore 618
                     Assert.IsTrue(getl.Success);
                     var upsert = bucket.Upsert(key, "{'name':'value2'}");
                     Assert.IsFalse(upsert.Success);
@@ -210,7 +214,9 @@ namespace Couchbase.Tests
                     var key = "When_Key_Is_Locked_Mutate_Succeeds_If_Unlocked";
                     Assert.IsTrue(bucket.Upsert(key, "{'name':'value'}").Success); //succeed
 
+#pragma warning disable 618
                     var getl = await bucket.GetWithLockAsync<string>(key, 15);
+#pragma warning restore 618
                     Assert.IsTrue(getl.Success); //will succeed
 
                     var unlock = await bucket.UnlockAsync(key, getl.Cas);

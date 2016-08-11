@@ -25,7 +25,9 @@ namespace Couchbase.UnitTests.N1Ql
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
+#pragma warning disable 618
                 ScanConsistency(ScanConsistency.AtPlus);
+#pragma warning restore 618
 
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[8282,\"22\"],\"123\":[8332,\"11\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
@@ -47,7 +49,9 @@ namespace Couchbase.UnitTests.N1Ql
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
+#pragma warning disable 618
                 ScanConsistency(ScanConsistency.AtPlus);
+#pragma warning restore 618
 
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[8332,\"11\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
@@ -69,7 +73,9 @@ namespace Couchbase.UnitTests.N1Ql
 
             var queryRequest = new QueryRequest("SELECT * FROM `bucket1_name`;").
                 ConsistentWith(MutationState.From(document1.Object, document2.Object, document3.Object)).
+#pragma warning disable 618
                 ScanConsistency(ScanConsistency.AtPlus);
+#pragma warning restore 618
 
             var actual = queryRequest.GetFormValues()["scan_vectors"];
             var expected = "{\"bucket1_name\":{\"102\":[9999,\"22\"]},\"bucket2_name\":{\"133\":[333,\"23\"]}}";
@@ -80,7 +86,9 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public void ScanConsistency_AtPlus_DoesNotThrow_NotSupportedException()
         {
+#pragma warning disable 618
             Assert.DoesNotThrow(()=>new QueryRequest("SELECT * FROM `bucket1_name`;").ScanConsistency(ScanConsistency.AtPlus));
+#pragma warning restore 618
         }
 
         [Test]

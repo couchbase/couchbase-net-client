@@ -30,10 +30,5 @@ namespace Couchbase.IO
             : base(message, innerException)
         {
         }
-
-        protected BufferUnavailableException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 }

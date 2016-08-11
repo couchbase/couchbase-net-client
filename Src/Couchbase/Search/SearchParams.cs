@@ -177,7 +177,9 @@ namespace Couchbase.Search
                 var consistency = new JObject(
                         new JProperty("level", ScanConsistencyNameResolver.Resolve(_scanConsistency.Value)));
 
+#pragma warning disable 618
                 if (_scanConsistency == ScanConsistency.AtPlus)//needs resolution
+#pragma warning restore 618
                 {
                     consistency.Add(new JProperty("vectors", new JObject()));//does nothing ATM!
                 }

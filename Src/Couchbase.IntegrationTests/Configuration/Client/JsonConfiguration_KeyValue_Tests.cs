@@ -60,7 +60,6 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         public async Task Test_RemoveAsync()
         {
             var key = "thekey";
-            var value = "thevalue";
 
             await _bucket.RemoveAsync(key);
             var result = await _bucket.GetAsync<string>(key);
@@ -105,7 +104,6 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         public void Test_Remove()
         {
             var key = "thekey";
-            var value = "thevalue";
 
             _bucket.Remove(key);
             var result = _bucket.Get<string>(key);

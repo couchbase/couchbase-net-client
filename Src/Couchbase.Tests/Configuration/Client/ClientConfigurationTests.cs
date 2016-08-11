@@ -14,8 +14,6 @@ namespace Couchbase.Tests.Configuration.Client
     [TestFixture]
     public class ClientConfigurationTests
     {
-        private string _ipAddress = ConfigurationManager.AppSettings["serverIp"];
-
         [Test]
         public void Test_Default()
         {
@@ -36,8 +34,12 @@ namespace Couchbase.Tests.Configuration.Client
 
             Assert.AreEqual(2, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(1, bucketConfig.PoolConfiguration.MinSize);
+#pragma warning disable 612
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
+#pragma warning restore 612
+#pragma warning disable 618
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
+#pragma warning restore 618
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(2500, bucketConfig.DefaultOperationLifespan);
             Assert.AreEqual(75000, config.ViewRequestTimeout);
@@ -77,8 +79,12 @@ namespace Couchbase.Tests.Configuration.Client
 
             Assert.AreEqual(10, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(10, bucketConfig.PoolConfiguration.MinSize);
+#pragma warning disable 612
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
+#pragma warning restore 612
+#pragma warning disable 618
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
+#pragma warning restore 618
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
             Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
@@ -135,8 +141,12 @@ namespace Couchbase.Tests.Configuration.Client
 
             Assert.AreEqual(5, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(5, bucketConfig.PoolConfiguration.MinSize);
+#pragma warning disable 612
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
-            Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
+#pragma warning restore 612
+#pragma warning disable 618
+            Assert.AreEqual(2500, actual: bucketConfig.PoolConfiguration.OperationTimeout);
+#pragma warning restore 618
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(2500, bucketConfig.DefaultOperationLifespan);
 
@@ -148,8 +158,12 @@ namespace Couchbase.Tests.Configuration.Client
 
             Assert.AreEqual(6, bucketConfig.PoolConfiguration.MaxSize);
             Assert.AreEqual(4, bucketConfig.PoolConfiguration.MinSize);
+#pragma warning disable 612
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.RecieveTimeout);
+#pragma warning restore 612
+#pragma warning disable 618
             Assert.AreEqual(2500, bucketConfig.PoolConfiguration.OperationTimeout);
+#pragma warning restore 618
             Assert.AreEqual(10000, bucketConfig.PoolConfiguration.ShutdownTimeout);
             Assert.AreEqual(12000, bucketConfig.PoolConfiguration.SendTimeout);
             Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);

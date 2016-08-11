@@ -18,7 +18,6 @@ namespace Couchbase.Authentication.SASL
     {
         private static readonly ILog Log = LogManager.GetLogger<ScramShaMechanism>();
         private static readonly string ClientKey = "Client Key";
-        private static readonly string ServerKey = "Server Key";
         private static readonly int ShaByteLength = 20;
 
         //leaving for later patchset to support SHA256 and SHA512

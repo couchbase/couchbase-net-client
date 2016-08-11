@@ -247,7 +247,9 @@ namespace Couchbase.Management
         /// The design document as a string.
         /// </returns>
         /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+#pragma warning disable 672
         public override IResult<string> GetDesignDocuments(bool includeDevelopment = false)
+#pragma warning restore 672
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

@@ -183,7 +183,9 @@ namespace Couchbase.Tests.N1QL
         public void When_ScanConsistency_StatementPlus_Provided_NotSupportedException_Is_Thrown()
         {
             var query = new QueryRequest();
+#pragma warning disable 618
             Assert.Throws<NotSupportedException>(() => query.ScanConsistency(ScanConsistency.StatementPlus));
+#pragma warning restore 618
         }
 
         [Test]
@@ -225,7 +227,7 @@ namespace Couchbase.Tests.N1QL
                 var statement = values["statement"];
                 Assert.Fail("statement should not be present, was " + statement);
             }
-            catch (KeyNotFoundException e)
+            catch (KeyNotFoundException)
             {
                 //expected
             }

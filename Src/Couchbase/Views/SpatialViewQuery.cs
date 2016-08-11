@@ -21,8 +21,6 @@ namespace Couchbase.Views
         private Uri _baseUri;
         private string _designDoc;
         private string _viewName;
-        private uint _port;
-        private uint _sslPort;
 
         //API parameters
         private StaleState? _stale;

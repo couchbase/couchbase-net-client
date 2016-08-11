@@ -45,10 +45,14 @@ namespace Couchbase.N1QL
 
         public static readonly Dictionary<ScanConsistency, string> ScanConsistencyResolver = new Dictionary<ScanConsistency, string>
         {
+#pragma warning disable 618
             {N1QL.ScanConsistency.AtPlus, "at_plus"},
+#pragma warning restore 618
             {N1QL.ScanConsistency.NotBounded, "not_bounded"},
             {N1QL.ScanConsistency.RequestPlus, "request_plus"},
+#pragma warning disable 618
             {N1QL.ScanConsistency.StatementPlus, "statement_plus"}
+#pragma warning restore 618
         };
 
         public QueryRequest()
@@ -146,7 +150,9 @@ namespace Couchbase.N1QL
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         public IQueryRequest ConsistentWith(MutationState mutationState)
         {
+#pragma warning disable 618
             ScanConsistency(N1QL.ScanConsistency.AtPlus);
+#pragma warning restore 618
             _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
             foreach (var token in mutationState)
             {
@@ -466,7 +472,9 @@ namespace Couchbase.N1QL
         /// </remarks>
         public IQueryRequest ScanConsistency(ScanConsistency scanConsistency)
         {
+#pragma warning disable 618
             if (scanConsistency == N1QL.ScanConsistency.StatementPlus)
+#pragma warning restore 618
             {
                 throw new NotSupportedException(
                     "AtPlus and StatementPlus are not currently supported by CouchbaseServer.");
@@ -673,7 +681,9 @@ namespace Couchbase.N1QL
             }
             if (_scanVectors != null)
             {
+#pragma warning disable 618
                 if (_scanConsistency != N1QL.ScanConsistency.AtPlus)
+#pragma warning restore 618
                 {
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
                 }

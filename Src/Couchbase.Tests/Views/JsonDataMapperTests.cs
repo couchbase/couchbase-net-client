@@ -35,7 +35,9 @@ namespace Couchbase.Tests.Views
                 HasPascalCase = true
             };
             const string expectedJson = "{\"someProperty\":\"SOME\",\"someIntProperty\":12345,\"hasPascalCase\":true}";
+#pragma warning disable 618
             var actualJson = JsonConvert.SerializeObject(data, new ClientConfiguration().SerializationSettings);
+#pragma warning restore 618
 
             Assert.AreEqual(expectedJson, actualJson);
         }
@@ -50,7 +52,9 @@ namespace Couchbase.Tests.Views
                 HasPascalCase = true
             };
             const string expectedJson = "{\"SomeProperty\":\"SOME\",\"SomeIntProperty\":12345,\"HasPascalCase\":true}";
+#pragma warning disable 618
             var serializationSetting = new ClientConfiguration().SerializationSettings;
+#pragma warning restore 618
             serializationSetting.ContractResolver = new DefaultContractResolver();
             var actualJson = JsonConvert.SerializeObject(data, serializationSetting);
 

@@ -44,9 +44,6 @@ namespace Couchbase.Configuration.Client
         private int _viewRequestTimeout;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
-        private uint _ioErrorCheckInterval;
-        private uint _ioErrorThreshold;
-        private bool _enableQueryTiming;
 
         public static class Defaults
         {
@@ -107,11 +104,15 @@ namespace Couchbase.Configuration.Client
             ObserveInterval = (int) Defaults.ObserveInterval; //ms
             ObserveTimeout = (int) Defaults.ObserveTimeout; //ms
             MaxViewRetries = (int) Defaults.MaxViewRetries;
+#pragma warning disable 618
             ViewHardTimeout = (int) Defaults.ViewHardTimeout; //ms
+#pragma warning restore 618
             HeartbeatConfigInterval = Defaults.HeartbeatConfigInterval; //ms
             EnableConfigHeartBeat = Defaults.EnableConfigHeartBeat;
+#pragma warning disable 618
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+#pragma warning restore 618
             ViewRequestTimeout = (int) Defaults.ViewRequestTimeout; //ms
             SearchRequestTimeout = Defaults.SearchRequestTimeout;
             VBucketRetrySleepTime = Defaults.VBucketRetrySleepTime;
@@ -203,9 +204,11 @@ namespace Couchbase.Configuration.Client
             ObserveInterval = definition.ObserveInterval;
             ObserveTimeout = definition.ObserveTimeout;
             MaxViewRetries = definition.MaxViewRetries;
+#pragma warning disable 618
             ViewHardTimeout = definition.ViewHardTimeout;
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+#pragma warning restore 618
             EnableConfigHeartBeat = definition.EnableConfigHeartBeat;
             HeartbeatConfigInterval = definition.HeartbeatConfigInterval;
             ViewRequestTimeout = definition.ViewRequestTimeout;
@@ -465,17 +468,7 @@ namespace Couchbase.Configuration.Client
         /// </remarks>
         /// <remarks>The default is 10 errors.</remarks>
         /// <remarks>The lower limit is 0; the default will apply if this is exceeded.</remarks>
-        public uint IOErrorThreshold
-        {
-            get { return _ioErrorThreshold; }
-            set
-            {
-                if (value > -1)
-                {
-                    _ioErrorThreshold = value;
-                }
-            }
-        }
+        public uint IOErrorThreshold { get; set; }
 
         /// <summary>
         /// Gets or sets the interval that the <see cref="IOErrorThreshold"/> will be checked. If the threshold is reached
@@ -488,17 +481,7 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>The purpose of this is to distinguish between a remote host being unreachable or temporay network glitch.</remarks>
         /// <remarks>The default is 500ms; use milliseconds to override this: 1000 = 1 second.</remarks>
-        public uint IOErrorCheckInterval
-        {
-            get { return _ioErrorCheckInterval; }
-            set
-            {
-                if (value > -1)
-                {
-                    _ioErrorCheckInterval = value;
-                }
-            }
-        }
+        public uint IOErrorCheckInterval { get; set; }
 
         /// <summary>
         /// Gets or sets the transcoder factory.

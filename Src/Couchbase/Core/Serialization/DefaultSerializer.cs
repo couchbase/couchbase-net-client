@@ -273,10 +273,14 @@ namespace Couchbase.Core.Serialization
                 TypeNameHandling = baseSettings.TypeNameHandling
             };
 
+#pragma warning disable 618
             if (baseSettings.ReferenceResolver != null)
+#pragma warning restore 618
             {
                 // Backwards compatibility issue in Newtonsoft.Json 7.0.1 causes setting a null reference resolver to error instead of using default
+#pragma warning disable 618
                 settings.ReferenceResolver = baseSettings.ReferenceResolver;
+#pragma warning restore 618
             }
 
             if (options.CustomObjectCreator != null)

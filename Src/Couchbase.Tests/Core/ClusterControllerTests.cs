@@ -146,7 +146,9 @@ namespace Couchbase.Tests.Core
                 clusterManager.ConfigProviders.Find(provider => !(provider is HttpStreamingProvider)));
             var cluster = new Cluster(_clientConfig, clusterManager);
             var bucket = cluster.OpenBucket("default", "");
+#pragma warning disable 618
             var info = cluster.Info;
+#pragma warning restore 618
             cluster.CloseBucket(bucket);
             cluster.Dispose();
 

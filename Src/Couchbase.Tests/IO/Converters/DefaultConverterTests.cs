@@ -113,7 +113,9 @@ namespace Couchbase.Tests.IO.Converters
         [Test]
         public void Test_FromString()
         {
-            var converter = new ManualByteConverter();
+#pragma warning disable 618
+            var converter = new DefaultConverter();
+#pragma warning restore 618
             var buffer = new byte[Encoding.UTF8.GetByteCount("Hello")];
             converter.FromString("Hello", buffer, 0);
             var expected = new byte[]{0x48, 0x65, 0x6c, 0x6c, 0x6f};

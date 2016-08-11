@@ -12,8 +12,6 @@ namespace Couchbase.Tests.Fakes
 {
     internal class FakeIOService : IIOService
     {
-        private ISaslMechanism _saslMechanism;
-
         public FakeIOService(IPEndPoint endPoint, IConnectionPool connectionPool, bool isSecure)
         {
             EndPoint = endPoint;
@@ -246,19 +244,6 @@ namespace Couchbase.Tests.Fakes
         private void Authenticate(IConnection connection)
         {
             connection.IsAuthenticated = true;
-            return;
-            if (_saslMechanism != null)
-            {
-                var result = _saslMechanism.Authenticate(connection);
-                if (result)
-                {
-                    connection.IsAuthenticated = true;
-                }
-                else
-                {
-                    throw new AuthenticationException(_saslMechanism.Username);
-                }
-            }
         }
 
         public void Dispose()

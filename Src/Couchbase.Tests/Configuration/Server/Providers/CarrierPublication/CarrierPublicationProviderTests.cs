@@ -30,8 +30,10 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
                 (pool) => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new ManualByteConverter(),
+#pragma warning disable 618
+                new DefaultConverter(), 
                 new DefaultTranscoder(new ManualByteConverter()));
+#pragma warning restore 618
         }
 
         [Test]

@@ -34,7 +34,9 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             {
                 _serverConfig = new FileSystemConfig(_bootstrapPath);
             }
+#pragma warning disable 612
             _configInfo = new ConfigInfo(_serverConfig, _clientConfig);
+#pragma warning restore 612
             return _configInfo;
         }
 

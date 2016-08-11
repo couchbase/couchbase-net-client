@@ -15,7 +15,9 @@ namespace Couchbase.UnitTests.Search
                 Skip(20).
                 Limit(10).Explain(true).
                 Timeout(TimeSpan.FromMilliseconds(10000)).
+#pragma warning disable 618
                 WithConsistency(ScanConsistency.AtPlus);
+#pragma warning restore 618
 
             //var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{\"customerIndex\":{\"0\":123,\"1/a0b1c2\":234}}}},\"query\":{\"query\":\"alice smith\",\"boost\": 1},\"size\": 10,\"from\":20,\"highlight\":{\"style\": null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true}";
             var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{}}},\"size\":10,\"from\":20,\"explain\":true}";
