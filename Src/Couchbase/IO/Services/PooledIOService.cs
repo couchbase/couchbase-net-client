@@ -20,13 +20,13 @@ namespace Couchbase.IO.Services
     /// </summary>
     public class PooledIOService : IIOService
     {
-        private readonly static ILog Log = LogManager.GetLogger<PooledIOService>();
+        private static readonly ILog Log = LogManager.GetLogger<PooledIOService>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
         private ISaslMechanism _saslMechanism;
         private readonly Guid _identity = Guid.NewGuid();
-        private object _syncObj = new object();
+        private readonly object _syncObj = new object();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PooledIOService"/> class.
@@ -107,6 +107,12 @@ namespace Couchbase.IO.Services
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
+            catch (AuthenticationException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
+            }
             catch (RemoteHostTimeoutException e)
             {
                 Log.Debug(e);
@@ -169,6 +175,12 @@ namespace Couchbase.IO.Services
                 Log.Debug(e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+            }
+            catch (AuthenticationException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (RemoteHostTimeoutException e)
             {
@@ -324,16 +336,24 @@ namespace Couchbase.IO.Services
             }
         }
 
-        async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
+        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
         {
             var sourceException = capturedException.SourceException;
+            var status = ResponseStatus.ClientFailure;
+            if (sourceException is SocketException)
+            {
+                status = ResponseStatus.TransportFailure;
+            }
+            else if (sourceException is AuthenticationException)
+            {
+                status = ResponseStatus.AuthenticationError;
+            }
+
             await operation.Completed(new SocketAsyncState
             {
                 Exception = sourceException,
                 Opaque = operation.Opaque,
-                Status = (sourceException is SocketException) ?
-                   ResponseStatus.TransportFailure :
-                   ResponseStatus.ClientFailure
+                Status = status
             }).ContinueOnAnyContext();
         }
 
@@ -391,7 +411,7 @@ namespace Couchbase.IO.Services
                             m =>
                                 m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username,
                                     _saslMechanism.GetType(), _identity));
-                        throw new AuthenticationException(_saslMechanism.Username);
+                        throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
                     }
                 }
             }

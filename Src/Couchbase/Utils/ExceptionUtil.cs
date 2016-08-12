@@ -43,6 +43,8 @@ namespace Couchbase.Utils
 
         public static string InvalidOpCodeMsg = "Unknown status for opcode {0} and key {1}: {2}";
 
+        public const string FailedBucketAuthenticationMsg = "Authentication failed for bucket '{0}'";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

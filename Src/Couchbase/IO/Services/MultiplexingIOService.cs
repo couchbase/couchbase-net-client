@@ -19,13 +19,13 @@ namespace Couchbase.IO.Services
     /// </summary>
     public class MultiplexingIOService : IIOService
     {
-        private readonly static ILog Log = LogManager.GetLogger<MultiplexingIOService>();
+        private static readonly ILog Log = LogManager.GetLogger<MultiplexingIOService>();
         private readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
         private readonly Guid _identity = Guid.NewGuid();
         private IConnection _connection;
-        private object _syncObj = new object();
+        private readonly object _syncObj = new object();
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
@@ -108,6 +108,12 @@ namespace Couchbase.IO.Services
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
+            catch (AuthenticationException e)
+            {
+                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
+            }
             catch (Exception e)
             {
                 Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
@@ -156,6 +162,12 @@ namespace Couchbase.IO.Services
                 Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
+            }
+            catch (AuthenticationException e)
+            {
+                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
@@ -292,17 +304,24 @@ namespace Couchbase.IO.Services
             }
         }
 
-
-        async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
+        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
         {
             var sourceException = capturedException.SourceException;
+            var status = ResponseStatus.ClientFailure;
+            if (sourceException is SocketException)
+            {
+                status = ResponseStatus.TransportFailure;
+            }
+            else if (sourceException is AuthenticationException)
+            {
+                status = ResponseStatus.AuthenticationError;
+            }
+
             await operation.Completed(new SocketAsyncState
             {
                 Exception = sourceException,
                 Opaque = operation.Opaque,
-                Status = (sourceException is SocketException) ?
-                   ResponseStatus.TransportFailure :
-                   ResponseStatus.ClientFailure
+                Status = status
             }).ContinueOnAnyContext();
         }
 
@@ -327,7 +346,7 @@ namespace Couchbase.IO.Services
                             m =>
                                 m("Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
                                     SaslMechanism.GetType(), _identity, EndPoint));
-                        throw new AuthenticationException(SaslMechanism.Username);
+                        throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
                     }
                 }
             }
