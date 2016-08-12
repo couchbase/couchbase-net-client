@@ -125,6 +125,7 @@
     <Compile Include="Collections\CouchbaseListTests.cs" />
     <Compile Include="Collections\CouchbaseQueueTests.cs" />
     <Compile Include="Collections\CouchbaseSetTests.cs" />
+    <Compile Include="Authentication\AuthenticatorTests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_Multiplex_Tests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_KeyValue_Tests.cs" />
     <Compile Include="Configuration\Client\JsonConfiguration_Tests.cs" />

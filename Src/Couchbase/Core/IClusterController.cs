@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core.Transcoders;
@@ -21,9 +22,9 @@ namespace Couchbase.Core
 
         IConfigProvider GetProvider(string name);
 
-        IBucket CreateBucket(string bucketName);
+        IBucket CreateBucket(string bucketName, IClusterCredentials credentials = null);
 
-        IBucket CreateBucket(string bucketName, string password);
+        IBucket CreateBucket(string bucketName, string password, IClusterCredentials credentials = null);
 
         void DestroyBucket(IBucket bucket);
 

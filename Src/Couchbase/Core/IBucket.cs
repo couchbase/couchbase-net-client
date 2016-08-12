@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
@@ -1863,6 +1864,12 @@ namespace Couchbase.Core
         /// <param name="password">The administrators username</param>
         /// <returns>A <see cref="IBucketManager"/> instance.</returns>
         IBucketManager CreateManager(string username, string password);
+
+        /// <summary>
+        /// Creates a <see cref="IBucketManager"/> instance for managing buckets using the <see cref="IClusterCredentials"/> for authentication.
+        /// </summary>
+        /// <returns>A <see cref="IBucketManager"/> instance.</returns>
+        IBucketManager CreateManager();
 
         /// <summary>
         /// Returns true if bucket is using SSL encryption between the client and the server.

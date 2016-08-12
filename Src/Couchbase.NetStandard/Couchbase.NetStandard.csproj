@@ -37,8 +37,17 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Authentication\AuthContext.cs">
+      <Link>Authentication\AuthContext.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Authentication\AuthType.cs">
       <Link>Authentication\AuthType.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Authentication\ClusterCredentials.cs">
+      <Link>Authentication\ClusterCredentials.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Authentication\IClusterCredentials.cs">
+      <Link>Authentication\IClusterCredentials.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Authentication\SASL\CramMd5Mechanism.cs">
       <Link>Authentication\SASL\CramMd5Mechanism.cs</Link>

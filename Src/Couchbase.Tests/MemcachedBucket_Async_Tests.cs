@@ -65,8 +65,8 @@ namespace Couchbase.Tests
 
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(config);
-            mockController.Setup(x => x.CreateBucket("memcached", ""))
-                .Returns(new MemcachedBucket(mockController.Object, "memcached", _converter, _transcoder));
+            mockController.Setup(x => x.CreateBucket("memcached", "", null))
+                .Returns(new MemcachedBucket(mockController.Object, "memcached", _converter, _transcoder, null));
 
             var cluster = new Cluster(config, mockController.Object);
             var bucket = cluster.OpenBucket("memcached", "");

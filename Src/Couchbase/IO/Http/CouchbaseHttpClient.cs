@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Common.Logging;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 
@@ -13,7 +14,8 @@ namespace Couchbase.IO.Http
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseHttpClient>();
 
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
-            : this(CreateClientHandler(bucketConfig.Name, bucketConfig.Password, config))
+            : this(CreateClientHandler(bucketConfig.Name, config.HasCredentials ?
+                config.GetCredentials(bucketConfig.Name, AuthContext.BucketKv).Value : bucketConfig.Password, config))
         {
             DefaultRequestHeaders.ExpectContinue = config.Expect100Continue;
         }

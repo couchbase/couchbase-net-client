@@ -14,6 +14,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Couchbase.Authentication;
 
 namespace Couchbase.Core
 {
@@ -106,19 +107,36 @@ namespace Couchbase.Core
             }
         }
 
-        public IBucket CreateBucket(string bucketName)
+        public IBucket CreateBucket(string bucketName, IClusterCredentials credentials = null)
         {
-            //try to find a password in configuration
-            BucketConfiguration bucketConfig;
-            if (_clientConfig.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
-                && bucketConfig.Password != null)
+            var password = string.Empty;
+            if (credentials == null)
             {
-                return CreateBucket(bucketConfig.BucketName, bucketConfig.Password);
+                //try to find a password in configuration
+                BucketConfiguration bucketConfig;
+                if (_clientConfig.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
+                    && bucketConfig.Password != null)
+                {
+                    bucketName = bucketConfig.BucketName;
+                    password = bucketConfig.Password;
+                }
             }
-            return CreateBucket(bucketName, string.Empty);
+            else
+            {
+                var bucketCreds = credentials.GetCredentials(AuthContext.BucketKv, bucketName);
+                if (bucketCreds.ContainsKey(bucketName))
+                {
+                    password = bucketCreds[bucketName];
+                }
+                else
+                {
+                    throw new BucketNotFoundException(string.Format("Could not find credentials for bucket: {0}", bucketName));
+                }
+            }
+            return CreateBucket(bucketName, password, credentials);
         }
 
-        public IBucket CreateBucket(string bucketName, string password)
+        public IBucket CreateBucket(string bucketName, string password, IClusterCredentials credentials = null)
         {
             var exceptions = new List<Exception>();
             lock (_syncObject)
@@ -152,7 +170,7 @@ namespace Couchbase.Core
                         {
                             case NodeLocatorEnum.VBucket:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder));
+                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder, credentials));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -162,7 +180,7 @@ namespace Couchbase.Core
 
                             case NodeLocatorEnum.Ketama:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder));
+                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder, credentials));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {

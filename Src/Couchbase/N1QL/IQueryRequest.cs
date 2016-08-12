@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 

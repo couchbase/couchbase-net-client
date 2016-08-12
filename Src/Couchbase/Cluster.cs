@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Net.Http;
-using System.Reflection;
+using System.Linq;
+using System.Security.Authentication;
 using Common.Logging;
-using Couchbase.Configuration;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
@@ -31,6 +30,7 @@ namespace Couchbase
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
         private volatile bool _disposed;
+        private IClusterCredentials _credentials;
 
         /// <summary>
         /// Ctor for creating Cluster instance using the default settings.
@@ -104,7 +104,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket()
         {
-            return _clusterController.CreateBucket(DefaultBucket);
+            return _clusterController.CreateBucket(DefaultBucket, _credentials);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket(string bucketname, string password)
         {
-            return _clusterController.CreateBucket(bucketname, password);
+            return _clusterController.CreateBucket(bucketname, password, _credentials);
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace Couchbase
                 }
                 throw new ArgumentException("bucketname cannot be null, empty or whitespace.");
             }
-            return _clusterController.CreateBucket(bucketname);
+            return _clusterController.CreateBucket(bucketname, _credentials);
         }
 
         /// <summary>
@@ -181,6 +181,32 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Creates a <see cref="IClusterManager" /> object that uses the current <see cref="ICluster" /> configuration settings
+        /// and <see cref="IClusterCredentials" /> for authentication.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="IClusterManager" /> instance that uses the current <see cref="ICluster" /> configuration settings
+        /// and <see cref="IClusterCredentials" /> for authentication.
+        /// </returns>
+        /// <exception cref="AuthenticationException">
+        /// No credentials found. Please add them via <see cref="ICluster.Authenticate"/>.
+        /// </exception>
+        public IClusterManager CreateManager()
+        {
+            if (_credentials == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+
+            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            if (clusterCreds.Key == null || clusterCreds.Value == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+            return CreateManager(clusterCreds.Key, clusterCreds.Value);
+        }
+
+        /// <summary>
         /// Returns an object representing cluster status information.
         /// </summary>
         [Obsolete("Use CreateManager(user, password).ClusterInfo() instead")]
@@ -208,6 +234,17 @@ namespace Couchbase
         public bool IsOpen(string bucketName)
         {
             return _clusterController.IsObserving(bucketName);
+        }
+
+        /// <summary>
+        /// Authenticates the specified credentials.
+        /// </summary>
+        /// <param name="credentials">The credentials.</param>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public void Authenticate(IClusterCredentials credentials)
+        {
+            _credentials = credentials;
+            _configuration.Credentials = _credentials;
         }
 
         /// <summary>

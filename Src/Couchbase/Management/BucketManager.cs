@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
 using Couchbase.Core;
 using Couchbase.IO.Http;
 using Couchbase.Management.Indexes;

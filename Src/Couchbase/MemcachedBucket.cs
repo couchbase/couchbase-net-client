@@ -4,10 +4,12 @@
  using System.Linq;
  using System.Net.Http;
  using System.Runtime.CompilerServices;
+ using System.Security.Authentication;
  using System.Threading;
  using System.Threading.Tasks;
  using Common.Logging;
  using Couchbase.Annotations;
+ using Couchbase.Authentication;
  using Couchbase.Configuration;
  using Couchbase.Configuration.Client;
  using Couchbase.Configuration.Server.Providers;
@@ -41,6 +43,7 @@ namespace Couchbase
         private readonly uint _operationLifespanTimeout;
         private MemcachedRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
+        private IClusterCredentials _credentials;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -56,7 +59,7 @@ namespace Couchbase
         }
 
         internal MemcachedBucket(IClusterController clusterController, string bucketName, IByteConverter converter,
-            ITypeTranscoder transcoder)
+            ITypeTranscoder transcoder, IClusterCredentials credentials)
         {
             _clusterController = clusterController;
             _converter = converter;
@@ -69,6 +72,8 @@ namespace Couchbase
                 out bucketConfig)
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
+
+            _credentials = credentials;
         }
 
         /// <summary>
@@ -90,6 +95,30 @@ namespace Couchbase
         public ICluster Cluster
         {
             get { return _clusterController != null ? _clusterController.Cluster : null; }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="IBucketManager" /> instance for managing buckets using the <see cref="IClusterCredentials" /> for authentication.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="IBucketManager" /> instance.
+        /// </returns>
+        /// <exception cref="AuthenticationException">
+        /// No credentials found.
+        /// </exception>
+        public IBucketManager CreateManager()
+        {
+            if (_credentials == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+
+            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            if (clusterCreds.Key == null || clusterCreds.Value == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+            return CreateManager(clusterCreds.Key, clusterCreds.Value);
         }
 
         /// <summary>

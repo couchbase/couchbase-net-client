@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Http;
-using Couchbase.Tests.Core.Buckets;
 using Couchbase.Tests.Documents;
 using Couchbase.Tests.Utils;
 using Couchbase.Utils;

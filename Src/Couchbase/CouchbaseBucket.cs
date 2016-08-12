@@ -5,10 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Annotations;
+using Couchbase.Authentication;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -52,6 +54,7 @@ namespace Couchbase
         private readonly uint _operationLifespanTimeout;
         private IRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
+        private IClusterCredentials _credentials;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -64,7 +67,7 @@ namespace Couchbase
             public int Count;
         }
 
-        internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder)
+        internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder, IClusterCredentials credentials)
         {
             _clusterController = clusterController;
             _converter = converter;
@@ -76,6 +79,9 @@ namespace Couchbase
             _operationLifespanTimeout = _clusterController.Configuration.BucketConfigs.TryGetValue(bucketName, out bucketConfig)
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
+
+            //if ICluster.Authenticate was called.
+           _credentials = credentials;
         }
 
         /// <summary>
@@ -213,7 +219,7 @@ namespace Couchbase
         /// Checks for the existance of a given key as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key to check.</param>
-        ///  <returns>A <see cref="Task<IOperationResult<bool>>"/> object representing the asynchronous operation.</returns>
+        ///  <returns>A <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         internal async Task<IOperationResult<bool>> _ExistsAsync(string key)
         {
             CheckDisposed();
@@ -302,6 +308,30 @@ namespace Couchbase
                 new CouchbaseHttpClient(username, password),
                 username,
                 password);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="IBucketManager" /> instance for managing buckets using the <see cref="IClusterCredentials" /> for authentication.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="IBucketManager" /> instance.
+        /// </returns>
+        /// <exception cref="AuthenticationException">
+        /// No credentials found.
+        /// </exception>
+        public IBucketManager CreateManager()
+        {
+            if (_credentials == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+
+            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            if (clusterCreds.Key == null || clusterCreds.Value == null)
+            {
+                throw new AuthenticationException("No credentials found.");
+            }
+            return CreateManager(clusterCreds.Key, clusterCreds.Value);
         }
 
         /// <summary>

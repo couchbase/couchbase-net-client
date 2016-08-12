@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Couchbase.Authentication;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
@@ -364,6 +365,7 @@ namespace Couchbase.N1QL
         /// <remarks>The format for the querying is JSON</remarks>
         private async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
+            ApplyCredentials(queryRequest);
             var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json"))
@@ -456,6 +458,22 @@ namespace Couchbase.N1QL
         /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
         /// </summary>
         public HttpClient HttpClient { get; set; }
+
+        /// <summary>
+        /// Applies the credentials if they have been set by call <see cref="Cluster.Authenticate"/>.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        private void ApplyCredentials(IQueryRequest request)
+        {
+            if (_clientConfig.HasCredentials)
+            {
+                var creds = _clientConfig.GetCredentials(AuthContext.ClusterN1Ql);
+                foreach (var cred in creds)
+                {
+                    request.AddCredentials(cred.Key, cred.Value, false);
+                }
+            }
+        }
     }
 }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using Common.Logging;
+using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
@@ -13,7 +14,6 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.N1QL;
-using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -949,6 +949,20 @@ namespace Couchbase.Configuration.Client
                     bucketConfiguration.UpdateOperationLifespanDefault(_operationLifespan);
                 }
             }
+        }
+
+        internal IClusterCredentials Credentials { get; set; }
+
+        internal bool HasCredentials { get { return Credentials != null; } }
+
+        internal KeyValuePair<string, string> GetCredentials(string userName, AuthContext context)
+        {
+            return Credentials.GetCredentials(context, userName).FirstOrDefault();
+        }
+
+        internal IDictionary<string, string> GetCredentials(AuthContext context)
+        {
+            return Credentials.GetCredentials(context);
         }
     }
 }

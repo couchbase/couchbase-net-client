@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using System.Net;
+using Couchbase.Authentication;
 using Couchbase.Core;
 using Couchbase.Views;
 
@@ -83,7 +84,9 @@ namespace Couchbase.N1QL
             public const string Readonly = "readonly";
             public const string Metrics = "metrics";
             public const string Args = "args";
+            // ReSharper disable once UnusedMember.Local
             public const string BatchArgs = "batch_args";
+            // ReSharper disable once UnusedMember.Local
             public const string BatchNamedArgs = "batch_named_args";
             public const string Format = "format";
             public const string Encoding = "encoding";
@@ -145,7 +148,9 @@ namespace Couchbase.N1QL
         /// <summary>
         /// Provides a means of ensuring "read your own writes" or RYOW consistency on the current query.
         /// </summary>
+#pragma warning disable 618
         /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="N1QL.ScanConsistency.AtPlus"/>.</remarks>
+#pragma warning restore 618
         /// <param name="mutationState">State of the mutation.</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         public IQueryRequest ConsistentWith(MutationState mutationState)
@@ -797,8 +802,18 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
+        /// Gets or sets the credentials.
+        /// </summary>
+        /// <value>
+        /// The credentials.
+        /// </value>
+        public IClusterCredentials Credentials { get; set; }
+
+        /// <summary>
         /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
+#pragma warning disable 1584,1711,1572,1581,1580
         /// configured for it in <see cref="ClientConfiguration.QueryRequestTimeout" />
+#pragma warning restore 1584,1711,1572,1581,1580
         /// </summary>
         /// <value>
         /// The lifespan.
@@ -806,7 +821,9 @@ namespace Couchbase.N1QL
         Lifespan IQueryRequest.Lifespan { get; set; }
 
         /// <summary>
+#pragma warning disable 1584,1711,1572,1581,1580
         /// True if the request exceeded it's <see cref="ClientConfiguration.QueryRequestTimeout" />
+#pragma warning restore 1584,1711,1572,1581,1580
         /// </summary>
         /// <returns></returns>
         bool IQueryRequest.TimedOut()

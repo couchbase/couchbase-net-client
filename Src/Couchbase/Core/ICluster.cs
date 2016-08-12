@@ -1,5 +1,6 @@
 ﻿
 using System;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Management;
 
@@ -44,6 +45,13 @@ namespace Couchbase.Core
         IClusterManager CreateManager(string username, string password);
 
         /// <summary>
+        /// Creates a <see cref="IClusterManager"/> object that uses the current <see cref="ICluster"/> configuration settings.
+        /// </summary>
+        /// <returns>A <see cref="IClusterManager"/> instance that uses the current <see cref="ICluster"/> configuration settings
+        /// and <see cref="IClusterCredentials"/> for authentication. </returns>
+        IClusterManager CreateManager();
+
+        /// <summary>
         /// Returns an object which implements IClusterInfo. This object contains various server
         /// stats and information.
         /// </summary>
@@ -58,6 +66,12 @@ namespace Couchbase.Core
         /// <param name="bucketName">The name of the bucket to check.</param>
         /// <returns>True if the <see cref="IBucket"/> has been opened and the cluster is registered as an observer.</returns>
         bool IsOpen(string bucketName);
+
+        /// <summary>
+        /// Authenticates the specified credentials.
+        /// </summary>
+        /// <param name="credentials">The credentials.</param>
+        void Authenticate(IClusterCredentials credentials);
     }
 }
 

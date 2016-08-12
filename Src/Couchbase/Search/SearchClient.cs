@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Http;
 using Couchbase.Utils;
@@ -19,11 +18,18 @@ namespace Couchbase.Search
     /// A client for making FTS <see cref="IFtsQuery"/> requests and mapping the responses to <see cref="ISearchQueryResult"/>'s.
     /// </summary>
     /// <seealso cref="Couchbase.Search.ISearchClient" />
-    public class SearchClient : ISearchClient
+    public class SearchClient : ISearchClient, IDisposable
     {
         private static readonly ILog Log = LogManager.GetLogger<SearchClient>();
         private readonly IBucketConfig _bucketConfig;
         private readonly ClientConfiguration _clientConfig;
+        private readonly HttpClient _httpClient;
+
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper)
+        {
+            _httpClient = httpClient;
+            DataMapper = dataMapper;
+        }
 
         public SearchClient(IBucketConfig bucketConfig, ClientConfiguration clientConfig, IDataMapper dataMapper)
         {
@@ -58,10 +64,9 @@ namespace Couchbase.Search
 
             try
             {
-                using (var httpClient = CreateHttpClient())
                 using (var content = new StringContent(searchBody, Encoding.UTF8, "application/json"))
-                using (var response = await httpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
-                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var response = await _httpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
+                using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {
                     if (response.IsSuccessStatusCode)
                     {
@@ -75,7 +80,7 @@ namespace Couchbase.Search
 
                         using (var reader = new StreamReader(stream))
                         {
-                            searchResult.Errors.Add(reader.ReadToEnd());
+                            searchResult.Errors.Add(await reader.ReadToEndAsync().ContinueOnAnyContext());
                         }
                         if (response.StatusCode == HttpStatusCode.NotFound)
                         {
@@ -142,6 +147,11 @@ namespace Couchbase.Search
             {
                 Timeout = TimeSpan.FromMilliseconds(_clientConfig.SearchRequestTimeout)
             };
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }

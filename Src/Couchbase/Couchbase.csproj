@@ -69,7 +69,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\AuthContext.cs" />
     <Compile Include="Authentication\AuthType.cs" />
+    <Compile Include="Authentication\ClusterCredentials.cs" />
+    <Compile Include="Authentication\IClusterCredentials.cs" />
     <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\MechanismType.cs" />
@@ -225,6 +228,7 @@
     <Compile Include="IO\BufferUnavailableException.cs" />
     <Compile Include="IO\Http\AuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\Http\CouchbaseHttpClient.cs" />
+    <Compile Include="IO\Http\NonAuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />

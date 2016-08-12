@@ -49,16 +49,19 @@ namespace Couchbase.Core
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
             this(ioService,
-                    new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
-                    {
-                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration)),
-                    new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
-                    {
-                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
-                    new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
-                    nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+                new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                {
+                    Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
+                }, new JsonDataMapper(clientConfiguration)),
+                new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                {
+                    Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
+                }, new JsonDataMapper(clientConfiguration), clientConfiguration),
+                new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                {
+                    Timeout = new TimeSpan(0, 0, 0, 0, (int) clientConfiguration.SearchRequestTimeout)
+                }, new SearchDataMapper()),
+                nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 

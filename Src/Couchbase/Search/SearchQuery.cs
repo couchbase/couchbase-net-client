@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.Authentication;
 using Couchbase.N1QL;
 using Newtonsoft.Json.Linq;
 
@@ -13,6 +14,14 @@ namespace Couchbase.Search
         {
             SearchParams = new SearchParams();
         }
+
+        /// <summary>
+        /// Gets or sets the credentials.
+        /// </summary>
+        /// <value>
+        /// The credentials.
+        /// </value>
+        internal IClusterCredentials Credentials { get; set; }
 
         /// <summary>
         /// The virtual path template for the API
