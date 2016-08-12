@@ -64,6 +64,11 @@ namespace Couchbase.IO.Operations.Authentication
 
             return header;
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }
 

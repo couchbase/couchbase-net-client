@@ -52,5 +52,10 @@ namespace Couchbase.Tests.Fakes
             };
             return cloned;
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }

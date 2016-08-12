@@ -1306,7 +1306,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
-            var operation = new Prepend<string>(key, value, _transcoder, null,  _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, null,  _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1318,7 +1318,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<byte[]> Prepend(string key, byte[] value)
         {
-            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2400,7 +2400,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> PrependAsync(string key, string value)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, _transcoder, null, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2413,7 +2413,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 

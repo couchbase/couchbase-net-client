@@ -29,5 +29,10 @@ namespace Couchbase.IO.Operations
         {
             return CreateHeader(new byte[0], new byte[0], null);
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }

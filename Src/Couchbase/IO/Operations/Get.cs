@@ -82,6 +82,11 @@ namespace Couchbase.IO.Operations
         {
             return true;
         }
+
+        public override bool RequiresKey
+        {
+            get { return true; }
+        }
     }
 }
 

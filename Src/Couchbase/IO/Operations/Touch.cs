@@ -53,5 +53,9 @@ namespace Couchbase.IO.Operations
             return cloned;
         }
 
+        public override bool RequiresKey
+        {
+            get { return true; }
+        }
     }
 }

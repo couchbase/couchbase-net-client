@@ -109,6 +109,11 @@ namespace Couchbase.IO.Operations.EnhancedDurability
             };
             return cloned;
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }
 

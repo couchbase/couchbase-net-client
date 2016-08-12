@@ -13,6 +13,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -29,6 +30,11 @@ namespace Couchbase.IO.Operations
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
+            if (RequiresKey && string.IsNullOrWhiteSpace(key))
+            {
+                throw new MissingKeyException();
+            }
+
             Key = key;
             Transcoder = transcoder;
             Opaque = opaque;
@@ -504,6 +510,11 @@ namespace Couchbase.IO.Operations
         public virtual byte[] BodyBytes { get; protected set; }
 
         public virtual short PathLength { get; protected set; }
+
+        public virtual bool RequiresKey
+        {
+            get { return true; }
+        }
     }
 
 #endregion

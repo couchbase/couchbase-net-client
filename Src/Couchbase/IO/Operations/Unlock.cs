@@ -6,7 +6,7 @@ namespace Couchbase.IO.Operations
 {
     internal class Unlock : OperationBase
     {
-        public Unlock(string key, ITypeTranscoder transcoder, IVBucket vBucket, uint timeout)
+        public Unlock(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
         {
         }
@@ -18,7 +18,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Unlock(Key, Transcoder, VBucket, Timeout)
+            var cloned = new Unlock(Key, VBucket, Transcoder, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
@@ -27,6 +27,11 @@ namespace Couchbase.IO.Operations
                 LastConfigRevisionTried = LastConfigRevisionTried
             };
             return cloned;
+        }
+
+        public override bool RequiresKey
+        {
+            get { return true; }
         }
     }
 }

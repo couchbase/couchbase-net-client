@@ -87,6 +87,11 @@ namespace Couchbase.IO.Operations
             }
             return bucketConfig;
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }
 

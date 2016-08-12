@@ -309,10 +309,10 @@ namespace Couchbase.Tests.IO.Operations
             var set4 = new Set<string>("thekey", "the value", null, Transcoder, OperationLifespanTimeout);
             Assert.Greater(set4.Opaque, set3.Opaque);
 
-            var append5 = new Append<string>(null, null, null, Transcoder, OperationLifespanTimeout);
+            var append5 = new Append<string>("thekey", null, null, Transcoder, OperationLifespanTimeout);
             Assert.Greater(append5.Opaque, set4.Opaque);
 
-            var append6 = new Append<byte[]>(null, null, null, Transcoder, OperationLifespanTimeout);
+            var append6 = new Append<byte[]>("thekey", null, null, Transcoder, OperationLifespanTimeout);
             Assert.Greater(append6.Opaque, append5.Opaque);
         }
 

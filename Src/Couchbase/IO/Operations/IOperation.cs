@@ -15,6 +15,8 @@ namespace Couchbase.IO.Operations
 
         string Key { get; }
 
+        bool RequiresKey { get; }
+
         Exception Exception { get; set; }
 
         int BodyOffset { get; }

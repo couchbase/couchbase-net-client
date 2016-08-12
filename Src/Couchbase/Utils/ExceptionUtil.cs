@@ -45,6 +45,8 @@ namespace Couchbase.Utils
 
         public const string FailedBucketAuthenticationMsg = "Authentication failed for bucket '{0}'";
 
+        public const string EmptyKeyErrorMsg = "Key cannot be null or empty.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

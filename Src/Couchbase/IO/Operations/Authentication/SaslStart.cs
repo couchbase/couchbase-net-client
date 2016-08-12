@@ -106,6 +106,11 @@ namespace Couchbase.IO.Operations.Authentication
             get { return 24; }
         }
 
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
+
         /*Field (offset) (value)
             Magic (0): 0x80 (PROTOCOL_BINARY_REQ)
             Opcode (1): 0x21 (sasl auth)

@@ -1559,7 +1559,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<string>(key, value, _transcoder, vBucket, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1645,7 +1645,7 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<byte[]>(key, value, _transcoder, vBucket, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, _operationLifespanTimeout);
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1664,7 +1664,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> PrependAsync(string key, string value)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, _transcoder, null, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1677,7 +1677,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, _transcoder, null, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2706,7 +2706,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
         public IOperationResult Unlock(string key, ulong cas)
         {
-            var unlock = new Unlock(key, _transcoder, null, _operationLifespanTimeout)
+            var unlock = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };
@@ -2722,7 +2722,7 @@ namespace Couchbase
         public Task<IOperationResult> UnlockAsync(string key, ulong cas)
         {
             CheckDisposed();
-            var operation = new Unlock(key, _transcoder, null, _operationLifespanTimeout)
+            var operation = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas
             };

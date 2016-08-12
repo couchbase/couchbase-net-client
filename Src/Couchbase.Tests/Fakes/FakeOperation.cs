@@ -41,6 +41,11 @@ namespace Couchbase.Tests.Fakes
         {
             get { return OperationCode.Get; }
         }
+
+        public override bool RequiresKey
+        {
+            get { return false; }
+        }
     }
 }
 

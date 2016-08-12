@@ -487,6 +487,9 @@
     <Compile Include="..\Couchbase\IO\IOBuffer.cs">
       <Link>IO\IOBuffer.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\IO\MissingKeyException.cs">
+      <Link>IO\MissingKeyException.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\IO\Operations\SubDocument\MultiLookup.cs">
       <Link>IO\Operations\SubDocument\MultiLookup.cs</Link>
     </Compile>

@@ -41,6 +41,11 @@ namespace Couchbase.IO.Operations
         {
             get { return HeaderLength + Header.ExtrasLength; }
         }
+
+        public override bool RequiresKey
+        {
+            get { return true; }
+        }
     }
 }
 
