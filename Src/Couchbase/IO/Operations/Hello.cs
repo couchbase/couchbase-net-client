@@ -2,11 +2,14 @@
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
     internal class Hello : OperationBase<short[]>
     {
+        private const string KeyFormat = "couchbase-net-sdk/{0}";
+
         public override OperationCode OperationCode
         {
             get { return OperationCode.Hello; }
@@ -14,6 +17,11 @@ namespace Couchbase.IO.Operations
 
         public Hello(string key, short[] value, ITypeTranscoder transcoder, uint opaque, uint timeout)
             : base(key, value, null, transcoder, opaque, timeout)
+        {
+        }
+
+        public Hello(short[] value, ITypeTranscoder transcoder, uint opaque, uint timeout)
+            : base(string.Format(KeyFormat, CurrentAssembly.Version), value, null, transcoder, opaque, timeout)
         {
         }
 

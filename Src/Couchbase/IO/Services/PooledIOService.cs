@@ -403,40 +403,43 @@ namespace Couchbase.IO.Services
         /// <param name="connection">The connection.</param>
         private void EnableEnhancedDurability(IConnection connection)
         {
+            var features = new List<short>();
+
             var config = ConnectionPool.Configuration;
             if (config.UseEnhancedDurability)
             {
-                var features = new List<short> {(short) ServerFeatures.MutationSeqno};
-                var key = string.Format("couchbase-net-sdk/{0}", CurrentAssembly.Version);
-                var hello = new Hello(key, features.ToArray(), new DefaultTranscoder(), 0, 0);
+                features.Add((short) ServerFeatures.MutationSeqno);
+                var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
 
                 var result = Execute(hello, connection);
-                if (result.Success && result.Value.Contains(features.First()))
+                if (result.Success)
                 {
-                    SupportsEnhancedDurability = true;
+                    SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
+                }
+                else
+                {
+                    LogFailedHelloOperation(result);
+                }
+            }
+            else
+            {
+                var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
+
+                var result = Execute(hello, connection);
+                if (!result.Success)
+                {
+                    LogFailedHelloOperation(result);
                 }
             }
         }
 
         /// <summary>
-        /// Enables enhanced durability if it is configured and supported by the server.
+        /// Logs a failed HELO operation
         /// </summary>
-        /// <param name="connection">The connection.</param>
-        private void EnableEnhancedDurabilityAsync(IConnection connection)
+        /// <param name="result"></param>
+        private static void LogFailedHelloOperation(IResult result)
         {
-            var config = ConnectionPool.Configuration;
-            if (config.UseEnhancedDurability)
-            {
-                var features = new List<short> { (short)ServerFeatures.MutationSeqno };
-                var key = string.Format("couchbase-net-sdk/{0}", CurrentAssembly.Version);
-                var hello = new Hello(key, features.ToArray(), new DefaultTranscoder(), 0, 0);
-
-                var result = Execute(hello, connection);
-                if (result.Success && result.Value.Contains(features.First()))
-                {
-                    SupportsEnhancedDurability = true;
-                }
-            }
+            Log.Debug(m => m(string.Format("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception)));
         }
 
         /// <summary>
