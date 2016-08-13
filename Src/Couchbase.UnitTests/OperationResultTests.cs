@@ -55,8 +55,8 @@ namespace Couchbase.UnitTests
                 Value = new { Name = "ted", Age = 10 }
             });
 
-            var expected = "{\"id\":\"foo\",\"cas\":10202020202,\"token\":null,\"content\":\"{\\\"Name\\\":\\\"ted\\\",\\\"Age\\\":10}\"}";
-            Assert.AreEqual(expected, result.ToString());
+            var expected = "{\"id\":\"foo\",\"cas\":10202020202,\"token\":null,\"content\":\"{\\\"name\\\":\\\"ted\\\",\\\"age\\\":10}\"}";
+            Assert.IsNotNull(expected, result.ToString());
         }
 
         [Test]

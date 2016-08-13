@@ -52,6 +52,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper);
+            configInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 
@@ -94,6 +95,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper);
+            configInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 
@@ -136,6 +138,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper);
+            configInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 
@@ -178,6 +181,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.IsDataCapable).Returns(true);
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper);
+            configInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 

@@ -85,40 +85,71 @@ namespace Couchbase.UnitTests.Utils
         [Test]
         public void Test_Shuffle_On_List()
         {
-            bool different = false;
-            var array1 = new List<char> {'a', 'b', 'c', 'd'};
-            var array2 = array1.Shuffle();
-            for (int i = 0; i < array1.Count; i++)
+            var savedRandom = ArrayExtensions.Random;
+            try
             {
-                different = array1[i] == array2[i];
-                if (different)
+                // Use a random number generator with a known seed for consistency
+                ArrayExtensions.Random = new Random(500);
+
+                bool different = false;
+                var array1 = new List<char> {'a', 'b', 'c', 'd'};
+                var array2 = array1.Shuffle();
+                for (int i = 0; i < array1.Count; i++)
                 {
-                    break;
+                    different = array1[i] == array2[i];
+                    if (different)
+                    {
+                        break;
+                    }
                 }
+                Assert.IsTrue(different);
             }
-            Assert.IsTrue(different);
+            finally
+            {
+                ArrayExtensions.Random = savedRandom;
+            }
         }
 
         [Test]
         public void Test_GetRandom()
         {
-            var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
-            var random1 = array1.GetRandom();
-            var random2 = array1.GetRandom();
+            var savedRandom = ArrayExtensions.Random;
+            try
+            {
+                // Use a random number generator with a known seed for consistency
+                ArrayExtensions.Random = new Random(500);
 
-            //note strong chance of collisions...
-            Assert.AreNotEqual(random1, random2);
+                var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
+                var random1 = array1.GetRandom();
+                var random2 = array1.GetRandom();
+
+                Assert.AreNotEqual(random1, random2);
+            }
+            finally
+            {
+                ArrayExtensions.Random = savedRandom;
+            }
         }
 
         [Test]
         public void Test_GetRandom_IEnumerable()
         {
-            var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
-            var random1 = array1.Where(x=>x !='c').GetRandom();
-            var random2 = array1.Where(x => x != 'c').GetRandom();
+            var savedRandom = ArrayExtensions.Random;
+            try
+            {
+                // Use a random number generator with a known seed for consistency
+                ArrayExtensions.Random = new Random(500);
 
-            //note strong chance of collisions...
-            Assert.AreNotEqual(random1, random2);
+                var array1 = new List<char> { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p' };
+                var random1 = array1.Where(x=>x !='c').GetRandom();
+                var random2 = array1.Where(x => x != 'c').GetRandom();
+
+                Assert.AreNotEqual(random1, random2);
+            }
+            finally
+            {
+                ArrayExtensions.Random = savedRandom;
+            }
         }
 
         [Test]

@@ -15,6 +15,12 @@ namespace Couchbase.UnitTests.Core.Serialization
     [TestFixture]
     public class DefaultSerializerTests
     {
+        private Func<JsonSerializerSettings> _savedSerializerSettings;
+        public void OneTimeSetUp()
+        {
+            _savedSerializerSettings = JsonConvert.DefaultSettings;
+        }
+
         #region DeserializationOptions
 
         [Test]
@@ -279,5 +285,11 @@ namespace Couchbase.UnitTests.Core.Serialization
         }
 
         #endregion
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown_CleanUpJsonConvert()
+        {
+            JsonConvert.DefaultSettings = _savedSerializerSettings;
+        }
     }
 }

@@ -8,7 +8,10 @@ namespace Couchbase.Utils
 {
     public static class ArrayExtensions
     {
-        private static readonly Random Random = new Random();
+        /// <summary>
+        /// Provides random number generation for array randomization
+        /// </summary>
+        internal static Random Random = new Random();
 
         public static void Shuffle(this Array array)
         {
