@@ -4,18 +4,15 @@ using Couchbase.Views;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.IO.Http;
 using Couchbase.Management.Indexes;
 using Couchbase.N1QL;
 using Couchbase.Utils;
-using Encoding = System.Text.Encoding;
 
 namespace Couchbase.Management
 {
@@ -29,16 +26,20 @@ namespace Couchbase.Management
         private readonly string _username;
         private readonly string _password;
         private readonly IBucket _bucket;
+        private readonly HttpClient _httpClient;
 
-        internal BucketManager(IBucket bucket, ClientConfiguration clientConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
+        private const string MediaTypeJson = "application/json";
+        private const string MediaTypeForm = "application/x-www-form-urlencoded";
+
+        internal BucketManager(IBucket bucket, ClientConfiguration clientConfig, IDataMapper mapper, HttpClient httpClient, string username, string password)
         {
             _bucket = bucket;
             BucketName = bucket.Name;
             _clientConfig = clientConfig;
             Mapper = mapper;
-            HttpClient = httpClient;
             _password = password;
             _username = username;
+            _httpClient = httpClient;
         }
 
         /// <summary>
@@ -55,8 +56,6 @@ namespace Couchbase.Management
             public static string CreateIndexWithFields = "CREATE INDEX {0} ON {1}({2}) USING GSI WITH {{\"defer_build\":{3}}};";
             public static string BuildIndexes = "BUILD INDEX ON {0}({1}) USING GSI;";
         }
-
-        public HttpClient HttpClient { get; private set; }
 
         public IDataMapper Mapper { get; private set; }
 
@@ -335,8 +334,8 @@ namespace Couchbase.Management
             var results = new List<IResult>();
             var indexes = ListN1qlIndexes();
 
-            // ReSharper disable once LoopCanBeConvertedToQuery
             var deferredIndexes = indexes.Where(x => x.State == "pending" || x.State == "deferred").ToList();
+            // ReSharper disable once LoopCanBeConvertedToQuery
             foreach (var index in deferredIndexes)
             {
                 var statement = string.Format(Statements.BuildIndexes, BucketName.N1QlEscape(), index.Name.N1QlEscape());
@@ -407,29 +406,20 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var client = CreateAuthenticatedHttpClient())
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+
+                var request = new HttpRequestMessage(HttpMethod.Put, uri)
                 {
-                    var server = _clientConfig.Servers.First();
-                    const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                    var protocol = UseSsl() ? "https" : "http";
-                    var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                    Content = new StringContent(designDoc)
+                };
+                SetHeaders(request, uri, MediaTypeJson);
 
-                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                    client.DefaultRequestHeaders.Accept.Add(contentType);
-                    client.DefaultRequestHeaders.Host = uri.Authority;
-
-                    var request = new HttpRequestMessage(HttpMethod.Put, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                    request.Content = new StringContent(designDoc);
-                    request.Content.Headers.ContentType = contentType;
-
-                    var response = await client.PutAsync(uri, request.Content).ContinueOnAnyContext();
-
-                    result = await GetResult(response).ContinueOnAnyContext();
-                }
+                var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
+                result = await GetResult(response).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -484,25 +474,17 @@ namespace Couchbase.Management
             IResult<string> result;
             try
             {
-                using (var client = CreateAuthenticatedHttpClient())
-                {
-                    var server = _clientConfig.Servers.First();
-                    const string api = "{0}://{1}:{2}/{3}/_design/{4}";
-                    var protocol = UseSsl() ? "https" : "http";
-                    var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
-                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/{3}/_design/{4}";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
-                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                    client.DefaultRequestHeaders.Accept.Add(contentType);
-                    client.DefaultRequestHeaders.Host = uri.Authority;
-                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                SetHeaders(request, uri, MediaTypeForm);
 
-                    var response = await client.GetAsync(uri).ContinueOnAnyContext();
-
-                    result = await GetResultAsString(response).ContinueOnAnyContext();
-                }
+                var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
+                result = await GetResultAsString(response).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -534,25 +516,17 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var client = CreateAuthenticatedHttpClient())
-                {
                     var server = _clientConfig.Servers.First();
                     const string api = "{0}://{1}:{2}/{3}/_design/{4}";
                     var protocol = UseSsl() ? "https" : "http";
                     var port = UseSsl() ? _clientConfig.SslPort : _clientConfig.ApiPort;
                     var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
-                    var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                    client.DefaultRequestHeaders.Accept.Add(contentType);
-                    client.DefaultRequestHeaders.Host = uri.Authority;
                     var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                    SetHeaders(request, uri, MediaTypeForm);
 
-                    var response = await client.DeleteAsync(uri).ContinueOnAnyContext();
-
+                    var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                     result = await GetResult(response).ContinueOnAnyContext();
-                }
             }
             catch (AggregateException e)
             {
@@ -586,25 +560,17 @@ namespace Couchbase.Management
             IResult<string> result;
             try
             {
-                using (var client = CreateAuthenticatedHttpClient())
-                {
-                    var server = _clientConfig.Servers.First();
-                    const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
-                    var protocol = UseSsl() ? "https" : "http";
-                    var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/ddocs";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
 
-                    var contentType = new MediaTypeWithQualityHeaderValue("application/json");
-                    client.DefaultRequestHeaders.Accept.Add(contentType);
-                    client.DefaultRequestHeaders.Host = uri.Authority;
-                    var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                SetHeaders(request, uri, MediaTypeJson);
 
-                    var response = await client.GetAsync(uri).ContinueOnAnyContext();
-
-                    result = await GetResultAsString(response).ContinueOnAnyContext();
-                }
+                var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
+                result = await GetResultAsString(response).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -635,32 +601,24 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var client = CreateAuthenticatedHttpClient())
+                var server = _clientConfig.Servers.First();
+                const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
+                var protocol = UseSsl() ? "https" : "http";
+                var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+                var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    var server = _clientConfig.Servers.First();
-                    const string api = "{0}://{1}:{2}/pools/default/buckets/{3}/controller/doFlush";
-                    var protocol = UseSsl() ? "https" : "http";
-                    var port = UseSsl() ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
-                    var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
-
-                    var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                    client.DefaultRequestHeaders.Accept.Add(contentType);
-                    client.DefaultRequestHeaders.Host = uri.Authority;
-                    var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
                         {"user", _username},
                         {"password", _password}
-                    });
-                    request.Content.Headers.ContentType = contentType;
+                    })
+                };
+                SetHeaders(request, uri, MediaTypeForm);
 
-                    var response = await client.PostAsync(uri, request.Content).ContinueOnAnyContext();
-
-                    result = await GetResult(response).ContinueOnAnyContext();
-                }
+                var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
+                result = await GetResult(response).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -710,10 +668,23 @@ namespace Couchbase.Management
 
         protected internal virtual HttpClient CreateAuthenticatedHttpClient()
         {
-            return new HttpClient(new HttpClientHandler
+            return new CouchbaseHttpClient(_username, _password);
+        }
+
+        void SetHeaders(HttpRequestMessage request, Uri uri, string mediaType)
+        {
+            var contentType = new MediaTypeWithQualityHeaderValue(mediaType);
+            if (request.Content != null)
             {
-                Credentials = new NetworkCredential(_username, _password)
-            });
+                request.Content.Headers.ContentType = contentType;
+            }
+            request.Headers.Accept.Add(contentType);
+            request.Headers.Host = uri.Authority;
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

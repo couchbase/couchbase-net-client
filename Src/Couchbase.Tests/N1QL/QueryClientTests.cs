@@ -24,8 +24,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Create_Index()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
 
             var indexes = client.Query<dynamic>(new QueryRequest("SELECT name FROM system:keyspaces").BaseUri(uri));
@@ -50,8 +49,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_HelloWorld()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest("SELECT 'Hello World' AS Greeting").BaseUri(uri);
 
@@ -63,8 +61,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_HelloWorld_BareStringRequet()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = "SELECT 'Hello World' AS Greeting";
 
@@ -76,8 +73,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_HelloWorld_Async()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest("SELECT 'Hello World' AS Greeting").BaseUri(uri);
 
@@ -93,8 +89,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_HelloWorld_AsyncBareStringRequet()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = "SELECT 'Hello World' AS Greeting";
 
@@ -110,8 +105,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_Incorrect_Syntax()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest("SELECT 'Hello World' ASB Greeting").BaseUri(uri);
 
@@ -124,8 +118,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_Select_Where_Type_Is_Beer_As_Poco()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest(
                 "SELECT abv, brewery_id, category, description, ibu, name, srm, style, type, upc, updated " +
@@ -144,8 +137,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_Select_All()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest("SELECT * FROM `beer-sample` as d LIMIT 10").BaseUri(uri);
 
@@ -158,8 +150,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_Select_All_Where_Type_Is_Beer()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var uri = new Uri(string.Format("http://{0}:8093/query", _server));
             var query = new QueryRequest("SELECT type, meta FROM `beer-sample` as d WHERE d.type='beer' LIMIT 10")
                 .BaseUri(uri);
@@ -173,8 +164,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_POST_Positional_Parameters()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
@@ -192,8 +182,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void Test_Query_POST_Named_Parameters()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
@@ -212,14 +201,13 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public async Task Test_QueryAsync_POST_Named_Parameters()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$type LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddNamedParameter("type", "beer");
 
-            var result = await client.QueryAsync<dynamic>(request);
+            var result = await client.QueryAsync<dynamic>(request).ContinueOnAnyContext();
             Assert.AreEqual(QueryStatus.Success, result.Status);
             Assert.AreEqual(10, result.Rows.Count);
             foreach (var row in result.Rows)
@@ -231,14 +219,13 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public async Task Test_QueryAsync_POST_Positional_Parameters()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var request = QueryRequest.Create("SELECT * from `beer-sample` WHERE type=$1 LIMIT 10").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false).
                 AddPositionalParameter("beer");
 
-            var result = await client.QueryAsync<dynamic>(request);
+            var result = await client.QueryAsync<dynamic>(request).ContinueOnAnyContext();
             Assert.AreEqual(QueryStatus.Success, result.Status);
             Assert.AreEqual(10, result.Rows.Count);
             foreach (var row in result.Rows)
@@ -250,10 +237,9 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void When_AdHoc_Is_False_Client_Uses_Prepared_Statement()
         {
-            var config = new ClientConfiguration();
             var serverUri = new Uri(string.Format("http://{0}:8093/query", _server));
             const string statement = "SELECT * from `beer-sample` LIMIT 100";
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var normalRequest = QueryRequest.Create(statement).
                 BaseUri(serverUri).
                 Pretty(false);
@@ -298,8 +284,7 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void When_AdHoc_Is_True_Client_Doesnt_Cache()
         {
-            var config = new ClientConfiguration();
-            var client = new QueryClient(new HttpClient(), new JsonDataMapper(config), new BucketConfig(), config);
+            var client = GetQueryClient();
             var request = QueryRequest.Create("SELECT * from `beer-sample` LIMIT 100").
                 BaseUri(new Uri(string.Format("http://{0}:8093/query", _server))).
                 Pretty(false);
@@ -397,6 +382,12 @@ namespace Couchbase.Tests.N1QL
             };
 
             Assert.IsFalse(QueryClient.CheckRetry(requestAdhocRetried, response));
+        }
+
+        public static IQueryClient GetQueryClient()
+        {
+            var config = new ClientConfiguration();
+            return new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
         }
     }
 }

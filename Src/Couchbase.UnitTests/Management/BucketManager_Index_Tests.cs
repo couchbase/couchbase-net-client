@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.IO.Http;
 using Couchbase.Management;
 using Couchbase.Management.Indexes;
 using Couchbase.N1QL;
@@ -343,13 +344,13 @@ namespace Couchbase.UnitTests.Management
 
     public class TestableBucketManager : BucketManager
     {
-        public TestableBucketManager(IBucket bucket, ClientConfiguration clientConfig, HttpClient httpClient,
-            IDataMapper mapper, string username, string password)
-            : base(bucket, clientConfig, httpClient, mapper, username, password)
+        public TestableBucketManager(IBucket bucket, ClientConfiguration clientConfig,
+            IDataMapper mapper, HttpClient httpClient, string username, string password)
+            : base(bucket, clientConfig, mapper, httpClient, username, password)
         {
         }
 
-        public TestableBucketManager(IBucket bucket) : base(bucket, null, null, null, null, null)
+        public TestableBucketManager(IBucket bucket) : base(bucket, null, null,  null, null, null)
         {
         }
 

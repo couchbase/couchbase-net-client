@@ -27,12 +27,13 @@ namespace Couchbase.Management
     /// </summary>
     public class ClusterManager : IClusterManager
     {
-        private readonly static ILog Log = LogManager.GetLogger<ClusterManager>();
+        private static readonly ILog Log = LogManager.GetLogger<ClusterManager>();
         private readonly ClientConfiguration _clientConfig;
         private readonly IServerConfig _serverConfig;
         private readonly string _username;
         private readonly string _password;
         const string Localhost = "127.0.0.1";
+        private readonly HttpClient _httpClient;
 
         static readonly List<CouchbaseService> Services = new List<CouchbaseService>
         {
@@ -41,18 +42,16 @@ namespace Couchbase.Management
             CouchbaseService.N1QL
         };
 
-        internal ClusterManager(ClientConfiguration clientConfig, IServerConfig serverConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
+        internal ClusterManager(ClientConfiguration clientConfig, IServerConfig serverConfig,
+            IDataMapper mapper, HttpClient httpClient, string username, string password)
         {
             _clientConfig = clientConfig;
             _serverConfig = serverConfig;
             Mapper = mapper;
-            HttpClient = httpClient;
             _password = password;
             _username = username;
+            _httpClient = httpClient;
         }
-
-
-        public HttpClient HttpClient { get; set; }
 
         public IDataMapper Mapper { get; set; }
 
@@ -112,6 +111,7 @@ namespace Couchbase.Management
                 return RemoveNodeAsync(ipAddress).Result;
             }
         }
+
         /// <summary>
         /// Removes a failed over node from the cluster.
         /// </summary>
@@ -193,12 +193,12 @@ namespace Couchbase.Management
                 Select(x => x.OtpNode);
 
             var formData = new Dictionary<string, string>
-                    {
-                        {"ejectedNodes", string.Join(",", ejectedNodes)},
-                        {"knownNodes", string.Join(",", knownNodes)},
-                        {"user", _username},
-                        {"password", _password}
-                    };
+            {
+                {"ejectedNodes", string.Join(",", ejectedNodes)},
+                {"knownNodes", string.Join(",", knownNodes)},
+                {"user", _username},
+                {"password", _password}
+            };
 
             return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
@@ -251,7 +251,11 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-        public IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two)
+        public IResult CreateBucket(string name, uint ramQuota = 100,
+            BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two,
+            AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
+            bool parallelDbAndViewCompaction = false, string saslPassword = "",
+            ThreadNumber threadNumber = ThreadNumber.Two)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -288,9 +292,12 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
-            ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
-            bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Two)
+        public async Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100,
+            BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
+            ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl,
+            bool indexReplicas = false, bool flushEnabled = false,
+            bool parallelDbAndViewCompaction = false, string saslPassword = "",
+            ThreadNumber threadNumber = ThreadNumber.Two)
         {
             var uri = GetBucketAPIUri();
 
@@ -308,7 +315,7 @@ namespace Couchbase.Management
                 {"replicaIndex", indexReplicas ? "1" : "0"},
                 {"replicaNumber", ((int) replicaNumber).ToString(CultureInfo.InvariantCulture)},
                 {"saslPassword", saslPassword},
-                {"threadsNumber", ((int)threadNumber).ToString(CultureInfo.InvariantCulture)}
+                {"threadsNumber", ((int) threadNumber).ToString(CultureInfo.InvariantCulture)}
             };
 
             return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
@@ -337,29 +344,10 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
-                {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var uri = GetBucketAPIUri(name);
-
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        var task = client.DeleteAsync(uri);
-                        await task.ContinueOnAnyContext();
-
-                        result = await GetResult(task.Result).ContinueOnAnyContext();
-                    }
-                }
+                var uri = GetBucketAPIUri(name);
+                var task = _httpClient.DeleteAsync(uri);
+                await task.ContinueOnAnyContext();
+                result = await GetResult(task.Result).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -442,7 +430,7 @@ namespace Couchbase.Management
             return new Uri(string.Format("{0}://{1}:{2}{3}", protocol, server.Host, port, api));
         }
 
-        Uri GetBucketAPIUri(string bucketName=null)
+        Uri GetBucketAPIUri(string bucketName = null)
         {
             var server = _clientConfig.Servers.First();
             var protocol = _clientConfig.UseSsl ? "https" : "http";
@@ -469,30 +457,15 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
+                    Content = new FormUrlEncodedContent(formData)
+                };
+                SetHeaders(request, uri);
 
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        request.Content = new FormUrlEncodedContent(formData);
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-                        await task.ContinueOnAnyContext();
-
-                        result = await GetResult(task.Result).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                await task.ContinueOnAnyContext();
+                result = await GetResult(task.Result).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -530,45 +503,31 @@ namespace Couchbase.Management
         /// <remarks>
         /// See: <a href="http://docs.couchbase.com/admin/admin/Misc/admin-datafiles.html" />
         /// </remarks>
-        public async Task<IResult> InitializeClusterAsync(string hostName = "127.0.0.1", string path = "/opt/couchbase/var/lib/couchbase/data", string indexPath = "/opt/couchbase/var/lib/couchbase/data")
+        public async Task<IResult> InitializeClusterAsync(string hostName = "127.0.0.1",
+            string path = "/opt/couchbase/var/lib/couchbase/data",
+            string indexPath = "/opt/couchbase/var/lib/couchbase/data")
         {
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/nodes/self/controller/settings";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        const string uriFormat = "{0}://{1}:{2}/nodes/self/controller/settings";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                        {"user", _username},
+                        {"password", _password},
+                        {"path", path},
+                        {"index_path", indexPath},
+                    })
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"user", _username},
-                            {"password", _password},
-                            {"path", path},
-                            {"index_path", indexPath},
-                        });
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -591,39 +550,23 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/node/controller/rename";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        const string uriFormat = "{0}://{1}:{2}/node/controller/rename";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                        {"user", _username},
+                        {"password", _password},
+                        {"hostname", hostName}
+                    })
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                          Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"user", _username},
-                            {"password", _password},
-                            {"hostname", hostName}
-                        });
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -654,45 +597,30 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the operation.
         /// </returns>
-        public async Task<IResult> SetupServicesAsync(string hostName = Localhost, List<CouchbaseService> services = null)
+        public async Task<IResult> SetupServicesAsync(string hostName = Localhost,
+            List<CouchbaseService> services = null)
         {
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/node/controller/setupServices";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                services = services ?? Services;
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        const string uriFormat = "{0}://{1}:{2}/node/controller/setupServices";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                        {"user", _username},
+                        {"password", _password},
+                        {"services", ToArray(services)}
+                    })
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        services = services ?? Services;
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"user", _username},
-                            {"password", _password},
-                            {"services", ToArray(services)}
-                        });
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -714,40 +642,22 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/pools/default";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        const string uriFormat = "{0}://{1}:{2}/pools/default";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                        {"indexMemoryQuota", indexMemQuota.ToString()},
+                        {"memoryQuota", memoryQuota.ToString()}
+                    })
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"indexMemoryQuota", indexMemQuota.ToString()},
-                            {"memoryQuota", memoryQuota.ToString()}
-                        });
-
-                        //indexMemoryQuota=256&memoryQuota=501
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -767,36 +677,24 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/settings/web";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
-                        const string uriFormat = "{0}://{1}:{2}/settings/web";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                        {"password", _password},
+                        {"username", _username},
+                        {"port", "SAME"}
+                    })
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
 
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            {"password", _password},
-                            {"username", _username},
-                            {"port", "SAME"}
-                        });
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
             }
             catch (AggregateException e)
             {
@@ -817,34 +715,18 @@ namespace Couchbase.Management
             IResult result;
             try
             {
-                using (var handler = new HttpClientHandler
+                const string uriFormat = "{0}://{1}:{2}/sampleBuckets/install";
+                var uri = GetAPIUri(hostName, uriFormat);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    Credentials = new NetworkCredential(_username, _password)
-                })
-                {
-                    using (var client = new HttpClient(handler))
-                    {
-                        const string uriFormat = "{0}://{1}:{2}/sampleBuckets/install";
-                        var uri = GetAPIUri(hostName, uriFormat);
+                    Content = new StringContent("[\"" + sampleBucketName + "\"]")
+                };
+                SetHeaders(request, uri);
 
-                        var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
-                        client.DefaultRequestHeaders.Accept.Add(contentType);
-                        client.DefaultRequestHeaders.Host = uri.Authority;
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                           Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(_username, ":", _password))));
-
-                        request.Content = new StringContent("[\"" + sampleBucketName + "\"]");
-                        request.Content.Headers.ContentType = contentType;
-
-                        var task = client.PostAsync(uri, request.Content);
-
-                        var postResult = await task.ContinueOnAnyContext();
-
-                        result = await GetResult(postResult).ContinueOnAnyContext();
-                    }
-                }
+                var task = _httpClient.SendAsync(request);
+                var postResult = await task.ContinueOnAnyContext();
+                result = await GetResult(postResult).ContinueOnAnyContext();
             }
             catch (AggregateException e)
             {
@@ -852,6 +734,22 @@ namespace Couchbase.Management
                 result = new DefaultResult(false, e.Message, e);
             }
             return result;
+        }
+
+        void SetHeaders(HttpRequestMessage request, Uri uri)
+        {
+            var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+            if (request.Content != null)
+            {
+                request.Content.Headers.ContentType = contentType;
+            }
+            request.Headers.Accept.Add(contentType);
+            request.Headers.Host = uri.Authority;
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

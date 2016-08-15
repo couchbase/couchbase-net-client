@@ -9,6 +9,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.IO.Http;
 using Couchbase.Management;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -173,8 +174,8 @@ namespace Couchbase
 
             return new ClusterManager(Configuration,
                 serverConfig,
-                new HttpClient(),
                 new JsonDataMapper(Configuration),
+                new CouchbaseHttpClient(username, password),
                 username,
                 password);
         }

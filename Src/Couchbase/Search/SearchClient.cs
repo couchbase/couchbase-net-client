@@ -8,6 +8,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO.Http;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Encoding = System.Text.Encoding;

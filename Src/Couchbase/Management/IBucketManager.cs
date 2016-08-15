@@ -9,7 +9,7 @@ namespace Couchbase.Management
     /// <summary>
     /// An intermediate class for doing management operations on a Bucket.
     /// </summary>
-    public interface IBucketManager
+    public interface IBucketManager : IDisposable
     {
         /// <summary>
         /// Inserts a design document containing a number of views.

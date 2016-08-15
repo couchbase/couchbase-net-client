@@ -20,6 +20,7 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Http;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.SubDocument;
 using Couchbase.Management;
@@ -297,8 +298,8 @@ namespace Couchbase
         {
             return new BucketManager(this,
                 _configInfo.ClientConfig,
-                new HttpClient(),
                 new JsonDataMapper(_configInfo.ClientConfig),
+                new CouchbaseHttpClient(username, password),
                 username,
                 password);
         }

@@ -16,6 +16,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Http;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Search;
@@ -49,8 +50,14 @@ namespace Couchbase.Core
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
             this(ioService,
-                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
+                    new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration)),
+                    new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
                     new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
@@ -59,8 +66,14 @@ namespace Couchbase.Core
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
                 this(ioService,
-                    new ViewClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration),
-                    new QueryClient(new HttpClient(), new JsonDataMapper(clientConfiguration), bucketConfig, clientConfiguration, queryCache),
+                    new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration)),
+                    new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
                     new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {

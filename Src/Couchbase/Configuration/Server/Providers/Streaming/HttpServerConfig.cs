@@ -10,6 +10,7 @@ using System.Security.Cryptography.X509Certificates;
 using Common.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO.Http;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -35,7 +36,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _clientConfig = clientConfig;
             _bucketName = bucketName;
 
-            _httpClient = new HttpClient(new AuthenticatingHttpClientHandler(bucketName, password));
+            _httpClient = new CouchbaseHttpClient(bucketName, password);
         }
 
         public string BucketName
@@ -144,23 +145,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         T DownLoadConfig<T>(Uri uri)
         {
-            ServicePointManager.ServerCertificateValidationCallback += ServerCertificateValidationCallback;
             var response = ReplaceHost(DownloadString(uri), uri);
             return JsonConvert.DeserializeObject<T>(response);
-        }
-
-        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            Log.Info(m => m("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors));
-
-            if (ClientConfiguration.IgnoreRemoteCertificateNameMismatch)
-            {
-                if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
-                {
-                    return true;
-                }
-            }
-            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         static string ReplaceHost(string response, Uri uri)

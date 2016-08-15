@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Runtime.InteropServices;
 using Couchbase.Authentication;
@@ -12,7 +13,7 @@ namespace Couchbase.Management
     /// <summary>
     /// An intermediate class for doing management operations on a Cluster.
     /// </summary>
-    public interface IClusterManager
+    public interface IClusterManager : IDisposable
     {
         /// <summary>
         /// Adds a node to the cluster.

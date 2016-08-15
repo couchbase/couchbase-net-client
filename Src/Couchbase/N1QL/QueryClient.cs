@@ -1,22 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Views;
-using Newtonsoft.Json;
 using Couchbase.Utils;
-using Couchbase.IO.Operations;
 
 namespace Couchbase.N1QL
 {
@@ -26,29 +20,22 @@ namespace Couchbase.N1QL
     internal class QueryClient : IQueryClient
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
+        // ReSharper disable once InconsistentNaming
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
-        private readonly IBucketConfig _bucketConfig;
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, IBucketConfig bucketConfig, ClientConfiguration clientConfig)
-            : this(httpClient,dataMapper, bucketConfig, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper,  ClientConfiguration clientConfig)
+            : this(httpClient,dataMapper, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
         {
         }
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, IBucketConfig bucketConfig, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
             _clientConfig = clientConfig;
-            HttpClient.Timeout = new TimeSpan(0, 0, 0, (int)_clientConfig.QueryRequestTimeout);
             _queryCache = queryCache;
-            _bucketConfig = bucketConfig;
-
-            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-               "Basic", Convert.ToBase64String(
-               System.Text.Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password))));
-
         }
 
         /// <summary>
@@ -153,7 +140,7 @@ namespace Couchbase.N1QL
 
             //execute and retry if needed
             var result = ExecuteQuery<T>(queryRequest);
-            if (CheckRetry<T>(queryRequest, result))
+            if (CheckRetry(queryRequest, result))
             {
                 return Retry<T>(queryRequest);
             }
@@ -180,7 +167,7 @@ namespace Couchbase.N1QL
             //optimize, return an error result if optimization step cannot complete
             try
             {
-                await PrepareStatementIfNotAdHocAsync(queryRequest);
+                await PrepareStatementIfNotAdHocAsync(queryRequest).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -192,7 +179,7 @@ namespace Couchbase.N1QL
             //execute first attempt
             var result = await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
             //if needed, do a second attempt after having cleared the cache
-            if (CheckRetry<T>(queryRequest, result))
+            if (CheckRetry(queryRequest, result))
             {
                 return await RetryAsync<T>(queryRequest).ContinueOnAnyContext();
             }
@@ -217,6 +204,7 @@ namespace Couchbase.N1QL
             if (!result.Success)
             {
                 //look at N1QL errors
+                // ReSharper disable once LoopCanBeConvertedToQuery
                 foreach (var error in result.Errors)
                 {
                     if (error.Code == (int)ErrorPrepared.Unrecognized || error.Code == (int)ErrorPrepared.UnableToDecode ||
@@ -253,10 +241,10 @@ namespace Couchbase.N1QL
             _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out dismissed);
 
             //re-optimize asynchronously
-            await PrepareStatementIfNotAdHocAsync(queryRequest);
+            await PrepareStatementIfNotAdHocAsync(queryRequest).ContinueOnAnyContext();
 
             //re-execute asynchronously
-            return await ExecuteQueryAsync<T>(queryRequest);
+            return await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -306,7 +294,7 @@ namespace Couchbase.N1QL
             }
             else
             {
-                var result = await PrepareAsync(originalRequest);
+                var result = await PrepareAsync(originalRequest).ContinueOnAnyContext();
                 if (!result.Success)
                 {
                     Log.WarnFormat("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",

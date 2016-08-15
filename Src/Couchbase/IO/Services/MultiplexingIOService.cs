@@ -29,7 +29,7 @@ namespace Couchbase.IO.Services
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
-            Log.Debug(m=>m("Creating IOService {0}", _identity));
+            Log.Debug(m => m("Creating IOService {0}", _identity));
             _connectionPool = connectionPool;
             _connection = _connectionPool.Acquire();
 

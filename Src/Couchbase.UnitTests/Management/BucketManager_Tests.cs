@@ -48,7 +48,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
@@ -99,7 +99,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.GetDesignDocument(It.IsAny<string>())).CallBase();
@@ -131,7 +131,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
 #pragma warning disable 618
@@ -161,7 +161,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
 #pragma warning disable 618
@@ -190,7 +190,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
 #pragma warning disable 618
@@ -226,7 +226,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -252,7 +252,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -277,7 +277,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.InsertDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -309,7 +309,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -337,7 +337,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -364,7 +364,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.UpdateDesignDocument(It.IsAny<string>(), It.IsAny<string>())).CallBase();
@@ -398,7 +398,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
@@ -424,7 +424,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
@@ -449,7 +449,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.RemoveDesignDocument(It.IsAny<string>())).CallBase();
@@ -481,7 +481,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.FlushAsync()).CallBase();
@@ -506,7 +506,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StringContent("response")
                 });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.FlushAsync()).CallBase();
@@ -530,7 +530,7 @@ namespace Couchbase.UnitTests.Management
                 throw new AggregateException();
             });
 
-            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration, new HttpClient(),
+            var managerMock = new Mock<BucketManager>(_mockBucket, _clientConfiguration,
                 new Views.JsonDataMapper(_clientConfiguration), "username", "password");
             managerMock.Setup(x => x.CreateAuthenticatedHttpClient()).Returns(new HttpClient(handler));
             managerMock.Setup(x => x.FlushAsync()).CallBase();

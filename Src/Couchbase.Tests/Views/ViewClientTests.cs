@@ -8,9 +8,11 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO.Http;
 using Couchbase.Tests.Core.Buckets;
 using Couchbase.Tests.Documents;
 using Couchbase.Tests.Utils;
+using Couchbase.Utils;
 using Couchbase.Views;
 using NUnit.Framework;
 
@@ -51,6 +53,7 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_Row_Is_Dynamic_Query_By_Key_Succeeds()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer_ext", "all_beers").
                 Bucket("beer-sample").
@@ -58,11 +61,9 @@ namespace Couchbase.Tests.Views
                 Development(false).
                 BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("beer-sample");
 
+            //act
             var result = client.Execute<Beer>(query);
 
             var query2 = new ViewQuery().
@@ -72,12 +73,15 @@ namespace Couchbase.Tests.Views
                 BaseUri(_baseUri);
 
             var result2 = client.Execute<Beer>(query2);
+
+            //assert
             Assert.AreEqual(result.Rows.First().Id, result2.Rows.First().Id);
         }
 
         [Test]
         public void When_Poco_Is_Supplied_Map_Results_To_It()
         {
+            //arrange
             var query = new ViewQuery().
               From("beer_ext", "all_beers").
               Bucket("beer-sample").
@@ -85,17 +89,16 @@ namespace Couchbase.Tests.Views
               Development(false).
               BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("beer-sample");
 
+            //act
             var result = client.Execute<Beer>(query);
+
+            //assert
             foreach (var viewRow in result.Rows)
             {
                 Assert.IsNotNull(viewRow.Id);
             }
-            Console.WriteLine(result.Error);
             Assert.IsNotNull(result.Rows);
             Assert.IsTrue(result.Success);
             Assert.AreEqual(result.Rows.Count(), result.Values.Count());
@@ -104,18 +107,19 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_Query_Is_Succesful_Rows_Are_Returned()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
                 Limit(10).
                 BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("beer-sample", 5000);
 
+            //act
             var result = client.Execute<dynamic>(query);
+
+            //assert
             Assert.IsNotNull(result.Rows);
             foreach (var viewRow in result.Rows)
             {
@@ -127,62 +131,59 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_View_Is_Not_Found_404_Is_Returned()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer", "view_that_does_not_exist").
                 Bucket("beer-sample").
                 BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("beer-sample");
 
+            //act
             var result = client.Execute<dynamic>(query);
 
+            //assert
             Assert.IsNotNull(result.Message);
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
             Assert.IsFalse(result.Success);
-
-            Console.WriteLine(result.Message);
         }
 
         [Test]
         public void When_View_Is_Called_With_Invalid_Parameters_Error_Is_Returned()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
                 Group(true).
                 BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("beer-sample");
 
+            //act
             var result = client.Execute<dynamic>(query);
 
+            //assert
             Assert.AreEqual("query_parse_error", result.Error);
             Assert.AreEqual(HttpStatusCode.BadRequest, result.StatusCode);
             Assert.IsFalse(result.Success);
-
-            Console.WriteLine(result.Message);
         }
 
         [Test]
         public void When_Url_Is_Invalid_Exception_Is_Returned()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
                 BaseUri(new Uri("http://192.168.56.105:8092/"));
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration{ViewRequestTimeout = 5000});
+            var client = GetViewClient("beer-sample", 5000);
 
+            //act
             var result = client.Execute<dynamic>(query);
+
+            //assert
             Assert.IsNotNull(result.Rows);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
@@ -192,17 +193,18 @@ namespace Couchbase.Tests.Views
         [Test]
         public void When_Url_Is_Invalid_Exception_Is_Returned_2()
         {
+            //arrange
             var query = new ViewQuery().
                 From("beer", "brewery_beers").
                 Bucket("beer-sample").
                 BaseUri(new Uri("http://192.168.62.200:8092/"));
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration{ViewRequestTimeout = 5000});
+            var client = GetViewClient("beer-sample", 5000);
 
+            //act
             var result = client.Execute<dynamic>(query);
+
+            //assert
             Assert.IsNotNull(result.Rows);
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.ServiceUnavailable, result.StatusCode);
@@ -212,22 +214,21 @@ namespace Couchbase.Tests.Views
         [Test]
         public void Test_ExecuteAsync()
         {
+            //arrange
             var query = new ViewQuery().
                 From("docs", "all_docs").
                 Bucket("default").
                 BaseUri(_baseUri);
 
-            var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(new ClientConfiguration()),
-                new BucketConfig { Name = "beer-sample" },
-                new ClientConfiguration());
+            var client = GetViewClient("travel-sample");
 
             int n = 10000;
             var options = new ParallelOptions { MaxDegreeOfParallelism = 4};
 
+            //act - needs to be refactored
             Parallel.For(0, n, options, async i =>
             {
-                var result = await client.ExecuteAsync<dynamic>(query);
+                var result = await client.ExecuteAsync<dynamic>(query).ContinueOnAnyContext();
                 Console.WriteLine("{0} {1} {2}", i, result.Success, result.Message);
             });
         }
@@ -235,6 +236,7 @@ namespace Couchbase.Tests.Views
         [Test]
         public void Test_Geo_Spatial_View()
         {
+            //arrange
             var uriString = ClientConfigUtil.GetConfiguration().Servers.First().ToString();
             uriString = uriString.Replace("8091", "8092").Replace("pools", "travel-sample/");
 
@@ -245,13 +247,27 @@ namespace Couchbase.Tests.Views
                 .Skip(0)
                 .BaseUri(new Uri(uriString));
 
-             var client = new ViewClient(new HttpClient(),
-                new JsonDataMapper(ClientConfigUtil.GetConfiguration()),
-                new BucketConfig { Name = "travel-sample"},
-                new ClientConfiguration());
+            var client = GetViewClient("travel-sample");
 
+            //act
             var results = client.Execute<dynamic>(query);
+
+            //assert
             Assert.IsTrue(results.Success, results.Error);
+        }
+
+        public static IViewClient GetViewClient(string bucketName, int timeout = 75000)
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                  ViewRequestTimeout = timeout
+            };
+            var bucketConfig = new BucketConfig {Name = bucketName};
+            return new ViewClient(new CouchbaseHttpClient(clientConfig, bucketConfig)
+            {
+                Timeout = new TimeSpan(0, 0, 0, 0, clientConfig.ViewRequestTimeout)
+            },
+                new JsonDataMapper(clientConfig));
         }
     }
 }

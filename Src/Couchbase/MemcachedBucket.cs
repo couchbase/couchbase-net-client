@@ -1444,7 +1444,6 @@ namespace Couchbase
         {
             return new MemcachedBucketManager(this,
                _configInfo.ClientConfig,
-               new HttpClient(),
                new JsonDataMapper(_configInfo.ClientConfig),
                username,
                password);

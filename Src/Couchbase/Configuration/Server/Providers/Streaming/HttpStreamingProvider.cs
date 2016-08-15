@@ -13,6 +13,7 @@ using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Http;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -70,9 +71,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                         using (new SynchronizationContextExclusion())
                         {
-                            using (
-                                var httpClient =
-                                    new HttpClient(new AuthenticatingHttpClientHandler(bucketName, password)))
+                            using (var httpClient = new CouchbaseHttpClient(bucketName, password))
                             {
                                 var body = httpClient.GetStringAsync(uri).Result;
                                 body = body.Replace("$HOST", uri.Host);

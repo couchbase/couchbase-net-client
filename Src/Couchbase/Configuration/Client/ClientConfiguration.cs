@@ -750,6 +750,7 @@ namespace Couchbase.Configuration.Client
         /// Gets or sets the maximum idle time of a ServicePoint object used for making View and N1QL requests.
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.maxservicepointidletime.aspx</remarks>
+        [Obsolete("The SDK uses HttpWinHandler and HttpRequestHandler which do not support the ServicePointManager.")]
         public int MaxServicePointIdleTime { get; set; }
 
         /// <summary>
@@ -811,7 +812,6 @@ namespace Couchbase.Configuration.Client
                 {
                     if (!Servers.Contains(uri))
                     {
-                        uri.ConfigureServicePoint(this);
                         Servers.Add(uri);
                     }
                 }
@@ -882,7 +882,6 @@ namespace Couchbase.Configuration.Client
                         var value = _servers[i].ToString();
                         value = string.Concat(value, value.EndsWith("/") ? "pools" : "/pools");
                         var uri = new Uri(value);
-                        uri.ConfigureServicePoint(this);
                         _servers[i] = uri;
                     }
                 }
@@ -940,7 +939,6 @@ namespace Couchbase.Configuration.Client
                             var oldUri = _servers[i];
                             var newUri = new Uri(string.Concat("https://", _servers[i].Host,
                                 ":", HttpsMgmtPort, oldUri.PathAndQuery));
-                            newUri.ConfigureServicePoint(this);
                             _servers[i] = newUri;
                         }
                     }

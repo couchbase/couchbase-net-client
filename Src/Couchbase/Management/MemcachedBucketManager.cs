@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.IO.Http;
 using Couchbase.Management.Indexes;
 using Couchbase.Views;
 
@@ -15,8 +16,13 @@ namespace Couchbase.Management
     /// <seealso cref="Couchbase.Management.BucketManager" />
     public class MemcachedBucketManager : BucketManager
     {
-        public MemcachedBucketManager(IBucket bucket, ClientConfiguration clientConfig, HttpClient httpClient, IDataMapper mapper, string username, string password)
-            : base(bucket, clientConfig, httpClient, mapper, username, password)
+        public MemcachedBucketManager(IBucket bucket, ClientConfiguration clientConfig, IDataMapper mapper, string username, string password)
+            : base(bucket,
+                  clientConfig,
+                  mapper,
+                  new CouchbaseHttpClient(username, password),
+                  username,
+                  password)
         {
         }
 

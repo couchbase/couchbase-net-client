@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO.Http;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -21,7 +22,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
     /// </summary>
     internal sealed class ConfigThreadState
     {
-        private readonly static ILog Log = LogManager.GetLogger<ConfigThreadState>();
+        private static readonly ILog Log = LogManager.GetLogger<ConfigThreadState>();
         private readonly BucketConfig _bucketConfig;
         private readonly ConfigChanged _configChangedDelegate;
         private readonly ErrorOccurred _errorOccurredDelegate;
@@ -63,8 +64,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //Make a copy of the nodes and shuffle them for randomness
             var nodes = _bucketConfig.Nodes.ToList();
 
-            using (var httpClient =
-                new HttpClient(new AuthenticatingHttpClientHandler(_bucketConfig.Name, _bucketConfig.Password)))
+            using (var httpClient = new CouchbaseHttpClient(_bucketConfig.Name, _bucketConfig.Password))
             {
                 httpClient.Timeout = Timeout.InfiniteTimeSpan;
 

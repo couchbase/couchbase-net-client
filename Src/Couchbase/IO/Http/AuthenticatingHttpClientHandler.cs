@@ -8,9 +8,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Couchbase.Configuration.Server.Providers.Streaming
+namespace Couchbase.IO.Http
 {
-    class AuthenticatingHttpClientHandler : HttpClientHandler
+    class AuthenticatingHttpClientHandler
+#if NET45
+        : WebRequestHandler
+#else
+        : WinHttpHandler
+#endif
     {
         private readonly string _headerValue;
 

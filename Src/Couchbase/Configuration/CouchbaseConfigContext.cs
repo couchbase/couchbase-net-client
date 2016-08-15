@@ -62,13 +62,11 @@ namespace Couchbase.Configuration
                             if (adapter.IsSearchNode)
                             {
                                 var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 searchUris.Add(uri);
                             }
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 queryUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
@@ -170,13 +168,11 @@ namespace Couchbase.Configuration
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 queryUris.Add(uri);
                             }
                             if (adapter.IsSearchNode)
                             {
                                 var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 searchUris.Add(uri);
                             }
                         }
@@ -185,13 +181,11 @@ namespace Couchbase.Configuration
                             if (adapter.IsSearchNode)
                             {
                                 var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 searchUris.Add(uri);
                             }
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                uri.ConfigureServicePoint(ClientConfig);
                                 queryUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
@@ -272,13 +266,11 @@ namespace Couchbase.Configuration
                         if (adapter.IsSearchNode)
                         {
                             var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                            uri.ConfigureServicePoint(ClientConfig);
                             searchUris.Add(uri);
                         }
                         if (adapter.IsQueryNode)
                         {
                             var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                            uri.ConfigureServicePoint(ClientConfig);
                             queryUris.Add(uri);
                         }
                         if (adapter.IsDataNode) //a data node so create a connection pool

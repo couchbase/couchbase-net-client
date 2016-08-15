@@ -20,19 +20,11 @@ namespace Couchbase.Views
     internal class ViewClient : IViewClient
     {
         const string Success = "Success";
-        private readonly static ILog Log = LogManager.GetLogger<ViewClient>();
-        private readonly IBucketConfig _bucketConfig;
-        private readonly ClientConfiguration _clientConfig;
+        private static readonly ILog Log = LogManager.GetLogger<ViewClient>();
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper,  IBucketConfig bucketConfig, ClientConfiguration clientClientConfig)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper)
         {
-            _bucketConfig = bucketConfig;
-            _clientConfig = clientClientConfig;
             HttpClient = httpClient;
-            HttpClient.Timeout = new TimeSpan(0, 0, 0, 0, clientClientConfig.ViewRequestTimeout);
-            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                "Basic", Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(string.Concat(_bucketConfig.Name, ":", _bucketConfig.Password))));
             Mapper = mapper;
         }
 
