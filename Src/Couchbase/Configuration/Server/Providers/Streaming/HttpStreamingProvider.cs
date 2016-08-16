@@ -134,7 +134,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     cancellationTokenSource.Token);
                 var thread = new Thread(configThreadState.ListenForConfigChanges)
                 {
-                    IsBackground = true
+                    IsBackground = true,
+                    Name = "stmconfig"
                 };
 
                 if (_threads.TryAdd(observer.Name, thread) && ConfigObservers.TryAdd(observer.Name, observer))

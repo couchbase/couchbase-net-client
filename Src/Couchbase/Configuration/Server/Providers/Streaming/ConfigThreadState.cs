@@ -127,13 +127,17 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         }
 
                     }
-                    catch (HttpRequestException e)
+                    catch (AggregateException e)
                     {
-                        Log.Info(e);
-                    }
-                    catch (IOException e)
-                    {
-                        Log.Info(e);
+                        var exceptions = e.Flatten().InnerExceptions;
+                        if (exceptions.OfType<ObjectDisposedException>().Any())
+                        {
+                            Log.Info("The config listener has shut down.");
+                        }
+                        foreach (var ex in exceptions.Where(x => x.GetType() != typeof(ObjectDisposedException)))
+                        {
+                            Log.Error(ex);
+                        }
                     }
                     catch (Exception e)
                     {
