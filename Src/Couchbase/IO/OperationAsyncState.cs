@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.IO
 {
-    public class OperationAsyncState
+    internal class OperationAsyncState
     {
         public uint Opaque { get; set; }
 

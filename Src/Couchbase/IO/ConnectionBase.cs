@@ -27,12 +27,12 @@ namespace Couchbase.IO
         private Timer _timer;
         private int _closeAttempts;
 
-        public ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
+        internal ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
             : this(socket, new OperationAsyncState(), converter, bufferAllocator)
         {
         }
 
-        public ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
+        internal ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
         {
             _socket = socket;
             _state = asyncState;

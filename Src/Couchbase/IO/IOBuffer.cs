@@ -11,7 +11,7 @@ namespace Couchbase.IO
     /// using <see cref="BufferAllocator.ReleaseBuffer(IOBuffer)"/>.
     /// </summary>
     // ReSharper disable once InconsistentNaming
-    public class IOBuffer
+    internal class IOBuffer
     {
         /// <summary>
         /// Byte array that the IOBuffer exists within

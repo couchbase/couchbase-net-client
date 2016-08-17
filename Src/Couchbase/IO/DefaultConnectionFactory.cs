@@ -59,7 +59,7 @@ namespace Couchbase.IO
                 else
                 {
                     connection = Activator.CreateInstance(typeof (T),
-                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
+                        BindingFlags.Instance | BindingFlags.NonPublic,
                         null,
                         new object[] {p, socket, c, b},
                         null) as T;

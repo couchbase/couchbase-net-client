@@ -22,7 +22,7 @@ namespace Couchbase.IO
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
 
-        public MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
+        internal MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
             BufferAllocator allocator)
             : base(socket, converter, allocator)
         {
