@@ -14,7 +14,7 @@ namespace Couchbase.IO
         private readonly SocketAsyncEventArgs _eventArgs;
         private readonly AutoResetEvent _requestCompleted = new AutoResetEvent(false);
 
-        internal Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
+        public Connection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : base(socket, converter, allocator)
         {
             ConnectionPool = connectionPool;
