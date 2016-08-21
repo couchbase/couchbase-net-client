@@ -36,6 +36,7 @@ namespace Couchbase
             {
                 Id = Document.Id = result.Id;
                 Document.Cas = result.Cas;
+                Document.Token = result.Token;
             }
             Token = result.Token;
             Content = document.Content;

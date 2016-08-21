@@ -1,10 +1,20 @@
-﻿using NUnit.Framework;
+﻿using Couchbase.Core;
+using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
 {
     [TestFixture]
     public class MutationTokenTests
     {
+        private ICluster _cluster;
+        private IBucket _bucket;
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
+        }
+
         [Test]
         public void BucketName_IsCurrentBucket()
         {
@@ -24,6 +34,12 @@ namespace Couchbase.IntegrationTests
 
             var result = bucket.Upsert(doc);
             Assert.AreEqual(expectedBucketName, result.Document.Token.BucketRef);
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            _cluster.Dispose();
         }
     }
 }

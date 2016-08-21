@@ -19,7 +19,7 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
             _bucket = _cluster.OpenBucket();
         }
 
@@ -82,6 +82,8 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_ReadYourOwnWrite()
         {
+            Assert.IsTrue(_bucket.SupportsEnhancedDurability);
+
             var doc = new Document<DocumentContent>
             {
                 Id = "Test_ReadYourOwnWrite",
