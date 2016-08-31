@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Newtonsoft.Json;
 
 namespace Couchbase.Views
 {
@@ -18,16 +17,15 @@ namespace Couchbase.Views
             Error = string.Empty;
             Message = string.Empty;
         }
-            /// <summary>
+
+        /// <summary>
         /// The total number of rows.
         /// </summary>
-        [JsonProperty("total_rows")]
         public uint TotalRows { get; internal set; }
 
         /// <summary>
         /// The results of the query if successful as a <see cref="IEnumerable{T}"/>
         /// </summary>
-        [JsonProperty("rows")]
         public IEnumerable<ViewRow<T>> Rows { get; internal set; }
 
         /// <summary>
@@ -41,7 +39,6 @@ namespace Couchbase.Views
         /// <summary>
         /// An error message if one occured.
         /// </summary>
-        [JsonProperty("error")]
         public string Error { get; internal set; }
 
         /// <summary>
@@ -57,7 +54,6 @@ namespace Couchbase.Views
         /// <summary>
         /// An optional message returned by the server or the client
         /// </summary>
-        [JsonProperty("reason")]
         public string Message { get; internal set; }
 
         /// <summary>
@@ -78,7 +74,7 @@ namespace Couchbase.Views
                 {
                     case HttpStatusCode.OK:
                         break;
-                        //300's
+                    //300's
                     case HttpStatusCode.MultipleChoices:
                     case HttpStatusCode.MovedPermanently:
                     case HttpStatusCode.Found:
@@ -87,7 +83,7 @@ namespace Couchbase.Views
                     case HttpStatusCode.TemporaryRedirect:
                         cannotRetry = false;
                         break;
-                        //400's
+                    //400's
                     case HttpStatusCode.NotFound:
                         cannotRetry = Check404ForRetry();
                         break;
@@ -99,7 +95,7 @@ namespace Couchbase.Views
                     case HttpStatusCode.ExpectationFailed:
                         cannotRetry = false;
                         break;
-                        //500's
+                    //500's
                     case HttpStatusCode.InternalServerError:
                         cannotRetry = Check500ForRetry();
                         break;
@@ -139,6 +135,25 @@ namespace Couchbase.Views
         public bool ShouldRetry()
         {
             throw new System.NotImplementedException();
+        }
+    }
+
+    internal class ViewResultData<T>
+    {
+        public string error { get; set; }
+        public string reason { get; set; }
+        public uint total_rows { get; set; }
+        public IEnumerable<ViewRowData<T>> rows { get; set; }
+
+        internal ViewResult<T> ToViewResult()
+        {
+            return new ViewResult<T>
+            {
+                Error = error,
+                Message = reason,
+                TotalRows = total_rows,
+                Rows = rows.Select(r => r.ToViewRow()),
+            };
         }
     }
 }
