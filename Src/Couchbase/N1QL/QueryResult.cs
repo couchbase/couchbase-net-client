@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Text;
@@ -13,7 +14,6 @@ namespace Couchbase.N1QL
     /// <remarks>
     /// The dynamic keyword works well for the Type T.
     /// </remarks>
-    [DataContract]
     public class QueryResult<T> : IQueryResult<T>
     {
         public QueryResult()
@@ -45,7 +45,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The request identifier.
         /// </value>
-        [DataMember(Name = "requestID")]
         public Guid RequestId { get; internal set; }
 
         /// <summary>
@@ -54,7 +53,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The client context identifier.
         /// </value>
-        [DataMember(Name = "clientContextID")]
         public string ClientContextId { get; internal set; }
 
         /// <summary>
@@ -63,7 +61,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The signature of the schema of the request.
         /// </value>
-        [DataMember(Name = "signature")]
         public dynamic Signature { get; internal set; }
 
         /// <summary>
@@ -72,7 +69,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// A a list of all the objects returned by the query.
         /// </value>
-        [DataMember(Name="results")]
         public List<T> Rows { get; internal set; }
 
         /// <summary>
@@ -81,7 +77,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The status of the request.
         /// </value>
-        [DataMember(Name = "status")]
         public QueryStatus Status { get; internal set; }
 
         /// <summary>
@@ -90,7 +85,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The errors.
         /// </value>
-        [DataMember(Name = "errors")]
         public List<Error> Errors { get; internal set; }
 
         /// <summary>
@@ -99,7 +93,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The warnings.
         /// </value>
-        [DataMember(Name = "warnings")]
         public List<Warning> Warnings { get; internal set; }
 
         /// <summary>
@@ -108,7 +101,6 @@ namespace Couchbase.N1QL
         /// <value>
         /// The metrics.
         /// </value>
-        [DataMember(Name = "metrics")]
         public Metrics Metrics { get; internal set; }
 
         /// <summary>
@@ -163,6 +155,42 @@ namespace Couchbase.N1QL
             }
             return sb.ToString();
         }
+    }
+
+    internal class QueryResultData<T>
+    {
+        public Guid requestID { get; set; }
+        public string clientContextID { get; set; }
+        public dynamic signature { get; set; }
+        public IEnumerable<T> results { get; set; }
+        public QueryStatus status { get; set; }
+        public IEnumerable<ErrorData> errors { get; set; }
+        public IEnumerable<WarningData> warnings { get; set; }
+        public MetricsData metrics { get; set; }
+
+        public QueryResultData()
+        {
+            results = new List<T>();
+            errors = new List<ErrorData>();
+            warnings = new List<WarningData>();
+            metrics = new MetricsData();
+        }
+
+        internal QueryResult<T> ToQueryResult()
+        {
+            return new QueryResult<T>
+            {
+                RequestId = requestID,
+                ClientContextId = clientContextID,
+                Signature = signature,
+                Rows = results.ToList(),
+                Status = status,
+                Errors = errors != null ? errors.Select(e => e.ToError()).ToList() : null,
+                Warnings = warnings != null ? warnings.Select(w => w.ToWarning()).ToList() : null,
+                Metrics = metrics != null ? metrics.ToMetrics() : null,
+            };
+        }
+
     }
 }
 #region [ License information ]
