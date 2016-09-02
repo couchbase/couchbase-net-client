@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
@@ -19,8 +19,26 @@ namespace Couchbase.Core.Buckets
         private readonly IConfigInfo _configInfo;
         private readonly int _interval;
         private readonly int _timeout;
-        private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
-        private readonly ITypeTranscoder _transcoder;
+        private static readonly ILog Log = LogManager.GetLogger<KeyObserver>();
+        private readonly IClusterController _clusterController;
+        private readonly ConcurrentDictionary<uint, IOperation> _pending;
+
+        /// <summary>
+        /// Ctor for <see cref="KeyObserver"/>.
+        /// </summary>
+        /// <param name="pending">A queue for operations in-flight.</param>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
+        /// <param name="clusterController">The <see cref="IClusterController"/> representing the cluster's state.</param>
+        /// <param name="interval">The interval to poll.</param>
+        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
+        public KeyObserver(ConcurrentDictionary<uint, IOperation> pending, IConfigInfo configInfo, IClusterController clusterController, int interval, int timeout)
+        {
+            _pending = pending;
+            _configInfo = configInfo;
+            _interval = interval;
+            _timeout = timeout;
+            _clusterController = clusterController;
+        }
 
         /// <summary>
         /// The durability requirements that must be met.
@@ -83,9 +101,7 @@ namespace Couchbase.Core.Buckets
             /// <returns>A list of replica indexes which is the larger of either the <see cref="PersistTo"/> or the <see cref="ReplicateTo"/> value</returns>
             public List<int> GetReplicas()
             {
-                var maxReplicas = (int)ReplicateTo > (int)PersistTo ?
-                    (int)ReplicateTo :
-                    (int)PersistTo;
+                var maxReplicas = (int) ReplicateTo;
 
                 return maxReplicas > VBucket.Replicas.Length ?
                     VBucket.Replicas.Where(x => x > -1).ToList() :
@@ -104,33 +120,6 @@ namespace Couchbase.Core.Buckets
                 }
             }
         }
-
-        /// <summary>
-        /// Ctor for <see cref="KeyObserver"/>.
-        /// </summary>
-        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
-        /// <param name="transcoder"></param>
-        /// <param name="interval">The interval to poll.</param>
-        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
-        public KeyObserver(IConfigInfo configInfo, ITypeTranscoder transcoder, int interval, int timeout)
-        {
-            _configInfo = configInfo;
-            _interval = interval;
-            _timeout = timeout;
-            _transcoder = transcoder;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KeyObserver"/> class.
-        /// </summary>
-        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
-        /// <param name="interval">The interval to poll.</param>
-        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
-        public KeyObserver(IConfigInfo configInfo, int interval, int timeout)
-            : this(configInfo, new DefaultTranscoder(), interval, timeout)
-        {
-        }
-
 
         /// <summary>
         /// Performs an observe event on the durability requirements specified on a key stored by an Add operation.
@@ -157,9 +146,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>True if the durability constraints have been satisfied.</returns>
         /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
         /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
-        public Task<bool> ObserveRemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<bool> ObserveRemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, CancellationTokenSource cts)
         {
-            return ObserveAsync(key, cas, true, replicateTo, persistTo);
+            return ObserveAsync(key, cas, true, replicateTo, persistTo, cts);
         }
 
         /// <summary>
@@ -172,9 +161,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>True if the durability constraints have been satisfied.</returns>
         /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
         /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
-        public Task<bool> ObserveAddAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<bool> ObserveAddAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, CancellationTokenSource cts)
         {
-            return ObserveAsync(key, cas, false, replicateTo, persistTo);
+            return ObserveAsync(key, cas, false, replicateTo, persistTo, cts);
         }
 
         /// <summary>
@@ -192,23 +181,27 @@ namespace Couchbase.Core.Buckets
             return Observe(key, cas, true, replicateTo, persistTo);
         }
 
-        /// <summary>
-        ///  Performs an observe event on the durability requirements specified on a key asynchronously
-        /// </summary>
-        /// <param name="key">The key to observe.</param>
-        /// <param name="cas">The 'Check and Set' value of the key.</param>
-        /// <param name="deletion">True if this is a delete operation.</param>
-        /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
-        /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
-        /// <returns> A <see cref="Task{bool}"/> representing the aynchronous operation.</returns>
-        /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
-        /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
+        private async Task<IServer> GetServerAsync(ObserveParams p)
+        {
+            IServer master;
+            var attempts = 0;
+            while ((master = p.VBucket.LocatePrimary()) == null)
+            {
+                if (attempts++ > 10)
+                {
+                    throw new TimeoutException("Could not acquire a server.");
+                }
+                await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+            }
+            return master;
+        }
+
         public async Task<bool> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo,
-            PersistTo persistTo)
+            PersistTo persistTo, CancellationTokenSource cts)
         {
             var criteria = GetDurabilityCriteria(deletion);
             var keyMapper = _configInfo.GetKeyMapper();
-            var vBucket = (IVBucket) keyMapper.MapKey(key);
+            var vBucket = (IVBucket)keyMapper.MapKey(key);
 
             var observeParams = new ObserveParams
             {
@@ -221,59 +214,69 @@ namespace Couchbase.Core.Buckets
             };
             observeParams.CheckConfiguredReplicas();
 
-            var operation = new Observe(key, vBucket, _transcoder, (uint)_timeout);
-             //Used to terminate the loop at the specific timeout
-            using (var cts = new CancellationTokenSource(_timeout))
+            var persisted = await CheckPersistToAsync(observeParams).ContinueOnAnyContext();
+            var replicated = await CheckReplicasAsync(observeParams).ContinueOnAnyContext();
+
+            if (persisted && replicated)
             {
-                //perform the observe operation at the set interval and terminate if not successful by the timeout
-                var task = await ObserveEvery(async p =>
-                {
-                    //check the master for persistence to disk
-                    IServer master;
-                    var attempts = 0;
-                    while ((master = p.VBucket.LocatePrimary()) == null)
-                    {
-                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        await Task.Delay((int) Math.Pow(2, attempts));
-                    }
-
-                    var result = master.Send(operation);
-                    Log.Debug(m => m("Master {0} - {1}", master.EndPoint, result.Value));
-                    var state = result.Value;
-                    if (state.KeyState == p.Criteria.PersistState)
-                    {
-                        Interlocked.Increment(ref p.PersistedToCount);
-                    }
-
-                    //Key mutation detected so fail
-                    if (p.HasMutated(state.Cas))
-                    {
-                        Log.Debug(m => m("Mutation detected {0} - {1} - opaque: {2}", master.EndPoint, result.Value, operation.Opaque));
-                        throw new DocumentMutationException(string.Format("Document mutation detected during observe for key '{0}'", key));
-                    }
-
-                    //Check if durability requirements have been met
-                    if (p.IsDurabilityMet())
-                    {
-                        Log.Debug(m => m("Durability met {0} - {1} - opaque: {2}", master.EndPoint, result.Value, operation.Opaque));
-                        return true;
-                    }
-
-                    //Run the durability requirement check on each replica
-                    var tasks = new List<Task<bool>>();
-                    var replicas = p.GetReplicas();
-                    replicas.ForEach(x => tasks.Add(CheckReplicaAsync(p, operation, x)));
-
-                    //Wait for all tasks to finish
-                    await Task.WhenAll(tasks.ToArray()).ContinueOnAnyContext();
-                    var notMutated = tasks.All(subtask => subtask.Result);
-                    Log.Debug(m => m("Not Mutated = {0} {1} - {2} - opaque: {3}", notMutated, master.EndPoint, result.Value, operation.Opaque));
-                    var durabilityMet = p.IsDurabilityMet();
-                    Log.Debug(m => m("DurabilityMet = {0} {1} - {2} - opaque: {3}", durabilityMet, master.EndPoint, result.Value, operation.Opaque));
-                    return durabilityMet && notMutated;
-                }, observeParams, operation, _interval, cts.Token).ContinueOnAnyContext();
-                return task;
+                return true;
             }
+            return await ObserveEveryAsync(async p =>
+            {
+                Log.DebugFormat("trying again: {0}", key);
+                persisted = await CheckPersistToAsync(observeParams).ContinueOnAnyContext();
+                replicated = await CheckReplicasAsync(observeParams).ContinueOnAnyContext();
+                return persisted & replicated;
+            }, observeParams, _interval, cts.Token);
+        }
+
+        private async Task<bool> CheckReplicasAsync(ObserveParams observeParams)
+        {
+            if (observeParams.ReplicateTo == ReplicateTo.Zero) return true;
+            var replicas = observeParams.GetReplicas().Select(x=>CheckReplicaAsync(observeParams, x)).ToList();
+
+            //Wait for all tasks to finish
+            await Task.WhenAll(replicas).ContinueOnAnyContext();
+            var notMutated = replicas.All(subtask => subtask.Result);
+            var durabilityMet = observeParams.IsDurabilityMet();
+
+            return durabilityMet && notMutated;
+        }
+
+        private async Task<bool> CheckPersistToAsync(ObserveParams observeParams)
+        {
+            if (observeParams.PersistTo == PersistTo.Zero) return true;
+            var tcs = new TaskCompletionSource<IOperationResult<ObserveState>>();
+            var operation = new Observe(observeParams.Key, observeParams.VBucket, _clusterController.Transcoder, (uint)_timeout);
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(_pending, _clusterController, tcs);
+            _pending.TryAdd(operation.Opaque, operation);
+
+            var server = await GetServerAsync(observeParams);
+
+            await server.SendAsync(operation).ContinueOnAnyContext();
+            var result = await tcs.Task.ContinueOnAnyContext();
+
+            Log.Debug(m => m("Master {0} - {1} key:{2}", server.EndPoint, result.Value, observeParams.Key));
+            var state = result.Value;
+            if (state.KeyState == observeParams.Criteria.PersistState)
+            {
+                Interlocked.Increment(ref observeParams.PersistedToCount);
+            }
+
+            //Key mutation detected so fail
+            if (observeParams.HasMutated(state.Cas))
+            {
+                Log.Debug(m => m("Mutation detected {0} - {1} - opaque: {2} key:{3}",server.EndPoint, result.Value, operation.Opaque, observeParams.Key));
+                throw new DocumentMutationException(string.Format("Document mutation detected during observe for key '{0}'", observeParams.Key));
+            }
+
+            //Check if durability requirements have been met
+            if (observeParams.IsDurabilityMet())
+            {
+                Log.Debug(m => m("Durability met {0} - {1} - opaque: {2} key:{3}", server.EndPoint, result.Value, operation.Opaque, observeParams.Key));
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -304,7 +307,7 @@ namespace Couchbase.Core.Buckets
             };
             p.CheckConfiguredReplicas();
 
-            var operation = new Observe(key, vBucket, _transcoder, (uint)_timeout);
+            var operation = new Observe(key, vBucket, _clusterController.Transcoder, (uint)_timeout);
             do
             {
                 var master = p.VBucket.LocatePrimary();
@@ -363,7 +366,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="observeParams">The observe parameters.</param>
         /// <param name="operation">The operation observe operation reference; will be cloned if reused.</param>
         /// <returns></returns>
-        bool CheckReplicas(ObserveParams observeParams, Observe operation)
+        private bool CheckReplicas(ObserveParams observeParams, Observe operation)
         {
             //Get the candidate replicas, if none are defined that match the specified durability return false.
             var replicas = observeParams.GetReplicas();
@@ -380,7 +383,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="operation">The observe operation.</param>
         /// <param name="replicaIndex">Index of the replica.</param>
         /// <returns>True if the key has not mutated.</returns>
-        static bool CheckReplica(ObserveParams observeParams, Observe operation, int replicaIndex)
+        private static bool CheckReplica(ObserveParams observeParams, Observe operation, int replicaIndex)
         {
             //clone the operation since we already checked the primary and we want to maintain internal state (opaque, timer, etc)
             operation = (Observe)operation.Clone();
@@ -405,21 +408,22 @@ namespace Couchbase.Core.Buckets
         /// Asynchronously checks the replications status of a key.
         /// </summary>
         /// <param name="observeParams">The <see cref="ObserveParams"/> object.</param>
-        /// <param name="operation">The Observe operation.</param>
         /// <param name="replicaIndex">The replicaIndex of the replica within the <see cref="IVBucket"/></param>
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
-        static async Task<bool> CheckReplicaAsync(ObserveParams observeParams, Observe operation, int replicaIndex)
+        private async Task<bool> CheckReplicaAsync(ObserveParams observeParams, int replicaIndex)
         {
-            Log.Debug(m=>m("checking replica {0} - opaque: {1}", replicaIndex, operation.Opaque));
             if (observeParams.IsDurabilityMet()) return true;
 
-             //clone the operation since we already checked the primary and we want to maintain internal state (opaque, timer, etc)
-            operation = (Observe)operation.Clone();
+            var operation = new Observe(observeParams.Key, observeParams.VBucket, _clusterController.Transcoder, (uint)_timeout);
+            var tcs = new TaskCompletionSource<IOperationResult<ObserveState>>();
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(_pending, _clusterController, tcs);
+            _pending.TryAdd(operation.Opaque, operation);
 
             var replica = observeParams.VBucket.LocateReplica(replicaIndex);
-            var result = await Task.Run(()=>replica.Send(operation)).ContinueOnAnyContext();
+            await replica.SendAsync(operation).ContinueOnAnyContext();
+            var result = await tcs.Task.ContinueOnAnyContext();
 
-            Log.Debug(m=>m("Replica {0} - {1} {2} - opaque: {3}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque));
+            Log.Debug(m=>m("Replica {0} - {1} {2} - opaque: {3} key:{4}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque, observeParams.Key));
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {
@@ -442,7 +446,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="interval">The interval to check.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> to use to terminate the observation at the specified timeout.</param>
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
-        static async Task<bool> ObserveEvery(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, Observe op, int interval, CancellationToken cancellationToken)
+        private async Task<bool> ObserveEveryAsync(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, int interval, CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -452,19 +456,7 @@ namespace Couchbase.Core.Buckets
                     return true;
                 }
 
-                var task = Task.Delay(interval, cancellationToken).ContinueOnAnyContext();
-                try
-                {
-                    await task;
-                }
-                catch (TaskCanceledException)
-                {
-                    return false;
-                }
-
-                //prepare for another attempt
-                observeParams.Reset();
-                op = (Observe)op.Clone();
+                await Task.Delay(interval, cancellationToken).ContinueOnAnyContext();
             }
         }
 

@@ -1520,7 +1520,7 @@ namespace Couchbase
             CheckDisposed();
             var config = _configInfo.ClientConfig.BucketConfigs[Name];
 
-            var observer = new KeyObserver(_configInfo, _transcoder, config.ObserveInterval, config.ObserveTimeout);
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, config.ObserveTimeout);
 
             return observer.Observe(key, cas, deletion, replicateTo, persistTo)
                 ? ObserveResponse.DurabilitySatisfied
@@ -1542,9 +1542,12 @@ namespace Couchbase
         {
             CheckDisposed();
             var config = _configInfo.ClientConfig.BucketConfigs[Name];
-            var observer = new KeyObserver(_configInfo, _transcoder, config.ObserveInterval, config.ObserveTimeout);
-            var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo);
-            return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, config.ObserveTimeout);
+            using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+            {
+                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts);
+                return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
+            }
         }
 
         /// <summary>

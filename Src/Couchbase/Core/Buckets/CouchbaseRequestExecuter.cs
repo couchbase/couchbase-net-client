@@ -187,7 +187,7 @@ namespace Couchbase.Core.Buckets
 
                     if (ConfigInfo.SupportsEnhancedDurability)
                     {
-                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
+                        var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
                             config.ObserveInterval, (uint) config.ObserveTimeout);
 
                         var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
@@ -195,9 +195,7 @@ namespace Couchbase.Core.Buckets
                     }
                     else
                     {
-                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
-                            config.ObserveInterval, config.ObserveTimeout);
-
+                        var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
                         var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
                         result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
                     }
@@ -267,7 +265,7 @@ namespace Couchbase.Core.Buckets
 
                     if (ConfigInfo.SupportsEnhancedDurability)
                     {
-                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
+                        var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
                             config.ObserveInterval, (uint) config.ObserveTimeout);
 
                         var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
@@ -275,9 +273,7 @@ namespace Couchbase.Core.Buckets
                     }
                     else
                     {
-                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
-                            config.ObserveInterval, config.ObserveTimeout);
-
+                        var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
                         var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
                         result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
                     }
@@ -348,35 +344,49 @@ namespace Couchbase.Core.Buckets
                 if (result.Success)
                 {
                     var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-
-                    if (ConfigInfo.SupportsEnhancedDurability)
+                    using (var cts = new CancellationTokenSource(config.ObserveTimeout))
                     {
-                        var seqnoObserver = new KeySeqnoObserver(ConfigInfo, ClusterController.Transcoder,
-                            config.ObserveInterval, (uint) config.ObserveTimeout);
+                        if (ConfigInfo.SupportsEnhancedDurability)
+                        {
+                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
+                                ClusterController,
+                                config.ObserveInterval, (uint) config.ObserveTimeout);
 
-                        var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo)
-                            .ContinueOnAnyContext();
+                            var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
+                                .ContinueOnAnyContext();
 
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                        ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
-                    }
-                    else
-                    {
-                        var observer = new KeyObserver(ConfigInfo, ClusterController.Transcoder,
-                            config.ObserveInterval, config.ObserveTimeout);
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                            ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
+                        }
+                        else
+                        {
+                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
+                                config.ObserveInterval, config.ObserveTimeout);
 
-                        var observed = await observer.ObserveAsync(operation.Key, result.Cas, deletion, replicateTo, persistTo)
-                            .ContinueOnAnyContext();
+                            var observed = await observer.ObserveAsync(operation.Key, result.Cas,
+                                deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
 
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                        ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                            ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
+                        }
                     }
                 }
                 else
                 {
                     result.Durability = Durability.NotSatisfied;
-                    ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
+                    ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
                 }
+            }
+            catch (TaskCanceledException e)
+            {
+                result = new OperationResult<T>
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.OperationTimeout,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
             }
             catch (ReplicaNotConfiguredException e)
             {

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
-using Couchbase.Core.Transcoders;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.Utils;
 
@@ -15,9 +16,29 @@ namespace Couchbase.Core.Buckets
     {
         private readonly IConfigInfo _configInfo;
         private readonly int _interval;
-        private readonly uint _timeout = 2500; //2.5sec;
-        private readonly static ILog Log = LogManager.GetLogger<KeyObserver>();
-        private readonly ITypeTranscoder _transcoder;
+        private readonly uint _timeout;
+        private static readonly ILog Log = LogManager.GetLogger<KeyObserver>();
+        private readonly IClusterController _clusterController;
+        private readonly ConcurrentDictionary<uint, IOperation> _pending;
+        private readonly string _key;
+
+        /// <summary>
+        /// Ctor for <see cref="KeyObserver"/>.
+        /// </summary>
+        /// <param name="pending">A queue for operations in-flight.</param>
+        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
+        /// <param name="clusterController">The <see cref="IClusterController"/> representing the cluster's state.</param>
+        /// <param name="interval">The interval to poll.</param>
+        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
+        public KeySeqnoObserver(string key, ConcurrentDictionary<uint, IOperation> pending, IConfigInfo configInfo, IClusterController clusterController, int interval, uint timeout)
+        {
+            _configInfo = configInfo;
+            _interval = interval;
+            _timeout = timeout;
+            _clusterController = clusterController;
+            _pending = pending;
+            _key = key;
+        }
 
         /// <summary>
         /// Data structure for holding and passing arguments
@@ -29,8 +50,11 @@ namespace Couchbase.Core.Buckets
             public PersistTo PersistTo { get; set; }
             public IVBucket VBucket { get; set; }
             public MutationToken Token { get; set; }
+            public IOperation Operation { get; set; }
             private int _replicatedToCount;
             private int _persistedToCount;
+
+            public bool TimedOut { get; set; }
 
             /// <summary>
             /// Check to see if the durability constraint is met or exceeded
@@ -50,9 +74,9 @@ namespace Couchbase.Core.Buckets
             /// </summary>
             /// <param name="response">The response.</param>
             /// <returns></returns>
-            public void CheckPersisted(ObserveSeqnoResponse response)
+            public void CheckPersisted(IOperationResult<ObserveSeqnoResponse> response)
             {
-                var persisted = response.LastPersistedSeqno >= Token.SequenceNumber;
+                var persisted = response.Value.LastPersistedSeqno >= Token.SequenceNumber;
                 if (persisted)
                 {
                     Interlocked.Increment(ref _persistedToCount);
@@ -65,9 +89,9 @@ namespace Couchbase.Core.Buckets
             /// </summary>
             /// <param name="response">The response.</param>
             /// <returns></returns>
-            public void CheckReplicated(ObserveSeqnoResponse response)
+            public void CheckReplicated(IOperationResult<ObserveSeqnoResponse> response)
             {
-                var replicated = response.CurrentSeqno >= Token.SequenceNumber;
+                var replicated = response.Value.CurrentSeqno >= Token.SequenceNumber;
                 if (replicated)
                 {
                     Interlocked.Increment(ref _replicatedToCount);
@@ -80,9 +104,9 @@ namespace Couchbase.Core.Buckets
             /// <param name="response">The <see cref="ObserveSeqno"/>response.</param>
             /// <exception cref="DocumentMutationLostException">Thrown if the observed document was lost during
             /// a hard failover because the document did not reach the replica in time.</exception>
-            public void CheckMutationLost(ObserveSeqnoResponse response)
+            public void CheckMutationLost(IOperationResult<ObserveSeqnoResponse> response)
             {
-                if (response.IsHardFailover && response.LastSeqnoReceived < Token.SequenceNumber)
+                if (response.Value.IsHardFailover && response.Value.LastSeqnoReceived < Token.SequenceNumber)
                 {
                     throw new DocumentMutationLostException(ExceptionUtil.DocumentMutationLostMsg);
                 }
@@ -92,11 +116,9 @@ namespace Couchbase.Core.Buckets
             ///Gets the maximum number of replicas to check.
             /// </summary>
             /// <returns></returns>
-            public int MaxReplicas()
+            private int MaxReplicas()
             {
-                return (int) ReplicateTo > (int) PersistTo
-                    ? (int) ReplicateTo
-                    : (int) PersistTo;
+                return (int) ReplicateTo;
             }
 
             /// <summary>
@@ -111,7 +133,6 @@ namespace Couchbase.Core.Buckets
                     VBucket.Replicas.Where(x => x > -1).ToList() :
                     VBucket.Replicas.Where(x => x > -1).Take(maxReplicas).ToList();
             }
-
 
             /// <summary>
             /// Checks that the number of configured replicas matches the <see cref="ReplicateTo"/> value.
@@ -140,30 +161,39 @@ namespace Couchbase.Core.Buckets
             }
         }
 
-        /// <summary>
-        /// Ctor for <see cref="KeyObserver"/>.
-        /// </summary>
-        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
-        /// <param name="transcoder"></param>
-        /// <param name="interval">The interval to poll.</param>
-        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
-        public KeySeqnoObserver(IConfigInfo configInfo, ITypeTranscoder transcoder, int interval, uint timeout)
+       private async Task<IServer> GetServerAsync(ObserveParams p)
         {
-            _configInfo = configInfo;
-            _interval = interval;
-            _timeout = timeout;
-            _transcoder = transcoder;
+            IServer master;
+            var attempts = 0;
+            while ((master = p.VBucket.LocatePrimary()) == null)
+            {
+                if (attempts++ > 10)
+                {
+                    throw new TimeoutException("Could not acquire a server.");
+                }
+                await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+            }
+            return master;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KeyObserver"/> class.
-        /// </summary>
-        /// <param name="configInfo">The <see cref="IConfigInfo"/> object which represents the current cluster and client configuration.</param>
-        /// <param name="interval">The interval to poll.</param>
-        /// <param name="timeout">The max time to wait for the durability requirements to be met.</param>
-        public KeySeqnoObserver(IConfigInfo configInfo, int interval, uint timeout)
-            : this(configInfo, new DefaultTranscoder(), interval, timeout)
+        private async Task<bool> CheckPersistToAsync(ObserveParams observeParams)
         {
+            if (observeParams.PersistTo == PersistTo.Zero) return true;
+            var op = new ObserveSeqno(observeParams.Token, _clusterController.Transcoder, _timeout);
+            observeParams.Operation = op;
+
+            var tcs = new TaskCompletionSource<IOperationResult<ObserveSeqnoResponse>>();
+            op.Completed = CallbackFactory.CompletedFuncForRetry(_pending, _clusterController, tcs);
+            _pending.TryAdd(op.Opaque, op);
+
+            var server = await GetServerAsync(observeParams);
+            await server.SendAsync(op).ContinueOnAnyContext();
+            var response = await tcs.Task.ContinueOnAnyContext();
+
+            observeParams.CheckMutationLost(response);
+            observeParams.CheckPersisted(response);
+
+            return observeParams.IsDurabilityMet();
         }
 
         /// <summary>
@@ -172,12 +202,13 @@ namespace Couchbase.Core.Buckets
         /// <param name="token">The <see cref="MutationToken"/> to compare against.</param>
         /// <param name="replicateTo">The number of replicas that the key must be replicated to to satisfy the durability constraint.</param>
         /// <param name="persistTo">The number of replicas that the key must be persisted to to satisfy the durability constraint.</param>
-        /// <returns> A <see cref="Task{bool}"/> representing the aynchronous operation.</returns>
+        /// <param name="cts"></param>
+        /// <returns> A <see cref="Task{boolean}"/> representing the aynchronous operation.</returns>
         /// <exception cref="ReplicaNotConfiguredException">Thrown if the number of replicas requested
         /// in the ReplicateTo parameter does not match the # of replicas configured on the server.</exception>
-        public async Task<bool> ObserveAsync(MutationToken token, ReplicateTo replicateTo, PersistTo persistTo)
+        public async Task<bool> ObserveAsync(MutationToken token, ReplicateTo replicateTo, PersistTo persistTo, CancellationTokenSource cts)
         {
-            var keyMapper = (VBucketKeyMapper)_configInfo.GetKeyMapper();
+            var keyMapper = (VBucketKeyMapper) _configInfo.GetKeyMapper();
             var obParams = new ObserveParams
             {
                 ReplicateTo = replicateTo,
@@ -186,35 +217,21 @@ namespace Couchbase.Core.Buckets
                 VBucket = keyMapper[token.VBucketId]
             };
             obParams.CheckConfiguredReplicas();
-            var op = new ObserveSeqno(obParams.Token, _transcoder, _timeout);
 
-            using (var cts = new CancellationTokenSource((int)_timeout))
+            var persisted = await CheckPersistToAsync(obParams).ContinueOnAnyContext();
+            var replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
+            if (persisted && replicated)
             {
-                //perform the observe operation at the set interval and terminate if not successful by the timeout
-                var task = await ObserveEvery(async p =>
-                {
-                    IServer master;
-                    var attempts = 0;
-                    while ((master = p.VBucket.LocatePrimary()) == null)
-                    {
-                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                    }
-
-                    var result = master.Send(op);
-                    var osr = result.Value;
-
-                    p.CheckMutationLost(osr);
-                    p.CheckPersisted(osr);
-
-                    if (p.IsDurabilityMet())
-                    {
-                        return true;
-                    }
-                    return await CheckReplicasAsync(p, op).ContinueOnAnyContext();
-                }, obParams, _interval, op, cts.Token).ContinueOnAnyContext();
-                return task;
+                Log.DebugFormat("Persisted and replicated on first try: {0}", _key);
+                return true;
             }
+            return await ObserveEveryAsync(async p =>
+            {
+                Log.DebugFormat("trying again: {0}", _key);
+                persisted = await CheckPersistToAsync(obParams).ContinueOnAnyContext();
+                replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
+                return persisted & replicated;
+            }, obParams, _interval, cts.Token);
         }
 
         /// <summary>
@@ -225,7 +242,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="interval">The interval to check.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> to use to terminate the observation at the specified timeout.</param>
         /// <returns>True if the durability requirements specified by <see cref="PersistTo"/> and <see cref="ReplicateTo"/> have been satisfied.</returns>
-        static async Task<bool> ObserveEvery(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, int interval, ObserveSeqno op, CancellationToken cancellationToken)
+        private async Task<bool> ObserveEveryAsync(Func<ObserveParams, Task<bool>> observe, ObserveParams observeParams, int interval, CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -235,26 +252,14 @@ namespace Couchbase.Core.Buckets
                     return true;
                 }
 
-                var task = Task.Delay(interval, cancellationToken).ContinueOnAnyContext();
-                try
-                {
-                    await task;
-                }
-                catch (TaskCanceledException)
-                {
-                    return false;
-                }
-
-                //prepare for a second attempt
-                op = (ObserveSeqno)op.Clone();
-                observeParams.Reset();
+                //delay for the interval - will throw TaskCancellationException if the token times out
+                await Task.Delay(interval, cancellationToken).ContinueOnAnyContext();
             }
         }
 
         /// <summary>
         /// Observes the specified key using the Seqno.
         /// </summary>
-        /// <param name="key">The key.</param>
         /// <param name="token">The token.</param>
         /// <param name="replicateTo">The replicate to.</param>
         /// <param name="persistTo">The persist to.</param>
@@ -276,12 +281,11 @@ namespace Couchbase.Core.Buckets
             };
             p.CheckConfiguredReplicas();
 
-            var op = new ObserveSeqno(p.Token, _transcoder, _timeout);
+            var op = new ObserveSeqno(p.Token, _clusterController.Transcoder, _timeout);
             do
             {
                 var master = p.VBucket.LocatePrimary();
-                var result = master.Send(op);
-                var osr = result.Value;
+                var osr = master.Send(op);
 
                 p.CheckMutationLost(osr);
                 p.CheckPersisted(osr);
@@ -310,19 +314,17 @@ namespace Couchbase.Core.Buckets
         /// <param name="observeParams">The observe parameters.</param>
         /// <param name="op">The op.</param>
         /// <returns></returns>
-        bool CheckReplicas(ObserveParams observeParams, ObserveSeqno op)
+        private bool CheckReplicas(ObserveParams observeParams, ObserveSeqno op)
         {
             var replicas = observeParams.GetReplicas();
             return replicas.Any(replicaId => CheckReplica(observeParams, op, replicaId));
         }
 
-        async Task<bool> CheckReplicasAsync(ObserveParams observeParams, ObserveSeqno op)
+        private async Task<bool> CheckReplicasAsync(ObserveParams observeParams)
         {
-            var replicas = observeParams.GetReplicas();
-
-            var tasks = new List<Task<bool>>();
-            replicas.ForEach(x => tasks.Add(CheckReplicaAsync(observeParams, op, x)));
-            await Task.WhenAll(tasks);
+            if (observeParams.ReplicateTo == ReplicateTo.Zero) return true;
+            var replicas = observeParams.GetReplicas().Select(x=>CheckReplicaAsync(observeParams, x));
+            await Task.WhenAll(replicas);
             return observeParams.IsDurabilityMet();
         }
 
@@ -333,28 +335,36 @@ namespace Couchbase.Core.Buckets
         /// <param name="op">The op.</param>
         /// <param name="replicaId">The replica identifier.</param>
         /// <returns></returns>
-        bool CheckReplica(ObserveParams observeParams, ObserveSeqno op, int replicaId)
+        private bool CheckReplica(ObserveParams observeParams, ObserveSeqno op, int replicaId)
         {
             var cloned = (ObserveSeqno)op.Clone();
             var replica = observeParams.VBucket.LocateReplica(replicaId);
             var result = replica.Send(cloned);
 
-            observeParams.CheckMutationLost(result.Value);
-            observeParams.CheckPersisted(result.Value);
-            observeParams.CheckReplicated(result.Value);
+            observeParams.CheckMutationLost(result);
+            observeParams.CheckPersisted(result);
+            observeParams.CheckReplicated(result);
             return observeParams.IsDurabilityMet();
         }
 
-        static Task<bool> CheckReplicaAsync(ObserveParams observeParams, ObserveSeqno op, int replicaId)
+        private async Task<bool> CheckReplicaAsync(ObserveParams observeParams, int replicaId)
         {
-            var cloned = (ObserveSeqno)op.Clone();
-            var replica = observeParams.VBucket.LocateReplica(replicaId);
-            var result = replica.Send(cloned);
+            var op = new ObserveSeqno(observeParams.Token, _clusterController.Transcoder, _timeout);
+            observeParams.Operation = op;
 
-            observeParams.CheckMutationLost(result.Value);
-            observeParams.CheckPersisted(result.Value);
-            observeParams.CheckReplicated(result.Value);
-            return Task.FromResult(observeParams.IsDurabilityMet());
+            var tcs = new TaskCompletionSource<IOperationResult<ObserveSeqnoResponse>>();
+            op.Completed = CallbackFactory.CompletedFuncForRetry(_pending, _clusterController, tcs);
+            _pending.TryAdd(op.Opaque, op);
+
+            Log.Debug(m => m("checking replica {0} - opaque: {1}", replicaId, op.Opaque));
+            var replica = observeParams.VBucket.LocateReplica(replicaId);
+            await replica.SendAsync(op).ContinueOnAnyContext();
+            var response = await tcs.Task.ContinueOnAnyContext();
+
+            observeParams.CheckMutationLost(response);
+            observeParams.CheckPersisted(response);
+            observeParams.CheckReplicated(response);
+            return observeParams.IsDurabilityMet();
         }
     }
 }

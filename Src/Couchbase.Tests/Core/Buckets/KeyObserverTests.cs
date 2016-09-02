@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -14,7 +16,9 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Services;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -46,7 +50,12 @@ namespace Couchbase.Tests.Core.Buckets
 
             var configInfo = provider.GetConfig("default");
 
-            var observer = new KeyObserver(configInfo, 10, 500);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
             var constraintReached = observer.ObserveRemove("Test_Timeout_Remove", 0, ReplicateTo.Zero, PersistTo.One);
             Assert.IsTrue(constraintReached);
         }
@@ -73,9 +82,18 @@ namespace Couchbase.Tests.Core.Buckets
 
             var configInfo = provider.GetConfig("default");
 
-            var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = await observer.ObserveRemoveAsync("Test_Timeout_Remove_Async", 0, ReplicateTo.Zero, PersistTo.One);
-            Assert.IsTrue(constraintReached);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
+            using (var cts = new CancellationTokenSource(configuration.ObserveTimeout))
+            {
+                var constraintReached =
+                    await observer.ObserveRemoveAsync("Test_Timeout_Remove_Async", 0, ReplicateTo.Zero, PersistTo.One, cts);
+                Assert.IsTrue(constraintReached);
+            }
         }
 
         [Test]
@@ -110,7 +128,12 @@ namespace Couchbase.Tests.Core.Buckets
                         cas = bucket.Upsert("Test_Timeout_Add", "").Cas;
                     }
                 }
-            var observer = new KeyObserver(configInfo, 10, 500);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
             var constraintReached = observer.ObserveAdd("Test_Timeout_Add", cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);
         }
@@ -148,9 +171,17 @@ namespace Couchbase.Tests.Core.Buckets
                     cas = bucket.Upsert(key, "").Cas;
                 }
             }
-            var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.Zero, PersistTo.Zero);
-            Assert.IsTrue(constraintReached);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
+            using (var cts = new CancellationTokenSource(configuration.ObserveTimeout))
+            {
+                var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.Zero, PersistTo.Zero, cts);
+                Assert.IsTrue(constraintReached);
+            }
         }
 
         [Test]
@@ -185,7 +216,12 @@ namespace Couchbase.Tests.Core.Buckets
                     bucket.Upsert("When_Mutation_Happens_Observe_Fails", "");
                 }
             }
-            var observer = new KeyObserver(configInfo, 10, 500);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
             var constraintReached = observer.ObserveAdd("When_Mutation_Happens_Observe_Fails", cas, ReplicateTo.One, PersistTo.One);
             Assert.IsFalse(constraintReached);
         }
@@ -223,9 +259,17 @@ namespace Couchbase.Tests.Core.Buckets
                     bucket.Upsert(key, "");
                 }
             }
-            var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.One, PersistTo.One);
-            Assert.IsFalse(constraintReached);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
+            using (var cts = new CancellationTokenSource(configuration.ObserveTimeout))
+            {
+                var constraintReached = await observer.ObserveAddAsync(key, cas, ReplicateTo.One, PersistTo.One, cts);
+                Assert.IsFalse(constraintReached);
+            }
         }
 
         [Test]
@@ -260,7 +304,12 @@ namespace Couchbase.Tests.Core.Buckets
                 }
             }
 
-            var observer = new KeyObserver(configInfo, 10, 500);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
             var constraintReached = observer.ObserveAdd("Test_Timeout_Add_PersistTo_Master", result.Cas, ReplicateTo.Zero, PersistTo.Zero);
             Assert.IsTrue(constraintReached);
         }
@@ -299,9 +348,18 @@ namespace Couchbase.Tests.Core.Buckets
                 }
             }
 
-            var observer = new KeyObserver(configInfo, 10, 500);
-            var constraintReached = await observer.ObserveAddAsync(key, result.Cas, ReplicateTo.Zero, PersistTo.Zero);
-            Assert.IsTrue(constraintReached);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, configInfo, clusterController.Object, 10, 500);
+            using (var cts = new CancellationTokenSource(configuration.ObserveTimeout))
+            {
+                var constraintReached =
+                    await observer.ObserveAddAsync(key, result.Cas, ReplicateTo.Zero, PersistTo.Zero, cts);
+                Assert.IsTrue(constraintReached);
+            }
         }
 
         [Test]
@@ -309,7 +367,13 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var vBucket = new VBucket(null, 0, 0, new[] {0, 2, 1}, 0, new VBucketServerMap {ServerList = new string[]{}}, "default");
             var expected = new[] {0, 2};
-            var observer = new KeyObserver(null, 10, 500);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var observer = new KeyObserver(pending, null, clusterController.Object, 10, 500);
             var actual = observer.GetReplicas(vBucket, ReplicateTo.Two, PersistTo.One);
             Assert.AreEqual(expected, actual);
             Assert.AreEqual(actual.Count, (int)ReplicateTo.Two);
@@ -320,8 +384,14 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var vBucket = new VBucket(null, 0, 0, new[] { 0, 2, 1 }, 0, new VBucketServerMap { ServerList = new string[] { } }, "default");
             var expected = new[] { 0, 2 };
-            var observer = new KeyObserver(null, 10, 500);
+
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var observer = new KeyObserver(pending, null, clusterController.Object, 10, 500);
+
             var actual = observer.GetReplicas(vBucket, ReplicateTo.One, PersistTo.Two);
+
             Assert.AreEqual(expected, actual);
             Assert.AreEqual(actual.Count, (int)PersistTo.Two);
         }
@@ -331,8 +401,14 @@ namespace Couchbase.Tests.Core.Buckets
         {
             var vBucket = new VBucket(null, 0, 0, new[] { -1, -1, -1 }, 0, new VBucketServerMap { ServerList = new string[] { } }, "default");
             var expected = new int[] {};
-            var observer = new KeyObserver(null, 10, 500);
+
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var observer = new KeyObserver(pending, null, clusterController.Object, 10, 500);
+
             var actual = observer.GetReplicas(vBucket, ReplicateTo.One, PersistTo.Two);
+
             Assert.AreEqual(expected, actual);
             Assert.AreEqual(expected.Count(), actual.Count());
         }

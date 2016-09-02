@@ -60,7 +60,7 @@ namespace Couchbase.Core.Buckets
                                     var retryTcs = new TaskCompletionSource<IOperationResult<T>>();
 
                                     var cloned = o.Clone();
-                                    cloned.Completed = CompletedFuncForRetry(executer, pending, controller, retryTcs);
+                                    cloned.Completed = CompletedFuncForRetry(pending, controller, retryTcs);
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
@@ -149,7 +149,7 @@ namespace Couchbase.Core.Buckets
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();
 
                                     var cloned = o.Clone();
-                                    cloned.Completed = CompletedFuncForRetry(executer, pending, controller, retryTcs);
+                                    cloned.Completed = CompletedFuncForRetry(pending, controller, retryTcs);
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
@@ -242,7 +242,7 @@ namespace Couchbase.Core.Buckets
                                     var retryTcs = new TaskCompletionSource<IOperationResult<T>>();
 
                                     var cloned = o.Clone();
-                                    cloned.Completed = CompletedFuncForRetry(executer, pending, controller, retryTcs);
+                                    cloned.Completed = CompletedFuncForRetry(pending, controller, retryTcs);
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
@@ -333,7 +333,7 @@ namespace Couchbase.Core.Buckets
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();
 
                                     var cloned = o.Clone();
-                                    cloned.Completed = CompletedFuncForRetry(executer, pending, controller, retryTcs);
+                                    cloned.Completed = CompletedFuncForRetry(pending, controller, retryTcs);
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
@@ -378,10 +378,9 @@ namespace Couchbase.Core.Buckets
         }
 
         public static Func<SocketAsyncState, Task> CompletedFuncForRetry<T>(
-          IRequestExecuter executer,
-          ConcurrentDictionary<uint, IOperation> pending,
-          IClusterController controller,
-          TaskCompletionSource<IOperationResult<T>> tcs)
+            ConcurrentDictionary<uint, IOperation> pending,
+            IClusterController controller,
+            TaskCompletionSource<IOperationResult<T>> tcs)
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
@@ -432,9 +431,10 @@ namespace Couchbase.Core.Buckets
             return func;
         }
 
-        public static Func<SocketAsyncState, Task> CompletedFuncForRetry(IRequestExecuter executer,
-        ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
-        TaskCompletionSource<IOperationResult> tcs)
+        public static Func<SocketAsyncState, Task> CompletedFuncForRetry(
+            ConcurrentDictionary<uint, IOperation> pending,
+            IClusterController controller,
+            TaskCompletionSource<IOperationResult> tcs)
         {
             Func<SocketAsyncState, Task> func = async s =>
             {

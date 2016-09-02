@@ -425,7 +425,7 @@ namespace Couchbase.Core.Buckets
             var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
 
             operation.VBucket = vBucket;
-            operation.Completed = CallbackFactory.CompletedFuncForRetry(this, Pending, ClusterController, tcs);
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(Pending, ClusterController, tcs);
             Pending.TryAdd(operation.Opaque, operation);
 
            IOperationResult<T> result = null;
@@ -477,7 +477,7 @@ namespace Couchbase.Core.Buckets
             var vBucket = (IVBucket)keyMapper.MapKey(operation.Key);
 
             operation.VBucket = vBucket;
-            operation.Completed = CallbackFactory.CompletedFuncForRetry(this, Pending, ClusterController, tcs);
+            operation.Completed = CallbackFactory.CompletedFuncForRetry(Pending, ClusterController, tcs);
             Pending.TryAdd(operation.Opaque, operation);
 
             var server = vBucket.LocatePrimary();

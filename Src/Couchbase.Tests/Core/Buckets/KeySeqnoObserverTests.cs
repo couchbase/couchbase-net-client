@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -14,6 +15,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Services;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -71,7 +73,12 @@ namespace Couchbase.Tests.Core.Buckets
             var result = node.Send(new Add<string>(key, "", (VBucket)mappedNode,
                 new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer()), 1000));
 
-            var keyObserver = new KeySeqnoObserver(configInfo, 0, 1000);
+            var clusterController = new Mock<IClusterController>();
+            clusterController.Setup(x => x.Transcoder).Returns(new DefaultTranscoder());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var keyObserver = new KeySeqnoObserver("thekey", pending, configInfo, clusterController.Object, 0, 1000);
             var durabilityReached = keyObserver.Observe(result.Token, ReplicateTo.Zero, PersistTo.One);
             Assert.IsTrue(durabilityReached);
         }
