@@ -28,7 +28,11 @@ namespace Couchbase.Utils
             {
                 try
                 {
-                    var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
+                    IPHostEntry hostEntry;
+                    using (new SynchronizationContextExclusion())
+                    {
+                        hostEntry = Dns.GetHostEntryAsync(uri.DnsSafeHost).Result;
+                    }
 
                     //use ip6 addresses only if configured
                     var hosts = useInterNetworkV6Addresses
