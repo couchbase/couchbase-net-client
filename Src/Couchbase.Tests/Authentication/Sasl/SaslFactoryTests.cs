@@ -39,11 +39,11 @@ namespace Couchbase.Tests.Authentication.Sasl
         }
 
         [Test]
-        public void When_PlainText_Provided_Factory_Returns_CramMd5Mechanism()
+        public void When_PlainText_Provided_Factory_Returns_ScramShaMechanism()
         {
             var factory = SaslFactory.GetFactory();
             var mechanism = factory("authenticated", "secret", _ioService, new DefaultTranscoder());
-            Assert.IsTrue(mechanism is CramMd5Mechanism);
+            Assert.IsTrue(mechanism is ScramShaMechanism);
         }
     }
 }

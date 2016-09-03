@@ -197,7 +197,7 @@ namespace Couchbase.Authentication.SASL
         /// <returns></returns>
         internal byte[] ComputeHash(byte[] key, string data)
         {
-            using (var hmac = new HMACSHA1(key, false))
+            using (var hmac = new HMACSHA1(key))
             {
                 return hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
             }
@@ -210,7 +210,7 @@ namespace Couchbase.Authentication.SASL
         /// <returns></returns>
         internal byte[] ComputeDigest(byte[] key)
         {
-            using (var sha = new SHA1CryptoServiceProvider())
+            using (var sha = SHA1.Create())
             {
                 return sha.ComputeHash(key);
             }
