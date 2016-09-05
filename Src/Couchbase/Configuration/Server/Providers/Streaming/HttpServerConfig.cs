@@ -37,7 +37,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _bucketName = bucketName;
 
             _httpClient = new CouchbaseHttpClient(bucketName, password);
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(clientConfig.BucketConfigs[bucketName].PoolConfiguration.ConnectTimeout);
         }
 
         public string BucketName
