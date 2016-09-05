@@ -38,7 +38,8 @@ namespace Couchbase.UnitTests.Management
 
             var mockServerConfig = new Mock<IServerConfig>();
 
-            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object, new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new Views.JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
             managerMock
                 .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["flushEnabled"] == "1")))
                 .Returns(Task.FromResult((IResult) new DefaultResult(true, "success", null)));
@@ -62,7 +63,7 @@ namespace Couchbase.UnitTests.Management
             var mockServerConfig = new Mock<IServerConfig>();
 
             var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
-                new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+                new Views.JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
             managerMock
                 .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["flushEnabled"] == "0")))
                 .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
@@ -86,7 +87,7 @@ namespace Couchbase.UnitTests.Management
             var mockServerConfig = new Mock<IServerConfig>();
 
             var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
-                new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+                new Views.JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
             managerMock
                 .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "1")))
                 .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
@@ -110,7 +111,7 @@ namespace Couchbase.UnitTests.Management
             var mockServerConfig = new Mock<IServerConfig>();
 
             var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
-                new Views.JsonDataMapper(_clientConfiguration), "username", "password");
+                new Views.JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
             managerMock
                 .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
                 .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));

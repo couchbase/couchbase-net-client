@@ -666,11 +666,6 @@ namespace Couchbase.Management
             return _clientConfig.UseSsl;
         }
 
-        protected internal virtual HttpClient CreateAuthenticatedHttpClient()
-        {
-            return new CouchbaseHttpClient(_username, _password);
-        }
-
         void SetHeaders(HttpRequestMessage request, Uri uri, string mediaType)
         {
             var contentType = new MediaTypeWithQualityHeaderValue(mediaType);
