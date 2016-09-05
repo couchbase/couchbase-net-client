@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Configuration;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Reflection;
@@ -16,6 +15,7 @@ using Couchbase.Views;
 using Newtonsoft.Json;
 
 #if NET45
+using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
 #endif
 

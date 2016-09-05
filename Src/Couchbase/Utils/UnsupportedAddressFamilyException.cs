@@ -19,9 +19,11 @@ namespace Couchbase.Utils
         {
         }
 
+#if NET45
         protected UnsupportedAddressFamilyException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }
+#endif
     }
 }

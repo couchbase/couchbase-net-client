@@ -21,9 +21,11 @@ namespace Couchbase
         {
         }
 
+#if NET45
         protected DocumentAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

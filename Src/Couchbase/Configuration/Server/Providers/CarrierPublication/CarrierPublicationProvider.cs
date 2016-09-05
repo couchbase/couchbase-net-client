@@ -30,7 +30,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
 
-            _heartBeat = new Timer(_heartBeat_Elapsed);
+            _heartBeat = new Timer(_heartBeat_Elapsed, null, Timeout.Infinite, Timeout.Infinite);
 
             if (ClientConfig.EnableConfigHeartBeat)
             {

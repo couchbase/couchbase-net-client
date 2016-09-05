@@ -115,7 +115,8 @@ namespace Couchbase.UnitTests.Search
 
         private Stream OpenResource(string resourceName)
         {
-            return Assembly.GetExecutingAssembly().GetManifestResourceStream(typeof(FtsDataMapperTests), resourceName);
+            var assembly = typeof(FtsDataMapperTests).GetTypeInfo().Assembly;
+            return assembly.GetManifestResourceStream(assembly.GetName().Name + ".Search." + resourceName);
         }
     }
 }
@@ -142,3 +143,4 @@ namespace Couchbase.UnitTests.Search
  * ************************************************************/
 
 #endregion
+

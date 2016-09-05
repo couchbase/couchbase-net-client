@@ -1,0 +1,190 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{FC362A67-59A4-4EE5-BCF0-A85D4E85F864}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Couchbase.UnitTests.NetStandard</RootNamespace>
+    <AssemblyName>Couchbase.UnitTests.NetStandard</AssemblyName>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NETSTANDARD</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;NETSTANDARD</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Couchbase.UnitTests\Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs">
+      <Link>Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Configuration\Server\Providers\ConfigProviderBaseTests.cs">
+      <Link>Configuration\Server\Providers\ConfigProviderBaseTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\IO\ConnectionBaseTests.cs">
+      <Link>IO\ConnectionBaseTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\IO\Converters\DefaultConverterTests.cs">
+      <Link>IO\Converters\DefaultConverterTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\IO\Operations\Authentication\SaslAuthenticationTests.cs">
+      <Link>IO\Operations\Authentication\SaslAuthenticationTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Management\ClusterManager_Tests.cs">
+      <Link>Management\ClusterManager_Tests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Management\BucketManager_Tests.cs">
+      <Link>Management\BucketManager_Tests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Management\BucketManager_Index_Tests.cs">
+      <Link>Management\BucketManager_Index_Tests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Authentication\ScramSha1MechanismTests.cs">
+      <Link>Authentication\ScramSha1MechanismTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Configuration\Client\ClientConfigurationTests.cs">
+      <Link>Configuration\Client\ClientConfigurationTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\Buckets\CouchbaseRequestExecutorTests.cs">
+      <Link>Core\Buckets\CouchbaseRequestExecutorTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\MutateInBuilderTests.cs">
+      <Link>Core\MutateInBuilderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\IO\Operations\MultiLookupTests.cs">
+      <Link>Core\IO\Operations\MultiLookupTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\LookupBuilderTests.cs">
+      <Link>Core\LookupBuilderTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\Serialization\DefaultSerializerTests.cs">
+      <Link>Core\Serialization\DefaultSerializerTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\Serialization\DeserializationOptionsTests.cs">
+      <Link>Core\Serialization\DeserializationOptionsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs">
+      <Link>Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\CouchbaseBucketTests.cs">
+      <Link>CouchbaseBucketTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\IO\ConnectionTests.cs">
+      <Link>IO\ConnectionTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\N1Ql\N1qlRyowTests.cs">
+      <Link>N1Ql\N1qlRyowTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\N1Ql\QueryClientTests.cs">
+      <Link>N1Ql\QueryClientTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\OperationResultTests.cs">
+      <Link>OperationResultTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Properties\AssemblyInfo.cs">
+      <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\TermQueryTests.cs">
+      <Link>Search\TermQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\SearchClientTests.cs">
+      <Link>Search\SearchClientTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\SearchParamsTests.cs">
+      <Link>Search\SearchParamsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\StringExtensionTests.cs">
+      <Link>StringExtensionTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\FtsDataMapperTests.cs">
+      <Link>Search\FtsDataMapperTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\StringQueryTests.cs">
+      <Link>Search\StringQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\RegexpQueryTests.cs">
+      <Link>Search\RegexpQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\PrefixQueryTests.cs">
+      <Link>Search\PrefixQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\MatchQueryTests.cs">
+      <Link>Search\MatchQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\MatchPhraseQueryTests.cs">
+      <Link>Search\MatchPhraseQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\NumericRangeQueryTests.cs">
+      <Link>Search\NumericRangeQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\DateRangeQueryTests.cs">
+      <Link>Search\DateRangeQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\DisjunctionQueryTests.cs">
+      <Link>Search\DisjunctionQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\ConjunctionQueryTests.cs">
+      <Link>Search\ConjunctionQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\IBucket_Search_Tests.cs">
+      <Link>Search\IBucket_Search_Tests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\SearchFacetTests.cs">
+      <Link>Search\SearchFacetTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\BooleanQueryTests.cs">
+      <Link>Search\BooleanQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\SubdocExtensionTests.cs">
+      <Link>SubdocExtensionTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\SubDocumentAPITests.cs">
+      <Link>SubDocumentAPITests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Utils\ArrayExtensionsTests.cs">
+      <Link>Utils\ArrayExtensionsTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Utils\FakeHttpMessageHandler.cs">
+      <Link>Utils\FakeHttpMessageHandler.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.NetStandard\Couchbase.NetStandard.csproj">
+      <Project>{173f2e70-41b7-4081-8c30-b2013a92edcb}</Project>
+      <Name>Couchbase.NetStandard</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\Couchbase.UnitTests\Search\search-response-success.js">
+      <Link>Search\search-response-success.js</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="project.json" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

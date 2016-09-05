@@ -16,7 +16,7 @@ namespace Couchbase.IO.Http
             {
                 ServerCertificateValidationCallback = OnCertificateValidation,
 #if !NET45
-                handler.MaxConnectionsPerServer = config.DefaultConnectionLimit;
+                MaxConnectionsPerServer = config.DefaultConnectionLimit
 #endif
             })
         {
@@ -37,7 +37,11 @@ namespace Couchbase.IO.Http
         {
         }
 
+#if NET45
         private static bool OnCertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+#else
+        private static bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+#endif
         {
             Log.Info(m => m("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors));
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Serialization;
@@ -196,7 +197,7 @@ namespace Couchbase.UnitTests.Core.Serialization
 
             // Act
 
-            var result = serializer.GetMemberName(typeof (JsonDocument).GetProperty("BasicProperty"));
+            var result = serializer.GetMemberName(typeof (JsonDocument).GetTypeInfo().GetProperty("BasicProperty"));
 
             // Assert
 
@@ -217,7 +218,7 @@ namespace Couchbase.UnitTests.Core.Serialization
 
             // Act
 
-            var result = serializer.GetMemberName(typeof(JsonDocument).GetProperty("NamedProperty"));
+            var result = serializer.GetMemberName(typeof(JsonDocument).GetTypeInfo().GetProperty("NamedProperty"));
 
             // Assert
 
@@ -238,7 +239,7 @@ namespace Couchbase.UnitTests.Core.Serialization
 
             // Act
 
-            var result = serializer.GetMemberName(typeof(JsonDocument).GetProperty("IgnoredProperty"));
+            var result = serializer.GetMemberName(typeof(JsonDocument).GetTypeInfo().GetProperty("IgnoredProperty"));
 
             // Assert
 

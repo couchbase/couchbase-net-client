@@ -18,7 +18,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetJsonConfiguration("basic"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
             _bucket = _cluster.OpenBucket();
         }
 

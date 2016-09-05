@@ -1,25 +1,52 @@
 ﻿{
-  "basic": {
-    "enableConfigHeartbeat": false,
-    "ignoreRemoteCertificateNameMismatch":  true,
-    "servers": [
-      "http://10.141.150.101:8091/"
-    ],
-    "buckets": [
-      {
-        "name": "travel-sample"
-      }
-    ]
+  "testSettings": {
+    "current": "multiplexio",
+    "hostname": "localhost",
+    "bootPort": "8091",
+    "adminUsername": "Administrator",
+    "adminPassword": "password"
   },
-  "multiplexio": {
-    "vBucketRetrySleepTime": 200,
-    "enableConfigHeartbeat": false,
-    "servers": [
-      "http://10.141.150.101:8091/"
-    ],
-    "connectionPool": {
-      "type": "Couchbase.IO.ConnectionPool`1[Couchbase.IO.MultiplexingConnection], Couchbase.NetClient"
+
+  "couchbase": {
+    "basic": {
+      "enableConfigHeartbeat": true,
+      "buckets": [
+        {
+          "name": "default",
+          "useEnhancedDurability": false
+        }
+      ]
     },
-    "ioService": "Couchbase.IO.Services.MultiplexingIOService, Couchbase.NetClient"
+
+    "ssl": {
+      "enableConfigHeartbeat": true,
+      "useSsl": true,
+      "ignoreRemoteCertificateNameMismatch": true,
+      "buckets": [
+        {
+          "name": "default",
+          "useEnhancedDurability": true
+        }
+      ]
+    },
+
+    "multiplexio": {
+      "enableConfigHeartbeat": false,
+      "vBucketRetrySleepTime": 200,
+      "connectionPool": {
+        "type": "Couchbase.IO.ConnectionPool`1[Couchbase.IO.MultiplexingConnection], Couchbase.NetClient"
+      },
+      "ioService": "Couchbase.IO.Services.MultiplexingIOService, Couchbase.NetClient",
+      "buckets": [
+        {
+          "name": "default",
+          "useEnhancedDurability": true
+        },
+        {
+          "name": "travel-sample",
+          "useEnhancedDurability": true
+        }
+      ]
+    }
   }
 }

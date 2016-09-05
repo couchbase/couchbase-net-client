@@ -1,0 +1,40 @@
+﻿{
+  "supports": {},
+  "dependencies": {
+    "Common.Logging.Portable": "3.4.0-Alpha1",
+    "Microsoft.CSharp": "4.0.1",
+    "Microsoft.Extensions.Configuration": "1.0.0",
+    "Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
+    "Microsoft.Extensions.Configuration.Binder": "1.0.0",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0",
+    "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
+    "Moq": "4.6.38-alpha",
+    "NETStandard.Library": "1.6.0",
+    "Newtonsoft.Json": "9.0.1",
+    "NUnit": "3.4.1",
+    "System.ComponentModel.TypeConverter": "4.1.0",
+    "System.Globalization.Extensions": "4.0.1",
+    "System.Net.Http.WinHttpHandler": "4.0.0",
+    "System.Net.NameResolution": "4.0.0",
+    "System.Net.Primitives": "4.0.11",
+    "System.Net.Security": "4.0.0",
+    "System.Net.Sockets": "4.1.0",
+    "System.Reflection.TypeExtensions": "4.1.0",
+    "System.Runtime.Serialization.Primitives": "4.1.1",
+    "System.Security.Cryptography.X509Certificates": "4.1.0",
+    "System.Threading.Tasks.Parallel": "4.0.1",
+    "System.Threading.Thread": "4.0.0"
+  },
+  "frameworks": {
+    "net462": {
+      "imports": [
+        "dnxcore50",
+        "dotnet54",
+        "portable-net40+sl4+win+wp7"
+      ]
+    }
+  },
+  "runtimes": {
+    "win": {}
+  }
+}

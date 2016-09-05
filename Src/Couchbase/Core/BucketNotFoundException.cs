@@ -25,9 +25,11 @@ namespace Couchbase.Core
         {
         }
 
+#if NET45
         protected BucketNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

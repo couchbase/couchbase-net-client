@@ -18,7 +18,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetJsonConfiguration("multiplexio"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
             _bucket = _cluster.OpenBucket();
         }
 

@@ -107,7 +107,7 @@ namespace Couchbase.Management
         public virtual IResult CreateN1qlPrimaryIndex(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
-                BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+                BucketName.N1QlEscape(), defer.ToString().ToLower());
 
             var result = ExecuteIndexRequest(statement);
             return result;
@@ -123,7 +123,7 @@ namespace Couchbase.Management
         public virtual Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer = false)
         {
             var statement = string.Format(Statements.CreatePrimaryIndex,
-                BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+                BucketName.N1QlEscape(), defer.ToString().ToLower());
 
             var result = ExecuteIndexRequestAsync(statement);
             return result;
@@ -140,7 +140,7 @@ namespace Couchbase.Management
         public virtual Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
-                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower());
 
             var result = ExecuteIndexRequestAsync(statement);
             return result;
@@ -164,7 +164,7 @@ namespace Couchbase.Management
             }
 
             var statement = string.Format(Statements.CreateIndexWithFields,
-               indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower(CultureInfo.CurrentCulture));
+               indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower());
 
             var result = ExecuteIndexRequestAsync(statement);
             return result;
@@ -257,7 +257,7 @@ namespace Couchbase.Management
         public virtual IResult CreateN1qlPrimaryIndex(string customName, bool defer = false)
         {
             var statement = string.Format(Statements.CreateNamedPrimaryIndex,
-                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower(CultureInfo.CurrentCulture));
+                customName.N1QlEscape(), BucketName.N1QlEscape(), defer.ToString().ToLower());
 
             var result = ExecuteIndexRequest(statement);
             return result;
@@ -276,7 +276,7 @@ namespace Couchbase.Management
         {
             var fieldStr = fields.ToDelimitedN1QLString(',');
             var statement = string.Format(Statements.CreateIndexWithFields,
-                indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower(CultureInfo.CurrentCulture));
+                indexName.N1QlEscape(), BucketName.N1QlEscape(), fieldStr, defer.ToString().ToLower());
 
             var result = ExecuteIndexRequest(statement);
             return result;

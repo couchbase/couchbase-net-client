@@ -1,7 +1,6 @@
 ﻿// http://blogs.msdn.com/b/pfxteam/archive/2011/12/15/10248293.aspx
 
 using System;
-using System.CodeDom;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
@@ -87,10 +86,10 @@ namespace Couchbase.IO.Utils
         public static SocketAwaitable DisconnectAsync(this Socket socket, SocketAwaitable awaitable)
         {
             awaitable.Reset();
-            if (!socket.DisconnectAsync(awaitable.EventArgs))
-            {
-                awaitable.IsCompleted = true;
-            }
+
+            socket.Dispose();
+            awaitable.IsCompleted = true;
+
             return awaitable;
         }
 

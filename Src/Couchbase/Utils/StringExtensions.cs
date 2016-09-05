@@ -22,7 +22,7 @@ namespace Couchbase.Utils
             T result;
             if (!Enum.TryParse(value, true, out result))
             {
-                throw new InvalidEnumArgumentException();
+                throw new ArgumentException();
             }
             return result;
         }

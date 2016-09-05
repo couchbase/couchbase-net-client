@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Configuration.Client
@@ -18,7 +16,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         public void ClientConfiguration_IgnoreHostnameValidation_IsTrue()
         {
             //arrange/act
-            var clientConfig = Utils.TestConfiguration.GetJsonConfiguration("basic");
+            var clientConfig = Utils.TestConfiguration.GetConfiguration("ssl");
 
             //assert
             Assert.IsTrue(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
@@ -28,7 +26,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         public void ClientConfiguration_IgnoreHostnameValidation_IsFalse()
         {
             //arrange/act
-            var clientConfig = Utils.TestConfiguration.GetJsonConfiguration("multiplexio");
+            var clientConfig = Utils.TestConfiguration.GetConfiguration("multiplexio");
 
             //assert
             Assert.IsFalse(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
@@ -37,7 +35,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [Test]
         public void ClientConfiguration_VBucketRetrySleepTime_DefaultsTo100ms()
         {
-            var config = Utils.TestConfiguration.GetJsonConfiguration("basic");
+            var config = Utils.TestConfiguration.GetConfiguration("basic");
 
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
@@ -45,7 +43,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [Test]
         public void ClientConfiguration_VBucketRetrySleepTime_Is200ms()
         {
-            var config = Utils.TestConfiguration.GetJsonConfiguration("multiplexio");
+            var config = Utils.TestConfiguration.GetConfiguration("multiplexio");
 
             Assert.AreEqual(200, config.VBucketRetrySleepTime);
         }

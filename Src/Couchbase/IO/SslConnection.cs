@@ -262,13 +262,9 @@ namespace Couchbase.IO
                         if (Socket.Connected)
                         {
                             Socket.Shutdown(SocketShutdown.Both);
-                            Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                         }
-                        else
-                        {
-                            Socket.Close();
-                            Socket.Dispose();
-                        }
+
+                        Socket.Dispose();
                     }
                     if (_sslStream != null)
                     {
@@ -284,7 +280,6 @@ namespace Couchbase.IO
                 {
                     if (Socket != null)
                     {
-                        Socket.Close();
                         Socket.Dispose();
                     }
                     if (_sslStream != null)

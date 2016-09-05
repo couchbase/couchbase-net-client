@@ -17,9 +17,11 @@ namespace Couchbase
         {
         }
 
+#if NET45
         protected NullConfigException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

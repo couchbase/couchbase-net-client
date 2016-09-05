@@ -12,3 +12,5 @@ packages/
 *.sln.docstates
 couchbase-net-client.userprefs
 .idea
+TestResult.xml
+project.lock.json

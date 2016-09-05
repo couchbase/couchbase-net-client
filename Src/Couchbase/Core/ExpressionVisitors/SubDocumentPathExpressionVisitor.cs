@@ -166,7 +166,7 @@ namespace Couchbase.Core.ExpressionVisitors
 
             var expression = Visit(node.Expression);
 
-            if (expression.Type.IsGenericType && expression.Type.GetGenericTypeDefinition() == typeof(Nullable<>)
+            if (expression.Type.GetTypeInfo().IsGenericType && expression.Type.GetGenericTypeDefinition() == typeof(Nullable<>)
                 && (node.Member.Name == "Value"))
             {
                 // Don't include Nullable<T>.Value calls in output path
@@ -286,11 +286,6 @@ namespace Couchbase.Core.ExpressionVisitors
         }
 
         protected override Expression VisitDefault(DefaultExpression node)
-        {
-            throw CreateExpressionNotSupportedException(node);
-        }
-
-        protected override Expression VisitDynamic(DynamicExpression node)
         {
             throw CreateExpressionNotSupportedException(node);
         }

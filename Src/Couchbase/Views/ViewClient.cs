@@ -85,15 +85,6 @@ namespace Couchbase.Views
             }
         }
 
-        static void WriteAuthenticationHeaders(WebRequest request, string username, string password)
-        {
-            const string authType = "Basic";
-            var bytes = Encoding.UTF8.GetBytes(string.Concat(username, ":", password));
-            var credentials = string.Concat(authType, " ", Convert.ToBase64String(bytes));
-            request.Headers[HttpRequestHeader.Authorization] = credentials;
-            request.Credentials = new NetworkCredential(username, password);
-        }
-
         static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
         {
             const string message = "Check Exception and Error fields for details.";

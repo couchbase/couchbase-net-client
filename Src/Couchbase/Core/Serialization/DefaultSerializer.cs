@@ -144,7 +144,7 @@ namespace Couchbase.Core.Serialization
 
                         //use the following code block only for value types
                         //strangely enough Nullable<T> itself is a value type so we need to filter it out
-                        if (typeof(T).IsValueType && (!typeof(T).IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
+                        if (typeof(T).GetTypeInfo().IsValueType && (!typeof(T).GetTypeInfo().IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
                         {
                             //we can't declare Nullable<T> because T is not restricted to struct in this method scope
                             object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
@@ -247,7 +247,6 @@ namespace Couchbase.Core.Serialization
 
             var settings = new JsonSerializerSettings()
             {
-                Binder = baseSettings.Binder,
                 CheckAdditionalContent = baseSettings.CheckAdditionalContent,
                 ConstructorHandling = baseSettings.ConstructorHandling,
                 Context = baseSettings.Context,
@@ -269,8 +268,15 @@ namespace Couchbase.Core.Serialization
                 ReferenceLoopHandling = baseSettings.ReferenceLoopHandling,
                 StringEscapeHandling = baseSettings.StringEscapeHandling,
                 TraceWriter = baseSettings.TraceWriter,
+                TypeNameHandling = baseSettings.TypeNameHandling,
+#if NET45
+                // There is an incompatibility between the .Net Desktop and .Net Standard assembilies of Newtonsoft.Json
+                // Which causes these settings to fail if the .Net Standard version of Couchbase is consumed by a .Net Desktop
+                // assembly.  As a workaround, don't try to copy them in the .Net Standard version.
+
+                Binder = baseSettings.Binder,
                 TypeNameAssemblyFormat = baseSettings.TypeNameAssemblyFormat,
-                TypeNameHandling = baseSettings.TypeNameHandling
+#endif
             };
 
 #pragma warning disable 618
@@ -291,6 +297,6 @@ namespace Couchbase.Core.Serialization
             return settings;
         }
 
-        #endregion
+#endregion
     }
 }

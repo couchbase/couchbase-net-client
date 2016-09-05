@@ -13,9 +13,11 @@ namespace Couchbase.Core
         {
         }
 
+#if NET45
         protected BucketAlreadyOpenException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
 
         public BucketAlreadyOpenException(string message, Exception innerException) : base(message, innerException)
         {

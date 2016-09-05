@@ -2,8 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Channels;
 using System.Threading;
 using Common.Logging;
 using Couchbase.Configuration.Client;
@@ -31,7 +29,7 @@ namespace Couchbase.IO
         private int _acquireFailedCount;
         private readonly BufferAllocator _bufferAllocator;
 
-        internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
+        public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
             : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
         {
         }

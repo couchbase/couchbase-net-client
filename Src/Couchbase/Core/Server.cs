@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
-using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -125,7 +124,7 @@ namespace Couchbase.Core
                 Log.InfoFormat("Initialization {0} for node {1}", _isDown ? "failed" : "succeeded", EndPoint);
 
                 //timer and node status
-                _heartBeatTimer = new Timer(_heartBeatTimer_Elapsed);
+                _heartBeatTimer = new Timer(_heartBeatTimer_Elapsed, null, Timeout.Infinite, Timeout.Infinite);
                 if (_isDown)
                 {
                     StartHeartbeatTimer();
@@ -869,7 +868,7 @@ namespace Couchbase.Core
 
         private void StartHeartbeatTimer()
         {
-            _heartBeatTimer.Change(_clientConfiguration.NodeAvailableCheckInterval, Timeout.Infinite);
+            _heartBeatTimer.Change((int) _clientConfiguration.NodeAvailableCheckInterval, Timeout.Infinite);
         }
 
         private void Dispose(bool disposing)

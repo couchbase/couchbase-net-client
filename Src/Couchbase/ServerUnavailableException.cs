@@ -29,9 +29,11 @@ namespace Couchbase
         {
         }
 
+#if NET45
         public ServerUnavailableException([NotNull] SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }
+#endif
     }
 }

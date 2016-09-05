@@ -17,9 +17,11 @@ namespace Couchbase.Configuration.Server.Serialization
         {
         }
 
+#if NET45
         protected BootstrapException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

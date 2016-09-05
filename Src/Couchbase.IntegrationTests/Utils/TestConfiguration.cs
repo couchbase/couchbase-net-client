@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Microsoft.Extensions.Configuration;
+using NUnit.Framework;
+using System.Linq;
 
 namespace Couchbase.IntegrationTests.Utils
 {
@@ -13,6 +13,23 @@ namespace Couchbase.IntegrationTests.Utils
     public static class TestConfiguration
     {
         private static IConfigurationRoot _jsonConfiguration;
+        private static TestSettings _settings;
+
+        public static TestSettings Settings
+        {
+            get
+            {
+                if (_settings == null)
+                {
+                    EnsureConfigurationLoaded();
+
+                    _settings = new TestSettings();
+                    _jsonConfiguration.GetSection("testSettings").Bind(_settings);
+                }
+
+                return _settings;
+            }
+        }
 
         public static ClientConfiguration GetDefaultConfiguration()
         {
@@ -32,7 +49,7 @@ namespace Couchbase.IntegrationTests.Utils
         /// <exception cref="ConfigurationErrorsException">A configuration file could not be loaded.</exception>
         public static ClientConfiguration GetCurrentConfiguration()
         {
-            return GetConfiguration(ConfigurationManager.AppSettings["current"]);
+            return GetConfiguration(Settings.Current);
         }
 
         /// <summary>
@@ -43,25 +60,30 @@ namespace Couchbase.IntegrationTests.Utils
         /// <exception cref="ConfigurationErrorsException">A configuration file could not be loaded.</exception>
         public static ClientConfiguration GetConfiguration(string sectionName)
         {
-            var configuration = new ClientConfiguration(
-                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/" + sectionName))
+            EnsureConfigurationLoaded();
+
+            var definition = new CouchbaseClientDefinition();
+            _jsonConfiguration.GetSection("couchbase:" + sectionName).Bind(definition);
+
+            var configuration = new ClientConfiguration(definition)
+            {
+                Servers = new List<Uri>
                 {
-                    Servers = new List<Uri>
-                    {
-                        BuildBootStrapUrl()
-                    }
-                };
+                    BuildBootStrapUrl()
+                }
+            };
+
             return configuration;
         }
 
         public static Uri BuildBootStrapUrl()
         {
-            var hostname = ConfigurationManager.AppSettings["hostname"];
-            var port = ConfigurationManager.AppSettings["bootport"];
-            return new Uri(string.Format("http://{0}:{1}/", hostname, port));
+            EnsureConfigurationLoaded();
+
+            return new Uri(string.Format("http://{0}:{1}/", Settings.Hostname, Settings.BootPort));
         }
 
-        public static ClientConfiguration GetJsonConfiguration(string name)
+        private static void EnsureConfigurationLoaded()
         {
             if (_jsonConfiguration == null)
             {
@@ -69,8 +91,6 @@ namespace Couchbase.IntegrationTests.Utils
                 builder.AddJsonFile("config.json");
                 _jsonConfiguration = builder.Build();
             }
-
-            return new ClientConfiguration(_jsonConfiguration.Get<CouchbaseClientDefinition>(name));
         }
     }
 }

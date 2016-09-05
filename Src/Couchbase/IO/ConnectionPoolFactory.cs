@@ -62,11 +62,7 @@ namespace Couchbase.IO
                 {
                     throw new TypeLoadException(string.Format("Could not find: {0}", typeName));
                 }
-                return (IConnectionPool)Activator.CreateInstance(type,
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
-                    null,
-                    new object[] { config, endpoint},
-                    null);
+                return (IConnectionPool) Activator.CreateInstance(type, config, endpoint);
             };
         }
 
@@ -79,11 +75,7 @@ namespace Couchbase.IO
             return (config, endpoint) =>
             {
                 var type = typeof (T);
-                return (IConnectionPool)Activator.CreateInstance(type,
-                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
-                    null,
-                    new object[] { config, endpoint },
-                    null);
+                return (IConnectionPool)Activator.CreateInstance(type, config, endpoint);
             };
         }
     }

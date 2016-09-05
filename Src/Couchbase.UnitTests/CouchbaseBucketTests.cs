@@ -1,14 +1,11 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;

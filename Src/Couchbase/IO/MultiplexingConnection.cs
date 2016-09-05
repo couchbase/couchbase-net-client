@@ -190,12 +190,14 @@ namespace Couchbase.IO
                 HandleDisconnect(new RemoteHostClosedException(
                     ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostClosedMsg, EndPoint)));
             }
+#if NET45
             catch (ThreadAbortException) {}
+#endif
             catch (ObjectDisposedException) {}
             catch (SocketException e)
             {
                 //Dispose has already been thrown by another thread
-                if (e.ErrorCode != 10004)
+                if ((int) e.SocketErrorCode != 10004)
                 {
                     HandleDisconnect(e);
                 }
@@ -272,7 +274,7 @@ namespace Couchbase.IO
                 finally
                 {
                     IsDead = true;
-                    Socket.Close();
+                    Socket.Dispose();
                 }
 
                 //free up all states in flight
@@ -302,13 +304,9 @@ namespace Couchbase.IO
                     if (Socket.Connected)
                     {
                         Socket.Shutdown(SocketShutdown.Both);
-                        Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                     }
-                    else
-                    {
-                        Socket.Close();
-                        Socket.Dispose();
-                    }
+
+                    Socket.Dispose();
                 }
                 //call the bases dispose to cleanup the timer
                 base.Dispose();

@@ -6,7 +6,7 @@ using Couchbase.Core.Serialization;
 
 namespace Couchbase.Core
 {
-    public interface ISubDocBuilder<TDocument> : ITypeSerializerProvider, ICloneable
+    public interface ISubDocBuilder<TDocument> : ITypeSerializerProvider
     {
         /// <summary>
         /// Executes the chained operations.

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Utils;
 using NUnit.Framework;
@@ -34,7 +35,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void ReplaceAsync_DocumentDoesNotExistException()
+        public async Task ReplaceAsync_DocumentDoesNotExistException()
         {
             //setup
             var key = "ReplaceAsync_DocumentDoesNotExistException";
@@ -63,7 +64,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void InsertAsync_DocumentAlreadyExistsException()
+        public async Task InsertAsync_DocumentAlreadyExistsException()
         {
             //setup
             var key = "Insert_DocumentAlreadyExistsException";
@@ -100,7 +101,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async void ReplaceAsync_WithCasAndMutated_CasMismatchException()
+        public async Task ReplaceAsync_WithCasAndMutated_CasMismatchException()
         {
             //setup
             var key = "ReplaceWithCas_CasMismatchException";

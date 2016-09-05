@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Utils;
 using Moq;
@@ -40,8 +40,7 @@ namespace Couchbase.IntegrationTests.Management
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
-            _clusterManager = _cluster.CreateManager(ConfigurationManager.AppSettings["adminusername"],
-                ConfigurationManager.AppSettings["adminpassword"]);
+            _clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
 
             var createResult = _clusterManager.CreateBucket(BucketName, replicaNumber:ReplicaNumber.Zero, flushEnabled: true);
             Assert.True(createResult.Success);
@@ -50,8 +49,7 @@ namespace Couchbase.IntegrationTests.Management
             Thread.Sleep(500);
 
             _bucket = _cluster.OpenBucket(BucketName);
-            _bucketManager = _bucket.CreateManager(ConfigurationManager.AppSettings["adminusername"],
-                ConfigurationManager.AppSettings["adminpassword"]);
+            _bucketManager = _bucket.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
         }
 
         #region design document tests

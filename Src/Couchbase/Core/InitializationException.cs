@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace Couchbase.Core
 {
     /// <summary>
-    /// Thrown if Couchbase.Cluster.Initialize() is not called before calling Couchbase.Cluster.Get() 
+    /// Thrown if Couchbase.Cluster.Initialize() is not called before calling Couchbase.Cluster.Get()
     /// </summary>
     public class InitializationException : Exception
     {
@@ -20,9 +20,11 @@ namespace Couchbase.Core
         {
         }
 
+#if NET45
         protected InitializationException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

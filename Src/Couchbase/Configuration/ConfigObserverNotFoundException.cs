@@ -20,9 +20,11 @@ namespace Couchbase.Configuration
         {
         }
 
+#if NET45
         protected ConfigObserverNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+#endif
     }
 }
 

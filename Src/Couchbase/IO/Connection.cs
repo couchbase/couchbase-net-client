@@ -271,7 +271,7 @@ namespace Couchbase.IO
                     //if first loop get the length of the body from the header
                     if (state.BodyLength == 0)
                     {
-                        state.BodyLength = Converter.ToInt32(state.Data.GetBuffer(), HeaderIndexFor.Body);
+                        state.BodyLength = Converter.ToInt32(state.Data.ToArray(), HeaderIndexFor.Body);
                     }
                     if (state.BytesReceived < state.BodyLength + 24)
                     {
@@ -354,13 +354,9 @@ namespace Couchbase.IO
                     if (Socket.Connected)
                     {
                         Socket.Shutdown(SocketShutdown.Both);
-                        Socket.Close(ConnectionPool.Configuration.ShutdownTimeout);
                     }
-                    else
-                    {
-                        Socket.Close();
-                        Socket.Dispose();
-                    }
+
+                    Socket.Dispose();
                 }
                 //call the bases dispose to cleanup the timer
                 base.Dispose();

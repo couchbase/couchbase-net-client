@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Configuration;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Moq;
 using NUnit.Framework;
@@ -23,8 +23,7 @@ namespace Couchbase.IntegrationTests.Management
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
-            _clusterManager = _cluster.CreateManager(ConfigurationManager.AppSettings["adminusername"],
-                ConfigurationManager.AppSettings["adminpassword"]);
+            _clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
 
             var createResult = _clusterManager.CreateBucket(BucketName, flushEnabled: true, bucketType:BucketTypeEnum.Memcached);
             Console.WriteLine(createResult.Success);
@@ -33,8 +32,7 @@ namespace Couchbase.IntegrationTests.Management
             Thread.Sleep(500);
 
             _bucket = _cluster.OpenBucket(BucketName);
-            _bucketManager = _bucket.CreateManager(ConfigurationManager.AppSettings["adminusername"],
-                ConfigurationManager.AppSettings["adminpassword"]);
+            _bucketManager = _bucket.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
         }
 
         #region flush tests

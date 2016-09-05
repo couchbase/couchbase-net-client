@@ -136,7 +136,9 @@ namespace Couchbase.Core.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Empty:
+#if NET45
                 case TypeCode.DBNull:
+#endif
                 case TypeCode.String:
                 case TypeCode.Char:
                     Converter.FromString(Convert.ToString(value), ref bytes, 0);
@@ -277,7 +279,9 @@ namespace Couchbase.Core.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Empty:
+#if NET45
                 case TypeCode.DBNull:
+#endif
                 case TypeCode.String:
                     value = DecodeString(buffer, offset, length);
                     break;

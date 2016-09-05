@@ -12,7 +12,7 @@ namespace Couchbase.IO
 {
     public abstract class ConnectionBase : IConnection
     {
-        protected readonly static ILog Log = LogManager.GetLogger<ConnectionBase>();
+        internal static readonly ILog Log = LogManager.GetLogger<ConnectionBase>();
         protected readonly Guid _identity = Guid.NewGuid();
         private readonly Socket _socket;
         private readonly OperationAsyncState _state;
@@ -203,7 +203,7 @@ namespace Couchbase.IO
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
                     Log.DebugFormat("Restarting timer for connection for {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
-                    _timer.Change(interval, Timeout.Infinite);
+                    _timer.Change((int) interval, Timeout.Infinite);
                 }
                 else
                 {
@@ -216,7 +216,7 @@ namespace Couchbase.IO
                     Log.DebugFormat("Disposing {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
                 }
             },
-            null, interval, Timeout.Infinite);
+            null, (int) interval, Timeout.Infinite);
         }
 
         /// <summary>

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Configuration;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.IO.Services;
@@ -16,7 +16,7 @@ namespace Couchbase.IntegrationTests
     {
         private IIOService _ioService;
         private IConnectionPool _connectionPool;
-        private readonly string _address = ConfigurationManager.AppSettings["hostname"] + ":11210";
+        private readonly string _address = TestConfiguration.Settings.Hostname + ":11210";
 
         [SetUp]
         public void TestFixtureSetUp()

@@ -42,7 +42,6 @@ namespace Couchbase.IO.Converters
         /// <returns>A func for creating custom <see cref="IByteConverter"/> instances.</returns>
         public static Func<IByteConverter> GetConverter(string typeName)
         {
-            Assembly.GetExecutingAssembly();
             var type = Type.GetType(typeName, true);
             return () => (IByteConverter)Activator.CreateInstance(type);
         }

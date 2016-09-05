@@ -23,10 +23,12 @@ namespace Couchbase.Core
         {
         }
 
+#if NET45
         protected DocumentMutationException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
         }
+#endif
     }
 }
 

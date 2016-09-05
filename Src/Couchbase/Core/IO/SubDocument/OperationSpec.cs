@@ -9,7 +9,7 @@ namespace Couchbase.Core.IO.SubDocument
     /// <summary>
     /// Represents a single operation within a mult-operation against a document using the SubDocument API.
     /// </summary>
-    internal class OperationSpec : ICloneable, IEqualityComparer
+    internal class OperationSpec : IEqualityComparer
     {
         public OperationSpec()
         {
@@ -87,7 +87,7 @@ namespace Couchbase.Core.IO.SubDocument
         /// A new object that is a copy of this instance.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public object Clone()
+        public OperationSpec Clone()
         {
             return new OperationSpec
             {

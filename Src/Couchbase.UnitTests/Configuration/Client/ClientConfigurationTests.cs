@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using NUnit.Framework;
+
+#if NET45
+using System.Configuration;
+using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase.UnitTests.Configuration.Client
 {
@@ -111,6 +114,8 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(ClientConfiguration.Defaults.Server, clientConfig.Servers.First());
         }
 
+#if NET45
+
         [Test]
         public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurability_UseEnhancedDurabilityIsTrue()
         {
@@ -198,5 +203,7 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
+
+#endif
     }
 }
