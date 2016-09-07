@@ -376,7 +376,7 @@ namespace Couchbase.N1QL
                         var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
                         using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                         {
-                            queryResult = GetDataMapper(queryRequest).Map<QueryResult<T>>(response);
+                            queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(response).ToQueryResult();
                             queryResult.Success = queryResult.Status == QueryStatus.Success;
                             queryResult.HttpStatusCode = request.StatusCode;
                             Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());

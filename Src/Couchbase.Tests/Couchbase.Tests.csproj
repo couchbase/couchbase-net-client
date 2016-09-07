@@ -97,6 +97,7 @@
     <Compile Include="Core\LifespanTests.cs" />
     <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
     <Compile Include="GlobalSetup.cs" />
+    <Compile Include="N1QL\QueryResponseTests.cs" />
     <Compile Include="ResourceHelper.cs" />
     <Compile Include="N1QL\QueryTimerTests.cs" />
     <Compile Include="Utils\ClientConfigUtil.cs" />
@@ -195,6 +196,7 @@
     <Compile Include="Views\SpatialViewQueryTests.cs" />
     <Compile Include="Views\ViewClientTests.cs" />
     <Compile Include="Views\ViewQueryTests.cs" />
+    <Compile Include="Views\ViewResultTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

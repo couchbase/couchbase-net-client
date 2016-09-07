@@ -3,31 +3,49 @@ using System.Runtime.Serialization;
 
 namespace Couchbase.N1QL
 {
-    [DataContract]
     public class Metrics
     {
-        [DataMember(Name = "elapsedTime")]
         public string ElaspedTime { get; set; }
 
-        [DataMember(Name = "executionTime")]
         public string ExecutionTime { get; set; }
 
-        [DataMember(Name = "resultCount")]
         public uint ResultCount { get; set; }
 
-        [DataMember(Name = "resultSize")]
         public uint ResultSize { get; set; }
 
-        [DataMember(Name = "mutationCount")]
         public uint MutationCount { get; set; }
 
-        [DataMember(Name = "errorCount")]
         public uint ErrorCount { get; set; }
 
-        [DataMember(Name = "warningCount")]
         public uint WarningCount { get; set; }
 
-        [DataMember(Name = "sortCount")]
         public uint SortCount { get; set; }
+    }
+
+    internal class MetricsData
+    {
+        public string elapsedTime { get; set; }
+        public string executionTime { get; set; }
+        public uint resultCount { get; set; }
+        public uint resultSize { get; set; }
+        public uint mutationCount { get; set; }
+        public uint errorCount { get; set; }
+        public uint warningCount { get; set; }
+        public uint sortCount { get; set; }
+
+        internal Metrics ToMetrics()
+        {
+            return new Metrics
+            {
+                ElaspedTime = elapsedTime,
+                ExecutionTime = executionTime,
+                ResultCount = resultCount,
+                ResultSize = resultSize,
+                MutationCount = mutationCount,
+                ErrorCount = errorCount,
+                WarningCount = warningCount,
+                SortCount = sortCount,
+            };
+        }
     }
 }
