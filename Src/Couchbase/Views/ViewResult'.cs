@@ -152,7 +152,7 @@ namespace Couchbase.Views
                 Error = error,
                 Message = reason,
                 TotalRows = total_rows,
-                Rows = rows.Select(r => r.ToViewRow()),
+                Rows = rows != null ? rows.Select(r => r.ToViewRow()) : new ViewRow<T>[0],
             };
         }
     }
