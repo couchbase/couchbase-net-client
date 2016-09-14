@@ -79,6 +79,11 @@
     <Compile Include="Authentication\SASL\ScramShaMechanism.cs" />
     <Compile Include="CasMismatchException.cs" />
     <Compile Include="ClusterHelper.cs" />
+    <Compile Include="Collections\CouchbaseCollectionBase.cs" />
+    <Compile Include="Collections\CouchbaseDictionary.cs" />
+    <Compile Include="Collections\CouchbaseList.cs" />
+    <Compile Include="Collections\CouchbaseQueue.cs" />
+    <Compile Include="Collections\CouchbaseSet.cs" />
     <Compile Include="Configuration\Client\BucketDefinition.cs" />
     <Compile Include="Configuration\Client\ConnectionPoolDefinition.cs" />
     <Compile Include="Configuration\Client\CouchbaseClientDefinition.cs" />

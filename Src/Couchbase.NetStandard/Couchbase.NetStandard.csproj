@@ -64,6 +64,21 @@
     <Compile Include="..\Couchbase\ClusterHelper.cs">
       <Link>ClusterHelper.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Collections\CouchbaseCollectionBase.cs">
+      <Link>Collections\CouchbaseCollectionBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Collections\CouchbaseDictionary.cs">
+      <Link>Collections\CouchbaseDictionary.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Collections\CouchbaseList.cs">
+      <Link>Collections\CouchbaseList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Collections\CouchbaseQueue.cs">
+      <Link>Collections\CouchbaseQueue.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Collections\CouchbaseSet.cs">
+      <Link>Collections\CouchbaseSet.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Configuration\Client\BucketDefinition.cs">
       <Link>Configuration\Client\BucketDefinition.cs</Link>
     </Compile>

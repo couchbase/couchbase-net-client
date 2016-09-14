@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase.UnitTests\Collections\BucketListTests.cs">
+      <Link>Collections\BucketListTests.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.UnitTests\Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs">
       <Link>Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs</Link>
     </Compile>

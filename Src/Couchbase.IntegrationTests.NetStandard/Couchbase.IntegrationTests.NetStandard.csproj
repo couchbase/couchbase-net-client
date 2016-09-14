@@ -31,6 +31,18 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase.IntegrationTests\Collections\CouchbaseDictionaryTests.cs">
+      <Link>Collections\CouchbaseDictionaryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.IntegrationTests\Collections\CouchbaseListTests.cs">
+      <Link>Collections\CouchbaseListTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.IntegrationTests\Collections\CouchbaseQueueTests.cs">
+      <Link>Collections\CouchbaseQueueTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.IntegrationTests\Collections\CouchbaseSetTests.cs">
+      <Link>Collections\CouchbaseSetTests.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.IntegrationTests\Configuration\Client\JsonConfiguration_Multiplex_Tests.cs">
       <Link>Configuration\Client\JsonConfiguration_Multiplex_Tests.cs</Link>
     </Compile>
@@ -85,7 +97,7 @@
     <Compile Include="..\Couchbase.IntegrationTests\Utils\TestSettings.cs">
       <Link>Utils\TestSettings.cs</Link>
     </Compile>
-	<Compile Include="..\Couchbase.IntegrationTests\Utils\UriExtensionsTests.cs">
+    <Compile Include="..\Couchbase.IntegrationTests\Utils\UriExtensionsTests.cs">
       <Link>Utils\UriExtensionsTests.cs</Link>
     </Compile>
   </ItemGroup>

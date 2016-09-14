@@ -210,6 +210,8 @@ namespace Couchbase.IntegrationTests
             };
             _bucket.Upsert(doc);
 
+            var result = _bucket.LookupIn<dynamic>("myccollection").Get("count").Execute().Content(0);
+
             var subDoc2 = _bucket.LookupIn<dynamic>("Foo::123").Exists("profile.address.province").Execute();
             Assert.IsFalse(subDoc2.Exists("profile.address.province"));
         }
@@ -1151,6 +1153,22 @@ namespace Couchbase.IntegrationTests
             var result = builder.Execute();
 
             Assert.AreEqual(2, result.Count());
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Exists(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_SingleOp_Exists";
+            _bucket.Upsert(key, new List<string>{ "foo", "bar", "baz", "faz", "foz" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Remove("\"bar\"");
+            var result = builder.Execute();
+
+           Console.WriteLine(result.Status);
         }
 
 
