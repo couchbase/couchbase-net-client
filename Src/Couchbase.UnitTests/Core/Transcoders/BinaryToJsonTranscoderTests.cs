@@ -4,7 +4,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using NUnit.Framework;
+using Encoding = System.Text.Encoding;
 
 namespace Couchbase.UnitTests.Core.Transcoders
 {
@@ -38,7 +40,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             var five = 5;
-            var bytes = GetBytes(five);
+            var bytes = BitConverter.GetBytes(five);
 
             var actual = transcoder.Decode<int>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -63,7 +65,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             var value = "astring";
-            var bytes = GetBytes(value);
+            var bytes = Encoding.UTF8.GetBytes(value);
 
             var actual = transcoder.Decode<string>(bytes, 0, bytes.Length,OperationCode.Get);
 
@@ -75,7 +77,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             var value = 'o';
-            var bytes = GetBytes(value);
+            var bytes = Encoding.UTF8.GetBytes(new[] {value});
 
             var actual = transcoder.Decode<char>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -99,7 +101,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             short value = 1;
-            var bytes = GetBytes(value);
+            var bytes = BitConverter.GetBytes(value);
 
             var actual = transcoder.Decode<short>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -111,7 +113,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             double value = 1.2;
-            var bytes = GetBytes(value);
+            var bytes = BitConverter.GetBytes(value);
 
             var actual = transcoder.Decode<double>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -123,7 +125,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             DateTime value = DateTime.Now;
-            var bytes = GetBytes(value);
+            var bytes = BitConverter.GetBytes(value.Ticks);
 
             var actual = transcoder.Decode<DateTime>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -135,7 +137,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             bool value = true;
-            var bytes = GetBytes(value);
+            var bytes = BitConverter.GetBytes(value);
 
             var actual = transcoder.Decode<bool>(bytes, 0, bytes.Length, OperationCode.Get);
 
@@ -147,11 +149,10 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             byte value = 0x0;
-            var bytes = GetBytes(value);
+            var bytes = new[] {value};
 
-            var actual = transcoder.Decode<byte>(bytes, 0, bytes.Length, OperationCode.Get);
-
-            Assert.AreEqual(value, actual);
+            //sbyte and byte are not-supported by 1.X SDK
+            Assert.Throws<ArgumentException>(()=>transcoder.Decode<byte>(bytes, 0, bytes.Length, OperationCode.Get));
         }
 
         [Test]
@@ -159,7 +160,7 @@ namespace Couchbase.UnitTests.Core.Transcoders
         {
             var transcoder = new BinaryToJsonTranscoder(new DefaultConverter());
             Int16 value = 1;
-            var bytes = GetBytes(value);
+            var bytes = BitConverter.GetBytes(value);
 
             var actual = transcoder.Decode<Int16>(bytes, 0, bytes.Length, OperationCode.Get);
 
