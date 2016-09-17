@@ -94,7 +94,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<OperationSpec>)GetValue();
+                result.Value = GetCommandValues();
 
                 //clean up and set to null
                 if (!result.IsNmv())
@@ -130,13 +130,13 @@ namespace Couchbase.IO.Operations.SubDocument
             }
         }
 
-        public override T GetValue()
+        public IList<OperationSpec> GetCommandValues()
         {
             var response = Data.ToArray();
             ReadExtras(response);
 
             //all mutations successful
-            if(response.Length == HeaderLength) return (T)_lookupCommands;
+            if(response.Length == HeaderLength) return _lookupCommands;
 
             var indexOffset = 24;
             var statusOffset = indexOffset + 1;
@@ -167,7 +167,7 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 if (valueOffset + Header.ExtrasLength > response.Length) break;
             }
-            return (T)_lookupCommands;
+            return _lookupCommands;
         }
 
         public override short ExtrasLength
