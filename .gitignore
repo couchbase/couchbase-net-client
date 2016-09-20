@@ -14,3 +14,4 @@ couchbase-net-client.userprefs
 .idea
 TestResult.xml
 project.lock.json
+*.exe
