@@ -14,9 +14,11 @@ namespace Couchbase.IO.Http
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
             : this(new AuthenticatingHttpClientHandler(bucketConfig.Name, bucketConfig.Password)
             {
+#if NET45
                 ServerCertificateValidationCallback = OnCertificateValidation,
-#if !NET45
-                MaxConnectionsPerServer = config.DefaultConnectionLimit
+#else
+                ServerCertificateCustomValidationCallback = OnCertificateValidation,
+                MaxConnectionsPerServer = config.DefaultConnectionLimit,
 #endif
             })
         {
@@ -26,8 +28,10 @@ namespace Couchbase.IO.Http
         internal CouchbaseHttpClient(string bucketName, string password)
             : this(new AuthenticatingHttpClientHandler(bucketName, password)
         {
-            ServerCertificateValidationCallback = OnCertificateValidation
-        })
+#if !NET45
+                ServerCertificateCustomValidationCallback = OnCertificateValidation
+#endif
+            })
         {
 
         }

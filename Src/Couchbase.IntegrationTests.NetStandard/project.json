@@ -14,7 +14,7 @@
     "NUnit": "3.4.1",
     "System.ComponentModel.TypeConverter": "4.1.0",
     "System.Globalization.Extensions": "4.0.1",
-    "System.Net.Http.WinHttpHandler": "4.0.0",
+    "System.Net.Http": "4.1.0",
     "System.Net.NameResolution": "4.0.0",
     "System.Net.Primitives": "4.0.11",
     "System.Net.Security": "4.0.0",

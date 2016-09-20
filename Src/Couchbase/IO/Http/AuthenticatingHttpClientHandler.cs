@@ -14,7 +14,7 @@ namespace Couchbase.IO.Http
 #if NET45
         : WebRequestHandler
 #else
-        : WinHttpHandler
+        : HttpClientHandler
 #endif
     {
         private readonly string _headerValue;
