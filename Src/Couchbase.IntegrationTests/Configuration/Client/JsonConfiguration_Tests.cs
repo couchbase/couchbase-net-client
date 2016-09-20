@@ -47,6 +47,23 @@ namespace Couchbase.IntegrationTests.Configuration.Client
 
             Assert.AreEqual(200, config.VBucketRetrySleepTime);
         }
+
+        [Test]
+        public void ClientConfiguration_EnableBucketInstanceLogging_IsFalse()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("basic");
+
+            Assert.IsFalse(config.EnableBucketInstanceLogging);
+        }
+
+        [Test]
+        public void ClientConfiguration_EnableBucketInstanceLogging_IsTrue()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("logging");
+
+            Assert.IsTrue(config.EnableBucketInstanceLogging);
+        }
+
     }
 }
 

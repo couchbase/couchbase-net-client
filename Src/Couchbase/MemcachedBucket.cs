@@ -32,7 +32,20 @@ namespace Couchbase
     /// <seealso cref="Couchbase.IRefCountable" />
     public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
-        private static readonly ILog Log = LogManager.GetLogger<MemcachedBucket>();
+        private ILog Log
+        {
+            get
+            {
+                if (_clusterController.Configuration.EnableBucketInstanceLogging)
+                {
+                    string key = string.Format("{0}.{1}", typeof(IBucket).FullName, Name);
+                    return LogManager.GetLogger(key);
+                }
+
+                return LogManager.GetLogger<MemcachedBucket>();
+            }
+        }
+
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;

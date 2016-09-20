@@ -336,6 +336,14 @@ namespace Couchbase.Configuration.Client
         [JsonProperty("vBucketRetrySleepTime")]
         public uint VBucketRetrySleepTime { get; set; }
 
+        /// <summary>
+        /// If true, loggers will be created per bucket instance with following key "Couchbase.Core.IBucket.{BucketName}"
+        /// otherwise shared logger for all buckets of given type will be used.
+        /// </summary>
+        /// <remarks>The default is "disabled" or false</remarks>
+        [JsonProperty("enableBucketInstanceLogging")]
+        public bool EnableBucketInstanceLogging { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -368,6 +376,7 @@ namespace Couchbase.Configuration.Client
             IOErrorCheckInterval = ClientConfiguration.Defaults.IOErrorCheckInterval;
             QueryFailedThreshold = (int)ClientConfiguration.Defaults.QueryFailedThreshold;
             VBucketRetrySleepTime = ClientConfiguration.Defaults.VBucketRetrySleepTime;
+            EnableBucketInstanceLogging = ClientConfiguration.Defaults.EnableBucketInstanceLogging;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

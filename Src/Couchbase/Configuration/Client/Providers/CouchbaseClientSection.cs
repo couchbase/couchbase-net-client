@@ -518,6 +518,17 @@ namespace Couchbase.Configuration.Client.Providers
 
         }
 
+        /// <summary>
+        /// If true, loggers will be created per bucket instance with following key "Couchbase.Core.IBucket.{BucketName}"
+        /// otherwise shared logger for all buckets of given type will be used.
+        /// </summary>
+        [ConfigurationProperty("enableBucketInstanceLogging", IsRequired = false, DefaultValue = false)]
+        public bool EnableBucketInstanceLogging
+        {
+            get { return (bool) this["enableBucketInstanceLogging"]; }
+            set { this["enableBucketInstanceLogging"] = value; }
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers

@@ -66,6 +66,7 @@ namespace Couchbase.Configuration.Client
             public static uint ViewRequestTimeout = 75000; //ms
             public static uint SearchRequestTimeout = 75000; //ms
             public static uint VBucketRetrySleepTime = 100; //ms
+            public static bool EnableBucketInstanceLogging = false;
 
             //service point settings
             public static int DefaultConnectionLimit = 5; //connections
@@ -116,6 +117,8 @@ namespace Couchbase.Configuration.Client
             ViewRequestTimeout = (int) Defaults.ViewRequestTimeout; //ms
             SearchRequestTimeout = Defaults.SearchRequestTimeout;
             VBucketRetrySleepTime = Defaults.VBucketRetrySleepTime;
+
+            EnableBucketInstanceLogging = Defaults.EnableBucketInstanceLogging;
 
             //service point settings
             DefaultConnectionLimit = Defaults.DefaultConnectionLimit; //connections
@@ -221,6 +224,7 @@ namespace Couchbase.Configuration.Client
             EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
             VBucketRetrySleepTime = definition.VBucketRetrySleepTime;
+            EnableBucketInstanceLogging = definition.EnableBucketInstanceLogging;
 
             IOErrorCheckInterval = definition.IOErrorCheckInterval;
             IOErrorThreshold = definition.IOErrorThreshold;
@@ -797,6 +801,12 @@ namespace Couchbase.Configuration.Client
                 _operationLifespanChanged = true;
             }
         }
+
+        /// <summary>
+        /// If true, loggers will be created per bucket instance with following key "Couchbase.Core.IBucket.{BucketName}"
+        /// otherwise shared logger for all buckets of given type will be used.
+        /// </summary>
+        public bool EnableBucketInstanceLogging { get; set; }
 
         /// <summary>
         /// Updates the internal bootstrap url with the new list from a server configuration.

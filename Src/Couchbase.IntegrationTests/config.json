@@ -47,6 +47,17 @@
           "useEnhancedDurability": true
         }
       ]
+    },
+
+    "logging": {
+      "enableConfigHeartbeat": false,
+      "enableBucketInstanceLogging" : true, 
+      "buckets": [
+        {
+          "name": "default",
+          "useEnhancedDurability": false
+        }
+      ]
     }
   }
 }

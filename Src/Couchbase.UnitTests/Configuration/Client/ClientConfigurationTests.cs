@@ -204,6 +204,22 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
 
+        [Test]
+        public void ClientConfigSection_EnableBucketInstanceLogging_IsFalse()
+        {
+            var config = new ClientConfiguration();
+
+            Assert.IsFalse(config.EnableBucketInstanceLogging);
+        }
+
+        [Test]
+        public void ClientConfigSection_EnableBucketInstanceLogging_IsTrue()
+        {
+            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            Assert.IsTrue(config.EnableBucketInstanceLogging);
+        }
+
 #endif
     }
 }

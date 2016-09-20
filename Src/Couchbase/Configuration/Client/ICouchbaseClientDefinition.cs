@@ -330,5 +330,11 @@ namespace Couchbase.Configuration.Client
         /// The VBucket retry sleep time.
         /// </value>
         uint VBucketRetrySleepTime { get; set; }
+
+        /// <summary>
+        /// If true, loggers will be created per bucket instance with following key "Couchbase.Core.IBucket.{BucketName}"
+        /// otherwise shared logger for all buckets of given type will be used.
+        /// </summary>
+        bool EnableBucketInstanceLogging { get; set; }
     }
 }

@@ -43,7 +43,20 @@ namespace Couchbase
     /// <seealso cref="Couchbase.Core.IO.SubDocument.ISubdocInvoker" />
     public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator, ISubdocInvoker
     {
-        private static readonly ILog Log = LogManager.GetLogger<CouchbaseBucket>();
+        private ILog Log
+        {
+            get
+            {
+                if (_clusterController.Configuration.EnableBucketInstanceLogging)
+                {
+                    string key = string.Format("{0}.{1}", typeof(IBucket).FullName, Name);
+                    return LogManager.GetLogger(key);
+                }
+
+                return LogManager.GetLogger<CouchbaseBucket>();
+            }
+        }
+
         private readonly IClusterController _clusterController;
         private IConfigInfo _configInfo;
         private volatile bool _disposed;
