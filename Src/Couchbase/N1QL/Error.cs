@@ -3,22 +3,37 @@ using System.Runtime.Serialization;
 
 namespace Couchbase.N1QL
 {
-    [DataContract]
     public class Error
     {
-        [DataMember(Name = "msg")]
         public string Message { get; set; }
 
-        [DataMember(Name = "code")]
         public int Code { get; set; }
 
-        [DataMember(Name = "name")]
         public string Name { get; set; }
 
-        [DataMember(Name = "sev")]
         public Severity Severity { get; set; }
 
-        [DataMember(Name = "temp")]
         public bool Temp { get; set; }
+    }
+
+    internal class ErrorData
+    {
+        public string msg { get; set; }
+        public int code { get; set; }
+        public string name { get; set; }
+        public Severity sev { get; set; }
+        public bool temp { get; set; }
+
+        internal Error ToError()
+        {
+            return new Error
+            {
+                Message = msg,
+                Code = code,
+                Name = name,
+                Severity = sev,
+                Temp = temp,
+            };
+        }
     }
 }
