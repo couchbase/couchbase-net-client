@@ -94,7 +94,7 @@ namespace Couchbase.Core
         /// <summary>
         /// A "check-and-set" value for ensuring that a document has not been modified by another thread.
         /// </summary>
-        public long Cas { get; private set; }
+        public ulong Cas { get; private set; }
 
         /// <summary>
         /// The "time-to-live" or "TTL" that specifies the document's lifetime.
@@ -543,7 +543,21 @@ namespace Couchbase.Core
         /// <returns>
         /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
         /// </returns>
+        /// <remarks>Be aware that <see cref="long"/> will be internally cast to a <see cref="ulong"/>.</remarks>
         public IMutateInBuilder<TDocument> WithCas(long cas)
+        {
+            Cas = (ulong)cas;
+            return this;
+        }
+
+        /// <summary>
+        /// A "check-and-set" value for ensuring that a document has not been modified by another thread.
+        /// </summary>
+        /// <param name="cas">The CAS value.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> WithCas(ulong cas)
         {
             Cas = cas;
             return this;

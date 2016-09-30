@@ -10,6 +10,7 @@ namespace Couchbase.IO.Operations.SubDocument
         {
             CurrentSpec = builder.FirstSpec();
             Path = CurrentSpec.Path;
+            Cas = builder.Cas;
         }
 
         public override OperationCode OperationCode

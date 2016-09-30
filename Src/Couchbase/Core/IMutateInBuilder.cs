@@ -11,7 +11,7 @@ namespace Couchbase.Core
         /// <summary>
         /// A "check-and-set" value for ensuring that a document has not been modified by another thread.
         /// </summary>
-        long Cas { get; }
+        ulong Cas { get; }
 
         /// <summary>
         /// The "time-to-live" or "TTL" that specifies the document's lifetime.
@@ -184,6 +184,13 @@ namespace Couchbase.Core
         /// <param name="cas">The CAS value.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> WithCas(long cas);
+
+        /// <summary>
+        /// A "check-and-set" value for ensuring that a document has not been modified by another thread.
+        /// </summary>
+        /// <param name="cas">The CAS value.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> WithCas(ulong cas);
 
         /// <summary>
         /// A durability constraint ensuring that a document has been persisted to the n^th node.

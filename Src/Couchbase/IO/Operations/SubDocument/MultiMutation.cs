@@ -19,6 +19,7 @@ namespace Couchbase.IO.Operations.SubDocument
             : base(key, vBucket, transcoder, timeout)
         {
             _builder = mutateInBuilder;
+            Cas = _builder.Cas;
         }
 
         public override byte[] Write()
