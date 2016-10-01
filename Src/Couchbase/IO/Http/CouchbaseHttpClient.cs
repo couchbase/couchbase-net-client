@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Common.Logging;
@@ -12,33 +13,44 @@ namespace Couchbase.IO.Http
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseHttpClient>();
 
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
-            : this(new AuthenticatingHttpClientHandler(bucketConfig.Name, bucketConfig.Password)
-            {
-#if NET45
-                ServerCertificateValidationCallback = OnCertificateValidation,
-#else
-                ServerCertificateCustomValidationCallback = OnCertificateValidation,
-                MaxConnectionsPerServer = config.DefaultConnectionLimit,
-#endif
-            })
+            : this(CreateClientHandler(bucketConfig.Name, bucketConfig.Password, config))
         {
             DefaultRequestHeaders.ExpectContinue = config.Expect100Continue;
         }
 
         internal CouchbaseHttpClient(string bucketName, string password)
-            : this(new AuthenticatingHttpClientHandler(bucketName, password)
+            : this(CreateClientHandler(bucketName, password, null))
         {
-#if !NET45
-                ServerCertificateCustomValidationCallback = OnCertificateValidation
-#endif
-            })
-        {
-
         }
 
         internal CouchbaseHttpClient(AuthenticatingHttpClientHandler handler)
             : base(handler)
         {
+        }
+
+        private static AuthenticatingHttpClientHandler CreateClientHandler(string user, string password, ClientConfiguration config)
+        {
+            var handler = new AuthenticatingHttpClientHandler(user, password);
+
+#if NET45
+            handler.ServerCertificateValidationCallback = OnCertificateValidation;
+#else
+            try
+            {
+                handler.ServerCertificateCustomValidationCallback = OnCertificateValidation;
+            }
+            catch (NotImplementedException)
+            {
+                Log.Debug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
+            }
+
+            if (config != null)
+            {
+                handler.MaxConnectionsPerServer = config.DefaultConnectionLimit;
+            }
+#endif
+
+            return handler;
         }
 
 #if NET45
