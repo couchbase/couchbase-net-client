@@ -1,7 +1,8 @@
 ﻿{
   "supports": {},
   "dependencies": {
-    "Common.Logging.Portable": "3.4.0-Alpha1",
+    "Common.Logging.Core": "3.4.0-Alpha2",
+    "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.0.1",
     "Microsoft.Extensions.Configuration": "1.0.0",
     "Microsoft.Extensions.Configuration.Abstractions": "1.0.0",
@@ -29,8 +30,7 @@
     "net462": {
       "imports": [
         "dnxcore50",
-        "dotnet54",
-        "portable-net40+sl4+win+wp7"
+        "dotnet54"
       ]
     }
   },
