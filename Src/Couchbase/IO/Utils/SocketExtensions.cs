@@ -3,6 +3,7 @@
 using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using Common.Logging;
 
 namespace Couchbase.IO.Utils
 {
@@ -11,6 +12,8 @@ namespace Couchbase.IO.Utils
     /// </summary>
     public static class SocketExtensions
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(SocketExtensions));
+
         /// <summary>
         /// Enable TCP keep-alives, the time and interval on a managed Socket.
         /// </summary>
@@ -21,12 +24,20 @@ namespace Couchbase.IO.Utils
         /// <remarks>Credit: <see href="http://blogs.msdn.com/b/lcleeton/archive/2006/09/15/754932.aspx"/></remarks>
         public static void SetKeepAlives(this Socket socket, bool on, uint time, uint interval)
         {
-            const uint temp = 0;
-            var values = new byte[Marshal.SizeOf(temp)*3];
-            BitConverter.GetBytes((uint) (on ? 1 : 0)).CopyTo(values, 0);
-            BitConverter.GetBytes(time).CopyTo(values, Marshal.SizeOf(temp));
-            BitConverter.GetBytes(interval).CopyTo(values, Marshal.SizeOf(temp)*2);
-            socket.IOControl(IOControlCode.KeepAliveValues, values, null);
+            try
+            {
+                const uint temp = 0;
+                var values = new byte[Marshal.SizeOf(temp)*3];
+                BitConverter.GetBytes((uint) (on ? 1 : 0)).CopyTo(values, 0);
+                BitConverter.GetBytes(time).CopyTo(values, Marshal.SizeOf(temp));
+                BitConverter.GetBytes(interval).CopyTo(values, Marshal.SizeOf(temp)*2);
+                socket.IOControl(IOControlCode.KeepAliveValues, values, null);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                // Can't set on non-Windows platforms, ignore error
+                Log.Debug("Skipping Socket.IOControl for keep alives, not supported on this platform");
+            }
         }
 
         /// <summary>
