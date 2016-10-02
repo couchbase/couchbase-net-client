@@ -1,10 +1,8 @@
 ﻿{
   "supports": {},
   "dependencies": {
-    "Common.Logging.Core": "3.4.0-Alpha2",
     "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.0.1",
-    "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
     "NETStandard.Library": "1.6.0",
     "Newtonsoft.Json": "9.0.1",
     "System.Globalization.Extensions": "4.0.1",
