@@ -1,6 +1,8 @@
-﻿
-using System;
+﻿using System;
+using Couchbase.Search;
 using Couchbase.Search.Queries.Compound;
+using Couchbase.Search.Queries.Simple;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -22,6 +24,79 @@ namespace Couchbase.UnitTests.Search
             var query = new ConjunctionQuery();
 
             Assert.Throws<ArgumentOutOfRangeException>(() => query.Boost(-.1));
+        }
+
+        [Test]
+        public void Export_ReturnsValidJson()
+        {
+            var query = new ConjunctionQuery(
+                new TermQuery("hotel").Field("type")
+            );
+
+            var result = query.Export().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                query = new
+                {
+                    boost = 0.0,
+                    conjuncts = new[]
+                    {
+                        new
+                        {
+                            query = new
+                            {
+                                term = "hotel",
+                                boost = 0.0,
+                                field = "type",
+                                prefix_length = 0,
+                                fuzziness = 0
+                            }
+                        }
+                    }
+                }
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Export_With_SearchParams_ReturnsValidJson()
+        {
+            var query = new ConjunctionQuery(
+                new TermQuery("hotel").Field("type")
+            );
+
+            var searchParams = new SearchParams();
+            var result = query.Export(searchParams).ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000
+                },
+                query = new
+                {
+                    boost = 0.0,
+                    conjuncts = new[]
+                    {
+                        new
+                        {
+                            query = new
+                            {
+                                term = "hotel",
+                                boost = 0.0,
+                                field = "type",
+                                prefix_length = 0,
+                                fuzziness = 0
+                            }
+                        }
+                    }
+                }
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
         }
     }
 }

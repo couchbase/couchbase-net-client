@@ -27,7 +27,7 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public DisjunctionQuery Boost(double boost)
         {
-            ((IFtsQuery)this).Boost(boost);
+            ((IFtsQuery) this).Boost(boost);
             return this;
         }
 
@@ -79,7 +79,9 @@ namespace Couchbase.Search.Queries.Compound
                 new JObject(
                     new JProperty("boost", _boost),
                     new JProperty("min", _min),
-                    new JArray("disjuncts", _queries.Select(x => x.Export())))));
+                    new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }
@@ -97,7 +99,9 @@ namespace Couchbase.Search.Queries.Compound
                 new JObject(
                     new JProperty("boost", _boost),
                     new JProperty("min", _min),
-                    new JArray("disjuncts", _queries.Select(x => x.Export())))));
+                    new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }

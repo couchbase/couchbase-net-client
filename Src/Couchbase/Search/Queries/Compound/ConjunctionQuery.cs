@@ -52,7 +52,9 @@ namespace Couchbase.Search.Queries.Compound
             baseQuery.Add(new JProperty("query",
                 new JObject(
                     new JProperty("boost", _boost),
-                    new JArray("conjuncts", _queries.Select(x=>x.Export())))));
+                    new JProperty("conjuncts", new JArray(_queries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }
@@ -68,7 +70,9 @@ namespace Couchbase.Search.Queries.Compound
             baseQuery.Add(new JProperty("query",
                 new JObject(
                     new JProperty("boost", _boost),
-                    new JArray("conjuncts", _queries.Select(x => x.Export())))));
+                    new JProperty("conjuncts", new JArray(_queries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }
