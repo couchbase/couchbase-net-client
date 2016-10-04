@@ -71,7 +71,7 @@ namespace Couchbase.Search.Queries.Compound
 
         public override JObject Export(ISearchParams searchParams)
         {
-            if (!_shouldQueries.Any() && !_mustNotQueries.Any() && _mustQueries.Any())
+            if (!_shouldQueries.Any() && !_mustNotQueries.Any() && !_mustQueries.Any())
             {
                 throw new InvalidOperationException("A BooleanQuery must have a least one child query!");
             }
@@ -80,16 +80,18 @@ namespace Couchbase.Search.Queries.Compound
             baseQuery.Add(new JProperty("query",
                 new JObject(
                     new JProperty("boost", _boost),
-                    new JArray("must", _mustQueries.Select(x => x.Export())),
-                    new JArray("must_not", _mustQueries.Select(x => x.Export())),
-                    new JArray("should", _mustQueries.Select(x => x.Export())))));
+                    new JProperty("must", new JArray(_mustQueries.Select(x => x.Export()))),
+                    new JProperty("must_not", new JArray(_mustNotQueries.Select(x => x.Export()))),
+                    new JProperty("should", new JArray(_shouldQueries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }
 
         public override JObject Export()
         {
-            if (!_shouldQueries.Any() && !_mustNotQueries.Any() && _mustQueries.Any())
+            if (!_shouldQueries.Any() && !_mustNotQueries.Any() && !_mustQueries.Any())
             {
                 throw new InvalidOperationException("A BooleanQuery must have a least one child query!");
             }
@@ -98,9 +100,11 @@ namespace Couchbase.Search.Queries.Compound
             baseQuery.Add(new JProperty("query",
                 new JObject(
                     new JProperty("boost", _boost),
-                    new JArray("must", _mustQueries.Select(x => x.Export())),
-                    new JArray("must_not", _mustNotQueries.Select(x => x.Export())),
-                    new JArray("should", _shouldQueries.Select(x => x.Export())))));
+                    new JProperty("must", new JArray(_mustQueries.Select(x => x.Export()))),
+                    new JProperty("must_not", new JArray(_mustNotQueries.Select(x => x.Export()))),
+                    new JProperty("should", new JArray(_shouldQueries.Select(x => x.Export())))
+                )
+            ));
 
             return baseQuery;
         }
