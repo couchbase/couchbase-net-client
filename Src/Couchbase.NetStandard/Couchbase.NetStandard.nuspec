@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>CouchbaseNetClient</id>
+    <version>2.4.0-dp1</version>
+    <title>Couchbase SDK 2.4 Core</title>
+    <authors>Couchbase,Inc.</authors>
+    <owners>Couchbase,Inc.</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The Couchbase authored new and improved client for .NET based languages!</description>
+    <releaseNotes />
+    <copyright>Copyright 2016</copyright>
+    <tags>Couchbase nosql JSON database</tags>
+    <dependencies>
+      <group targetFramework="net45">
+        <dependency id="Common.Logging" version="3.3.1" />
+        <dependency id="Newtonsoft.Json" version="8.0.3" />
+      </group>
+      <group targetFramework=".NETStandard1.5">
+        <dependency id="Microsoft.CSharp" version="4.0.1" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="System.Globalization.Extensions" version="4.0.1" />
+        <dependency id="System.Net.NameResolution" version="4.0.0" />
+        <dependency id="System.Net.Security" version="4.0.0" />
+        <dependency id="System.Net.Sockets" version="4.1.0" />
+        <dependency id="System.Net.Primitives" version="4.0.11" />
+        <dependency id="System.Threading.Tasks.Parallel" version="4.0.1" />
+        <dependency id="System.Threading.Thread" version="4.0.0" />
+        <dependency id="System.Reflection.TypeExtensions" version="4.1.0" />
+        <dependency id="System.Runtime.Serialization.Primitives" version="4.1.1" />
+        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Common.Logging" version="3.4.0-Alpha2" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\*" target="lib\netstandard1.5\" />
+    <file src="..\Couchbase\bin\Release\Couchbase.NetClient.*" target="lib\net45\" />
+  </files>
+</package>
