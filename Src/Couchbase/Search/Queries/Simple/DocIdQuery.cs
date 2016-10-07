@@ -11,7 +11,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class DocIdQuery : FtsQueryBase
     {
-        List<string> _docIds = new List<string>();
+        private readonly List<string> _docIds = new List<string>();
 
         public DocIdQuery(params string[] docIds)
         {
@@ -34,7 +34,7 @@ namespace Couchbase.Search.Queries.Simple
             var queryJson = base.Export(searchParams);
             queryJson.Add(new JProperty("query", new JObject(
                 new JProperty("boost", _boost),
-                new JArray("ids", _docIds))));
+                new JProperty("ids", new JArray(_docIds)))));
 
             return queryJson;
         }
@@ -44,7 +44,7 @@ namespace Couchbase.Search.Queries.Simple
             var queryJson = base.Export();
             queryJson.Add(new JProperty("query", new JObject(
                 new JProperty("boost", _boost),
-                new JArray("ids", _docIds))));
+                new JProperty("ids", new JArray(_docIds)))));
 
             return queryJson;
         }

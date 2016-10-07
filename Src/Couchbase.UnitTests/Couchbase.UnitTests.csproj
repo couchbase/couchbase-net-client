@@ -96,6 +96,8 @@
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="OperationResultTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Search\DocIdQueryTests.cs" />
+    <Compile Include="Search\PhraseQueryTests.cs" />
     <Compile Include="Search\TermQueryTests.cs" />
     <Compile Include="Search\SearchClientTests.cs" />
     <Compile Include="Search\SearchParamsTests.cs" />

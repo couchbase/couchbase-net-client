@@ -46,10 +46,13 @@ namespace Couchbase.Search.Queries.Simple
         public override JObject Export(ISearchParams searchParams)
         {
             var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JArray("terms", _terms))));
+            queryJson.Add(new JProperty("query",
+                new JObject(
+                    new JProperty("boost", _boost),
+                    new JProperty("field", _field),
+                    new JProperty("terms", new JArray(_terms))
+                )
+            ));
 
             return queryJson;
         }
@@ -57,10 +60,13 @@ namespace Couchbase.Search.Queries.Simple
         public override JObject Export()
         {
             var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                 new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JArray("terms", _terms))));
+            queryJson.Add(new JProperty("query",
+                new JObject(
+                    new JProperty("boost", _boost),
+                    new JProperty("field", _field),
+                    new JProperty("terms", new JArray(_terms)))
+                )
+            );
 
             return queryJson;
         }
