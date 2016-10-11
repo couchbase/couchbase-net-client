@@ -104,7 +104,7 @@ namespace Couchbase.IntegrationTests
 
             var queryResult = _bucket.Query<DocumentContent>(request);
 
-            Assert.True(queryResult.Success);
+            Assert.True(queryResult.Success, queryResult.ToString());
             Assert.IsNotEmpty(queryResult.Rows);
             Assert.AreEqual(doc.Content.Value, queryResult.Rows.First().Value);
         }

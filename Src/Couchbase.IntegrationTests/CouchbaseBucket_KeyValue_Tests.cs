@@ -295,12 +295,13 @@ namespace Couchbase.IntegrationTests
             {
                 using (var bucket = cluster.OpenBucket("default"))
                 {
+                    var key = Guid.NewGuid().ToString();
                     var inserts = new List<Task<IOperationResult<string>>>();
                     var deletes = new List<string>();
                     for (var i = 0; i < 10; i++)
                     {
-                        deletes.Add("key" + i);
-                        inserts.Add(bucket.InsertAsync("key" + i, "{\"data\":" + i + "}", ReplicateTo.Zero,
+                        deletes.Add(key + i);
+                        inserts.Add(bucket.InsertAsync(key + i, "{\"data\":" + i + "}", ReplicateTo.Zero,
                             PersistTo.One));
                     }
                     bucket.Remove(deletes);

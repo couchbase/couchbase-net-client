@@ -44,7 +44,7 @@ namespace Couchbase.IntegrationTests
                         Query = query
                     }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)));
 
-                    Assert.IsTrue(results.Success);
+                    Assert.IsTrue(results.Success, results.ToString());
                 }
             }
         }

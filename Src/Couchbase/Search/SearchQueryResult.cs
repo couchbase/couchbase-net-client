@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Text;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 
@@ -151,6 +152,24 @@ namespace Couchbase.Search
             {
                 _httpClient.Dispose();
             }
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat("Status: {0}", Status);
+            if (Errors != null)
+            {
+                foreach (var error in Errors)
+                {
+                    sb.AppendFormat("Error: {0}", error);
+                }
+            }
+            if (Exception != null)
+            {
+                sb.AppendFormat("Exception: {0}", Exception);
+            }
+            return sb.ToString();
         }
     }
 }
