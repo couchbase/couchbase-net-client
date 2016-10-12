@@ -1,8 +1,9 @@
-﻿
-using System;
+﻿using System;
 using Couchbase.Authentication;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Management;
+using Couchbase.N1QL;
 
 namespace Couchbase.Core
 {
@@ -72,6 +73,39 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="credentials">The credentials.</param>
         void Authenticate(IClusterCredentials credentials);
+
+        /// <summary>
+        /// Executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        IQueryResult<T> Query<T>(string query);
+
+        /// <summary>
+        /// Asynchronously executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An awaitable <see cref="Task"/> with the T a <see cref="IQueryResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
+        Task<IQueryResult<T>> QueryAsync<T>(string query);
+
+        /// <summary>
+        /// Executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        IQueryResult<T> Query<T>(IQueryRequest queryRequest);
+
+        /// <summary>
+        /// Asynchronously executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest);
     }
 }
 

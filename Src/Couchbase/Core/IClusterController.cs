@@ -30,6 +30,12 @@ namespace Couchbase.Core
 
         bool IsObserving(string bucketName);
 
+        /// <summary>
+        /// Gets the first <see cref="CouchbaseBucket"/> instance found./>
+        /// </summary>
+        /// <returns></returns>
+        IBucket GetBucket(IClusterCredentials credentials);
+
         [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         IClusterInfo Info();
     }

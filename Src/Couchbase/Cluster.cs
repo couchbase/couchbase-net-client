@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Security.Authentication;
+using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
@@ -9,6 +10,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO.Http;
 using Couchbase.Management;
+using Couchbase.N1QL;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -234,6 +236,67 @@ namespace Couchbase
         public bool IsOpen(string bucketName)
         {
             return _clusterController.IsObserving(bucketName);
+        }
+
+        /// <summary>
+        /// Executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public IQueryResult<T> Query<T>(string query)
+        {
+            return Query<T>(new QueryRequest(query));
+        }
+
+        /// <summary>
+        /// Asynchronously executes a N1QL query against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="query">An ad-hoc N1QL query.</param>
+        /// <returns>An awaitable <see cref="Task"/> with the T a <see cref="IQueryResult{T}"/> instance.</returns>
+        /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
+        public Task<IQueryResult<T>> QueryAsync<T>(string query)
+        {
+            return QueryAsync<T>(new QueryRequest(query));
+        }
+
+        /// <summary>
+        /// Executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
+        {
+            if (_credentials == null)
+            {
+                throw new InvalidOperationException("An Authenticator is required to perform cluster level querying");
+            }
+
+            var bucket = _clusterController.GetBucket(_credentials);
+#pragma warning disable 618
+            return bucket.Query<T>(queryRequest);
+#pragma warning restore 618;
+        }
+
+        /// <summary>
+        /// Asynchronously executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        {
+            if (_credentials == null)
+            {
+                throw new InvalidOperationException("An Authenticator is required to perform cluster level querying");
+            }
+
+            var bucket = _clusterController.GetBucket(_credentials);
+#pragma warning disable 618
+            return bucket.QueryAsync<T>(queryRequest);
+#pragma warning restore 618
         }
 
         /// <summary>

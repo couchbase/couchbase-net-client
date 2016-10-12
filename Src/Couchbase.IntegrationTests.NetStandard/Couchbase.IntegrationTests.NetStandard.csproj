@@ -42,6 +42,9 @@
     </Compile>
     <Compile Include="..\Couchbase.IntegrationTests\Collections\CouchbaseSetTests.cs">
       <Link>Collections\CouchbaseSetTests.cs</Link>
+     </Compile>
+    <Compile Include="..\Couchbase.IntegrationTests\ClusterTests.cs">
+      <Link>ClusterTests.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase.IntegrationTests\Configuration\Client\JsonConfiguration_Multiplex_Tests.cs">
       <Link>Configuration\Client\JsonConfiguration_Multiplex_Tests.cs</Link>

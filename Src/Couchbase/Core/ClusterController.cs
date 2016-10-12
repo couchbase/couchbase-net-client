@@ -246,6 +246,26 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Gets the first <see cref="CouchbaseBucket"/> instance found./>
+        /// </summary>
+        /// <returns></returns>
+        public IBucket GetBucket(IClusterCredentials credentials)
+        {
+            if (_buckets.IsEmpty)
+            {
+                lock (_syncObject)
+                {
+                    if (_buckets.IsEmpty)
+                    {
+                       var bucketName = credentials.BucketCredentials.First().Key;
+                        return CreateBucket(bucketName, credentials);
+                    }
+                }
+            }
+            return _buckets.First().Value;
+        }
+
+        /// <summary>
         /// Retrieve Information for this cluster, see <see cref="ICluster.Info">ICluster.Info</see>.
         /// </summary>
         /// <returns></returns>
