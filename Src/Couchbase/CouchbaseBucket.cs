@@ -80,7 +80,7 @@ namespace Couchbase
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
 
-            //if ICluster.Authenticate was called.
+            //If ICluster.Authenticate was called.
            _credentials = credentials;
         }
 
@@ -3703,6 +3703,640 @@ namespace Couchbase
         public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery)
         {
             return _requestExecuter.SendWithRetryAsync(searchQuery);
+        }
+
+        #endregion
+
+        #region  Data Structures
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>
+        /// The value as <see cref="IResult{TContent}" />
+        /// </returns>
+        public IResult<TContent> MapGet<TContent>(string key, string mapkey)
+        {
+            var result = LookupIn<TContent>(key).Get(mapkey).Execute();
+            return new DefaultResult<TContent>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Content<TContent>(0)
+            };
+        }
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult MapRemove(string key, string mapkey)
+        {
+            var result = MutateIn<object>(key).Remove(mapkey).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public IResult<int> MapSize(string key)
+        {
+            var result = Get<Dictionary<string, object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult MapAdd(string key, string mapkey, string value, bool createMap)
+        {
+            var result = MutateIn<object>(key).Insert(mapkey, value, createMap).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>
+        /// The value as <see cref="IResult{TContent}" />
+        /// </returns>
+        public IResult<TContent> ListGet<TContent>(string key, int index)
+        {
+            var result = LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).Execute();
+            return new DefaultResult<TContent>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Content<TContent>(0)
+            };
+        }
+
+        /// <summary>
+        /// Pushes a value to the back of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListPush(string key, object value, bool createList)
+        {
+            var result = MutateIn<object>(key).ArrayAppend(value, createList).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Pushes a value to the front of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListShift(string key, object value, bool createList)
+        {
+            var result = MutateIn<object>(key).ArrayPrepend(value, createList).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Deletes a value at a given index with a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListDelete(string key, int index)
+        {
+            var result = MutateIn<object>(key).Remove(string.Format("[{0}]", index)).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListSet(string key, int index, string value)
+        {
+            var result = MutateIn<object>(key).Replace(string.Format("[{0}]", index), value).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public IResult<int> ListSize(string key)
+        {
+            var result = Get<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult SetAdd(string key, string value, bool createSet)
+        {
+            var result = MutateIn<object>(key).ArrayAddUnique(value, createSet).Execute();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Checks for the existence of a value in a set within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult{boolean}" /> with the operation result.
+        /// </returns>
+        public IResult<bool> SetExists(string key, string value)
+        {
+            var result = Get<List<object>>(key);
+            return new DefaultResult<bool>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success && result.Value.Contains(value)
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public IResult<int> SetSize(string key)
+        {
+            var result = Get<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public IResult SetRemove<T>(string key, T value)
+        {
+            const int maxAttempts = 10; //can be made a config option in a later commit
+            var attempted = 0;
+            do
+            {
+                var result = GetDocument<List<T>>(key);
+                if (!result.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = result.Success,
+                        Exception = result.Exception,
+                        Message = result.Message
+                    };
+                }
+
+                var doc = result.Content;
+                if (doc.Contains(value))
+                {
+                    doc.Remove(value);
+                }
+                var update = Upsert(new Document<List<T>>
+                {
+                    Id = key,
+                    Content = doc,
+                    Cas = result.Document.Cas
+                });
+
+                //return on success or anything but a CAS mismatch
+                if (update.Success || update.Status != ResponseStatus.KeyExists)
+                {
+                    return new DefaultResult
+                    {
+                        Success = update.Success,
+                        Exception = update.Exception,
+                        Message = update.Message
+                    };
+                }
+                Thread.Sleep(100); //could be made a configurable in a later commit
+            } while (attempted++ < maxAttempts);
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = new TimeoutException(),
+                Message = "Timed out waiting for CAS resolution."
+            };
+        }
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>
+        /// The value as <see cref="IResult{TContent}" />
+        /// </returns>
+        public async Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey)
+        {
+            var result = await LookupIn<TContent>(key).Get(mapkey).ExecuteAsync();
+            return new DefaultResult<TContent>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Content<TContent>(0)
+            };
+        }
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> MapRemoveAsync(string key, string mapkey)
+        {
+            var result = await MutateIn<object>(key).Remove(mapkey).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<int>> MapSizeAsync(string key)
+        {
+            var result = await GetAsync<Dictionary<string, object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap)
+        {
+            var result = await MutateIn<object>(key).Insert(mapkey, value, createMap).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>
+        /// The value as <see cref="IResult{TContent}" />
+        /// </returns>
+        public async Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index)
+        {
+            var result = await LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).ExecuteAsync();
+            return new DefaultResult<TContent>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Content<TContent>(0)
+            };
+        }
+
+        /// <summary>
+        /// Pushes a value to the back of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListPushAsync(string key, object value, bool createList)
+        {
+            var result = await MutateIn<object>(key).ArrayAppend(value, createList).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Pushes a value to the front of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListShiftAsync(string key, object value, bool createList)
+        {
+            var result = await MutateIn<object>(key).ArrayPrepend(value, createList).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Deletes a value at a given index with a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListDeleteAsync(string key, int index)
+        {
+            var result = await MutateIn<object>(key).Remove(string.Format("[{0}]", index)).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListSetAsync(string key, int index, string value)
+        {
+            var result = await MutateIn<object>(key).Replace(string.Format("[{0}]", index), value).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<int>> ListSizeAsync(string key)
+        {
+            var result = await GetAsync<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> SetAddAsync(string key, string value, bool createSet)
+        {
+            var result = await MutateIn<object>(key).ArrayAddUnique(value, createSet).ExecuteAsync();
+            return new DefaultResult
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString()
+            };
+        }
+
+        /// <summary>
+        /// Checks for the existence of a value in a set within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult{boolean}" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<bool>> SetExistsAsync(string key, string value)
+        {
+            var result = await GetAsync<List<object>>(key);
+            return new DefaultResult<bool>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success && result.Value.Contains(value)
+            };
+        }
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>
+        /// A <see cref="IResult{integer}" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<int>> SetSizeAsync(string key)
+        {
+            var result = await GetAsync<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Exception = result.Exception,
+                Message = result.Status.ToString(),
+                Value = result.Success ? result.Value.Count : 0
+            };
+        }
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// A <see cref="IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> SetRemoveAsync<T>(string key, T value)
+        {
+            const int maxAttempts = 10; //can be made a config option in a later commit
+            var attempted = 0;
+            do
+            {
+                var result = await GetDocumentAsync<List<T>>(key);
+                if (!result.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = result.Success,
+                        Exception = result.Exception,
+                        Message = result.Message
+                    };
+                }
+
+                var doc = result.Content;
+                if (doc.Contains(value))
+                {
+                    doc.Remove(value);
+                }
+                result = await UpsertAsync(new Document<List<T>>
+                {
+                    Content = doc,
+                    Cas = result.Document.Cas,
+                    Id = key
+                });
+                if (result.Success || result.Status != ResponseStatus.KeyExists)
+                {
+                    return new DefaultResult
+                    {
+                        Success = result.Success,
+                        Exception = result.Exception,
+                        Message = result.Message
+                    };
+                }
+                await Task.Delay(100); //could be made a configurable in a later commit
+            } while (attempted++ < maxAttempts);
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = new TimeoutException(),
+                Message = "Timed out waiting for CAS resolution."
+            };
         }
 
         #endregion

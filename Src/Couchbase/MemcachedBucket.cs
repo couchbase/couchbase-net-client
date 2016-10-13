@@ -2556,6 +2556,150 @@ namespace Couchbase
         }
 
         #endregion
+
+        #region  Data Structures (Not Supported)
+
+        public IResult<TContent> MapGet<TContent>(string key, string mapkey)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult MapRemove(string key, string mapkey)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<int> MapSize(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult MapAdd(string key, string mapkey, string value, bool createMap)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<TContent> ListGet<TContent>(string key, int index)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult ListPush(string key, object value, bool createList)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult ListShift(string key, object value, bool createList)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult ListDelete(string key, int index)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult ListSet(string key, int index, string value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<int> ListSize(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult SetAdd(string key, string value, bool createSet)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<bool> SetExists(string key, string value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<int> SetSize(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult SetRemove<T>(string key, T value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> MapRemoveAsync(string key, string mapkey)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<int>> MapSizeAsync(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> ListPushAsync(string key, object value, bool createList)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> ListShiftAsync(string key, object value, bool createList)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> ListDeleteAsync(string key, int index)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> ListSetAsync(string key, int index, string value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<int>> ListSizeAsync(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> SetAddAsync(string key, string value, bool createSet)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<bool>> SetExistsAsync(string key, string value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<int>> SetSizeAsync(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> SetRemoveAsync<T>(string key, T value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        #endregion
     }
 }
 

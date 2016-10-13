@@ -1904,6 +1904,241 @@ namespace Couchbase.Core
         ISearchQueryResult Query(SearchQuery searchQuery);
 
         Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>The value as <see cref="IResult{TContent}"/></returns>
+        IResult<TContent> MapGet<TContent>(string key, string mapkey);
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult MapRemove(string key, string mapkey);
+
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        IResult<int> MapSize(string key);
+
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult MapAdd(string key, string mapkey, string value, bool createMap);
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>The value as <see cref="IResult{TContent}"/></returns>
+        IResult<TContent> ListGet<TContent>(string key, int index);
+
+        /// <summary>
+        /// Pushes a value to the back of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult ListPush(string key, object value, bool createList);
+
+        /// <summary>
+        /// Pushes a value to the front of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult ListShift(string key, object value, bool createList);
+
+        /// <summary>
+        /// Deletes a value at a given index with a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult ListDelete(string key, int index);
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult ListSet(string key, int index, string value);
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        IResult<int> ListSize(string key);
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult SetAdd(string key, string value, bool createSet);
+
+        /// <summary>
+        /// Checks for the existence of a value in a set within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult{boolean}"/> with the operation result.</returns>
+        IResult<bool> SetExists(string key, string value);
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        IResult<int> SetSize(string key);
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        IResult SetRemove<T>(string key, T value);
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>The value as <see cref="IResult{TContent}"/></returns>
+        Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey);
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> MapRemoveAsync(string key, string mapkey);
+
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        Task<IResult<int>> MapSizeAsync(string key);
+
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap);
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>The value as <see cref="IResult{TContent}"/></returns>
+        Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index);
+
+        /// <summary>
+        /// Pushes a value to the back of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> ListPushAsync(string key, object value, bool createList);
+
+        /// <summary>
+        /// Pushes a value to the front of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> ListShiftAsync(string key, object value, bool createList);
+
+        /// <summary>
+        /// Deletes a value at a given index with a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> ListDeleteAsync(string key, int index);
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> ListSetAsync(string key, int index, string value);
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        Task<IResult<int>> ListSizeAsync(string key);
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> SetAddAsync(string key, string value, bool createSet);
+
+        /// <summary>
+        /// Checks for the existence of a value in a set within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult{boolean}"/> with the operation result.</returns>
+        Task<IResult<bool>> SetExistsAsync(string key, string value);
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <returns>A <see cref="IResult{integer}"/> with the operation result.</returns>
+        Task<IResult<int>> SetSizeAsync(string key);
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>A <see cref="IResult"/> with the operation result.</returns>
+        Task<IResult> SetRemoveAsync<T>(string key, T value);
+
     }
 }
 
