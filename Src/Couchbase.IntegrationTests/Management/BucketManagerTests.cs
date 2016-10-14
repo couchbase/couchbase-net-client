@@ -71,14 +71,16 @@ namespace Couchbase.IntegrationTests.Management
                 // Assert
 
                 Assert.NotNull(result);
-                Assert.True(result.Success);
+                Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
             }
             finally
             {
                 // Cleanup
 
                 var removeResult = _bucketManager.RemoveDesignDocument("test");
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -97,7 +99,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.False(result.Success);
+            Assert.False(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -106,7 +109,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = _bucketManager.GetDesignDocuments();
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -129,7 +133,8 @@ namespace Couchbase.IntegrationTests.Management
             // Cleanup
 
             var removeResult = _bucketManager.RemoveDesignDocument("test");
-            Assert.True(removeResult.Success);
+            Assert.True(removeResult.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -156,7 +161,8 @@ namespace Couchbase.IntegrationTests.Management
                 // Cleanup
 
                 var removeResult = _bucketManager.RemoveDesignDocument("test");
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -175,12 +181,14 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
 
             // Cleanup
 
             var removeResult = _bucketManager.RemoveDesignDocument("test");
-            Assert.True(removeResult.Success);
+            Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                removeResult.Exception == null ? "" : removeResult.Exception.ToString());
         }
 
         [Test]
@@ -201,14 +209,16 @@ namespace Couchbase.IntegrationTests.Management
                 // Assert
 
                 Assert.NotNull(result);
-                Assert.True(result.Success);
+                Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
             }
             finally
             {
                 // Cleanup
 
                 var removeResult = _bucketManager.RemoveDesignDocument("test");
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -227,7 +237,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.False(result.Success);
+            Assert.False(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -245,7 +256,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         #endregion
@@ -258,7 +270,8 @@ namespace Couchbase.IntegrationTests.Management
             // Arrange
 
             var createResult = await _bucketManager.InsertDesignDocumentAsync("test", JsonConvert.SerializeObject(DesignDoc));
-            Assert.True(createResult.Success);
+            Assert.True(createResult.Success, "{0}-{1}", createResult.Message,
+                createResult.Exception == null ? "" : createResult.Exception.ToString());
 
             try
             {
@@ -269,13 +282,15 @@ namespace Couchbase.IntegrationTests.Management
                 // Assert
 
                 Assert.NotNull(result);
-                Assert.True(result.Success);
+                Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
             }
             finally
             {
                 // Cleanup
                 var removeResult =  _bucketManager.RemoveDesignDocumentAsync("test").Result;
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}",removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -294,7 +309,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.False(result.Success);
+            Assert.False(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -303,7 +319,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = await _bucketManager.GetDesignDocumentsAsync();
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -321,7 +338,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
 
             // Cleanup
 
@@ -335,7 +353,8 @@ namespace Couchbase.IntegrationTests.Management
             // Arrange
 
             var createResult = await _bucketManager.InsertDesignDocumentAsync("test", JsonConvert.SerializeObject(DesignDoc));
-            Assert.True(createResult.Success);
+            Assert.True(createResult.Success, "{0}-{1}", createResult.Message,
+                createResult.Exception == null ? "" : createResult.Exception.ToString());
 
             try
             {
@@ -346,13 +365,15 @@ namespace Couchbase.IntegrationTests.Management
                 // Assert
 
                 Assert.NotNull(result);
-                Assert.True(result.Success);
+                Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
             }
             finally
             {
                 // Cleanup
                 var removeResult = _bucketManager.RemoveDesignDocumentAsync("test").Result;
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -371,12 +392,14 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
 
             // Cleanup
 
             var removeResult = await _bucketManager.RemoveDesignDocumentAsync("test");
-            Assert.True(removeResult.Success);
+            Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                removeResult.Exception == null ? "" : removeResult.Exception.ToString());
         }
 
         [Test]
@@ -385,7 +408,8 @@ namespace Couchbase.IntegrationTests.Management
             // Arrange
 
             var createResult = await _bucketManager.InsertDesignDocumentAsync("test", JsonConvert.SerializeObject(DesignDoc));
-            Assert.True(createResult.Success);
+            Assert.True(createResult.Success, "{0}-{1}", createResult.Message,
+                createResult.Exception == null ? "" : createResult.Exception.ToString());
 
             try
             {
@@ -397,14 +421,16 @@ namespace Couchbase.IntegrationTests.Management
                 // Assert
 
                 Assert.NotNull(result);
-                Assert.True(result.Success);
+                Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
             }
             finally
             {
                 // Cleanup
 
                 var removeResult = _bucketManager.RemoveDesignDocumentAsync("test").Result;
-                Assert.True(removeResult.Success);
+                Assert.True(removeResult.Success, "{0}-{1}", removeResult.Message,
+                    removeResult.Exception == null ? "" : removeResult.Exception.ToString());
             }
         }
 
@@ -423,7 +449,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.False(result.Success);
+            Assert.False(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -441,7 +468,8 @@ namespace Couchbase.IntegrationTests.Management
             // Assert
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         #endregion
@@ -454,7 +482,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = _bucketManager.Flush();
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -463,7 +492,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = await _bucketManager.FlushAsync();
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                result.Exception == null ? "" : result.Exception.ToString());
         }
 
         #endregion

@@ -43,7 +43,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = _bucketManager.Flush();
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
         }
 
         [Test]
@@ -52,7 +53,8 @@ namespace Couchbase.IntegrationTests.Management
             var result = await _bucketManager.FlushAsync().ConfigureAwait(false);
 
             Assert.NotNull(result);
-            Assert.True(result.Success);
+            Assert.True(result.Success, "{0}-{1}", result.Message,
+                    result.Exception == null ? "" : result.Exception.ToString());
         }
 
         #endregion
