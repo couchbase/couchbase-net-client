@@ -4,12 +4,9 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
-using Couchbase.Views;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -27,11 +24,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexist",
@@ -50,11 +43,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -73,11 +62,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -96,11 +81,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -119,11 +100,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -142,11 +119,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotist",
@@ -165,11 +138,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -188,11 +157,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -211,11 +176,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -234,11 +195,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -257,11 +214,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -280,11 +233,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -303,11 +252,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -327,11 +272,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -350,11 +291,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -374,11 +311,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -397,11 +330,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new FakeSearchClient(new BucketConfig(), new ClientConfiguration(), new SearchDataMapper())
-            {
-                HttpClient = new HttpClient(fakeMessageHandler),
-            };
-
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper());
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -428,21 +357,6 @@ namespace Couchbase.UnitTests.Search
                 }
                 return Task.FromResult(response);
             }
-        }
-
-        class FakeSearchClient : SearchClient
-        {
-            public FakeSearchClient(IBucketConfig bucketConfig, ClientConfiguration clientConfig, IDataMapper dataMapper)
-                : base(bucketConfig, clientConfig, dataMapper)
-            {
-            }
-
-            public override HttpClient CreateHttpClient()
-            {
-                return HttpClient;
-            }
-
-            public HttpClient HttpClient { get; set; }
         }
     }
 }

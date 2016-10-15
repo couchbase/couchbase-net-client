@@ -5,9 +5,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Common.Logging;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.IO.Http;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Encoding = System.Text.Encoding;
@@ -21,20 +18,11 @@ namespace Couchbase.Search
     public class SearchClient : ISearchClient, IDisposable
     {
         private static readonly ILog Log = LogManager.GetLogger<SearchClient>();
-        private readonly IBucketConfig _bucketConfig;
-        private readonly ClientConfiguration _clientConfig;
         private readonly HttpClient _httpClient;
 
         public SearchClient(HttpClient httpClient, IDataMapper dataMapper)
         {
             _httpClient = httpClient;
-            DataMapper = dataMapper;
-        }
-
-        public SearchClient(IBucketConfig bucketConfig, ClientConfiguration clientConfig, IDataMapper dataMapper)
-        {
-            _bucketConfig = bucketConfig;
-            _clientConfig = clientConfig;
             DataMapper = dataMapper;
         }
 
@@ -143,10 +131,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public virtual HttpClient CreateHttpClient()
         {
-            return new HttpClient(new AuthenticatingHttpClientHandler(_bucketConfig.Name, _bucketConfig.Password))
-            {
-                Timeout = TimeSpan.FromMilliseconds(_clientConfig.SearchRequestTimeout)
-            };
+            throw new NotSupportedException("Use CTOR to pass in HttpClient dependency.");
         }
 
         public void Dispose()

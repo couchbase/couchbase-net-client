@@ -76,7 +76,10 @@ namespace Couchbase.Core
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
                     }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
-                    new SearchClient(bucketConfig, clientConfiguration, new SearchDataMapper()),
+                    new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.SearchRequestTimeout)
+                    }, new SearchDataMapper()),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
