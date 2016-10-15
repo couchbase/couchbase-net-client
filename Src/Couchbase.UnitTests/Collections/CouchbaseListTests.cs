@@ -1,4 +1,6 @@
-﻿using Couchbase.Collections;
+﻿using System;
+using System.Collections.Generic;
+using Couchbase.Collections;
 using Couchbase.Core;
 using Moq;
 using NUnit.Framework;
@@ -18,11 +20,23 @@ namespace Couchbase.UnitTests.Collections
         [Test]
         public void Test_Add()
         {
+            //arrange
+            var builder = new Mock<IMutateInBuilder<List<Poco>>>();
+            builder.Setup(x => x.ArrayAppend(It.IsAny<Poco>(), It.IsAny<bool>())).Returns(builder.Object);
+            builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) {Success = true});
+
             var bucket = new Mock<IBucket>();
+            bucket.Setup(x => x.Insert(It.IsAny<Document<List<Poco>>>())).
+                Returns(new DocumentResult<List<Poco>>(new OperationResult<List<Poco>>
+            {
+                Success = true
+            }));
+            bucket.Setup(x => x.MutateIn<List<Poco>>(It.IsAny<string>())).Returns(builder.Object);
 
             var collection = new CouchbaseList<Poco>(bucket.Object, "Thecollection");
 
-            collection.Add(new Poco {Key = "poco1", Name = "Poco-pica"});
+            //act/assert
+            Assert.DoesNotThrow(()=> collection.Add(new Poco { Key = "poco1", Name = "Poco-pica" }));
         }
     }
 }

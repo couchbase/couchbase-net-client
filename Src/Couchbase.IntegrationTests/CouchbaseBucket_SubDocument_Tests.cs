@@ -210,8 +210,6 @@ namespace Couchbase.IntegrationTests
             };
             _bucket.Upsert(doc);
 
-            var result = _bucket.LookupIn<dynamic>("myccollection").Get("count").Execute().Content(0);
-
             var subDoc2 = _bucket.LookupIn<dynamic>("Foo::123").Exists("profile.address.province").Execute();
             Assert.IsFalse(subDoc2.Exists("profile.address.province"));
         }
