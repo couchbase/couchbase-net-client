@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Authentication;
+using Couchbase.Utils;
 
 namespace Couchbase.Authentication
 {
@@ -27,7 +29,12 @@ namespace Couchbase.Authentication
             {
                 case AuthContext.BucketKv:
                 case AuthContext.BucketN1Ql:
-                    return new Dictionary<string, string> {{bucketName, BucketCredentials[bucketName]}};
+                    string bucketPassword;
+                    if (BucketCredentials.TryGetValue(bucketName, out bucketPassword))
+                    {
+                        return new Dictionary<string, string> {{bucketName, bucketPassword}};
+                    }
+                    throw new AuthenticationException(ExceptionUtil.GetMessage(ExceptionUtil.BucketCredentialsMissingMsg, bucketName));
                 case AuthContext.ClusterCbft:
                 case AuthContext.ClusterN1Ql:
                     return new Dictionary<string, string>(BucketCredentials);

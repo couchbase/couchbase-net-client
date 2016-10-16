@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Authentication;
 using Couchbase.Authentication;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
@@ -57,10 +58,7 @@ namespace Couchbase.IntegrationTests
                 }
             };
             cluster.Authenticate(credentials);
-            cluster.OpenBucket("default");
-
-            var result = cluster.Query<dynamic>("select * from authenticated limit 1;");
-            Assert.AreEqual(QueryStatus.Success, result.Status);
+            Assert.Throws<AuthenticationException>(() => cluster.OpenBucket("default"));
         }
 
         [Test]
