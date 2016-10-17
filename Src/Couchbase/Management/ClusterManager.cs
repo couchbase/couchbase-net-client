@@ -738,7 +738,7 @@ namespace Couchbase.Management
 
         void SetHeaders(HttpRequestMessage request, Uri uri)
         {
-            var contentType = new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded");
+            var contentType = new MediaTypeWithQualityHeaderValue(MediaType.Form);
             if (request.Content != null)
             {
                 request.Content.Headers.ContentType = contentType;

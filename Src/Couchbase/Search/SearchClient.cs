@@ -52,7 +52,7 @@ namespace Couchbase.Search
 
             try
             {
-                using (var content = new StringContent(searchBody, Encoding.UTF8, "application/json"))
+                using (var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json))
                 using (var response = await _httpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
                 using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {

@@ -29,9 +29,6 @@ namespace Couchbase.Management
         private readonly IBucket _bucket;
         private readonly HttpClient _httpClient;
 
-        private const string MediaTypeJson = "application/json";
-        private const string MediaTypeForm = "application/x-www-form-urlencoded";
-
         internal BucketManager(IBucket bucket, ClientConfiguration clientConfig, IDataMapper mapper, HttpClient httpClient, string username, string password)
         {
             _bucket = bucket;
@@ -417,7 +414,7 @@ namespace Couchbase.Management
                 {
                     Content = new StringContent(designDoc)
                 };
-                SetHeaders(request, uri, MediaTypeJson);
+                SetHeaders(request, uri, MediaType.Json);
 
                 var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                 result = await GetResult(response).ContinueOnAnyContext();
@@ -482,7 +479,7 @@ namespace Couchbase.Management
                 var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                SetHeaders(request, uri, MediaTypeForm);
+                SetHeaders(request, uri, MediaType.Form);
 
                 var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                 result = await GetResultAsString(response).ContinueOnAnyContext();
@@ -524,7 +521,7 @@ namespace Couchbase.Management
                     var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName, designDocName));
 
                     var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-                    SetHeaders(request, uri, MediaTypeForm);
+                    SetHeaders(request, uri, MediaType.Form);
 
                     var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                     result = await GetResult(response).ContinueOnAnyContext();
@@ -568,7 +565,7 @@ namespace Couchbase.Management
                 var uri = new Uri(string.Format(api, protocol, server.Host, port, BucketName));
 
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                SetHeaders(request, uri, MediaTypeJson);
+                SetHeaders(request, uri, MediaType.Json);
 
                 var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                 result = await GetResultAsString(response).ContinueOnAnyContext();
@@ -616,7 +613,7 @@ namespace Couchbase.Management
                         {"password", _password}
                     })
                 };
-                SetHeaders(request, uri, MediaTypeForm);
+                SetHeaders(request, uri, MediaType.Form);
 
                 var response = await _httpClient.SendAsync(request).ContinueOnAnyContext();
                 result = await GetResult(response).ContinueOnAnyContext();

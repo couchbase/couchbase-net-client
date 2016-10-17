@@ -292,6 +292,7 @@
     <Compile Include="Management\Indexes\IndexResult.cs" />
     <Compile Include="Management\Indexes\IndexType.cs" />
     <Compile Include="Management\MemcachedBucketManager.cs" />
+    <Compile Include="MediaType.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />
     <Compile Include="Core\Buckets\VBucketKeyMapper.cs" />

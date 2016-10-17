@@ -368,7 +368,7 @@ namespace Couchbase.N1QL
             ApplyCredentials(queryRequest);
             var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
-            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, "application/json"))
+            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {

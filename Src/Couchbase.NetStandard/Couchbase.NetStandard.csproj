@@ -700,6 +700,9 @@
     <Compile Include="..\Couchbase\Management\MemcachedBucketManager.cs">
       <Link>Management\MemcachedBucketManager.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\MediaType.cs">
+      <Link>MediaType.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\MemcachedBucket.cs">
       <Link>MemcachedBucket.cs</Link>
     </Compile>
