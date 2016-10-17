@@ -20,9 +20,11 @@ namespace Couchbase.IO.Operations
 
         public override byte[] Write()
         {
-            var body = new byte[2 + 2 + Key.Length];
+            var key = CreateKey();
+
+            var body = new byte[4 + key.Length];
             Converter.FromInt16((short)VBucket.Index, body, 0);
-            Converter.FromInt16((short)Key.Length, body, 2);
+            Converter.FromInt16((short)key.Length, body, 2);
             Converter.FromString(Key, body, 4);
 
             var header = new byte[24];
