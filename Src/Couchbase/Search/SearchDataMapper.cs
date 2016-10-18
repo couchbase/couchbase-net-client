@@ -24,15 +24,6 @@ namespace Couchbase.Search
             return response as T;
         }
 
-        void ReadFacets(JsonTextReader reader, SearchQueryResult response)
-        {
-            if (reader.TokenType == JsonToken.StartObject && reader.Path.Contains("facets["))
-            {
-                var facet = JObject.Load(reader);
-                //todo
-            }
-        }
-
         void ReadHits(JsonTextReader reader, SearchQueryResult response)
         {
             if (reader.TokenType == JsonToken.StartObject && reader.Path.Contains("hits["))
@@ -67,7 +58,7 @@ namespace Couchbase.Search
                 var totalHits = reader.ReadAsInt32();
                 if (totalHits != null)
                 {
-                    response.TotalHits = (long)totalHits;
+                    response.Metrics.TotalHits = (long)totalHits;
                     return;
                 }
             }
@@ -76,7 +67,7 @@ namespace Couchbase.Search
                 var maxScore = reader.ReadAsDecimal();
                 if (maxScore != null)
                 {
-                    response.MaxScore = (double)maxScore;
+                    response.Metrics.MaxScore = (double)maxScore;
                     return;
                 }
             }
@@ -85,7 +76,7 @@ namespace Couchbase.Search
                 var took = reader.ReadAsString();
                 if (took != null)
                 {
-                    response.Took = new TimeSpan(long.Parse(took));
+                    response.Metrics.Took = new TimeSpan(long.Parse(took));
                     return;
                 }
             }
@@ -94,7 +85,7 @@ namespace Couchbase.Search
                 var failed = reader.ReadAsInt32();
                 if (failed != null)
                 {
-                    response.ErrorCount = (long)failed;
+                    response.Metrics.ErrorCount = (long)failed;
                     response.Success = failed.Value >= 0;
                     return;
                 }
@@ -104,7 +95,7 @@ namespace Couchbase.Search
                 var success = reader.ReadAsInt32();
                 if (success != null)
                 {
-                    response.SuccessCount = success.Value;
+                    response.Metrics.SuccessCount = success.Value;
                     return;
                 }
             }
@@ -113,7 +104,7 @@ namespace Couchbase.Search
                 var total = reader.ReadAsInt32();
                 if (total != null)
                 {
-                    response.TotalCount = total.Value;
+                    response.Metrics.TotalCount = total.Value;
                 }
             }
             if (reader.Path == "status.errors")

@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
-using Couchbase.Configuration.Client;
-using Couchbase.Core;
 
 namespace Couchbase.Search
 {
@@ -14,13 +12,14 @@ namespace Couchbase.Search
     /// <seealso cref="Couchbase.Search.ISearchQueryResult" />
     public class SearchQueryResult : ISearchQueryResult, IDisposable
     {
-        private readonly HttpClient _httpClient;
+        private HttpClient _httpClient;
 
         internal SearchQueryResult()
         {
             Hits = new List<ISearchQueryRow>();
             Facets = new List<SearchFacet>();
             Errors = new List<string>();
+            Metrics = new SearchMetrics();
         }
 
         internal SearchQueryResult(HttpClient httpClient)
@@ -40,24 +39,6 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        /// The total count.
-        /// </summary>
-        public long SuccessCount { get; internal set; }
-
-        /// <summary>
-        /// The count of errors.
-        /// </summary>
-        public long ErrorCount { get; internal set; }
-
-        /// <summary>
-        /// Gets the total count.
-        /// </summary>
-        /// <value>
-        /// The total count.
-        /// </value>
-        public long TotalCount { get; internal set; }
-
-        /// <summary>
         /// Gets a value indicating whether this <see cref="ISearchQueryResult" /> is success.
         /// </summary>
         /// <value>
@@ -72,49 +53,36 @@ namespace Couchbase.Search
         string IResult.Message { get { return string.Empty; } }
 
         /// <summary>
-        /// Total time taken for the results.
-        /// </summary>
-        public TimeSpan Took { get; internal set; }
-
-        /// <summary>
-        /// Total hits returned by the results.
-        /// </summary>
-        public long TotalHits { get; internal set; }
-
-        /// <summary>
-        /// The maximum score within the results.
-        /// </summary>
-        public double MaxScore { get; internal set; }
-
-        /// <summary>
-        /// The rows returned by the query request.
+        /// The rows returned by the search request.
         /// </summary>
         public IList<ISearchQueryRow> Hits { get; internal set; }
 
         /// <summary>
+        /// The rows returned by the search request. Throws caugh exception if an execution error occured.
+        /// Throws Exception if an execution error occured while processing requst.
+        /// </summary>
+        public IList<ISearchQueryRow> HitsOrFail
+        {
+            get
+            {
+                if (Exception != null)
+                {
+                    throw Exception;
+                }
+
+                return Hits;
+            }
+        }
+
+        /// <summary>
         /// The facets for the result.
         /// </summary>
-        /// <value>
-        /// The facets.
-        /// </value>
         public IList<SearchFacet> Facets { get; internal set; }
 
         /// <summary>
         /// The errors returned from the server if the request failed.
         /// </summary>
-        /// <value>
-        /// The errors.
-        /// </value>
         public IList<string> Errors { get; internal set; }
-
-        /// <summary>
-        /// Sets the lifespan of the search request; used to check if the request exceeded the maximum time
-        /// configured for it in <see cref="ClientConfiguration.SearchRequestTimeout" />
-        /// </summary>
-        /// <value>
-        /// The lifespan.
-        /// </value>
-        public Lifespan Lifespan { get; set; }
 
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
@@ -144,13 +112,22 @@ namespace Couchbase.Search
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// The status for the result.
+        /// </summary>
         public SearchStatus Status { get; set; }
+
+        /// <summary>
+        /// The metrics for the search. Includes number of hits, time taken, etc.
+        /// </summary>
+        public SearchMetrics Metrics { get; internal set; }
 
         public void Dispose()
         {
             if (_httpClient != null)
             {
                 _httpClient.Dispose();
+                _httpClient = null;
             }
         }
 

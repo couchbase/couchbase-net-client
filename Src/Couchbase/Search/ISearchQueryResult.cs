@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Couchbase.Core;
+﻿using System.Collections.Generic;
 
 namespace Couchbase.Search
 {
@@ -10,71 +8,35 @@ namespace Couchbase.Search
     public interface ISearchQueryResult : IResult, IEnumerable<ISearchQueryRow>
     {
         /// <summary>
-        /// Yhe number of shards (pindex) of the FTS index that were successfully queried, returning hits.
-        /// </summary>
-        /// <returns></returns>
-        long SuccessCount { get; }
-
-        /// <summary>
-        /// The count of errors.
-        /// </summary>
-        /// <returns></returns>
-        long ErrorCount { get; }
-
-        /// <summary>
-        /// Gets the total count.
-        /// </summary>
-        /// <value>
-        /// The total count.
-        /// </value>
-        long TotalCount { get; }
-
-        /// <summary>
-        /// Total time taken for the results.
-        /// </summary>
-        TimeSpan Took { get; }
-
-        /// <summary>
-        /// Total hits returned by the results.
-        /// </summary>
-        long TotalHits { get; }
-
-        /// <summary>
-        /// The maximum score within the results.
-        /// </summary>
-        double MaxScore { get; }
-
-        /// <summary>
-        /// The rows returned by the query request.
+        /// The rows returned by the search request.
         /// </summary>
         IList<ISearchQueryRow> Hits { get; }
 
         /// <summary>
+        /// The rows returned by the search request.
+        /// Throws Exception if an execution error occured while processing requst.
+        /// </summary>
+        IList<ISearchQueryRow> HitsOrFail { get; }
+
+        /// <summary>
         /// The facets for the result.
         /// </summary>
-        /// <value>
-        /// The facets.
-        /// </value>
         IList<SearchFacet> Facets { get; }
 
         /// <summary>
         /// The errors returned from the server if the request failed.
         /// </summary>
-        /// <value>
-        /// The errors.
-        /// </value>
         IList<string> Errors { get; }
 
-            /// <summary>
-        /// Sets the lifespan of the search request; used to check if the request exceeded the maximum time
-        /// configured for it in <see cref="ClientConfiguration.SearchRequestTimeout" />
+        /// <summary>
+        /// The status for the result.
         /// </summary>
-        /// <value>
-        /// The lifespan.
-        /// </value>
-        Lifespan Lifespan { get; set; }
+        SearchStatus Status { get; }
 
-        SearchStatus Status { get; set; }
+        /// <summary>
+        /// The metrics for the search. Includes number of hits, time taken, etc.
+        /// </summary>
+        SearchMetrics Metrics { get; }
     }
 
     #region [ License information ]

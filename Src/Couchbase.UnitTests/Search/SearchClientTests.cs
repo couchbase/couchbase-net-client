@@ -106,7 +106,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(1, response.ErrorCount);
+            Assert.AreEqual(1, response.Metrics.ErrorCount);
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(1, response.ErrorCount);
+            Assert.AreEqual(1, response.Metrics.ErrorCount);
         }
 
         [Test]
@@ -144,7 +144,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.TotalCount);
+            Assert.AreEqual(0, response.Metrics.TotalCount);
         }
 
         [Test]
@@ -163,7 +163,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.SuccessCount);
+            Assert.AreEqual(0, response.Metrics.SuccessCount);
         }
 
         [Test]
@@ -182,7 +182,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.SuccessCount);
+            Assert.AreEqual(0, response.Metrics.SuccessCount);
         }
 
         [Test]
@@ -239,7 +239,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.TotalHits);
+            Assert.AreEqual(0, response.Metrics.TotalHits);
         }
 
         [Test]
@@ -258,7 +258,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.TotalHits);
+            Assert.AreEqual(0, response.Metrics.TotalHits);
         }
 
 
@@ -278,7 +278,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.MaxScore);
+            Assert.AreEqual(0, response.Metrics.MaxScore);
         }
 
         [Test]
@@ -297,7 +297,7 @@ namespace Couchbase.UnitTests.Search
                 Index = "indexdoesnotexist",
                 Query = new MatchQuery("foo")
             });
-            Assert.AreEqual(0, response.MaxScore);
+            Assert.AreEqual(0, response.Metrics.MaxScore);
         }
 
 

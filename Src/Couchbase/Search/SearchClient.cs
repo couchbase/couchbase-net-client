@@ -108,10 +108,10 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="e">The <see cref="Exception"/> that was raised.</param>
         /// <param name="result">The <see cref="ISearchQueryResult"/> that will returned back to the caller with the failure state.</param>
-        static void ProcessError(Exception e, SearchQueryResult result)
+        private static void ProcessError(Exception e, SearchQueryResult result)
         {
-            result.SuccessCount = 0;
-            result.ErrorCount = 1;
+            result.Metrics.SuccessCount = 0;
+            result.Metrics.ErrorCount = 1;
             result.Status = SearchStatus.Failed;
             result.Success = false;
             result.Exception = e;

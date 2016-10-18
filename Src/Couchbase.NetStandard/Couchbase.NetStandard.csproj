@@ -940,6 +940,9 @@
     <Compile Include="..\Couchbase\Search\Range.cs">
       <Link>Search\Range.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Search\SearchMetrics.cs">
+      <Link>Search\SearchMetrics.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Search\SearchParams.cs">
       <Link>Search\SearchParams.cs</Link>
     </Compile>

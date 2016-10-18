@@ -33,7 +33,7 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = mapper.Map(stream);
 
-                Assert.AreEqual(32, result.SuccessCount);
+                Assert.AreEqual(32, result.Metrics.SuccessCount);
             }
         }
 
@@ -45,7 +45,7 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = mapper.Map(stream);
 
-                Assert.AreEqual(0.907210290772297, result.MaxScore);
+                Assert.AreEqual(0.907210290772297, result.Metrics.MaxScore);
             }
         }
 
@@ -57,7 +57,7 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = mapper.Map(stream);
 
-                Assert.AreEqual(new TimeSpan(123165714), result.Took);
+                Assert.AreEqual(new TimeSpan(123165714), result.Metrics.Took);
             }
         }
 
@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = mapper.Map(stream);
 
-                Assert.AreEqual(116, result.TotalHits);
+                Assert.AreEqual(116, result.Metrics.TotalHits);
             }
         }
 
@@ -81,7 +81,7 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = mapper.Map(stream);
 
-                Assert.AreEqual(0, result.ErrorCount);
+                Assert.AreEqual(0, result.Metrics.ErrorCount);
             }
         }
 

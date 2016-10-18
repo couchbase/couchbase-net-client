@@ -342,6 +342,7 @@
     <Compile Include="DocumentFragment%27.cs" />
     <Compile Include="ScanConsistencyNameResolver.cs" />
     <Compile Include="Search\DateRangeFacet.cs" />
+    <Compile Include="Search\SearchMetrics.cs" />
     <Compile Include="Search\ISearchParams.cs" />
     <Compile Include="Search\Queries\Simple\BooleanFieldQuery.cs" />
     <Compile Include="Search\Queries\Simple\DocIdQuery.cs" />
