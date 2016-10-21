@@ -49,6 +49,10 @@ namespace Couchbase.Utils
 
         public const string BucketCredentialsMissingMsg = "Bucket credentials missing for `{0}`.";
 
+        public const string PoolConfigNumberOfConnections = "The {0} number of connetions to create must be between {1} and {2}.";
+
+        public const string PoolConfigMaxGreaterThanMin = "The maximum number of connections ({0}) to create cannot be lower than the minimum ({1})";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

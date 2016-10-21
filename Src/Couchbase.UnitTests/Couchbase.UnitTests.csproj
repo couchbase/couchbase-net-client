@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="Authentication\AuthenticatorTests.cs" />
     <Compile Include="Collections\CouchbaseListTests.cs" />
+    <Compile Include="Configuration\Client\PoolConfigurationTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
     <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />

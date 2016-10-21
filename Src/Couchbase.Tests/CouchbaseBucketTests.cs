@@ -1228,11 +1228,7 @@ namespace Couchbase.Tests
                 items.Add("key"+ i, "Value" +i);
             }
             var config = ClientConfigUtil.GetConfiguration();
-            config.PoolConfiguration = new PoolConfiguration
-            {
-                MaxSize = 10,
-                MinSize = 5
-            };
+            config.PoolConfiguration = new PoolConfiguration(10, 5);
             using(var cluster = new Cluster(config))
             using (var bucket = cluster.OpenBucket())
             {
@@ -1464,11 +1460,7 @@ namespace Couchbase.Tests
                 items.Add("key" + i, "Value" + i);
             }
             var config = ClientConfigUtil.GetConfiguration();
-            config.PoolConfiguration = new PoolConfiguration
-            {
-                MaxSize = 10,
-                MinSize = 5
-            };
+            config.PoolConfiguration = new PoolConfiguration(10, 5);
 
             using (var cluster = new Cluster(config))
             {

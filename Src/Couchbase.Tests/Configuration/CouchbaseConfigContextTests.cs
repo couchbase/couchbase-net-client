@@ -31,11 +31,7 @@ namespace Couchbase.Tests.Configuration
                 {
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 },
-                PoolConfiguration = new PoolConfiguration
-                {
-                    MaxSize = 2,
-                    MinSize = 1
-                },
+                PoolConfiguration = new PoolConfiguration(2, 1),
                 UseSsl = false
             };
             clientConfig.Initialize();

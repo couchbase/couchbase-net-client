@@ -64,6 +64,9 @@
     <Compile Include="..\Couchbase.UnitTests\Configuration\Client\ClientConfigurationTests.cs">
       <Link>Configuration\Client\ClientConfigurationTests.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Configuration\Client\PoolConfigurationTests.cs">
+      <Link>Configuration\Client\PoolConfigurationTests.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.UnitTests\Core\Buckets\CouchbaseRequestExecutorTests.cs">
       <Link>Core\Buckets\CouchbaseRequestExecutorTests.cs</Link>
     </Compile>
@@ -183,7 +186,7 @@
     <None Include="project.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
