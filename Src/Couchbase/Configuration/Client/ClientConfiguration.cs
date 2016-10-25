@@ -256,11 +256,22 @@ namespace Couchbase.Configuration.Client
 
             UseInterNetworkV6Addresses = definition.UseInterNetworkV6Addresses;
 
-            foreach (var server in definition.Servers ?? new[] { Defaults.Server })
+            List<Uri> servers;
+            if (!string.IsNullOrEmpty(definition.ServerResolverType))
             {
-                Servers.Add(server);
-                _serversChanged = true;
+                servers = ServerResolverUtil.GetServers(definition.ServerResolverType);
             }
+            else if (definition.Servers != null && definition.Servers.Any())
+            {
+                servers = definition.Servers.ToList();
+            }
+            else
+            {
+                servers = new List<Uri> {Defaults.Server};
+            }
+
+            Servers = servers;
+            _serversChanged = true;
 
             if (definition.ConnectionPool != null)
             {

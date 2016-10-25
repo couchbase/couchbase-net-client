@@ -320,6 +320,7 @@ namespace Couchbase.Configuration.Client
         [JsonProperty("ignoreRemoteCertificateNameMismatch")]
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
 
+        /// <summary>
         /// Gets or sets a value indicating whether use IP version 6 addresses.
         /// </summary>
         /// <value>
@@ -335,6 +336,11 @@ namespace Couchbase.Configuration.Client
         /// </value>
         [JsonProperty("vBucketRetrySleepTime")]
         public uint VBucketRetrySleepTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the server resolver type used to try and find server URIs.
+        /// </summary>
+        public string ServerResolverType { get; set; }
 
         public CouchbaseClientDefinition()
         {

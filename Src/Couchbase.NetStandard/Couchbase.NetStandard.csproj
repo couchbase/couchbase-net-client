@@ -304,6 +304,18 @@
     <Compile Include="..\Couchbase\Configuration\Client\PoolConfiguration.cs">
       <Link>Configuration\Client\PoolConfiguration.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Configuration\Client\DefaultServerResolver.cs">
+      <Link>Configuration\Client\DefaultServerResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\Client\IServerResolver.cs">
+      <Link>Configuration\Client\IServerResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\Client\Providers\ServerResolverElement.cs">
+      <Link>Configuration\Client\Providers\ServerResolverElement.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Configuration\Client\ServerResolverUtil.cs">
+      <Link>Configuration\Client\ServerResolverUtil.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Configuration\CouchbaseConfigContext.cs">
       <Link>Configuration\CouchbaseConfigContext.cs</Link>
     </Compile>

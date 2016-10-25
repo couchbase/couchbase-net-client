@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using Couchbase.Core;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -518,6 +517,16 @@ namespace Couchbase.Configuration.Client.Providers
 
         }
 
+        /// <summary>
+        /// Gets or sets the server resolver configuration.
+        /// </summary>
+        [ConfigurationProperty("serverResolver", IsRequired = false)]
+        public ServerResolverElement ServerResolver
+        {
+            get { return (ServerResolverElement)this["serverResolver"]; }
+            set { this["serverResolver"] = value; }
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers
@@ -553,6 +562,11 @@ namespace Couchbase.Configuration.Client.Providers
         string ICouchbaseClientDefinition.IOService
         {
             get { return IOService.Type; }
+        }
+
+        string ICouchbaseClientDefinition.ServerResolverType
+        {
+            get { return ServerResolver != null ? ServerResolver.Type : null; }
         }
 
         #endregion

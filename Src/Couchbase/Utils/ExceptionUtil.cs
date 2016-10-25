@@ -53,6 +53,16 @@ namespace Couchbase.Utils
 
         public const string PoolConfigMaxGreaterThanMin = "The maximum number of connections ({0}) to create cannot be lower than the minimum ({1})";
 
+        public const string MissingOrEmptyServerResolverType = "Missing or empty server resolver type.";
+
+        public const string ErrorRetrievingServersUsingServerResolver = "Error retrieving servers using resolver '{0}'.";
+
+        public const string UnrecognisedServerResolverType = "Unable to find or build type '{0}' as a server resolver.";
+
+        public const string ServerResolverTypeDoesntImplementInterface = "Unable to use type '{0}' as a server resolver because it does not conform to interface '{1}'.";
+
+        public const string ServerResolverReturnedNoservers = "Did not find any servers using custom resolver '{0}'.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

@@ -330,5 +330,10 @@ namespace Couchbase.Configuration.Client
         /// The VBucket retry sleep time.
         /// </value>
         uint VBucketRetrySleepTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the service resolver type used to try and find server URIs.
+        /// </summary>
+        string ServerResolverType { get; }
     }
 }
