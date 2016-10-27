@@ -47,6 +47,20 @@ namespace Couchbase.IntegrationTests.Configuration.Client
 
             Assert.AreEqual(200, config.VBucketRetrySleepTime);
         }
+
+        [Test]
+        public void ClientConfiguration_Bucketconfigs_AreLoaded_From_Config()
+        {
+            // NOTE: Do not change the CouchbaseClientDefinition's Buckets property from
+            // List<BucketConfiguration> to List<IBucketConfiguration>.
+            // The ConfigurationProvider and ConfigurationBinder do not support interface
+            // types when binding.
+
+            var config = Utils.TestConfiguration.GetConfiguration("basic");
+
+            Assert.AreEqual(1, config.BucketConfigs.Count);
+            Assert.IsTrue(config.BucketConfigs.ContainsKey("default"));
+        }
     }
 }
 
