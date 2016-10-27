@@ -170,7 +170,11 @@ namespace Couchbase.Tests
                 {
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 },
-                PoolConfiguration = new PoolConfiguration(10, 10)
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = 10,
+                    MinSize = 10
+                }
             };
 
             ClusterHelper.Initialize(config);

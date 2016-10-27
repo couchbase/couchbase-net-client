@@ -51,8 +51,10 @@ namespace Couchbase.Tests.Configuration.Client
             var config = new ClientConfiguration
             {
                 DefaultOperationLifespan = 123,
-                PoolConfiguration = new PoolConfiguration(10, 10)
+                PoolConfiguration = new PoolConfiguration
                 {
+                    MaxSize = 10,
+                    MinSize = 10,
                     SendTimeout = 12000,
                     MaxCloseAttempts = 6,
                     CloseAttemptInterval = 120
@@ -100,12 +102,18 @@ namespace Couchbase.Tests.Configuration.Client
                 {
                     {"default", new BucketConfiguration
                     {
-                        PoolConfiguration = new PoolConfiguration(5, 5)
+                        PoolConfiguration = new PoolConfiguration
+                        {
+                            MaxSize = 5,
+                            MinSize = 5
+                        }
                     }},
                     {"authenticated", new BucketConfiguration
                     {
-                        PoolConfiguration = new PoolConfiguration(6, 4)
+                        PoolConfiguration = new PoolConfiguration
                         {
+                            MaxSize = 6,
+                            MinSize = 4,
                             SendTimeout = 12000
                         },
                         DefaultOperationLifespan = 123,
@@ -236,7 +244,11 @@ namespace Couchbase.Tests.Configuration.Client
         [Test]
         public void When_NotSupportedException_Thrown_When_Proxy_Port_Is_Configured()
         {
-            var configuration = new ClientConfiguration {PoolConfiguration = new PoolConfiguration(10,10)};
+            var configuration = new ClientConfiguration {PoolConfiguration = new PoolConfiguration
+            {
+                MaxSize = 10,
+                MinSize = 10
+            }};
 
             configuration.Servers.Clear();
             configuration.Servers.Add(new Uri("http://127.0.0.1:8091/pools"));

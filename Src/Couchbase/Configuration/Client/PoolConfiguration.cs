@@ -29,6 +29,8 @@ namespace Couchbase.Configuration.Client
         : ConfigurationElement
 #endif
     {
+        private int _maxSize;
+        private int _minSize;
         public const int DefaultSendTimeout = 15000;
 
         public static class Defaults
@@ -55,8 +57,8 @@ namespace Couchbase.Configuration.Client
 
         public PoolConfiguration(ClientConfiguration clientConfiguration = null)
         {
-            MaxSize = Defaults.MaxSize;
-            MinSize = Defaults.MinSize;
+            _maxSize = Defaults.MaxSize;
+            _minSize = Defaults.MinSize;
             WaitTimeout = Defaults.WaitTimeout;
 #pragma warning disable 612
             RecieveTimeout = Defaults.ReceiveTimeout;
@@ -83,9 +85,10 @@ namespace Couchbase.Configuration.Client
 
         public PoolConfiguration(int maxSize, int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
             int operationTimeout, int maxAcquireIterationCount, int connectTimeout, ClientConfiguration clientConfiguration = null)
-            : this(maxSize, minSize)
         {
             //todo enable app.configuration
+            _maxSize = maxSize;
+            _minSize = minSize;
             WaitTimeout = waitTimeout;
 #pragma warning disable 612
             RecieveTimeout = receiveTimeout;
@@ -103,30 +106,6 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = (uint)1000;
             CloseAttemptInterval = 100u;
             MaxCloseAttempts = 5;
-        }
-
-        public PoolConfiguration(int maxSize, int minSize)
-        {
-            if (maxSize < Defaults.MinConnectionValue || maxSize > Defaults.MaxConnectionValue)
-            {
-                throw new ArgumentOutOfRangeException("maxSize", maxSize,
-                    ExceptionUtil.PoolConfigNumberOfConnections.WithParams("maximum", Defaults.MinConnectionValue,
-                        Defaults.MaxConnectionValue));
-            }
-            if (minSize < Defaults.MinConnectionValue || minSize > Defaults.MaxConnectionValue)
-            {
-                throw new ArgumentOutOfRangeException("minSize", minSize,
-                    ExceptionUtil.PoolConfigNumberOfConnections.WithParams("minimum", Defaults.MinConnectionValue,
-                        Defaults.MaxConnectionValue));
-            }
-            if (minSize > maxSize)
-            {
-                throw new ArgumentOutOfRangeException("maxSize", maxSize,
-                    ExceptionUtil.PoolConfigMaxGreaterThanMin.WithParams(maxSize, minSize));
-            }
-
-            MaxSize = maxSize;
-            MinSize = minSize;
         }
 
         /// <summary>
@@ -169,13 +148,29 @@ namespace Couchbase.Configuration.Client
         /// The maximum number of connections to create.
         /// </summary>
         /// <remarks>The default is 2.</remarks>
-        public int MaxSize { get; private set; }
+        public int MaxSize
+        {
+            get { return _maxSize; }
+            set
+            {
+                _maxSize = value;
+                ValidateConnectionValues();
+            }
+        }
 
         /// <summary>
         /// The minimum number of connection to create.
         /// </summary>
         /// <remarks>The default is 1.</remarks>
-        public int MinSize { get; private set; }
+        public int MinSize
+        {
+            get { return _minSize; }
+            set
+            {
+                _minSize = value;
+                ValidateConnectionValues();
+            }
+        }
 
         /// <summary>
         /// The amount of time a thread will wait for a <see cref="IConnection"/> once the MaxSize of the pool has been reached.
@@ -304,6 +299,27 @@ namespace Couchbase.Configuration.Client
                 EnableTcpKeepAlives = EnableTcpKeepAlives,
                 TcpKeepAliveInterval = TcpKeepAliveInterval
             };
+        }
+
+        private void ValidateConnectionValues()
+        {
+            if (_maxSize < Defaults.MinConnectionValue || _maxSize > Defaults.MaxConnectionValue)
+            {
+                throw new ArgumentOutOfRangeException("maxSize", _maxSize,
+                    ExceptionUtil.PoolConfigNumberOfConnections.WithParams("maximum", Defaults.MinConnectionValue,
+                        Defaults.MaxConnectionValue));
+            }
+            if (_minSize < Defaults.MinConnectionValue || _minSize > Defaults.MaxConnectionValue)
+            {
+                throw new ArgumentOutOfRangeException("minSize", _minSize,
+                    ExceptionUtil.PoolConfigNumberOfConnections.WithParams("minimum", Defaults.MinConnectionValue,
+                        Defaults.MaxConnectionValue));
+            }
+            if (_minSize > _maxSize)
+            {
+                throw new ArgumentOutOfRangeException("maxSize", _maxSize,
+                    ExceptionUtil.PoolConfigMaxGreaterThanMin.WithParams(_maxSize, _minSize));
+            }
         }
     }
 }

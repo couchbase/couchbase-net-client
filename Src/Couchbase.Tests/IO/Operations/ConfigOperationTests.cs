@@ -27,7 +27,11 @@ namespace Couchbase.Tests.IO.Operations
         public void OneTimeSetUp()
         {
             _endPoint = UriExtensions.GetEndPoint(_address);
-            var connectionPoolConfig = new PoolConfiguration(1, 1);
+            var connectionPoolConfig = new PoolConfiguration
+            {
+                MaxSize = 1,
+                MinSize = 1
+            };
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, _endPoint);
 
             _ioService = new PooledIOService(_connectionPool);

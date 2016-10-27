@@ -14,7 +14,27 @@ namespace Couchbase.UnitTests.Configuration.Client
         [TestCase(5, 10, Description = "Maxsize is greater than MinSize")]
         public void Throws_Argument_Exception_If_Connection_Values_Are_Not_Valid(int maxSize, int minSize)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new PoolConfiguration(maxSize, minSize));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PoolConfiguration
+            {
+                MaxSize = maxSize,
+                MinSize = minSize
+            });
+        }
+
+        [Test]
+        public void Can_Clone_PoolConfiguration()
+        {
+            var poolConfig = new PoolConfiguration
+            {
+                MaxSize = 10,
+                MinSize = 5
+            };
+
+            var clonedConfig = poolConfig.Clone(new Uri("http://test.com"));
+
+            Assert.IsNotNull(clonedConfig);
+            Assert.AreEqual(poolConfig.MaxSize, clonedConfig.MaxSize);
+            Assert.AreEqual(poolConfig.MinSize, clonedConfig.MinSize);
         }
     }
 }

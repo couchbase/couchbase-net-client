@@ -279,8 +279,10 @@ namespace Couchbase.Configuration.Client
                     ? ConnectionPoolFactory.GetFactory(definition.ConnectionPool.Type)
                     : ConnectionPoolFactory.GetFactory();
 
-                PoolConfiguration = new PoolConfiguration(definition.ConnectionPool.MaxSize, definition.ConnectionPool.MinSize)
+                PoolConfiguration = new PoolConfiguration
                 {
+                    MaxSize = definition.ConnectionPool.MaxSize,
+                    MinSize = definition.ConnectionPool.MinSize,
                     WaitTimeout = definition.ConnectionPool.WaitTimeout,
                     ShutdownTimeout = definition.ConnectionPool.ShutdownTimeout,
                     UseSsl = UseSsl ? UseSsl : definition.ConnectionPool.UseSsl,
@@ -323,8 +325,10 @@ namespace Couchbase.Configuration.Client
                     //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
                     if (bucket.ConnectionPool != null)
                     {
-                        bucketConfiguration.PoolConfiguration = new PoolConfiguration(bucket.ConnectionPool.MaxSize, bucket.ConnectionPool.MinSize)
+                        bucketConfiguration.PoolConfiguration = new PoolConfiguration
                         {
+                            MaxSize = bucket.ConnectionPool.MaxSize,
+                            MinSize = bucket.ConnectionPool.MinSize,
                             WaitTimeout = bucket.ConnectionPool.WaitTimeout,
                             ShutdownTimeout = bucket.ConnectionPool.ShutdownTimeout,
                             UseSsl = bucket.ConnectionPool.UseSsl,
