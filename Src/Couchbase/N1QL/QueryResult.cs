@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -141,6 +142,28 @@ namespace Couchbase.N1QL
             return retry;
         }
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the N1QL rows from the result array.
+        /// </summary>
+        /// <returns>
+        /// An enumerator that can be used to iterate through the N1QL rows.
+        /// </returns>
+        public IEnumerator<T> GetEnumerator()
+        {
+            return Rows.GetEnumerator();
+        }
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the N1QL rows from the result array.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the N1QL rows.
+        /// </returns>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -154,6 +177,11 @@ namespace Couchbase.N1QL
                 }
             }
             return sb.ToString();
+        }
+
+        public void Dispose()
+        {
+            //noop
         }
     }
 
@@ -190,7 +218,6 @@ namespace Couchbase.N1QL
                 Metrics = metrics != null ? metrics.ToMetrics() : null,
             };
         }
-
     }
 }
 #region [ License information ]

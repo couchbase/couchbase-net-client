@@ -1,0 +1,173 @@
+﻿{
+  "requestID": "ca692d83-1e09-4a87-ab66-cfd9f2c4a898",
+  "clientContextID": "7::8",
+  "signature": {
+    "*": "*"
+  },
+  "results": [
+    {
+      "beer-sample": {
+        "address": [
+          "563 Second Street"
+        ],
+        "city": "San Francisco",
+        "code": "94107",
+        "country": "United States",
+        "description": "The 21st Amendment Brewery offers a variety of award winning house made brews and American grilled cuisine in a comfortable loft like setting. Join us before and after Giants baseball games in our outdoor beer garden. A great location for functions and parties in our semi-private Brewers Loft. See you soon at the 21A!",
+        "geo": {
+          "accuracy": "ROOFTOP",
+          "lat": 37.7825,
+          "lon": -122.393
+        },
+        "name": "21st Amendment Brewery Cafe",
+        "phone": "1-415-369-0900",
+        "state": "California",
+        "type": "brewery",
+        "updated": "2010-10-24 13:54:07",
+        "website": "http://www.21st-amendment.com/"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 7.2,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Deep golden color. Citrus and piney hop aromas. Assertive malt backbone supporting the overwhelming bitterness. Dry hopped in the fermenter with four types of hops giving an explosive hop aroma. Many refer to this IPA as Nectar of the Gods. Judge for yourself. Now Available in Cans!",
+        "ibu": 0,
+        "name": "21A IPA",
+        "srm": 0,
+        "style": "American-Style India Pale Ale",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Deep black color, toasted black burnt coffee flavors and aroma. Dispensed with Nitrogen through a slow-flow faucet giving it the characteristic cascading effect, resulting in a rich dense creamy head.",
+        "ibu": 0,
+        "name": "563 Stout",
+        "srm": 0,
+        "style": "American-Style Stout",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5.2,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Rich golden hue color. Floral hop with sweet malt aroma. Medium mouth feel with malt sweetness, hop quenching flavor and well-balanced bitterness.",
+        "ibu": 0,
+        "name": "Amendment Pale Ale",
+        "srm": 0,
+        "style": "American-Style Pale Ale",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 3.6,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "British Ale",
+        "description": "An American session beer. Loaded with hop character and a malty presence, but lower in alcohol.",
+        "ibu": 0,
+        "name": "Bitter American",
+        "srm": 0,
+        "style": "Special Bitter or Best Bitter",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 9.8,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Deep, golden, rich malt flavor huge citrus, fruity grassy, ethanol sweetness aroma with a profound bitterness, yet balanced malt back bone with grapefruit, mellow citric overtones. Dry hopped three times in the fermenter. Brewed with over 65 lbs of hops for 300 gallons of beer. The beer to bring world peace and end the war. Bronze Medal - 2006 Imperial IPA Festival at the Bistro in Hayward, California.",
+        "ibu": 0,
+        "name": "Double Trouble IPA",
+        "srm": 0,
+        "style": "Imperial or Double India Pale Ale",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5.5,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "Irish Ale",
+        "description": "Deep toffee color with rich roasty and subtle hop aroma. Chocolate flavors dominate the palate and interact with back-end sweetness.",
+        "ibu": 0,
+        "name": "General Pippo's Porter",
+        "srm": 0,
+        "style": "Porter",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5.8,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Deep amber color. Subtle hop floral nose intertwined with sweet crystal malt aromas. Rich malt flavors supporting a slight bitterness finish.",
+        "ibu": 0,
+        "name": "North Star Red",
+        "srm": 0,
+        "style": "American-Style Amber/Red Ale",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5.9,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "North American Ale",
+        "description": "Deep black color. Chocolate milk color head, providing an array of Belgian lace. Toffee and light roasty aromas and flavors. A malty sweet taste is evident but, this rich oatmeal based stout finishes dry. Made with 20 lbs. of oysters, in the boil, from our good friends at Hog Island Oyster Company.",
+        "ibu": 0,
+        "name": "Oyster Point Oyster Stout",
+        "srm": 0,
+        "style": "American-Style Stout",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    },
+    {
+      "beer-sample": {
+        "abv": 5.2,
+        "brewery_id": "21st_amendment_brewery_cafe",
+        "category": "British Ale",
+        "description": "Traditional English E.S.B. made with English malt and hops. Fruity aroma with an imparted tart flavor brought about by replicating the water profile in England at Burton on Trent.",
+        "ibu": 0,
+        "name": "Potrero ESB",
+        "srm": 0,
+        "style": "Special Bitter or Best Bitter",
+        "type": "beer",
+        "upc": 0,
+        "updated": "2010-07-22 20:00:20"
+      }
+    }
+  ],
+  "status": "success",
+  "metrics": {
+    "elapsedTime": "90.385425ms",
+    "executionTime": "90.322896ms",
+    "resultCount": 10,
+    "resultSize": 7262
+  }
+}

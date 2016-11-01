@@ -1,0 +1,39 @@
+{
+    "requestID": "1234abcd-7802-4fc2-acd6-dfcd1c05a288",
+    "clientContextID": "1234567890123456789012345678901234567890123456789012345678901234",
+    "signature": {
+      "*": "*"
+    },
+    "results": [
+        {
+            "address": [
+                "563 Second Street"
+            ],
+            "city": "San Francisco",
+            "code": "94107",
+            "country": "United States",
+            "description": "The 21st Amendment Brewery offers a variety of award winning house made brews and American grilled cuisine in a comfortable loft like setting. Join us before and after Giants baseball games in our outdoor beer garden. A great location for functions and parties in our semi-private Brewers Loft. See you soon at the 21A!",
+            "geo": {
+                "accuracy": "ROOFTOP",
+                "lat": 37.7825,
+                "lon": -122.393
+            },
+            "name": "21st Amendment Brewery Cafe",
+            "phone": "1-415-369-0900",
+            "state": "California",
+            "type": "brewery",
+            "updated": "2010-10-24 13:54:07",
+            "website": "http://www.21st-amendment.com/"
+        }
+    ],
+    "status": "success",
+    "metrics": {
+        "elapsedTime": "109.213835ms",
+        "executionTime": "108.213835ms",
+        "resultCount": 1,
+        "resultSize": 100,
+        "mutationCount": 0,
+        "errorCount": 0,
+        "warningCount": 0
+    }
+}

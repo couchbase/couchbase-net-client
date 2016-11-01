@@ -63,6 +63,8 @@ namespace Couchbase.Utils
 
         public const string ServerResolverReturnedNoservers = "Did not find any servers using custom resolver '{0}'.";
 
+        public const string StreamMustBeReadMsg = "Stream must be read via iteration before calling properties.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

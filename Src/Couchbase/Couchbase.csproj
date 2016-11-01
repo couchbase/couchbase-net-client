@@ -327,7 +327,10 @@
     <Compile Include="N1QL\Encoding.cs" />
     <Compile Include="N1QL\Format.cs" />
     <Compile Include="N1QL\IQueryRequestWithDataMapper.cs" />
+    <Compile Include="N1QL\IQueryResult.cs" />
     <Compile Include="N1QL\IQueryTimer.cs" />
+    <Compile Include="N1QL\StreamMustBeReadException.cs" />
+    <Compile Include="N1QL\StreamingQueryResult.cs" />
     <Compile Include="N1QL\Method.cs" />
     <Compile Include="N1QL\IQueryRequest.cs" />
     <Compile Include="N1QL\IQueryResult%27.cs" />
@@ -342,6 +345,7 @@
     <Compile Include="N1QL\ScanConsistency.cs" />
     <Compile Include="N1QL\Severity.cs" />
     <Compile Include="N1QL\FailureCountingUri.cs" />
+    <Compile Include="N1QL\StreamingQueryClient.cs" />
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="DocumentFragment%27.cs" />
     <Compile Include="ScanConsistencyNameResolver.cs" />

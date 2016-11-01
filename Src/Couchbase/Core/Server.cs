@@ -45,23 +45,11 @@ namespace Couchbase.Core
         // ReSharper disable once InconsistentNaming
         private DateTime _lastIOErrorCheckedTime;
         private readonly object _syncObj = new object();
+        private IQueryClient _streamingQueryClient;
 
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-            this(ioService,
-                new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
-                {
-                    Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                }, new JsonDataMapper(clientConfiguration)),
-                new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
-                {
-                    Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
-                }, new JsonDataMapper(clientConfiguration), clientConfiguration),
-                new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
-                {
-                    Timeout = new TimeSpan(0, 0, 0, 0, (int) clientConfiguration.SearchRequestTimeout)
-                }, new SearchDataMapper()),
-                nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+            this(ioService, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
@@ -76,6 +64,10 @@ namespace Couchbase.Core
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
                     }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
+                    new StreamingQueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
                     new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.SearchRequestTimeout)
@@ -84,7 +76,7 @@ namespace Couchbase.Core
         {
         }
 
-        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, ISearchClient searchClient,
+        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, IQueryClient streamingQueryClient, ISearchClient searchClient,
             INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
@@ -112,6 +104,7 @@ namespace Couchbase.Core
             ViewClient = viewClient;
             QueryClient = queryClient;
             SearchClient = searchClient;
+            _streamingQueryClient = streamingQueryClient;
 
             CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
             CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
@@ -188,7 +181,14 @@ namespace Couchbase.Core
         /// </value>
         public bool IsViewNode { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is an FTS node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
+        /// </value>
         public bool IsSearchNode { get; private set; }
+
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
@@ -259,6 +259,12 @@ namespace Couchbase.Core
         /// </value>
         public IViewClient ViewClient { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="ISearchClient" /> for this node if <see cref="IsSearchNode" /> is <c>true</c>.
+        /// </summary>
+        /// <value>
+        /// The search client.
+        /// </value>
         public ISearchClient SearchClient { get; private set; }
 
         // ReSharper disable once InconsistentNaming
@@ -734,7 +740,15 @@ namespace Couchbase.Core
                 try
                 {
                     queryRequest.BaseUri(CachedQueryBaseUri);
-                    result = QueryClient.Query<T>(queryRequest);
+                    // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
+                    if (queryRequest.IsStreaming)
+                    {
+                        result = _streamingQueryClient.Query<T>(queryRequest);
+                    }
+                    else
+                    {
+                        result = QueryClient.Query<T>(queryRequest);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -768,7 +782,14 @@ namespace Couchbase.Core
                 try
                 {
                     queryRequest.BaseUri(CachedQueryBaseUri);
-                    result = await QueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                    if (queryRequest.IsStreaming)
+                    {
+                        result = await _streamingQueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                    }
+                    else
+                    {
+                        result = await QueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                    }
                 }
                 catch (Exception e)
                 {

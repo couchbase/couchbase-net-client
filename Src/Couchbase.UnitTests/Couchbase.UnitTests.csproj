@@ -110,6 +110,7 @@
     <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs" />
     <Compile Include="CouchbaseBucketTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
+    <Compile Include="N1Ql\StreamingQueryRequestTests.cs" />
     <Compile Include="N1Ql\N1qlRyowTests.cs" />
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="OperationResultTests.cs" />
@@ -119,6 +120,7 @@
     <Compile Include="Search\MatchAllQueryTests.cs" />
     <Compile Include="Search\MatchNoneQueryTests.cs" />
     <Compile Include="Search\PhraseQueryTests.cs" />
+    <Compile Include="ResourceHelper.cs" />
     <Compile Include="Search\TermQueryTests.cs" />
     <Compile Include="Search\SearchClientTests.cs" />
     <Compile Include="Search\SearchParamsTests.cs" />
@@ -144,6 +146,21 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <EmbeddedResource Include="Data\n1ql-response.json" />
+    <EmbeddedResource Include="Data\chunked.json" />
+    <EmbeddedResource Include="Data\errors_and_warnings.json" />
+    <EmbeddedResource Include="Data\no_client_id.json" />
+    <EmbeddedResource Include="Data\no_pretty.json" />
+    <EmbeddedResource Include="Data\parse_error.json" />
+    <EmbeddedResource Include="Data\short_client_id.json" />
+    <EmbeddedResource Include="Data\signature_array.json" />
+    <EmbeddedResource Include="Data\signature_null.json" />
+    <EmbeddedResource Include="Data\signature_scalar.json" />
+    <EmbeddedResource Include="Data\signature_simple_string.json" />
+    <EmbeddedResource Include="Data\success_0.json" />
+    <EmbeddedResource Include="Data\success_1.json" />
+    <EmbeddedResource Include="Data\success_5.json" />
+    <EmbeddedResource Include="Data\with_escaped_quotes.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

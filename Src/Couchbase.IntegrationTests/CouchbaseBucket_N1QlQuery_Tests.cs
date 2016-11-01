@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -141,6 +146,20 @@ namespace Couchbase.IntegrationTests
         public class DocumentContent
         {
             public int Value { get; set; }
+        }
+
+        [Test]
+        public void Test_Streaming()
+        {
+            //arrange
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 100;").UseStreaming(true);
+
+            //act
+            using (var result = _bucket.Query<dynamic>(request))
+            {
+                //assert
+                Assert.IsTrue(typeof(StreamingQueryResult<dynamic>) == result.GetType());
+            }
         }
 
         [OneTimeTearDown]

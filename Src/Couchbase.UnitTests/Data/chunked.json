@@ -1,0 +1,54 @@
+{
+  "requestID": "1234abcd-7802-4fc2-acd6-dfcd1c05a288",
+  "clientContextID": "123456\"78901234567890",
+  "signature": {
+    "horseName": "json"
+  },
+  "results": [
+    {
+      "horseName": "Tahuya Ruckous"
+    },
+    {
+      "horseName": "Cambest Kisser"
+    },
+    {
+      "horseName": "EAGLE ARTESIAN"
+    },
+    {
+      "horseName": "Chief Cruiser"
+    },
+    {
+      "horseName": "May Day"
+    }
+  ],
+  "errors": [
+    {
+      "code": 5000,
+      "msg": "this is an \"error\""
+    },
+    {
+      "code": 404,
+      "msg": "Not Found"
+    }
+  ],
+  "warnings": [
+    {
+      "code": 301,
+      "msg": "this is an \"warning\""
+    },
+    {
+      "code": 302,
+      "msg": "Warning"
+    }
+  ],
+  "status": "success",
+  "metrics": {
+    "elapsedTime": "744.0425ms",
+    "executionTime": "744.0425ms",
+    "resultCount": 1234,
+    "resultSize": 1234,
+    "mutationCount": 0,
+    "errorCount": 5678,
+    "warningCount": 0
+  }
+}

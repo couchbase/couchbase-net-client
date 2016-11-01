@@ -23,7 +23,7 @@ namespace Couchbase.N1QL
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
         // ReSharper disable once InconsistentNaming
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
-        private readonly ClientConfiguration _clientConfig;
+        protected readonly ClientConfiguration ClientConfig;
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper,  ClientConfiguration clientConfig)
@@ -35,7 +35,7 @@ namespace Couchbase.N1QL
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
-            _clientConfig = clientConfig;
+            ClientConfig = clientConfig;
             _queryCache = queryCache;
         }
 
@@ -363,7 +363,7 @@ namespace Couchbase.N1QL
         /// <param name="queryRequest">The query request.</param>
         /// <returns></returns>
         /// <remarks>The format for the querying is JSON</remarks>
-        private async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
+        protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
             ApplyCredentials(queryRequest);
             var baseUri = ConfigContextBase.GetQueryUri();
@@ -372,7 +372,7 @@ namespace Couchbase.N1QL
             {
                 try
                 {
-                    using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), _clientConfig.EnableQueryTiming))
+                    using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming))
                     {
                         Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
@@ -414,7 +414,6 @@ namespace Couchbase.N1QL
 
             return queryResult;
         }
-
 
         /// <summary>
         /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will
@@ -463,11 +462,11 @@ namespace Couchbase.N1QL
         /// Applies the credentials if they have been set by call <see cref="Cluster.Authenticate"/>.
         /// </summary>
         /// <param name="request">The request.</param>
-        private void ApplyCredentials(IQueryRequest request)
+        protected void ApplyCredentials(IQueryRequest request)
         {
-            if (_clientConfig.HasCredentials)
+            if (ClientConfig.HasCredentials)
             {
-                var creds = _clientConfig.GetCredentials(AuthContext.ClusterN1Ql);
+                var creds = ClientConfig.GetCredentials(AuthContext.ClusterN1Ql);
                 foreach (var cred in creds)
                 {
                     request.AddCredentials(cred.Key, cred.Value, false);

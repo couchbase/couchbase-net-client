@@ -37,6 +37,7 @@ namespace Couchbase.N1QL
         private int? _maxServerParallelism;
         private volatile uint _requestContextId;
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors;
+        private bool? _useStreaming;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -204,6 +205,26 @@ namespace Couchbase.N1QL
             }
             return this;
         }
+
+        /// <summary>
+        /// Uses the streaming API for the returned results. This is useful for large result sets in that it limits the
+        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
+        /// </summary>
+        /// <param name="streaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
+        public IQueryRequest UseStreaming(bool streaming)
+        {
+            _useStreaming = streaming;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether use the <see cref="StreamingQueryClient" />.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [use streaming client]; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsStreaming { get { return _useStreaming.HasValue && _useStreaming.Value; } }
 
         /// <summary>
         /// Specifies the maximum parallelism for the query. A zero or negative value means the number of logical

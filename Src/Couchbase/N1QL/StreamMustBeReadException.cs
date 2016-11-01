@@ -1,31 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
-using Couchbase.N1QL;
-using Newtonsoft.Json;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Couchbase.N1QL
 {
     /// <summary>
-    /// Interface for the results of a N1QL query.
+    /// Thrown when an attempt is made to access a property or methods before reading the request stream via iteration.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public interface IQueryResult<T> : IEnumerable<T>, IQueryResult
+    /// <seealso cref="System.InvalidOperationException" />
+    public class StreamMustBeReadException : InvalidOperationException
     {
-        /// <summary>
-        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
-        /// </summary>
-        /// <value>
-        /// A a list of all the objects returned by the query.
-        /// </value>
-        List<T> Rows { get; }
+        public StreamMustBeReadException()
+        {
+        }
+
+        public StreamMustBeReadException(string message) : base(message)
+        {
+        }
+
+        public StreamMustBeReadException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
-#region [ License information ]
+
+#region [ License information          ]
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2014 Couchbase, Inc.
+ *    @copyright 2015 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

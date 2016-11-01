@@ -805,6 +805,9 @@
     <Compile Include="..\Couchbase\N1QL\IQueryRequestWithDataMapper.cs">
       <Link>N1QL\IQueryRequestWithDataMapper.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\N1QL\IQueryResult.cs">
+      <Link>N1QL\IQueryResult.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\N1QL\IQueryTimer.cs">
       <Link>N1QL\IQueryTimer.cs</Link>
     </Compile>
@@ -849,6 +852,15 @@
     </Compile>
     <Compile Include="..\Couchbase\N1QL\FailureCountingUri.cs">
       <Link>N1QL\FailureCountingUri.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\N1QL\StreamingQueryClient.cs">
+      <Link>N1QL\StreamingQueryClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\N1QL\StreamingQueryResult.cs">
+      <Link>N1QL\StreamingQueryResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\N1QL\StreamMustBeReadException.cs">
+      <Link>N1QL\StreamMustBeReadException.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\N1QL\Warning.cs">
       <Link>N1QL\Warning.cs</Link>

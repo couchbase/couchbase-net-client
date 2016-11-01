@@ -1,0 +1,17 @@
+{
+  "requestID": "1234test-7802-4fc2-acd6-dfcd1c05a288",
+  "clientContextID": "1234567890123456789012345678901234567890123456789012345678901234",
+  "signature":  null,
+  "results": [
+  ],
+  "status": "success",
+  "metrics": {
+    "elapsedTime": "128.21463ms",
+    "executionTime": "127.21463ms",
+    "resultCount": 1,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 0,
+    "warningCount": 0
+  }
+}

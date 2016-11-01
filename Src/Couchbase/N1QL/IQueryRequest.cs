@@ -41,6 +41,15 @@ namespace Couchbase.N1QL
         /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
         bool HasBeenRetried { get; set; }
 
+
+        /// <summary>
+        /// Gets a value indicating whether use the <see cref="StreamingQueryClient"/>.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [use streaming client]; otherwise, <c>false</c>.
+        /// </value>
+        bool IsStreaming { get; }
+
         /// <summary>
         /// Specifies the maximum parallelism for the query. A zero or negative value means the number of logical
         /// cpus will be used as the parallelism for the query. There is also a server wide max_parallelism parameter
@@ -51,7 +60,6 @@ namespace Couchbase.N1QL
         /// The maximum server parallelism.
         /// </value>
         IQueryRequest MaxServerParallelism(int parallelism);
-
 
         /// <summary>
         ///  If set to false, the client will try to perform optimizations
@@ -280,5 +288,13 @@ namespace Couchbase.N1QL
         /// <param name="mutationState">State of the mutation.</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         IQueryRequest ConsistentWith(MutationState mutationState);
+
+        /// <summary>
+        /// Uses the streaming API for the returned results. This is useful for large result sets in that it limits the
+        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException"/> from occurring.
+        /// </summary>
+        /// <param name="streaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
+        /// <returns></returns>
+        IQueryRequest UseStreaming(bool streaming);
     }
 }
