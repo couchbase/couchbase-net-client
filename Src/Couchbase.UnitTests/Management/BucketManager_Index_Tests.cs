@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
@@ -339,6 +342,222 @@ namespace Couchbase.UnitTests.Management
 
             //assert
             Assert.AreEqual(expectedStatement, ((DefaultResult<string>)result).Value);
+        }
+
+        [Test]
+        public void WatchIndexes_Retries_Until_Indexes_Are_Online()
+        {
+            var attempts = 0;
+
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()))
+                .Returns(() => new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "foo", State = attempts++ < 2 ? "pending" : "online"}
+                    }
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = manager.WatchN1qlIndexes(indexNamesToWatch, TimeSpan.MaxValue);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("foo", result.Value.First().Name);
+            Assert.AreEqual("online", result.Value.First().State);
+
+            mockBucket.Verify(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(3));
+        }
+
+        [Test]
+        public void WatchIndexes_Returns_When_Query_Failed()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()))
+                .Returns(new QueryResult<IndexInfo>
+                {
+                    Success = false
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = manager.WatchN1qlIndexes(indexNamesToWatch, TimeSpan.FromSeconds(20));
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(0, result.Value.Count);
+
+            mockBucket.Verify(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(1));
+        }
+
+        [Test]
+        public void WatchIndexes_Returns_If_No_Matching_Indexes_Found()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()))
+                .Returns(new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "bar", State = "pending"}
+                    }
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = manager.WatchN1qlIndexes(indexNamesToWatch, TimeSpan.FromSeconds(1));
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("bar", result.Value.First().Name);
+            Assert.AreEqual("pending", result.Value.First().State);
+
+            mockBucket.Verify(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(1));
+        }
+
+        [Test]
+        public void WatchIndexes_Retries_Until_Timeout_And_Returns_Last_Result()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()))
+                .Returns(() => new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "foo", State = "pending"}
+                    }
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = manager.WatchN1qlIndexes(indexNamesToWatch, TimeSpan.FromSeconds(1));
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("foo", result.Value.First().Name);
+            Assert.AreEqual("pending", result.Value.First().State);
+
+            mockBucket.Verify(x => x.Query<IndexInfo>(It.IsAny<QueryRequest>()), Times.AtLeastOnce);
+        }
+
+        [Test]
+        public async Task WatchIndexesAsync_Retries_Until_Indexes_Are_Online()
+        {
+            var attempts = 0;
+
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()))
+                .Returns(() => Task.FromResult((IQueryResult<IndexInfo>) new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "foo", State = attempts++ < 2 ? "pending" : "online"}
+                    }
+                }));
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = await manager.WatchN1qlIndexesAsync(indexNamesToWatch, TimeSpan.FromSeconds(20));
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("foo", result.Value.First().Name);
+            Assert.AreEqual("online", result.Value.First().State);
+
+            mockBucket.Verify(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(3));
+        }
+
+        [Test]
+        public async Task WatchIndexesAsync_Returns_When_Qeury_Failed()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()))
+                .ReturnsAsync(new QueryResult<IndexInfo>
+                {
+                    Success = false
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = await manager.WatchN1qlIndexesAsync(indexNamesToWatch, TimeSpan.FromSeconds(20));
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(0, result.Value.Count);
+
+            mockBucket.Verify(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(1));
+        }
+
+        [Test]
+        public async Task WatchIndexesAsync_Returns_If_No_Matching_Indexes_Found()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()))
+                .ReturnsAsync(new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "bar", State = "pending"}
+                    }
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = await manager.WatchN1qlIndexesAsync(indexNamesToWatch, TimeSpan.FromSeconds(1));
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("bar", result.Value.First().Name);
+            Assert.AreEqual("pending", result.Value.First().State);
+
+            mockBucket.Verify(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()), Times.Exactly(1));
+        }
+
+        [Test]
+        public async Task WatchIndexesAsync_Retries_Until_Timeout_And_Returns_Last_Result()
+        {
+            var mockBucket = new Mock<IBucket>();
+            mockBucket.Setup(x => x.Name).Returns("default");
+            mockBucket.Setup(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()))
+                .ReturnsAsync(new QueryResult<IndexInfo>
+                {
+                    Success = true,
+                    Rows = new List<IndexInfo>
+                    {
+                        new IndexInfo {Name = "foo", State = "pending"}
+                    }
+                });
+
+            var indexNamesToWatch = new List<string> { "foo" };
+
+            var manager = new TestableBucketManager(mockBucket.Object);
+            var result = await manager.WatchN1qlIndexesAsync(indexNamesToWatch, TimeSpan.FromSeconds(1));
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("foo", result.Value.First().Name);
+            Assert.AreEqual("pending", result.Value.First().State);
+
+            mockBucket.Verify(x => x.QueryAsync<IndexInfo>(It.IsAny<QueryRequest>()), Times.AtLeastOnce);
         }
     }
 

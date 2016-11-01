@@ -117,6 +117,24 @@ namespace Couchbase.Management
         Task<IndexResult> ListN1qlIndexesAsync();
 
         /// <summary>
+        /// Watches all given indexes, polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
+        /// </summary>
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        /// <returns></returns>
+        // ReSharper disable once InconsistentNaming
+        IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> indexNames, TimeSpan watchTimeout);
+
+        /// <summary>
+        /// Watches all given indexes, asynchronously polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
+        /// </summary>
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        /// <returns></returns>
+        // ReSharper disable once InconsistentNaming
+        Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> indexNames, TimeSpan watchTimeout);
+
+        /// <summary>
         /// Creates the primary index for the current bucket if it doesn't already exist.
         /// </summary>
         /// <param name="defer"> If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
@@ -180,17 +198,6 @@ namespace Couchbase.Management
         Task<IResult[]> BuildN1qlDeferredIndexesAsync();
 
         /// <summary>
-        /// Watches the indexes asynchronously.
-        /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        // ReSharper disable once InconsistentNaming
-        Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
-
-        /// <summary>
         /// Creates a primary index on the current <see cref="IBucket"/> reference.
         /// </summary>
         /// <param name="customName">The name of the index.</param>
@@ -238,16 +245,5 @@ namespace Couchbase.Management
         /// <returns>An <see cref="IList{IResult}"/> with the status for each index built.</returns>
         // ReSharper disable once InconsistentNaming
         IList<IResult> BuildN1qlDeferredIndexes();
-
-        /// <summary>
-        /// Watches the indexes.
-        /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        // ReSharper disable once InconsistentNaming
-        IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit);
     }
 }

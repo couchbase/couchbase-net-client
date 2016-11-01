@@ -3,14 +3,13 @@ using Couchbase.Configuration.Client;
 using Couchbase.Views;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Authentication;
 using Couchbase.Core;
-using Couchbase.IO.Http;
 using Couchbase.Management.Indexes;
 using Couchbase.N1QL;
 using Couchbase.Utils;
@@ -23,6 +22,8 @@ namespace Couchbase.Management
     public class BucketManager : IBucketManager
     {
         private static readonly ILog Log = LogManager.GetLogger<BucketManager>();
+        private static readonly TimeSpan WatchIndexSleepDuration = TimeSpan.FromMilliseconds(50);
+
         private readonly ClientConfiguration _clientConfig;
         private readonly string _username;
         private readonly string _password;
@@ -45,14 +46,14 @@ namespace Couchbase.Management
         /// </summary>
         private static class Statements
         {
-            public static string ListIndexes = "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{0}\" AND `using`=\"gsi\";";
-            public static string CreatePrimaryIndex = "CREATE PRIMARY INDEX ON {0} USING GSI WITH {{\"defer_build\":{1}}};";
-            public static string CreateNamedPrimaryIndex = "CREATE PRIMARY INDEX {0} ON {1} USING GSI WITH {{\"defer_build\":{2}}};";
-            public static string DropPrimaryIndex = "DROP PRIMARY INDEX ON {0} USING GSI;";
-            public static string DropNamedPrimaryIndex = "DROP INDEX {0}.{1} USING GSI;";
-            public static string DropIndex = "DROP INDEX {0}.{1} USING GSI;";
-            public static string CreateIndexWithFields = "CREATE INDEX {0} ON {1}({2}) USING GSI WITH {{\"defer_build\":{3}}};";
-            public static string BuildIndexes = "BUILD INDEX ON {0}({1}) USING GSI;";
+            public const string ListIndexes = "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{0}\" AND `using`=\"gsi\";";
+            public const string CreatePrimaryIndex = "CREATE PRIMARY INDEX ON {0} USING GSI WITH {{\"defer_build\":{1}}};";
+            public const string CreateNamedPrimaryIndex = "CREATE PRIMARY INDEX {0} ON {1} USING GSI WITH {{\"defer_build\":{2}}};";
+            public const string DropPrimaryIndex = "DROP PRIMARY INDEX ON {0} USING GSI;";
+            public const string DropNamedPrimaryIndex = "DROP INDEX {0}.{1} USING GSI;";
+            public const string DropIndex = "DROP INDEX {0}.{1} USING GSI;";
+            public const string CreateIndexWithFields = "CREATE INDEX {0} ON {1}({2}) USING GSI WITH {{\"defer_build\":{3}}};";
+            public const string BuildIndexes = "BUILD INDEX ON {0}({1}) USING GSI;";
         }
 
         public IDataMapper Mapper { get; private set; }
@@ -96,6 +97,82 @@ namespace Couchbase.Management
                 Message = result.Message,
                 Success = result.Success
             };
+        }
+
+        /// <summary>
+        /// Watches all given indexes, polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
+        /// </summary>
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        public virtual IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> indexNames, TimeSpan watchTimeout)
+        {
+            IndexResult result;
+            var stopwatch = Stopwatch.StartNew();
+
+            do
+            {
+                result = ListN1qlIndexes();
+                if (!ShouldRetryWatch(result, indexNames))
+                {
+                    break;
+                }
+
+                Thread.Sleep(WatchIndexSleepDuration);
+            } while (stopwatch.Elapsed < watchTimeout);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Watches all given indexes, asynchronously polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
+        /// </summary>
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        public virtual async Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> indexNames, TimeSpan watchTimeout)
+        {
+            IndexResult result;
+            var cancellationSource = new CancellationTokenSource(watchTimeout);
+
+            do
+            {
+                result = await ListN1qlIndexesAsync();
+                if (!ShouldRetryWatch(result, indexNames))
+                {
+                    break;
+                }
+
+                try
+                {
+                    await Task.Delay(WatchIndexSleepDuration, cancellationSource.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            } while (!cancellationSource.IsCancellationRequested);
+
+            return result;
+        }
+
+        private static bool ShouldRetryWatch(IndexResult result, List<string> indexNames)
+        {
+            if (!result.Success) // Return on server returned error
+            {
+                return false;
+            }
+
+            var indexes = result.Value.Where(index => indexNames.Contains(index.Name)).ToList();
+            if (!indexes.Any()) // Didn't recognise any index names to watch
+            {
+                return false;
+            }
+
+            foreach (var index in indexes)
+            {
+                Log.DebugFormat("Index '{0}' is '{1}'", index.Name, index.State); // eg "Index 'foo' is 'online'"
+            }
+
+            return indexes.Any(index => index.State != "online");
         }
 
         /// <summary>
@@ -231,20 +308,6 @@ namespace Couchbase.Management
         }
 
         /// <summary>
-        /// Watches the indexes asynchronously.
-        /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Creates a primary index on the current <see cref="IBucket" /> reference.
         /// </summary>
         /// <param name="customName">The name of the index.</param>
@@ -341,20 +404,6 @@ namespace Couchbase.Management
                 results.Add(result);
             }
             return results;
-        }
-
-        /// <summary>
-        /// Watches the indexes.
-        /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public virtual IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>

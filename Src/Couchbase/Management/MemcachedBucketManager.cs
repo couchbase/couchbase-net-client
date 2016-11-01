@@ -362,29 +362,21 @@ namespace Couchbase.Management
         }
 
         /// <summary>
-        /// Watches the indexes.
+        /// Watches all given indexes, polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
         /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
-        public override IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        public override IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> indexNames, TimeSpan watchTimeout)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types."); ;
         }
 
         /// <summary>
-        /// Watches the indexes asynchronously.
+        /// Watches all given indexes, asynchronously polling the query service until they are "online" or the <param name="watchTimeout"/> has expired.
         /// </summary>
-        /// <param name="watchList">The watch list.</param>
-        /// <param name="watchPrimary">if set to <c>true</c> [watch primary].</param>
-        /// <param name="watchTimeout">The watch timeout.</param>
-        /// <param name="watchTimeUnit">The watch time unit.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
-        public override Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> watchList, bool watchPrimary, long watchTimeout, TimeSpan watchTimeUnit)
+        /// <param name="indexNames">The list of indexes to watch for.</param>
+        /// <param name="watchTimeout">The timeout for the watch.</param>
+        public override Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> indexNames, TimeSpan watchTimeout)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
