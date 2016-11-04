@@ -1813,7 +1813,6 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
         /// <param name="query">An ad-hoc N1QL query.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        [Obsolete("Use cluster-level query instead.")]
         IQueryResult<T> Query<T>(string query);
 
         /// <summary>
@@ -1823,7 +1822,6 @@ namespace Couchbase.Core
         /// <param name="query">An ad-hoc N1QL query.</param>
         /// <returns>An awaitable <see cref="Task{T}"/> with the T a <see cref="IQueryResult{T}"/> instance.</returns>
         /// <remarks>Note this implementation is uncommitted/experimental and subject to change in future release!</remarks>
-        [Obsolete("Use cluster-level query instead.")]
         Task<IQueryResult<T>> QueryAsync<T>(string query);
 
         /// <summary>
@@ -1832,7 +1830,6 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
         /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        [Obsolete("Use cluster-level query instead.")]
         IQueryResult<T> Query<T>(IQueryRequest queryRequest);
 
         /// <summary>
@@ -1841,7 +1838,6 @@ namespace Couchbase.Core
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
         /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
-        [Obsolete("Use cluster-level query instead.")]
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest);
 
         /// <summary>
