@@ -109,6 +109,35 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(doc.Content.Value, queryResult.Rows.First().Value);
         }
 
+        [Test]
+        public void Test_ScanWait()
+        {
+            var doc = new Document<DocumentContent>
+            {
+                Id = "Test_ReadYourOwnWrite_WaitScan",
+                Content = new DocumentContent
+                {
+                    Value = new Random().Next(0, 100000)
+                }
+            };
+
+            var result = _bucket.Upsert(doc);
+            Assert.True(result.Success);
+
+            var state = MutationState.From(result.Document);
+
+            var request = new QueryRequest("SELECT d.* FROM default as d WHERE `value` = $1 LIMIT 1")
+                .AddPositionalParameter(doc.Content.Value)
+                .ConsistentWith(state)
+                .ScanWait(TimeSpan.FromSeconds(10));
+
+            var queryResult = _bucket.Query<DocumentContent>(request);
+
+            Assert.True(queryResult.Success, queryResult.ToString());
+            Assert.IsNotEmpty(queryResult.Rows);
+            Assert.AreEqual(doc.Content.Value, queryResult.Rows.First().Value);
+        }
+
         public class DocumentContent
         {
             public int Value { get; set; }

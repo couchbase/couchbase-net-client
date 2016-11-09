@@ -96,5 +96,15 @@ namespace Couchbase.UnitTests.N1Ql
             var query = queryRequest.GetFormValues();
             Assert.AreEqual(4.ToString(), query["max_parallelism"]);
         }
+
+        [Test]
+        public void When_ScanWait_Is_Set_Request_Has_The_Value()
+        {
+            var queryRequest = new QueryRequest("SELECT * FROM default;");
+            queryRequest.ScanWait(TimeSpan.FromSeconds(10));
+
+            var query = queryRequest.GetFormValues();
+            Assert.AreEqual("10000ms", query["scan_wait"]);
+        }
     }
 }

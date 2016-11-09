@@ -696,7 +696,7 @@ namespace Couchbase.N1QL
             }
             if (_scanWait.HasValue)
             {
-                formValues.Add(QueryParameters.ScanWait, "" + ((uint) _scanWait.Value.TotalMilliseconds));
+                formValues.Add(QueryParameters.ScanWait, string.Format("{0}ms", (uint) _scanWait.Value.TotalMilliseconds));
             }
             if (_pretty)
             {
