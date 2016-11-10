@@ -1,7 +1,6 @@
-﻿
-using System;
-using Couchbase.Search.Queries.Compound;
+﻿using System;
 using Couchbase.Search.Queries.Range;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -23,6 +22,44 @@ namespace Couchbase.UnitTests.Search
             var query = new NumericRangeQuery();
 
             Assert.Throws<ArgumentOutOfRangeException>(() => query.Boost(-.1));
+        }
+
+        [Test]
+        public void Export_Returns_Valud_Json()
+        {
+            var query = new NumericRangeQuery()
+                .Min(1)
+                .Max(10)
+                .Field("field");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                min = 1.0,
+                inclusive_min = true,
+                max = 10.0,
+                inclusive_max = false,
+                field = "field"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Field_If_Not_Provided()
+        {
+            var query = new NumericRangeQuery()
+                .Min(1)
+                .Max(10);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                min = 1.0,
+                inclusive_min = true,
+                max = 10.0,
+                inclusive_max = false
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

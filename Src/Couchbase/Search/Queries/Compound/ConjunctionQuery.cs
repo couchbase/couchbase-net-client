@@ -30,33 +30,14 @@ namespace Couchbase.Search.Queries.Compound
             return this;
         }
 
-        /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public ConjunctionQuery Boost(double boost)
+        public IEnumerator<IFtsQuery> GetEnumerator()
         {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
+            return _queries.Cast<IFtsQuery>().GetEnumerator();
         }
 
-        public override JObject Export(ISearchParams searchParams)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            if (!_queries.Any())
-            {
-                throw new InvalidOperationException("A ConjunctionQuery must have a least one child query!");
-            }
-
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("conjuncts", new JArray(_queries.Select(x => x.Export())))
-                )
-            ));
-
-            return baseQuery;
+            return GetEnumerator();
         }
 
         public override JObject Export()
@@ -66,25 +47,10 @@ namespace Couchbase.Search.Queries.Compound
                 throw new InvalidOperationException("A ConjunctionQuery must have a least one child query!");
             }
 
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("conjuncts", new JArray(_queries.Select(x => x.Export())))
-                )
-            ));
+            var json = base.Export();
+            json.Add(new JProperty("conjuncts", new JArray(_queries.Select(x => x.Export()))));
 
-            return baseQuery;
-        }
-
-        public IEnumerator<IFtsQuery> GetEnumerator()
-        {
-            return _queries.Cast<IFtsQuery>().GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
+            return json;
         }
     }
 }

@@ -1,7 +1,6 @@
-﻿
-using System;
-using Couchbase.Search.Queries.Compound;
+﻿using System;
 using Couchbase.Search.Queries.Range;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -23,6 +22,60 @@ namespace Couchbase.UnitTests.Search
             var query = new DateRangeQuery();
 
             Assert.Throws<ArgumentOutOfRangeException>(() => query.Boost(-.1));
+        }
+
+        [Test]
+        public void Throws_Exception_If_Start_And_End_Are_Not_Provided_When_Export_Is_Called()
+        {
+            var query = new DateRangeQuery();
+
+            Assert.Throws<InvalidOperationException>(() => query.Export());
+        }
+
+        [Test]
+        public void Export_Returns_Valid_Json()
+        {
+            var start = DateTime.Today;
+            var end = DateTime.Now;
+            var query = new DateRangeQuery()
+                .Start(start)
+                .End(end)
+                .Field("created_at")
+                .Parser("parser");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                start = start,
+                inclusive_start = true,
+                end = end,
+                inclusive_end = false,
+                datetime_parser = "parser",
+                field = "created_at"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Field_If_Not_Provided()
+        {
+            var start = DateTime.Today;
+            var end = DateTime.Now;
+            var query = new DateRangeQuery()
+                .Start(start)
+                .End(end)
+                .Parser("parser");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                start = start,
+                inclusive_start = true,
+                end = end,
+                inclusive_end = false,
+                datetime_parser = "parser",
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

@@ -112,6 +112,18 @@
     <Compile Include="..\Couchbase.UnitTests\Search\TermQueryTests.cs">
       <Link>Search\TermQueryTests.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\BooleanFieldQueryTests.cs">
+      <Link>Search\BooleanFieldQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\MatchAllQueryTests.cs">
+      <Link>Search\MatchAllQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\MatchNoneQueryTests.cs">
+      <Link>Search\MatchNoneQueryTests.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.UnitTests\Search\WildcardQueryTests.cs">
+      <Link>Search\WildcardQueryTests.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.UnitTests\Search\SearchClientTests.cs">
       <Link>Search\SearchClientTests.cs</Link>
     </Compile>

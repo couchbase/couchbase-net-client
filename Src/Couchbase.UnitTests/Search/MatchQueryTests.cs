@@ -1,10 +1,6 @@
-﻿
-using System;
-using Couchbase.N1QL;
-using Couchbase.Search;
-using Couchbase.Search.Queries;
+﻿using System;
 using Couchbase.Search.Queries.Simple;
-using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -53,17 +49,52 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public void Export_ReturnsValidJson()
         {
-            var query = new MatchQuery("somematchquery").Boost(2.2);
-            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{}}},\"size\":10,\"from\":20,\"explain\":true,\"query\":{\"match\":\"somematchquery\",\"boost\":2.2,\"field\":null,\"analyzer\":null,\"prefix_length\":0,\"fuzziness\":0}}";
-            var actual = query.Export(new SearchQuery().
-                Skip(20).
-                Limit(10).Explain(true).
-                Timeout(TimeSpan.FromMilliseconds(10000)).
-#pragma warning disable 618
-                WithConsistency(ScanConsistency.AtPlus).SearchParams);
-#pragma warning restore 618
+            var query = new MatchQuery("somematchquery")
+                .Field("field")
+                .PrefixLength(5)
+                .Fuzziness(10)
+                .Analyzer("analyzer");
 
-            Assert.AreEqual(expected, actual.ToString().Replace("\r\n", "").Replace(" ", ""));
+            var expected = JsonConvert.SerializeObject(new
+            {
+                match = "somematchquery",
+                prefix_length = 5,
+                fuzziness = 10,
+                field = "field",
+                analyzer = "analyzer"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Field_If_Not_Present()
+        {
+            var query = new MatchQuery("somematchquery");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                match = "somematchquery",
+                prefix_length = 0,
+                fuzziness = 0
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Analyzer_If_Not_Present()
+        {
+            var query = new MatchQuery("somematchquery");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                match = "somematchquery",
+                prefix_length = 0,
+                fuzziness = 0
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class BooleanFieldQuery : FtsQueryBase
     {
-        private bool _fieldMatch;
+        private readonly bool _fieldMatch;
         private string _field;
 
         public BooleanFieldQuery(bool fieldMatch)
@@ -27,28 +27,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("bool", _fieldMatch),
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("bool", _fieldMatch),
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field))));
+            var json = base.Export();
+            json.Add(new JProperty("bool", _fieldMatch));
 
-            return baseQuery;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 }

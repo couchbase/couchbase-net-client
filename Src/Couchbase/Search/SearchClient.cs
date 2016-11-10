@@ -48,7 +48,7 @@ namespace Couchbase.Search
             var searchResult = new SearchQueryResult();
             var baseUri = ConfigContextBase.GetSearchUri();
             var requestUri = new Uri(baseUri, searchQuery.RelativeUri());
-            var searchBody = searchQuery.Export().ToString();
+            var searchBody = searchQuery.ToJson();
 
             try
             {

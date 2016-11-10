@@ -18,23 +18,12 @@ namespace Couchbase.Search.Queries.Range
         private string _field;
 
         /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public DateRangeQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
-        /// <summary>
         /// The start date of the range.
         /// </summary>
         /// <param name="startTime">The start time.</param>
         /// <param name="inclusive">if set to <c>true</c> [inclusive].</param>
         /// <returns></returns>
-        public DateRangeQuery Start(DateTime startTime, bool inclusive=true)
+        public DateRangeQuery Start(DateTime startTime, bool inclusive = true)
         {
             _startTime = startTime;
             _inclusiveStart = inclusive;
@@ -47,7 +36,7 @@ namespace Couchbase.Search.Queries.Range
         /// <param name="endTime">The end time.</param>
         /// <param name="inclusive">if set to <c>true</c> [inclusive].</param>
         /// <returns></returns>
-        public DateRangeQuery End(DateTime endTime, bool inclusive= false)
+        public DateRangeQuery End(DateTime endTime, bool inclusive = false)
         {
             _endTime = endTime;
             _inclusiveEnd = inclusive;
@@ -76,27 +65,6 @@ namespace Couchbase.Search.Queries.Range
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            if (_startTime == null && _endTime == null)
-            {
-                throw new InvalidOperationException("Either Start or End can be omitted, but not both.");
-            }
-
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("start", _startTime),
-                    new JProperty("inclusive_start", _inclusiveStart),
-                    new JProperty("end", _endTime),
-                    new JProperty("inclusive_end", _inclusiveEnd),
-                    new JProperty("datetime_parser", _parserName))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
             if (_startTime == null && _endTime == null)
@@ -104,18 +72,19 @@ namespace Couchbase.Search.Queries.Range
                 throw new InvalidOperationException("Either Start or End can be omitted, but not both.");
             }
 
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("start", _startTime),
-                    new JProperty("inclusive_start", _inclusiveStart),
-                    new JProperty("end", _endTime),
-                    new JProperty("inclusive_end", _inclusiveEnd),
-                    new JProperty("datetime_parser", _parserName))));
+            var json = base.Export();
+            json.Add(new JProperty("start", _startTime));
+            json.Add(new JProperty("inclusive_start", _inclusiveStart));
+            json.Add(new JProperty("end", _endTime));
+            json.Add(new JProperty("inclusive_end", _inclusiveEnd));
+            json.Add(new JProperty("datetime_parser", _parserName));
 
-            return baseQuery;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 }

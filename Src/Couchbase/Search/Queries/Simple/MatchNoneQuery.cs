@@ -8,24 +8,13 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class MatchNoneQuery : FtsQueryBase
     {
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("match_none", null))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("match_none", null))));
+            var json = new JObject(
+                new JProperty("match_none", null)
+            );
 
-            return baseQuery;
+            return json;
         }
     }
 }

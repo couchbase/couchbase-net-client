@@ -1,9 +1,6 @@
-﻿
-using System;
-using Couchbase.Search;
-using Couchbase.Search.Queries;
+﻿using System;
 using Couchbase.Search.Queries.Simple;
-using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -31,6 +28,19 @@ namespace Couchbase.UnitTests.Search
         public void Ctor_WhenMatchIsNull_ThrowArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => new StringQuery(null));
+        }
+
+        [Test]
+        public void Export_ReturnsValidJson()
+        {
+            var query = new StringQuery("description:water and some other stuff");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                query = "description:water and some other stuff"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

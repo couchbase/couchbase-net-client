@@ -9,7 +9,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class RegexpQuery : FtsQueryBase
     {
-        private string _regex;
+        private readonly string _regex;
         private string _field;
 
         /// <summary>
@@ -27,17 +27,6 @@ namespace Couchbase.Search.Queries.Simple
         }
 
         /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public RegexpQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
-        /// <summary>
         /// If a field is specified, only terms in that field will be matched. This can also affect the used analyzer if one isn't specified explicitly.
         /// </summary>
         /// <param name="field">The field.</param>
@@ -48,26 +37,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("regexp", _regex))));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("regexp", _regex))));
+            var json = base.Export();
+            json.Add(new JProperty("regexp", _regex));
 
-            return queryJson;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 

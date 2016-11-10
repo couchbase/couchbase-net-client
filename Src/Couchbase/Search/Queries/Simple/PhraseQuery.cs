@@ -26,12 +26,6 @@ namespace Couchbase.Search.Queries.Simple
             _terms.AddRange(terms);
         }
 
-        public PhraseQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
         /// <summary>
         /// The field to search against.
         /// </summary>
@@ -43,32 +37,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("terms", new JArray(_terms))
-                )
-            ));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("terms", new JArray(_terms)))
-                )
-            );
+            var json = base.Export();
+            json.Add(new JProperty("terms", new JArray(_terms)));
 
-            return queryJson;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 

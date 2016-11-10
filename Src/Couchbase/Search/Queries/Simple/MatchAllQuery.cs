@@ -9,24 +9,13 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class MatchAllQuery : FtsQueryBase
     {
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("match_all", null))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("match_all", null))));
+            var json = new JObject(
+                new JProperty("match_all", null)
+            );
 
-            return baseQuery;
+            return json;
         }
     }
 }

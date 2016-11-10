@@ -37,63 +37,15 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                query = new
+                min = 1,
+                disjuncts = new[]
                 {
-                    boost = 0.0,
-                    min = 1,
-                    disjuncts = new[]
+                    new
                     {
-                        new
-                        {
-                            query = new
-                            {
-                                term = "hotel",
-                                boost = 0.0,
-                                field = "type",
-                                prefix_length = 0,
-                                fuzziness = 0
-                            }
-                        }
-                    }
-                }
-            }, Formatting.None);
-
-            Assert.AreEqual(expected, result);
-        }
-
-        [Test]
-        public void Export_With_SearchParams_ReturnsValidJson()
-        {
-            var query = new DisjunctionQuery(
-                new TermQuery("hotel").Field("type")
-            );
-
-            var searchParams = new SearchParams();
-            var result = query.Export(searchParams).ToString(Formatting.None);
-
-            var expected = JsonConvert.SerializeObject(new
-            {
-                ctl = new
-                {
-                    timeout = 75000
-                },
-                query = new
-                {
-                    boost = 0.0,
-                    min = 1,
-                    disjuncts = new[]
-                    {
-                        new
-                        {
-                            query = new
-                            {
-                                term = "hotel",
-                                boost = 0.0,
-                                field = "type",
-                                prefix_length = 0,
-                                fuzziness = 0
-                            }
-                        }
+                        term = "hotel",
+                        prefix_length = 0,
+                        fuzziness = 0,
+                        field = "type"
                     }
                 }
             }, Formatting.None);

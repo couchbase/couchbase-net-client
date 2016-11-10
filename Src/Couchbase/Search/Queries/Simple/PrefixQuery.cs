@@ -22,17 +22,6 @@ namespace Couchbase.Search.Queries.Simple
         }
 
         /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public PrefixQuery Boost(double boost)
-        {
-            ((IFtsQuery) this).Boost(boost);
-            return this;
-        }
-
-        /// <summary>
         /// The field to search against.
         /// </summary>
         /// <param name="field">The field.</param>
@@ -43,28 +32,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("prefix", _prefix),
-                    new JProperty("field", _field))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("prefix", _prefix),
-                    new JProperty("field", _field))));
+            var json = base.Export();
+            json.Add(new JProperty("prefix", _prefix));
 
-            return baseQuery;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 

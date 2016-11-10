@@ -1,8 +1,6 @@
-﻿
-using System;
-using Couchbase.Search.Queries;
+﻿using System;
 using Couchbase.Search.Queries.Simple;
-using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -30,6 +28,34 @@ namespace Couchbase.UnitTests.Search
         public void Ctor_WhenMatchIsNull_ThrowArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => new PrefixQuery(null));
+        }
+
+        [Test]
+        public void Export_Returns_Valud_Json()
+        {
+            var query = new PrefixQuery("prefix")
+                .Field("field");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                prefix = "prefix",
+                field = "field"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Field_If_Not_Provided()
+        {
+            var query = new PrefixQuery("prefix");
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                prefix = "prefix"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class WildcardQuery : FtsQueryBase
     {
-        private string _wildCard;
+        private readonly string _wildCard;
         private string _field;
 
         public WildcardQuery(string wildcard)
@@ -27,26 +27,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("wildcard", _wildCard))));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("wildcard", _wildCard))));
+            var json = base.Export();
+            json.Add(new JProperty("wildcard", _wildCard));
 
-            return queryJson;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 }

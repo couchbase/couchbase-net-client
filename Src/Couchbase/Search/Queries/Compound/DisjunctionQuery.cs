@@ -21,17 +21,6 @@ namespace Couchbase.Search.Queries.Compound
         }
 
         /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public DisjunctionQuery Boost(double boost)
-        {
-            ((IFtsQuery) this).Boost(boost);
-            return this;
-        }
-
-        /// <summary>
         /// Adds additional <see cref="FtsQueryBase"/> implementations to this <see cref="ConjunctionQuery"/>.
         /// </summary>
         /// <param name="queries">One or more <see cref="FtsQueryBase"/> queries to add.</param>
@@ -67,43 +56,18 @@ namespace Couchbase.Search.Queries.Compound
             return GetEnumerator();
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            if (!this.Any())
-            {
-                throw new InvalidOperationException("A DisjunctionQuery must have a least one child query!");
-            }
-
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("min", _min),
-                    new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export())))
-                )
-            ));
-
-            return baseQuery;
-        }
-
-
         public override JObject Export()
         {
             if (!_queries.Any())
             {
-                throw new InvalidOperationException("A ConjunctionQuery must have a least one child query!");
+                throw new InvalidOperationException("A DisjunctionQuery must have a least one child query!");
             }
 
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("min", _min),
-                    new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export())))
-                )
-            ));
+            var json = base.Export();
+            json.Add(new JProperty("min", _min));
+            json.Add(new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export()))));
 
-            return baseQuery;
+            return json;
         }
     }
 }

@@ -23,12 +23,6 @@ namespace Couchbase.Search
         JObject Export();
 
         /// <summary>
-        /// Gets a JSON object representing this instance.
-        /// </summary>
-        /// <returns></returns>
-        JObject Export(ISearchParams searchParams);
-
-        /// <summary>
         /// Sets the lifespan of the search request; used to check if the request exceeded the maximum time
         /// configured for it in <see cref="ClientConfiguration.SearchRequestTimeout"/>
         /// </summary>

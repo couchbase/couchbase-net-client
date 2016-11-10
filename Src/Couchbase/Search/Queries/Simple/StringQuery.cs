@@ -9,7 +9,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public class StringQuery : FtsQueryBase
     {
-        private string _query;
+        private readonly string _query;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StringQuery"/> class.
@@ -25,31 +25,12 @@ namespace Couchbase.Search.Queries.Simple
             _query = query;
         }
 
-        public StringQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("query", _query))));
-
-            return baseQuery;
-        }
-
         public override JObject Export()
         {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("query", _query))));
-            return baseQuery;
+            var json = base.Export();
+            json.Add(new JProperty("query", _query));
+
+            return json;
         }
     }
 }

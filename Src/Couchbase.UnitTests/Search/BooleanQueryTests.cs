@@ -1,5 +1,4 @@
 ﻿using System;
-using Couchbase.Search;
 using Couchbase.Search.Queries.Compound;
 using Couchbase.Search.Queries.Simple;
 using Newtonsoft.Json;
@@ -32,7 +31,6 @@ namespace Couchbase.UnitTests.Search
             var query = new BooleanQuery();
 
             Assert.Throws<InvalidOperationException>(() => query.Export());
-            Assert.Throws<InvalidOperationException>(() => query.Export(new SearchParams()));
         }
 
         [Test]
@@ -47,7 +45,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public void Export_ReturnsValidJson()
+        public void Export_Returns_Valid_Json_For_Must()
         {
             var query = new BooleanQuery();
             query.Must(new TermQuery("hotel").Field("type"));
@@ -56,25 +54,18 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                query = new
+                must = new
                 {
-                    boost = 0.0,
-                    must = new[]
+                    conjuncts = new dynamic[]
                     {
                         new
                         {
-                            query = new
-                            {
-                                term = "hotel",
-                                boost = 0.0,
-                                field = "type",
-                                prefix_length = 0,
-                                fuzziness = 0
-                            }
+                            term = "hotel",
+                            prefix_length = 0,
+                            fuzziness = 0,
+                            field = "type"
                         }
-                    },
-                    must_not = new dynamic[] {},
-                    should = new dynamic[] {}
+                    }
                 }
             }, Formatting.None);
 
@@ -82,39 +73,57 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
-        public void Export_With_SearchParams_ReturnsValidJson()
+        public void Export_Returns_Valid_Json_For_MustNot()
         {
             var query = new BooleanQuery();
-            query.Must(new TermQuery("hotel").Field("type"));
+            query.MustNot(new TermQuery("hotel").Field("type"));
 
-            var searchParams = new SearchParams();
-            var result = query.Export(searchParams).ToString(Formatting.None);
+            var result = query.Export().ToString(Formatting.None);
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
+                must_not = new
                 {
-                    timeout = 75000
-                },
-                query = new
-                {
-                    boost = 0.0,
-                    must = new[]
+                    min = 1,
+                    disjuncts = new dynamic[]
                     {
                         new
                         {
-                            query = new
-                            {
-                                term = "hotel",
-                                boost = 0.0,
-                                field = "type",
-                                prefix_length = 0,
-                                fuzziness = 0
-                            }
+                            term = "hotel",
+                            prefix_length = 0,
+                            fuzziness = 0,
+                            field = "type"
                         }
-                    },
-                    must_not = new dynamic[] {},
-                    should = new dynamic[] {}
+                    }
+                }
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Export_Returns_Valid_Json_For_Should()
+        {
+            var query = new BooleanQuery();
+            query.Should(new TermQuery("hotel").Field("type"));
+
+            var result = query.Export().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                should = new
+                {
+                    min = 1,
+                    disjuncts = new dynamic[]
+                    {
+                        new
+                        {
+                            term = "hotel",
+                            prefix_length = 0,
+                            fuzziness = 0,
+                            field = "type"
+                        }
+                    }
                 }
             }, Formatting.None);
 

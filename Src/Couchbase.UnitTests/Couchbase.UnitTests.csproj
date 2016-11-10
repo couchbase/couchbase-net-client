@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -114,9 +114,15 @@
     <Compile Include="N1Ql\QueryClientTests.cs" />
     <Compile Include="OperationResultTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Search\BooleanFieldQueryTests.cs" />
+    <Compile Include="Search\DocIdQueryTests.cs" />
+    <Compile Include="Search\MatchAllQueryTests.cs" />
+    <Compile Include="Search\MatchNoneQueryTests.cs" />
+    <Compile Include="Search\PhraseQueryTests.cs" />
     <Compile Include="Search\TermQueryTests.cs" />
     <Compile Include="Search\SearchClientTests.cs" />
     <Compile Include="Search\SearchParamsTests.cs" />
+    <Compile Include="Search\WildcardQueryTests.cs" />
     <Compile Include="StringExtensionTests.cs" />
     <Compile Include="Search\FtsDataMapperTests.cs" />
     <Compile Include="Search\StringQueryTests.cs" />

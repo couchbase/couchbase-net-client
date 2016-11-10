@@ -17,17 +17,6 @@ namespace Couchbase.Search.Queries.Range
         private string _field;
 
         /// <summary>
-        /// Used to increase the relative weight of a clause (with a boost greater than 1) or decrease the relative weight (with a boost between 0 and 1).
-        /// </summary>
-        /// <param name="boost"></param>
-        /// <returns></returns>
-        public NumericRangeQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
-        /// <summary>
         /// The lower end of the range, inclusive by default.
         /// </summary>
         /// <param name="min">The minimum.</param>
@@ -64,39 +53,25 @@ namespace Couchbase.Search.Queries.Range
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
+        public override JObject Export()
         {
             if (_min == null && _max == null)
             {
                 throw new InvalidOperationException("Either Min or Max can be omitted, but not both.");
             }
 
-            var baseQuery = base.Export(searchParams);
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("min", _min),
-                    new JProperty("inclusive_min", _minInclusive),
-                    new JProperty("max", _max),
-                    new JProperty("inclusive_max", _maxInclusive))));
+            var json = base.Export();
+            json.Add(new JProperty("min", _min));
+            json.Add(new JProperty("inclusive_min", _minInclusive));
+            json.Add(new JProperty("max", _max));
+            json.Add(new JProperty("inclusive_max", _maxInclusive));
 
-            return baseQuery;
-        }
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
 
-        public override JObject Export()
-        {
-            var baseQuery = base.Export();
-            baseQuery.Add(new JProperty("query",
-                new JObject(
-                    new JProperty("boost", _boost),
-                    new JProperty("field", _field),
-                    new JProperty("min", _min),
-                    new JProperty("inclusive_min", _minInclusive),
-                    new JProperty("max", _max),
-                    new JProperty("inclusive_max", _maxInclusive))));
-
-            return baseQuery;
+            return json;
         }
     }
 }

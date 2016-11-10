@@ -1,7 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System;
 using Couchbase.N1QL;
 using Newtonsoft.Json.Linq;
 

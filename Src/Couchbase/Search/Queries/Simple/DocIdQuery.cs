@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Simple
@@ -29,24 +31,17 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("ids", new JArray(_docIds)))));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("boost", _boost),
-                new JProperty("ids", new JArray(_docIds)))));
+            if (!_docIds.Any())
+            {
+                throw new InvalidOperationException("A DocIdQuery must have at least one id");
+            }
 
-            return queryJson;
+            var json = base.Export();
+            json.Add(new JProperty("ids", new JArray(_docIds)));
+
+            return json;
         }
     }
 }

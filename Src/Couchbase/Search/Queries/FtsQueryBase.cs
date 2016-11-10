@@ -11,8 +11,9 @@ namespace Couchbase.Search.Queries
     /// <seealso cref="Couchbase.Search.IFtsQuery" />
     public abstract class FtsQueryBase : IFtsQuery
     {
-        // ReSharper disable once InconsistentNaming
-        protected double _boost;
+        private const double DefaultBoostValue = 1.0;
+
+        private double _boost = DefaultBoostValue;
         protected string IndexName;
         protected string Query;
 
@@ -21,7 +22,7 @@ namespace Couchbase.Search.Queries
         /// </summary>
         /// <param name="boost"></param>
         /// <returns></returns>
-        IFtsQuery IFtsQuery.Boost(double boost)
+        public IFtsQuery Boost(double boost)
         {
             if (boost < 0)
             {
@@ -32,21 +33,18 @@ namespace Couchbase.Search.Queries
         }
 
         /// <summary>
-        /// Gets a JSON object representing this instance.
-        /// </summary>
-        /// <returns></returns>
-        public virtual JObject Export(ISearchParams searchParams)
-        {
-            return searchParams.ToJson();
-        }
-
-        /// <summary>
-        /// Gets a JSON object representing this instance excluding any <see cref="ISearchParams" />
+        /// Gets a JSON object representing this query instance />
         /// </summary>
         /// <returns></returns>
         public virtual JObject Export()
         {
-            return new JObject();
+            var json = new JObject();
+            if (!_boost.Equals(DefaultBoostValue))
+            {
+                json.Add(new JProperty("boost", _boost));
+            }
+
+            return json;
         }
 
         /// <summary>

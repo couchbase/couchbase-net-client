@@ -23,12 +23,6 @@ namespace Couchbase.Search.Queries.Simple
             _matchPhrase = matchPhrase;
         }
 
-        public MatchPhraseQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
-        }
-
         public MatchPhraseQuery Field(string field)
         {
             _field = field;
@@ -41,28 +35,21 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("match_phrase", _matchPhrase),
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("analyzer", _analyzer))));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("match_phrase", _matchPhrase),
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("analyzer", _analyzer))));
+            var json = base.Export();
+            json.Add(new JProperty("match_phrase", _matchPhrase));
 
-            return queryJson;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+            if (!string.IsNullOrEmpty(_analyzer))
+            {
+                json.Add(new JProperty("analyzer", _analyzer));
+            }
+
+            return json;
         }
     }
 

@@ -10,7 +10,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
     public sealed class TermQuery : FtsQueryBase
     {
-        private string _term;
+        private readonly string _term;
         private int _fuzziness;
         private int _prefixLength;
         private string _field;
@@ -22,12 +22,6 @@ namespace Couchbase.Search.Queries.Simple
                 throw new ArgumentNullException("term");
             }
             _term = term;
-        }
-
-        public TermQuery Boost(double boost)
-        {
-            ((IFtsQuery)this).Boost(boost);
-            return this;
         }
 
         public TermQuery Fuzziness(int fuzziness)
@@ -61,30 +55,19 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
-        public override JObject Export(ISearchParams searchParams)
-        {
-            var queryJson = base.Export(searchParams);
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("term", _term),
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("prefix_length", _prefixLength),
-                new JProperty("fuzziness", _fuzziness))));
-
-            return queryJson;
-        }
-
         public override JObject Export()
         {
-            var queryJson = base.Export();
-            queryJson.Add(new JProperty("query", new JObject(
-                new JProperty("term", _term),
-                new JProperty("boost", _boost),
-                new JProperty("field", _field),
-                new JProperty("prefix_length", _prefixLength),
-                new JProperty("fuzziness", _fuzziness))));
+            var json = base.Export();
+            json.Add(new JProperty("term", _term));
+            json.Add(new JProperty("prefix_length", _prefixLength));
+            json.Add(new JProperty("fuzziness", _fuzziness));
 
-            return queryJson;
+            if (!string.IsNullOrEmpty(_field))
+            {
+                json.Add(new JProperty("field", _field));
+            }
+
+            return json;
         }
     }
 

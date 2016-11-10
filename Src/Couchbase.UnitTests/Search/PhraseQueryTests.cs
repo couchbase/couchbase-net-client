@@ -1,6 +1,4 @@
-﻿using Couchbase.Search;
-using Couchbase.Search.Queries.Compound;
-using Couchbase.Search.Queries.Simple;
+﻿using Couchbase.Search.Queries.Simple;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -13,49 +11,27 @@ namespace Couchbase.UnitTests.Search
         public void Export_ReturnsValidJson()
         {
             var query = new PhraseQuery("foo").Field("bar");
-            var result = query.Export().ToString(Formatting.None);
 
             var expected = JsonConvert.SerializeObject(new
             {
-                query = new
-                {
-                    boost = 0.0,
-                    field = "bar",
-                    terms = new[]
-                    {
-                        "foo"
-                    }
-                }
+                terms = new[] {"foo"},
+                field = "bar",
             }, Formatting.None);
 
-            Assert.AreEqual(expected, result);
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
 
         [Test]
-        public void Export_With_SearchParams_ReturnsValidJson()
+        public void Export_Omits_Field_If_Not_Provided()
         {
-            var query = new PhraseQuery("foo").Field("bar");
-            var searchParams = new SearchParams();
-            var result = query.Export(searchParams).ToString(Formatting.None);
+            var query = new PhraseQuery("foo");
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    timeout = 75000
-                },
-                query = new
-                {
-                    boost = 0.0,
-                    field = "bar",
-                    terms = new[]
-                    {
-                        "foo"
-                    }
-                }
+                terms = new[] {"foo"}
             }, Formatting.None);
 
-            Assert.AreEqual(expected, result);
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }

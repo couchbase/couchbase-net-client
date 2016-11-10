@@ -1,6 +1,7 @@
 ﻿using System;
 using Couchbase.Authentication;
 using Couchbase.N1QL;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -51,15 +52,6 @@ namespace Couchbase.Search
         /// The query.
         /// </value>
         public IFtsQuery Query { get; set; }
-
-        /// <summary>
-        /// Exports this instance as a JSON object, which is used as the FTS request body.
-        /// </summary>
-        /// <returns></returns>
-        internal JObject Export()
-        {
-            return Query.Export(SearchParams);
-        }
 
         /// <summary>
         /// Gets the relative path for the FTS API service.
@@ -178,9 +170,15 @@ namespace Couchbase.Search
         /// Gets the JSON representation of this object.
         /// </summary>
         /// <returns></returns>
-        public JObject ToJson()
+        public string ToJson()
         {
-            return SearchParams.ToJson();
+            var json = SearchParams.ToJson();
+            if (Query != null)
+            {
+                json.Add("query", Query.Export());
+            }
+
+            return json.ToString(Formatting.None);
         }
     }
 }

@@ -1,8 +1,6 @@
-﻿
-using System;
-using Couchbase.Search.Queries;
+﻿using System;
 using Couchbase.Search.Queries.Simple;
-using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -46,6 +44,42 @@ namespace Couchbase.UnitTests.Search
             var query = new TermQuery("theterm");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => query.Fuzziness(-1));
+        }
+
+        [Test]
+        public void Export_ReturnsValidJson()
+        {
+            var query = new TermQuery("theterm")
+                .Field("field")
+                .PrefixLength(5)
+                .Fuzziness(1);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                term = "theterm",
+                prefix_length = 5,
+                fuzziness = 1,
+                field = "field"
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
+        }
+
+        [Test]
+        public void Export_Omits_Field_If_Not_Provided()
+        {
+            var query = new TermQuery("theterm")
+                .PrefixLength(5)
+                .Fuzziness(1);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                term = "theterm",
+                prefix_length = 5,
+                fuzziness = 1
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, query.Export().ToString(Formatting.None));
         }
     }
 }
