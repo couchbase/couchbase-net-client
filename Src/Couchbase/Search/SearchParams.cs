@@ -95,7 +95,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public ISearchParams Fields(params string[] fields)
         {
-            if(fields == null || fields.Length > 0)
+            if(fields == null || fields.Length <= 0)
             {
                 throw new ArgumentNullException("fields", "must be non-null and have at least one value.");
             }

@@ -41,6 +41,34 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Test]
+        public void Test_SupportsFields()
+        {
+            //will not throw ArgumentNullException
+            SearchQuery fc = new SearchQuery();
+            fc.Index = "beer-ft";
+            fc.Highlighting(HighLightStyle.Html);
+            fc.Fields("name", "style");
+        }
+
+        [Test]
+        public void Test_Fields_WhenNull_ThrowsException()
+        {
+            SearchQuery fc = new SearchQuery();
+            fc.Index = "beer-ft";
+            fc.Highlighting(HighLightStyle.Html);
+            Assert.Throws<ArgumentNullException>(() => fc.Fields(null));
+        }
+
+        [Test]
+        public void Test_Fields_WhenEmpty_ThrowsException()
+        {
+            SearchQuery fc = new SearchQuery();
+            fc.Index = "beer-ft";
+            fc.Highlighting(HighLightStyle.Html);
+            Assert.Throws<ArgumentNullException>(() => fc.Fields());
+        }
+
+        [Test]
         public void Sort_Adds_FieldNames_To_Output_Json()
         {
             var fields = new List<string> {"name", "-age"};
