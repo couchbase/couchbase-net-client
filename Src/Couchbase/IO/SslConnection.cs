@@ -20,7 +20,6 @@ namespace Couchbase.IO
     public class SslConnection : ConnectionBase
     {
         private readonly SslStream _sslStream;
-        private volatile bool _timingEnabled;
 
         public SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
             : this(connectionPool, socket, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter, allocator)
@@ -34,7 +33,6 @@ namespace Couchbase.IO
             ConnectionPool = connectionPool;
             _sslStream = sslStream;
             Configuration = ConnectionPool.Configuration;
-            _timingEnabled = Configuration.EnableOperationTiming;
         }
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
@@ -56,7 +54,7 @@ namespace Couchbase.IO
             try
             {
                 var targetHost = EndPoint.ToString().Split(':')[0];
-                Log.Warn(m => m("Starting SSL encryption on {0}", targetHost));
+                Log.Info(m => m("Starting SSL encryption on {0}", targetHost));
 
                 using (new SynchronizationContextExclusion())
                 {
@@ -65,22 +63,13 @@ namespace Couchbase.IO
 
                 IsSecure = true;
             }
-            catch (AggregateException e)
+            catch (AggregateException exception)
             {
-                var authException = e.InnerExceptions.OfType<AuthenticationException>().FirstOrDefault();
-
-                if (authException != null)
+                foreach (var e in exception.InnerExceptions)
                 {
-                    Log.Error(authException);
+                    Log.Error(e);
                 }
-                else
-                {
-                    throw;
-                }
-            }
-            catch (AuthenticationException e)
-            {
-                Log.Error(e);
+                throw;
             }
         }
 
