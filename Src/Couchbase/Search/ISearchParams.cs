@@ -74,6 +74,14 @@ namespace Couchbase.Search
         ISearchParams WithConsistency(ScanConsistency consistency);
 
         /// <summary>
+        /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a decending nature.
+        /// If no sort is provided, it is equal to sort("-_score"), since the server will sort it by score in descending order by default.
+        /// </summary>
+        /// <param name="sort">The field names to sort by.</param>
+        /// <returns></returns>
+        ISearchParams Sort(params string[] sort);
+
+        /// <summary>
         /// Gets the JSON representation of this object.
         /// </summary>
         /// <returns></returns>

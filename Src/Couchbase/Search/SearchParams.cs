@@ -21,6 +21,7 @@ namespace Couchbase.Search
         private List<ISearchFacet> _facets;
         private TimeSpan _timeOut = new TimeSpan(0, 0, 0, 0, 75000);
         private ScanConsistency?  _scanConsistency;
+        private readonly List<string> _sort = new List<string>();
 
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
@@ -145,28 +146,18 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        /// Gets the JSON representation of this object.
+        /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a decending nature.
+        /// If no sort is provided, it is equal to sort("-_score"), since the server will sort it by score in descending order by default.
         /// </summary>
+        /// <param name="sort">The field names to sort by.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public JObject ToJson2()
+        public ISearchParams Sort(params string[] sort)
         {
-            return new JObject(
-                new JProperty("ctl",
-                    new JObject(
-                        new JProperty("timeout", (long)_timeOut.TotalMilliseconds),
-                        new JProperty("consistency", new JObject(
-                            new JProperty("level", _scanConsistency),
-                            new JProperty("vectors", new JObject())
-                            )))),
-                new JProperty("size", _limit),
-                new JProperty("from", _skip),
-                new JProperty("highlight", new JObject(
-                    new JProperty("style", _highLightStyle),
-                    new JProperty("fields", _highLightFields))),
-                new JProperty("fields", _fields),
-                new JProperty("facets", _facets),
-                new JProperty("explain", _explain));
+            if (sort != null)
+            {
+                _sort.AddRange(sort);
+            }
+            return this;
         }
 
         public JObject ToJson()
@@ -215,17 +206,12 @@ namespace Couchbase.Search
             {
                 parameters.Add(new JProperty("explain", _explain));
             }
+            if (_sort.Any())
+            {
+                parameters.Add(new JProperty("sort", _sort));
+            }
             return parameters;
         }
-
-        /*
-        "facets": {
-        "category": {
-            "field": "style",
-            "size": 10
-        }
-}
-    */
 
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.

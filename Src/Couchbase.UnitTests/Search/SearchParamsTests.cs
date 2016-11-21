@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using Couchbase.N1QL;
 using Couchbase.Search;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -36,6 +38,28 @@ namespace Couchbase.UnitTests.Search
                 new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f));
 
             Console.WriteLine(searchParams.ToJson());
+        }
+
+        [Test]
+        public void Sort_Adds_FieldNames_To_Output_Json()
+        {
+            var fields = new List<string> {"name", "-age"};
+
+            var searchParams = new SearchParams();
+            searchParams.Sort(fields.ToArray());
+
+            var result = searchParams.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000
+                },
+                sort = fields
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
         }
     }
 }
