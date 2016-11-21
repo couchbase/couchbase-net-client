@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Threading;
@@ -16,9 +14,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.IO.SubDocument;
-using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -54,7 +50,7 @@ namespace Couchbase
         private readonly uint _operationLifespanTimeout;
         private IRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
-        private IClusterCredentials _credentials;
+        private readonly IClusterCredentials _credentials;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -3819,7 +3815,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public IResult ListPush(string key, object value, bool createList)
+        public IResult ListAppend(string key, object value, bool createList)
         {
             var result = MutateIn<object>(key).ArrayAppend(value, createList).Execute();
             return new DefaultResult
@@ -3839,7 +3835,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public IResult ListShift(string key, object value, bool createList)
+        public IResult ListPrepend(string key, object value, bool createList)
         {
             var result = MutateIn<object>(key).ArrayPrepend(value, createList).Execute();
             return new DefaultResult
@@ -3858,7 +3854,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public IResult ListDelete(string key, int index)
+        public IResult ListRemove(string key, int index)
         {
             var result = MutateIn<object>(key).Remove(string.Format("[{0}]", index)).Execute();
             return new DefaultResult
@@ -3936,7 +3932,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult{boolean}" /> with the operation result.
         /// </returns>
-        public IResult<bool> SetExists(string key, string value)
+        public IResult<bool> SetContains(string key, string value)
         {
             var result = Get<List<object>>(key);
             return new DefaultResult<bool>
@@ -4022,6 +4018,133 @@ namespace Couchbase
                 Success = false,
                 Exception = new TimeoutException(),
                 Message = "Timed out waiting for CAS resolution."
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <returns></returns>
+        public IResult QueuePush<T>(string key, T value, bool createQueue = true)
+        {
+            var appendResult = MutateIn<List<T>>(key).ArrayAppend(value).Execute();
+            if (appendResult.Success)
+            {
+                return new DefaultResult
+                {
+                    Success = true
+                };
+            }
+
+            if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
+            {
+                var insertResult = Insert(key, new List<T> {value});
+                if (insertResult.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = true
+                    };
+                }
+
+                if (insertResult.Exception is DocumentAlreadyExistsException)
+                {
+                    return QueuePush(key, value);
+                }
+
+                return new DefaultResult
+                {
+                    Success = false,
+                    Exception = insertResult.Exception,
+                    Message = insertResult.Message
+                };
+            }
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = appendResult.Exception,
+                Message = appendResult.Message
+            };
+        }
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
+        public IResult<T> QueuePop<T>(string key)
+        {
+            DefaultResult<T> result = null;
+            var attempts = 0;
+
+            while (attempts++ < 10)
+            {
+                var getResult = Get<List<T>>(key);
+                if (!getResult.Success)
+                {
+                    result = new DefaultResult<T>
+                    {
+                        Success = false,
+                        Message = getResult.Message,
+                        Exception = getResult.Exception
+                    };
+                    break;
+                }
+
+                if (!getResult.Value.Any())
+                {
+                    result = new DefaultResult<T>
+                    {
+                        Success = false,
+                        Message = "No items in queue"
+                    };
+                    break;
+                }
+
+                var item = getResult.Value.First();
+                var mutateResult = MutateIn<List<T>>(key)
+                    .Remove("[-1]")
+                    .WithCas(getResult.Cas)
+                    .Execute();
+
+                if (!mutateResult.Success && mutateResult.Exception is CasMismatchException)
+                {
+                    continue;
+                }
+
+                result = new DefaultResult<T>
+                {
+                    Success = mutateResult.Success,
+                    Message = mutateResult.Message,
+                    Exception = mutateResult.Exception,
+                    Value = mutateResult.Success ? item : default(T)
+                };
+                break;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        /// <returns>An <see cref="IResult{T}"/> with the operation result.</returns>
+        public IResult<int> QueueSize(string key)
+        {
+            var result = Get<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Message = result.Message,
+                Exception = result.Exception,
+                Value = result.Success ? result.Value.Count : 0
             };
         }
 
@@ -4336,6 +4459,132 @@ namespace Couchbase
                 Success = false,
                 Exception = new TimeoutException(),
                 Message = "Timed out waiting for CAS resolution."
+            };
+        }
+
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <returns></returns>
+        public async Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue = true)
+        {
+            var appendResult = await MutateIn<List<T>>(key).ArrayAppend(value).ExecuteAsync();
+            if (appendResult.Success)
+            {
+                return new DefaultResult
+                {
+                    Success = true
+                };
+            }
+
+            if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
+            {
+                var insertResult = await InsertAsync(key, new List<T> { value });
+                if (insertResult.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = true
+                    };
+                }
+
+                if (insertResult.Exception is DocumentAlreadyExistsException)
+                {
+                    return await QueuePushAsync(key, value);
+                }
+
+                return new DefaultResult
+                {
+                    Success = false,
+                    Exception = insertResult.Exception,
+                    Message = insertResult.Message
+                };
+            }
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = appendResult.Exception,
+                Message = appendResult.Message
+            };
+        }
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
+        public async Task<IResult<T>> QueuePopAsync<T>(string key)
+        {
+            DefaultResult<T> result = null;
+            var attempts = 0;
+
+            while (attempts++ < 10)
+            {
+                var getResult = await GetAsync<List<T>>(key);
+                if (!getResult.Success)
+                {
+                    result = new DefaultResult<T>
+                    {
+                        Success = false,
+                        Message = getResult.Message,
+                        Exception = getResult.Exception
+                    };
+                    break;
+                }
+
+                if (!getResult.Value.Any())
+                {
+                    result = new DefaultResult<T>
+                    {
+                        Success = false,
+                        Message = "No items in queue"
+                    };
+                    break;
+                }
+
+                var item = getResult.Value.First();
+                var mutateResult = await MutateIn<List<T>>(key)
+                    .Remove("[-1]")
+                    .WithCas(getResult.Cas)
+                    .ExecuteAsync();
+
+                if (!mutateResult.Success && mutateResult.Exception is CasMismatchException)
+                {
+                    continue;
+                }
+
+                result = new DefaultResult<T>
+                {
+                    Success = mutateResult.Success,
+                    Message = mutateResult.Message,
+                    Exception = mutateResult.Exception,
+                    Value = mutateResult.Success ? item : default(T)
+                };
+                break;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        public async Task<IResult<int>> QueueSizeAsync(string key)
+        {
+            var result = await GetAsync<List<object>>(key);
+            return new DefaultResult<int>
+            {
+                Success = result.Success,
+                Message = result.Message,
+                Exception = result.Exception,
+                Value = result.Success ? result.Value.Count : 0
             };
         }
 

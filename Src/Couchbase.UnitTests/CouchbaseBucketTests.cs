@@ -1,20 +1,11 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Authentication;
-using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
-using Couchbase.Utils;
-using Couchbase.Views;
-using Newtonsoft.Json;
 using NUnit.Framework;
 using Moq;
 
@@ -385,6 +376,82 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region DataStructures
+
+        [Test]
+        public void QueueSize_Returns_Size_If_Document_Exists()
+        {
+            var items = new List<object> { 1, 2, 3 };
+            var mockExecutor = new Mock<IRequestExecuter>();
+            mockExecutor.Setup(x => x.SendWithRetry(It.IsAny<Get<List<object>>>()))
+                .Returns(new OperationResult<List<object>> { Success = true, Value = items })
+                .Verifiable();
+
+            var bucket = new CouchbaseBucket(mockExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+
+            var result = bucket.QueueSize("my_queue");
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(items.Count, result.Value);
+            mockExecutor.Verify();
+        }
+
+        [Test]
+        public void QueueSize_Returns_Error_Result_If_Document_Does_Not_Exists()
+        {
+            var mockExecutor = new Mock<IRequestExecuter>();
+            mockExecutor.Setup(x => x.SendWithRetry(It.IsAny<Get<List<object>>>()))
+                .Returns(new OperationResult<List<object>> { Success = false })
+                .Verifiable();
+
+            var bucket = new CouchbaseBucket(mockExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+
+            var result = bucket.QueueSize("my_queue");
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+            mockExecutor.Verify();
+        }
+
+        [Test]
+        public async Task QueueSizeAsync_Returns_Size_If_Document_Exists()
+        {
+            var items = new List<object> { 1, 2, 3 };
+            var mockExecutor = new Mock<IRequestExecuter>();
+            mockExecutor.Setup(x => x.SendWithRetryAsync(It.IsAny<Get<List<object>>>(), null, null))
+                .ReturnsAsync(new OperationResult<List<object>> { Success = true, Value = items })
+                .Verifiable();
+
+            var bucket = new CouchbaseBucket(mockExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+
+            var result = await bucket.QueueSizeAsync("my_queue");
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(items.Count, result.Value);
+            mockExecutor.Verify();
+        }
+
+        [Test]
+        public async Task QueueSizeAsync_Returns_Error_Result_If_Document_Does_Not_Exists()
+        {
+            var mockExecutor = new Mock<IRequestExecuter>();
+            mockExecutor.Setup(x => x.SendWithRetryAsync(It.IsAny<Get<List<object>>>(), null, null))
+                .ReturnsAsync(new OperationResult<List<object>> { Success = false })
+                .Verifiable();
+
+            var bucket = new CouchbaseBucket(mockExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+
+            var result = await bucket.QueueSizeAsync("my_queue");
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+
+            mockExecutor.Verify();
+        }
+
+        #endregion
     }
 }
 

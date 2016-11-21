@@ -984,7 +984,6 @@ namespace Couchbase.Core
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
         /// <param name="replicateTo"></param>
-        /// <param name="persistTo"></param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo);
 
@@ -1501,7 +1500,7 @@ namespace Couchbase.Core
         IOperationResult Unlock(string key, ulong cas);
 
         /// <summary>
-        /// Unlocks a key that was locked with <see cref="GetAndLock{T}"/> as an asynchronous operation.
+        /// Unlocks a key that was locked with <see cref="GetAndLockAsync{T}"/> as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key of the document to unlock.</param>
         /// <param name="cas">The 'check and set' value to use as a comparison</param>
@@ -1951,7 +1950,7 @@ namespace Couchbase.Core
         /// <param name="value">The value.</param>
         /// <param name="createList">If set to <c>true</c> [create list].</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        IResult ListPush(string key, object value, bool createList);
+        IResult ListAppend(string key, object value, bool createList);
 
         /// <summary>
         /// Pushes a value to the front of a JSON array within a document.
@@ -1960,7 +1959,7 @@ namespace Couchbase.Core
         /// <param name="value">The value.</param>
         /// <param name="createList">If set to <c>true</c> [create list].</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        IResult ListShift(string key, object value, bool createList);
+        IResult ListPrepend(string key, object value, bool createList);
 
         /// <summary>
         /// Deletes a value at a given index with a JSON document.
@@ -1968,7 +1967,7 @@ namespace Couchbase.Core
         /// <param name="key">The key.</param>
         /// <param name="index">The index.</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        IResult ListDelete(string key, int index);
+        IResult ListRemove(string key, int index);
 
         /// <summary>
         /// Adds a value to an array within a JSON document at a given index.
@@ -2001,7 +2000,7 @@ namespace Couchbase.Core
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <returns>A <see cref="IResult{boolean}"/> with the operation result.</returns>
-        IResult<bool> SetExists(string key, string value);
+        IResult<bool> SetContains(string key, string value);
 
         /// <summary>
         /// Gets the size of a set within a JSON document.
@@ -2017,6 +2016,31 @@ namespace Couchbase.Core
         /// <param name="value">The value.</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
         IResult SetRemove<T>(string key, T value);
+
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <returns></returns>
+        IResult QueuePush<T>(string key, T value, bool createQueue);
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
+        IResult<T> QueuePop<T>(string key);
+
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        /// <returns>An <see cref="IResult{T}"/> with the operation result.</returns>
+        IResult<int> QueueSize(string key);
 
         /// <summary>
         /// Gets the value for a given key from a hashmap within a JSON document asynchronously.
@@ -2135,6 +2159,29 @@ namespace Couchbase.Core
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
         Task<IResult> SetRemoveAsync<T>(string key, T value);
 
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <returns></returns>
+        Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue);
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
+        Task<IResult<T>> QueuePopAsync<T>(string key);
+
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        Task<IResult<int>> QueueSizeAsync(string key);
     }
 }
 

@@ -2584,17 +2584,17 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult ListPush(string key, object value, bool createList)
+        public IResult ListAppend(string key, object value, bool createList)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult ListShift(string key, object value, bool createList)
+        public IResult ListPrepend(string key, object value, bool createList)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult ListDelete(string key, int index)
+        public IResult ListRemove(string key, int index)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -2614,7 +2614,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public IResult<bool> SetExists(string key, string value)
+        public IResult<bool> SetContains(string key, string value)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -2625,6 +2625,21 @@ namespace Couchbase
         }
 
         public IResult SetRemove<T>(string key, T value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult QueuePush<T>(string key, T value, bool createQueue)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<T> QueuePop<T>(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IResult<int> QueueSize(string key)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -2695,6 +2710,21 @@ namespace Couchbase
         }
 
         public Task<IResult> SetRemoveAsync<T>(string key, T value)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<T>> QueuePopAsync<T>(string key)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public Task<IResult<int>> QueueSizeAsync(string key)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

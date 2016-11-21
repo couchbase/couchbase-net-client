@@ -1,7 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO.Converters;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -202,7 +208,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = _bucket.ListPush(key, "name2", true);
+            var result = _bucket.ListAppend(key, "name2", true);
 
             //assert
             Assert.IsTrue(result.Success);
@@ -236,7 +242,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = _bucket.ListShift(key, "name2", true);
+            var result = _bucket.ListPrepend(key, "name2", true);
 
             //assert
             Assert.IsTrue(result.Success);
@@ -270,7 +276,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = _bucket.ListDelete(key, 1);
+            var result = _bucket.ListRemove(key, 1);
 
             //assert
             Assert.IsTrue(result.Success);
@@ -371,7 +377,7 @@ namespace Couchbase.IntegrationTests
 
             const string key = "Test_SetAddAsync";
             _bucket.Remove(key);
-            _bucket.Insert(key, new List<string> { "name", "value" });
+            //_bucket.Insert(key, new List<string> { "name", "value" });
 
             //act
             var result = await _bucket.SetAddAsync(key, "value2", true);
@@ -408,7 +414,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, new List<string> { "name", "value", "value2" });
 
             //act
-            var result = _bucket.SetExists(key, "value");
+            var result = _bucket.SetContains(key, "value");
 
             //assert
             Assert.IsTrue(result.Success);
@@ -498,6 +504,251 @@ namespace Couchbase.IntegrationTests
             //assert
             Assert.IsTrue(result.Success);
         }
+
+        [Test]
+        public async Task QueuePushAsync_Returns_Success_When_Adding_Item_To_Existing_Queue()
+        {
+            Setup(true);
+
+            const string key = "QueuePushAsync_Returns_Success_When_Adding_Item_To_Existing_Queue";
+            await _bucket.UpsertAsync(key, new List<Poco1>());
+
+            var bob = new Poco1 {Name = "Bob", Items = new List<string> {"Red", "Orange"}};
+            var result = await _bucket.QueuePushAsync(key, bob, true);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var queue = await _bucket.GetAsync<List<Poco1>>(key);
+            Assert.IsNotNull(queue.Value);
+            Assert.AreEqual(1, queue.Value.Count);
+
+            var item = queue.Value.First();
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+        }
+
+        [Test]
+        public async Task QueuePushAsync_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True()
+        {
+            Setup(true);
+
+            const string key = "QueuePushAsync_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True";
+            await _bucket.RemoveAsync(key);
+
+            var bob = new Poco1 {Name = "Bob", Items = new List<string> {"Red", "Orange"}};
+            var result = await _bucket.QueuePushAsync(key, bob, true);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var queue = await _bucket.GetAsync<List<Poco1>>(key);
+            Assert.IsNotNull(queue.Value);
+            Assert.AreEqual(1, queue.Value.Count);
+
+            var item = queue.Value.First();
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+        }
+
+        [Test]
+        public async Task QueuePushAsync_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False()
+        {
+            Setup(true);
+
+            const string key = "QueuePushAsync_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False";
+            await _bucket.RemoveAsync(key);
+
+            var bob = new Poco1 {Name = "Bob", Items = new List<string> {"Red", "Orange"}};
+            var result = await _bucket.QueuePushAsync(key, bob, false);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+
+            var queue = await _bucket.GetAsync<List<Poco1>>(key);
+            Assert.IsFalse(queue.Success);
+            Assert.IsNull(queue.Value);
+        }
+
+        [Test]
+        public async Task QueuePopAsync_Returns_Item_From_Front_Of_Queue()
+        {
+            Setup(true);
+
+            const string key = "QueuePopAsync_Returns_Item_From_Front_Of_Queue";
+            var bob = new Poco1 {Name = "Bob", Items = new List<string> {"Red", "Orange"}};
+            var mary = new Poco1 {Name = "Mary", Items = new List<string> {"Pink", "Purple"}};
+
+            await _bucket.UpsertAsync(key, new List<Poco1> {bob, mary});
+
+            // Ensure there are two items
+            var queue = await _bucket.GetAsync<List<Poco1>>(key);
+            Assert.IsNotNull(queue);
+            Assert.AreEqual(2, queue.Value.Count);
+
+            var result = await _bucket.QueuePopAsync<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var item = result.Value;
+            Assert.IsNotNull(item);
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+
+            // Now there should be two items
+            queue = await _bucket.GetAsync<List<Poco1>>(key);
+            Assert.IsNotNull(queue);
+            Assert.AreEqual(1, queue.Value.Count);
+        }
+
+        [Test]
+        public async Task QueuePopAsync_Returns_Failure_If_Document_Doesnt_Exist()
+        {
+            Setup(true);
+
+            const string key = "QueuePopAsync_Returns_Failure_If_Document_Doesnt_Exist";
+            await _bucket.RemoveAsync(key);
+
+            var result = await _bucket.QueuePopAsync<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+        }
+
+        [Test]
+        public async Task QueuePopAsync_Returns_Failures_If_Document_Has_No_Items()
+        {
+            Setup(true);
+
+            const string key = "QueuePopAsync_Returns_Failures_If_Document_Has_No_Items";
+            await _bucket.UpsertAsync(key, new List<Poco1>());
+
+            var result = await _bucket.QueuePopAsync<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+        }
+
+        [Test]
+        public void QueuePush_Returns_Success_When_Adding_Item_To_Existing_Queue()
+        {
+            Setup(true);
+
+            const string key = "QueuePush_Returns_Success_When_Adding_Item_To_Existing_Queue";
+            _bucket.Upsert(key, new List<Poco1>());
+
+            var bob = new Poco1 { Name = "Bob", Items = new List<string> { "Red", "Orange" } };
+            var result = _bucket.QueuePush(key, bob, true);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var queue = _bucket.Get<List<Poco1>>(key);
+            Assert.IsNotNull(queue.Value);
+            Assert.AreEqual(1, queue.Value.Count);
+
+            var item = queue.Value.First();
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+        }
+
+        [Test]
+        public void QueuePush_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True()
+        {
+            Setup(true);
+
+            const string key = "QueuePush_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True";
+            _bucket.Remove(key);
+
+            var bob = new Poco1 { Name = "Bob", Items = new List<string> { "Red", "Orange" } };
+            var result = _bucket.QueuePush(key, bob, true);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var queue = _bucket.Get<List<Poco1>>(key);
+            Assert.IsNotNull(queue.Value);
+            Assert.AreEqual(1, queue.Value.Count);
+
+            var item = queue.Value.First();
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+        }
+
+        [Test]
+        public void QueuePush_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False()
+        {
+            Setup(true);
+
+            const string key = "QueuePush_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False";
+            _bucket.Remove(key);
+
+            var bob = new Poco1 { Name = "Bob", Items = new List<string> { "Red", "Orange" } };
+            var result = _bucket.QueuePush(key, bob, false);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+
+            var queue = _bucket.Get<List<Poco1>>(key);
+            Assert.IsFalse(queue.Success);
+            Assert.IsNull(queue.Value);
+        }
+
+        [Test]
+        public void QueuePop_Returns_Item_From_Front_Of_Queue()
+        {
+            Setup(true);
+
+            const string key = "QueuePop_Returns_Item_From_Front_Of_Queue";
+            var bob = new Poco1 { Name = "Bob", Items = new List<string> { "Red", "Orange" } };
+            var mary = new Poco1 { Name = "Mary", Items = new List<string> { "Pink", "Purple" } };
+
+            _bucket.Upsert(key, new List<Poco1> { bob, mary });
+
+            // Ensure there are two items
+            var queue = _bucket.Get<List<Poco1>>(key).Value;
+            Assert.IsNotNull(queue);
+            Assert.AreEqual(2, queue.Count);
+
+            var result = _bucket.QueuePop<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Success);
+
+            var item = result.Value;
+            Assert.IsNotNull(item);
+            Assert.AreEqual(bob.Name, item.Name);
+            CollectionAssert.AreEqual(bob.Items, item.Items);
+
+            // Now there should be two items
+            queue = _bucket.Get<List<Poco1>>(key).Value;
+            Assert.IsNotNull(queue);
+            Assert.AreEqual(1, queue.Count);
+        }
+
+        [Test]
+        public void QueuePop_Returns_Failure_If_Document_Doesnt_Exist()
+        {
+            Setup(true);
+
+            const string key = "QueuePop_Returns_Failure_If_Document_Doesnt_Exist";
+            _bucket.Remove(key);
+
+            var result = _bucket.QueuePop<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+        }
+
+        [Test]
+        public void QueuePop_Returns_Failures_If_Document_Has_No_Items()
+        {
+            Setup(true);
+
+            const string key = "QueuePop_Returns_Failures_If_Document_Has_No_Items";
+            _bucket.Upsert(key, new List<Poco1>());
+
+            var result = _bucket.QueuePop<Poco1>(key);
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.Success);
+        }
+
 
         [TearDown]
         public void OneTimeTearDown()
