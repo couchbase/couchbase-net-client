@@ -197,26 +197,17 @@ namespace Couchbase.N1QL
         /// </summary>
         internal static bool CheckRetry<T>(IQueryRequest request, IQueryResult<T> result)
         {
-            if (request.IsAdHoc || request.HasBeenRetried)
+            if (result.Success || request.IsAdHoc || request.HasBeenRetried)
             {
                 return false;
             }
 
-            if (!result.Success)
-            {
-                //look at N1QL errors
-                // ReSharper disable once LoopCanBeConvertedToQuery
-                foreach (var error in result.Errors)
-                {
-                    if (error.Code == (int)ErrorPrepared.Unrecognized || error.Code == (int)ErrorPrepared.UnableToDecode ||
-                        (error.Code == (int)ErrorPrepared.Generic &&
-                            error.Message != null && error.Message.Contains(ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND)))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return result.Errors.Any(error =>
+                    error.Code == (int) ErrorPrepared.Unrecognized ||
+                    error.Code == (int) ErrorPrepared.UnableToDecode ||
+                    error.Code == (int) ErrorPrepared.IndexNotFound ||
+                    (error.Code == (int) ErrorPrepared.Generic && error.Message != null && error.Message.Contains(ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND))
+            );
         }
 
         private IQueryResult<T> Retry<T>(IQueryRequest queryRequest)

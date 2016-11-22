@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Couchbase
+﻿namespace Couchbase
 {
     /// <summary>
     /// An enum listing the N1QL codes that should trigger a retry for non adhoc queries.
@@ -11,7 +9,7 @@ namespace Couchbase
     {
         Unrecognized = 4050,
         UnableToDecode = 4070,
-        Generic = 5000
+        Generic = 5000,
+        IndexNotFound = 12016
     }
 }
-

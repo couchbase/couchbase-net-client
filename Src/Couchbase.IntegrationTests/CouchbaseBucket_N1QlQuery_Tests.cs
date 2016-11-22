@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.IO;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using Moq;
 using NUnit.Framework;
@@ -16,6 +12,7 @@ using NUnit.Framework;
 namespace Couchbase.IntegrationTests
 {
     [TestFixture]
+    // ReSharper disable once InconsistentNaming
     public class CouchbaseBucket_N1QlQuery_Tests
     {
         private ICluster _cluster;
@@ -160,6 +157,29 @@ namespace Couchbase.IntegrationTests
                 //assert
                 Assert.IsTrue(typeof(StreamingQueryResult<dynamic>) == result.GetType());
             }
+        }
+
+        [Test(Description = "Simulates creating an index, executing a non-adhoc query so a client side query plan is created, drop the index, " +
+                            "execute another query and have the client recognise the index is not longer available so it recreates a query plan. " +
+                            "Results can be seen in a HTTP debugger." +
+                            "NOTE: it's not currently possible to mock this because the HTTP Client is used directly in QueryClient")]
+        public async Task Should_Reprepare_Query_If_Not_Adhoc_And_Receive_IndexNotFound()
+        {
+            var request = QueryRequest.Create("SELECT META().id FROM `default` WHERE name = $1 OFFSET 0 LIMIT 20;")
+                .AddPositionalParameter(new object[] { "Bob" })
+                .AdHoc(false);
+
+            const string indexName = "test-index";
+            var manager = _bucket.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+            await manager.CreateN1qlIndexAsync(indexName, false, new [] { "name"});
+            await manager.WatchN1qlIndexesAsync(new List<string> {indexName}, TimeSpan.FromSeconds(10));
+            var result1 = await _bucket.QueryAsync<dynamic>(request);
+            Assert.IsTrue(result1.Success);
+
+            await manager.DropN1qlIndexAsync(indexName);
+            var result2 = await _bucket.QueryAsync<dynamic>(request);
+            Assert.IsTrue(result2.Success);
         }
 
         [OneTimeTearDown]
