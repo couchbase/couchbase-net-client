@@ -88,39 +88,31 @@ namespace Couchbase
         /// cached instance.
         /// </summary>
         /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <param name="password"></param>
         /// <returns>An <see cref="IBucket"/>instance</returns>
         /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
-        public static IBucket GetBucket(string bucketName)
+        public static IBucket GetBucket(string bucketName, string password = null)
         {
+            if (_instance == null)
+            {
+                throw new InitializationException("Call Cluster.Initialize() before calling this method.");
+            }
             return Buckets.GetOrAdd(bucketName, (name =>
             {
                 var cluster = _instance.Value;
-                //try to find a password in configuration
-                BucketConfiguration bucketConfig;
-                if (cluster.Configuration.BucketConfigs.TryGetValue(name, out bucketConfig)
-                    && bucketConfig.Password != null)
-                {
-                    return cluster.OpenBucket(name, bucketConfig.Password);
-                }
-                return cluster.OpenBucket(name);
-            }));
-        }
 
-        /// <summary>
-        /// Opens or gets <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
-        /// The <see cref="IBucket"/> will be cached and subsquent requests for a <see cref="IBucket"/> of the same name will return the
-        /// cached instance.
-        /// </summary>
-        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
-        /// <param name="password">The password if required by the bucket instance.</param>
-        /// <returns>An <see cref="IBucket"/>instance</returns>
-        public static IBucket GetBucket(string bucketName, string password)
-        {
-            return Buckets.GetOrAdd(bucketName, (name =>
-            {
-                var cluster = _instance.Value;
-                var bucket = cluster.OpenBucket(name, password);
-                return bucket;
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    //try to find a password in configuration
+                    BucketConfiguration bucketConfig;
+                    if (cluster.Configuration.BucketConfigs.TryGetValue(name, out bucketConfig)
+                        && bucketConfig.Password != null)
+                    {
+                        return cluster.OpenBucket(name, bucketConfig.Password);
+                    }
+                    return cluster.OpenBucket(name);
+                }
+                return cluster.OpenBucket(name, password);
             }));
         }
 

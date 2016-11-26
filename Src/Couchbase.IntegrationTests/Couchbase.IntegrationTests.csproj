@@ -132,6 +132,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Collections\CouchbaseDictionaryTests.cs" />
     <Compile Include="Collections\CouchbaseListTests.cs" />
     <Compile Include="Collections\CouchbaseQueueTests.cs" />
