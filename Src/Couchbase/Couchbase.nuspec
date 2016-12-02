@@ -2,8 +2,8 @@
 <package >
   <metadata>
     <id>CouchbaseNetClient</id>
-    <version>2.3.0</version>
-    <title>$title$</title>
+    <version>$version$</version>
+    <title>Couchbase SDK 2.3</title>
     <authors>Couchbase, Inc.</authors>
     <owners>Couchbase, Inc.</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
@@ -16,9 +16,15 @@
     <tags>Couchbase nosql JSON database</tags>
     <dependencies>
       <group>
-        <dependency id="Newtonsoft.Json" version="6.0.8"/>
+        <dependency id="Newtonsoft.Json" version="8.0.3"/>
         <dependency id="Common.Logging" version="3.3.1"/>
       </group>
     </dependencies>
   </metadata>
+  <files>
+    <file src="bin\Release\Couchbase.dll" target="lib\netstandard1.5\Couchbase.dll" />
+    <file src="bin\Release\Couchbase.xml" target="lib\netstandard1.5\Couchbase.xml" />
+    <file src="bin\Release\Couchbase.dll" target="lib\net45\Couchbase.dll" />
+    <file src="bin\Release\Couchbase.xml" target="lib\net45\Couchbase.xml" />
+  </files>
 </package>

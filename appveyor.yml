@@ -1,0 +1,43 @@
+version: 2.3.10.{build}
+configuration: Release
+init:
+- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+environment:
+#  NugetApiKey:
+#    secure:
+  SnkSecret:
+    secure: Mpa4faeUiC2uggKSC5ZgiA==
+install:
+- ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
+- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { nuget install secure-file -ExcludeVersion }
+before_build:
+- ps: nuget restore
+- ps: >-
+    if ($env:APPVEYOR_REPO_TAG -eq "true") {
+      .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\src\Couchbase\Couchbase.snk
+      Get-Content .\src\Couchbase\Properties\AssemblyInfo.cs | Where { $_ -notmatch "^\[assembly: InternalsVisibleTo" } | out-file .\src\Couchbase\Properties\AssemblyInfo.cs
+      Add-Content .\src\Couchbase\Properties\AssemblyInfo.cs '[assembly: AssemblyKeyFile("Couchbase.snk")]'
+    }
+build:
+  verbosity: normal
+test:
+  assemblies:
+    - 'Couchbase.UnitTests.dll'
+before_deploy:
+- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION" }
+- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Compress-Archive -CompressionLevel Optimal -Path .\src\Couchbase\bin\Release\* -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip }
+- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Push-AppveyorArtifact Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip }
+deploy:
+- provider: GitHub
+  auth_token:
+    secure: SKZPuqPpuYCGDlPa2hEJ6NmjNBWJ9J60/kM7Y5cEtvm3EHrYX5j3VhV2KV5os5gA
+  on:
+    appveyor_repo_tag: true
+# after_deploy:
+# - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { nuget push *.nupkg $env:NugetApiKey -Source https://www.nuget.org/api/v2/package }
