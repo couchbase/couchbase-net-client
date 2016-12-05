@@ -2669,17 +2669,17 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IResult> ListPushAsync(string key, object value, bool createList)
+        public Task<IResult> ListAppendAsync(string key, object value, bool createList)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IResult> ListShiftAsync(string key, object value, bool createList)
+        public Task<IResult> ListPrependAsync(string key, object value, bool createList)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IResult> ListDeleteAsync(string key, int index)
+        public Task<IResult> ListRemoveAsync(string key, int index)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
@@ -2699,7 +2699,7 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
-        public Task<IResult<bool>> SetExistsAsync(string key, string value)
+        public Task<IResult<bool>> SetContainsAsync(string key, string value)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

@@ -3807,7 +3807,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Pushes a value to the back of a JSON array within a document.
+        /// Appends a value to the back of a JSON array within a document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -3827,7 +3827,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Pushes a value to the front of a JSON array within a document.
+        /// Prepends a value to the front of a JSON array within a document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -3847,7 +3847,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Deletes a value at a given index with a JSON document.
+        /// Removes a value at a given index with a JSON document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="index">The index.</param>
@@ -3925,7 +3925,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Checks for the existence of a value in a set within a JSON document.
+        /// Checks if a set contains a given value within a JSON document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -4250,7 +4250,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Pushes a value to the back of a JSON array within a document asynchronously.
+        /// Appends a value to the back of a JSON array within a document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -4258,7 +4258,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListPushAsync(string key, object value, bool createList)
+        public async Task<IResult> ListAppendAsync(string key, object value, bool createList)
         {
             var result = await MutateIn<object>(key).ArrayAppend(value, createList).ExecuteAsync();
             return new DefaultResult
@@ -4270,7 +4270,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Pushes a value to the front of a JSON array within a document asynchronously.
+        /// Prepends a value to the front of a JSON array within a document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -4278,7 +4278,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListShiftAsync(string key, object value, bool createList)
+        public async Task<IResult> ListPrependAsync(string key, object value, bool createList)
         {
             var result = await MutateIn<object>(key).ArrayPrepend(value, createList).ExecuteAsync();
             return new DefaultResult
@@ -4290,14 +4290,14 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Deletes a value at a given index with a JSON document asynchronously.
+        /// Removes a value at a given index with a JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="index">The index.</param>
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListDeleteAsync(string key, int index)
+        public async Task<IResult> ListRemoveAsync(string key, int index)
         {
             var result = await MutateIn<object>(key).Remove(string.Format("[{0}]", index)).ExecuteAsync();
             return new DefaultResult
@@ -4368,14 +4368,14 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Checks for the existence of a value in a set within a JSON document asynchronously.
+        /// Checks if a set contains a given value within a JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <returns>
         /// A <see cref="IResult{boolean}" /> with the operation result.
         /// </returns>
-        public async Task<IResult<bool>> SetExistsAsync(string key, string value)
+        public async Task<IResult<bool>> SetContainsAsync(string key, string value)
         {
             var result = await GetAsync<List<object>>(key);
             return new DefaultResult<bool>

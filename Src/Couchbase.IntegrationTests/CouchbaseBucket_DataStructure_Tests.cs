@@ -198,12 +198,12 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void Test_ListPush()
+        public void Test_ListAppend()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_ListPush";
+            const string key = "Test_ListAppend";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
@@ -215,29 +215,29 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async Task Test_ListPushAsync()
+        public async Task Test_ListAppendAsync()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_ListPushAsync";
+            const string key = "Test_ListAppendAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = await _bucket.ListPushAsync(key, "name2", true);
+            var result = await _bucket.ListAppendAsync(key, "name2", true);
 
             //assert
             Assert.IsTrue(result.Success);
         }
 
         [Test]
-        public void Test_ListShift()
+        public void Test_ListPrepend()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_ListShift";
+            const string key = "Test_ListPrepend";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
@@ -249,29 +249,29 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async Task Test_ListShiftAsync()
+        public async Task Test_ListPrependAsync()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_ListShiftAsync";
+            const string key = "Test_ListPrependAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = await _bucket.ListShiftAsync(key, "name2", true);
+            var result = await _bucket.ListPrependAsync(key, "name2", true);
 
             //assert
             Assert.IsTrue(result.Success);
         }
 
         [Test]
-        public void Test_ListDelete()
+        public void Test_ListRemove()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_ListDelete";
+            const string key = "Test_ListRemove";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
@@ -283,7 +283,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async Task Test_ListDeleteASync()
+        public async Task Test_ListRemoveASync()
         {
             //arrange
             Setup(true);
@@ -293,7 +293,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Insert(key, new List<string> { "foo", "bar" });
 
             //act
-            var result = await _bucket.ListDeleteAsync(key, 1);
+            var result = await _bucket.ListRemoveAsync(key, 1);
 
             //assert
             Assert.IsTrue(result.Success);
@@ -404,12 +404,12 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void Test_SetExists()
+        public void Test_SetContains()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_SetExists";
+            const string key = "Test_SetContains";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value", "value2" });
 
@@ -421,17 +421,17 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public async Task Test_SetExistsAsync()
+        public async Task Test_SetContainsAsync()
         {
             //arrange
             Setup(true);
 
-            const string key = "Test_SetExistsAsync";
+            const string key = "Test_SetContainsAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value", "value2" });
 
             //act
-            var result = await _bucket.SetExistsAsync(key, "value");
+            var result = await _bucket.SetContainsAsync(key, "value");
 
             //assert
             Assert.IsTrue(result.Success);

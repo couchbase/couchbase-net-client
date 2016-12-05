@@ -1944,7 +1944,7 @@ namespace Couchbase.Core
         IResult<TContent> ListGet<TContent>(string key, int index);
 
         /// <summary>
-        /// Pushes a value to the back of a JSON array within a document.
+        /// Appends a value to the back of a JSON array within a document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -1953,7 +1953,7 @@ namespace Couchbase.Core
         IResult ListAppend(string key, object value, bool createList);
 
         /// <summary>
-        /// Pushes a value to the front of a JSON array within a document.
+        /// Prepends a value to the front of a JSON array within a document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -1962,7 +1962,7 @@ namespace Couchbase.Core
         IResult ListPrepend(string key, object value, bool createList);
 
         /// <summary>
-        /// Deletes a value at a given index with a JSON document.
+        /// Removes a value at a given index with a JSON document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="index">The index.</param>
@@ -1995,7 +1995,7 @@ namespace Couchbase.Core
         IResult SetAdd(string key, string value, bool createSet);
 
         /// <summary>
-        /// Checks for the existence of a value in a set within a JSON document.
+        /// Checks if a set contains a given value within a JSON document.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -2086,30 +2086,30 @@ namespace Couchbase.Core
         Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index);
 
         /// <summary>
-        /// Pushes a value to the back of a JSON array within a document asynchronously.
+        /// Appends a value to the back of a JSON array within a document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <param name="createList">If set to <c>true</c> [create list].</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        Task<IResult> ListPushAsync(string key, object value, bool createList);
+        Task<IResult> ListAppendAsync(string key, object value, bool createList);
 
         /// <summary>
-        /// Pushes a value to the front of a JSON array within a document asynchronously.
+        /// Prepends a value to the front of a JSON array within a document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <param name="createList">If set to <c>true</c> [create list].</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        Task<IResult> ListShiftAsync(string key, object value, bool createList);
+        Task<IResult> ListPrependAsync(string key, object value, bool createList);
 
         /// <summary>
-        /// Deletes a value at a given index with a JSON document asynchronously.
+        /// Removes a value at a given index with a JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="index">The index.</param>
         /// <returns>A <see cref="IResult"/> with the operation result.</returns>
-        Task<IResult> ListDeleteAsync(string key, int index);
+        Task<IResult> ListRemoveAsync(string key, int index);
 
         /// <summary>
         /// Adds a value to an array within a JSON document at a given index asynchronously.
@@ -2137,12 +2137,12 @@ namespace Couchbase.Core
         Task<IResult> SetAddAsync(string key, string value, bool createSet);
 
         /// <summary>
-        /// Checks for the existence of a value in a set within a JSON document asynchronously.
+        /// Checks if a set contains a given value within a JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <returns>A <see cref="IResult{boolean}"/> with the operation result.</returns>
-        Task<IResult<bool>> SetExistsAsync(string key, string value);
+        Task<IResult<bool>> SetContainsAsync(string key, string value);
 
         /// <summary>
         /// Gets the size of a set within a JSON document asynchronously.
