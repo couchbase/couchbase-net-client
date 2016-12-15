@@ -377,7 +377,7 @@ namespace Couchbase.IntegrationTests
 
             const string key = "Test_SetAddAsync";
             _bucket.Remove(key);
-            //_bucket.Insert(key, new List<string> { "name", "value" });
+            _bucket.Insert(key, new List<string> { "name", "value" });
 
             //act
             var result = await _bucket.SetAddAsync(key, "value2", true);
