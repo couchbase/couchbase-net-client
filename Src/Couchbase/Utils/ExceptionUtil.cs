@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -64,6 +64,8 @@ namespace Couchbase.Utils
         public const string ServerResolverReturnedNoservers = "Did not find any servers using custom resolver '{0}'.";
 
         public const string StreamMustBeReadMsg = "Stream must be read via iteration before calling properties.";
+
+        public const string EmptyUriTryingSubmitN1qlQuery = "There was a problem retrieving a valid URI to submit the N1QL query to.";
 
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {

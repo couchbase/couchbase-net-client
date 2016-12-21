@@ -356,9 +356,17 @@ namespace Couchbase.N1QL
         /// <remarks>The format for the querying is JSON</remarks>
         protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
-            ApplyCredentials(queryRequest);
-            var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
+
+            var baseUri = ConfigContextBase.GetQueryUri();
+            if (string.IsNullOrWhiteSpace(baseUri.AbsoluteUri))
+            {
+                Log.ErrorFormat(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
+                ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery), queryResult);
+                return queryResult;
+            }
+
+            ApplyCredentials(queryRequest);
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try

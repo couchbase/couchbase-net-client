@@ -41,36 +41,17 @@ namespace Couchbase.Utils
             return list;
         }
 
-        public static T GetRandom<T>(this List<T> list)
-        {
-            T item;
-            var length = list.Count;
-            if (length > 0)
-            {
-                var index = Random.Next(length);
-                item = list[index];
-            }
-            else
-            {
-                item = default(T);
-            }
-            return item;
-        }
-
         public static T GetRandom<T>(this IEnumerable<T> list)
         {
-            T item;
+            var item = default(T);
+
             var enumerable = list as IList<T> ?? list.ToList();
-            var length = enumerable.Count();
-            if (length > 0)
+            if (enumerable.Any())
             {
-                var index = Random.Next(length);
+                var index = Random.Next(enumerable.Count);
                 item = enumerable[index];
             }
-            else
-            {
-                item = default(T);
-            }
+
             return item;
         }
 

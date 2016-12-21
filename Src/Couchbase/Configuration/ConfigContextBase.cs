@@ -68,7 +68,7 @@ namespace Couchbase.Configuration
 
         public static FailureCountingUri GetQueryUri()
         {
-            return QueryUris.Where(x=>x.IsHealthy(2)).GetRandom();
+            return QueryUris.Where(x => x.IsHealthy(2)).GetRandom();
         }
 
         public static FailureCountingUri GetSearchUri()
