@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security;
 
 namespace Couchbase.Views
 {
@@ -22,17 +21,17 @@ namespace Couchbase.Views
         /// <summary>
         /// The total number of rows.
         /// </summary>
-        public uint TotalRows { get; internal set; }
+        public virtual uint TotalRows { get; internal set; }
 
         /// <summary>
         /// The results of the query if successful as a <see cref="IEnumerable{T}"/>
         /// </summary>
-        public IEnumerable<ViewRow<T>> Rows { get; internal set; }
+        public virtual IEnumerable<ViewRow<T>> Rows { get; internal set; }
 
         /// <summary>
         /// Returns the value of each element within the <see cref="Rows"/> property as a <see cref="IEnumerable{T}"/>.
         /// </summary>
-        public IEnumerable<T> Values
+        public virtual IEnumerable<T> Values
         {
             get { return Rows.Select(x => x.Value); }
         }

@@ -1252,6 +1252,12 @@
     <Compile Include="..\Couchbase\Views\SpatialViewQuery.cs">
       <Link>Views\SpatialViewQuery.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Views\StreamingViewResult.cs">
+      <Link>Views\StreamingViewResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\StreamAlreadyReadException.cs">
+      <Link>Views\StreamingViewResult.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Views\ViewResult%27.cs">
       <Link>Views\ViewResult%27.cs</Link>
     </Compile>
@@ -1276,6 +1282,12 @@
     <Compile Include="..\Couchbase\Views\ViewClient.cs">
       <Link>Views\ViewClient.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Views\ViewClientBase.cs">
+      <Link>Views\ViewClientBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Views\StreamingViewClient.cs">
+      <Link>Views\StreamingViewClient.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Views\ViewQuery.cs">
       <Link>Views\ViewQuery.cs</Link>
     </Compile>
@@ -1295,7 +1307,7 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

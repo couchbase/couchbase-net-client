@@ -1,0 +1,44 @@
+﻿{
+  "rows": [
+    {
+      "key": [ "21st_amendment_brewery_cafe" ],
+      "value": 12
+    },
+    {
+      "key": [ "3_fonteinen_brouwerij_ambachtelijke_geuzestekerij" ],
+      "value": 3
+    },
+    {
+      "key": [ "357" ],
+      "value": 1
+    },
+    {
+      "key": [ "512_brewing_company" ],
+      "value": 9
+    },
+    {
+      "key": [ "aass_brewery" ],
+      "value": 6
+    },
+    {
+      "key": [ "abbaye_de_leffe" ],
+      "value": 3
+    },
+    {
+      "key": [ "abbaye_de_maredsous" ],
+      "value": 4
+    },
+    {
+      "key": [ "abbaye_notre_dame_du_st_remy" ],
+      "value": 4
+    },
+    {
+      "key": [ "abbey_wright_brewing_valley_inn" ],
+      "value": 1
+    },
+    {
+      "key": [ "aberdeen_brewing" ],
+      "value": 2
+    }
+  ]
+}

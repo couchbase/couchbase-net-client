@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Text;
-using Common.Logging;
 using Couchbase.Core;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -14,23 +13,19 @@ namespace Couchbase.Views
     public class ViewQuery : IViewQuery
     {
         private const string UriFormat = "{0}://{1}:{2}/{3}/";
-        private readonly static ILog Log = LogManager.GetLogger<ViewQuery>();
-        public const string CouchbaseApi = "couchBase";
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";
         public const string ViewMethod = "_view";
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
-        const string QueryArgPattern = "{0}={1}&";
+        public const string QueryArgPattern = "{0}={1}&";
         private const string DefaultHost = "http://localhost:8092/";
-        private const string DefaultSslHost = "https://localhost:18092/";
         private const uint DefaultPort = 8092;
         private const uint DefaultSslPort = 18092;
         private const string Http = "http";
         private const string Https = "https";
 
         private Uri _baseUri;
-        private string _bucketName;
         private string _designDoc;
         private string _viewName;
         private bool? _development;
@@ -92,7 +87,7 @@ namespace Couchbase.Views
         public ViewQuery(string bucketName, string designDoc, string viewName)
         {
             _baseUri = new Uri(DefaultHost);
-            _bucketName = bucketName;
+            BucketName = bucketName;
             _designDoc = designDoc;
             _viewName = viewName;
         }
@@ -120,7 +115,7 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Bucket(string name)
         {
-            _bucketName = name;
+            BucketName = name;
             return this;
         }
 
@@ -414,19 +409,34 @@ namespace Couchbase.Views
         }
 
         /// <summary>
+        /// Toogles the if query result to is to be streamed. This is useful for large result sets in that it limits the
+        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
+        /// </summary>
+        /// <param name="useStreaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
+        /// <returns>An IViewQueryable object for chaining</returns>
+        public IViewQueryable UseStreaming(bool useStreaming)
+        {
+            IsStreaming = useStreaming;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets a value indicating if the result should be streamed.
+        /// </summary>
+        /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
+        public bool IsStreaming { get; private set; }
+
+        /// <summary>
         /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
         /// </summary>
-        public string BucketName
-        {
-            get { return _bucketName; }
-        }
+        public string BucketName { get; private set; }
 
         /// <summary>
         /// JSON encodes the parameter and URI escapes the input parameter.
         /// </summary>
         /// <param name="parameter">The parameter to encode.</param>
         /// <returns>A JSON and URI escaped copy of the parameter.</returns>
-        static string EncodeParameter(object parameter)
+        private static string EncodeParameter(object parameter)
         {
             return Uri.EscapeDataString(JsonConvert.SerializeObject(parameter));
         }

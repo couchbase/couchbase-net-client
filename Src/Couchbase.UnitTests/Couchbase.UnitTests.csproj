@@ -143,6 +143,7 @@
     <Compile Include="SubDocumentAPITests.cs" />
     <Compile Include="Utils\ArrayExtensionsTests.cs" />
     <Compile Include="Utils\FakeHttpMessageHandler.cs" />
+    <Compile Include="Views\StreamingViewResultTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -161,6 +162,8 @@
     <EmbeddedResource Include="Data\success_1.json" />
     <EmbeddedResource Include="Data\success_5.json" />
     <EmbeddedResource Include="Data\with_escaped_quotes.json" />
+    <EmbeddedResource Include="Data\view_result.json" />
+    <EmbeddedResource Include="Data\view_result_with_reduce.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -477,6 +477,10 @@
     <Compile Include="Utils\UnsupportedAddressFamilyException.cs" />
     <Compile Include="Utils\UriExtensions.cs" />
     <Compile Include="Views\SpatialViewQuery.cs" />
+    <Compile Include="StreamAlreadyReadException.cs" />
+    <Compile Include="Views\StreamingViewClient.cs" />
+    <Compile Include="Views\StreamingViewResult.cs" />
+    <Compile Include="Views\ViewClientBase.cs" />
     <Compile Include="Views\ViewResult%27.cs" />
     <Compile Include="Views\Error.cs" />
     <Compile Include="Views\IDataMapper.cs" />

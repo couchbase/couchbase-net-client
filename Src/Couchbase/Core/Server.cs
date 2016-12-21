@@ -45,11 +45,12 @@ namespace Couchbase.Core
         // ReSharper disable once InconsistentNaming
         private DateTime _lastIOErrorCheckedTime;
         private readonly object _syncObj = new object();
-        private IQueryClient _streamingQueryClient;
+        private readonly IQueryClient _streamingQueryClient;
+        private readonly IViewClient _streamingViewClient;
 
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-            this(ioService, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+            this(ioService, null, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
@@ -57,6 +58,10 @@ namespace Couchbase.Core
             IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
                 this(ioService,
                     new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration)),
+                    new StreamingViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
                     }, new JsonDataMapper(clientConfiguration)),
@@ -76,7 +81,7 @@ namespace Couchbase.Core
         {
         }
 
-        public Server(IIOService ioService, IViewClient viewClient, IQueryClient queryClient, IQueryClient streamingQueryClient, ISearchClient searchClient,
+        public Server(IIOService ioService, IViewClient viewClient, IViewClient streamingViewClient, IQueryClient queryClient, IQueryClient streamingQueryClient, ISearchClient searchClient,
             INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
@@ -102,6 +107,7 @@ namespace Couchbase.Core
 
             //View and query clients
             ViewClient = viewClient;
+            _streamingViewClient = streamingViewClient;
             QueryClient = queryClient;
             SearchClient = searchClient;
             _streamingQueryClient = streamingQueryClient;
@@ -670,7 +676,9 @@ namespace Couchbase.Core
             try
             {
                 query.BaseUri(CachedViewBaseUri);
-                result = ViewClient.ExecuteAsync<T>(query);
+                result = query.IsStreaming
+                    ? _streamingViewClient.ExecuteAsync<T>(query)
+                    : ViewClient.ExecuteAsync<T>(query);
             }
             catch (Exception e)
             {
@@ -703,7 +711,9 @@ namespace Couchbase.Core
             try
             {
                 query.BaseUri(CachedViewBaseUri);
-                result = ViewClient.Execute<T>(query);
+                result = query.IsStreaming
+                    ? _streamingViewClient.Execute<T>(query)
+                    : ViewClient.Execute<T>(query);
             }
             catch (Exception e)
             {

@@ -14,8 +14,8 @@ namespace Couchbase.Views
     {
         //[bucket-name]/_design/[design-doc]/_spatial/[spatial-name]
         private const string UriFormat = "{0}://{1}:{2}";
-        const string RelativeUriWithBucket = "{0}/_design/{1}/_spatial/{2}?";
-        const string RelativeUri = "_design/{0}/_spatial/{1}?";
+        private const string RelativeUriWithBucket = "{0}/_design/{1}/_spatial/{2}?";
+        private const string RelativeUri = "_design/{0}/_spatial/{1}?";
 
         //uri construction
         private Uri _baseUri;
@@ -63,7 +63,6 @@ namespace Couchbase.Views
             _baseUri = baseUri;
         }
 
-
         /// <summary>
         /// Sets the base uri for the query if it's not set in the constructor.
         /// </summary>
@@ -75,6 +74,24 @@ namespace Couchbase.Views
             _baseUri = uri;
             return this;
         }
+
+        /// <summary>
+        /// Toogles the if query result to is to be streamed. This is useful for large result sets in that it limits the
+        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
+        /// </summary>
+        /// <param name="useStreaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
+        /// <returns>An IViewQueryable object for chaining</returns>
+        public IViewQueryable UseStreaming(bool useStreaming)
+        {
+            IsStreaming = useStreaming;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets a value indicating if the result should be streamed.
+        /// </summary>
+        /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
+        public bool IsStreaming { get; private set; }
 
         /// <summary>
         /// The start range of the spatial query.

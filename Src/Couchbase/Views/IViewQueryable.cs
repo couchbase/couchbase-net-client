@@ -37,5 +37,19 @@ namespace Couchbase.Views
         /// <returns>An <see cref="IViewQueryable"/> object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
         IViewQueryable BaseUri(Uri uri);
+
+        /// <summary>
+        /// Toogles the if query result to is to be streamed. This is useful for large result sets in that it limits the
+        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
+        /// </summary>
+        /// <param name="useStreaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
+        /// <returns>An IViewQueryable object for chaining</returns>
+        IViewQueryable UseStreaming(bool useStreaming);
+
+        /// <summary>
+        /// Gets a value indicating if the result should be streamed.
+        /// </summary>
+        /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
+        bool IsStreaming { get; }
     }
 }

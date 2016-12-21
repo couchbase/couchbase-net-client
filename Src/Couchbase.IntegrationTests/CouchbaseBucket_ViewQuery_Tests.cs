@@ -1,8 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using Couchbase.Core;
-using Couchbase.IO;
+using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
 
@@ -18,7 +16,7 @@ namespace Couchbase.IntegrationTests
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
-            _bucket = _cluster.OpenBucket();
+            _bucket = _cluster.OpenBucket("beer-sample");
         }
 
         [Test]
@@ -82,6 +80,24 @@ namespace Couchbase.IntegrationTests
             {
                 SynchronizationContext.SetSynchronizationContext(null);
             }
+        }
+
+        [Test]
+        public void Use_Streaming()
+        {
+            var query = _bucket.CreateQuery("beer", "brewery_beers")
+                .Limit(10)
+                .UseStreaming(true);
+
+            var count = 0;
+            var result = _bucket.Query<dynamic>(query);
+            foreach (var row in result.Rows)
+            {
+                count++;
+            }
+
+            Assert.AreEqual(10, count);
+            Assert.IsAssignableFrom<StreamingViewResult<dynamic>>(result);
         }
 
         [OneTimeTearDown]
