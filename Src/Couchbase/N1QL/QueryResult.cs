@@ -118,7 +118,7 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <returns></returns>
         /// <remarks>Intended for internal use only.</remarks>
-        bool IResult.ShouldRetry()
+        public bool ShouldRetry()
         {
             var retry = false;
             switch (Status)

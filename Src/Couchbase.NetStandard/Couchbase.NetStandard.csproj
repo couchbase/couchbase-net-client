@@ -805,9 +805,6 @@
     <Compile Include="..\Couchbase\N1QL\IQueryRequestWithDataMapper.cs">
       <Link>N1QL\IQueryRequestWithDataMapper.cs</Link>
     </Compile>
-    <Compile Include="..\Couchbase\N1QL\IQueryResult.cs">
-      <Link>N1QL\IQueryResult.cs</Link>
-    </Compile>
     <Compile Include="..\Couchbase\N1QL\IQueryTimer.cs">
       <Link>N1QL\IQueryTimer.cs</Link>
     </Compile>
