@@ -43,6 +43,8 @@ namespace Couchbase.Utils
 
         public static string InvalidOpCodeMsg = "Unknown status for opcode {0} and key {1}: {2}";
 
+        public const string EmptyUriTryingSubmitN1QlQuery = "There was a problem retrieving a valid URI to submit the N1QL query to.";
+
         public const string FailedBucketAuthenticationMsg = "Authentication failed for bucket '{0}'";
 
         public const string EmptyKeyErrorMsg = "Key cannot be null or empty.";

@@ -217,6 +217,7 @@ namespace Couchbase.Configuration.Client
             MaxServicePointIdleTime = definition.MaxServicePointIdleTime;
             EnableOperationTiming = definition.EnableOperationTiming;
             DefaultOperationLifespan = definition.OperationLifespan;
+            QueryFailedThreshold = definition.QueryFailedThreshold;
             QueryRequestTimeout = definition.QueryRequestTimeout;
             EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
@@ -463,7 +464,6 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> if <c>true</c> IP version 6 addresses will be used; otherwise, <c>false</c>.
         /// </value>
         public static bool UseInterNetworkV6Addresses { get; set; }
-
 
         /// <summary>
         /// Gets or sets the count of IO errors within a specific interval defined by the value of <see cref="IOErrorCheckInterval" />.

@@ -24,6 +24,7 @@ namespace Couchbase.Configuration
     internal abstract class ConfigContextBase : IConfigInfo
     {
         protected static readonly ILog Log = LogManager.GetLogger<ConfigContextBase>();
+        private static int _roundRobinPosition = 0;
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
@@ -66,9 +67,27 @@ namespace Couchbase.Configuration
             Transcoder = transcoder;
         }
 
-        public static FailureCountingUri GetQueryUri()
+        public static FailureCountingUri GetQueryUri(int queryFailedThreshold)
         {
-            return QueryUris.Where(x => x.IsHealthy(2)).GetRandom();
+            return RoundRobin(QueryUris.Where(x=>x.IsHealthy(queryFailedThreshold)).ToList());
+        }
+
+        private static FailureCountingUri RoundRobin(IReadOnlyList<FailureCountingUri> uris)
+        {
+            var count = uris.Count;
+            if (count == 0)
+            {
+                return null;
+            }
+
+            Interlocked.Increment(ref _roundRobinPosition);;
+            if (_roundRobinPosition == count)
+            {
+                Interlocked.Exchange(ref _roundRobinPosition, 0);
+            }
+
+            var mod = _roundRobinPosition % count;
+            return uris[mod];
         }
 
         public static FailureCountingUri GetSearchUri()

@@ -32,9 +32,18 @@ namespace Couchbase.N1QL
 
         protected override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
-            ApplyCredentials(queryRequest);
-            var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new StreamingQueryResult<T>();
+
+            FailureCountingUri baseUri;
+            if (!TryGetQueryUri(out baseUri))
+            {
+                Log.ErrorFormat(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
+                ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
+                return queryResult;
+            }
+
+            ApplyCredentials(queryRequest);
+
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try

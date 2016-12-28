@@ -210,6 +210,7 @@ namespace Couchbase.Tests.Configuration.Client
                 Assert.AreEqual(18098, configuration.HttpsApiPort);
                 Assert.AreEqual(11219, configuration.DirectPort);
                 Assert.IsTrue(configuration.UseSsl);
+                Assert.AreEqual(15, configuration.QueryFailedThreshold);
                 Assert.AreEqual(5000, configuration.ViewRequestTimeout);
 
                 var server = configuration.Servers.First();
