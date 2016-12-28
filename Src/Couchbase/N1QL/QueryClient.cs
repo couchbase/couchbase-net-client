@@ -356,9 +356,18 @@ namespace Couchbase.N1QL
         /// <remarks>The format for the querying is JSON</remarks>
         protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
         {
-            ApplyCredentials(queryRequest);
-            var baseUri = ConfigContextBase.GetQueryUri();
             var queryResult = new QueryResult<T>();
+
+            var baseUri = ConfigContextBase.GetQueryUri(ClientConfig.QueryFailedThreshold);
+            if (baseUri == null || string.IsNullOrEmpty(baseUri.AbsoluteUri))
+            {
+                Log.FatalFormat(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery);
+                ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
+                return queryResult;
+            }
+
+            ApplyCredentials(queryRequest);
+
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
@@ -373,7 +382,6 @@ namespace Couchbase.N1QL
                             queryResult.Success = queryResult.Status == QueryStatus.Success;
                             queryResult.HttpStatusCode = request.StatusCode;
                             Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
-
                             timer.ClusterElapsedTime = queryResult.Metrics.ElaspedTime;
                         }
                     }
