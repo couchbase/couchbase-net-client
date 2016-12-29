@@ -159,6 +159,29 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Test]
+        public void Test_Can_Do_Multiple_Streaming_Requests()
+        {
+            //arrange
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 1;").UseStreaming(true);
+
+            //act
+            using (var result = _bucket.Query<DocumentContent>(request))
+            {
+                var rows = result.ToList();
+                Assert.AreEqual(1, rows.Count);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.Errors.Count);
+            }
+            using (var result = _bucket.Query<DocumentContent>(request))
+            {
+                var rows = result.ToList();
+                Assert.AreEqual(1, rows.Count);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.Errors.Count);
+            }
+        }
+
         [Test(Description = "Simulates creating an index, executing a non-adhoc query so a client side query plan is created, drop the index, " +
                             "execute another query and have the client recognise the index is not longer available so it recreates a query plan. " +
                             "Results can be seen in a HTTP debugger." +

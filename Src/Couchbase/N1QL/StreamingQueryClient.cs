@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Utils;
@@ -23,11 +19,13 @@ namespace Couchbase.N1QL
         public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig)
             : base(httpClient, dataMapper, clientConfig)
         {
+            HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
         public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig,
             ConcurrentDictionary<string, QueryPlan> queryCache) : base(httpClient, dataMapper, clientConfig, queryCache)
         {
+            HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
         protected override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
@@ -49,7 +47,6 @@ namespace Couchbase.N1QL
                 try
                 {
                     var requestMessage = new HttpRequestMessage(HttpMethod.Post, baseUri) {Content = content};
-                    HttpClient.Timeout = TimeSpan.FromMilliseconds(Timeout.Infinite);
 
                     Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     var response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead).ContinueOnAnyContext();
@@ -92,7 +89,6 @@ namespace Couchbase.N1QL
 
             return queryResult;
         }
-
 
         private static void ProcessError<T>(Exception ex, StreamingQueryResult<T> queryResult)
         {
