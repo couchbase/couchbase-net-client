@@ -13,6 +13,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using Couchbase.N1QL;
 
 namespace Couchbase.Configuration
@@ -24,6 +25,7 @@ namespace Couchbase.Configuration
     internal abstract class ConfigContextBase : IConfigInfo
     {
         protected static readonly ILog Log = LogManager.GetLogger<ConfigContextBase>();
+        private static int _roundRobinPosition = 0;
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
@@ -66,9 +68,20 @@ namespace Couchbase.Configuration
             Transcoder = transcoder;
         }
 
-        public static FailureCountingUri GetQueryUri()
+        public static FailureCountingUri GetQueryUri(int queryFailedThreshold)
         {
-            return QueryUris.Where(x=>x.IsHealthy(2)).GetRandom();
+            return RoundRobin(QueryUris.Where(x=>x.IsHealthy(queryFailedThreshold)));
+        }
+
+        private static FailureCountingUri RoundRobin(IEnumerable<FailureCountingUri> uris)
+        {
+            var count = uris.Count();
+            if (count == 0)
+                return null;
+
+            Interlocked.Increment(ref _roundRobinPosition);
+            var mod = _roundRobinPosition % count;
+            return QueryUris.ToArray()[mod];
         }
 
         public static FailureCountingUri GetSearchUri()
