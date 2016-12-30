@@ -70,18 +70,22 @@ namespace Couchbase.Configuration
 
         public static FailureCountingUri GetQueryUri(int queryFailedThreshold)
         {
-            return RoundRobin(QueryUris.Where(x=>x.IsHealthy(queryFailedThreshold)));
+            return RoundRobin(QueryUris.Where(x=>x.IsHealthy(queryFailedThreshold)).ToList());
         }
 
-        private static FailureCountingUri RoundRobin(IEnumerable<FailureCountingUri> uris)
+        private static FailureCountingUri RoundRobin(IReadOnlyList<FailureCountingUri> uris)
         {
-            var count = uris.Count();
+            var count = uris.Count;
             if (count == 0)
                 return null;
 
-            Interlocked.Increment(ref _roundRobinPosition);
+            Interlocked.Increment(ref _roundRobinPosition);;
+
+            if (_roundRobinPosition == count)
+                Interlocked.Exchange(ref _roundRobinPosition, 0);
+
             var mod = _roundRobinPosition % count;
-            return QueryUris.ToArray()[mod];
+            return uris[mod];
         }
 
         public static FailureCountingUri GetSearchUri()

@@ -34,12 +34,10 @@ namespace Couchbase.N1QL
         {
             var queryResult = new StreamingQueryResult<T>();
 
-            var baseUri = ConfigContextBase.GetQueryUri(ClientConfig.QueryFailedThreshold);
-            if (baseUri == null || string.IsNullOrEmpty(baseUri.AbsoluteUri))
+            FailureCountingUri baseUri;
+            if (!TryGetQueryUri(out baseUri))
             {
-                Log.FatalFormat(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery);
                 ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
-                return queryResult;
             }
 
             ApplyCredentials(queryRequest);

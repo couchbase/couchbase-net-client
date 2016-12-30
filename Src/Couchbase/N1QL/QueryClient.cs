@@ -358,12 +358,10 @@ namespace Couchbase.N1QL
         {
             var queryResult = new QueryResult<T>();
 
-            var baseUri = ConfigContextBase.GetQueryUri(ClientConfig.QueryFailedThreshold);
-            if (baseUri == null || string.IsNullOrEmpty(baseUri.AbsoluteUri))
+            FailureCountingUri baseUri;
+            if (!TryGetQueryUri(out baseUri))
             {
-                Log.FatalFormat(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery);
                 ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
-                return queryResult;
             }
 
             ApplyCredentials(queryRequest);
@@ -471,6 +469,16 @@ namespace Couchbase.N1QL
                     request.AddCredentials(cred.Key, cred.Value, false);
                 }
             }
+        }
+
+        protected bool TryGetQueryUri(out FailureCountingUri baseUri)
+        {
+            baseUri = ConfigContextBase.GetQueryUri(ClientConfig.QueryFailedThreshold);
+            if (baseUri != null && !string.IsNullOrEmpty(baseUri.AbsoluteUri))
+                return true;
+
+            Log.FatalFormat(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery);
+            return false;
         }
     }
 }
