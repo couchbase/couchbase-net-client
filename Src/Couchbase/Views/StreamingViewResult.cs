@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -58,7 +59,7 @@ namespace Couchbase.Views
             get { return _result.Select(row => row.Value); }
         }
 
-        private class Result : IEnumerable<ViewRow<T>>
+        private class Result : IEnumerable<ViewRow<T>>, IDisposable
         {
             private readonly Stream _responseStream;
             private JsonTextReader _reader;
@@ -136,6 +137,15 @@ namespace Couchbase.Views
             IEnumerator IEnumerable.GetEnumerator()
             {
                 return GetEnumerator();
+            }
+
+            public void Dispose()
+            {
+                if (_reader != null)
+                {
+                    _reader.Close(); // also closes underlying stream
+                    _reader = null;
+                }
             }
         }
     }

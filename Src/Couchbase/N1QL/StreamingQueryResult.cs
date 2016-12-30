@@ -410,8 +410,16 @@ namespace Couchbase.N1QL
         /// </summary>
         public void Dispose()
         {
-            if (ResponseStream != null) ResponseStream.Dispose();
-            if (QueryTimer != null) QueryTimer.Dispose();
+            if (_reader != null)
+            {
+                _reader.Close(); // also closes underlying stream
+                _reader = null;
+            }
+            if (QueryTimer != null)
+            {
+                QueryTimer.Dispose();
+                QueryTimer = null;
+            }
         }
     }
 }
