@@ -84,6 +84,50 @@ namespace Couchbase.UnitTests.N1Ql
             Assert.IsNotNull(first);
         }
 
+        [Test]
+        public void Test_SecondEnumeration_AfterRegularRead_ThrowsStreamAlreadyReadException()
+        {
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\n1ql-response.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
+
+            //read the results
+            var count = 0;
+            foreach (var beer in response)
+            {
+                count++;
+            }
+            Assert.AreEqual(10, count);
+
+            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+            Assert.Throws<StreamAlreadyReadException>(() => response.ToList());
+        }
+
+        [Test]
+        public void Test_SecondEnumeration_AfterError_ThrowsStreamAlreadyReadException()
+        {
+            // For consistency in behavior, enumerating the results twice should throw an exception
+            // if ForceRead wasn't used, even when there was no pause to read the results property.
+
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\errors_and_warnings.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
+
+            //read the results
+            var count = 0;
+            foreach (var beer in response)
+            {
+                count++;
+            }
+            Assert.AreEqual(0, count);
+
+            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+            Assert.Throws<StreamAlreadyReadException>(() => response.ToList());
+        }
 
         [Test]
         public void Test_Enumeration_After_ForceRead()
@@ -108,31 +152,82 @@ namespace Couchbase.UnitTests.N1Ql
         }
 
         [Test]
-        public void Test_Status()
+        public void Test_Status_SuccessfulQuery_BeforeEnumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream("Data\\n1ql-response.json");
             var response = new StreamingQueryResult<Beer>
             {
                 ResponseStream = stream
             };
-            response.ForceRead();
 
             Assert.AreEqual(QueryStatus.Success, response.Status);
         }
 
         [Test]
-        public void Test_Success()
+        public void Test_Status_SuccessfulQuery_AfterEnumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream("Data\\n1ql-response.json");
             var response = new StreamingQueryResult<Beer>
             {
                 ResponseStream = stream
             };
-            response.ForceRead();
+
+            // ReSharper disable once UnusedVariable
+            var temp = response.ToList();
+
+            Assert.AreEqual(QueryStatus.Success, response.Status);
+        }
+
+        [Test]
+        public void Test_Status_ErrorQuery()
+        {
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\errors_and_warnings.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
+
+            Assert.AreNotEqual(QueryStatus.Success, response.Status);
+        }
+
+        [Test]
+        public void Test_Success_SuccessfulQuery_BeforeEnumeration()
+        {
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\n1ql-response.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
 
             Assert.AreEqual(true, response.Success);
         }
 
+        [Test]
+        public void Test_Success_SuccessfulQuery_AfterEnumeration()
+        {
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\n1ql-response.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
+
+            // ReSharper disable once UnusedVariable
+            var temp = response.ToList();
+
+            Assert.AreEqual(true, response.Success);
+        }
+
+        [Test]
+        public void Test_Success_ErrorQuery()
+        {
+            var stream = ResourceHelper.ReadResourceAsStream("Data\\errors_and_warnings.json");
+            var response = new StreamingQueryResult<Beer>
+            {
+                ResponseStream = stream
+            };
+
+            Assert.AreEqual(false, response.Success);
+        }
 
         [Test]
         public void Test_ClientContextID()
@@ -142,7 +237,6 @@ namespace Couchbase.UnitTests.N1Ql
             {
                 ResponseStream = stream
             };
-            response.ForceRead();
 
             Assert.AreEqual("7::8", response.ClientContextId);
         }
@@ -155,7 +249,6 @@ namespace Couchbase.UnitTests.N1Ql
             {
                 ResponseStream = stream
             };
-            response.ForceRead();
 
             Assert.AreEqual("ca692d83-1e09-4a87-ab66-cfd9f2c4a898", response.RequestId.ToString());
         }
@@ -202,7 +295,6 @@ namespace Couchbase.UnitTests.N1Ql
                 ResponseStream = stream
             };
 
-            response.ForceRead();
             Assert.IsNotEmpty(response.Warnings);
         }
 
@@ -216,7 +308,6 @@ namespace Couchbase.UnitTests.N1Ql
                 ResponseStream = stream
             };
 
-            response.ForceRead();
             Assert.IsNotEmpty(response.Errors);
         }
 
@@ -230,7 +321,6 @@ namespace Couchbase.UnitTests.N1Ql
                 ResponseStream = stream
             };
 
-            response.ForceRead();
             Assert.IsNull(response.ClientContextId);
         }
 

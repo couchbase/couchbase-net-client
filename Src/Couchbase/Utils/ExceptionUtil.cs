@@ -65,6 +65,7 @@ namespace Couchbase.Utils
 
         public const string ServerResolverReturnedNoservers = "Did not find any servers using custom resolver '{0}'.";
 
+        [Obsolete]
         public const string StreamMustBeReadMsg = "Stream must be read via iteration before calling properties.";
 
         public const string EmptyUriTryingSubmitN1qlQuery = "There was a problem retrieving a valid URI to submit the N1QL query to.";

@@ -160,6 +160,23 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void Test_Streaming_Errors()
+        {
+            //arrange
+            var request = new QueryRequest("SELECT * FROM `adfas` LIMIT 100;").UseStreaming(true);
+
+            //act
+            using (var result = _bucket.Query<dynamic>(request))
+            {
+                //assert
+                Assert.IsFalse(result.Success);
+                Assert.AreNotEqual(QueryStatus.Success, result.Status);
+                Assert.IsNotEmpty(result.Errors);
+                Assert.IsEmpty(result);
+            }
+        }
+
+        [Test]
         public void Test_Can_Do_Multiple_Streaming_Requests()
         {
             //arrange

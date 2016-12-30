@@ -11,6 +11,7 @@ namespace Couchbase.N1QL
     /// Thrown when an attempt is made to access a property or methods before reading the request stream via iteration.
     /// </summary>
     /// <seealso cref="System.InvalidOperationException" />
+    [Obsolete]
     public class StreamMustBeReadException : InvalidOperationException
     {
         public StreamMustBeReadException()

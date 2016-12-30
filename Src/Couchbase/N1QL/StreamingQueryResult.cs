@@ -22,7 +22,7 @@ namespace Couchbase.N1QL
     public class StreamingQueryResult<T> : IQueryResult<T>
     {
         private JsonTextReader _reader;
-        private bool? _success;
+        private bool _success;
         private Guid _requestId;
         private string _clientContextId;
         private dynamic _signature;
@@ -30,19 +30,22 @@ namespace Couchbase.N1QL
         private List<Error> _errors = new List<Error>();
         private List<Warning> _warnings = new List<Warning>();
         private Metrics _metrics = new Metrics();
-        private volatile bool _hasBeenRead;
+        private volatile bool _isHeaderRead;
+        private volatile bool _hasReadResults;
+        private volatile bool _hasFinishedReading;
         private volatile bool _forcedRead;
         private List<T> _rows;
 
         /// <summary>
-        /// Checks if the stream has been read. Note you cannot call most properties without reading the
-        /// stream or calling <see cref="ForceRead"/> first.
+        /// Checks if the stream has been read. If not, begins reading the attributes until
+        /// rows are encountered.
         /// </summary>
-        /// <exception cref="StreamMustBeReadException"></exception>
         private void CheckRead()
         {
-            if (_hasBeenRead) return;
-            throw new StreamMustBeReadException(ExceptionUtil.StreamMustBeReadMsg);
+            if (!_isHeaderRead && ResponseStream != null)
+            {
+                ReadToRows();
+            }
         }
 
         /// <summary>
@@ -63,7 +66,9 @@ namespace Couchbase.N1QL
         {
             get
             {
-                return _success.HasValue && _success.Value;
+                CheckRead();
+
+                return _success;
             }
             internal set { _success = value; }
         }
@@ -255,8 +260,8 @@ namespace Couchbase.N1QL
         /// </summary>
         public void ForceRead()
         {
-            _forcedRead = true;
             _rows = this.ToList();
+            _forcedRead = true;
         }
 
         /// <summary>
@@ -267,18 +272,85 @@ namespace Couchbase.N1QL
         /// </returns>
         public IEnumerator<T> GetEnumerator()
         {
-            if (!_hasBeenRead)
+            if (_forcedRead)
             {
-                _reader = new JsonTextReader(new StreamReader(ResponseStream));
-            }
-            if (_forcedRead && _hasBeenRead)
-            {
+                // Return the cached results from the previous call to ForceRead
                 foreach (var row in Rows)
                 {
                     yield return row;
                 }
+
+                yield break;
             }
-            _hasBeenRead = true;
+
+            if (_hasReadResults)
+            {
+                // Don't allow enumeration more than once, unless stream was force read into memory
+
+                throw new StreamAlreadyReadException();
+            }
+
+            // Ensure that reading has begun and we're ready to deserialize result rows
+            CheckRead();
+
+            if (!_hasFinishedReading)
+            {
+                // Read isn't complete, so the stream is currently waiting to deserialize the results
+
+                while (_reader.Read())
+                {
+                    if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
+                    {
+                        yield return ReadObject<T>(_reader);
+                    }
+                    if (_reader.Path == "results" && _reader.TokenType == JsonToken.EndArray)
+                    {
+                        break;
+                    }
+                }
+
+                // Read any remaining attributes after the results
+                ReadResponseAttributes();
+            }
+
+            if (QueryTimer != null)
+            {
+                QueryTimer.ClusterElapsedTime = Metrics.ElaspedTime;
+            }
+
+            _hasReadResults = true;
+        }
+
+        /// <summary>
+        /// Initializes the reader, and reads all attributes until result rows are encountered.
+        /// </summary>
+        private void ReadToRows()
+        {
+            _reader = new JsonTextReader(new StreamReader(ResponseStream));
+
+            // We must set this first so we don't trigger multiple calls to ReadToRows
+            // As ReadResponseAttributes access properties
+            _isHeaderRead = true;
+
+            // Read the attributes until we reach the end of the object or the "results" attribute
+            ReadResponseAttributes();
+
+            if (!_hasFinishedReading)
+            {
+                // We encountered a results attribute, so we must be successful
+                // We'll assume so until we read otherwise later
+
+                Status = QueryStatus.Success;
+                Success = true;
+            }
+        }
+
+        /// <summary>
+        /// Reads and parses any response attributes, returning at the end of the response or
+        /// once the "results" attribute is encountered.
+        /// </summary>
+        private void ReadResponseAttributes()
+        {
             while (_reader.Read())
             {
                 if (_reader.Path == "requestID" && _reader.TokenType == JsonToken.String)
@@ -328,25 +400,17 @@ namespace Couchbase.N1QL
                 }
                 else if (_reader.Path == "results")
                 {
-                    while (_reader.Read())
-                    {
-                        if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
-                        {
-                            yield return ReadObject<T>(_reader);
-                        }
-                        if (_reader.Path == "results" && _reader.TokenType == JsonToken.EndArray)
-                        {
-                            break;
-                        }
-                    }
+                    // We've reached the result rows, return now
+
+                    return;
                 }
-                else if(_reader.Path == "warnings")
+                else if (_reader.Path == "warnings")
                 {
                     while (_reader.Read())
                     {
                         if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                         {
-                           Warnings.Add(ReadObject<Warning>(_reader));
+                            Warnings.Add(ReadObject<Warning>(_reader));
                         }
                         if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)
                         {
@@ -370,10 +434,8 @@ namespace Couchbase.N1QL
                 }
             }
 
-            if (QueryTimer != null)
-            {
-                QueryTimer.ClusterElapsedTime = Metrics.ElaspedTime;
-            }
+            // We've reached the end of the object, mark that entire read is complete
+            _hasFinishedReading = true;
         }
 
         /// <summary>
