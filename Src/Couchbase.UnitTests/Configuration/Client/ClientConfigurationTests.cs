@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.IO;
+using Couchbase.IO.Services;
+using Moq;
 using NUnit.Framework;
 
 #if NET45
@@ -112,6 +115,48 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.AreEqual(1, clientConfig.Servers.Count);
             Assert.AreEqual(ClientConfiguration.Defaults.Server, clientConfig.Servers.First());
+        }
+
+        [Test]
+        public void When_UseConnectionPooling_Is_False_IOServiceFactory_Returns_MultiplexingIOService()
+        {
+            var definition = new CouchbaseClientDefinition
+            {
+                UseConnectionPooling = false
+            };
+
+            var clientConfig = new ClientConfiguration(definition);
+            clientConfig.Initialize();
+
+            var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.IsAuthenticated).Returns(true);
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
+
+            var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
+
+            Assert.IsInstanceOf<MultiplexingIOService>(service);
+        }
+
+        [Test]
+        public void When_UseConnectionPooling_Is_True_IOServiceFactory_Returns_PooledIOService()
+        {
+            var definition = new CouchbaseClientDefinition
+            {
+                UseConnectionPooling = true
+            };
+
+            var clientConfig = new ClientConfiguration(definition);
+            clientConfig.Initialize();
+
+            var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.IsAuthenticated).Returns(true);
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
+
+            var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
+
+            Assert.IsInstanceOf<PooledIOService>(service);
         }
 
 #if NET45

@@ -392,6 +392,17 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Indicates if the client should use connection pooling instead of Multiplexing operations over
+        /// the fewer connections. Defaults to false.
+        /// </summary>
+        [ConfigurationProperty("useConnectionPooling", IsRequired = false, DefaultValue = false)]
+        public bool UseConnectionPooling
+        {
+            get { return (bool)this["useConnectionPooling"]; }
+            set { this["useConnectionPooling"] = value; }
+        }
+
+        /// <summary>
         /// If the client detects that a node has gone offline it will check for connectivity at this interval.
         /// </summary>
         /// <remarks>The default is 1000ms.</remarks>

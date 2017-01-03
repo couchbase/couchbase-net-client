@@ -335,5 +335,10 @@ namespace Couchbase.Configuration.Client
         /// Gets or sets the service resolver type used to try and find server URIs.
         /// </summary>
         string ServerResolverType { get; }
+
+        /// <summary>
+        /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
+        /// </summary>
+        bool UseConnectionPooling { get; }
     }
 }

@@ -12,7 +12,7 @@ namespace Couchbase.Configuration.Client.Providers
         public IOServiceElement()
         {
             Name = "default";
-            Type = "Couchbase.IO.Services.PooledIOService, Couchbase.NetClient";
+            Type = "Couchbase.IO.Services.MultiplexingIOService, Couchbase.NetClient";
         }
 
         /// <summary>

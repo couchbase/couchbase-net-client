@@ -85,6 +85,8 @@ namespace Couchbase.Configuration.Client
             public static uint NodeAvailableCheckInterval = 1000;//ms
             public static uint IOErrorCheckInterval = 500;
             public static uint IOErrorThreshold = 10;
+
+            public static bool UseConnectionPooling = false;
         }
 
         public ClientConfiguration()
@@ -145,7 +147,7 @@ namespace Couchbase.Configuration.Client
             Transcoder = TranscoderFactory.GetTranscoder(this);
 
             //the default ioservice
-            IOServiceCreator = IOServiceFactory.GetFactory();
+            IOServiceCreator = IOServiceFactory.GetFactory(Defaults.UseConnectionPooling);
 
             //the default connection pool creator
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
@@ -238,7 +240,7 @@ namespace Couchbase.Configuration.Client
                 : TranscoderFactory.GetTranscoder(this);
             IOServiceCreator = definition.IOService != null
                 ? IOServiceFactory.GetFactory(definition.IOService)
-                : IOServiceFactory.GetFactory();
+                : IOServiceFactory.GetFactory(definition.UseConnectionPooling);
 
             //to enable tcp keep-alives
             EnableTcpKeepAlives = definition.EnableTcpKeepAlives;

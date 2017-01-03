@@ -14,12 +14,17 @@ namespace Couchbase.IO
     public static class IOServiceFactory
     {
         /// <summary>
-        /// Gets a <see cref="Func{IConnectionPool, IIOService}"/> that will create a <see cref="PooledIOService"/> instance.
+        /// Gets a <see cref="Func{IConnectionPool, IIOService}"/> that will create a <see cref="PooledIOService"/> instance
+        /// if <paramref name="useConnectionPooling"/> is <c>true</c>, otherwise it will create a <see cref="MultiplexingIOService"/>.
         /// </summary>
         /// <returns></returns>
-        public static Func<IConnectionPool, IIOService> GetFactory()
+        public static Func<IConnectionPool, IIOService> GetFactory(bool useConnectionPooling)
         {
-            return (p) => new PooledIOService(p);
+            if (useConnectionPooling)
+            {
+                return pool => new PooledIOService(pool);
+            }
+            return pool => new MultiplexingIOService(pool);
         }
 
 #if NET45

@@ -342,6 +342,11 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public string ServerResolverType { get; set; }
 
+        /// <summary>
+        /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
+        /// </summary>
+        public bool UseConnectionPooling { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -374,6 +379,7 @@ namespace Couchbase.Configuration.Client
             IOErrorCheckInterval = ClientConfiguration.Defaults.IOErrorCheckInterval;
             QueryFailedThreshold = (int)ClientConfiguration.Defaults.QueryFailedThreshold;
             VBucketRetrySleepTime = ClientConfiguration.Defaults.VBucketRetrySleepTime;
+            UseConnectionPooling = ClientConfiguration.Defaults.UseConnectionPooling;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations
