@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET45
+using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using Couchbase.Core.Serialization;
@@ -7,7 +8,6 @@ using Couchbase.IO.Operations;
 
 namespace Couchbase.Core.Transcoders
 {
-#if NET45
     /// <summary>
     /// A transcoder which deserializes in binary format and serializes as JSON. This transcoder will expects a 1.3.X SDK client to be writing the data.
     /// </summary>
@@ -153,8 +153,8 @@ namespace Couchbase.Core.Transcoders
 
         }
     }
-#endif
 }
+#endif
 
 #region [ License information          ]
 
