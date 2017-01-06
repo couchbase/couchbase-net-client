@@ -685,7 +685,7 @@ namespace Couchbase.Configuration.Client
             get { return _maxViewRetries; }
             set
             {
-                if (value > -1)
+                if (value >= -1)
                 {
                     _maxViewRetries = value;
                 }

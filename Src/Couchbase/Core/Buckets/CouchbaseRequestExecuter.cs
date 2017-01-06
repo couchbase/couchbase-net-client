@@ -102,7 +102,7 @@ namespace Couchbase.Core.Buckets
         /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
         /// <param name="cancellationToken">For canceling the async operation.</param>
         /// <returns>A <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
-        static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQueryable, IConfigInfo, Task<IViewResult<T>>> execute,
+        private static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQueryable, IConfigInfo, Task<IViewResult<T>>> execute,
             IViewQueryable query,
             IConfigInfo configInfo,
             CancellationToken cancellationToken)
@@ -110,13 +110,14 @@ namespace Couchbase.Core.Buckets
             while (true)
             {
                 var result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (query.RetryAttempts++ >= configInfo.ClientConfig.MaxViewRetries ||
+                if (query.RetryAttempts >= configInfo.ClientConfig.MaxViewRetries ||
                     result.Success ||
                     result.CannotRetry())
                 {
                     return result;
                 }
-                Log.Debug("trying again: {0}", query.RetryAttempts);
+
+                Log.Debug("trying again: {0}", ++query.RetryAttempts);
                 var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -445,7 +446,7 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
-            IViewResult<T> viewResult = null;
+            IViewResult<T> viewResult;
             try
             {
                 //Is the cluster configured for View services?
@@ -455,14 +456,22 @@ namespace Couchbase.Core.Buckets
                         ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
                 }
 
-                do
+                while (true)
                 {
                     var server = ConfigInfo.GetViewNode();
                     viewResult = server.Send<T>(viewQuery);
-                } while (
-                    !viewResult.Success &&
-                    !viewResult.CannotRetry() &&
-                    viewQuery.RetryAttempts++ <= ConfigInfo.ClientConfig.MaxViewRetries);
+
+                    if (viewResult.Success ||
+                        viewResult.CannotRetry() ||
+                        viewQuery.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries)
+                    {
+                        break;
+                    }
+
+                    Log.Debug("trying again: {0}", ++viewQuery.RetryAttempts);
+                    var sleepTime = (int) Math.Pow(2, viewQuery.RetryAttempts);
+                    Thread.Sleep(sleepTime);
+                }
             }
             catch (Exception e)
             {
@@ -656,7 +665,7 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
-            IViewResult<T> viewResult = null;
+            IViewResult<T> viewResult;
             try
             {
                 //Is the cluster configured for View services?

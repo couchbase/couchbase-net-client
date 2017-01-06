@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -16,6 +15,7 @@ using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.UnitTests.IO.Operations.Subdocument;
 using Couchbase.Utils;
+using Couchbase.Views;
 using Moq;
 
 namespace Couchbase.UnitTests.Core.Buckets
@@ -226,8 +226,136 @@ namespace Couchbase.UnitTests.Core.Buckets
             var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
 
             Assert.ThrowsAsync<ServiceNotSupportedException>(
-                async () => await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(null, "key", null,new DefaultTranscoder(), 0)),
+                async () =>
+                    await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(null, "key", null,
+                        new DefaultTranscoder(), 0)),
                 ExceptionUtil.ServiceNotSupportedMsg, "Data");
+        }
+
+        public async Task MaxViewRetries_IsOne_RequestIsNotRetried_Async()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration { MaxViewRetries = 0 });
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.SendAsync<dynamic>(It.IsAny<IViewQueryable>())).Returns(
+                Task.FromResult<IViewResult<dynamic>>( new ViewResult<dynamic>
+                {
+                    StatusCode = HttpStatusCode.RequestTimeout,
+                    Success = false
+                }));
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = await executor.SendWithRetryAsync<dynamic>(query);
+            Assert.AreEqual(0, query.RetryAttempts);
+            Assert.AreEqual(false, result.CannotRetry());
+        }
+
+        [Test]
+        public void MaxViewRetries_IsOne_RequestIsNotRetried()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration {MaxViewRetries = 0});
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.Send<dynamic>(It.IsAny<IViewQueryable>())).Returns(
+                new ViewResult<dynamic>
+            {
+                StatusCode = HttpStatusCode.RequestTimeout, Success = false
+            });
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = executor.SendWithRetry<dynamic>(query);
+            Assert.AreEqual(0, query.RetryAttempts);
+            Assert.AreEqual(false, result.CannotRetry());
+        }
+
+        [Test]
+        public void MaxViewRetries_IsThree_RequestIsRetriedThreeTimes()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration { MaxViewRetries = 3 });
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.Send<dynamic>(It.IsAny<IViewQueryable>())).Returns(
+                new ViewResult<dynamic>
+                {
+                    StatusCode = HttpStatusCode.RequestTimeout,
+                    Success = false
+                });
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = executor.SendWithRetry<dynamic>(query);
+            Assert.AreEqual(3, query.RetryAttempts);
+            Assert.AreEqual(false, result.CannotRetry());
+        }
+
+        [Test]
+        public async Task MaxViewRetries_IsThree_RequestIsRetriedThreeTimes_Async()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration { MaxViewRetries = 3 });
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.SendAsync<dynamic>(It.IsAny<IViewQueryable>())).Returns(
+                Task.FromResult<IViewResult<dynamic>>(new ViewResult<dynamic>
+                {
+                    StatusCode = HttpStatusCode.RequestTimeout,
+                    Success = false
+                }));
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = await executor.SendWithRetryAsync<dynamic>(query);
+            Assert.AreEqual(3, query.RetryAttempts);
+            Assert.AreEqual(false, result.CannotRetry());
         }
     }
 }
