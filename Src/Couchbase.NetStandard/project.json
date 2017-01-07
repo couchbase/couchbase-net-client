@@ -1,9 +1,12 @@
 ﻿{
+  "name": "Couchbase.NetStandard",
+  "version": "1.0.0-*",
   "supports": {},
   "dependencies": {
     "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.3.0",
-    "NETStandard.Library": "1.6.1",
+    "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
+    "NETStandard.Library": "1.6.0",
     "Newtonsoft.Json": "9.0.1",
     "System.Globalization.Extensions": "4.3.0",
     "System.Net.Http": "4.3.0",
@@ -17,11 +20,6 @@
     "System.Threading.Thread": "4.3.0"
   },
   "frameworks": {
-    "netstandard1.5": {
-      "imports": [
-        "dnxcore50",
-        "dotnet54"
-      ]
-    }
+    "netstandard1.5": {}
   }
 }

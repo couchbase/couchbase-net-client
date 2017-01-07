@@ -1,6 +1,9 @@
 ﻿{
-  "supports": {},
+  "version": "1.0.0-*",
+
   "dependencies": {
+    "dotnet-test-nunit": "3.4.0-beta-2",
+    "NUnit": "3.4.1",
     "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.3.0",
     "Microsoft.Extensions.Configuration": "1.1.0",
@@ -10,7 +13,6 @@
     "Moq": "4.6.38-alpha",
     "NETStandard.Library": "1.6.1",
     "Newtonsoft.Json": "9.0.1",
-    "NUnit": "3.4.1",
     "System.ComponentModel.TypeConverter": "4.3.0",
     "System.Globalization.Extensions": "4.3.0",
     "System.Net.Http": "4.3.0",
@@ -24,15 +26,34 @@
     "System.Threading.Tasks.Parallel": "4.3.0",
     "System.Threading.Thread": "4.3.0"
   },
-  "frameworks": {
-    "net462": {
-      "imports": [
-        "dnxcore50",
-        "dotnet54"
-      ]
-    }
-  },
-  "runtimes": {
-    "win": {}
+
+  "buildOptions": {
+    "define": [ "NETCORE" ],
+    "copyToOutput": {
+      "include": [ "config.json" ]
+    },
+    "compile": {
+        "include": [
+          "..\\Couchbase.IntegrationTests\\**\\*.cs"
+        ]
+      }
+    },
+    "frameworks": {
+      "netcoreapp1.0": {
+        "imports": "dnxcore50",
+
+        "dependencies": {
+          "Couchbase.NetStandard": {
+            "target": "project",
+            "version": "1.0.0-*"
+          },
+          "Microsoft.NETCore.App": {
+            "type": "platform",
+            "version": "1.0.0-*"
+          }
+        }
+      }
+    },
+
+    "testRunner": "nunit"
   }
-}

@@ -10,11 +10,12 @@ namespace Couchbase.UnitTests
 {
     public static class ResourceHelper
     {
+        private static readonly Assembly Assembly = typeof(ResourceHelper).GetTypeInfo().Assembly;
         public static string ReadResource(string resourcePath)
         {
-            var resourceName = Assembly.GetExecutingAssembly().GetName().Name + "." + resourcePath.Replace("\\", ".");
+            var resourceName = Assembly.GetName().Name + "." + resourcePath.Replace("\\", ".");
 
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            using (var stream = Assembly.GetManifestResourceStream(resourceName))
             {
                 if (stream == null)
                 {
@@ -30,8 +31,12 @@ namespace Couchbase.UnitTests
 
         public static Stream ReadResourceAsStream(string resourcePath)
         {
-            var resourceName = Assembly.GetExecutingAssembly().GetName().Name + "." + resourcePath.Replace("\\", ".");
-            return Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+            //NOTE: buildOptions.embed for .NET Core ignores the path structure so do a lookup by name
+            var index = resourcePath.LastIndexOf("\\", StringComparison.Ordinal) + 1;
+            var name = resourcePath.Substring(index, resourcePath.Length-index);
+            var resourceName = Assembly.GetManifestResourceNames().FirstOrDefault(x => x.Contains(name));
+
+            return Assembly.GetManifestResourceStream(resourceName);
         }
     }
 }

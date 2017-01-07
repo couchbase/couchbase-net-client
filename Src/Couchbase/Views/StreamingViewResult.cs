@@ -22,6 +22,7 @@ namespace Couchbase.Views
     public class StreamingViewResult<T> : ViewResult<T>
     {
         private readonly Result _result;
+        public static JsonSerializer _jsonSerializer = new JsonSerializer();
 
         public StreamingViewResult()
         { }
@@ -32,6 +33,7 @@ namespace Couchbase.Views
             StatusCode = statusCode;
             Message = message;
 
+            _jsonSerializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             _result = new Result(responseStream);
         }
 
@@ -94,7 +96,7 @@ namespace Couchbase.Views
                     {
                         if (_reader.TokenType == JsonToken.StartObject)
                         {
-                            yield return JToken.FromObject(_reader).ToObject<ViewRow<T>>();
+                            yield return JToken.FromObject(_reader, _jsonSerializer).ToObject<ViewRow<T>>();
                         }
                     }
                 }

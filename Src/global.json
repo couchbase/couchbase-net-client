@@ -1,5 +1,15 @@
 {
   "sdk": {
     "version": "1.0.0-preview2-003121"
-  }
+  },
+  "projects": [
+    "Couchbase",
+    "Couchbase.NetStandard",
+    "Couchbase.IntegrationTests",
+    "Couchbase.IntegrationTests.NetStandard",
+    "Couchbase.Tests",
+    "Couchbase.Tests.Management",
+    "Couchbase.UnitTests",
+    "Couchbase.UnitTests.NetStandard"
+  ]
 }

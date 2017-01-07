@@ -41,7 +41,8 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void Throws_Exception_If_Type_Doesnt_Conform_To_Interface()
         {
-            const string resolverType = "Couchbase.UnitTests.Configuration.Client.InvalidServerResolver, Couchbase.UnitTests";
+            var resolverType = GetResolverType("InvalidServerResolver");
+
             var section = new Mock<ICouchbaseClientDefinition>();
             section.Setup(x => x.ServerResolverType).Returns(resolverType);
 
@@ -53,7 +54,8 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void Throws_Exception_If_Resolver_Throws_Exception()
         {
-            const string resolverType = "Couchbase.UnitTests.Configuration.Client.ExceptionServerResolver, Couchbase.UnitTests";
+            var resolverType = GetResolverType("ExceptionServerResolver");
+
             var section = new Mock<ICouchbaseClientDefinition>();
             section.Setup(x => x.ServerResolverType).Returns(resolverType);
 
@@ -63,7 +65,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void Throws_Exception_If_No_Uris_Are_Returned_From_Resolver()
         {
-            const string resolverType = "Couchbase.UnitTests.Configuration.Client.EmptyServerResolver, Couchbase.UnitTests";
+            var resolverType = GetResolverType("EmptyServerResolver");
 
             var section = new Mock<ICouchbaseClientDefinition>();
             section.Setup(x => x.ServerResolverType).Returns(resolverType);
@@ -74,7 +76,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void Uses_Resolver_Uris_If_Available()
         {
-            const string resolverType = "Couchbase.UnitTests.Configuration.Client.TestServerResolver, Couchbase.UnitTests";
+            var resolverType = GetResolverType("TestServerResolver");
 
             var section = new Mock<ICouchbaseClientDefinition>();
             section.Setup(x => x.ServerResolverType).Returns(resolverType);
@@ -90,7 +92,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void Prefers_ServerResolver_Over_Config_Servers()
         {
-            const string resolverType = "Couchbase.UnitTests.Configuration.Client.TestServerResolver, Couchbase.UnitTests";
+            var resolverType = GetResolverType("TestServerResolver");
 
             var section = new Mock<ICouchbaseClientDefinition>();
             section.Setup(x => x.ServerResolverType).Returns(resolverType);
@@ -116,7 +118,18 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual("http://node2.example.com:8091", client.Servers[1].OriginalString);
         }
 #endif
+
+        private string GetResolverType(string resolverName)
+        {
+            string resolverType = null;
+#if NET45
+            resolverType =  string.Format("Couchbase.UnitTests.Configuration.Client.{0}, Couchbase.UnitTests", resolverName);
+#else
+            resolverType =  string.Format("Couchbase.UnitTests.Configuration.Client.{0}, Couchbase.UnitTests.NetStandard", resolverName);
+#endif
+            return resolverType;
     }
+}
 
     public class InvalidServerResolver
     {
@@ -150,5 +163,4 @@ namespace Couchbase.UnitTests.Configuration.Client
             };
         }
     }
-
 }

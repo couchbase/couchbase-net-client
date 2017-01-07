@@ -1,6 +1,9 @@
 ﻿{
-  "supports": {},
+  "version": "1.0.0-*",
+
+
   "dependencies": {
+    "dotnet-test-nunit": "3.4.0-beta-2",
     "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.3.0",
     "Moq": "4.6.38-alpha",
@@ -17,10 +20,33 @@
     "System.Threading.Tasks.Parallel": "4.3.0",
     "System.Threading.Thread": "4.3.0"
   },
-  "frameworks": {
-    "net462": {}
+
+  "buildOptions": {
+    "define": [ "NETCORE" ],
+    "compile": {
+      "include": "..\\Couchbase.UnitTests\\**\\*.cs"
+    },
+    "embed": [
+      "..\\Couchbase.UnitTests\\Data\\*.json",
+      "..\\Couchbase.UnitTests\\Search\\search-response-success.js"
+    ]
   },
-  "runtimes": {
-    "win": {}
-  }
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": "dnxcore50",
+
+      "dependencies": {
+        "Couchbase.NetStandard": {
+          "target": "project",
+          "version": "1.0.0-*"
+        },
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.0.0-*"
+        }
+      }
+    }
+  },
+
+  "testRunner": "nunit"
 }
