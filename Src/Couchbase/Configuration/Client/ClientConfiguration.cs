@@ -147,7 +147,7 @@ namespace Couchbase.Configuration.Client
             Transcoder = TranscoderFactory.GetTranscoder(this);
 
             //the default ioservice
-            IOServiceCreator = IOServiceFactory.GetFactory(Defaults.UseConnectionPooling);
+            IOServiceCreator = IOServiceFactory.GetFactory(this);
 
             //the default connection pool creator
             ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
@@ -195,6 +195,7 @@ namespace Couchbase.Configuration.Client
         public ClientConfiguration(ICouchbaseClientDefinition definition)
         {
             Timer = TimingFactory.GetTimer(Log);
+            UseConnectionPooling = definition.UseConnectionPooling;
             NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
             UseSsl = definition.UseSsl;
             SslPort = definition.SslPort;
@@ -240,7 +241,7 @@ namespace Couchbase.Configuration.Client
                 : TranscoderFactory.GetTranscoder(this);
             IOServiceCreator = definition.IOService != null
                 ? IOServiceFactory.GetFactory(definition.IOService)
-                : IOServiceFactory.GetFactory(definition.UseConnectionPooling);
+                : IOServiceFactory.GetFactory(this);
 
             //to enable tcp keep-alives
             EnableTcpKeepAlives = definition.EnableTcpKeepAlives;
@@ -365,6 +366,8 @@ namespace Couchbase.Configuration.Client
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;
         }
+
+        public bool UseConnectionPooling { get; set; }
 
         /// <summary>
         /// Gets or sets the VBucket retry sleep time: the default is 100ms.

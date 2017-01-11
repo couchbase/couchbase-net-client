@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Services;
+using Couchbase.Utils;
 using Moq;
 using NUnit.Framework;
 
@@ -157,6 +158,57 @@ namespace Couchbase.UnitTests.Configuration.Client
             var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
 
             Assert.IsInstanceOf<PooledIOService>(service);
+        }
+
+        [Test]
+        public void When_UseSsl_Is_True_IOServiceFactory_Returns_PooledIOService()
+        {
+            var config = new ClientConfiguration
+            {
+                UseSsl = true
+            };
+
+            var conn = new Mock<IConnection>();
+            conn.Setup(x => x.IsAuthenticated).Returns(true);
+
+            var connectionPool = new Mock<IConnectionPool>();
+            connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
+
+            var service = config.IOServiceCreator(connectionPool.Object);
+            Assert.IsInstanceOf<PooledIOService>(service);
+        }
+
+        [Test]
+        public void When_UseSsl_Is_False_IOServiceFactory_Returns_MultiplexingIOService()
+        {
+            var config = new ClientConfiguration
+            {
+                UseSsl = false
+            };
+
+            var conn = new Mock<IConnection>();
+            conn.Setup(x => x.IsAuthenticated).Returns(true);
+
+            var connectionPool = new Mock<IConnectionPool>();
+            connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
+
+            var service = config.IOServiceCreator(connectionPool.Object);
+            Assert.IsInstanceOf<MultiplexingIOService>(service);
+        }
+
+        [Test]
+        public void When_Defaults_Are_Used_IOServiceFactory_Returns_MultiplexingIOService()
+        {
+            var config = new ClientConfiguration();
+
+            var conn = new Mock<IConnection>();
+            conn.Setup(x => x.IsAuthenticated).Returns(true);
+
+            var connectionPool = new Mock<IConnectionPool>();
+            connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
+
+            var service = config.IOServiceCreator(connectionPool.Object);
+            Assert.IsInstanceOf<MultiplexingIOService>(service);
         }
 
 #if NET45

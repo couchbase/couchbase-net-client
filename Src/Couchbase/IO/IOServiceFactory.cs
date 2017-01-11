@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Couchbase.Configuration.Client;
 using Couchbase.IO.Services;
 
 #if NET45
@@ -15,16 +16,21 @@ namespace Couchbase.IO
     {
         /// <summary>
         /// Gets a <see cref="Func{IConnectionPool, IIOService}"/> that will create a <see cref="PooledIOService"/> instance
-        /// if <paramref name="useConnectionPooling"/> is <c>true</c>, otherwise it will create a <see cref="MultiplexingIOService"/>.
+        /// if <paramref name="ClientConfiguration.UseConnectionPooling"/> is <c>true</c>, otherwise it will create a <see cref="MultiplexingIOService"/>.
         /// </summary>
         /// <returns></returns>
-        public static Func<IConnectionPool, IIOService> GetFactory(bool useConnectionPooling)
+        public static Func<IConnectionPool, IIOService> GetFactory(ClientConfiguration config)
         {
-            if (useConnectionPooling)
+            //The current SslConnection class does not support multiplexing, so default back to pooling if
+            //UseSsl is enabled. This will likely change in the future when a muxio-ssl implementation exists
+            return pool =>
             {
-                return pool => new PooledIOService(pool);
-            }
-            return pool => new MultiplexingIOService(pool);
+                if (config.UseConnectionPooling || config.UseSsl)
+                {
+                    return new PooledIOService(pool);
+                }
+                return new MultiplexingIOService(pool);
+            };
         }
 
 #if NET45
