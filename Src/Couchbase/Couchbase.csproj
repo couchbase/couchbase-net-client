@@ -282,6 +282,11 @@
     <Compile Include="IO\Operations\Unlock.cs" />
     <Compile Include="IO\RemoteHostTimeoutException.cs" />
     <Compile Include="IO\SocketAsyncState.cs" />
+    <Compile Include="Logging\CommonLoggingLogger.cs" />
+    <Compile Include="Logging\ILog.cs" />
+    <Compile Include="Logging\LogLevel.cs" />
+    <Compile Include="Logging\LogManager.cs" />
+    <Compile Include="Logging\MicrosoftLoggingLogger.cs" />
     <Compile Include="Management\BucketSettings.cs" />
     <Compile Include="Management\ClusterProvisioner.cs" />
     <Compile Include="Management\ClusterSettings.cs" />

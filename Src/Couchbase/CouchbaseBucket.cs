@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Annotations;
 using Couchbase.Authentication;
 using Couchbase.Configuration;
@@ -120,9 +120,9 @@ namespace Couchbase
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Config updated old/new: {0}, {1}",
+            Log.Info("Config updated old/new: {0}, {1}",
                 _configInfo != null ? _configInfo.BucketConfig.Rev :
-                0, configInfo.BucketConfig.Rev));
+                0, configInfo.BucketConfig.Rev);
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
                 new CouchbaseRequestExecuter(_clusterController, _configInfo, Name, _pending));
@@ -152,7 +152,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -255,7 +255,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -461,7 +461,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -562,7 +562,7 @@ namespace Couchbase
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId));
+            Log.Debug("Attempting dispose on thread {0}", Thread.CurrentThread.ManagedThreadId);
             ((IRefCountable)this).Release();
 
         }
@@ -1001,7 +1001,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -1496,7 +1496,7 @@ namespace Couchbase
                 if (!_disposed)
                 {
                     var refCount = RefCounts.GetOrCreateValue(this);
-                    Log.DebugFormat("Creating bucket refCount# {0}", refCount.Count);
+                    Log.Debug("Creating bucket refCount# {0}", refCount.Count);
                     return Interlocked.Increment(ref refCount.Count);
                 }
                 else
@@ -1517,10 +1517,10 @@ namespace Couchbase
                 var refCount = RefCounts.GetOrCreateValue(this);
                 if (refCount.Count > 0)
                 {
-                    Log.DebugFormat("Current bucket refCount# {0}", refCount.Count);
+                    Log.Debug("Current bucket refCount# {0}", refCount.Count);
                     Interlocked.Decrement(ref refCount.Count);
                     if (refCount.Count != 0) return refCount.Count;
-                    Log.DebugFormat("Removing bucket refCount# {0}", refCount.Count);
+                    Log.Debug("Removing bucket refCount# {0}", refCount.Count);
                     RefCounts.Remove(this);
                     Dispose(true);
                 }
@@ -1593,7 +1593,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -1679,7 +1679,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info(m => m("Requires retry {0}", key));
+                Log.Info("Requires retry {0}", key);
             }
             return operationResult;
         }
@@ -3449,7 +3449,7 @@ namespace Couchbase
                 }
                 catch (ServerUnavailableException e)
                 {
-                    Log.Info(m => m("Default to IsSecure false because of {0}", e));
+                    Log.Info("Default to IsSecure false because of {0}", e);
                     return false;
                 }
             }
@@ -3519,7 +3519,7 @@ namespace Couchbase
                     var bucketConfig = operation.GetConfig();
                     if (bucketConfig != null)
                     {
-                        Log.Info(m => m("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                        Log.Info("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig));
                         _clusterController.NotifyConfigPublished(bucketConfig);
                     }
                 }
@@ -3541,7 +3541,7 @@ namespace Couchbase
         {
             if (!_disposed)
             {
-                Log.Debug(m => m("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId));
+                Log.Debug("Disposing on thread {0}", Thread.CurrentThread.ManagedThreadId);
                 if (_clusterController != null)
                 {
                     _clusterController.DestroyBucket(this);

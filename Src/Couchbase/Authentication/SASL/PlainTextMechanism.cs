@@ -1,5 +1,5 @@
 using System.Text;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Authentication;
@@ -86,7 +86,7 @@ namespace Couchbase.Authentication.SASL
         {
             var authenticated = false;
             var temp = connection;
-            Log.Debug(m => m("Authenticating socket {0}", temp.Identity));
+            Log.Debug("Authenticating socket {0}", temp.Identity);
 
             try
             {
@@ -96,12 +96,12 @@ namespace Couchbase.Authentication.SASL
                 if (!result.Success &&
                     result.Status == ResponseStatus.AuthenticationError)
                 {
-                    Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, result.Value));
+                    Log.Debug("Authentication for socket {0} failed: {1}", temp.Identity, result.Value);
                 }
                 else
                 {
                     authenticated = true;
-                    Log.Debug(m => m("Authenticated socket {0} succeeded: {1}", temp.Identity, result.Value));
+                    Log.Debug("Authenticated socket {0} succeeded: {1}", temp.Identity, result.Value);
                 }
             }
             catch (Exception e)

@@ -1,5 +1,5 @@
 ﻿using System.Threading;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;

@@ -4,7 +4,7 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -78,7 +78,7 @@ namespace Couchbase.Tests.Configuration
                 Assert.AreEqual(expected, actual);
             }
 
-            Log.Debug(m => m("CLEANUP!"));
+            Log.Debug("CLEANUP!");
             configInfo.Dispose();
         }
 
@@ -109,7 +109,7 @@ namespace Couchbase.Tests.Configuration
             Assert.IsNotNull(configInfo.GetKeyMapper());
             Assert.AreEqual("127.0.0.1", configInfo.GetServers().First().EndPoint.Address.ToString());
 
-            Log.Debug(m => m("CLEANUP!"));
+            Log.Debug("CLEANUP!");
             configInfo.Dispose();
         }
 
@@ -140,7 +140,7 @@ namespace Couchbase.Tests.Configuration
             Assert.IsNotNull(configInfo.GetKeyMapper());
             Assert.AreEqual("127.0.0.1", configInfo.GetServers().First().EndPoint.Address.ToString());
 
-            Log.Debug(m => m("CLEANUP!"));
+            Log.Debug("CLEANUP!");
             configInfo.Dispose();
         }
 

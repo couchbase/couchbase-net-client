@@ -3,7 +3,7 @@
 using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using Common.Logging;
+using Couchbase.Logging;
 
 namespace Couchbase.IO.Utils
 {

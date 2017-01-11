@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
@@ -34,7 +34,7 @@ namespace Couchbase.IO.Services
         /// <param name="connectionPool">The connection pool.</param>
         public PooledIOService(IConnectionPool connectionPool)
         {
-            Log.Debug(m=>m("Creating PooledIOService {0}", _identity));
+            Log.Debug("Creating PooledIOService {0}", _identity);
             _connectionPool = connectionPool;
         }
 
@@ -45,7 +45,7 @@ namespace Couchbase.IO.Services
         /// <param name="saslMechanism">The sasl mechanism.</param>
         public PooledIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
-            Log.Debug(m => m("Creating PooledIOService {0}", _identity));
+            Log.Debug("Creating PooledIOService {0}", _identity);
             _connectionPool = connectionPool;
             _saslMechanism = saslMechanism;
         }
@@ -400,17 +400,15 @@ namespace Couchbase.IO.Services
                     if (result)
                     {
                         Log.Debug(
-                            m =>
-                                m("Authenticated {0} using {1} - {2}.", _saslMechanism.Username,
-                                    _saslMechanism.GetType(), _identity));
+                            "Authenticated {0} using {1} - {2}.", _saslMechanism.Username,
+                                    _saslMechanism.GetType(), _identity);
                         connection.IsAuthenticated = true;
                     }
                     else
                     {
                         Log.Debug(
-                            m =>
-                                m("Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username,
-                                    _saslMechanism.GetType(), _identity));
+                            "Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username,
+                                    _saslMechanism.GetType(), _identity);
                         throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
                     }
                 }
@@ -459,7 +457,7 @@ namespace Couchbase.IO.Services
         /// <param name="result"></param>
         private static void LogFailedHelloOperation(IResult result)
         {
-            Log.Debug(m => m(string.Format("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception)));
+            Log.Debug("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception);
         }
 
         /// <summary>
@@ -489,7 +487,7 @@ namespace Couchbase.IO.Services
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing PooledIOService for {0} - {1}", EndPoint, _identity));
+            Log.Debug("Disposing PooledIOService for {0} - {1}", EndPoint, _identity);
             Dispose(true);
         }
 
@@ -512,7 +510,7 @@ namespace Couchbase.IO.Services
 #if DEBUG
         ~PooledIOService()
         {
-            Log.Debug(m => m("Finalizing PooledIOService for {0} - {1}", EndPoint, _identity));
+            Log.Debug("Finalizing PooledIOService for {0} - {1}", EndPoint, _identity);
             Dispose(false);
         }
 #endif

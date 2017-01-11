@@ -3,7 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -80,7 +80,7 @@ namespace Couchbase.Search
             }
             catch (HttpRequestException e)
             {
-                Log.InfoFormat("Search failed {0}: {1}{2}",  baseUri, Environment.NewLine, searchBody);
+                Log.Info("Search failed {0}: {1}{2}",  baseUri, Environment.NewLine, searchBody);
                 baseUri.IncrementFailed();
                 ProcessError(e, searchResult);
                 Log.Error(e);
@@ -89,14 +89,14 @@ namespace Couchbase.Search
             {
                 ae.Flatten().Handle(e =>
                 {
-                    Log.InfoFormat("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
+                    Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
                     ProcessError(e, searchResult);
                     return true;
                 });
             }
             catch (Exception e)
             {
-                Log.InfoFormat("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
+                Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
                 Log.Info(e);
                 ProcessError(e, searchResult);
             }

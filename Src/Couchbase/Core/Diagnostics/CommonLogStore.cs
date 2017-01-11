@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+﻿using Couchbase.Logging;
 
 namespace Couchbase.Core.Diagnostics
 {
@@ -12,7 +12,7 @@ namespace Couchbase.Core.Diagnostics
 
         public void Write(string format, params object[] args)
         {
-            _log.Info(m => m(format, args));
+            _log.Info(format, args);
         }
 
         public bool Enabled

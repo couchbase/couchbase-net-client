@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -258,7 +258,7 @@ namespace Couchbase.N1QL
                 var result = Prepare(originalRequest);
                 if (!result.Success)
                 {
-                    Log.WarnFormat("Failure to prepare plan for query {0} (it will be reattempted next time it is issued): {1}",
+                    Log.Warn("Failure to prepare plan for query {0} (it will be reattempted next time it is issued): {1}",
                         originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
                 }
@@ -289,7 +289,7 @@ namespace Couchbase.N1QL
                 var result = await PrepareAsync(originalRequest).ContinueOnAnyContext();
                 if (!result.Success)
                 {
-                    Log.WarnFormat("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
+                    Log.Warn("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
                         originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize async statement: " + result.GetErrorsAsString());
                 }
@@ -361,7 +361,7 @@ namespace Couchbase.N1QL
             FailureCountingUri baseUri;
             if (!TryGetQueryUri(out baseUri))
             {
-                Log.ErrorFormat(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
+                Log.Error(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
                 ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
                 return queryResult;
             }
@@ -374,14 +374,14 @@ namespace Couchbase.N1QL
                 {
                     using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming))
                     {
-                        Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
                         using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                         {
                             queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(response).ToQueryResult();
                             queryResult.Success = queryResult.Status == QueryStatus.Success;
                             queryResult.HttpStatusCode = request.StatusCode;
-                            Log.TraceFormat("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
+                            Log.Trace("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
                             timer.ClusterElapsedTime = queryResult.Metrics.ElaspedTime;
                         }
                     }
@@ -389,7 +389,7 @@ namespace Couchbase.N1QL
                 }
                 catch (HttpRequestException e)
                 {
-                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     baseUri.IncrementFailed();
                     ProcessError(e, queryResult);
                     Log.Error(e);
@@ -398,14 +398,14 @@ namespace Couchbase.N1QL
                 {
                     ae.Flatten().Handle(e =>
                     {
-                        Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         ProcessError(e, queryResult);
                         return true;
                     });
                 }
                 catch (Exception e)
                 {
-                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     Log.Info(e);
                     ProcessError(e, queryResult);
                 }

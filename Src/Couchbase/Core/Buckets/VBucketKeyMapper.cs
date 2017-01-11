@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Cryptography;
 
@@ -54,7 +54,7 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
-            Log.Trace(m=>m("Using index {0} for key {1} - rev{2}", index, key, Rev));
+            Log.Trace("Using index {0} for key {1} - rev{2}", index, key, Rev);
 
             return _vBuckets[index];
         }
@@ -99,8 +99,8 @@ namespace Couchbase.Core.Buckets
             var vBucketForwardMap = _vBucketServerMap.VBucketMapForward;
             var vBucketMap = _vBucketServerMap.VBucketMap;
 
-            Log.Info(m => m("Creating VBuckets {0} and FMaps {1} for Rev#{2}", vBucketMap.Length,
-                vBucketForwardMap == null ? 0: vBucketForwardMap.Length, Rev));
+            Log.Info("Creating VBuckets {0} and FMaps {1} for Rev#{2}", vBucketMap.Length,
+                vBucketForwardMap == null ? 0: vBucketForwardMap.Length, Rev);
 
             for (var i = 0; i < vBucketMap.Length; i++)
             {
@@ -126,7 +126,7 @@ namespace Couchbase.Core.Buckets
 
             if (vBucketMapForward != null)
             {
-                Log.Info(m => m("Creating VBucketMapForwards {0}", vBucketMapForward.Length));
+                Log.Info("Creating VBucketMapForwards {0}", vBucketMapForward.Length);
 
                 for (var i = 0; i < vBucketMapForward.Length; i++)
                 {

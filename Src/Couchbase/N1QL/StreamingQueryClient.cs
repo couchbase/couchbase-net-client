@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Utils;
@@ -35,7 +35,7 @@ namespace Couchbase.N1QL
             FailureCountingUri baseUri;
             if (!TryGetQueryUri(out baseUri))
             {
-                Log.ErrorFormat(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
+                Log.Error(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
                 ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
                 return queryResult;
             }
@@ -48,7 +48,7 @@ namespace Couchbase.N1QL
                 {
                     var requestMessage = new HttpRequestMessage(HttpMethod.Post, baseUri) {Content = content};
 
-                    Log.TraceFormat("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     var response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead).ContinueOnAnyContext();
                     var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext();
                     {
@@ -59,13 +59,13 @@ namespace Couchbase.N1QL
                             Success = response.StatusCode == HttpStatusCode.OK,
                             QueryTimer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming)
                         };
-                        Log.TraceFormat("Received query cid{0}: {1}", queryRequest.CurrentContextId, queryResult.HttpStatusCode);
+                        Log.Trace("Received query cid{0}: {1}", queryRequest.CurrentContextId, queryResult.HttpStatusCode);
                     }
                     baseUri.ClearFailed();
                 }
                 catch (HttpRequestException e)
                 {
-                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     baseUri.IncrementFailed();
                     ProcessError(e, queryResult);
                     Log.Error(e);
@@ -74,14 +74,14 @@ namespace Couchbase.N1QL
                 {
                     ae.Flatten().Handle(e =>
                     {
-                        Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         ProcessError(e, queryResult);
                         return true;
                     });
                 }
                 catch (Exception e)
                 {
-                    Log.InfoFormat("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                     Log.Info(e);
                     ProcessError(e, queryResult);
                 }

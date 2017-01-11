@@ -79,6 +79,7 @@
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
     <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />
+    <Compile Include="GlobalSetup.cs" />
     <Compile Include="IO\ConnectionBaseTests.cs" />
     <Compile Include="IO\Converters\DefaultConverterTests.cs" />
     <Compile Include="IO\Operations\AddTests.cs" />

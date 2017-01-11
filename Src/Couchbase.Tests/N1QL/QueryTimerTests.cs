@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Core.Diagnostics;
 using Couchbase.N1QL;
 using Couchbase.Tests.Fakes;

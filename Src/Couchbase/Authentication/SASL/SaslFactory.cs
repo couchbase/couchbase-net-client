@@ -1,5 +1,5 @@
 ﻿using System;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
@@ -11,7 +11,7 @@ namespace Couchbase.Authentication.SASL
     /// </summary>
     internal static class SaslFactory
     {
-        private static readonly ILog Log = LogManager.GetLogger("SaslFactory");
+        private static readonly ILog Log = LogManager.GetLogger(typeof(SaslFactory));
 
         /// <summary>
         /// The default timeout for SASL-related operations.

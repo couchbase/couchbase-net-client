@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Client
@@ -12,7 +12,7 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public static class ServerResolverUtil
     {
-        private static readonly ILog Log = LogManager.GetLogger("ServerResolverUtil");
+        private static readonly ILog Log = LogManager.GetLogger(typeof(ServerResolverUtil));
 
         public static List<Uri> GetServers(string serverResolverType)
         {
@@ -32,7 +32,7 @@ namespace Couchbase.Configuration.Client
             catch (Exception exception)
             {
                 Log.Error(ExceptionUtil.ErrorRetrievingServersUsingServerResolver.WithParams(serverResolverType));
-                Log.Error(exception);
+                Log.Error("Error getting list of servers", exception);
                 throw;
             }
 

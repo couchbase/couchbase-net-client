@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using Common.Logging;
+using Couchbase.Logging;
 
 namespace Couchbase.IO
 {
@@ -35,7 +35,7 @@ namespace Couchbase.IO
 
             if (_buffer == null)
             {
-                Log.DebugFormat("Allocating {0} bytes for buffer", _numberOfBytes);
+                Log.Debug("Allocating {0} bytes for buffer", _numberOfBytes);
 
                 _buffer = new byte[_numberOfBytes];
             }

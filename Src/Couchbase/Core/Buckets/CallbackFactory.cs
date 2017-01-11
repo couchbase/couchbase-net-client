@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -143,7 +143,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
-                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque,op.CurrentHost, result.Status);
+                                Log.Trace("Retry {0} on {1}: {2}", op.Opaque,op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();
@@ -236,7 +236,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
-                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
+                                Log.Trace("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult<T>>();
@@ -327,7 +327,7 @@ namespace Couchbase.Core.Buckets
                             }
                             if (result.IsNmv() || (op.CanRetry() && result.ShouldRetry()))
                             {
-                                Log.TraceFormat("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
+                                Log.Trace("Retry {0} on {1}: {2}", op.Opaque, op.CurrentHost, result.Status);
                                 var retryResult = await executer.RetryOperationEveryAsync((o, c) =>
                                 {
                                     var retryTcs = new TaskCompletionSource<IOperationResult>();

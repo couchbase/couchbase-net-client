@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -223,7 +223,7 @@ namespace Couchbase.Core.Buckets
             }
             return await ObserveEveryAsync(async p =>
             {
-                Log.DebugFormat("trying again: {0}", key);
+                Log.Debug("trying again: {0}", key);
                 persisted = await CheckPersistToAsync(observeParams).ContinueOnAnyContext();
                 replicated = await CheckReplicasAsync(observeParams).ContinueOnAnyContext();
                 return persisted & replicated;
@@ -256,7 +256,7 @@ namespace Couchbase.Core.Buckets
             await server.SendAsync(operation).ContinueOnAnyContext();
             var result = await tcs.Task.ContinueOnAnyContext();
 
-            Log.Debug(m => m("Master {0} - {1} key:{2}", server.EndPoint, result.Value, observeParams.Key));
+            Log.Debug("Master {0} - {1} key:{2}", server.EndPoint, result.Value, observeParams.Key);
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {
@@ -266,14 +266,14 @@ namespace Couchbase.Core.Buckets
             //Key mutation detected so fail
             if (observeParams.HasMutated(state.Cas))
             {
-                Log.Debug(m => m("Mutation detected {0} - {1} - opaque: {2} key:{3}",server.EndPoint, result.Value, operation.Opaque, observeParams.Key));
+                Log.Debug("Mutation detected {0} - {1} - opaque: {2} key:{3}",server.EndPoint, result.Value, operation.Opaque, observeParams.Key);
                 throw new DocumentMutationException(string.Format("Document mutation detected during observe for key '{0}'", observeParams.Key));
             }
 
             //Check if durability requirements have been met
             if (observeParams.IsDurabilityMet())
             {
-                Log.Debug(m => m("Durability met {0} - {1} - opaque: {2} key:{3}", server.EndPoint, result.Value, operation.Opaque, observeParams.Key));
+                Log.Debug("Durability met {0} - {1} - opaque: {2} key:{3}", server.EndPoint, result.Value, operation.Opaque, observeParams.Key);
                 return true;
             }
             return false;
@@ -423,7 +423,7 @@ namespace Couchbase.Core.Buckets
             await replica.SendAsync(operation).ContinueOnAnyContext();
             var result = await tcs.Task.ContinueOnAnyContext();
 
-            Log.Debug(m=>m("Replica {0} - {1} {2} - opaque: {3} key:{4}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque, observeParams.Key));
+            Log.Debug("Replica {0} - {1} {2} - opaque: {3} key:{4}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque, observeParams.Key);
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {

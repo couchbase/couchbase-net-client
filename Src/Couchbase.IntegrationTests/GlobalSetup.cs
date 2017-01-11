@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Common.Logging;
-using NUnit.Framework;
+﻿using NUnit.Framework;
+
+#if NETCORE
+using Couchbase.Logging;
+using Microsoft.Extensions.Logging;
+#endif
 
 namespace Couchbase.IntegrationTests
 {
@@ -14,12 +13,10 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void Setup()
         {
-#if NETSTANDARD
-            // Can't configure Common.Logging using files yet in Net Standard
-            // So we'll do it in code instead
-
-            LogManager.Adapter =
-                new Common.Logging.Simple.DebugLoggerFactoryAdapter(LogLevel.Debug, true, true, true, "yyyy/MM/dd HH:mm:ss:fff");
+#if NETCORE
+            var factory = new LoggerFactory();
+            factory.AddDebug();
+            LogManager.ConfigureLoggerFactory(factory);
 #endif
 
             ClusterHelper.Initialize(Utils.TestConfiguration.GetCurrentConfiguration());

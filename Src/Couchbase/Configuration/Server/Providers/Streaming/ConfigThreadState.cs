@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Http;
 using Couchbase.Utils;
@@ -85,7 +85,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         nodes.Remove(node);
 
                         var streamingUri = _bucketConfig.GetTerseStreamingUri(node, _bucketConfig.UseSsl);
-                        Log.Info(m => m("Listening to {0}", streamingUri));
+                        Log.Info("Listening to {0}", streamingUri);
 
                         var response =
                             httpClient.GetAsync(streamingUri, HttpCompletionOption.ResponseHeadersRead,
@@ -108,10 +108,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                 {
                                     if (config != String.Empty)
                                     {
-                                        Log.Info(m => m("configuration changed count: {0}", count++));
-                                        Log.Info(m => m("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId));
+                                        Log.Info("configuration changed count: {0}", count++);
+                                        Log.Info("Worker Thread: {0}", Thread.CurrentThread.ManagedThreadId);
                                         var config1 = config;
-                                        Log.Debug(m => m("{0}", config1));
+                                        Log.Debug("{0}", config1);
 
                                         config = config.Replace("$HOST", streamingUri.Host);
                                         var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.EnhancedDurability;
@@ -222,12 +222,12 @@ namespace Couchbase.Core.Buckets
             var replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
             if (persisted && replicated)
             {
-                Log.DebugFormat("Persisted and replicated on first try: {0}", _key);
+                Log.Debug("Persisted and replicated on first try: {0}", _key);
                 return true;
             }
             return await ObserveEveryAsync(async p =>
             {
-                Log.DebugFormat("trying again: {0}", _key);
+                Log.Debug("trying again: {0}", _key);
                 persisted = await CheckPersistToAsync(obParams).ContinueOnAnyContext();
                 replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
                 return persisted & replicated;
@@ -356,7 +356,7 @@ namespace Couchbase.Core.Buckets
             op.Completed = CallbackFactory.CompletedFuncForRetry(_pending, _clusterController, tcs);
             _pending.TryAdd(op.Opaque, op);
 
-            Log.Debug(m => m("checking replica {0} - opaque: {1}", replicaId, op.Opaque));
+            Log.Debug("checking replica {0} - opaque: {1}", replicaId, op.Opaque);
             var replica = observeParams.VBucket.LocateReplica(replicaId);
             await replica.SendAsync(op).ContinueOnAnyContext();
             var response = await tcs.Task.ContinueOnAnyContext();

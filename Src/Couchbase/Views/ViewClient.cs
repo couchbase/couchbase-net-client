@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Utils;
 
 namespace Couchbase.Views
@@ -41,7 +41,7 @@ namespace Couchbase.Views
                 ae.Flatten().Handle(e =>
                 {
                     ProcessError(e, viewResult);
-                    Log.Error(uri, e);
+                    Log.Error(uri.ToString(), e);
                     return true;
                 });
             }
@@ -49,7 +49,7 @@ namespace Couchbase.Views
             {
                 const string error = "The request has timed out.";
                 ProcessError(e, error, viewResult);
-                Log.Error(uri, e);
+                Log.Error(uri.ToString(), e);
             }
             return viewResult;
         }

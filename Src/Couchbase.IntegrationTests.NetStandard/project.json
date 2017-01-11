@@ -10,6 +10,8 @@
     "Microsoft.Extensions.Configuration.Abstractions": "1.1.0",
     "Microsoft.Extensions.Configuration.Binder": "1.1.0",
     "Microsoft.Extensions.Configuration.Json": "1.1.0",
+    "Microsoft.Extensions.Logging": "1.1.0",
+    "Microsoft.Extensions.Logging.Debug": "1.1.0",
     "Moq": "4.6.38-alpha",
     "NETStandard.Library": "1.6.1",
     "Newtonsoft.Json": "9.0.1",

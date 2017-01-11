@@ -1,5 +1,5 @@
 ﻿using System;
-using Common.Logging;
+using Couchbase.Logging;
 
 namespace Couchbase.Core.Diagnostics
 {

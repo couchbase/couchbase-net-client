@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
@@ -316,18 +316,21 @@ namespace Couchbase
         public void Dispose()
         {
             Dispose(true);
-            Log.Debug(m => m("Disposing {0}", GetType().Name));
+            Log.Debug("Disposing {0}", GetType().Name);
         }
 
         static void LogConfigurationAndVersion(ClientConfiguration configuration)
         {
             var version = CurrentAssembly.Version;
-            Log.Info(m=>m("Version: {0}", version));
+            Log.Info("Version: {0}", version);
 
             try
             {
-                var config = JsonConvert.SerializeObject(configuration);
-                Log.Info(m => m("Configuration: {0}", config));
+                var config = JsonConvert.SerializeObject(configuration, new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                });
+                Log.Info("Configuration: {0}", config);
             }
             catch (Exception e)
             {
@@ -364,7 +367,7 @@ namespace Couchbase
         ~Cluster()
         {
             Dispose(false);
-            Log.Debug(m=>m("Finalizing {0}", GetType().Name));
+            Log.Debug("Finalizing {0}", GetType().Name);
         }
 #endif
     }

@@ -1,4 +1,4 @@
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
@@ -492,12 +492,12 @@ namespace Couchbase.Core.Buckets
             if (vBucket != null)
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message));
+                Log.Debug(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message);
             }
             else
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries and opaque{2}. Reason: {3}";
-                Log.Debug(m => m(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message));
+                Log.Debug(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message);
             }
         }
 
@@ -506,7 +506,7 @@ namespace Couchbase.Core.Buckets
             var node = ConfigInfo.GetDataNode();
             if (node != null && !node.IsDown)
             {
-                Log.InfoFormat("Updating config on {0} using rev#{1}", node.EndPoint, node.Revision);
+                Log.Info("Updating config on {0} using rev#{1}", node.EndPoint, node.Revision);
                 var result = node.Send(new Config(ClusterController.Transcoder,
                     ConfigInfo.ClientConfig.DefaultOperationLifespan,
                     node.EndPoint));

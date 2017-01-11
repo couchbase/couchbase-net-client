@@ -178,8 +178,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 {
                     var staleBucketConfig = configInfo.BucketConfig;
 
-                    Log.Info(m =>m("Config changed new Rev#{0} | old Rev#{1} HTTP: {2}",
-                        bucketConfig.Rev, staleBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig)));
+                    Log.Info("Config changed new Rev#{0} | old Rev#{1} HTTP: {2}",
+                        bucketConfig.Rev, staleBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig));
 
                     if (bucketConfig.Rev > staleBucketConfig.Rev)
                     {
@@ -260,7 +260,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         {
             _serverConfig = new HttpServerConfig(ClientConfig, username, password);
             _serverConfig.Initialize();
-            Log.Debug(m => m("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId));
+            Log.Debug("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId);
         }
 
         public IServerConfig GetCachedServerConfig()
@@ -307,7 +307,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     CancellationTokenSource cancellationTokenSource;
                     if (_cancellationTokens.TryRemove(observer.Name, out cancellationTokenSource))
                     {
-                        Log.Info(m => m("Cancelling {0}", observer.Name));
+                        Log.Info("Cancelling {0}", observer.Name);
                         cancellationTokenSource.Cancel();
                         cancellationTokenSource.Dispose();
                     }
@@ -315,14 +315,14 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     IConfigObserver temp;
                     if (ConfigObservers.TryRemove(observer.Name, out temp))
                     {
-                        Log.Info(m => m("Removing observer for {0}", observer.Name));
+                        Log.Info("Removing observer for {0}", observer.Name);
                     }
 
                     IConfigInfo configInfo;
                     if (Configs.TryRemove(observer.Name, out configInfo))
                     {
                         configInfo.Dispose();
-                        Log.Info(m => m("Removing config for {0}", observer.Name));
+                        Log.Info("Removing config for {0}", observer.Name);
                     }
                 }
             }

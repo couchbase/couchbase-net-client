@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+﻿using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -147,12 +147,12 @@ namespace Couchbase.Core
                     IBucket existingBucket = _buckets[bucketName];
                     if ((existingBucket as IRefCountable).AddRef() != -1)
                     {
-                        Log.DebugFormat("Bootstraping was already done, returning existing bucket {0}", bucketName);
+                        Log.Debug("Bootstraping was already done, returning existing bucket {0}", bucketName);
                         return existingBucket; // This is the only short circuit. All other cases fall through to bootstrapping.
                     }
                     else
                     {
-                        Log.DebugFormat("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
+                        Log.Debug("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
                         DestroyBucket(existingBucket);
                     }
                 }
@@ -163,7 +163,7 @@ namespace Couchbase.Core
                 {
                     try
                     {
-                        Log.DebugFormat("Trying to bootstrap with {0}.", provider);
+                        Log.Debug("Trying to bootstrap with {0}.", provider);
                         var config = provider.GetConfig(bucketName, password);
                         IRefCountable refCountable = null;
                         switch (config.NodeLocator)
@@ -195,7 +195,7 @@ namespace Couchbase.Core
                         var configObserver = (IConfigObserver) bucket;
                         if (provider.ObserverExists(configObserver))
                         {
-                            Log.DebugFormat("Using existing bootstrap {0}.", provider);
+                            Log.Debug("Using existing bootstrap {0}.", provider);
                             _clientConfig.UpdateBootstrapList(config.BucketConfig);
 
                             configObserver.NotifyConfigChanged(config);
@@ -206,7 +206,7 @@ namespace Couchbase.Core
                         if (provider.RegisterObserver(configObserver) &&
                             _buckets.TryAdd(bucket.Name, bucket))
                         {
-                            Log.DebugFormat("Successfully bootstrapped using {0}.", provider);
+                            Log.Debug("Successfully bootstrapped using {0}.", provider);
                             _clientConfig.UpdateBootstrapList(config.BucketConfig);
                             configObserver.NotifyConfigChanged(config);
                             success = true;

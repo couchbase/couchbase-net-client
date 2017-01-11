@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
@@ -417,7 +417,7 @@ namespace Couchbase.Management
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
                 Success = httpResponseMessage.IsSuccessStatusCode,
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug("{0}", body);
             return result;
         }
 

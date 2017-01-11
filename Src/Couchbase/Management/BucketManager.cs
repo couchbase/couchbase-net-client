@@ -1,4 +1,4 @@
-﻿using Common.Logging;
+﻿using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Views;
 using System;
@@ -169,7 +169,7 @@ namespace Couchbase.Management
 
             foreach (var index in indexes)
             {
-                Log.DebugFormat("Index '{0}' is '{1}'", index.Name, index.State); // eg "Index 'foo' is 'online'"
+                Log.Debug("Index '{0}' is '{1}'", index.Name, index.State); // eg "Index 'foo' is 'online'"
             }
 
             return indexes.Any(index => index.State != "online");
@@ -686,7 +686,7 @@ namespace Couchbase.Management
                 Success = httpResponseMessage.IsSuccessStatusCode,
                 Value = httpResponseMessage.IsSuccessStatusCode ? body : null
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug("{0}", body);
             return result;
         }
 
@@ -700,7 +700,7 @@ namespace Couchbase.Management
                 Message = httpResponseMessage.IsSuccessStatusCode ? "success" : body,
                 Success = httpResponseMessage.IsSuccessStatusCode,
             };
-            Log.Debug(m => m("{0}", body));
+            Log.Debug("{0}", body);
             return result;
         }
 

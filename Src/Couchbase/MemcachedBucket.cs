@@ -7,7 +7,7 @@
  using System.Security.Authentication;
  using System.Threading;
  using System.Threading.Tasks;
- using Common.Logging;
+ using Couchbase.Logging;
  using Couchbase.Annotations;
  using Couchbase.Authentication;
  using Couchbase.Configuration;
@@ -136,7 +136,7 @@ namespace Couchbase
                 }
                 catch (ServerUnavailableException e)
                 {
-                    Log.Info(m => m("Default to IsSecure false because of {0}", e));
+                    Log.Info("Default to IsSecure false because of {0}", e);
                     return false;
                 }
             }
@@ -168,8 +168,8 @@ namespace Couchbase
         /// <param name="configInfo">The new configuration</param>
         void IConfigObserver.NotifyConfigChanged(IConfigInfo configInfo)
         {
-            Log.Info(m => m("Config updated old/new: {0}, {1}",
-                _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev));
+            Log.Info("Config updated old/new: {0}, {1}",
+                _configInfo != null ? _configInfo.BucketConfig.Rev : 0, configInfo.BucketConfig.Rev);
             Interlocked.Exchange(ref _configInfo, configInfo);
             Interlocked.Exchange(ref _requestExecuter,
                 new MemcachedRequestExecuter(_clusterController, _configInfo, Name, _pending));

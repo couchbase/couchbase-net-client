@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Http;
@@ -69,7 +69,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var success = false;
             try
             {
-                Log.Info(m=>m("Bootstrapping from {0}", server));
+                Log.Info("Bootstrapping from {0}", server);
                 Bootstrap = DownLoadConfig<Bootstrap>(server);
                 Pools = DownLoadConfig<Pools>(Bootstrap.GetPoolsUri(server));
                 Buckets = DownLoadConfig<List<BucketConfig>>(Pools.GetBucketUri(server));
@@ -77,7 +77,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 UpdateUseSsl(Buckets);
                 BootstrapServer = server;
                 success = true;
-                Log.Info(m=>m("Bootstrapped from {0}", server));
+                Log.Info("Bootstrapped from {0}", server);
             }
             catch (BootstrapException e)
             {
@@ -85,7 +85,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
             catch (Exception e)
             {
-                Log.Error(m=>m("Bootstrapping failed from {0}: {1}", server, e));
+                Log.Error("Bootstrapping failed from {0}: {1}", server, e);
                 throw;
             }
             return success;

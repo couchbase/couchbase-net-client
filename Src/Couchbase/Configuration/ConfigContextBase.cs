@@ -1,5 +1,5 @@
 using System.Threading;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -192,7 +192,7 @@ namespace Couchbase.Configuration
         /// <returns></returns>
         public IKeyMapper GetKeyMapper()
         {
-            Log.Trace(m=>m("Getting KeyMapper for rev#{0} on thread {1}", BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId));
+            Log.Trace("Getting KeyMapper for rev#{0} on thread {1}", BucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
             return KeyMapper;
         }
 
@@ -270,7 +270,7 @@ namespace Couchbase.Configuration
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing ConfigContext"));
+            Log.Debug("Disposing ConfigContext");
             Dispose(true);
         }
 
@@ -310,7 +310,7 @@ namespace Couchbase.Configuration
         /// </summary>
         ~ConfigContextBase()
         {
-            Log.Debug(m => m("Finalizing ConfigContext for Rev#{0}", BucketConfig.Rev));
+            Log.Debug("Finalizing ConfigContext for Rev#{0}", BucketConfig.Rev);
             Dispose(false);
         }
 #endif

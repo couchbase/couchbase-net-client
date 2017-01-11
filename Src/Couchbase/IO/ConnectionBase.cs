@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
@@ -202,7 +202,7 @@ namespace Couchbase.IO
 
                 if (InUse && _closeAttempts < MaxCloseAttempts && !IsDead)
                 {
-                    Log.DebugFormat("Restarting timer for connection for {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
+                    Log.Debug("Restarting timer for connection for {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
                     _timer.Change((int) interval, Timeout.Infinite);
                 }
                 else
@@ -213,7 +213,7 @@ namespace Couchbase.IO
                     //this will call the derived classes Dispose method,
                     //which call the base.Dispose (on OperationBase) cleaning up the timer.
                     Dispose();
-                    Log.DebugFormat("Disposing {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
+                    Log.Debug("Disposing {0} after {1}ms", _identity, (DateTime.Now - startTime).TotalMilliseconds);
                 }
             },
             null, (int) interval, Timeout.Infinite);
@@ -234,7 +234,7 @@ namespace Couchbase.IO
         /// </summary>
         public virtual void Dispose()
         {
-            Log.DebugFormat("Disposing the timer for {0}", _identity);
+            Log.Debug("Disposing the timer for {0}", _identity);
             if (_timer == null) return;
             _inUse = false;
             _timer.Dispose();

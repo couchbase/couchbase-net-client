@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
@@ -29,7 +29,7 @@ namespace Couchbase.IO.Services
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
-            Log.Debug(m => m("Creating IOService {0}", _identity));
+            Log.Debug("Creating IOService {0}", _identity);
             _connectionPool = connectionPool;
             _connection = _connectionPool.Acquire();
 
@@ -104,19 +104,19 @@ namespace Couchbase.IO.Services
             }
             catch (SocketException e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
@@ -159,19 +159,19 @@ namespace Couchbase.IO.Services
             }
             catch (SocketException e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
@@ -203,7 +203,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
@@ -239,7 +239,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
@@ -267,7 +267,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
 
@@ -294,7 +294,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.DebugFormat("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
 
@@ -335,17 +335,15 @@ namespace Couchbase.IO.Services
                     if (result)
                     {
                         Log.Debug(
-                            m =>
-                                m("Authenticated {0} using {1} - {2} [{3}].", SaslMechanism.Username, SaslMechanism.GetType(),
-                                    _identity, EndPoint));
+                            "Authenticated {0} using {1} - {2} [{3}].", SaslMechanism.Username, SaslMechanism.GetType(),
+                                    _identity, EndPoint);
                         connection.IsAuthenticated = true;
                     }
                     else
                     {
                         Log.Debug(
-                            m =>
-                                m("Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
-                                    SaslMechanism.GetType(), _identity, EndPoint));
+                            "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
+                                    SaslMechanism.GetType(), _identity, EndPoint);
                         throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
                     }
                 }
@@ -394,7 +392,7 @@ namespace Couchbase.IO.Services
         /// <param name="result"></param>
         private static void LogFailedHelloOperation(IResult result)
         {
-            Log.Debug(m => m(string.Format("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception)));
+            Log.Debug("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception);
         }
 
         /// <summary>
@@ -402,7 +400,7 @@ namespace Couchbase.IO.Services
         /// </summary>
         public void Dispose()
         {
-            Log.Debug(m => m("Disposing IOService for {0} - {1}", EndPoint, _identity));
+            Log.Debug("Disposing IOService for {0} - {1}", EndPoint, _identity);
             lock (_syncObj)
             {
                 Dispose(true);
@@ -429,7 +427,7 @@ namespace Couchbase.IO.Services
 #if DEBUG
         ~MultiplexingIOService()
         {
-            Log.Debug(m => m("Finalizing IOService for {0} - {1}", EndPoint, _identity));
+            Log.Debug("Finalizing IOService for {0} - {1}", EndPoint, _identity);
             Dispose(false);
         }
 #endif

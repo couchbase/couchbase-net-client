@@ -181,6 +181,21 @@
     <Compile Include="..\Couchbase\Core\IO\SubDocument\OperationSpec.cs">
       <Link>Core\IO\SubDocument\OperationSpec.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Logging\CommonLoggingLogger.cs">
+      <Link>Logging\CommonLoggingLogger.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Logging\ILog.cs">
+      <Link>Logging\ILog.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Logging\LogLevel.cs">
+      <Link>Logging\LogLevel.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Logging\LogManager.cs">
+      <Link>Logging\LogManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Logging\MicrosoftLoggingLogger.cs">
+      <Link>Logging\MicrosoftLoggingLogger.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Core\ISubDocBuilder.cs">
       <Link>Core\ISubDocBuilder.cs</Link>
     </Compile>

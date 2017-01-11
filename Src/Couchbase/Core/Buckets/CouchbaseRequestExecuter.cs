@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
@@ -63,7 +63,7 @@ namespace Couchbase.Core.Buckets
                 var bucketConfig = operation.GetConfig();
                 if (bucketConfig != null)
                 {
-                    Log.Info(m => m("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev));
+                    Log.Info("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev);
                     Log.Debug(JsonConvert.SerializeObject(bucketConfig));
                     ClusterController.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
@@ -114,7 +114,7 @@ namespace Couchbase.Core.Buckets
                 {
                     return result;
                 }
-                Log.Debug(m => m("trying again: {0}", query.RetryAttempts));
+                Log.Debug("trying again: {0}", query.RetryAttempts);
                 var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -144,7 +144,7 @@ namespace Couchbase.Core.Buckets
                     return (IQueryResult<T>)result;
                 }
 
-                Log.Debug(m => m("trying query again: {0}", attempts));
+                Log.Debug("trying query again: {0}", attempts);
                 var sleepTime = (int)Math.Pow(2, attempts++);
                 var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 try
@@ -523,9 +523,8 @@ namespace Couchbase.Core.Buckets
                 if (operationResult.Success)
                 {
                     Log.Debug(
-                        m =>
-                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult));
+                        "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                                operation.Attempts, operation.Key, operationResult);
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -537,7 +536,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
@@ -607,9 +606,8 @@ namespace Couchbase.Core.Buckets
                 if (operationResult.Success)
                 {
                     Log.Debug(
-                        m =>
-                            m("Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult.Value));
+                        "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                                operation.Attempts, operation.Key, operationResult.Value);
                     break;
                 }
                 if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -621,7 +619,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
@@ -794,7 +792,7 @@ namespace Couchbase.Core.Buckets
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
                     Thread.Sleep((int)Math.Pow(2, attempts));
                 }
-                Log.Debug(m=>m("Starting send for {0} with {1}", operation.Opaque, server.EndPoint));
+                Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
                 server.SendAsync(operation).ConfigureAwait(false);
             }
             catch (Exception e)

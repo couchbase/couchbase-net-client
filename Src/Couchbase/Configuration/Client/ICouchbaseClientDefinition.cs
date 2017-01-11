@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Core;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;

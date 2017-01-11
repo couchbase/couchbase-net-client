@@ -37,7 +37,7 @@ namespace Couchbase.IO
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            Log.Info(m => m("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors));
+            Log.Info("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors);
 
             if (ClientConfiguration.IgnoreRemoteCertificateNameMismatch)
             {
@@ -54,7 +54,7 @@ namespace Couchbase.IO
             try
             {
                 var targetHost = EndPoint.ToString().Split(':')[0];
-                Log.Info(m => m("Starting SSL encryption on {0}", targetHost));
+                Log.Info("Starting SSL encryption on {0}", targetHost);
 
                 using (new SynchronizationContextExclusion())
                 {

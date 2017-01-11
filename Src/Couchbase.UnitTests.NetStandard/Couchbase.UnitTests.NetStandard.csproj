@@ -106,6 +106,9 @@
     <Compile Include="..\Couchbase.UnitTests\OperationResultTests.cs">
       <Link>OperationResultTests.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase.UnitTests\GlobalSetup.cs">
+      <Link>GlobalSetup.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.UnitTests\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>

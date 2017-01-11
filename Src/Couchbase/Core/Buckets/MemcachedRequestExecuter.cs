@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -59,20 +59,20 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
                     var result = operationResult;
-                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, result.Message));
+                    Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                        operation.Key, result.Message);
                     Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
@@ -112,20 +112,20 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug(m => m("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key));
+                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
                     var result = operationResult;
-                    Log.Debug(m => m("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, result.Message));
+                    Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                    operation.Key, result.Message);
                     Thread.Sleep(VBucketRetrySleepTime);
                 }
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug(m => m("Operation doesn't support retries for key {0}", operation.Key));
+                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);

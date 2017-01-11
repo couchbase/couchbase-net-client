@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 
 namespace Couchbase.Utils
@@ -12,7 +12,7 @@ namespace Couchbase.Utils
     /// </summary>
     public static class UriExtensions
     {
-        private static readonly ILog Log = LogManager.GetLogger("UriExtensions");
+        private static readonly ILog Log = LogManager.GetLogger(typeof(UriExtensions));
 
         /// <summary>
         /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.

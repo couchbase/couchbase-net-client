@@ -62,7 +62,7 @@ namespace Couchbase.Configuration
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
 
-                Log.InfoFormat("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
+                Log.Info("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
                 foreach (var adapter in nodes)
                 {
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
@@ -83,7 +83,7 @@ namespace Couchbase.Configuration
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                        Log.Error("Could not add server {0}. Exception: {1}", endpoint, e);
                     }
                 }
 
@@ -143,7 +143,7 @@ namespace Couchbase.Configuration
                 }
                 catch (Exception e)
                 {
-                    Log.ErrorFormat("Could not add server {0}. Exception: {1}", endpoint, e);
+                    Log.Error("Could not add server {0}. Exception: {1}", endpoint, e);
                 }
             }
 

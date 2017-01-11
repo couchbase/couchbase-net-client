@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
 
@@ -87,7 +87,7 @@ namespace Couchbase.Core
             }
             catch
             {
-                Log.Debug(m=>m("No server found for replica with index of {0}.", index));
+                Log.Debug("No server found for replica with index of {0}.", index);
                 return null;
             }
         }

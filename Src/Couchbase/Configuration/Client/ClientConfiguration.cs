@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Serialization;

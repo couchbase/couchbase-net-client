@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Text;
-using Common.Logging;
+using Couchbase.Logging;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -95,7 +95,7 @@ namespace Couchbase.Authentication.SASL
             var temp = connection;
 
             var operation = new SaslStart(MechanismType, (VBucket)null, _transcoder, SaslFactory.DefaultTimeout);
-            Log.Debug(m => m("Authenticating socket {0} with opaque {1}", temp.Identity, operation.Opaque));
+            Log.Debug("Authenticating socket {0} with opaque {1}", temp.Identity, operation.Opaque);
 
             var result = _ioService.Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
@@ -110,21 +110,21 @@ namespace Couchbase.Authentication.SASL
             if (result.Status == ResponseStatus.AuthenticationError)
             {
                 var tempResult = result;
-                Log.Debug(m => m("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message));
+                Log.Debug("Authentication for socket {0} failed: {1}", temp.Identity, tempResult.Message);
             }
             else if (result.Status != ResponseStatus.Success)
             {
                 var tempResult = result;
-                Log.Debug(m => m("Authentication for socket {0} failed for a non-auth related reason: {1} - {2}", temp.Identity, tempResult.Message, tempResult.Status));
+                Log.Debug("Authentication for socket {0} failed for a non-auth related reason: {1} - {2}", temp.Identity, tempResult.Message, tempResult.Status);
                 if (operation.Exception != null)
                 {
-                    Log.Debug(m=>m("Throwing exception for connection {0}", temp.Identity));
+                    Log.Debug("Throwing exception for connection {0}", temp.Identity);
                     throw operation.Exception;
                 }
             }
             else
             {
-                Log.Debug(m => m("Authentication for socket {0} succeeded.", temp.Identity));
+                Log.Debug("Authentication for socket {0} succeeded.", temp.Identity);
             }
 
             return result.Status == ResponseStatus.Success;

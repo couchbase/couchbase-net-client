@@ -3,8 +3,8 @@
   "version": "1.0.0-*",
   "supports": {},
   "dependencies": {
-    "Common.Logging": "3.4.0-Alpha2",
     "Microsoft.CSharp": "4.3.0",
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.1",
     "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
     "NETStandard.Library": "1.6.0",
     "Newtonsoft.Json": "9.0.1",
