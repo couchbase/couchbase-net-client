@@ -16,3 +16,4 @@ TestResult.xml
 project.lock.json
 *.exe
 local.config
+*.lock.json
