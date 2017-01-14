@@ -10,7 +10,7 @@ namespace Couchbase.Configuration.Client.Providers
     public class ConnectionPoolElement : ConfigurationElement, IConnectionPoolDefinition
     {
         private const string DefaultTypeName =
-            "Couchbase.IO.ConnectionPool`1[Couchbase.IO.Connection], Couchbase.NetClient";
+            "Couchbase.IO.ConnectionPool`1[Couchbase.IO.MultiplexingConnection], Couchbase.NetClient";
 
         private const string DefaultSslTypeName =
            "Couchbase.IO.ConnectionPool`1[Couchbase.IO.SslConnection], Couchbase.NetClient";

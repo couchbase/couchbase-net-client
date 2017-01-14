@@ -367,6 +367,9 @@ namespace Couchbase.Configuration.Client
             _poolConfigurationChanged = false;
         }
 
+        /// <summary>
+        /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
+        /// </summary>
         public bool UseConnectionPooling { get; set; }
 
         /// <summary>
@@ -463,6 +466,7 @@ namespace Couchbase.Configuration.Client
         /// <remarks>Note: this is a global setting - it applies to all <see cref="ICluster"/> and <see cref="IBucket"/> references within a process.</remarks>
         public static bool IgnoreRemoteCertificateNameMismatch { get; set; }
 
+        /// <summary>
         /// Gets or sets a value indicating whether use IP version 6 addresses.
         /// </summary>
         /// <value>
