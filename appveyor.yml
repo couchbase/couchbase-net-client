@@ -30,9 +30,12 @@ test:
   assemblies:
     - 'Couchbase.UnitTests.dll'
 before_deploy:
-- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION" }
-- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Compress-Archive -CompressionLevel Optimal -Path .\src\Couchbase\bin\Release\* -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip }
-- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Push-AppveyorArtifact Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip }
+- ps: >-
+      Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
+      Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
+      Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
+      Push-AppveyorArtifact Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
+      nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
 deploy:
 - provider: GitHub
   auth_token:
