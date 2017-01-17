@@ -3,7 +3,7 @@
   <metadata>
     <id>CouchbaseNetClient</id>
     <version>$version$</version>
-    <title>Couchbase SDK 2.3</title>
+    <title>Couchbase SDK 2.4</title>
     <authors>Couchbase, Inc.</authors>
     <owners>Couchbase, Inc.</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
@@ -22,9 +22,9 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Release\Couchbase.dll" target="lib\netstandard1.5\Couchbase.dll" />
-    <file src="bin\Release\Couchbase.xml" target="lib\netstandard1.5\Couchbase.xml" />
-    <file src="bin\Release\Couchbase.dll" target="lib\net45\Couchbase.dll" />
-    <file src="bin\Release\Couchbase.xml" target="lib\net45\Couchbase.xml" />
+    <file src="..\Couchbase.NetStandard\bin\Release\Couchbase.NetClient.dll" target="lib\netstandard1.5\Couchbase.NetClient.dll" />
+    <file src="bin\Release\Couchbase.NetClient.xml" target="lib\netstandard1.5\Couchbase.NetClient.xml" />
+    <file src="bin\Release\Couchbase.NetClient.dll" target="lib\net45\Couchbase.NetClient.dll" />
+    <file src="bin\Release\Couchbase.NetClient.xml" target="lib\net45\Couchbase.NetClient.xml" />
   </files>
 </package>
