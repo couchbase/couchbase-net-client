@@ -23,7 +23,7 @@
   </metadata>
   <files>
     <file src="..\Couchbase.NetStandard\bin\Release\Couchbase.NetClient.dll" target="lib\netstandard1.5\Couchbase.NetClient.dll" />
-    <file src="bin\Release\Couchbase.NetClient.xml" target="lib\netstandard1.5\Couchbase.NetClient.xml" />
+    <file src="..\Couchbase.NetStandard\bin\Release\Couchbase.NetClient.xml" target="lib\netstandard1.5\Couchbase.NetClient.xml" />
     <file src="bin\Release\Couchbase.NetClient.dll" target="lib\net45\Couchbase.NetClient.dll" />
     <file src="bin\Release\Couchbase.NetClient.xml" target="lib\net45\Couchbase.NetClient.xml" />
   </files>
