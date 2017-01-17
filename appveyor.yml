@@ -1,4 +1,4 @@
-version: 2.3.10.{build}
+version: 2.4.0.{build}
 configuration: Release
 init:
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
@@ -17,7 +17,7 @@ install:
 - ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { nuget install secure-file -ExcludeVersion }
 before_build:
-- ps: nuget restore
+- ps: nuget restore .\src\couchbase-net-client.sln
 - ps: >-
     if ($env:APPVEYOR_REPO_TAG -eq "true") {
       .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\src\Couchbase\Couchbase.snk
