@@ -941,9 +941,10 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
         /// <param name="queryRequest">The <see cref="IQueryRequest"/> object to send to the server.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
-        public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest)
+        public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             IQueryResult<T> queryResult = null;
             try
@@ -961,35 +962,52 @@ namespace Couchbase.Core.Buckets
                     Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
                 };
 
-                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
+                using (var timeoutCancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
-                    queryResult = await RetryQueryEveryAsync(async (e, c) =>
-                    {
-                        var attempts = 0;
-                        IServer server;
-                        while ((server = c.GetQueryNode()) == null)
-                        {
-                            if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                            Thread.Sleep((int)Math.Pow(2, attempts));
-                        }
+                    // If we received a functional cancellationToken (not just CancellationToken.None),
+                    // then combine with the timeout token source
+                    var cancellationTokenSource = cancellationToken.CanBeCanceled
+                        ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellationTokenSource.Token)
+                        : timeoutCancellationTokenSource;
 
-                        var result = await server.SendAsync<T>(queryRequest).ContinueOnAnyContext();
-                        if (!result.Success)
+                    using (cancellationTokenSource)
+                    {
+                        // Note: it is safe to dispose the same CTS twice, so this using statement is safe
+
+                        queryResult = await RetryQueryEveryAsync(async (e, c) =>
                         {
-                            //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
-                            var exception = result.Exception;
-                            if (exception != null)
+                            var attempts = 0;
+                            IServer server;
+                            while ((server = c.GetQueryNode()) == null)
                             {
-                                lock (_syncObj)
+                                if (attempts++ > 10)
                                 {
-                                    Log.Trace("Request failed checking config:", exception);
-                                    UpdateConfig();
+                                    throw new TimeoutException("Could not acquire a server.");
+                                }
+                                await Task.Delay((int) Math.Pow(2, attempts), cancellationTokenSource.Token).ContinueOnAnyContext();
+                            }
+
+                            // Don't forward our new cancellation token to the query layer,
+                            // it has its own timeout implementation.  Just forward the cancellation token
+                            // which was passed as a parameter.
+                            var result = await server.SendAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
+                            if (!result.Success)
+                            {
+                                //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
+                                var exception = result.Exception;
+                                if (exception != null && !(exception is TaskCanceledException))
+                                {
+                                    lock (_syncObj)
+                                    {
+                                        Log.Trace("Request failed checking config:", exception);
+                                        UpdateConfig();
+                                    }
                                 }
                             }
-                        }
-                        return result;
-                    },
-                    queryRequest, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+                            return result;
+                        },
+                        queryRequest, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception e)

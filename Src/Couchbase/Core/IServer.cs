@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
@@ -160,6 +161,14 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type"/> T of the body for each row (or document) result.</typeparam>
         /// <param name="queryRequest">A <see cref="IQueryRequest"/> object.</param>
         Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest);
+
+        /// <summary>
+        /// Sends a request for a N1QL query to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest"/> object.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.

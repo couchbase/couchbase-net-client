@@ -86,8 +86,9 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
         /// <param name="queryRequest">The <see cref="IQueryRequest"/> object to send to the server.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
-        Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest);
+        Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a <see cref="IFtsQuery"/> request to an FTS enabled node and returns the <see cref="ISearchQueryResult"/>response.

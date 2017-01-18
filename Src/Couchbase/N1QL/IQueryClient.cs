@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Views;
 
@@ -52,6 +53,15 @@ namespace Couchbase.N1QL
         /// <param name="request">The <see cref="IQueryRequest"/> to execute.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest request);
+
+        /// <summary>
+        /// Asynchronously executes an a N1QL query request against a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="request">The <see cref="IQueryRequest"/> to execute.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest request, CancellationToken cancellationToken);
 
         /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.

@@ -10,6 +10,11 @@ namespace Couchbase
             : base(message)
         {
         }
+
+        public PrepareStatementException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 }
 

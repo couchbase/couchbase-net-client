@@ -94,6 +94,7 @@ namespace Couchbase.N1QL
         /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server asynchronously
         /// </summary>
         /// <param name="toPrepare">The <see cref="IQueryRequest" /> containing a N1QL statement to be prepared.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>
         /// A <see cref="IQueryResult{T}" /> containing  the <see cref="QueryPlan" /> representing the reusable
         /// and cachable execution plan for the statement.
@@ -101,7 +102,7 @@ namespace Couchbase.N1QL
         /// <remarks>
         /// Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.
         /// </remarks>
-        public async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare)
+        public async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare, CancellationToken cancellationToken)
         {
             var statement = toPrepare.GetOriginalStatement();
             if (!statement.ToUpper().StartsWith("PREPARE "))
@@ -110,7 +111,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
-            return await ExecuteQueryAsync<QueryPlan>(query).ContinueOnAnyContext();
+            return await ExecuteQueryAsync<QueryPlan>(query, cancellationToken).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -157,18 +158,30 @@ namespace Couchbase.N1QL
         /// <typeparam name="T"></typeparam>
         /// <param name="queryRequest">The query request.</param>
         /// <returns></returns>
-        public async Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
+        {
+            return QueryAsync<T>(queryRequest, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Executes the <see cref="IQueryRequest"/> against the Couchbase server asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryRequest">The query request.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        /// <returns></returns>
+        public async Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             //shortcut for adhoc requests
             if (queryRequest.IsAdHoc)
             {
-                return await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                return await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
             }
 
             //optimize, return an error result if optimization step cannot complete
             try
             {
-                await PrepareStatementIfNotAdHocAsync(queryRequest).ContinueOnAnyContext();
+                await PrepareStatementIfNotAdHocAsync(queryRequest, cancellationToken).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -178,11 +191,11 @@ namespace Couchbase.N1QL
             }
 
             //execute first attempt
-            var result = await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
+            var result = await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
             //if needed, do a second attempt after having cleared the cache
             if (CheckRetry(queryRequest, result))
             {
-                return await RetryAsync<T>(queryRequest).ContinueOnAnyContext();
+                return await RetryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
             }
             else
             {
@@ -225,7 +238,7 @@ namespace Couchbase.N1QL
             return ExecuteQuery<T>(queryRequest);
         }
 
-        private async Task<IQueryResult<T>> RetryAsync<T>(IQueryRequest queryRequest)
+        private async Task<IQueryResult<T>> RetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             //mark as retried, remove from cache
             queryRequest.HasBeenRetried = true;
@@ -233,10 +246,10 @@ namespace Couchbase.N1QL
             _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out dismissed);
 
             //re-optimize asynchronously
-            await PrepareStatementIfNotAdHocAsync(queryRequest).ContinueOnAnyContext();
+            await PrepareStatementIfNotAdHocAsync(queryRequest, cancellationToken).ContinueOnAnyContext();
 
             //re-execute asynchronously
-            return await ExecuteQueryAsync<T>(queryRequest).ContinueOnAnyContext();
+            return await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -274,7 +287,8 @@ namespace Couchbase.N1QL
         /// Prepares the statement if the <see cref="IQueryRequest"/> is not ad-hoc and caches it for reuse.asynchronously.
         /// </summary>
         /// <param name="originalRequest">The original query request.</param>
-        async Task PrepareStatementIfNotAdHocAsync(IQueryRequest originalRequest)
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        async Task PrepareStatementIfNotAdHocAsync(IQueryRequest originalRequest, CancellationToken cancellationToken)
         {
             if (originalRequest.IsAdHoc) return;
 
@@ -286,7 +300,7 @@ namespace Couchbase.N1QL
             }
             else
             {
-                var result = await PrepareAsync(originalRequest).ContinueOnAnyContext();
+                var result = await PrepareAsync(originalRequest, cancellationToken).ContinueOnAnyContext();
                 if (!result.Success)
                 {
                     Log.Warn("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
@@ -336,7 +350,7 @@ namespace Couchbase.N1QL
             SynchronizationContext.SetSynchronizationContext(null);
             try
             {
-                return ExecuteQueryAsync<T>(queryRequest).Result;
+                return ExecuteQueryAsync<T>(queryRequest, CancellationToken.None).Result;
             }
             finally
             {
@@ -352,9 +366,10 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> of each row returned by the query.</typeparam>
         /// <param name="queryRequest">The query request.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns></returns>
         /// <remarks>The format for the querying is JSON</remarks>
-        protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
+        protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             var queryResult = new QueryResult<T>();
 
@@ -375,7 +390,7 @@ namespace Couchbase.N1QL
                     using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming))
                     {
                         Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                        var request = await HttpClient.PostAsync(baseUri, content).ContinueOnAnyContext();
+                        var request = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
                         using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                         {
                             queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(response).ToQueryResult();

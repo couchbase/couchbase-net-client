@@ -780,7 +780,19 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
         /// <param name="queryRequest">A <see cref="IQueryRequest" /> object.</param>
         /// <returns></returns>
-        async Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
+        Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest)
+        {
+            return ((IServer)this).SendAsync<T>(queryRequest, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sends a request for a N1QL query to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="queryRequest">A <see cref="IQueryRequest" /> object.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        /// <returns></returns>
+        async Task<IQueryResult<T>> IServer.SendAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             IQueryResult<T> result;
             if (_isDown)
@@ -794,11 +806,11 @@ namespace Couchbase.Core
                     queryRequest.BaseUri(CachedQueryBaseUri);
                     if (queryRequest.IsStreaming)
                     {
-                        result = await _streamingQueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                        result = await _streamingQueryClient.QueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
                     }
                     else
                     {
-                        result = await QueryClient.QueryAsync<T>(queryRequest).ContinueOnAnyContext();
+                        result = await QueryClient.QueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
                     }
                 }
                 catch (Exception e)

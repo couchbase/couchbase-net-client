@@ -1770,7 +1770,7 @@ namespace Couchbase
         public Task<IQueryResult<T>> QueryAsync<T>(string query)
         {
             CheckDisposed();
-            return _requestExecuter.SendWithRetryAsync<T>(new QueryRequest(query));
+            return _requestExecuter.SendWithRetryAsync<T>(new QueryRequest(query), CancellationToken.None);
         }
 
         /// <summary>
@@ -1781,8 +1781,20 @@ namespace Couchbase
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
         {
+            return QueryAsync<T>(queryRequest, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Asynchronously executes a N1QL statement or prepared statement via a <see cref="IQueryRequest"/> against the Couchbase Cluster.
+        /// </summary>
+        /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
+        /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
+        /// <param name="cancellationToken">Token which can cancel the query.</param>
+        /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
+        public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
+        {
             CheckDisposed();
-            return _requestExecuter.SendWithRetryAsync<T>(queryRequest);
+            return _requestExecuter.SendWithRetryAsync<T>(queryRequest, cancellationToken);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
@@ -138,6 +139,36 @@ namespace Couchbase.IntegrationTests
             Assert.True(queryResult.Success, queryResult.ToString());
             Assert.IsNotEmpty(queryResult.Rows);
             Assert.AreEqual(doc.Content.Value, queryResult.Rows.First().Value);
+        }
+
+        [Test]
+        public async Task Test_QueryAsync_CanCancel()
+        {
+            var queryRequest = new QueryRequest("SELECT * FROM `beer-sample`");
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(5));
+
+            var result = await _bucket.QueryAsync<dynamic>(queryRequest, cancellationTokenSource.Token);
+
+            Assert.False(result.Success);
+            Assert.IsInstanceOf<TaskCanceledException>(result.Exception);
+        }
+
+        [Test]
+        public async Task Test_PrepareQueryAsync_CanCancel()
+        {
+            var queryRequest = new QueryRequest("SELECT * FROM `beer-sample`")
+                .AdHoc(false);
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(5));
+
+            var result = await _bucket.QueryAsync<dynamic>(queryRequest, cancellationTokenSource.Token);
+
+            Assert.False(result.Success);
+            Assert.NotNull(result.Exception);
+
+            // Depending on how fast the prepare runs, we may catch it during the prepare or during the actual query
+            // So we need to test for both cases here
+            Assert.That(() => result.Exception is TaskCanceledException ||
+                              result.Exception.InnerException is TaskCanceledException);
         }
 
         public class DocumentContent

@@ -28,7 +28,7 @@ namespace Couchbase.N1QL
             HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        protected override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest)
+        protected override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             var queryResult = new StreamingQueryResult<T>();
 
@@ -49,7 +49,7 @@ namespace Couchbase.N1QL
                     var requestMessage = new HttpRequestMessage(HttpMethod.Post, baseUri) {Content = content};
 
                     Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    var response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead).ContinueOnAnyContext();
+                    var response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ContinueOnAnyContext();
                     var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext();
                     {
                         queryResult = new StreamingQueryResult<T>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core;
@@ -119,6 +120,11 @@ namespace Couchbase.Tests.Fakes
         }
 
         public Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
