@@ -30,6 +30,11 @@ namespace Couchbase.IO.Http
         {
             BucketName = bucketName;
 
+            //disable HTTP pipelining for full .net framework
+#if NET45
+            AllowPipelining = false;
+#endif
+
             // Just build once for speed
             _headerValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(bucketName, ":", password)));
         }
