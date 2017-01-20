@@ -917,7 +917,15 @@ namespace Couchbase.Core
 
         private void StartHeartbeatTimer()
         {
-            _heartBeatTimer.Change((int) _clientConfiguration.NodeAvailableCheckInterval, Timeout.Infinite);
+            try
+            {
+                _heartBeatTimer.Change((int) _clientConfiguration.NodeAvailableCheckInterval, Timeout.Infinite);
+            }
+            catch (ObjectDisposedException e)
+            {
+                //this will happen in debug mode and can be ignored
+                Log.Debug(e);
+            }
         }
 
         private void Dispose(bool disposing)
