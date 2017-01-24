@@ -1,11 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
+using Couchbase.Configuration;
+using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 using NUnit.Framework;
 using Moq;
 
@@ -449,6 +456,102 @@ namespace Couchbase.UnitTests
             Assert.IsFalse(result.Success);
 
             mockExecutor.Verify();
+        }
+
+        #endregion
+
+        #region LookupIn / MutateIn
+
+        [Test]
+        public void Executing_LookupIn_With_XATTR_Throw_ServiceNotSupportedException_When_SubdocXAttributes_Is_False_And()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockCredentials = new Mock<IClusterCredentials>();
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            mockConfig.Setup(x => x.SupportsSubdocXAttributes).Returns(false);
+
+            var couchbaseBucket = new CouchbaseBucket(mockController.Object, "default", new DefaultConverter(), new DefaultTranscoder(), mockCredentials.Object);
+            (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
+
+            var result = couchbaseBucket.LookupIn<dynamic>("key")
+                .Get("username", SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsFalse(result.Success);
+            Assert.IsInstanceOf<FeatureNotAvailableException>(result.Exception, ExceptionUtil.XAttriburesNotAvailableMessage);
+        }
+
+        [Test]
+        public async Task Executing_LookupInAsync_With_XATTR_Throw_ServiceNotSupportedException_When_SubdocXAttributes_Is_False_And()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockCredentials = new Mock<IClusterCredentials>();
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            mockConfig.Setup(x => x.SupportsSubdocXAttributes).Returns(false);
+
+            var couchbaseBucket = new CouchbaseBucket(mockController.Object, "default", new DefaultConverter(), new DefaultTranscoder(), mockCredentials.Object);
+            (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
+
+            var result = await couchbaseBucket.LookupIn<dynamic>("key")
+                .Get("username", SubdocLookupFlags.AttributePath)
+                .ExecuteAsync();
+
+            Assert.IsFalse(result.Success);
+            Assert.IsInstanceOf<FeatureNotAvailableException>(result.Exception, ExceptionUtil.XAttriburesNotAvailableMessage);
+        }
+
+        [Test]
+        public void Executing_MutateIn_With_XATTR_Throw_ServiceNotSupportedException_When_SubdocXAttributes_Is_False_And()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockCredentials = new Mock<IClusterCredentials>();
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            mockConfig.Setup(x => x.SupportsSubdocXAttributes).Returns(false);
+
+            var couchbaseBucket = new CouchbaseBucket(mockController.Object, "default", new DefaultConverter(), new DefaultTranscoder(), mockCredentials.Object);
+            (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
+
+            var result = couchbaseBucket.MutateIn<dynamic>("key")
+                .Upsert("username", "value", SubdocMutateFlags.AttributePath)
+                .Execute();
+
+            Assert.IsFalse(result.Success);
+            Assert.IsInstanceOf<FeatureNotAvailableException>(result.Exception, ExceptionUtil.XAttriburesNotAvailableMessage);
+        }
+
+        [Test]
+        public async Task Executing_MutateInAsync_With_XATTR_Throw_ServiceNotSupportedException_When_SubdocXAttributes_Is_False_And()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockCredentials = new Mock<IClusterCredentials>();
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            mockConfig.Setup(x => x.SupportsSubdocXAttributes).Returns(false);
+
+            var couchbaseBucket = new CouchbaseBucket(mockController.Object, "default", new DefaultConverter(), new DefaultTranscoder(), mockCredentials.Object);
+            (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
+
+            var result = await couchbaseBucket.MutateIn<dynamic>("key")
+                .Upsert("username", "value", SubdocMutateFlags.AttributePath)
+                .ExecuteAsync();
+
+            Assert.IsFalse(result.Success);
+            Assert.IsInstanceOf<FeatureNotAvailableException>(result.Exception, ExceptionUtil.XAttriburesNotAvailableMessage);
         }
 
         #endregion

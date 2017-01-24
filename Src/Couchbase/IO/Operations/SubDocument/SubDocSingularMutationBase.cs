@@ -51,8 +51,11 @@ namespace Couchbase.IO.Operations.SubDocument
         public override void WriteExtras(byte[] buffer, int offset)
         {
             Converter.FromInt16(PathLength, buffer, offset); //2@24 Path length
-            Converter.FromByte((byte)(CurrentSpec.CreateParents ? 0x01 : 0x00), buffer, offset + 2); //1@26 Flags
-            if (Expires > 0) Converter.FromUInt32(Expires, buffer, offset + 3); //4@27 Expiration time (if present, extras is 7)
+            Converter.FromByte(CurrentSpec.Flags, buffer, offset + 2); //1@26 Flags
+            if (Expires > 0)
+            {
+                Converter.FromUInt32(Expires, buffer, offset + 3); //4@27 Expiration time (if present, extras is 7)
+            }
         }
 
         public override byte[] CreateBody()

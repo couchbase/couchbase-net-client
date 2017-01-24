@@ -49,7 +49,8 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override void WriteExtras(byte[] buffer, int offset)
         {
-            Converter.FromInt16(PathLength, buffer, offset);
+            Converter.FromInt16(PathLength, buffer, offset); //1-2
+            Converter.FromByte(CurrentSpec.Flags, buffer, offset + 2); //3
         }
 
         public override bool CanRetry()

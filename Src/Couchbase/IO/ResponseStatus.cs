@@ -214,6 +214,16 @@ namespace Couchbase.IO
         /// Subdocument error indicating that, in a multi-specification, one or more commands failed to execute on a document
         /// which exists (ie. the key was valid).
         /// </summary>
-        SubDocMultiPathFailure = 0xcc
+        SubDocMultiPathFailure = 0xcc,
+
+        /// <summary>
+        /// Subdocument error indicating the flag combination for an XATTR operation was invalid.
+        /// </summary>
+        SubDocXattrInvalidFlagCombo = 0xce,
+
+        /// <summary>
+        /// Subdocument error indicating the key combination for an XATTR opeation was invalid.
+        /// </summary>
+        SubDocXattrInvalidKeyCombo = 0xcf
     }
 }

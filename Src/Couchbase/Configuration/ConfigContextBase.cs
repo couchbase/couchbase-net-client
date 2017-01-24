@@ -119,6 +119,14 @@ namespace Couchbase.Configuration
         public bool SupportsEnhancedDurability { get; protected set; }
 
         /// <summary>
+        /// Gets a value indicating whether Subdocument XAttributes are supported.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports Subdocument XAttributes; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsSubdocXAttributes { get; protected set; }
+
+        /// <summary>
         /// The time at which this configuration context has been created.
         /// </summary>
         public DateTime CreationTime

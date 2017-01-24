@@ -122,6 +122,27 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Gets a value indicating whether any of the pending commands target an XATTR.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if any pending command targers an XATTR; otherwise, <c>false</c>.
+        /// </value>
+        internal bool ContainsXattrOperations
+        {
+            get { return _commands.Any(x => (x.Flags & (byte) SubdocMutateFlags.AttributePath) != 0); }
+        }
+
+        private static byte GetFlagsValue(SubdocMutateFlags flags)
+        {
+            if (flags.HasFlag(SubdocMutateFlags.ExpandMacro) && !flags.HasFlag(SubdocMutateFlags.AttributePath))
+            {
+                flags |= SubdocMutateFlags.AttributePath;
+            }
+
+            return (byte)flags;
+        }
+
+        /// <summary>
         /// Inserts an element into a JSON document at a given path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
@@ -133,6 +154,21 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an Insert.</exception>
         public IMutateInBuilder<TDocument> Insert(string path, object value, bool createParents = true)
         {
+            return Insert(path, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts an element into a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an Insert.</exception>
+        public IMutateInBuilder<TDocument> Insert(string path, object value, SubdocMutateFlags flags = SubdocMutateFlags.CreatePath)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an Insert.");
@@ -143,7 +179,7 @@ namespace Couchbase.Core
                 OpCode = OperationCode.SubDictAdd,
                 Path = path,
                 Value = value,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -161,6 +197,21 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an Upsert.</exception>
         public IMutateInBuilder<TDocument> Upsert(string path, object value, bool createParents = true)
         {
+            return Upsert(path, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts or updates an element within or into a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an Upsert.</exception>
+        public IMutateInBuilder<TDocument> Upsert(string path, object value, SubdocMutateFlags flags = SubdocMutateFlags.CreatePath)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an Upsert.");
@@ -171,7 +222,7 @@ namespace Couchbase.Core
                 OpCode = OperationCode.SubDictUpsert,
                 Path = path,
                 Value = value,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -188,6 +239,21 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an Upsert.</exception>
         public IMutateInBuilder<TDocument> Replace(string path, object value)
         {
+            return Replace(path, value, SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Replaces an element or value within a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an Upsert.</exception>
+        public IMutateInBuilder<TDocument> Replace(string path, object value, SubdocMutateFlags flags = SubdocMutateFlags.None)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an Upsert.");
@@ -197,7 +263,8 @@ namespace Couchbase.Core
             {
                 OpCode = OperationCode.SubReplace,
                 Path = path,
-                Value = value
+                Value = value,
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -213,6 +280,20 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an Remove.</exception>
         public IMutateInBuilder<TDocument> Remove(string path)
         {
+            return Remove(path, SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Removes an element or value from a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an Remove.</exception>
+        public IMutateInBuilder<TDocument> Remove(string path, SubdocMutateFlags flags = SubdocMutateFlags.None)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an Remove.");
@@ -221,7 +302,8 @@ namespace Couchbase.Core
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubDelete,
-                Path = path
+                Path = path,
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -237,12 +319,40 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAppend(object value, bool createParents = true)
         {
+            return ArrayAppend(string.Empty, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts a value to the end of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An aray value.</param>
+        /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayAppend(string path, object value, bool createParents = true)
+        {
+            return ArrayAppend(path, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts a value to the end of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An aray value.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayAppend(string path, object value, SubdocMutateFlags flags)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayPushLast,
-                Path = string.Empty,
+                Path = path,
                 Value = value,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -258,38 +368,7 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAppend(bool createParents = false, params object[] values)
         {
-            _commands.Enqueue(new OperationSpec
-            {
-                OpCode = OperationCode.SubArrayPushLast,
-                Path = string.Empty,
-                Value = values,
-                CreateParents = createParents,
-                RemoveBrackets = true
-            });
-
-            return this;
-        }
-
-        /// <summary>
-        /// Inserts a value to the end of an array in a JSON document at a given path.
-        /// </summary>
-        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
-        /// <param name="value">An aray value.</param>
-        /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
-        /// <returns>
-        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
-        /// </returns>
-        public IMutateInBuilder<TDocument> ArrayAppend(string path, object value, bool createParents = true)
-        {
-            _commands.Enqueue(new OperationSpec
-            {
-                OpCode = OperationCode.SubArrayPushLast,
-                Path = path,
-                Value = value,
-                CreateParents = createParents
-            });
-
-            return this;
+            return ArrayAppend(string.Empty, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None, values);
         }
 
         /// <summary>
@@ -303,12 +382,26 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAppend(string path, bool createParents = false, params object[] values)
         {
+            return ArrayAppend(path, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None, values);
+        }
+
+        /// <summary>
+        /// Inserts one or more values to the end of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayAppend(string path, SubdocMutateFlags flags = SubdocMutateFlags.None, params object[] values)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayPushLast,
                 Path = path,
                 Value = values,
-                CreateParents = createParents,
+                Flags = GetFlagsValue(flags),
                 RemoveBrackets = true
             });
 
@@ -323,36 +416,7 @@ namespace Couchbase.Core
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         public IMutateInBuilder<TDocument> ArrayPrepend(object value, bool createParents = true)
         {
-            _commands.Enqueue(new OperationSpec
-            {
-                OpCode = OperationCode.SubArrayPushFirst,
-                Path = string.Empty,
-                Value = value,
-                CreateParents = createParents,
-                RemoveBrackets = true
-            });
-
-            return this;
-        }
-
-        /// <summary>
-        /// Inserts one or more values to the beginning of an array that is the root of a JSON document.
-        /// </summary>
-        /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
-        /// <param name="values">One or more values.</param>
-        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
-        public IMutateInBuilder<TDocument> ArrayPrepend(bool createParents = false, params object[] values)
-        {
-            _commands.Enqueue(new OperationSpec
-            {
-                OpCode = OperationCode.SubArrayPushFirst,
-                Path = string.Empty,
-                Value = values,
-                CreateParents = createParents,
-                RemoveBrackets = true
-            });
-
-            return this;
+            return ArrayPrepend(string.Empty, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
         }
 
         /// <summary>
@@ -366,15 +430,40 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayPrepend(string path, object value, bool createParents = true)
         {
+            return ArrayPrepend(path, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts a value to the beginning of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayPrepend(string path, object value, SubdocMutateFlags flags)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayPushFirst,
                 Path = path,
                 Value = value,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
+        }
+
+        /// <summary>
+        /// Inserts one or more values to the beginning of an array that is the root of a JSON document.
+        /// </summary>
+        /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        public IMutateInBuilder<TDocument> ArrayPrepend(bool createParents = false, params object[] values)
+        {
+            return ArrayPrepend(string.Empty, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None, values);
         }
 
         /// <summary>
@@ -388,12 +477,26 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayPrepend(string path, bool createParents = false, params object[] values)
         {
+            return ArrayPrepend(path, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None, values);
+        }
+
+        /// <summary>
+        /// Inserts one or more values to the beginning of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayPrepend(string path, SubdocMutateFlags flags = SubdocMutateFlags.None, params object[] values)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayPushFirst,
                 Path = path,
                 Value = values,
-                CreateParents = createParents,
+                Flags = GetFlagsValue(flags),
                 RemoveBrackets = true
             });
 
@@ -411,6 +514,21 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an ArrayInsert.</exception>
         public IMutateInBuilder<TDocument> ArrayInsert(string path, object value)
         {
+            return ArrayInsert(path, value, SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Inserts a value at a given position within an array. The position is indicated as part of the path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">A value.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an ArrayInsert.</exception>
+        public IMutateInBuilder<TDocument> ArrayInsert(string path, object value, SubdocMutateFlags flags = SubdocMutateFlags.None)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
@@ -420,7 +538,8 @@ namespace Couchbase.Core
             {
                 OpCode = OperationCode.SubArrayInsert,
                 Path = path,
-                Value = value
+                Value = value,
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -437,15 +556,32 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for an ArrayInsert.</exception>
         public IMutateInBuilder<TDocument> ArrayInsert(string path, params object[] values)
         {
+            return ArrayInsert(path, SubdocMutateFlags.None, values);
+        }
+
+        /// <summary>
+        /// Inserts one or more values at a given position within an array. The position is indicated as part of the path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="values">One or more values.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.None"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for an ArrayInsert.</exception>
+        public IMutateInBuilder<TDocument> ArrayInsert(string path, SubdocMutateFlags flags = SubdocMutateFlags.None, params object[] values)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
             }
+
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayInsert,
                 Path = path,
                 Value = values,
+                Flags = GetFlagsValue(flags),
                 RemoveBrackets = true
             });
 
@@ -462,15 +598,7 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAddUnique(object value, bool createParents = true)
         {
-            _commands.Enqueue(new OperationSpec
-            {
-                OpCode = OperationCode.SubArrayAddUnique,
-                Path = string.Empty,
-                Value = value,
-                CreateParents = createParents
-            });
-
-            return this;
+            return ArrayAddUnique(string.Empty, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
         }
 
         /// <summary>
@@ -484,12 +612,26 @@ namespace Couchbase.Core
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAddUnique(string path, object value, bool createParents = true)
         {
+            return ArrayAddUnique(path, value, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Adds a value to an array if the value does not already exist in the array.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">A unique value.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> ArrayAddUnique(string path, object value, SubdocMutateFlags flags)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 OpCode = OperationCode.SubArrayAddUnique,
                 Path = path,
                 Value = value,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -507,6 +649,21 @@ namespace Couchbase.Core
         /// <exception cref="System.ArgumentException">Path cannot be empty for a Counter.</exception>
         public IMutateInBuilder<TDocument> Counter(string path, long delta, bool createParents = true)
         {
+            return Counter(path, delta, createParents ? SubdocMutateFlags.CreatePath : SubdocMutateFlags.None);
+        }
+
+        /// <summary>
+        /// Performs an arithmetic operation on a numeric value in a document.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="delta">The value to increment or decrement the original value by.</param>
+        /// <param name="flags">The subdocument flags. Defaults to <see cref="F:SubdocLookupFlags.CreatePath"/>.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Path cannot be empty for a Counter.</exception>
+        public IMutateInBuilder<TDocument> Counter(string path, long delta, SubdocMutateFlags flags = SubdocMutateFlags.CreatePath)
+        {
             if (string.IsNullOrWhiteSpace(path))
             {
                 throw new ArgumentException("Path cannot be empty for a Counter.");
@@ -517,7 +674,7 @@ namespace Couchbase.Core
                 OpCode = OperationCode.SubCounter,
                 Path = path,
                 Value = delta,
-                CreateParents = createParents
+                Flags = GetFlagsValue(flags)
             });
 
             return this;
@@ -656,7 +813,7 @@ namespace Couchbase.Core
         /// </returns>
         public object Clone()
         {
-            var clonedSpecs = _commands.Select(spec => spec.Clone() as OperationSpec).ToList();
+            var clonedSpecs = _commands.Select(spec => spec.Clone()).ToList();
             return new MutateInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
         }
 

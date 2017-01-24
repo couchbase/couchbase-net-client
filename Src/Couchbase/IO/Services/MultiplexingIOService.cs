@@ -54,6 +54,14 @@ namespace Couchbase.IO.Services
         /// </value>
         public bool SupportsEnhancedDurability { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether Subdocument XAttributes are supported.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports Subdocument XAttributes; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsSubdocXAttributes { get; private set; }
+
         public IPEndPoint EndPoint
         {
             get { return _connectionPool.EndPoint; }
@@ -96,7 +104,7 @@ namespace Couchbase.IO.Services
                     lock (_syncObj)
                     {
                         Authenticate(_connection);
-                        EnableEnhancedDurability(_connection);
+                        EnableServerFeatures(_connection);
                     }
                 }
 
@@ -154,7 +162,7 @@ namespace Couchbase.IO.Services
                     lock (_syncObj)
                     {
                         Authenticate(_connection);
-                        EnableEnhancedDurability(_connection);
+                        EnableServerFeatures(_connection);
                     }
                 }
 
@@ -239,7 +247,7 @@ namespace Couchbase.IO.Services
                     lock (_syncObj)
                     {
                         Authenticate(_connection);
-                        EnableEnhancedDurability(_connection);
+                        EnableServerFeatures(_connection);
                     }
                 }
                 await ExecuteAsync(operation, _connection);
@@ -296,7 +304,7 @@ namespace Couchbase.IO.Services
                     lock (_syncObj)
                     {
                         Authenticate(_connection);
-                        EnableEnhancedDurability(_connection);
+                        EnableServerFeatures(_connection);
                     }
                 }
                 await ExecuteAsync(operation, _connection);
@@ -361,38 +369,32 @@ namespace Couchbase.IO.Services
         }
 
         /// <summary>
-        /// Enables enhanced durability if it is configured and supported by the server.
+        /// Send request to server to try and enable server features.
         /// </summary>
         /// <param name="connection">The connection.</param>
-        private void EnableEnhancedDurability(IConnection connection)
+        private void EnableServerFeatures(IConnection connection)
         {
-            var features = new List<short>();
+            var features = new List<short>
+            {
+                (short) ServerFeatures.SubdocXAttributes
+            };
 
-            var config = ConnectionPool.Configuration;
-            if (config.UseEnhancedDurability)
+            if (ConnectionPool.Configuration.UseEnhancedDurability)
             {
                 features.Add((short) ServerFeatures.MutationSeqno);
-                var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
+            }
 
-                var result = Execute(hello, connection);
-                if (result.Success)
-                {
-                    SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
-                }
-                else
-                {
-                    LogFailedHelloOperation(result);
-                }
+            var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
+
+            var result = Execute(hello, connection);
+            if (result.Success)
+            {
+                SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
+                SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
             }
             else
             {
-                var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
-
-                var result = Execute(hello, connection);
-                if (!result.Success)
-                {
-                    LogFailedHelloOperation(result);
-                }
+                LogFailedHelloOperation(result);
             }
         }
 

@@ -119,6 +119,7 @@
     <Compile Include="Core\Buckets\KeySeqnoObserver.cs" />
     <Compile Include="Core\Buckets\MutationToken.cs" />
     <Compile Include="Core\ExpressionVisitors\LambdaSimplifyingExpressionVisitor.cs" />
+    <Compile Include="Core\FeatureNotAvailableException.cs" />
     <Compile Include="Core\ILookupInBuilder.cs" />
     <Compile Include="Core\IMutateInBuilder.cs" />
     <Compile Include="Core\IO\SubDocument\ISubdocInvoker.cs" />
@@ -235,9 +236,11 @@
     <Compile Include="IO\Http\CouchbaseHttpClient.cs" />
     <Compile Include="IO\Http\NonAuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\IOBuffer.cs" />
+    <Compile Include="Core\SubdocLookupFlags.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />
+    <Compile Include="Core\SubdocMutateFlags.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocReplace.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictAdd.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDelete.cs" />

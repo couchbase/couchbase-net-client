@@ -70,6 +70,10 @@ namespace Couchbase.Utils
 
         public const string EmptyUriTryingSubmitN1qlQuery = "There was a problem retrieving a valid URI to submit the N1QL query to.";
 
+        public const string XAttriburesNotAvailableMessage =
+            "A subdocument operation has been made targeting the XAttributes of a document but the cluster does not support them. " +
+            "Please check all memebrs of the cluster support XAttributes.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

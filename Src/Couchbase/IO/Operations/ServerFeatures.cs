@@ -1,5 +1,4 @@
-﻿
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
     /// <summary>
     /// Features that they client negotiate on a per connection basis.
@@ -17,14 +16,19 @@ namespace Couchbase.IO.Operations
         TcpNoDelay = 0x03,
 
         /// <summary>
-        ///  Return the sequence number with every mutation
+        /// Return the sequence number with every mutation
         /// </summary>
         MutationSeqno = 0x04,
 
         /// <summary>
         /// Disable TCP nodelay
         /// </summary>
-        TcpDelay = 0x05
+        TcpDelay = 0x05,
+
+        /// <summary>
+        /// Perform subdocument operations on document attributes
+        /// </summary>
+        SubdocXAttributes = 0x06
     }
 }
 

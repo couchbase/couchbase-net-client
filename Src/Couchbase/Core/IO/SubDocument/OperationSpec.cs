@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Newtonsoft.Json;
@@ -49,12 +48,12 @@ namespace Couchbase.Core.IO.SubDocument
         public byte[] Bytes { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to create the parent element if it doesn't exist.
+        /// Gets or sets the additional flags for the operation.
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [create parents]; otherwise, <c>false</c>.
+        /// The flags.
         /// </value>
-        public bool CreateParents { get; set; }
+        public byte Flags { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="ResponseStatus"/> returned by the server indicating the status of the operation - i.e. failed, succeeded, etc.
@@ -92,7 +91,7 @@ namespace Couchbase.Core.IO.SubDocument
             return new OperationSpec
             {
                 Bytes = null,
-                CreateParents = CreateParents,
+                Flags = Flags,
                 OpCode = OpCode,
                 Path = Path,
                 RemoveBrackets = RemoveBrackets,
@@ -112,7 +111,7 @@ namespace Couchbase.Core.IO.SubDocument
         {
             var spec = obj as OperationSpec;
             if (spec == null) return false;
-            return Path == spec.Path && OpCode == spec.OpCode;
+            return Path == spec.Path && OpCode == spec.OpCode && Flags == spec.Flags;
         }
 
         /// <summary>
@@ -128,7 +127,7 @@ namespace Couchbase.Core.IO.SubDocument
             var spec1 = x as OperationSpec;
             var spec2 = y as OperationSpec;
             if (spec1 == null || spec2 == null) return false;
-            return spec1.Path == spec2.Path && spec1.OpCode == spec2.OpCode;
+            return spec1.Path == spec2.Path && spec1.OpCode == spec2.OpCode && spec1.Flags == spec2.Flags;
         }
 
         /// <summary>
@@ -145,6 +144,7 @@ namespace Couchbase.Core.IO.SubDocument
             var hash = 17;
             hash = hash*23 + (spec.Path == null ? 0 : spec.Path.GetHashCode());
             hash = hash*23 + spec.OpCode.GetHashCode();
+            hash = hash*23 + Flags.GetHashCode();
             return hash;
         }
 

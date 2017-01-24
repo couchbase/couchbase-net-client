@@ -111,6 +111,14 @@ namespace Couchbase.IO
         /// <c>true</c> if the server supports enhanced durability; otherwise, <c>false</c>.
         /// </value>
         bool SupportsEnhancedDurability { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether [supports subdoc x attributes].
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [supports subdoc x attributes]; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsSubdocXAttributes { get; }
     }
 }
 

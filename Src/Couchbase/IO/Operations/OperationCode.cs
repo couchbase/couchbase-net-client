@@ -77,7 +77,7 @@
        SubCounter = 0xcf,
        MultiLookup = 0xd0,
        SubMultiMutation = 0xd1
-    };
+    }
 }
 
 #region [ License information          ]

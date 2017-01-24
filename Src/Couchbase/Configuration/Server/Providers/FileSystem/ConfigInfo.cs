@@ -235,6 +235,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             get { throw new NotImplementedException(); }
         }
 
+        public bool SupportsSubdocXAttributes
+        {
+            get { throw new NotImplementedException(); }
+        }
+
         public int InvalidateQueryCache()
         {
             throw new NotImplementedException();

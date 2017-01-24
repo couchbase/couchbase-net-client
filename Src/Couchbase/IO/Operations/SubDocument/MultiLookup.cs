@@ -54,7 +54,7 @@ namespace Couchbase.IO.Operations.SubDocument
             foreach (var lookup in _builder)
             {
                 var opcode = (byte)lookup.OpCode;
-                var flags = new byte();//empty for lookups
+                var flags = lookup.Flags;
                 var pathLength = Encoding.UTF8.GetByteCount(lookup.Path);
 
                 var spec = new byte[pathLength + 4];

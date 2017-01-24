@@ -252,5 +252,7 @@ namespace Couchbase.Tests.Fakes
 
 
         public bool SupportsEnhancedDurability { get; protected set; }
+
+        public bool SupportsSubdocXAttributes { get; protected set; }
     }
 }

@@ -99,16 +99,53 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Gets a value indicating whether any of the pending commands target an XATTR.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if any pending command targers an XATTR; otherwise, <c>false</c>.
+        /// </value>
+        internal bool ContainsXattrOperations
+        {
+            get { return _commands.Any(x => (x.Flags & (byte) SubdocLookupFlags.AttributePath) != 0); }
+        }
+
+        /// <summary>
         /// Gets the value at a specified N1QL path.
         /// </summary>
         /// <param name="path">The path.</param>
-        /// <returns></returns>
+        /// <returns>
+        /// A <see cref="T:Couchbase.Core.ILookupInBuilder`1" /> implementation reference for chaining operations.
+        /// </returns>
         public ILookupInBuilder<TDocument> Get(string path)
+        {
+            return Get(path, SubdocLookupFlags.None);
+        }
+
+        private static byte GetFlagsValue(SubdocLookupFlags flags)
+        {
+            if (flags.HasFlag(SubdocLookupFlags.AccessDeleted) && !flags.HasFlag(SubdocLookupFlags.AttributePath))
+            {
+                flags |= SubdocLookupFlags.AttributePath;
+            }
+
+            return (byte) flags;
+        }
+
+        /// <summary>
+        /// Gets the value at a specified path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="flags">The Subdoc flags.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.Core.ILookupInBuilder`1" /> implementation reference for chaining operations.
+        /// </returns>
+        public ILookupInBuilder<TDocument> Get(string path, SubdocLookupFlags flags)
         {
             _commands.Enqueue(new OperationSpec
             {
                 Path = path,
-                OpCode = OperationCode.SubGet
+                OpCode = OperationCode.SubGet,
+                Flags = GetFlagsValue(flags)
             });
             return this;
         }
@@ -122,10 +159,24 @@ namespace Couchbase.Core
         /// </returns>
         public ILookupInBuilder<TDocument> Exists(string path)
         {
+            return Exists(path, SubdocLookupFlags.None);
+        }
+
+        /// <summary>
+        /// Checks for the existence of a given N1QL path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="flags">The Subdoc flags.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.Core.ILookupInBuilder`1" /> implementation reference for chaining operations.
+        /// </returns>
+        public ILookupInBuilder<TDocument> Exists(string path, SubdocLookupFlags flags)
+        {
             _commands.Enqueue(new OperationSpec
             {
                 Path = path,
-                OpCode = OperationCode.SubExist
+                OpCode = OperationCode.SubExist,
+                Flags = GetFlagsValue(flags)
             });
             return this;
         }
@@ -194,7 +245,7 @@ namespace Couchbase.Core
         /// </returns>
         public object Clone()
         {
-            var clonedSpecs = _commands.Select(spec => spec.Clone() as OperationSpec).ToList();
+            var clonedSpecs = _commands.Select(spec => spec.Clone()).ToList();
             return new LookupInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
         }
 

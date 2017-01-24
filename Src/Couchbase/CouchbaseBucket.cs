@@ -15,6 +15,7 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.IO.SubDocument;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -3628,9 +3629,26 @@ namespace Couchbase
             }
         }
 
+        private static DocumentFragment<T> CreateXAttrsNotSuportedResponse<T>(string key, ITypeSerializerProvider provider)
+        {
+            return new DocumentFragment<T>(provider)
+            {
+                Id = key,
+                Success = false,
+                Exception = new FeatureNotAvailableException(ExceptionUtil.XAttriburesNotAvailableMessage),
+                Status = ResponseStatus.ClientFailure
+            };
+        }
+
         public IDocumentFragment<T> Invoke<T>(IMutateInBuilder<T> builder)
         {
             var theBuilder = (MutateInBuilder<T>) builder;
+
+            // Ensure we're not trying to use XATTRs with a cluster that doesn't support them
+            if (theBuilder.ContainsXattrOperations && !_configInfo.SupportsSubdocXAttributes)
+            {
+                return CreateXAttrsNotSuportedResponse<T>(builder.Key, builder);
+            }
 
             //optimize for the single operation
             if (builder.Count == 1)
@@ -3645,6 +3663,12 @@ namespace Couchbase
         public async Task<IDocumentFragment<T>> InvokeAsync<T>(IMutateInBuilder<T> builder)
         {
             var theBuilder = (MutateInBuilder<T>) builder;
+
+            // Ensure we're not trying to use XATTRs with a cluster that doesn't support them
+            if (theBuilder.ContainsXattrOperations && !_configInfo.SupportsSubdocXAttributes)
+            {
+                return CreateXAttrsNotSuportedResponse<T>(builder.Key, builder);
+            }
 
             //optimize for the single operation
             if (builder.Count == 1)
@@ -3674,10 +3698,16 @@ namespace Couchbase
         {
             var theBuilder = (LookupInBuilder<T>) builder;
 
+            // Ensure we're not trying to use XATTRs with a cluster that doesn't support them
+            if (theBuilder.ContainsXattrOperations && !_configInfo.SupportsSubdocXAttributes)
+            {
+                return CreateXAttrsNotSuportedResponse<T>(builder.Key, builder);
+            }
+
             //optimize for the single operation
             if (theBuilder.Count == 1)
             {
-                return (DocumentFragment<T>)_requestExecuter.SendWithRetry(OptimizeSingleLookup(theBuilder));
+                return (DocumentFragment<T>) _requestExecuter.SendWithRetry(OptimizeSingleLookup(theBuilder));
             }
 
             //this is a multi operation
@@ -3688,6 +3718,12 @@ namespace Couchbase
         public async Task<IDocumentFragment<T>> InvokeAsync<T>(ILookupInBuilder<T> builder)
         {
             var theBuilder = (LookupInBuilder<T>) builder;
+
+            // Ensure we're not trying to use XATTRs with a cluster that doesn't support them
+            if (theBuilder.ContainsXattrOperations && !_configInfo.SupportsSubdocXAttributes)
+            {
+                return CreateXAttrsNotSuportedResponse<T>(builder.Key, builder);
+            }
 
             //optimize for the single operation
             if (theBuilder.Count == 1)

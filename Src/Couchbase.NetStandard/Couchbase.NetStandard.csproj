@@ -218,6 +218,12 @@
     <Compile Include="..\Couchbase\Core\NodeAdapterExtensions.cs">
       <Link>Core\NodeAdapterExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Core\SubdocLookupFlags.cs">
+      <Link>Core\SubdocLookupFlags.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Core\SubdocMutateFlags.cs">
+      <Link>Core\SubdocMutateFlags.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Configuration\Server\Serialization\NodeExt.cs">
       <Link>Configuration\Server\Serialization\NodeExt.cs</Link>
     </Compile>
@@ -1150,6 +1156,9 @@
     </Compile>
     <Compile Include="..\Couchbase\Cryptography\Crc32.cs">
       <Link>Cryptography\Crc32.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Core\FeatureNotAvailableException.cs">
+      <Link>Core\FeatureNotAvailableException.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Core\IBucket.cs">
       <Link>Core\IBucket.cs</Link>

@@ -142,6 +142,11 @@ namespace Couchbase.Tests.IO.Services
         {
             get { throw new NotImplementedException(); }
         }
+
+        public bool SupportsSubdocXAttributes
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }
 

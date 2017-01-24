@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -99,6 +98,14 @@ namespace Couchbase.Configuration
         /// <c>true</c> if the server supports enhanced durability; otherwise, <c>false</c>.
         /// </value>
         bool SupportsEnhancedDurability { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether Subdocument XAttributes are supported.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports Subdocument XAttributes; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsSubdocXAttributes { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this cluster is supports indexing

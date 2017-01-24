@@ -83,6 +83,7 @@ namespace Couchbase.Configuration
                                 };
                                 server.CreateSaslMechanismIfNotExists();
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
+                                SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                             }
                             else
                             {
@@ -143,7 +144,6 @@ namespace Couchbase.Configuration
         /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public void LoadConfig(IIOService ioService)
         {
-            var supportsEnhancedDurability = false;
             try
             {
                 Lock.EnterWriteLock();
@@ -163,8 +163,8 @@ namespace Couchbase.Configuration
                         if (Equals(ioService.EndPoint, endpoint) || nodes.Count() == 1)
                         {
                             server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
-                            supportsEnhancedDurability = ioService.SupportsEnhancedDurability;
-                            SupportsEnhancedDurability = supportsEnhancedDurability;
+                            SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
+                            SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
@@ -202,10 +202,11 @@ namespace Couchbase.Configuration
                                 };
                                 server.CreateSaslMechanismIfNotExists();
 
-                                //Note: "ioService has" already made a HELO command to check if
-                                //the cluster supports enhanced durability so we are reusing the flag
+                                //Note: "ioService has" already made a HELO command to check what features
+                                //the cluster supports (eg enhanced durability) so we are reusing the flag
                                 //instead of having "newIoService" do it again, later.
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
+                                SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                             }
                             else
                             {
@@ -287,6 +288,7 @@ namespace Couchbase.Configuration
                             };
                             server.CreateSaslMechanismIfNotExists();
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
+                            SupportsSubdocXAttributes = newIoService.SupportsSubdocXAttributes;
                         }
                         else
                         {

@@ -164,5 +164,36 @@ namespace Couchbase.UnitTests
             var cloned = (MultiMutation<dynamic>) op.Clone();
             Assert.AreEqual(op, cloned);
         }
+
+        [Test]
+        public void Maintain_Exsiting_Subdoc_Array_Signatures()
+        {
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "thekey");
+
+            builder.ArrayAppend(1);
+            builder.ArrayAppend(1, false);
+            builder.ArrayAppend("key", 1);
+            builder.ArrayAppend("key", 1, false); // doesn't work with bools but other data types work
+            //builder.ArrayAppend("key", 1, 2, 3); // already conflicted with (bool, params) & (string, bool, params)
+            builder.ArrayAppend("key", true, 1, 2, 3);
+
+            builder.ArrayPrepend(1);
+            builder.ArrayPrepend(1, false);
+            builder.ArrayPrepend("key", 1);
+            builder.ArrayPrepend("key", 1, false); // doesn't work with bools but other data types work
+            //builder.ArrayPrepend("key", 1, 2, 3); // already conflicted with (bool, params) & (string, bool, params)
+            builder.ArrayPrepend("key", true, 1, 2, 3);
+
+            builder.ArrayInsert("key", 1);
+            builder.ArrayInsert("key", 1, false);
+            builder.ArrayInsert("key", 1, 2, 3);
+            builder.ArrayInsert("key", true, 1, 2, 3);
+
+            builder.ArrayAddUnique(1);
+            builder.ArrayAddUnique(1, false);
+            builder.ArrayAddUnique("key", 1);
+            builder.ArrayAddUnique("key", 1, false);
+        }
     }
 }

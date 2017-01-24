@@ -38,6 +38,15 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> Insert(string path, object value, bool createParents = false);
 
         /// <summary>
+        /// Inserts an element into a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Insert(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Inserts or updates an element within or into a JSON document at a given path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
@@ -45,6 +54,15 @@ namespace Couchbase.Core
         /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> Upsert(string path, object value, bool createParents = false);
+
+        /// <summary>
+        /// Inserts or updates an element within or into a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Upsert(string path, object value, SubdocMutateFlags flags);
 
         /// <summary>
         /// Replaces an element or value within a JSON document at a given path.
@@ -55,11 +73,28 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> Replace(string path, object value);
 
         /// <summary>
+        /// Replaces an element or value within a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Replace(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Removes an element or value from a JSON document at a given path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> Remove(string path);
+
+        /// <summary>
+        /// Removes an element or value from a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Remove(string path, SubdocMutateFlags flags);
 
         /// <summary>
         /// Inserts an array value at the end of an array that is the root of a JSON document.
@@ -87,6 +122,15 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> ArrayAppend(string path, object value, bool createParents = false);
 
         /// <summary>
+        /// Inserts a value to the end of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An aray value.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayAppend(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Inserts one or more values to the end of an array in a JSON document at a given path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
@@ -94,6 +138,15 @@ namespace Couchbase.Core
         /// <param name="values">One or more values.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> ArrayAppend(string path, bool createParents = false, params object[] values);
+
+        /// <summary>
+        /// Inserts one or more values to the end of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayAppend(string path, SubdocMutateFlags flags, params object[] values);
 
         /// <summary>
         /// Inserts a value to the beginning of an array that is the root of a JSON document.
@@ -121,6 +174,15 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> ArrayPrepend(string path, object value, bool createParents = false);
 
         /// <summary>
+        /// Inserts a value to the beginning of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">An array value.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayPrepend(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Inserts one or more values to the beginning of an array in a JSON document at a given path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
@@ -128,6 +190,15 @@ namespace Couchbase.Core
         /// <param name="values">One or more values.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> ArrayPrepend(string path, bool createParents = false, params object[] values);
+
+        /// <summary>
+        /// Inserts one or more values to the beginning of an array in a JSON document at a given path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayPrepend(string path, SubdocMutateFlags flags, params object[] values);
 
         /// <summary>
         /// Inserts a value at a given position within an array. The position is indicated as part of the path.
@@ -138,12 +209,30 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> ArrayInsert(string path, object value);
 
         /// <summary>
+        /// Inserts a value at a given position within an array. The position is indicated as part of the path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">A value.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayInsert(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Inserts one or more values at a given position within an array. The position is indicated as part of the path.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
         /// <param name="values">One or more values.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> ArrayInsert(string path, params object[] values);
+
+        /// <summary>
+        /// Inserts one or more values at a given position within an array. The position is indicated as part of the path.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <param name="values">One or more values.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayInsert(string path, SubdocMutateFlags flags, params object[] values);
 
         /// <summary>
         /// Adds a value to an array if the value does not already exist in the array at the root of the JSON document.
@@ -163,6 +252,15 @@ namespace Couchbase.Core
         IMutateInBuilder<TDocument> ArrayAddUnique(string path, object value, bool createParents = false);
 
         /// <summary>
+        /// Adds a value to an array if the value does not already exist in the array.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="value">A unique value.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> ArrayAddUnique(string path, object value, SubdocMutateFlags flags);
+
+        /// <summary>
         /// Performs an arithmetic increment or decrement operation on a numeric value in a document.
         /// </summary>
         /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
@@ -170,6 +268,15 @@ namespace Couchbase.Core
         /// <param name="createParents">If <s>true</s>, the parent will be added to the document. The default is false.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> Counter(string path, long delta, bool createParents = false);
+
+        /// <summary>
+        /// Performs an arithmetic increment or decrement operation on a numeric value in a document.
+        /// </summary>
+        /// <param name="path">A string (N1QL syntax) used to specify a location within the document.</param>
+        /// <param name="delta">The value to increment or decrement the original value by.</param>
+        /// <param name="flags">The subdocument flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Counter(string path, long delta, SubdocMutateFlags flags);
 
         /// <summary>
         /// Applies an expiration to a document.

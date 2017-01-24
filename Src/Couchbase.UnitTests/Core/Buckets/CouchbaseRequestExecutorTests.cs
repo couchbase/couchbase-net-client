@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using NUnit.Framework;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Services;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.UnitTests.IO.Operations.Subdocument;
+using Couchbase.Utils;
 using Moq;
 
 namespace Couchbase.UnitTests.Core.Buckets
@@ -188,6 +192,42 @@ namespace Couchbase.UnitTests.Core.Buckets
             var op = new ReplicaRead<dynamic>("thekey", null, new DefaultTranscoder(), 100);
             var result = executor.ReadFromReplica(op);
             Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+        }
+
+        [Test]
+        public void When_DataService_Is_Not_Available_SendWithRetry_Throws_ServiceNotSupportedException()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.IsDataCapable).Returns(false);
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
+
+            var result = executor.SendWithRetry(new FakeSubDocumentOperation<dynamic>(null, "key", null, new DefaultTranscoder(), 0));
+
+            Assert.IsFalse(result.Success);
+            Assert.IsInstanceOf<ServiceNotSupportedException>(result.Exception);
+            Assert.AreEqual(string.Format(ExceptionUtil.ServiceNotSupportedMsg, "Data"), result.Exception.Message);
+        }
+
+        [Test]
+        public void When_DataService_Is_Not_Available_SendWithReteyAsync_Throws_ServiceNotSupportedException()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.IsDataCapable).Returns(false);
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
+
+            Assert.ThrowsAsync<ServiceNotSupportedException>(
+                async () => await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(null, "key", null,new DefaultTranscoder(), 0)),
+                ExceptionUtil.ServiceNotSupportedMsg, "Data");
         }
     }
 }

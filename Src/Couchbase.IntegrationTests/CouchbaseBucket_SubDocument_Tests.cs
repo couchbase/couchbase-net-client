@@ -24,7 +24,7 @@ namespace Couchbase.IntegrationTests
             _bucket = _cluster.OpenBucket();
         }
 
-#region Retrieval Commands
+        #region Retrieval Commands
 
         [Test]
         [TestCase(true)]
@@ -246,7 +246,7 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
-#region Dictionary Insertion Commands
+        #region Dictionary Insertion Commands
 
         [Test]
         [TestCase(true)]
@@ -596,7 +596,7 @@ namespace Couchbase.IntegrationTests
 
 #endregion
 
-#region Array commands
+        #region Array commands
 
         [Test]
         [TestCase(true)]
@@ -821,7 +821,7 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
-#region counter tests
+        #region counter tests
 
         [Test]
         [TestCase(true)]
@@ -855,7 +855,7 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
-#region single op tests
+        #region single op tests
 
         [Test]
         [TestCase(true)]
@@ -971,7 +971,7 @@ namespace Couchbase.IntegrationTests
         }
         #endregion
 
-#region async
+        #region async
 
         [Test]
         [TestCase(true)]
@@ -1169,6 +1169,222 @@ namespace Couchbase.IntegrationTests
            Console.WriteLine(result.Status);
         }
 
+        #region XATTRs
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Create_Get_And_Check_Single_Xattr_Exists(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Create_Get_And_Check_Single_Xattr_Exists";
+            const string username = "jack";
+            _bucket.Upsert(key, new {first = "foo", last = "bar"});
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert("_data.created_by", username, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(username, getResult.Content<string>(0));
+
+            var existsResult = _bucket.LookupIn<dynamic>(key)
+                .Exists("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(existsResult.Success);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Create_Get_And_Check_Multiple_Xattrs_Exist(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Create_Get_And_Check_Multiple_Xattrs_Exist";
+            _bucket.Upsert(key, new {foo = "bar"});
+
+            const string createdBy = "jack";
+            const string modifiedBy = "jill";
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert("_data.created_by", createdBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Upsert("_data.modified_by", modifiedBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Get("_data.modified_by", SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(createdBy, getResult.Content<string>(0));
+            Assert.AreEqual(modifiedBy, getResult.Content<string>(1));
+
+            var existsResult = _bucket.LookupIn<dynamic>(key)
+                .Exists("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Exists("_data.modified_by", SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(existsResult.Success);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void XATTRS_Persist_After_Upsert_Or_Replace(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "XATTRS_Persist_After_Replace";
+            const string field = "_data.created_by";
+            const string value = "jack";
+
+            _bucket.Remove(key);
+            _bucket.Upsert(key, new {name = "mike"});
+
+            // Add XATTR
+            var createResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(createResult.Success);
+
+            // Replace document body
+            var replaceResult = _bucket.Replace(key, new {name = "michael"});
+
+            Assert.IsTrue(replaceResult.Success);
+
+            // Try to get the xattr
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get(field, SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(value, getResult.Content<string>(0));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Create_XATTR_with_CreatePath_Flag(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Get_XATTR_with_CreatePath_Flag";
+            const string field = "created_by";
+            const string value = "jack";
+
+            _bucket.Upsert(key, new {name = "mike"});
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get(field, SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(value, getResult.Content<string>(0));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Create_Document_With_CreateDocument_Subdoc_Flag(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Create_Document_With_CreateDocument_Subdoc_Flag";
+            const string field = "name";
+            const string name = "mike";
+
+            _bucket.Remove(key);
+            var existsResult = _bucket.Exists(key);
+
+            Assert.IsFalse(existsResult);
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert(field, name, SubdocMutateFlags.CreateDocument)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get(field)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(name, getResult.Content<string>(0));
+        }
+
+        [Ignore("Requires additional logical delete server feature")]
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Get_Deleted_Document_System_XATTR_Using_AccessDeleted_Subdoc_Flag(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Get_Deleted_Document_XATTR_Using_AccessDeleted_Subdoc_Flag";
+            const string field = "_data.username";
+            const string value = "jack";
+
+            _bucket.Remove(key);
+            _bucket.Upsert(key, new {name = "mike"});
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert(field, value, SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var removeResult = _bucket.Remove(key);
+
+            Assert.IsTrue(removeResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get(field, SubdocLookupFlags.AccessDeleted)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual(value, getResult.Content<string>(0));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Can_Use_Server_Macro_To_Populate_XATTR(bool useMutation)
+        {
+            Setup(useMutation);
+
+            const string key = "Can_Use_Server_Macro_To_Populate_XATTR";
+            const string field = "cas";
+            const string value = "${Mutation.CAS}";
+
+            _bucket.Upsert(key, new {name = "mike"});
+
+            var mutateResult = _bucket.MutateIn<dynamic>(key)
+                .Upsert(field, value, SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro)
+                .Execute();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = _bucket.LookupIn<dynamic>(key)
+                .Get(field, SubdocLookupFlags.AttributePath)
+                .Execute();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.IsFalse(string.IsNullOrEmpty(getResult.Content<string>(0)));
+        }
+
+        #endregion
 
         [TearDown]
         public void OneTimeTearDown()
