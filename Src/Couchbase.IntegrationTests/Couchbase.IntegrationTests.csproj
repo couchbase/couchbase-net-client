@@ -156,6 +156,8 @@
     <Compile Include="Management\ClusterManagerTests.cs" />
     <Compile Include="Management\BucketManagerTests.cs" />
     <Compile Include="Management\MemcachedBucketManagerTests.cs" />
+    <Compile Include="MemcachedBucketTests.cs" />
+    <Compile Include="MemcachedBucketTests_Isolated.cs" />
     <Compile Include="MutationTokenTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScramShaMechanismTests.cs" />
