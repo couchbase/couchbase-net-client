@@ -69,7 +69,20 @@ namespace Couchbase.Configuration
 
         public static FailureCountingUri GetQueryUri(int queryFailedThreshold)
         {
-            return RoundRobin(QueryUris.Where(x=>x.IsHealthy(queryFailedThreshold)).ToList());
+            var queryUris = QueryUris.Where(x => x.IsHealthy(queryFailedThreshold)).ToList();
+            if (queryUris.Count == 0)
+            {
+                // All query URIs are unhealthy, so reset them all back to healthy and return the entire list
+                // It's better to at least try the nodes than assume they're all failing indefinitely
+
+                foreach (var queryUri in QueryUris)
+                {
+                    queryUri.ClearFailed();
+                    queryUris.Add(queryUri);
+                }
+            }
+
+            return RoundRobin(queryUris);
         }
 
         private static FailureCountingUri RoundRobin(IReadOnlyList<FailureCountingUri> uris)
@@ -81,7 +94,7 @@ namespace Couchbase.Configuration
             }
 
             Interlocked.Increment(ref _roundRobinPosition);;
-            if (_roundRobinPosition == count)
+            if (_roundRobinPosition >= count)
             {
                 Interlocked.Exchange(ref _roundRobinPosition, 0);
             }
