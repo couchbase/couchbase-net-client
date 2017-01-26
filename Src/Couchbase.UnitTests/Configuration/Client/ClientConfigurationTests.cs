@@ -300,7 +300,6 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
-
 #endif
     }
 }

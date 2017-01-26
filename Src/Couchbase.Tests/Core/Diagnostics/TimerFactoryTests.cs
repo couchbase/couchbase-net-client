@@ -10,12 +10,10 @@ namespace Couchbase.Tests.Core.Diagnostics
     [TestFixture]
     public class TimerFactoryTests
     {
-        private readonly static ILog Log = LogManager.GetLogger<TimerFactoryTests>();
-
         [Test]
         public void Test_GetFactory()
         {
-            var timer = TimingFactory.GetTimer(Log);
+            var timer = TimingFactory.GetTimer();
             using (timer(TimingLevel.One, new Get<string>(null, null, new DefaultTranscoder(), 500)))
             {
                 Thread.Sleep(100);

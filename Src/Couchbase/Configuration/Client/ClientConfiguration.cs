@@ -7,18 +7,19 @@ using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
-using Couchbase.N1QL;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
 #if NET45
 using Couchbase.Configuration.Client.Providers;
+#endif
+#if NETSTANDARD
+using Microsoft.Extensions.Logging;
 #endif
 
 namespace Couchbase.Configuration.Client
@@ -29,7 +30,6 @@ namespace Couchbase.Configuration.Client
     /// </summary>
     public class ClientConfiguration
     {
-        private static readonly ILog Log = LogManager.GetLogger<ClientConfiguration>();
         protected ReaderWriterLockSlim ConfigLock = new ReaderWriterLockSlim();
         private const string DefaultBucket = "default";
         private PoolConfiguration _poolConfiguration;
@@ -92,8 +92,7 @@ namespace Couchbase.Configuration.Client
         public ClientConfiguration()
         {
             //For operation timing
-            Timer = TimingFactory.GetTimer(Log);
-
+            Timer = TimingFactory.GetTimer();
             QueryRequestTimeout = Defaults.QueryRequestTimeout;
             EnableQueryTiming = Defaults.EnableQueryTiming;
             UseSsl = Defaults.UseSsl;
@@ -155,6 +154,10 @@ namespace Couchbase.Configuration.Client
             //The default sasl mechanism creator
             CreateSaslMechanism = SaslFactory.GetFactory();
 
+#if NETSTANDARD
+            LoggerFactory = new LoggerFactory();
+#endif
+
             PoolConfiguration = new PoolConfiguration(this)
             {
                 BufferSize = BufferSize,
@@ -176,7 +179,7 @@ namespace Couchbase.Configuration.Client
             _poolConfigurationChanged = false;
         }
 
-        #if NET45
+#if NET45
 
         /// <summary>
         /// For synchronization with App.config or Web.configs.
@@ -186,7 +189,7 @@ namespace Couchbase.Configuration.Client
         {
         }
 
-        #endif
+#endif
 
         /// <summary>
         /// For synchronization with App.config or Web.configs.
@@ -194,7 +197,7 @@ namespace Couchbase.Configuration.Client
         /// <param name="definition"></param>
         public ClientConfiguration(ICouchbaseClientDefinition definition)
         {
-            Timer = TimingFactory.GetTimer(Log);
+            Timer = TimingFactory.GetTimer();
             UseConnectionPooling = definition.UseConnectionPooling;
             NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
             UseSsl = definition.UseSsl;
@@ -242,6 +245,11 @@ namespace Couchbase.Configuration.Client
             IOServiceCreator = definition.IOService != null
                 ? IOServiceFactory.GetFactory(definition.IOService)
                 : IOServiceFactory.GetFactory(this);
+
+#if NETSTANDARD
+            //TODO not implemented for json configs...yet, so default
+             LoggerFactory = new LoggerFactory();
+#endif
 
             //to enable tcp keep-alives
             EnableTcpKeepAlives = definition.EnableTcpKeepAlives;
@@ -572,6 +580,10 @@ namespace Couchbase.Configuration.Client
         [JsonIgnore]
         internal Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
 
+#if NETSTANDARD
+        public ILoggerFactory LoggerFactory { get; set; }
+#endif
+
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
@@ -865,6 +877,10 @@ namespace Couchbase.Configuration.Client
 
         internal void Initialize()
         {
+#if NETSTANDARD
+            //configure logging
+            LogManager.ConfigureLoggerFactory(LoggerFactory);
+#endif
             if (PoolConfiguration == null)
             {
                 PoolConfiguration = new PoolConfiguration(this);

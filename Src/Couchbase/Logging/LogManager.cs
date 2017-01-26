@@ -29,6 +29,10 @@ namespace Couchbase.Logging
 
         public static ILog GetLogger(Type type)
         {
+            if (_factory == null)
+            {
+                _factory = new LoggerFactory();
+            }
             return new MicrosoftLoggingLogger(_factory.CreateLogger(type));
         }
 #endif
