@@ -46,12 +46,9 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 #if NET45
-
 [assembly: InternalsVisibleTo("Sdkd")]
 [assembly: InternalsVisibleTo("SdkdConsole")]
 #else
-
 [assembly: InternalsVisibleTo("Sdkd.NetStandard")]
 [assembly: InternalsVisibleTo("SdkdConsole.NetStandard")]
-
 #endif

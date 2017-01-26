@@ -1,7 +1,10 @@
 version: 2.4.0.{build}
 configuration: Release
 init:
-- ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
+- ps: >-
+    if ($env:APPVEYOR_REPO_TAG -eq "true") {
+      Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v")
+    }
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
@@ -12,25 +15,30 @@ environment:
   SnkSecret:
     secure: Mpa4faeUiC2uggKSC5ZgiA==
 install:
-- ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
-- ps: nuget install secure-file -ExcludeVersion
+- ps: >-
+    appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
+    nuget install secure-file -ExcludeVersion
 before_build:
-- ps: nuget restore .\src\couchbase-net-client.sln
-- ps: .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\src\Couchbase\Couchbase.snk
-- ps: Get-ChildItem .\src\ -Recurse -Filter AssemblyInfo.cs | ForEach-Object { Add-Content $_.FullName "`n[assembly: AssemblyKeyFile(`"Couchbase.snk`")]"}
+- ps: >-
+    nuget restore .\src\couchbase-net-client.sln
+    .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\src\Couchbase\Couchbase.snk
+    Get-ChildItem .\src\ -Recurse -Filter AssemblyInfo.cs | ForEach-Object { Add-Content $_.FullName "`n[assembly: AssemblyKeyFile(`"Couchbase.snk`")]"}
 build:
   verbosity: normal
 test:
   assemblies:
     - 'Couchbase.UnitTests.dll'
 after_test:
-- dotnet test ".\src\Couchbase.UnitTests.NetStandard" -c %CONFIGURATION%
+- ps: >-
+    dotnet test ".\src\Couchbase.UnitTests.NetStandard" -c %CONFIGURATION%
 before_deploy:
-- ps: Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
-- ps: Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
-- ps: Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
-- ps: Push-AppveyorArtifact Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
-- ps: nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
+- ps: >-
+    Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
+    Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
+    Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
+    Push-AppveyorArtifact **\*.zip
+    nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
+    Push-AppveyorArtifact **\*.nupkg
 deploy:
 - provider: GitHub
   auth_token:
