@@ -48,10 +48,16 @@ namespace Couchbase.IO.Http
 
             if (config != null)
             {
-                handler.MaxConnectionsPerServer = config.DefaultConnectionLimit;
+                try
+                {
+                    handler.MaxConnectionsPerServer = config.DefaultConnectionLimit;
+                }
+                catch (PlatformNotSupportedException e)
+                {
+                    Log.Debug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
+                }
             }
 #endif
-
             return handler;
         }
 
