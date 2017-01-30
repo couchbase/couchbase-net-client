@@ -776,6 +776,9 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>http://msdn.microsoft.com/en-us/library/system.net.servicepointmanager.defaultconnectionlimit.aspx</remarks>
         /// <remarks>The default is set to 5 connections.</remarks>
+#if NETSTANDARD
+        /// <remarks>On Linux this setting is only supported for libcurl v7.30.0 and greater. See https://issues.couchbase.com/browse/NCBC-1295 for details.</remarks>
+#endif
         public int DefaultConnectionLimit { get; set; }
 
         /// <summary>
