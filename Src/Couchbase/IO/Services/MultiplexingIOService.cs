@@ -105,18 +105,21 @@ namespace Couchbase.IO.Services
             catch (SocketException e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
@@ -160,18 +163,21 @@ namespace Couchbase.IO.Services
             catch (SocketException e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
@@ -204,6 +210,7 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
@@ -240,6 +247,7 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
@@ -268,6 +276,7 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
 
@@ -295,6 +304,7 @@ namespace Couchbase.IO.Services
             catch (Exception e)
             {
                 Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
 
