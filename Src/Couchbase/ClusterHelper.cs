@@ -84,14 +84,27 @@ namespace Couchbase
 
         /// <summary>
         /// Opens or gets an <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
-        /// The <see cref="IBucket"/> will be cached and subsquent requests for a <see cref="IBucket"/> of the same name will return the
+        /// The <see cref="IBucket"/> will be cached and subsequent requests for a <see cref="IBucket"/> of the same name will return the
         /// cached instance.
         /// </summary>
         /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
-        /// <param name="password"></param>
         /// <returns>An <see cref="IBucket"/>instance</returns>
         /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
-        public static IBucket GetBucket(string bucketName, string password = null)
+        public static IBucket GetBucket(string bucketName)
+        {
+            return GetBucket(bucketName, null);
+        }
+
+        /// <summary>
+        /// Opens or gets an <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
+        /// The <see cref="IBucket"/> will be cached and subsequent requests for a <see cref="IBucket"/> of the same name will return the
+        /// cached instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <param name="password">Bucket password, or null for unsecured buckets.</param>
+        /// <returns>An <see cref="IBucket"/>instance</returns>
+        /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
+        public static IBucket GetBucket(string bucketName, string password)
         {
             if (_instance == null)
             {
