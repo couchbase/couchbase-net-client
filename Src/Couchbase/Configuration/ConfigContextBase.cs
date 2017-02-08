@@ -23,6 +23,8 @@ namespace Couchbase.Configuration
     /// </summary>
     internal abstract class ConfigContextBase : IConfigInfo
     {
+        public const int SearchNodeFailureThreshold = 2;
+
         protected static readonly ILog Log = LogManager.GetLogger<ConfigContextBase>();
         private static int _roundRobinPosition = 0;
         protected IKeyMapper KeyMapper;
@@ -105,7 +107,20 @@ namespace Couchbase.Configuration
 
         public static FailureCountingUri GetSearchUri()
         {
-            return SearchUris.Where(x => x.IsHealthy(2)).GetRandom();
+            var searchUris = SearchUris.Where(x => x.IsHealthy(SearchNodeFailureThreshold)).ToList();
+            if (searchUris.Count == 0)
+            {
+                // All search URIs are unhealthy, so reset them all back to healthy and return the entire list
+                // It's better to at least try the nodes than assume they're all failing indefinitely
+
+                foreach (var searchUri in SearchUris)
+                {
+                    searchUri.ClearFailed();
+                    searchUris.Add(searchUri);
+                }
+            }
+
+            return searchUris.GetRandom();
         }
 
         protected ITypeTranscoder Transcoder { get; private set; }
