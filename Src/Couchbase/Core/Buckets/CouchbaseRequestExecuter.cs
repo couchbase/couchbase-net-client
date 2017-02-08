@@ -3,8 +3,10 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Logging;
 using Couchbase.Configuration;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
 using Couchbase.IO;
@@ -1024,5 +1026,217 @@ namespace Couchbase.Core.Buckets
             }
             return queryResult;
         }
+
+        #region CBAS
+
+        /// <summary>
+        /// Sends an <see cref="IAnalyticsResult{T}"/> to the server to be executed.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        /// <exception cref="System.TimeoutException">Could not acquire a server.</exception>
+        public override IAnalyticsResult<T> SendWithRetry<T>(IAnalyticsRequest request)
+        {
+            IAnalyticsResult<T> result;
+            try
+            {
+                EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
+
+                // Ugly but prevents Lifespan being public on IAnalyticsRequest
+                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.QueryRequestTimeout);
+
+                result = RetryRequest(
+                    ConfigInfo.GetAnalyticsNode,
+                    (server, req) => server.Send<T>(req),
+                    (req, res) => !req.TimedOut() && !res.Success && res.ShouldRetry(),
+                    request);
+            }
+            catch (Exception exception)
+            {
+                Log.Info(exception);
+                result = CreateFailedAnalyticsResult<T>(exception);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Asynchronously sends an <see cref="IAnalyticsResult{T}"/> to the server to be executed.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
+        /// <param name="request">The <see cref="IAnalyticsRequest"/> object to send to the server.</param>
+        /// <param name="cancellationToken">Token which can cancel the analytics request.</param>
+        /// <returns>An <see cref="Task{IAnalyticsRequest}"/> object to be awaited on that is the result of the analytics request.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support analytics services.</exception>
+        public override async Task<IAnalyticsResult<T>> SendWithRetryAsync<T>(IAnalyticsRequest request, CancellationToken cancellationToken)
+        {
+            IAnalyticsResult<T> result;
+            try
+            {
+                EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
+
+                // Ugly but prevents Lifespan being public
+                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.QueryRequestTimeout);
+
+                result = await RetryRequestAsync(
+                    ConfigInfo.GetAnalyticsNode,
+                    async (server, req, token) => await server.SendAsync<T>(req, token).ContinueOnAnyContext(),
+                    (req, res) => !req.TimedOut() && !res.Success && res.ShouldRetry(),
+                    request,
+                    cancellationToken,
+                    (int) ConfigInfo.ClientConfig.AnalyticsRequestTimeout).ContinueOnAnyContext();
+            }
+            catch (Exception exception)
+            {
+                Log.Info(exception);
+                result = CreateFailedAnalyticsResult<T>(exception);
+            }
+            return result;
+        }
+
+        private static IAnalyticsResult<T> CreateFailedAnalyticsResult<T>(Exception exception)
+        {
+            const string message = "The Analytics request failed, check Error and Exception fields for details.";
+            return new AnalyticsResult<T>
+            {
+                Success = false,
+                Status = QueryStatus.Fatal,
+                Message = message,
+                Exception = exception
+            };
+        }
+
+        #endregion
+
+        #region utility methods
+
+        private static void EnsureServiceAvailable(bool serviceEnabled, string serviceName)
+        {
+            if (!serviceEnabled)
+            {
+                throw new ServiceNotSupportedException(ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, serviceName));
+            }
+        }
+
+        private static IServer GetServerWithRetry(Func<IServer> getServer)
+        {
+            const int maxAttempts = 10;
+            var attempts = 0;
+            do
+            {
+                var server = getServer();
+                if (server != null)
+                {
+                    return server;
+                }
+
+                Thread.Sleep((int) Math.Pow(2, attempts));
+            } while (attempts++ <= maxAttempts);
+
+            throw new TimeoutException("Could not acquire a server.");
+        }
+
+        private static async Task<IServer> GetServerWithRetryAsync(Func<IServer> getServer, CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 10;
+            var attempts = 0;
+            do
+            {
+                var server = getServer();
+                if (server != null)
+                {
+                    return server;
+                }
+
+                try
+                {
+                    await Task.Delay((int) Math.Pow(2, attempts), cancellationToken).ContinueOnAnyContext();
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            } while (attempts++ <= maxAttempts);
+
+            throw new TimeoutException("Could not acquire a server.");
+        }
+
+        private static TResult RetryRequest<TRequest, TResult>(
+            Func<IServer> getServer,
+            Func<IServer, TRequest, TResult> sendRequest,
+            Func<TRequest, TResult, bool> canRetry,
+            TRequest request)
+        {
+            const int maxAttempts = 10;
+            TResult result;
+            var attempts = 0;
+
+            do
+            {
+                var server = GetServerWithRetry(getServer);
+                result = sendRequest(server, request);
+                if (!canRetry(request, result))
+                {
+                    break;
+                }
+
+                Thread.Sleep((int) Math.Pow(2, attempts));
+            } while (attempts++ <= maxAttempts);
+
+            return result;
+        }
+
+        private static async Task<TResult> RetryRequestAsync<TRequest, TResult>(
+            Func<IServer> getServer,
+            Func<IServer, TRequest, CancellationToken, Task<TResult>> sendRequest,
+            Func<TRequest, TResult, bool> canRetry,
+            TRequest request,
+            CancellationToken cancellationToken,
+            int getServerTimeout)
+        {
+            const int maxAttempts = 10;
+            TResult result;
+            var attempts = 0;
+
+            using (var timeoutCancellationTokenSource = new CancellationTokenSource(getServerTimeout))
+            {
+                // If we received a functional cancellationToken (not just CancellationToken.None),
+                // then combine with the timeout token source
+                var cancellationTokenSource = cancellationToken.CanBeCanceled
+                    ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellationTokenSource.Token)
+                    : timeoutCancellationTokenSource;
+
+                using (cancellationTokenSource)
+                {
+                    do
+                    {
+                        var server = await GetServerWithRetryAsync(getServer, cancellationTokenSource.Token).ContinueOnAnyContext();
+
+                        // Don't forward our new cancellation token to the next layer,
+                        // it has its own timeout implementation.  Just forward the cancellation token
+                        // which was passed as a parameter.
+                        result = await sendRequest(server, request, cancellationToken).ContinueOnAnyContext();
+                        if (!canRetry(request, result))
+                        {
+                            break;
+                        }
+
+                        try
+                        {
+                            await Task.Delay((int)Math.Pow(2, attempts++), cancellationToken).ContinueOnAnyContext();
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            break;
+                        }
+                    } while (attempts++ <= maxAttempts);
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
     }
 }

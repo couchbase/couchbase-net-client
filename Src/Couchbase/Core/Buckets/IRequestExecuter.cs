@@ -1,9 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Configuration;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Search;
@@ -89,6 +88,24 @@ namespace Couchbase.Core.Buckets
         /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>An <see cref="Task{IQueryResult}"/> object to be awaited on that is the result of the query.</returns>
         Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Sends an <see cref="IAnalyticsResult{T}"/> to the server to be executed.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        /// <exception cref="System.TimeoutException">Could not acquire a server.</exception>
+        IAnalyticsResult<T> SendWithRetry<T>(IAnalyticsRequest request);
+
+        /// <summary>
+        /// Asynchronously sends an <see cref="IAnalyticsResult{T}"/> to the server to be executed.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the body of each result row.</typeparam>
+        /// <param name="request">The <see cref="IAnalyticsRequest"/> object to send to the server.</param>
+        /// <param name="token">Token which can cancel the analytics request.</param>
+        /// <returns>An <see cref="Task{IAnalyticsRequest}"/> object to be awaited on that is the result of the analytics request.</returns>
+        Task<IAnalyticsResult<T>> SendWithRetryAsync<T>(IAnalyticsRequest request, CancellationToken token);
 
         /// <summary>
         /// Sends a <see cref="IFtsQuery"/> request to an FTS enabled node and returns the <see cref="ISearchQueryResult"/>response.

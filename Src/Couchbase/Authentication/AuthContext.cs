@@ -1,5 +1,4 @@
-﻿
-namespace Couchbase.Authentication
+﻿namespace Couchbase.Authentication
 {
     public enum AuthContext
     {
@@ -7,7 +6,8 @@ namespace Couchbase.Authentication
         BucketN1Ql,
         ClusterMgmt,
         ClusterCbft,
-        ClusterN1Ql
+        ClusterN1Ql,
+        ClusterAnalytics
     }
 }
 

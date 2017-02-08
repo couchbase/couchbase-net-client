@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System.Net;
 using Couchbase.Authentication;
 using Couchbase.Core;
+using Couchbase.Utils;
 using Couchbase.Views;
 
 namespace Couchbase.N1QL
@@ -558,7 +559,8 @@ namespace Couchbase.N1QL
         {
             if (string.IsNullOrWhiteSpace(username))
             {
-                throw new ArgumentOutOfRangeException("username", "cannot be null, empty or whitespace.");
+                const string usernameParameter = "username";
+                throw new ArgumentOutOfRangeException(username, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
             }
             if (isAdmin && !username.StartsWith("admin:"))
             {

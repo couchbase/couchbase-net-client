@@ -2,6 +2,7 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
@@ -175,6 +176,16 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
+        public IAnalyticsResult<T> Send<T>(IAnalyticsRequest analyticsRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IAnalyticsResult<T>> SendAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public Uri CachedViewBaseUri
         {
             get { throw new NotImplementedException(); }
@@ -189,6 +200,14 @@ namespace Couchbase.Tests.Fakes
         public uint Revision
         {
             get { throw new NotImplementedException(); }
+        }
+
+        public bool IsAnalyticsNode
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

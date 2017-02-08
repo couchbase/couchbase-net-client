@@ -244,6 +244,16 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         {
             throw new NotImplementedException();
         }
+
+        public bool IsAnalyticsCapable
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public IServer GetAnalyticsNode()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

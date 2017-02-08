@@ -878,6 +878,18 @@ namespace Couchbase.Configuration.Client
             return uri.OriginalString != "http://localhost:8091/pools";
         }
 
+        /// <summary>
+        /// Gets the analytics request timeout. Default is 75 seconds.
+        /// </summary>
+        /// <value>
+        /// The analytics request timeout.
+        /// </value>
+        /// <remarks>Hardcoded for now - will implement config at a later time</remarks>
+        public uint AnalyticsRequestTimeout
+        {
+            get { return 75000; }
+        }
+
         internal void Initialize()
         {
 #if NETSTANDARD

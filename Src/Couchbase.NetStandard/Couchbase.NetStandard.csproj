@@ -38,6 +38,24 @@
     <DocumentationFile>bin\Release\Couchbase.NetClient.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase\Analytics\AnalyticsClient.cs">
+      <Link>Analytics\AnalyticsClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Analytics\AnalyticsRequest.cs">
+      <Link>Analytics\AnalyticsRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Analytics\AnalyticsResult.cs">
+      <Link>Analytics\AnalyticsResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Analytics\IAnalyticsClient.cs">
+      <Link>Analytics\IAnalyticsClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Analytics\IAnalyticsRequest.cs">
+      <Link>Analytics\IAnalyticsRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Analytics\IAnalyticsResult.cs">
+      <Link>Analytics\IAnalyticsResult.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Authentication\AuthContext.cs">
       <Link>Authentication\AuthContext.cs</Link>
     </Compile>

@@ -70,6 +70,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analytics\AnalyticsRequest.cs" />
+    <Compile Include="Analytics\IAnalyticsClient.cs" />
+    <Compile Include="Analytics\IAnalyticsRequest.cs" />
+    <Compile Include="Analytics\IAnalyticsResult.cs" />
+    <Compile Include="Analytics\AnalyticsClient.cs" />
+    <Compile Include="Analytics\AnalyticsResult.cs" />
     <Compile Include="Authentication\AuthContext.cs" />
     <Compile Include="Authentication\AuthType.cs" />
     <Compile Include="Authentication\ClusterCredentials.cs" />

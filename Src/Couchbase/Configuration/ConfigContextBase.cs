@@ -44,6 +44,7 @@ namespace Couchbase.Configuration
         protected List<IServer> DataNodes;
         protected List<IServer> IndexNodes;
         protected List<IServer> SearchNodes;
+        protected List<IServer> AnalyticsNodes;
 
         public bool IsQueryCapable { get; set; }
         public bool IsViewCapable { get; set; }
@@ -51,8 +52,14 @@ namespace Couchbase.Configuration
         public bool IsIndexCapable { get; set; }
         public bool IsSearchCapable { get; set; }
 
+        public bool IsAnalyticsCapable
+        {
+            get { return AnalyticsNodes.Any(); }
+        }
+
         public static ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
         public static ConcurrentBag<FailureCountingUri> SearchUris = new ConcurrentBag<FailureCountingUri>();
+        public static ConcurrentBag<FailureCountingUri> AnalyticsUris = new ConcurrentBag<FailureCountingUri>();
 
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
@@ -121,6 +128,11 @@ namespace Couchbase.Configuration
             }
 
             return searchUris.GetRandom();
+        }
+
+        public static FailureCountingUri GetAnalyticsUri()
+        {
+            return AnalyticsUris.Where(x => x.IsHealthy(2)).GetRandom();
         }
 
         protected ITypeTranscoder Transcoder { get; private set; }
@@ -399,6 +411,15 @@ namespace Couchbase.Configuration
         public IServer GetSearchNode()
         {
             return SearchNodes.Where(x => !x.IsDown).GetRandom();
+        }
+
+        /// <summary>
+        /// Gets an analytics node from the server collection.
+        /// </summary>
+        /// <returns></returns>
+        public IServer GetAnalyticsNode()
+        {
+            return AnalyticsNodes.Where(x => !x.IsDown).GetRandom();
         }
 
         /// <summary>

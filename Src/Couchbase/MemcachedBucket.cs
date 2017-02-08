@@ -7,6 +7,7 @@
  using System.Security.Authentication;
  using System.Threading;
  using System.Threading.Tasks;
+ using Couchbase.Analytics;
  using Couchbase.Logging;
  using Couchbase.Annotations;
  using Couchbase.Authentication;
@@ -2731,6 +2732,21 @@ namespace Couchbase
         public Task<IResult<int>> QueueSizeAsync(string key)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        public IAnalyticsResult<T> Query<T>(IAnalyticsRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest request, CancellationToken token)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

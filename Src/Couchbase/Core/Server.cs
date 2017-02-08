@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Net;
-using System.Net.Http;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
@@ -47,10 +44,11 @@ namespace Couchbase.Core
         private readonly object _syncObj = new object();
         private readonly IQueryClient _streamingQueryClient;
         private readonly IViewClient _streamingViewClient;
+        private readonly IAnalyticsClient _analyticsClient;
 
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-            this(ioService, null, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+            this(ioService, null, null, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
@@ -77,12 +75,16 @@ namespace Couchbase.Core
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.SearchRequestTimeout)
                     }, new SearchDataMapper()),
+                    new AnalyticsClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    {
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
                     nodeAdapter, clientConfiguration, transcoder, bucketConfig)
         {
         }
 
         public Server(IIOService ioService, IViewClient viewClient, IViewClient streamingViewClient, IQueryClient queryClient, IQueryClient streamingQueryClient, ISearchClient searchClient,
-            INodeAdapter nodeAdapter,
+            IAnalyticsClient analyticsClient, INodeAdapter nodeAdapter,
             ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
         {
             if (ioService != null)
@@ -104,6 +106,7 @@ namespace Couchbase.Core
             IsIndexNode = _nodeAdapter.IndexAdmin > 0;
             IsViewNode = _nodeAdapter.Views > 0;
             IsSearchNode = _nodeAdapter.IsSearchNode;
+            IsAnalyticsNode = _nodeAdapter.IsAnalyticsNode;
 
             //View and query clients
             ViewClient = viewClient;
@@ -111,6 +114,7 @@ namespace Couchbase.Core
             QueryClient = queryClient;
             SearchClient = searchClient;
             _streamingQueryClient = streamingQueryClient;
+            _analyticsClient = analyticsClient;
 
             CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
             CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
@@ -162,6 +166,14 @@ namespace Couchbase.Core
         /// <c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
         public bool IsQueryNode { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is an analytics node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsAnalyticsNode { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is data node.
@@ -470,7 +482,7 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <returns></returns>
-        IOperationResult HandleNodeUnavailable(IOperation operation)
+        private IOperationResult HandleNodeUnavailable(IOperation operation)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
@@ -486,7 +498,7 @@ namespace Couchbase.Core
         /// <typeparam name="T">The message body <see cref="Type"/>.</typeparam>
         /// <param name="operation">The operation.</param>
         /// <returns></returns>
-        IOperationResult<T> HandleNodeUnavailable<T>(IOperation<T> operation)
+        private IOperationResult<T> HandleNodeUnavailable<T>(IOperation<T> operation)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
@@ -502,7 +514,7 @@ namespace Couchbase.Core
         /// <typeparam name="T">The message body <see cref="Type"/>.</typeparam>
         /// <param name="query">The query.</param>
         /// <returns></returns>
-        IQueryResult<T> HandleNodeUnavailable<T>(IQueryRequest query)
+        private IQueryResult<T> HandleNodeUnavailable<T>(IQueryRequest query)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
@@ -515,7 +527,7 @@ namespace Couchbase.Core
             };
         }
 
-        ISearchQueryResult HandleNodeUnavailable(IFtsQuery query)
+        private ISearchQueryResult HandleNodeUnavailable(IFtsQuery query)
         {
             var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint,
                     _clientConfiguration.NodeAvailableCheckInterval);
@@ -525,6 +537,24 @@ namespace Couchbase.Core
                 Exception = new NodeUnavailableException(msg),
                 Success = false,
                 Status = SearchStatus.Failed
+            };
+        }
+
+        /// <summary>
+        /// Creates a failure result for an <see cref="IAnalyticsResult{T}"/> when a node is not available.
+        /// </summary>
+        /// <typeparam name="T">The target type for result rows to deserialize into.</typeparam>
+        /// <param name="request">The analytics request.</param>
+        /// <returns></returns>
+        private IAnalyticsResult<T> HandleNodeUnavailable<T>(IAnalyticsRequest request)
+        {
+            var msg = ExceptionUtil.GetNodeUnavailableMsg(EndPoint, _clientConfiguration.NodeAvailableCheckInterval);
+
+            return new AnalyticsResult<T>
+            {
+                Exception = new NodeUnavailableException(msg),
+                Success = false,
+                Status = QueryStatus.Fatal
             };
         }
 
@@ -833,7 +863,7 @@ namespace Couchbase.Core
 
         public async Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery)
         {
-            ISearchQueryResult searchResult = null;
+            ISearchQueryResult searchResult;
             if (_isDown)
             {
                 searchResult = HandleNodeUnavailable(searchQuery.Query);
@@ -859,7 +889,7 @@ namespace Couchbase.Core
 
         public ISearchQueryResult Send(SearchQuery searchQuery)
         {
-            ISearchQueryResult searchResult = null;
+            ISearchQueryResult searchResult;
             if (_isDown)
             {
                 searchResult = HandleNodeUnavailable(searchQuery.Query);
@@ -881,6 +911,73 @@ namespace Couchbase.Core
                 }
             }
             return searchResult;
+        }
+
+        /// <summary>
+        /// Sends an analytics request to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="analyticsRequest">The analytics request.</param>
+        /// <returns></returns>
+        public IAnalyticsResult<T> Send<T>(IAnalyticsRequest analyticsRequest)
+        {
+            IAnalyticsResult<T> result;
+            if (_isDown)
+            {
+                result = HandleNodeUnavailable<T>(analyticsRequest);
+            }
+            else
+            {
+                try
+                {
+                    result = _analyticsClient.Query<T>(analyticsRequest);
+                }
+                catch (Exception exception)
+                {
+                    MarkDead();
+                    result = new AnalyticsResult<T>
+                    {
+                        Exception = exception,
+                        Message = exception.Message,
+                        Success = false,
+                    };
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Asynchronously sends an analytics request to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="analyticsRequest">The analytics request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public Task<IAnalyticsResult<T>> SendAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken)
+        {
+            Task<IAnalyticsResult<T>> result;
+            if (_isDown)
+            {
+                result = Task.FromResult(HandleNodeUnavailable<T>(analyticsRequest));
+            }
+            else
+            {
+                try
+                {
+                    result = _analyticsClient.QueryAsync<T>(analyticsRequest, cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    MarkDead();
+                    result = Task.FromResult<IAnalyticsResult<T>>(new AnalyticsResult<T>
+                    {
+                        Exception = exception,
+                        Message = exception.Message,
+                        Success = false,
+                    });
+                }
+            }
+            return result;
         }
 
         public void MarkDead()

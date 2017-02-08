@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Logging;
 using Couchbase.Annotations;
 using Couchbase.Authentication;
@@ -4634,6 +4635,47 @@ namespace Couchbase
                 Exception = result.Exception,
                 Value = result.Success ? result.Value.Count : 0
             };
+        }
+
+        #endregion
+
+        #region CBAS
+
+        /// <summary>
+        /// Executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        public IAnalyticsResult<T> Query<T>(IAnalyticsRequest analyticsRequest)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetry<T>(analyticsRequest);
+        }
+
+        /// <summary>
+        /// Asynchronously executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        public Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest analyticsRequest)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(analyticsRequest, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Asynchronously executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to stop the query being executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        public Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken)
+        {
+            CheckDisposed();
+            return _requestExecuter.SendWithRetryAsync<T>(analyticsRequest, cancellationToken);
         }
 
         #endregion

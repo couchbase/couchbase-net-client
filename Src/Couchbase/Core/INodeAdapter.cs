@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 namespace Couchbase.Core
 {
@@ -31,6 +26,8 @@ namespace Couchbase.Core
         int N1QLSsl { get; set; }
         int Fts { get; set; }
         int FtsSsl { get; set; }
+        int Analytics { get; set; }
+        int AnalyticsSsl { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IPEndPoint"/> for the KV port for this node.
@@ -89,5 +86,13 @@ namespace Couchbase.Core
         /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
         /// </value>
         bool IsSearchNode { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is an analytics node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
+        /// </value>
+        bool IsAnalyticsNode { get; }
     }
 }

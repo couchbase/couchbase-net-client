@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Operations;
@@ -1847,6 +1848,31 @@ namespace Couchbase.Core
         /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        IAnalyticsResult<T> Query<T>(IAnalyticsRequest analyticsRequest);
+
+        /// <summary>
+        /// Asynchronously executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest analyticsRequest);
+
+        /// <summary>
+        /// Asynchronously executes an Analytics statemnt via a <see cref="IAnalyticsRequest"/> against the Couchbase cluster.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the results to.</typeparam>
+        /// <param name="analyticsRequest">A <see cref="IAnalyticsRequest"/> that contains the statement to be executed.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to stop the query being executed.</param>
+        /// <returns>An instance of <see cref="IAnalyticsResult{T}"/> with the result of the query.</returns>
+        Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates an instance of an object that implements <see cref="IViewQuery"/>, which targets a given bucket, design document and a published view.

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.N1QL;
@@ -15,6 +14,7 @@ namespace Couchbase.Utils
         public static string ViewUriFormat = "{0}://{1}:{2}/{3}/";
         public static string BaseUriFormat = "{0}://{1}:{2}/pools";
         public static string SearchUriFormat = "{0}//{1}:{2}";
+        public const string AnalyticsUriFormat = "{0}://{1}:{2}/analytics/service";
 
         public static Uri GetBaseUri(INodeAdapter adapter, BucketConfiguration config)
         {
@@ -36,6 +36,11 @@ namespace Couchbase.Utils
             BucketConfiguration config)
         {
             return new FailureCountingUri(GetSearchBaseUri(adapter, config));
+        }
+
+        public static FailureCountingUri GetFailureCountingAnalyticsUri(INodeAdapter adapter, BucketConfiguration config)
+        {
+            return new FailureCountingUri(GetAnalyticsUri(adapter, config));
         }
 
         public static string GetSearchBaseUri(INodeAdapter adapter,
@@ -85,6 +90,16 @@ namespace Couchbase.Utils
                 config.UseSsl ? adapter.MgmtApiSsl: adapter.MgmtApi);
 
             return uriAsString;
+        }
+
+        public static string GetAnalyticsUri(INodeAdapter adapter, BucketConfiguration config)
+        {
+            var uri = string.Format(AnalyticsUriFormat,
+                config.UseSsl ? Https : Http,
+                adapter.Hostname,
+                config.UseSsl ? adapter.AnalyticsSsl : adapter.Analytics);
+
+            return uri;
         }
     }
 }

@@ -50,6 +50,7 @@ namespace Couchbase.Configuration
 
                     var searchUris = new ConcurrentBag<FailureCountingUri>();
                     var queryUris = new ConcurrentBag<FailureCountingUri>();
+                    var analyticsUris = new ConcurrentBag<FailureCountingUri>();
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                     var servers = new Dictionary<IPAddress, IServer>();
                     foreach (var adapter in nodes)
@@ -68,6 +69,11 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
                                 queryUris.Add(uri);
+                            }
+                            if (adapter.IsAnalyticsNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                analyticsUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
@@ -102,6 +108,7 @@ namespace Couchbase.Configuration
                     //for caching uri's
                     Interlocked.Exchange(ref QueryUris, queryUris);
                     Interlocked.Exchange(ref SearchUris, searchUris);
+                    Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
                     var old = Interlocked.Exchange(ref Servers, servers);
                     Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
@@ -151,6 +158,7 @@ namespace Couchbase.Configuration
 
                 var searchUris = new ConcurrentBag<FailureCountingUri>();
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
+                var analyticsUris = new ConcurrentBag<FailureCountingUri>();
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
@@ -175,6 +183,11 @@ namespace Couchbase.Configuration
                                 var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
                                 searchUris.Add(uri);
                             }
+                            if (adapter.IsAnalyticsNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                analyticsUris.Add(uri);
+                            }
                         }
                         else
                         {
@@ -187,6 +200,11 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
                                 queryUris.Add(uri);
+                            }
+                            if (adapter.IsAnalyticsNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                analyticsUris.Add(uri);
                             }
                             if (adapter.IsDataNode) //a data node so create a connection pool
                             {
@@ -226,6 +244,7 @@ namespace Couchbase.Configuration
                 //for caching uri's
                 Interlocked.Exchange(ref QueryUris, queryUris);
                 Interlocked.Exchange(ref SearchUris, searchUris);
+                Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
                 Log.Info("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev);
                 var old = Interlocked.Exchange(ref Servers, servers);
@@ -256,6 +275,7 @@ namespace Couchbase.Configuration
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
                 var searchUris = new ConcurrentBag<FailureCountingUri>();
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
+                var analyticsUris = new ConcurrentBag<FailureCountingUri>();
                 var servers = new Dictionary<IPAddress, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
@@ -273,6 +293,11 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
                             queryUris.Add(uri);
+                        }
+                        if (adapter.IsAnalyticsNode)
+                        {
+                            var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                            analyticsUris.Add(uri);
                         }
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
@@ -307,6 +332,7 @@ namespace Couchbase.Configuration
                 //for caching uri's
                 Interlocked.Exchange(ref QueryUris, queryUris);
                 Interlocked.Exchange(ref SearchUris, searchUris);
+                Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev, BucketConfig.Name);
@@ -379,6 +405,12 @@ namespace Couchbase.Configuration
                 .ToList();
             Interlocked.Exchange(ref SearchNodes, newSearchNodes);
             IsSearchCapable = SearchNodes.Count > 0;
+
+            var analyticsNodes = servers
+                .Where(x => x.Value.IsAnalyticsNode)
+                .Select(x => x.Value)
+                .ToList();
+            Interlocked.Exchange(ref AnalyticsNodes, analyticsNodes);
         }
 
         internal List<IServer> GetServers()

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core.Services;
 using Couchbase.Search;
 using Couchbase.Utils;
@@ -517,6 +518,16 @@ namespace Couchbase.Core.Buckets
                     ClusterController.NotifyConfigPublished(result.Value);
                 }
             }
+        }
+
+        public virtual IAnalyticsResult<T> SendWithRetry<T>(IAnalyticsRequest queryRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual Task<IAnalyticsResult<T>> SendWithRetryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -171,6 +172,23 @@ namespace Couchbase.Core
         Task<IQueryResult<T>> SendAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Sends an analytics request to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="analyticsRequest">The analytics request.</param>
+        /// <returns></returns>
+        IAnalyticsResult<T> Send<T>(IAnalyticsRequest analyticsRequest);
+
+        /// <summary>
+        /// Asynchronously sends an analytics request to the server.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type" /> T of the body for each row (or document) result.</typeparam>
+        /// <param name="analyticsRequest">The analytics request.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task<IAnalyticsResult<T>> SendAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken);
+
+        /// <summary>
         /// Gets or sets the SASL factory for authenticating each TCP connection.
         /// </summary>
         /// <value>
@@ -193,6 +211,8 @@ namespace Couchbase.Core
         /// The revision.
         /// </value>
         uint Revision { get; }
+
+        bool IsAnalyticsNode { get; }
     }
 }
 

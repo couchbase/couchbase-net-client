@@ -74,6 +74,8 @@ namespace Couchbase.Utils
             "A subdocument operation has been made targeting the XAttributes of a document but the cluster does not support them. " +
             "Please check all memebrs of the cluster support XAttributes.";
 
+        public const string ParameterCannotBeNullOrEmptyFormat = "{0} cannot be null, empty or whitespace.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

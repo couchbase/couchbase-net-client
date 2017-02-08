@@ -124,6 +124,14 @@ namespace Couchbase.Configuration
         bool IsSearchCapable { get; }
 
         /// <summary>
+        /// Gets a value indicating whether this server supports analytics.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is analytics capable; otherwise, <c>false</c>.
+        /// </value>
+        bool IsAnalyticsCapable { get; }
+
+        /// <summary>
         /// Gets a data node from the Servers collection.
         /// </summary>
         /// <returns></returns>
@@ -152,6 +160,12 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <returns></returns>
         IServer GetSearchNode();
+
+        /// <summary>
+        /// Gets an analytics node from the server collection.
+        /// </summary>
+        /// <returns></returns>
+        IServer GetAnalyticsNode();
     }
 }
 

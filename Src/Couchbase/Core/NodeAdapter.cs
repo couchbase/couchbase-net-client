@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
-using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 namespace Couchbase.Core
 {
@@ -68,6 +66,10 @@ namespace Couchbase.Core
                 N1QL = _nodeExt.Services.N1QL;
                 N1QLSsl = _nodeExt.Services.N1QLSsl;
                 Fts = _nodeExt.Services.Fts;
+
+                // Hardcoded for now, may be retrieved from server in future
+                Analytics = 8095;
+                AnalyticsSsl = 18095;
             }
         }
 
@@ -112,6 +114,10 @@ namespace Couchbase.Core
         public int Fts { get; set; }
 
         public int FtsSsl { get; set; }
+
+        public int Analytics { get; set; }
+
+        public int AnalyticsSsl { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IPEndPoint" /> for the KV port for this node.
@@ -211,6 +217,17 @@ namespace Couchbase.Core
         public bool IsSearchNode
         {
             get { return Fts > 0; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is an analytics node.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsAnalyticsNode
+        {
+            get { return Analytics > 0; }
         }
     }
 }
