@@ -301,6 +301,10 @@ namespace Couchbase.Core
         /// </summary>
         private void _heartBeatTimer_Elapsed(object state)
         {
+            if (Thread.CurrentThread.Name == null)
+            {
+                Thread.CurrentThread.Name = "HB-" + Thread.CurrentThread.ManagedThreadId;
+            }
             Log.Info("Checking if node {0} is down: {1}", EndPoint, _isDown);
             if (_isDown && !_disposed)
             {

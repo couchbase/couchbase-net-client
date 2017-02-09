@@ -5,9 +5,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -29,7 +31,7 @@ namespace Couchbase.IO.Services
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
-            Log.Debug("Creating IOService {0}", _identity);
+            Log.Info("Creating IOService {0}", _identity);
             _connectionPool = connectionPool;
             _connection = _connectionPool.Acquire();
 
@@ -37,6 +39,7 @@ namespace Couchbase.IO.Services
             if (!_connection.IsAuthenticated)
             {
                 Authenticate(_connection);
+                EnableServerFeatures(_connection);
             }
         }
 
@@ -85,7 +88,10 @@ namespace Couchbase.IO.Services
             var response = connection.Send(request);
 
             //Read the response and return the completed operation
-            operation.Read(response, 0, response.Length);
+            if (response != null)
+            {
+                operation.Read(response, 0, response.Length);
+            }
             return operation.GetResultWithValue();
         }
 
@@ -96,57 +102,51 @@ namespace Couchbase.IO.Services
 
             try
             {
-                //A new connection will have to be authenticated
-                if (!_connection.IsAuthenticated)
+                if (_connection.IsDead)
                 {
-                    //if two (or more) threads compete for auth, the first will succeed
-                    //and subsequent threads will fail. This keeps that from happening.
-                    lock (_syncObj)
-                    {
-                        Authenticate(_connection);
-                        EnableServerFeatures(_connection);
-                    }
+                    operation.HandleClientError("Initializing.", ResponseStatus.NodeUnavailable);
                 }
-
-                response = _connection.Send(request);
+                else
+                {
+                    Authenticate(_connection);
+                    response = _connection.Send(request);
+                }
             }
             catch (SocketException e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
             finally
             {
-                //need better error handling
                 if (_connection.IsDead)
                 {
-                    _connectionPool.Release(_connection);
-                    _connection = _connectionPool.Acquire();
+                    CheckConnection();
                 }
             }
 
             //Read the response and return the completed operation
-            if (response != null && response.Length > 0)
+            if (response != null && response.Length > 0) //if the op was terminated in midflught this maybe null
             {
                 operation.Read(response, 0, response.Length);
             }
-            return operation.GetResultWithValue();
+            return operation.GetResultWithValue();//might have to handle a special null case her
         }
 
         public IOperationResult Execute(IOperation operation)
@@ -156,46 +156,42 @@ namespace Couchbase.IO.Services
 
             try
             {
-                //A new connection will have to be authenticated
-                if (!_connection.IsAuthenticated)
+                if (_connection.IsDead)
                 {
-                    lock (_syncObj)
-                    {
-                        Authenticate(_connection);
-                        EnableServerFeatures(_connection);
-                    }
+                    operation.HandleClientError("Initializing.", ResponseStatus.NodeUnavailable);
                 }
-
-                response = _connection.Send(request);
+                else
+                {
+                    Authenticate(_connection);
+                    response = _connection.Send(request);
+                }
             }
             catch (SocketException e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.TransportFailure);
             }
             catch (AuthenticationException e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.AuthenticationError);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 operation.Exception = e;
                 operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
             finally
             {
-                //need better error handling
                 if (_connection.IsDead)
                 {
-                    _connectionPool.Release(_connection);
-                    _connection = _connectionPool.Acquire();
+                    CheckConnection();
                 }
             }
 
@@ -212,22 +208,24 @@ namespace Couchbase.IO.Services
             ExceptionDispatchInfo capturedException = null;
             try
             {
+                if (connection.IsDead)
+                {
+                    throw new NodeUnavailableException("Initializing.");
+                }
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
                 connection.SendAsync(request, operation.Completed);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
-                _connection.IsDead = true;
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, connection.Identity, e);
+                connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
             finally
             {
-                //need better error handling
-                if (connection.IsDead)
+                if (_connection.IsDead)
                 {
-                    _connectionPool.Release(connection);
-                    _connection = _connectionPool.Acquire();
+                    CheckConnection();
                 }
             }
 
@@ -242,19 +240,16 @@ namespace Couchbase.IO.Services
             ExceptionDispatchInfo capturedException = null;
             try
             {
-                if (!_connection.IsAuthenticated)
+                if (_connection.IsDead)
                 {
-                    lock (_syncObj)
-                    {
-                        Authenticate(_connection);
-                        EnableServerFeatures(_connection);
-                    }
+                    throw new NodeUnavailableException("Initializing.");
                 }
+                Authenticate(_connection);
                 await ExecuteAsync(operation, _connection);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
@@ -262,11 +257,9 @@ namespace Couchbase.IO.Services
             {
                 if (_connection.IsDead)
                 {
-                    _connectionPool.Release(_connection);
-                    _connection = _connectionPool.Acquire();
+                    CheckConnection();
                 }
             }
-
             if (capturedException != null)
             {
                 await HandleException(capturedException, operation);
@@ -278,14 +271,25 @@ namespace Couchbase.IO.Services
             ExceptionDispatchInfo capturedException = null;
             try
             {
+                if (connection.IsDead)
+                {
+                    throw new NodeUnavailableException("Initializing.");
+                }
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
                 connection.SendAsync(request, operation.Completed);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
-                _connection.IsDead = true;
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, connection.Identity, e);
+                connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                if (_connection.IsDead)
+                {
+                    CheckConnection();
+                }
             }
 
             if (capturedException != null)
@@ -299,21 +303,25 @@ namespace Couchbase.IO.Services
             ExceptionDispatchInfo capturedException = null;
             try
             {
-                if (!_connection.IsAuthenticated)
+                if (_connection.IsDead)
                 {
-                    lock (_syncObj)
-                    {
-                        Authenticate(_connection);
-                        EnableServerFeatures(_connection);
-                    }
+                    throw new NodeUnavailableException("Initializing.");
                 }
+                Authenticate(_connection);
                 await ExecuteAsync(operation, _connection);
             }
             catch (Exception e)
             {
-                Log.Debug("Endpoint: {0} - {1} {2}", EndPoint, _identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
                 _connection.IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                if (_connection.IsDead)
+                {
+                    CheckConnection();
+                }
             }
 
             if (capturedException != null)
@@ -345,24 +353,32 @@ namespace Couchbase.IO.Services
 
         private void Authenticate(IConnection connection)
         {
-            if (!connection.IsAuthenticated)
+            if (!connection.IsAuthenticated && !connection.IsDead)
             {
-                if (SaslMechanism != null)
+                lock (_syncObj)
                 {
-                    var result = SaslMechanism.Authenticate(connection);
-                    if (result)
+                    if (!connection.IsAuthenticated && !connection.IsDead)
                     {
-                        Log.Debug(
-                            "Authenticated {0} using {1} - {2} [{3}].", SaslMechanism.Username, SaslMechanism.GetType(),
-                                    _identity, EndPoint);
-                        connection.IsAuthenticated = true;
-                    }
-                    else
-                    {
-                        Log.Debug(
-                            "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
+                        if (SaslMechanism != null)
+                        {
+                            var result = SaslMechanism.Authenticate(connection);
+                            if (result)
+                            {
+                                Log.Info(
+                                    "Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
+                                    SaslMechanism.GetType(),
+                                    _identity, connection.Identity, EndPoint);
+                                connection.IsAuthenticated = true;
+                            }
+                            else
+                            {
+                                Log.Info(
+                                    "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
                                     SaslMechanism.GetType(), _identity, EndPoint);
-                        throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
+                                throw new AuthenticationException(
+                                    ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
+                            }
+                        }
                     }
                 }
             }
@@ -404,7 +420,40 @@ namespace Couchbase.IO.Services
         /// <param name="result"></param>
         private static void LogFailedHelloOperation(IResult result)
         {
-            Log.Debug("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception);
+            Log.Info("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception);
+        }
+
+        void CheckConnection()
+        {
+            lock (_syncObj)
+            {
+                Log.Info("Checking connection {0} is dead {1}", _connection.Identity, _connection.IsDead);
+                IConnection connection = null;
+                try
+                {
+                    if (_connection == null || _connection.IsDead)
+                    {
+                        Log.Info("Trying to acquire a new connection for {0}", _connection.Identity, _connection.IsDead);
+                        _connectionPool.Release(_connection);
+
+                        connection = _connectionPool.Acquire();
+                        Log.Info("Exchanging {0} for {1}", _connection.Identity, connection.Identity);
+                        Interlocked.Exchange(ref _connection, connection);
+
+                        Authenticate(connection);
+                        EnableServerFeatures(connection);
+                    }
+                }
+                catch (Exception e)
+                {
+                    if (connection != null)
+                    {
+                        connection.IsDead = true;
+                        _connectionPool.Release(connection);
+                        Log.Info("Connection {0} {1}", _connection.Identity, e);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -412,7 +461,7 @@ namespace Couchbase.IO.Services
         /// </summary>
         public void Dispose()
         {
-            Log.Debug("Disposing IOService for {0} - {1}", EndPoint, _identity);
+            Log.Info("Disposing IOService for {0} - {1}", EndPoint, _identity);
             lock (_syncObj)
             {
                 Dispose(true);
@@ -439,7 +488,7 @@ namespace Couchbase.IO.Services
 #if DEBUG
         ~MultiplexingIOService()
         {
-            Log.Debug("Finalizing IOService for {0} - {1}", EndPoint, _identity);
+            Log.Info("Finalizing IOService for {0} - {1}", EndPoint, _identity);
             Dispose(false);
         }
 #endif
