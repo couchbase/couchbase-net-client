@@ -358,6 +358,7 @@
     <Compile Include="DocumentFragment%27.cs" />
     <Compile Include="ScanConsistencyNameResolver.cs" />
     <Compile Include="Search\DateRangeFacet.cs" />
+    <Compile Include="Search\Queries\Simple\QueryStringQuery.cs" />
     <Compile Include="Search\SearchMetrics.cs" />
     <Compile Include="Search\ISearchParams.cs" />
     <Compile Include="Search\Queries\Simple\BooleanFieldQuery.cs" />
@@ -387,7 +388,6 @@
     <Compile Include="Search\NumericRangeFacet.cs" />
     <Compile Include="Search\Queries\Simple\PrefixQuery.cs" />
     <Compile Include="Search\Queries\Simple\RegexpQuery.cs" />
-    <Compile Include="Search\Queries\Simple\StringQuery.cs" />
     <Compile Include="Search\Range.cs" />
     <Compile Include="Search\SearchParams.cs" />
     <Compile Include="Search\SearchQuery.cs" />

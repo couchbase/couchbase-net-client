@@ -977,8 +977,8 @@
     <Compile Include="..\Couchbase\Search\Queries\Simple\RegexpQuery.cs">
       <Link>Search\Queries\Simple\RegexpQuery.cs</Link>
     </Compile>
-    <Compile Include="..\Couchbase\Search\Queries\Simple\StringQuery.cs">
-      <Link>Search\Queries\Simple\StringQuery.cs</Link>
+    <Compile Include="..\Couchbase\Search\Queries\Simple\QueryStringQuery.cs">
+      <Link>Search\Queries\Simple\QueryStringQuery.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\Range.cs">
       <Link>Search\Range.cs</Link>

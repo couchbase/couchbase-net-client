@@ -6,20 +6,20 @@ using NUnit.Framework;
 namespace Couchbase.UnitTests.Search
 {
     [TestFixture]
-    public class StringQueryTests
+    public class QueryStringQueryTests
     {
         [Test]
         public void Boost_ReturnsStringQuery()
         {
-            var query = new StringQuery("description:water and some other stuff").Boost(2.2);
+            var query = new QueryStringQuery("description:water and some other stuff").Boost(2.2);
 
-            Assert.IsInstanceOf<StringQuery> (query);
+            Assert.IsInstanceOf<QueryStringQuery> (query);
         }
 
         [Test]
         public void Boost_WhenBoostIsLessThanZero_ThrowsArgumentOutOfRangeException()
         {
-            var query = new StringQuery("description:water and some other stuff");
+            var query = new QueryStringQuery("description:water and some other stuff");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => query.Boost(-.1));
         }
@@ -27,13 +27,13 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public void Ctor_WhenMatchIsNull_ThrowArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => new StringQuery(null));
+            Assert.Throws<ArgumentNullException>(() => new QueryStringQuery(null));
         }
 
         [Test]
         public void Export_ReturnsValidJson()
         {
-            var query = new StringQuery("description:water and some other stuff");
+            var query = new QueryStringQuery("description:water and some other stuff");
 
             var expected = JsonConvert.SerializeObject(new
             {

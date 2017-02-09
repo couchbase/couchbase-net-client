@@ -7,16 +7,16 @@ namespace Couchbase.Search.Queries.Simple
     /// The query string query allows humans to describe complex queries using a simple syntax.
     /// </summary>
     /// <seealso cref="Couchbase.Search.Queries.FtsQueryBase" />
-    public class StringQuery : FtsQueryBase
+    public class QueryStringQuery : FtsQueryBase
     {
         private readonly string _query;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StringQuery"/> class.
+        /// Initializes a new instance of the <see cref="QueryStringQuery"/> class.
         /// </summary>
         /// <param name="query">The query string to be analyzed and used against. The query string is required.</param>
         /// <exception cref="System.ArgumentNullException">query</exception>
-        public StringQuery(string query)
+        public QueryStringQuery(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
