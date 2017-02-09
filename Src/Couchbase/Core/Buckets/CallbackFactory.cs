@@ -280,7 +280,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
             };
             return func;
@@ -371,7 +371,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
             };
             return func;
@@ -425,7 +425,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
             };
             return func;
@@ -478,7 +478,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
             };
             return func;

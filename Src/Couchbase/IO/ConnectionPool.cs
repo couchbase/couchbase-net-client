@@ -147,7 +147,7 @@ namespace Couchbase.IO
 
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
-                    Log.Info("Trying to acquire new connection!");
+                    Log.Info("Trying to acquire new connection! Refs={0}", _refs.Count);
                     connection = _factory(this, _converter, _bufferAllocator);
                     _refs.TryAdd(connection.Identity, connection);
 
@@ -183,8 +183,8 @@ namespace Couchbase.IO
             if (_store.TryDequeue(out connection) && !_disposed)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
-                Log.Debug("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
-                    connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed);
+                Log.Debug("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5} - Refs={6}",
+                    connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed, _refs.Count);
 
                 connection.MarkUsed(true);
                 return connection;
@@ -199,7 +199,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection)
         {
-            Log.Debug("Releasing: {0} on {1} - {2}", connection.Identity, EndPoint, _identity);
+            Log.Info("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
@@ -226,6 +226,7 @@ namespace Couchbase.IO
             {
                 _store.Enqueue(connection);
             }
+            Log.Info("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             _autoResetEvent.Set();
         }
 

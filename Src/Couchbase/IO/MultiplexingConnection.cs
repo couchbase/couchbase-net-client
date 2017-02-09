@@ -21,6 +21,7 @@ namespace Couchbase.IO
         private readonly Thread _receiveThread;
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
+        private readonly object _syncObj = new object();
 
         public MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter,
             BufferAllocator allocator)
@@ -78,11 +79,19 @@ namespace Couchbase.IO
             var sentBytesCount = 0;
             lock (Socket)
             {
-                do
+                try
                 {
-                    sentBytesCount += Socket.Send(request, sentBytesCount, request.Length - sentBytesCount, SocketFlags.None);
+                    do
+                    {
+                        sentBytesCount += Socket.Send(request, sentBytesCount, request.Length - sentBytesCount,
+                            SocketFlags.None);
 
-                } while (sentBytesCount < request.Length);
+                    } while (sentBytesCount < request.Length);
+                }
+                catch (Exception e)
+                {
+                    HandleDisconnect(e);
+                }
             }
         }
 
@@ -106,11 +115,19 @@ namespace Couchbase.IO
             var sentBytesCount = 0;
             lock (Socket)
             {
-                do
+                try
                 {
-                    sentBytesCount += Socket.Send(request, sentBytesCount, request.Length - sentBytesCount, SocketFlags.None);
+                    do
+                    {
+                        sentBytesCount += Socket.Send(request, sentBytesCount, request.Length - sentBytesCount,
+                            SocketFlags.None);
 
-                } while (sentBytesCount < request.Length);
+                    } while (sentBytesCount < request.Length);
+                }
+                catch (Exception e)
+                {
+                    HandleDisconnect(e);
+                }
             }
 
             var didComplete = state.SyncWait.WaitOne(Configuration.SendTimeout);
@@ -261,30 +278,42 @@ namespace Couchbase.IO
         }
         public void Close()
         {
-            if (Socket != null)
+            if (Disposed) return;
+            lock (_syncObj)
             {
-                try
-                {
-                    if (Socket.Connected)
-                    {
-                        Socket.Shutdown(SocketShutdown.Both);
-                    }
-                }
-                catch (Exception) { }
-                finally
-                {
-                    IsDead = true;
-                    Socket.Dispose();
-                }
+                Log.Info("Closing connection {0}", Identity);
+                Disposed = true;
+                IsDead = true;
+                MarkUsed(false);
 
-                //free up all states in flight
-                lock (_statesInFlight)
+                if (Socket != null)
                 {
-                    foreach (IState state in _statesInFlight.Values)
+                    try
                     {
-                        //this hould have a correct handling where some kind of exception is thrown in the unblocked method
-                        var state1 = state;
-                        Task.Run(() => state1.Complete(null));
+                        if (Socket.Connected)
+                        {
+                            Socket.Shutdown(SocketShutdown.Both);
+                        }
+                        //base.Dispose(); ignore base
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Info(e);
+                    }
+                    finally
+                    {
+                        Socket.Dispose();
+                    }
+
+                    //free up all states in flight
+                    lock (_statesInFlight)
+                    {
+                        foreach (IState state in _statesInFlight.Values)
+                        {
+                            //this hould have a correct handling where some kind of exception is thrown in the unblocked method
+                            var state1 = state;
+                            Task.Run(() => state1.Complete(null));
+                        }
                     }
                 }
             }
@@ -292,29 +321,9 @@ namespace Couchbase.IO
 
         public override void Dispose()
         {
-            if (Disposed || InUse && !IsDead) return;
+            if (Disposed) return;
             Log.Debug("Disposing {0}", _identity);
-            Disposed = true;
-            IsDead = true;
-
-            try
-            {
-                if (Socket != null)
-                {
-                    if (Socket.Connected)
-                    {
-                        Socket.Shutdown(SocketShutdown.Both);
-                    }
-
-                    Socket.Dispose();
-                }
-                //call the bases dispose to cleanup the timer
-                base.Dispose();
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-            }
+            Close();
         }
     }
 }
