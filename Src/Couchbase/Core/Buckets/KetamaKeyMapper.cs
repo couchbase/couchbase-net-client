@@ -14,7 +14,7 @@ namespace Couchbase.Core.Buckets
     {
         private readonly IDictionary<IPAddress, IServer> _servers;
         private readonly int _totalWeight;
-        private readonly SortedDictionary<long, IServer> _buckets = new SortedDictionary<long, IServer>();
+        internal readonly SortedDictionary<long, IServer> Hashes = new SortedDictionary<long, IServer>();
 
         public KetamaKeyMapper(IDictionary<IPAddress, IServer> servers)
         {
@@ -32,7 +32,7 @@ namespace Couchbase.Core.Buckets
         {
             var hash = GetHash(key);
             var index = FindIndex(hash);
-            var server = _buckets[_buckets.Keys.ToList()[index]];
+            var server = Hashes[Hashes.Keys.ToList()[index]];
 
             return new KetamaNode(server);
         }
@@ -55,20 +55,20 @@ namespace Couchbase.Core.Buckets
         /// <returns>The index of key - which is the location of the node that the key maps to.</returns>
         public int FindIndex(long key)
         {
-            var index = Array.BinarySearch(_buckets.Keys.ToArray(), key);
+            var index = Array.BinarySearch(Hashes.Keys.ToArray(), key);
             if (index < 0)
             {
                 index = ~index;
                 if (index == 0)
                 {
-                    index = _buckets.Keys.Count() - 1;
+                    index = Hashes.Keys.Count() - 1;
                 }
-                else if (index >= _buckets.Count())
+                else if (index >= Hashes.Count())
                 {
                     index = 0;
                 }
             }
-            if (index < 0 || index > _buckets.Count())
+            if (index < 0 || index > Hashes.Count())
             {
                 throw new InvalidOperationException();
             }
@@ -117,7 +117,7 @@ namespace Couchbase.Core.Buckets
                                       | ((long) (hash[1 + j*4] & 0xFF) << 8)
                                       | (uint) (hash[0 + j*4] & 0xFF);
 
-                            _buckets[key] = server;
+                            Hashes[key] = server;
                         }
                     }
                 }

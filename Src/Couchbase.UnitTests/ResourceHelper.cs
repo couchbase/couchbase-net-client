@@ -13,9 +13,7 @@ namespace Couchbase.UnitTests
         private static readonly Assembly Assembly = typeof(ResourceHelper).GetTypeInfo().Assembly;
         public static string ReadResource(string resourcePath)
         {
-            var resourceName = Assembly.GetName().Name + "." + resourcePath.Replace("\\", ".");
-
-            using (var stream = Assembly.GetManifestResourceStream(resourceName))
+            using (var stream = ReadResourceAsStream(resourcePath))
             {
                 if (stream == null)
                 {
