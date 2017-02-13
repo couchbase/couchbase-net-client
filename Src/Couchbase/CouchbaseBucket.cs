@@ -781,7 +781,7 @@ namespace Couchbase
         /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
         /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
-        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        /// <remarks>An expiration value of 0 will be defaulted to 15 seconds at the cluster.</remarks>
         [Obsolete("NCBC-1146: GetWithLock has been renamed to GetAndLock.")]
         public IOperationResult<T> GetWithLock<T>(string key, uint expiration)
         {
@@ -823,7 +823,7 @@ namespace Couchbase
         /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
         /// <returns>An <see cref="IOperationResult{T}"/> with the value.</returns>
         /// <remarks>Expirations exceeding 30 seconds will be defaulted to 15 seconds.</remarks>
-        /// <remarks>An expiration of 0 is treated as an infinite.</remarks>
+        /// <remarks>An expiration value of 0 will be defaulted to 15 seconds at the cluster.</remarks>
         public IOperationResult<T> GetAndLock<T>(string key, uint expiration)
         {
             const uint defaultExpiration = 15;
