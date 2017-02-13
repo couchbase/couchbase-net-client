@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-﻿using System.Threading.Tasks;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
@@ -476,6 +477,61 @@ namespace Couchbase.IntegrationTests
 
             //assert
             Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
+        }
+
+        [Test]
+        public void GetAndLock_Sets_Lock_And_Is_Released_After_Expiration()
+        {
+            const string key = "GetAndLock_Sets_Lock_And_Is_Released_After_Expiration";
+
+            try
+            {
+                var insertResult = _bucket.Insert(key, new {});
+                Assert.AreNotEqual(ulong.MaxValue, insertResult.Cas);
+
+                var getAndLockResult = _bucket.GetAndLock<dynamic>(key, 1); // lock for 1 second
+                Assert.AreNotEqual(insertResult.Cas, getAndLockResult.Cas);
+
+                var lockedResult = _bucket.Get<dynamic>(key);
+                Assert.AreEqual(ulong.MaxValue, lockedResult.Cas); // ulong.max indicates doc is locked
+
+                Thread.Sleep(TimeSpan.FromMilliseconds(1500)); // wait until lock has expired
+
+                var getResult = _bucket.Get<dynamic>(key);
+                Assert.AreNotEqual(ulong.MaxValue, getResult.Cas); // cas != ulong.max means not locked
+            }
+            finally
+            {
+                _bucket.Remove(key);
+            }
+        }
+
+        [Test]
+        public void Unlock_After_GetAndLock_Releases_The_Lock()
+        {
+            const string key = "Unlock_After_GetAndLock_Releases_The_Lock";
+
+            try
+            {
+                var insertResult = _bucket.Insert(key, new { });
+                Assert.AreNotEqual(ulong.MaxValue, insertResult.Cas);
+
+                var getAndLockResult = _bucket.GetAndLock<dynamic>(key, 10); // lock for 10 second
+                Assert.AreNotEqual(insertResult.Cas, getAndLockResult.Cas);
+
+                var lockedResult = _bucket.Get<dynamic>(key);
+                Assert.AreEqual(ulong.MaxValue, lockedResult.Cas); // ulong.max indicates doc is locked
+
+                var unlockResult = _bucket.Unlock(key, getAndLockResult.Cas);
+                Assert.AreNotEqual(lockedResult.Cas, unlockResult.Cas); // verify cas has changed
+
+                var getResult = _bucket.Get<dynamic>(key);
+                Assert.AreNotEqual(ulong.MaxValue, getResult.Cas); // cas != ulong.max means not locked
+            }
+            finally
+            {
+                _bucket.Remove(key);
+            }
         }
 
         [OneTimeTearDown]

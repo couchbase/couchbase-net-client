@@ -1,6 +1,7 @@
 ﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Utils;
 
 namespace Couchbase.IO.Operations
 {
@@ -21,6 +22,21 @@ namespace Couchbase.IO.Operations
             var extras = new byte[4];
             Converter.FromUInt32(Expiration, extras, 0);
             return extras;
+        }
+
+        public override byte[] Write()
+        {
+            var key = CreateKey();
+            var extras = CreateExtras();
+            var header = CreateHeader(extras, new byte[0], key);
+
+            var buffer = new byte[header.GetLengthSafe() + key.GetLengthSafe() + extras.GetLengthSafe()];
+
+            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
+            System.Buffer.BlockCopy(extras, 0, buffer, header.Length, extras.Length);
+            System.Buffer.BlockCopy(key, 0, buffer, header.Length + extras.Length, key.Length);
+
+            return buffer;
         }
 
         public uint Expiration { get; set; }
