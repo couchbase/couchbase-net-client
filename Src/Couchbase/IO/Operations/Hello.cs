@@ -1,7 +1,5 @@
 ﻿using System;
-using Couchbase.Core;
 using Couchbase.Core.Transcoders;
-using Couchbase.IO.Utils;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
@@ -25,26 +23,22 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public override byte[] Write()
+        public override byte[] CreateBody()
         {
             var offset = 0;
-            var body = new byte[_value.Length *2];
-            for (int i = 0; i < _value.Length; i++)
+            var body = new byte[_value.Length * 2];
+            for (var i = 0; i < _value.Length; i++)
             {
                 offset += i * 2;
                 Converter.FromInt16(_value[i], body, offset);
             }
 
-            var header = new byte[24];
-            Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
-            Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
-            Converter.FromInt32(body.Length, header, HeaderIndexFor.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderIndexFor.Opaque);
+            return body;
+        }
 
-            var buffer = new byte[body.Length + header.Length];
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(body, 0, buffer, header.Length, body.Length);
-            return buffer;
+        public override byte[] CreateExtras()
+        {
+            return new byte[0];
         }
 
         public override short[] GetValue()
