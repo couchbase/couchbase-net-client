@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations.Authentication;
@@ -27,6 +28,7 @@ namespace Couchbase.UnitTests.IO.Operations.Authentication
 
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
+            mockConnectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
 
             _connectionPool = mockConnectionPool.Object;
         }
