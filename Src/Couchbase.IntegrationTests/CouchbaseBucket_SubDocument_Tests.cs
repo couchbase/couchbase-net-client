@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.IO.SubDocument;
 using Couchbase.IO;
 using Moq;
 using NUnit.Framework;
@@ -48,7 +49,7 @@ namespace Couchbase.IntegrationTests
         public void LookupIn_Get_PathExists_ReturnsValue(bool useMutation)
         {
             Setup(useMutation);
-            Setup(useMutation);
+
             var key = "LookupIn_Get_PathExists_ReturnsSuccess";
             _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
 
@@ -65,7 +66,7 @@ namespace Couchbase.IntegrationTests
         public void LookupIn_Get_PocoPathExists_ReturnsValue(bool useMutation)
         {
             Setup(useMutation);
-            Setup(useMutation);
+
             var key = "LookupIn_Get_PathExists_ReturnsSuccess";
             _bucket.Upsert(key, new SimpleDoc { foo = "bar", bar = "foo" });
 
@@ -74,6 +75,58 @@ namespace Couchbase.IntegrationTests
 
             Assert.AreEqual(ResponseStatus.Success, result.Status);
             Assert.AreEqual("bar", result.Content<string>("foo"));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Get_PocoPathExists_ValueIsCalled_ReturnsCount(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_Get_PocoPathExists_ValueIsCalled_ReturnsValue";
+            _bucket.Upsert(key, new SimpleDoc { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<SimpleDoc>(key).Get("foo");
+            var result = (DocumentFragment<SimpleDoc>)builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.IsInstanceOf(typeof(ICollection<OperationSpec>), result.Value);
+            Assert.AreEqual(1, result.Value.Count);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Get_PocoPathExists_DocumentFragment_Value_ReturnsICollectionOfOperationSpecs_IfCast(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_Get_PocoPathExists_DocumentFragment_Value_ReturnsICollectionOfOperationSpecs";
+            _bucket.Upsert(key, new SimpleDoc { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<SimpleDoc>(key).Get("foo");
+            var result = (DocumentFragment<SimpleDoc>)builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.IsInstanceOf(typeof(ICollection<OperationSpec>), result.Value);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupIn_Get_PocoPathExists_DocumentFragment_Value_Returns_Null_IfNotCast(bool useMutation)
+        {
+            Setup(useMutation);
+
+            var key = "LookupIn_Get_PocoPathExists_DocumentFragment_Value_Returns_Null_IfNotCast";
+            _bucket.Upsert(key, new SimpleDoc { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.LookupIn<SimpleDoc>(key).Get("foo");
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.IsNull(result.Value);
         }
 
         [Test]
@@ -1163,10 +1216,10 @@ namespace Couchbase.IntegrationTests
             var key = "LookupIn_SingleOp_Exists";
             _bucket.Upsert(key, new List<string>{ "foo", "bar", "baz", "faz", "foz" });
 
-            var builder = _bucket.MutateIn<dynamic>(key).Remove("\"bar\"");
+            var builder = _bucket.LookupIn<dynamic>(key).Exists("\"bar\"");
             var result = builder.Execute();
 
-           Console.WriteLine(result.Status);
+            Assert.IsTrue(result.Success);
         }
 
         #region XATTRs
