@@ -10,9 +10,10 @@
     <projectUrl>https://github.com/couchbase/couchbase-net-client</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>The Couchbase authored new and improved client for .NET based languages!</description>
-    <releaseNotes></releaseNotes>
-    <copyright>Copyright 2016</copyright>
+    <summary>The official Couchbase .NET driver including support for .NET Core and Full .NET Frameworks 4.5 and greater.</summary>
+    <description>The Couchbase authored new and improved client for .NET based languages! Package supports both .NET Core and Full Frameworks 4.5 and greater.</description>
+    <releaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</releaseNotes>
+    <copyright>Copyright 2017</copyright>
     <tags>Couchbase nosql JSON database</tags>
     <dependencies>
       <group targetFramework="net45">
