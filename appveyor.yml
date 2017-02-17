@@ -23,14 +23,14 @@ before_build:
 build_script:
 - cmd: msbuild Src\Couchbase\Couchbase.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
 - cmd: msbuild Src\Couchbase.NetStandard\Couchbase.NetStandard.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
-test: off
-before_deploy:
+after_build:
 - ps: Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
 - ps: Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
 - ps: Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
 - ps: Push-AppveyorArtifact **\*.zip
 - ps: nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
 - ps: Push-AppveyorArtifact **\*.nupkg
+test: off
 deploy:
 - provider: GitHub
   artifact: /.*\.zip/
