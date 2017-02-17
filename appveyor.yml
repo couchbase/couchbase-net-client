@@ -12,7 +12,7 @@ environment:
   SnkSecret:
     secure: Mpa4faeUiC2uggKSC5ZgiA==
 cache:
-- packages -> **\packages.config
+- src\packages -> **\packages.config
 install:
 - ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
 - ps: nuget install secure-file -ExcludeVersion
