@@ -11,6 +11,8 @@ assembly_info:
 environment:
   SnkSecret:
     secure: Mpa4faeUiC2uggKSC5ZgiA==
+cache:
+- packages -> **\packages.config
 install:
 - ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
 - ps: nuget install secure-file -ExcludeVersion
@@ -27,9 +29,10 @@ after_build:
 - ps: Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
 - ps: Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
 - ps: Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
-- ps: Push-AppveyorArtifact **\*.zip
 - ps: nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
-- ps: Push-AppveyorArtifact **\*.nupkg
+artifacts:
+- path: '*.zip'
+- path: '*.nupkg'
 test: off
 deploy:
 - provider: GitHub
