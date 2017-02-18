@@ -924,16 +924,14 @@ namespace Couchbase.Configuration.Client
             {
                 for (var i = 0; i < _servers.Count(); i++)
                 {
-                    if (_servers[i].OriginalString.EndsWith("/pools"))
+                    if (!_servers[i].OriginalString.EndsWith("/pools") || _servers[i].Port == 80)
                     {
-                        /*noop*/
-                    }
-                    else
-                    {
-                        var value = _servers[i].ToString();
-                        value = string.Concat(value, value.EndsWith("/") ? "pools" : "/pools");
-                        var uri = new Uri(value);
-                        _servers[i] = uri;
+                        var builder = new UriBuilder(_servers[i])
+                        {
+                            Port = _servers[i].Port == 80 ? 8091 : _servers[i].Port,
+                            Path = _servers[i].OriginalString.EndsWith("/") ? "pools" : "/pools"
+                        };
+                        _servers[i] = builder.Uri;
                     }
                 }
             }

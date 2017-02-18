@@ -211,6 +211,25 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.IsInstanceOf<MultiplexingIOService>(service);
         }
 
+        [TestCase("http://localhost:80/pools")]
+        [TestCase("http://localhost/")]
+        [TestCase("http://localhost")]
+        [TestCase("http://localhost:8091/")]
+        [TestCase("http://localhost:8091/pools/")]
+        [TestCase("http://localhost:8091")]
+        public void Test_UriValidation(string uriToTest)
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri(uriToTest)
+                }
+            };
+            config.Initialize();
+            Assert.AreEqual("http://localhost:8091/pools", config.Servers.First().ToString());
+        }
+
 #if NET45
 
         [Test]
