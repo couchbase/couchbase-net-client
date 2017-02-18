@@ -77,7 +77,7 @@ namespace Couchbase.Logging
 
         public void Error(string message, params object[] args)
         {
-            _logger.LogError(message);
+            _logger.LogError(message, args);
         }
 
         public void Error(Exception exception)
