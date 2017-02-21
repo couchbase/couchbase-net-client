@@ -2,11 +2,15 @@
 using Couchbase.Core.Transcoders;
 using Couchbase.Utils;
 
+#if !NET45
+using System.Runtime.InteropServices;
+#endif
+
 namespace Couchbase.IO.Operations
 {
     internal class Hello : OperationBase<short[]>
     {
-        private const string KeyFormat = "couchbase-net-sdk/{0}";
+        private const string KeyFormat = "couchbase-net-sdk/{0}, clr:{1}, os:{2}";
 
         public override OperationCode OperationCode
         {
@@ -19,8 +23,17 @@ namespace Couchbase.IO.Operations
         }
 
         public Hello(short[] value, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(string.Format(KeyFormat, CurrentAssembly.Version), value, null, transcoder, opaque, timeout)
+            : base(BuildKey(), value, null, transcoder, opaque, timeout)
         {
+        }
+
+        private static string BuildKey()
+        {
+#if NET45
+            return string.Format(KeyFormat, CurrentAssembly.Version, Environment.Version, Environment.OSVersion);
+#else
+            return string.Format(KeyFormat, CurrentAssembly.Version, RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription);
+#endif
         }
 
         public override byte[] CreateBody()
