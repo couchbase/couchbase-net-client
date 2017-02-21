@@ -41,3 +41,14 @@ deploy:
     secure: SKZPuqPpuYCGDlPa2hEJ6NmjNBWJ9J60/kM7Y5cEtvm3EHrYX5j3VhV2KV5os5gA
   on:
     appveyor_repo_tag: true
+- provider: S3
+  access_key_id:
+    secure: suuUVO/OK/7edFaS0HYlm9ouHqd4SIMt8FAE/iAnRR4=
+  secret_access_key:
+    secure: Nh6AbaBk7P++ymDgtuY7OmkGoXR8s1X+lm5sIZ2Ao39Bw52HLhuPoqy8O3DsgMTQ
+  bucket: packages.couchbase.com
+  folder: clients/net/2.4/
+  artifact: /.*\.zip/
+  set_public: true
+  on:
+    appveyor_repo_tag: true
