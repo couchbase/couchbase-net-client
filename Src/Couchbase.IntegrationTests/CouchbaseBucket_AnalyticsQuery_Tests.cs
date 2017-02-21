@@ -34,7 +34,7 @@ namespace Couchbase.IntegrationTests
             public string Greeting { get; set; }
         }
 
-        [Test]
+        [Test, Ignore("Analytics service is not currently discoverable. Until it is, we don't want to run these tests automatically.")]
         public void Execute_Query()
         {
             const string statement = "SELECT \"hello\" as greeting;";
@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual("hello", result.Rows.First().Greeting);
         }
 
-        [Test]
+        [Test, Ignore("Analytics service is not currently discoverable. Until it is, we don't want to run these tests automatically.")]
         public async Task Execute_Query_Async()
         {
             const string statement = "SELECT \"hello\" as greeting;";

@@ -3492,6 +3492,17 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a value indicating whether subdoc operations on xattributes are available.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports subdoc operations on xattributes; otherwise, <c>false</c>.
+        /// </value>
+        internal bool SupportsSubdocXAttributes
+        {
+            get { return _configInfo.SupportsSubdocXAttributes; }
+        }
+
+        /// <summary>
         /// Invalidates and clears the query cache. This method can be used to explicitly clear the internal N1QL query cache. This cache will
         /// be filled with non-adhoc query statements (query plans) to speed up those subsequent executions. Triggering this method will wipe
         /// out the complete cache, which will not cause an interruption but rather all queries need to be re-prepared internally. This method

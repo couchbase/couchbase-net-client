@@ -1171,11 +1171,24 @@ namespace Couchbase.IntegrationTests
 
         #region XATTRs
 
+        private const string XAttrsNotSupported = "XATTRs not supported.";
+
+        private bool SupportsXAttributes()
+        {
+            var bucket = (CouchbaseBucket) _bucket;
+            return bucket != null && bucket.SupportsSubdocXAttributes;
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void Can_Create_Get_And_Check_Single_Xattr_Exists(bool useMutation)
         {
             Setup(useMutation);
+
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
 
             const string key = "Can_Create_Get_And_Check_Single_Xattr_Exists";
             const string username = "jack";
@@ -1206,6 +1219,11 @@ namespace Couchbase.IntegrationTests
         public void Can_Create_Get_And_Check_Multiple_Xattrs_Exist(bool useMutation)
         {
             Setup(useMutation);
+
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
 
             const string key = "Can_Create_Get_And_Check_Multiple_Xattrs_Exist";
             _bucket.Upsert(key, new {foo = "bar"});
@@ -1243,6 +1261,11 @@ namespace Couchbase.IntegrationTests
         {
             Setup(useMutation);
 
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
+
             const string key = "XATTRS_Persist_After_Replace";
             const string field = "_data.created_by";
             const string value = "jack";
@@ -1277,6 +1300,11 @@ namespace Couchbase.IntegrationTests
         {
             Setup(useMutation);
 
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
+
             const string key = "Can_Get_XATTR_with_CreatePath_Flag";
             const string field = "created_by";
             const string value = "jack";
@@ -1302,6 +1330,11 @@ namespace Couchbase.IntegrationTests
         public void Can_Create_Document_With_CreateDocument_Subdoc_Flag(bool useMutation)
         {
             Setup(useMutation);
+
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
 
             const string key = "Can_Create_Document_With_CreateDocument_Subdoc_Flag";
             const string field = "name";
@@ -1333,6 +1366,11 @@ namespace Couchbase.IntegrationTests
         {
             Setup(useMutation);
 
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
+
             const string key = "Can_Get_Deleted_Document_XATTR_Using_AccessDeleted_Subdoc_Flag";
             const string field = "_data.username";
             const string value = "jack";
@@ -1363,6 +1401,11 @@ namespace Couchbase.IntegrationTests
         public void Can_Use_Server_Macro_To_Populate_XATTR(bool useMutation)
         {
             Setup(useMutation);
+
+            if (!SupportsXAttributes())
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
 
             const string key = "Can_Use_Server_Macro_To_Populate_XATTR";
             const string field = "cas";
