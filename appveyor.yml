@@ -1,4 +1,4 @@
-version: 2.4.0.{build}
+version: 2.4.1.{build}
 configuration: Release
 init:
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
@@ -52,3 +52,11 @@ deploy:
   set_public: true
   on:
     appveyor_repo_tag: true
+- provider: NuGet
+  server: https://www.myget.org/F/couchbasenetclient/api/v2/package
+  api_key:
+    secure: Cov0c7H0EvTAcF+4heoatFrtbFVvnz9PR0bTNbDKVTjcN47Vy1k2C3Siep6NsdA7
+  skip_symbols: true
+  artifact: /.*\.nupkg/
+  on:
+    appveyor_repo_tag: false

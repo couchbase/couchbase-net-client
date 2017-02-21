@@ -1,7 +1,7 @@
 ﻿{
   "testSettings": {
     "current": "multiplexio",
-    "hostname": "10.142.160.101",
+    "hostname": "localhost",
     "bootPort": "8091",
     "adminUsername": "Administrator",
     "adminPassword": "password"
