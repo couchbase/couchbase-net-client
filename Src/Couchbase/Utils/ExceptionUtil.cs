@@ -76,6 +76,8 @@ namespace Couchbase.Utils
 
         public const string ParameterCannotBeNullOrEmptyFormat = "{0} cannot be null, empty or whitespace.";
 
+        public const string OperationTimeout = "The operation has timed out.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

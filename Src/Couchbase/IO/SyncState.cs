@@ -1,14 +1,23 @@
-﻿
+﻿using System;
 using System.Threading;
-using System.Xml.Serialization;
+
 
 namespace Couchbase.IO
 {
+    /// <summary>
+    /// Represents a synchronous Memcached operation.
+    /// </summary>
+    /// <seealso cref="Couchbase.IO.IState" />
     internal class SyncState : IState
     {
         public byte[] Response;
         public readonly AutoResetEvent SyncWait = new AutoResetEvent(false);
 
+        /// <summary>
+        /// Completes the specified Memcached response.
+        /// </summary>
+        /// <param name="response">The Memcached response packet.</param>
+        /// <remarks>Exception is not used</remarks>
         public void Complete(byte[] response)
         {
             Response = response;

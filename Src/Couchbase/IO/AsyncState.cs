@@ -20,17 +20,20 @@ namespace Couchbase.IO
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
         /// </summary>
-        public void Cancel()
+        public void Cancel(ResponseStatus status, Exception e = null)
         {
             Timer.Dispose();
 
             var response = new byte[24];
             Converter.FromUInt32(Id, response, HeaderIndexFor.Opaque);
+
             Callback(new SocketAsyncState
             {
                 Data = new MemoryStream(response),
                 Opaque = Id,
-                Status = ResponseStatus.ClientFailure
+                // ReSharper disable once MergeConditionalExpression
+                Exception = e,
+                Status = status
             });
         }
 
@@ -42,18 +45,26 @@ namespace Couchbase.IO
         {
             Timer.Dispose();
 
+            //defaults
+            var status = ResponseStatus.None;
+            Exception e = null;
+
             //this means the request never completed
             if (response == null)
             {
                 response = new byte[24];
                 Converter.FromUInt32(Id, response, HeaderIndexFor.Opaque);
+                e = new SendTimeoutExpiredException();
+                status = ResponseStatus.TransportFailure;
             }
 
             //somewhat of hack for backwards compatibility
             Callback(new SocketAsyncState
             {
                 Data = new MemoryStream(response),
-                Opaque = Id
+                Opaque = Id,
+                Exception = e,
+                Status = status
             });
         }
     }

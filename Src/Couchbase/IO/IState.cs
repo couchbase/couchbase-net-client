@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+
 namespace Couchbase.IO
 {
     /// <summary>
@@ -6,7 +7,6 @@ namespace Couchbase.IO
     /// </summary>
     internal interface IState
     {
-
         /// <summary>
         /// Completes the specified Memcached response.
         /// </summary>

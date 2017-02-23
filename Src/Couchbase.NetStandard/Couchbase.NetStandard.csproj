@@ -200,6 +200,9 @@
     <Compile Include="..\Couchbase\Core\IO\SubDocument\OperationSpec.cs">
       <Link>Core\IO\SubDocument\OperationSpec.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
+      <Link>IO\SendTimeoutExpiredException.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Logging\CommonLoggingLogger.cs">
       <Link>Logging\CommonLoggingLogger.cs</Link>
     </Compile>

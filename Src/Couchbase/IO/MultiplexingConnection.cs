@@ -73,7 +73,7 @@ namespace Couchbase.IO
                     IState inflight;
                     _statesInFlight.TryRemove(a.Id, out inflight);
                 }
-                a.Cancel();
+                a.Cancel(ResponseStatus.OperationTimeout, new SendTimeoutExpiredException());
             }, state, Configuration.SendTimeout, Timeout.Infinite);
 
             var sentBytesCount = 0;
@@ -143,7 +143,7 @@ namespace Couchbase.IO
 
             if (!didComplete)
             {
-                throw new TimeoutException();
+                throw new SendTimeoutExpiredException();
             }
 
             return response;
@@ -276,6 +276,7 @@ namespace Couchbase.IO
             //in any case the current socket object should be closed, all states in flight released etc.
             Close();
         }
+
         public void Close()
         {
             if (Disposed) return;
