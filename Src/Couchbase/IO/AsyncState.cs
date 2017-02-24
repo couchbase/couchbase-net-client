@@ -49,7 +49,7 @@ namespace Couchbase.IO
             var status = ResponseStatus.None;
             Exception e = null;
 
-            //this means the request never completed
+            //this means the request never completed - assume a transport failure
             if (response == null)
             {
                 response = new byte[24];

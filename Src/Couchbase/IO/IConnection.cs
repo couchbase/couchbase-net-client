@@ -32,6 +32,14 @@ namespace Couchbase.IO
         bool IsSecure { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the underlying socket is connected to the remopte host.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this socket is connected; otherwise, <c>false</c>.
+        /// </value>
+        bool IsConnected { get; }
+
+        /// <summary>
         /// Gets the remove hosts <see cref="EndPoint"/> that this <see cref="Connection"/> is connected to.
         /// </summary>
         /// <value>

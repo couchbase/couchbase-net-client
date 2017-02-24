@@ -61,6 +61,7 @@ namespace Couchbase
         {
             switch (Status)
             {
+                case ResponseStatus.TransportFailure:
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return true;
                 case ResponseStatus.ClientFailure:
@@ -91,7 +92,7 @@ namespace Couchbase
 
         bool IsClientFailureRetriable()
         {
-            if (Exception is SocketException)
+            if (Exception is SocketException || Exception is TimeoutException)
             {
                 return true;
             }

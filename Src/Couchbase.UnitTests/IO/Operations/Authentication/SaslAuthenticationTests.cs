@@ -25,6 +25,7 @@ namespace Couchbase.UnitTests.IO.Operations.Authentication
         {
             var mockConnection = new Mock<IConnection>();
             mockConnection.SetupGet(x => x.IsAuthenticated).Returns(false);
+            mockConnection.SetupGet(x => x.IsConnected).Returns(true);
 
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);

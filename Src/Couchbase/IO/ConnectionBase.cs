@@ -63,6 +63,17 @@ namespace Couchbase.IO
         }
 
         /// <summary>
+        /// Gets a value indicating whether the underlying socket is connected to the remopte host.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this socket is connected; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsConnected
+        {
+            get { return Socket != null && Socket.Connected; }
+        }
+
+        /// <summary>
         /// True if the connection has been SASL authenticated.
         /// </summary>
         public bool IsAuthenticated { get; set; }

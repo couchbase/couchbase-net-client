@@ -199,6 +199,7 @@ namespace Couchbase.IO
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
         public void Release(T connection)
         {
+            if (connection == null) return;
             Log.Info("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             connection.MarkUsed(false);
             if (connection.IsDead)

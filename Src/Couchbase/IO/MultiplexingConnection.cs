@@ -51,6 +51,7 @@ namespace Couchbase.IO
         /// </summary>
         /// <param name="request">The memcached request packet.</param>
         /// <param name="callback">The callback handled when the response has been been received.</param>
+        /// <exception cref="SendTimeoutExpiredException"></exception>
         public override void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
         {
             var state = new AsyncState
@@ -100,8 +101,7 @@ namespace Couchbase.IO
         /// </summary>
         /// <param name="request">The memcached request packet.</param>
         /// <returns></returns>
-        /// <exception cref="System.TimeoutException"></exception>
-        /// <exception cref="TimeoutException">Condition.</exception>
+        /// <exception cref="SendTimeoutExpiredException"></exception>
         public override byte[] Send(byte[] request)
         {
             var state = AcquireState();
@@ -271,7 +271,7 @@ namespace Couchbase.IO
         private void HandleDisconnect(Exception exception)
         {
             //you might throw an event here to be handled by owner of this class, or can implement reconnect directly here etc...
-            Log.Error(exception);
+            Log.Warn("Handling disconnect for connection {0}: {1}", _identity, exception);
 
             //in any case the current socket object should be closed, all states in flight released etc.
             Close();
@@ -295,7 +295,6 @@ namespace Couchbase.IO
                         {
                             Socket.Shutdown(SocketShutdown.Both);
                         }
-                        //base.Dispose(); ignore base
                     }
                     catch (Exception e)
                     {

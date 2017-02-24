@@ -1,10 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core;
 
 namespace Couchbase.Utils
 {
@@ -77,6 +72,9 @@ namespace Couchbase.Utils
         public const string ParameterCannotBeNullOrEmptyFormat = "{0} cannot be null, empty or whitespace.";
 
         public const string OperationTimeout = "The operation has timed out.";
+
+        public const string NotConnectedMsg =
+            "The SDK was disconnected from {0} before the operation was processed. This may be a temporary error while the SDK re-establishes a connection.";
 
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {

@@ -202,6 +202,9 @@
     </Compile>
     <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
       <Link>IO\SendTimeoutExpiredException.cs</Link>
+     </Compile>
+    <Compile Include="..\Couchbase\IO\TransportFailureException.cs">
+      <Link>IO\TransportFailureException.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Logging\CommonLoggingLogger.cs">
       <Link>Logging\CommonLoggingLogger.cs</Link>

@@ -264,6 +264,7 @@
     <Compile Include="IO\ConnectionPoolFactory.cs" />
     <Compile Include="IO\RemoteHostClosedException.cs" />
     <Compile Include="IO\SendTimeoutExpiredException.cs" />
+    <Compile Include="IO\TransportFailureException.cs" />
     <Compile Include="IQueryCacheInvalidator.cs" />
     <Compile Include="IDocumentResult.cs" />
     <Compile Include="IO\AsyncState.cs" />
