@@ -32,7 +32,7 @@ namespace Couchbase.IO.Http
 
             //disable HTTP pipelining for full .net framework
 #if NET45
-            AllowPipelining = false;
+            AllowPipelining = true;
 #endif
 
             // Just build once for speed
