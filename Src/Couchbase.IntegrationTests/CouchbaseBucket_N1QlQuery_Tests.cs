@@ -230,6 +230,40 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Test]
+        public void Test_Streaming_NotAdhoc()
+        {
+            //arrange
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 100;")
+                .UseStreaming(true)
+                .AdHoc(false);
+
+            //act
+            using (var result = _bucket.Query<dynamic>(request))
+            {
+                //assert
+                Assert.IsTrue(result.Success);
+                Assert.IsTrue(typeof(StreamingQueryResult<dynamic>) == result.GetType());
+            }
+        }
+
+        [Test]
+        public async Task Test_StreamingAsync_NotAdhoc()
+        {
+            //arrange
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 100;")
+                .UseStreaming(true)
+                .AdHoc(false);
+
+            //act
+            using (var result = await _bucket.QueryAsync<dynamic>(request))
+            {
+                //assert
+                Assert.IsTrue(result.Success);
+                Assert.IsTrue(typeof(StreamingQueryResult<dynamic>) == result.GetType());
+            }
+        }
+
         [Test(Description = "Simulates creating an index, executing a non-adhoc query so a client side query plan is created, drop the index, " +
                             "execute another query and have the client recognise the index is not longer available so it recreates a query plan. " +
                             "Results can be seen in a HTTP debugger." +

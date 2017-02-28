@@ -275,7 +275,7 @@ namespace Couchbase.N1QL
                         originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
                 }
-                queryPlan = result.Rows.FirstOrDefault();
+                queryPlan = result.FirstOrDefault();
                 if (queryPlan != null && _queryCache.TryAdd(originalStatement, queryPlan))
                 {
                     originalRequest.Prepared(queryPlan, originalStatement);
@@ -307,7 +307,7 @@ namespace Couchbase.N1QL
                         originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize async statement: " + result.GetErrorsAsString());
                 }
-                queryPlan = result.Rows.FirstOrDefault();
+                queryPlan = result.FirstOrDefault();
                 if (queryPlan != null && _queryCache.TryAdd(originalStatement, queryPlan))
                 {
                     originalRequest.Prepared(queryPlan, originalStatement);
