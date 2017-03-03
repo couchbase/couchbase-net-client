@@ -1206,22 +1206,6 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(2, result.Count());
         }
 
-        [Test]
-        [TestCase(true)]
-        [TestCase(false)]
-        public void LookupIn_Exists(bool useMutation)
-        {
-            Setup(useMutation);
-
-            var key = "LookupIn_SingleOp_Exists";
-            _bucket.Upsert(key, new List<string>{ "foo", "bar", "baz", "faz", "foz" });
-
-            var builder = _bucket.LookupIn<dynamic>(key).Exists("\"bar\"");
-            var result = builder.Execute();
-
-            Assert.IsTrue(result.Success);
-        }
-
         #region XATTRs
 
         private const string XAttrsNotSupported = "XATTRs not supported.";
