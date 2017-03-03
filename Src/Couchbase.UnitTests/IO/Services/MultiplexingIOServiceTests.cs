@@ -1,8 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -10,6 +15,7 @@ using Couchbase.IO.Operations;
 using Couchbase.IO.Services;
 using Couchbase.IO.Utils;
 using Couchbase.UnitTests.IO.Operations;
+using Couchbase.Utils;
 using Moq;
 using NUnit.Framework;
 
@@ -18,6 +24,68 @@ namespace Couchbase.UnitTests.IO.Services
     [TestFixture]
     public class MultiplexingIOServiceTests
     {
+        [Test]
+        public async Task When_TransportFailure_Occurs_CheckConfigUpdate_Is_Called_For_ExecuteAsync()
+        {
+            var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.IsConnected).Returns(false);
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
+            mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = false });
+
+            var service = new MultiplexingIOService(mockConnectionPool.Object);
+
+            var mockOperation = new Mock<IOperation>();
+            mockOperation.Setup(x => x.Opaque).Returns(1);
+            mockOperation.Setup(x => x.Exception).Returns(new TransportFailureException());
+
+            var opqueue = new ConcurrentDictionary<uint, IOperation>();
+            opqueue.TryAdd(mockOperation.Object.Opaque, mockOperation.Object);
+
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x=>x.CheckConfigUpdate(It.IsAny<string>(), It.IsAny<IPEndPoint>())).Verifiable();
+
+            TaskCompletionSource<IOperationResult> tcs = new TaskCompletionSource<IOperationResult>();
+            mockOperation.Setup(x => x.Completed)
+                .Returns(CallbackFactory.CompletedFuncWithRetryForCouchbase(null, opqueue, mockController.Object, tcs,
+                    new CancellationToken()));
+
+            await service.ExecuteAsync(mockOperation.Object);
+            mockController.VerifyAll();
+        }
+
+        [Test]
+        public async Task When_TransportFailure_Occurs_CheckConfigUpdate_Is_Called_For_ExecuteAsync_T()
+        {
+            var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.IsConnected).Returns(false);
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
+            mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = false });
+
+            var service = new MultiplexingIOService(mockConnectionPool.Object);
+
+            var mockOperation = new Mock<IOperation<string>>();
+            mockOperation.Setup(x => x.Opaque).Returns(1);
+            mockOperation.Setup(x => x.Exception).Returns(new TransportFailureException());
+
+            var opqueue = new ConcurrentDictionary<uint, IOperation>();
+            opqueue.TryAdd(mockOperation.Object.Opaque, mockOperation.Object);
+
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.CheckConfigUpdate(It.IsAny<string>(), It.IsAny<IPEndPoint>())).Verifiable();
+
+            TaskCompletionSource<IOperationResult<string>> tcs = new TaskCompletionSource<IOperationResult<string>>();
+            mockOperation.Setup(x => x.Completed)
+                .Returns(CallbackFactory.CompletedFuncWithRetryForCouchbase<string>(null, opqueue, mockController.Object, tcs,
+                    new CancellationToken()));
+
+            await service.ExecuteAsync(mockOperation.Object);
+            mockController.VerifyAll();
+        }
+
         [Test]
         public void When_EnhanchedDurability_Is_True_Hello_Requests_MutationSeqNo()
         {

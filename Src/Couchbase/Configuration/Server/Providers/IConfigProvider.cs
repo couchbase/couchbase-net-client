@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 
@@ -22,6 +24,13 @@ namespace Couchbase.Configuration.Server.Providers
         bool ObserverExists(IConfigObserver observer);
 
         IByteConverter Converter { get; set; }
+
+        /// <summary>
+        /// Updates the new configuration if the new configuration revision is greater than the current configuration.
+        /// </summary>
+        /// <param name="bucketConfig">The bucket configuration.</param>
+        /// <param name="force">if set to <c>true</c> [force].</param>
+        void UpdateConfig(IBucketConfig bucketConfig, bool force = false);
     }
 }
 

@@ -14,8 +14,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using Couchbase.Authentication;
 using Couchbase.Core.Monitoring;
+using Couchbase.Configuration.Server.Monitoring;
+using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
@@ -31,6 +35,7 @@ namespace Couchbase.Core
         private readonly ClusterMonitor _clusterMonitor;
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
+        private readonly ConfigMonitor _configMonitor;
 
         public ClusterController(ClientConfiguration clientConfig)
             : this(clientConfig,
@@ -68,7 +73,16 @@ namespace Couchbase.Core
                 _clusterMonitor = new ClusterMonitor(this);
                 _clusterMonitor.StartMonitoring();
             }
+
+            LastConfigCheckedTime = DateTime.Now;
+            if (Configuration.EnableConfigHeartBeat)
+            {
+                _configMonitor = new ConfigMonitor(this);
+                _configMonitor.StartMonitoring();
+            }
         }
+
+        public DateTime LastConfigCheckedTime { get; set; }
 
         public ICluster Cluster { get; private set; }
 
@@ -320,6 +334,56 @@ namespace Couchbase.Core
 
         public ClientConfiguration Configuration { get { return _clientConfig; } }
 
+        public void CheckConfigUpdate(string bucketName, IPEndPoint excludeEndPoint)
+        {
+            var lockAcquired = false;
+            try
+            {
+                Monitor.TryEnter(_syncObject, ref lockAcquired);
+                var now = DateTime.Now;
+                var lastCheckedPlus = LastConfigCheckedTime.AddMilliseconds(Configuration.HeartbeatConfigCheckFloor);
+                if (!lockAcquired || lastCheckedPlus > now)
+                {
+                    Log.Info("Not checking config because {0} > {1} or a lock ({2}) could not be acquired.",
+                        lastCheckedPlus, now, lockAcquired);
+                    return;
+                }
+
+                Log.Info("Checking config because {0} < {1}", lastCheckedPlus, now);
+                var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
+                if (provider != null)
+                {
+                    var configInfo = provider.GetCached(bucketName);
+                    var servers = configInfo.Servers.
+                        Where(x => x.IsDataNode && !x.IsDown && !x.EndPoint.Equals(excludeEndPoint)).
+                        ToList().
+                        Shuffle();
+
+                    if (servers.Any())
+                    {
+                        var server = servers.First();
+
+                        Log.Info("Checking for new config {0}", server.EndPoint);
+                        var config = server.Send(
+                            new Config(Transcoder, _clientConfig.DefaultOperationLifespan, server.EndPoint));
+                        ((CarrierPublicationProvider) provider).UpdateConfig(config.Value);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+            }
+            finally
+            {
+                LastConfigCheckedTime = DateTime.Now;
+            }
+            if (lockAcquired)
+            {
+                Monitor.Exit(_syncObject);
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -338,6 +402,10 @@ namespace Couchbase.Core
                     if (_clusterMonitor != null)
                     {
                         _clusterMonitor.Dispose();
+                    }
+                    if (_configMonitor != null)
+                    {
+                        _configMonitor.Dispose();
                     }
                     foreach (var pair in _buckets)
                     {

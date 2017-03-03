@@ -346,5 +346,13 @@ namespace Couchbase.Configuration.Client
         /// are back online.  Pings every <see cref="NodeAvailableCheckInterval"/>ms.  Defaults to true.
         /// </summary>
         bool EnableDeadServiceUriPing { get; }
+
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        uint HeartbeatConfigCheckFloor { get; set; }
     }
 }

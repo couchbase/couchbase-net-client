@@ -1,11 +1,14 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Couchbase.IO
 {
     public sealed class SocketAsyncState
     {
+        public IPEndPoint EndPoint { get; set; }
+
         public int SendOffset { get; set; }
 
         public int BytesSent { get; set; }

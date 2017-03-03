@@ -176,6 +176,9 @@
     <Compile Include="..\Couchbase\Configuration\DefaultPorts.cs">
       <Link>Configuration\DefaultPorts.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Configuration\Server\Monitoring\ConfigMonitor.cs">
+      <Link>Configuration\Server\Monitoring\ConfigMonitor.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Configuration\Server\Providers\ConfigProviderBase.cs">
       <Link>Configuration\Server\Providers\ConfigProviderBase.cs</Link>
     </Compile>
@@ -223,7 +226,7 @@
     </Compile>
     <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
       <Link>IO\SendTimeoutExpiredException.cs</Link>
-     </Compile>
+    </Compile>
     <Compile Include="..\Couchbase\IO\TransportFailureException.cs">
       <Link>IO\TransportFailureException.cs</Link>
     </Compile>

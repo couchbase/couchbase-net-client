@@ -406,5 +406,41 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
 #endif
+
+        [Test]
+        public void When_HeartbeatConfigInterval_Is_Less_Than_HeartbeatConfigCheckFloor_Throw_ArgumentOutOfRangeException()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                HeartbeatConfigCheckFloor = 500,
+                HeartbeatConfigInterval = 10
+            };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => clientConfig.Initialize());
+        }
+
+        [Test]
+        public void When_HeartbeatConfigInterval_Are_Equal_HeartbeatConfigCheckFloor_Throw_ArgumentOutOfRangeException()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                HeartbeatConfigCheckFloor = 500,
+                HeartbeatConfigInterval = 500
+            };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => clientConfig.Initialize());
+        }
+
+        [Test]
+        public void When_HeartbeatConfigInterval_Is_Greater_Than_HeartbeatConfigCheckFloor_DoNotThrow_ArgumentOutOfRangeException()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                HeartbeatConfigCheckFloor = 10,
+                HeartbeatConfigInterval = 500
+            };
+
+            Assert.DoesNotThrow(() => clientConfig.Initialize());
+        }
     }
 }

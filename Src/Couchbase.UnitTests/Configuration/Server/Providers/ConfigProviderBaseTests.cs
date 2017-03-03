@@ -2,6 +2,7 @@
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Serialization;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Configuration.Server.Providers
@@ -39,6 +40,11 @@ namespace Couchbase.UnitTests.Configuration.Server.Providers
             public new BucketConfiguration GetOrCreateConfiguration(string bucketName)
             {
                 return base.GetOrCreateConfiguration(bucketName);
+            }
+
+            public override void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
+            {
+                throw new NotImplementedException();
             }
         }
 

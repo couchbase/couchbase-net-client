@@ -149,7 +149,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout);
+            var operation = new Append<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -166,7 +169,10 @@ namespace Couchbase
         /// <returns>True if the key exists.</returns>
         public bool Exists(string key)
         {
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = _requestExecuter.SendWithRetry(observe);
             return result.Success && result.Value.KeyState != KeyState.NotFound
                 && result.Value.KeyState != KeyState.LogicalDeleted;
@@ -179,7 +185,10 @@ namespace Couchbase
         /// <returns> Returns the <see cref="IOperationResult"/> object containing Value as true if the key exists</returns>
         internal IOperationResult<bool> _Exists(string key)
         {
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = _requestExecuter.SendWithRetry(observe);
             OperationResult<bool> ret = new OperationResult<bool>
             {
@@ -207,7 +216,10 @@ namespace Couchbase
         public async Task<bool> ExistsAsync(string key)
         {
             CheckDisposed();
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
             return result.Success && result.Value.KeyState != KeyState.NotFound
                 && result.Value.KeyState != KeyState.LogicalDeleted;
@@ -221,7 +233,10 @@ namespace Couchbase
         internal async Task<IOperationResult<bool>> _ExistsAsync(string key)
         {
             CheckDisposed();
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout);
+            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
             OperationResult<bool> ret = new OperationResult<bool>
             {
@@ -252,7 +267,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<byte[]>(key, value, vBucket,  _transcoder, _operationLifespanTimeout);
+            var operation = new Append<byte[]>(key, value, vBucket,  _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -271,7 +289,10 @@ namespace Couchbase
         public Task<IOperationResult<string>> AppendAsync(string key, string value)
         {
             CheckDisposed();
-            var operation = new Append<string>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Append<string>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = _requestExecuter.SendWithRetryAsync(operation);
             return result;
         }
@@ -285,7 +306,10 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value)
         {
             CheckDisposed();
-            var operation = new Append<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Append<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var result = _requestExecuter.SendWithRetryAsync(operation);
             return result;
         }
@@ -342,7 +366,8 @@ namespace Couchbase
         {
             var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration.ToTtl()
+                Expires = expiration.ToTtl(),
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(touch);
         }
@@ -357,7 +382,8 @@ namespace Couchbase
         {
             var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration.ToTtl()
+                Expires = expiration.ToTtl(),
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(touch);
         }
@@ -458,7 +484,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Decrement(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout);
+            var operation = new Decrement(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -539,7 +568,10 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -604,7 +636,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -695,7 +730,10 @@ namespace Couchbase
         public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -794,7 +832,8 @@ namespace Couchbase
             }
             var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expiration = expiration
+                Expiration = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(getl);
         }
@@ -835,7 +874,8 @@ namespace Couchbase
             }
             var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expiration = expiration
+                Expiration = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(getl);
         }
@@ -876,7 +916,8 @@ namespace Couchbase
             }
             var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expiration = expiration
+                Expiration = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(getl);
         }
@@ -915,7 +956,8 @@ namespace Couchbase
             }
             var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expiration = expiration
+                Expiration = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(getl);
         }
@@ -998,7 +1040,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Increment(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout);
+            var operation = new Increment(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1078,7 +1123,10 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Increment(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1161,7 +1209,10 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1181,7 +1232,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -1252,7 +1304,10 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -1274,7 +1329,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
@@ -1306,7 +1362,10 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1391,7 +1450,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
@@ -1440,7 +1500,10 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
 
@@ -1465,7 +1528,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
@@ -1590,7 +1654,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1610,7 +1677,8 @@ namespace Couchbase
         {
             var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration.ToTtl()
+                Expires = expiration.ToTtl(),
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -1625,7 +1693,8 @@ namespace Couchbase
         {
             var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration.ToTtl()
+                Expires = expiration.ToTtl(),
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
@@ -1676,7 +1745,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             var operationResult = server.Send(operation);
 
             if (CheckForConfigUpdates(operationResult, operation))
@@ -1695,7 +1767,10 @@ namespace Couchbase
         public Task<IOperationResult<string>> PrependAsync(string key, string value)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Prepend<string>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1708,7 +1783,10 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -1893,7 +1971,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
         }
 
@@ -1909,7 +1990,8 @@ namespace Couchbase
         {
             var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
         }
@@ -2011,7 +2093,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2026,7 +2111,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2042,7 +2130,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
@@ -2059,7 +2150,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
@@ -2124,7 +2218,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
@@ -2140,7 +2235,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
@@ -2158,7 +2256,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
@@ -2175,7 +2274,10 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
@@ -2194,7 +2296,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
@@ -2220,7 +2323,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2234,7 +2340,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2253,7 +2362,8 @@ namespace Couchbase
         {
             var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -2290,7 +2400,8 @@ namespace Couchbase
             var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -2375,7 +2486,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -2391,7 +2505,10 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -2413,7 +2530,8 @@ namespace Couchbase
         {
             var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
@@ -2533,7 +2651,10 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2607,7 +2728,8 @@ namespace Couchbase
             var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
@@ -2717,7 +2839,8 @@ namespace Couchbase
                 _operationLifespanTimeout)
             {
                 Expires = expiration,
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
 
@@ -2751,7 +2874,8 @@ namespace Couchbase
         {
             var unlock = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(unlock);
         }
@@ -2767,7 +2891,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
             {
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
@@ -2794,7 +2919,10 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2862,7 +2990,8 @@ namespace Couchbase
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Cas = cas,
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -2933,7 +3062,10 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            {
+                BucketName = Name
+            };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
 
@@ -2955,7 +3087,8 @@ namespace Couchbase
             CheckDisposed();
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
-                Expires = expiration
+                Expires = expiration,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
@@ -2997,7 +3130,8 @@ namespace Couchbase
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
         }
@@ -3310,7 +3444,8 @@ namespace Couchbase
             var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
             {
                 Expires = expiration,
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
@@ -3407,7 +3542,8 @@ namespace Couchbase
                 _operationLifespanTimeout)
             {
                 Expires = expiration,
-                Cas = cas
+                Cas = cas,
+                BucketName = Name
             };
             return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
 ;
@@ -3631,23 +3767,23 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubArrayAddUnique:
-                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout){ BucketName = Name };
                 case OperationCode.SubArrayInsert:
-                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubArrayPushFirst:
-                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubArrayPushLast:
-                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubCounter:
-                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubDelete:
-                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubDictAdd:
-                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubDictUpsert:
-                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubReplace:
-                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }
@@ -3710,9 +3846,9 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubGet:
-                    return new SubGet<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubGet<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubExist:
-                    return new SubExists<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout);
+                    return new SubExists<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 default:
                     throw new NotSupportedException("Opcode is not supported for LookupInBuilder.");
             }
@@ -3735,7 +3871,7 @@ namespace Couchbase
             }
 
             //this is a multi operation
-            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
+            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
         }
 
@@ -3755,7 +3891,7 @@ namespace Couchbase
                 return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(OptimizeSingleLookup(theBuilder)).ContinueOnAnyContext();
             }
 
-            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
+            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
         }
 

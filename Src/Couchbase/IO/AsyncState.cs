@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
@@ -12,6 +13,7 @@ namespace Couchbase.IO
     /// </summary>
     internal class AsyncState : IState
     {
+        public IPEndPoint EndPoint { get; set; }
         public Func<SocketAsyncState, Task> Callback { get; set; }
         public IByteConverter Converter { get; set; }
         public uint Id { get; set; }
@@ -33,7 +35,8 @@ namespace Couchbase.IO
                 Opaque = Id,
                 // ReSharper disable once MergeConditionalExpression
                 Exception = e,
-                Status = status
+                Status = status,
+                EndPoint = EndPoint
             });
         }
 
@@ -64,7 +67,8 @@ namespace Couchbase.IO
                 Data = new MemoryStream(response),
                 Opaque = Id,
                 Exception = e,
-                Status = status
+                Status = status,
+                EndPoint = EndPoint
             });
         }
     }

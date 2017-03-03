@@ -547,6 +547,8 @@ namespace Couchbase.IO.Operations
         {
             get { return true; }
         }
+
+        public string BucketName { get; set; }
     }
 
 #endregion

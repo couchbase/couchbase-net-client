@@ -121,6 +121,7 @@
     <Compile Include="Configuration\Client\ServerResolverUtil.cs" />
     <Compile Include="Configuration\CouchbaseBootstrapException.cs" />
     <Compile Include="Configuration\DefaultPorts.cs" />
+    <Compile Include="Configuration\Server\Monitoring\ConfigMonitor.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBase.cs" />
     <Compile Include="Configuration\Server\Providers\FileSystem\ConfigInfo.cs" />
     <Compile Include="Configuration\Server\Serialization\BucketConfigExtensions.cs" />

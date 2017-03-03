@@ -1,13 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core;
-using Couchbase.Core.Serialization;
-using Couchbase.Core.Transcoders;
-using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
@@ -353,6 +345,15 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public bool EnableDeadServiceUriPing { get; set; }
 
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        public uint HeartbeatConfigCheckFloor { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -387,6 +388,7 @@ namespace Couchbase.Configuration.Client
             VBucketRetrySleepTime = ClientConfiguration.Defaults.VBucketRetrySleepTime;
             UseConnectionPooling = ClientConfiguration.Defaults.UseConnectionPooling;
             EnableDeadServiceUriPing = ClientConfiguration.Defaults.EnableDeadServiceUriPing;
+            HeartbeatConfigCheckFloor = ClientConfiguration.Defaults.HeartbeatConfigCheckFloor;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

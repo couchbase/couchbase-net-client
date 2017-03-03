@@ -163,6 +163,25 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketConfig">The new configuration.</param>
         void ConfigChangedHandler(IBucketConfig bucketConfig)
         {
+           UpdateConfig(bucketConfig);
+        }
+
+        void SignalCountdownEvent()
+        {
+            if (CountdownEvent.CurrentCount > 0)
+            {
+                CountdownEvent.Signal();
+            }
+        }
+
+
+        /// <summary>
+        /// Updates the new configuration if the new configuration revision is greater than the current configuration.
+        /// </summary>
+        /// <param name="bucketConfig">The bucket cluster map configuration.</param>
+        /// <param name="force">if set to <c>true</c> [force].</param>
+        public override void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
+        {
             try
             {
                 ConfigLock.EnterWriteLock();
@@ -206,14 +225,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             finally
             {
                 ConfigLock.ExitWriteLock();
-            }
-        }
-
-        void SignalCountdownEvent()
-        {
-            if (CountdownEvent.CurrentCount > 0)
-            {
-                CountdownEvent.Signal();
             }
         }
 

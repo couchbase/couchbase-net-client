@@ -138,6 +138,12 @@ namespace Couchbase.Configuration
                         Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                         Interlocked.Exchange(ref _bucketConfig, bucketConfig);
                     }
+                    //only the revision changed so update to it
+                    if (bucketConfig.Rev > BucketConfig.Rev)
+                    {
+                        Log.Info("Only the revision changed from using rev#{0} to rev#{1}", BucketConfig.Rev, bucketConfig.Rev);
+                        BucketConfig.Rev = bucketConfig.Rev;
+                    }
                 }
             }
             catch (Exception e)

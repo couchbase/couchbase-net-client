@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,7 +59,8 @@ namespace Couchbase.IO
             {
                 Id = Converter.ToUInt32(request, HeaderIndexFor.Opaque),
                 Callback = callback,
-                Converter = Converter
+                Converter = Converter,
+                EndPoint = (IPEndPoint)EndPoint
             };
 
             lock (_statesInFlight)

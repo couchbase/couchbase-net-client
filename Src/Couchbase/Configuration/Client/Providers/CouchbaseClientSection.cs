@@ -549,6 +549,20 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["serverResolver"] = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        [ConfigurationProperty("heartbeatConfigCheckFloor", DefaultValue = 50u, IsRequired = false)]
+        public uint HeartbeatConfigCheckFloor
+        {
+            get { return (uint)this["heartbeatConfigCheckFloor"]; }
+            set { this["heartbeatConfigCheckFloor"] = value; }
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers

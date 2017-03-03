@@ -90,6 +90,8 @@ namespace Couchbase.IO.Operations
         IOperation Clone();
 
         uint LastConfigRevisionTried { get; set; }
+
+        string BucketName { get; set; }
     }
 }
 

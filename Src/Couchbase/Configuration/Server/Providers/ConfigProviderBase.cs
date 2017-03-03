@@ -169,5 +169,12 @@ namespace Couchbase.Configuration.Server.Providers
         {
             return ConfigObservers.ContainsKey(observer.Name);
         }
+
+        /// <summary>
+        /// Updates the new configuration if the new configuration revision is greater than the current configuration.
+        /// </summary>
+        /// <param name="bucketConfig">The bucket configuration.</param>
+        /// <param name="force">if set to <c>true</c> [force].</param>
+        public abstract void UpdateConfig(IBucketConfig bucketConfig, bool force = false);
     }
 }

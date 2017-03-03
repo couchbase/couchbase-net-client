@@ -14,6 +14,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Services;
+using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -68,6 +69,7 @@ namespace Couchbase.Configuration.Client
             public static uint ViewRequestTimeout = 75000; //ms
             public static uint SearchRequestTimeout = 75000; //ms
             public static uint VBucketRetrySleepTime = 100; //ms
+            public static uint HeartbeatConfigCheckFloor = 50; //ms
 
             //service point settings
             public static int DefaultConnectionLimit = 5; //connections
@@ -139,6 +141,7 @@ namespace Couchbase.Configuration.Client
             IOErrorCheckInterval = Defaults.IOErrorCheckInterval;
             IOErrorThreshold = Defaults.IOErrorThreshold;
             EnableDeadServiceUriPing = Defaults.EnableDeadServiceUriPing;
+            HeartbeatConfigCheckFloor = Defaults.HeartbeatConfigCheckFloor;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -424,7 +427,7 @@ namespace Couchbase.Configuration.Client
 
         /// <summary>
         /// Gets or sets the timeout for a N1QL query request; this correlates to the client-side timeout.
-        /// Server-side timeouts are configured per request using the <see cref="QueryRequest.Timeout"/> method.
+        /// Server-side timeouts are configured per request using the <see cref="Timeout"/> method.
         /// </summary>
         /// <value>
         /// The query request timeout.
@@ -777,6 +780,15 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        public uint HeartbeatConfigCheckFloor { get; set; }
+
+        /// <summary>
         /// Sets the timeout for each HTTP View request.
         /// </summary>
         /// <remarks>The default is 75000ms.</remarks>
@@ -861,10 +873,10 @@ namespace Couchbase.Configuration.Client
         /// <param name="bucketConfig">A new server configuration</param>
         internal void UpdateBootstrapList(IBucketConfig bucketConfig)
         {
-            foreach (var node in bucketConfig.GetNodes())
+            try
             {
                 ConfigLock.EnterWriteLock();
-                try
+                foreach (var node in bucketConfig.GetNodes())
                 {
                     if (!string.IsNullOrWhiteSpace(node.Hostname))
                     {
@@ -881,10 +893,14 @@ namespace Couchbase.Configuration.Client
                         }
                     }
                 }
-                finally
+                foreach (var bucketConfiguration in BucketConfigs)
                 {
-                    ConfigLock.ExitWriteLock();
+                    bucketConfiguration.Value.Servers = Servers.Select(x => new UriBuilder(x).Uri).ToList();
                 }
+            }
+            finally
+            {
+                ConfigLock.ExitWriteLock();
             }
         }
 
@@ -923,6 +939,10 @@ namespace Couchbase.Configuration.Client
 
         internal void Initialize()
         {
+            if (HeartbeatConfigInterval <= HeartbeatConfigCheckFloor)
+            {
+                throw new ArgumentOutOfRangeException(ExceptionUtil.HeartbeatConfigIntervalMsg);
+            }
 #if NETSTANDARD
             //configure logging
             LogManager.ConfigureLoggerFactory(LoggerFactory);

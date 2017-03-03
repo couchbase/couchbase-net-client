@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Configuration;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.Utils;

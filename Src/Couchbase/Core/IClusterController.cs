@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -11,6 +13,8 @@ namespace Couchbase.Core
     internal interface IClusterController : IConfigPublisher, IDisposable
     {
         ICluster Cluster { get; }
+
+        DateTime LastConfigCheckedTime { get; set; }
 
         List<IConfigProvider> ConfigProviders { get; }
 
@@ -38,6 +42,8 @@ namespace Couchbase.Core
 
         [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         IClusterInfo Info();
+
+        void CheckConfigUpdate(string bucketName, IPEndPoint excludeEndPoint);
     }
 }
 

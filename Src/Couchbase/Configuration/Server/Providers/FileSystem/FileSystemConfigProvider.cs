@@ -1,5 +1,6 @@
 ﻿using System;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.Configuration.Server.Providers.FileSystem
@@ -89,6 +90,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             {
                 throw new NotImplementedException();
             }
+        }
+
+        public void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
+        {
+            throw new NotImplementedException();
         }
     }
 }

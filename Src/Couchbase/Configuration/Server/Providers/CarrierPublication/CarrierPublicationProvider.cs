@@ -14,14 +14,11 @@ using System.Net;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.Utils;
 using Newtonsoft.Json;
-using Timer = System.Threading.Timer;
 
 namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 {
     internal class CarrierPublicationProvider : ConfigProviderBase
     {
-        private Timer _heartBeat;
-
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
@@ -30,64 +27,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             ITypeTranscoder transcoder)
             : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
         {
-
-            _heartBeat = new Timer(_heartBeat_Elapsed, null, Timeout.Infinite, Timeout.Infinite);
-
-            if (ClientConfig.EnableConfigHeartBeat)
-            {
-                _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
-            }
         }
 
-        internal virtual void _heartBeat_Elapsed(object state)
-        {
-            try
-            {
-                GetUpdatedConfig();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-            finally
-            {
-                if (!Disposed)
-                {
-                    _heartBeat.Change((int) ClientConfig.HeartbeatConfigInterval, Timeout.Infinite);
-                }
-            }
-        }
-
-        internal virtual void GetUpdatedConfig()
-        {
-            foreach (var configInfo in Configs)
-            {
-                var value = configInfo.Value;
-                foreach (var server in value.Servers.Where(x => !x.IsDown && x.IsDataNode))
-                {
-                    try
-                    {
-                        Log.Debug("Config heartbeat on {0}.", server.EndPoint);
-                        var result = server.Send(
-                            new Config(Transcoder, ClientConfig.DefaultOperationLifespan, server.EndPoint));
-
-                        if (result.Success && result.Status == ResponseStatus.Success)
-                        {
-                            var config = result.Value;
-                            if (config != null)
-                            {
-                                UpdateConfig(result.Value);
-                                break; //break on first success
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Warn(e);
-                    }
-                }
-            }
-        }
+        internal ICollection<IConfigInfo> ConfigContexts { get { return Configs.Values; } }
 
         public override IConfigInfo GetConfig(string bucketName, string username, string password)
         {
@@ -220,7 +162,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             return ConfigObservers.TryAdd(observer.Name, observer);
         }
 
-        public void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
+        /// <summary>
+        /// Updates the new configuration if the new configuration revision is greater than the current configuration.
+        /// </summary>
+        /// <param name="bucketConfig">The bucket configuration.</param>
+        /// <param name="force">if set to <c>true</c> [force].</param>
+        public override void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
         {
             IConfigObserver configObserver;
             if (ConfigObservers != null && ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
@@ -317,10 +264,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 if (!Disposed && disposing)
                 {
                     GC.SuppressFinalize(this);
-                }
-                if (_heartBeat != null)
-                {
-                    _heartBeat.Dispose();
                 }
                 foreach (var configObserver in ConfigObservers)
                 {

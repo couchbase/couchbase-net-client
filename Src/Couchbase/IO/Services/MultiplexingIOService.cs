@@ -206,7 +206,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation);
+                await HandleException(capturedException, operation, EndPoint);
             }
         }
 
@@ -246,7 +246,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation);
+                await HandleException(capturedException, operation, EndPoint);
             }
         }
 
@@ -255,7 +255,7 @@ namespace Couchbase.IO.Services
             return ExecuteAsync(operation, _connection);
         }
 
-        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
+        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation, IPEndPoint endPoint)
         {
             var sourceException = capturedException.SourceException;
             var status = ResponseStatus.ClientFailure;
@@ -274,7 +274,8 @@ namespace Couchbase.IO.Services
             {
                 Exception = sourceException,
                 Opaque = operation.Opaque,
-                Status = status
+                Status = status,
+                EndPoint = endPoint
             }).ContinueOnAnyContext();
         }
 

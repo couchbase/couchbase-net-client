@@ -80,6 +80,7 @@
     <Compile Include="Configuration\Client\ServerResolverTests.cs" />
     <Compile Include="Configuration\ConfigContextBaseTests.cs" />
     <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
+    <Compile Include="Configuration\Server\Monitoring\ConfigMonitorTests.cs" />
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapperTests.cs" />
