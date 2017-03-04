@@ -906,6 +906,22 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
 
+        [Test(Description = "https://issues.couchbase.com/browse/NCBC-1348")]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_SingleCounterSmallValue_ReturnsValue(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_SingleCounterSmallValue_ReturnsValue";
+            _bucket.Upsert(key, new { count = 0 });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Counter("count", 1);
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(1, result.Content<int>("count"));
+        }
+
         #endregion
 
         #region single op tests
@@ -1016,6 +1032,23 @@ namespace Couchbase.IntegrationTests
             var result = (DocumentFragment<dynamic>)builder.Execute();
             var actual = result.Content<dynamic>("bar");
             Assert.AreEqual(expected.baz, actual.baz.Value);
+        }
+
+        [Test(Description = "https://issues.couchbase.com/browse/NCBC-1348")]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupInBuilder_SingleGet_ReturnsShortValue(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "LookupInBuilder_SingleGet_ReturnsShortValue";
+
+            const int value = 3;
+            _bucket.Upsert(key, new { foo = value });
+
+            var builder = _bucket.LookupIn<dynamic>(key).Get("foo");
+            var result = (DocumentFragment<dynamic>)builder.Execute();
+            var actual = result.Content<int>("foo");
+            Assert.AreEqual(value, actual);
         }
 
         public class Foo

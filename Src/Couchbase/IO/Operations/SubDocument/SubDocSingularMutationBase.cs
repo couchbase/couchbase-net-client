@@ -1,4 +1,5 @@
 ﻿using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -66,6 +67,16 @@ namespace Couchbase.IO.Operations.SubDocument
                 return bytes.StripBrackets();
             }
             return bytes;
+        }
+
+        public override void ReadExtras(byte[] buffer)
+        {
+            if (buffer.Length >= 40 && VBucket != null)
+            {
+                var uuid = Converter.ToInt64(buffer, 24);
+                var seqno = Converter.ToInt64(buffer, 32);
+                MutationToken = new MutationToken(VBucket.BucketName, (short)VBucket.Index, uuid, seqno);
+            }
         }
     }
 }

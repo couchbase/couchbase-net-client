@@ -53,6 +53,11 @@ namespace Couchbase.IO.Operations.SubDocument
             Converter.FromByte(CurrentSpec.Flags, buffer, offset + 2); //3
         }
 
+        public override void ReadExtras(byte[] buffer)
+        {
+            // Do nothing, lookups don't return extras
+        }
+
         public override bool CanRetry()
         {
             return true;
