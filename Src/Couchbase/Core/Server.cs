@@ -324,46 +324,6 @@ namespace Couchbase.Core
                 {
                     CheckDataNode();
                 }
-                else if(IsQueryNode)
-                {
-                    CheckQueryNode();
-                }
-            }
-        }
-
-        /// <summary>
-        /// If the node is strictly a query node, this method will send a simple statement to
-        /// be executed. If it returns successfully, then the node will be marked as not
-        /// <see cref="_isDown">down</see> and put back into rotation.
-        /// </summary>
-        void CheckQueryNode()
-        {
-            try
-            {
-                var query = new QueryRequest("SELECT 'PING!'").BaseUri(CachedQueryBaseUri);
-                var result = QueryClient.Query<dynamic>(query);
-                if (result.Success)
-                {
-                    Log.Info("Successfully connected and marking query node {0} as up.", EndPoint);
-                    _isDown = false;
-                }
-                else
-                {
-                    Log.Info("The query node {0} is still down: {1}", EndPoint, result.Status);
-                }
-
-            }
-            catch (Exception e)
-            {
-
-                Log.Info("The query node {0} is still down: {1}", EndPoint, e.Message);
-                //the node is down or unreachable
-                _isDown = true;
-                Log.Debug(e);
-            }
-            finally
-            {
-                StartHeartbeatTimer();
             }
         }
 
@@ -796,7 +756,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    MarkDead();
                     result = new QueryResult<T>
                     {
                         Exception = e,
@@ -849,7 +808,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    MarkDead();
                     result = new QueryResult<T>
                     {
                         Exception = e,
@@ -876,7 +834,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    MarkDead();
                     searchResult = new SearchQueryResult
                     {
                         Exception = e,
@@ -902,7 +859,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    MarkDead();
                     searchResult = new SearchQueryResult
                     {
                         Exception = e,
@@ -934,7 +890,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception exception)
                 {
-                    MarkDead();
                     result = new AnalyticsResult<T>
                     {
                         Exception = exception,
@@ -968,7 +923,6 @@ namespace Couchbase.Core
                 }
                 catch (Exception exception)
                 {
-                    MarkDead();
                     result = Task.FromResult<IAnalyticsResult<T>>(new AnalyticsResult<T>
                     {
                         Exception = exception,

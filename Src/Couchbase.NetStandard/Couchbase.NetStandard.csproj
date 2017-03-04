@@ -227,6 +227,18 @@
     <Compile Include="..\Couchbase\Core\DocumentMutationException.cs">
       <Link>Core\DocumentMutationException.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Core\Monitoring\ClusterMonitor.cs">
+      <Link>Core\Monitoring\ClusterMonitor.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Core\Monitoring\QueryUriTester.cs">
+      <Link>Core\Monitoring\QueryUriTester.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Core\Monitoring\SearchUriTester.cs">
+      <Link>Core\Monitoring\SearchUriTester.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Core\Monitoring\UriTesterBase.cs">
+      <Link>Core\Monitoring\UriTesterBase.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Core\Serialization\ITypeSerializerProvider.cs">
       <Link>Core\Serialization\ITypeSerializerProvider.cs</Link>
     </Compile>

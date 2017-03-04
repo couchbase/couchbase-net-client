@@ -82,6 +82,7 @@
     <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
     <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
     <Compile Include="Core\Buckets\KetamaKeyMapperTests.cs" />
+    <Compile Include="Core\Monitoring\UriTesterTests.cs" />
     <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />
     <Compile Include="GlobalSetup.cs" />
     <Compile Include="IO\ConnectionBaseTests.cs" />

@@ -340,5 +340,11 @@ namespace Couchbase.Configuration.Client
         /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
         /// </summary>
         bool UseConnectionPooling { get; }
+
+        /// <summary>
+        /// Indicates if the client should monitor down services using ping requests and reactivate when they
+        /// are back online.  Pings every <see cref="NodeAvailableCheckInterval"/>ms.  Defaults to true.
+        /// </summary>
+        bool EnableDeadServiceUriPing { get; }
     }
 }

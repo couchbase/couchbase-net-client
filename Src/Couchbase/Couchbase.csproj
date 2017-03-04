@@ -132,6 +132,10 @@
     <Compile Include="Core\IO\SubDocument\OperationSpec.cs" />
     <Compile Include="Core\ISubDocBuilder.cs" />
     <Compile Include="Core\DocumentMutationException.cs" />
+    <Compile Include="Core\Monitoring\ClusterMonitor.cs" />
+    <Compile Include="Core\Monitoring\SearchUriTester.cs" />
+    <Compile Include="Core\Monitoring\UriTesterBase.cs" />
+    <Compile Include="Core\Monitoring\QueryUriTester.cs" />
     <Compile Include="Core\Serialization\ITypeSerializerProvider.cs" />
     <Compile Include="Core\Lifespan.cs" />
     <Compile Include="Core\LookupInBuilder.cs" />

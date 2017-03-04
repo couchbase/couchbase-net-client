@@ -87,6 +87,7 @@ namespace Couchbase.Configuration.Client
             public static uint IOErrorThreshold = 10;
 
             public static bool UseConnectionPooling = false;
+            public static bool EnableDeadServiceUriPing = true;
         }
 
         public ClientConfiguration()
@@ -135,6 +136,7 @@ namespace Couchbase.Configuration.Client
             NodeAvailableCheckInterval = Defaults.NodeAvailableCheckInterval;//ms
             IOErrorCheckInterval = Defaults.IOErrorCheckInterval;
             IOErrorThreshold = Defaults.IOErrorThreshold;
+            EnableDeadServiceUriPing = Defaults.EnableDeadServiceUriPing;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -199,6 +201,7 @@ namespace Couchbase.Configuration.Client
         {
             Timer = TimingFactory.GetTimer();
             UseConnectionPooling = definition.UseConnectionPooling;
+            EnableDeadServiceUriPing = definition.EnableDeadServiceUriPing;
             NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
             UseSsl = definition.UseSsl;
             SslPort = definition.SslPort;
@@ -379,6 +382,12 @@ namespace Couchbase.Configuration.Client
         /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
         /// </summary>
         public bool UseConnectionPooling { get; set; }
+
+        /// <summary>
+        /// Indicates if the client should monitor down services using ping requests and reactivate when they
+        /// are back online.  Pings every <see cref="NodeAvailableCheckInterval"/>ms.  Defaults to true.
+        /// </summary>
+        public bool EnableDeadServiceUriPing { get; set; }
 
         /// <summary>
         /// Gets or sets the VBucket retry sleep time: the default is 100ms.

@@ -403,6 +403,17 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Indicates if the client should monitor down services using ping requests and reactivate when they
+        /// are back online.  Pings every <see cref="NodeAvailableCheckInterval"/>ms.  Defaults to true.
+        /// </summary>
+        [ConfigurationProperty("enableDeadServiceUriPing", IsRequired = false, DefaultValue = true)]
+        public bool EnableDeadServiceUriPing
+        {
+            get { return (bool)this["enableDeadServiceUriPing"]; }
+            set { this["enableDeadServiceUriPing"] = value; }
+        }
+
+        /// <summary>
         /// If the client detects that a node has gone offline it will check for connectivity at this interval.
         /// </summary>
         /// <remarks>The default is 1000ms.</remarks>

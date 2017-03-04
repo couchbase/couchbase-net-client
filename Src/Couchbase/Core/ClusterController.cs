@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Couchbase.Authentication;
+using Couchbase.Core.Monitoring;
 
 namespace Couchbase.Core
 {
@@ -28,6 +29,7 @@ namespace Couchbase.Core
         private readonly Func<IConnectionPool, IIOService> _ioServiceFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
         private readonly Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> _saslFactory;
+        private readonly ClusterMonitor _clusterMonitor;
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
 
@@ -61,6 +63,12 @@ namespace Couchbase.Core
             Converter = converter;
             Transcoder = transcoder;
             Initialize();
+
+            if (clientConfig.EnableDeadServiceUriPing)
+            {
+                _clusterMonitor = new ClusterMonitor(this);
+                _clusterMonitor.StartMonitoring();
+            }
         }
 
         public ICluster Cluster { get; private set; }
@@ -306,6 +314,10 @@ namespace Couchbase.Core
                     if (disposing)
                     {
                         GC.SuppressFinalize(this);
+                    }
+                    if (_clusterMonitor != null)
+                    {
+                        _clusterMonitor.Dispose();
                     }
                     foreach (var pair in _buckets)
                     {

@@ -347,6 +347,12 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public bool UseConnectionPooling { get; set; }
 
+        /// <summary>
+        /// Indicates if the client should monitor down services using ping requests and reactivate when they
+        /// are back online.  Pings every <see cref="NodeAvailableCheckInterval"/>ms.  Defaults to true.
+        /// </summary>
+        public bool EnableDeadServiceUriPing { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -380,6 +386,7 @@ namespace Couchbase.Configuration.Client
             QueryFailedThreshold = (int)ClientConfiguration.Defaults.QueryFailedThreshold;
             VBucketRetrySleepTime = ClientConfiguration.Defaults.VBucketRetrySleepTime;
             UseConnectionPooling = ClientConfiguration.Defaults.UseConnectionPooling;
+            EnableDeadServiceUriPing = ClientConfiguration.Defaults.EnableDeadServiceUriPing;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations
