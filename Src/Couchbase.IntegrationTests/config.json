@@ -47,6 +47,17 @@
           "useEnhancedDurability": true
         }
       ]
+    },
+
+    "ignoreandpopulate": {
+      "enableConfigHeartbeat": true,
+      "serializer": "Couchbase.IntegrationTests.Utils.IgnoreAndPopulateSerializer, Couchbase.IntegrationTests",
+      "buckets": [
+        {
+          "name": "default",
+          "useEnhancedDurability": false
+        }
+      ]
     }
   }
 }

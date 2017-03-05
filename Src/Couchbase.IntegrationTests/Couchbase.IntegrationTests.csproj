@@ -162,6 +162,7 @@
     <Compile Include="MutationTokenTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScramShaMechanismTests.cs" />
+    <Compile Include="Utils\IgnoreAndPopulateSerializer.cs" />
     <Compile Include="Utils\TestConfiguration.cs" />
     <Compile Include="Utils\TestSettings.cs" />
     <Compile Include="Utils\UriExtensionsTests.cs" />

@@ -287,6 +287,30 @@ namespace Couchbase.IntegrationTests
             Assert.IsTrue(result2.Success);
         }
 
+        [Test(Description = "https://issues.couchbase.com/browse/NCBC-1350")]
+        public void Test_DefaultValueHandlingIgnoreAndPoplate_BadQuery_NoException()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("ignoreandpopulate")))
+            {
+                var bucket = cluster.OpenBucket();
+                try
+                {
+
+                    var request = new QueryRequest("SELEC * FROM `travel-sample` LIMIT 1");
+
+                    var queryResult = bucket.Query<DocumentContent>(request);
+
+                    Assert.False(queryResult.Success, queryResult.ToString());
+                    Assert.IsNull(queryResult.Exception);
+                    Assert.IsEmpty(queryResult.Rows);
+                }
+                finally
+                {
+                    cluster.CloseBucket(bucket);
+                }
+            }
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {

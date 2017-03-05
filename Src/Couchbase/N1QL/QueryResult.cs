@@ -211,7 +211,7 @@ namespace Couchbase.N1QL
                 RequestId = requestID,
                 ClientContextId = clientContextID,
                 Signature = signature,
-                Rows = results.ToList(),
+                Rows = results != null ? results.ToList() : new List<T>(0),
                 Status = status,
                 Errors = errors != null ? errors.Select(e => e.ToError()).ToList() : null,
                 Warnings = warnings != null ? warnings.Select(w => w.ToWarning()).ToList() : null,
