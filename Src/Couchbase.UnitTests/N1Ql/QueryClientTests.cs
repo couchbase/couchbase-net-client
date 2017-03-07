@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
@@ -11,6 +12,9 @@ using Couchbase.N1QL;
 using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
+using Couchbase.UnitTests.Utils;
+using System.Net;
+using Couchbase.Configuration;
 
 namespace Couchbase.UnitTests.N1Ql
 {
@@ -105,6 +109,66 @@ namespace Couchbase.UnitTests.N1Ql
 
             var query = queryRequest.GetFormValues();
             Assert.AreEqual("10000ms", query["scan_wait"]);
+        }
+
+        [Test]
+        public async Task Test_QueryAsync_CanCancel()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            // create hander that takes some time to return
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => {
+                    Thread.Sleep(TimeSpan.FromMilliseconds(200));
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }
+            ));
+
+            var config = new ClientConfiguration();
+            var queryClient = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            var result = await queryClient.QueryAsync<dynamic>(queryRequest, cancellationTokenSource.Token);
+
+            Assert.False(result.Success);
+            Assert.NotNull(result.Exception);
+            Assert.IsInstanceOf<OperationCanceledException>(result.Exception);
+        }
+
+        [Test]
+        public async Task Test_PrepareQueryAsync_CanCancel()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            // create hander that takes some time to return
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => {
+                    Thread.Sleep(TimeSpan.FromMilliseconds(200));
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }
+            ));
+
+            var config = new ClientConfiguration();
+            var queryClient = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            var result = await queryClient.PrepareAsync(queryRequest, cancellationTokenSource.Token);
+
+            Assert.False(result.Success);
+            Assert.NotNull(result.Exception);
+            Assert.IsInstanceOf<OperationCanceledException>(result.Exception);
         }
     }
 }

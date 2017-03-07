@@ -32,7 +32,10 @@ namespace Couchbase.UnitTests.Utils
         {
             try
             {
-                return Task.FromResult(_handler.Invoke(request));
+                var result = Task.FromResult(_handler.Invoke(request));
+                cancellationToken.ThrowIfCancellationRequested();
+
+                return result;
             }
             catch (Exception ex)
             {
