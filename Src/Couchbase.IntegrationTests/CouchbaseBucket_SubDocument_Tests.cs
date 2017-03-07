@@ -1051,6 +1051,22 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(value, actual);
         }
 
+        [Test(Description = "https://issues.couchbase.com/browse/NCBC-1349")]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_SingleReplace_ReturnsMutationTokenWithEnhancedDurability(bool useMutation)
+        {
+            Setup(useMutation);
+            var key = "MutateIn_SingleReplace_ReturnsMutationTokenWithEnhancedDurability";
+            _bucket.Upsert(key, new { foo = "bar", bar = "foo" });
+
+            var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "foo");
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
+        }
+
         public class Foo
         {
             public string baz { get; set; }

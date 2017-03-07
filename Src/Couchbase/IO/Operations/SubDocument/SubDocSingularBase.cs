@@ -114,11 +114,13 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Status = GetParentStatus(status);
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
 
                 CurrentSpec.Value = GetValue();
                 CurrentSpec.Status = status;
                 result.Value = new List<OperationSpec> { CurrentSpec };
+
+                // Read MutationToken after GetValue(), which may fill it with a value
+                result.Token = MutationToken ?? DefaultMutationToken;
 
                 //clean up and set to null
                 if (!result.IsNmv())
