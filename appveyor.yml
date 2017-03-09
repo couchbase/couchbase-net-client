@@ -1,4 +1,4 @@
-version: 2.4.1.{build}
+version: 2.4.2.{build}
 configuration: Release
 init:
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
