@@ -36,7 +36,6 @@ artifacts:
 test: off
 deploy:
 - provider: GitHub
-  artifact: /.*\.zip/
   auth_token:
     secure: SKZPuqPpuYCGDlPa2hEJ6NmjNBWJ9J60/kM7Y5cEtvm3EHrYX5j3VhV2KV5os5gA
   on:
