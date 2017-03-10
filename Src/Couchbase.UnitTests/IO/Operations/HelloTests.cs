@@ -2,6 +2,7 @@
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 using NUnit.Framework;
 
 #if !NET45
@@ -37,18 +38,10 @@ namespace Couchbase.UnitTests.IO.Operations
         }
 
         [Test]
-        public void Key_Contains_CLR_And_OS()
+        public void Key_Contains_ClientIdentifier()
         {
-            const string defaultVersion = "0.0.0.0";
             var hello = new Hello(new short[] {}, new DefaultTranscoder(), 0, 0);
-
-#if NET45
-            var expectedKey = string.Format("couchbase-net-sdk/{0}, clr:{1}, os:{2}", defaultVersion, Environment.Version, Environment.OSVersion);
-            Assert.AreEqual(expectedKey, hello.Key);
-#else
-            var expectedKey = string.Format("couchbase-net-sdk/{0}, clr:{1}, os:{2}", defaultVersion, RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription);
-            Assert.AreEqual(expectedKey, hello.Key);
-#endif
+            Assert.AreEqual(ClientIdentifier.GetClientDescription(), hello.Key);
         }
     }
 }

@@ -411,6 +411,7 @@
     <Compile Include="TemporaryLockFailureException.cs" />
     <Compile Include="Utils\AssemblyVersion.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensions.cs" />
+    <Compile Include="Utils\ClientIdentifier.cs" />
     <Compile Include="Utils\ExceptionUtil.cs" />
     <Compile Include="IO\MissingKeyException.cs" />
     <Compile Include="Utils\QueryResultExtensions.cs" />

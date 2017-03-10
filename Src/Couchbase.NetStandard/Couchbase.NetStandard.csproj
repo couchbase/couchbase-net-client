@@ -1295,6 +1295,9 @@
     <Compile Include="..\Couchbase\Utils\BoolExtensions.cs">
       <Link>Utils\BoolExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Utils\ClientIdentifier.cs">
+      <Link>Utils\ClientIdentifier.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Utils\IPEndPointExtensions.cs">
       <Link>Utils\IPEndPointExtensions.cs</Link>
     </Compile>

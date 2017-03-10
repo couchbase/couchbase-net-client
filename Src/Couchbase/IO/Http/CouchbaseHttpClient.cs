@@ -6,11 +6,13 @@ using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Utils;
 
 namespace Couchbase.IO.Http
 {
     public class CouchbaseHttpClient : HttpClient
     {
+        private const string UserAgentHeaderName = "User-Agent";
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseHttpClient>();
 
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
@@ -28,6 +30,7 @@ namespace Couchbase.IO.Http
         internal CouchbaseHttpClient(AuthenticatingHttpClientHandler handler)
             : base(handler)
         {
+            DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
         private static AuthenticatingHttpClientHandler CreateClientHandler(string user, string password, ClientConfiguration config)
