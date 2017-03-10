@@ -124,6 +124,7 @@
     <Compile Include="Configuration\Server\Serialization\Group.cs" />
     <Compile Include="Core\Buckets\KeySeqnoObserver.cs" />
     <Compile Include="Core\Buckets\MutationToken.cs" />
+    <Compile Include="Core\CouchbaseKeyValueResponseException.cs" />
     <Compile Include="Core\ExpressionVisitors\LambdaSimplifyingExpressionVisitor.cs" />
     <Compile Include="Core\FeatureNotAvailableException.cs" />
     <Compile Include="Core\ILookupInBuilder.cs" />
@@ -237,6 +238,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapper.cs" />
     <Compile Include="Core\Buckets\KetamaNode.cs" />
     <Compile Include="ClusterInfo.cs" />
+    <Compile Include="CouchbaseResponseException.cs" />
     <Compile Include="DocumentAlreadyExistsException.cs" />
     <Compile Include="DocumentDoesNotExistException.cs" />
     <Compile Include="IDocument.cs" />
@@ -345,6 +347,7 @@
     <Compile Include="Management\ReplicaIndex.cs" />
     <Compile Include="Management\ThreadNumber.cs" />
     <Compile Include="N1QL\Compression.cs" />
+    <Compile Include="N1QL\CouchbaseQueryResponseException.cs" />
     <Compile Include="N1QL\Encoding.cs" />
     <Compile Include="N1QL\Format.cs" />
     <Compile Include="N1QL\IQueryRequestWithDataMapper.cs" />
@@ -368,7 +371,9 @@
     <Compile Include="N1QL\StreamingQueryClient.cs" />
     <Compile Include="N1QL\Warning.cs" />
     <Compile Include="DocumentFragment%27.cs" />
+    <Compile Include="ResponseExtensions.cs" />
     <Compile Include="ScanConsistencyNameResolver.cs" />
+    <Compile Include="Search\CouchbaseSearchResponseException.cs" />
     <Compile Include="Search\DateRangeFacet.cs" />
     <Compile Include="Search\Queries\Simple\QueryStringQuery.cs" />
     <Compile Include="Search\SearchMetrics.cs" />
@@ -420,6 +425,7 @@
     <Compile Include="Utils\TimeSpanExtensions.cs" />
     <Compile Include="Utils\TypecastingEnumerator.cs" />
     <Compile Include="Utils\UrlUtil.cs" />
+    <Compile Include="Views\CouchbaseViewResponseException.cs" />
     <Compile Include="Views\ISpatialViewQuery.cs" />
     <Compile Include="Views\IViewQueryable.cs" />
     <Compile Include="Views\IViewResult%27.cs" />

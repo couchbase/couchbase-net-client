@@ -185,6 +185,9 @@
     <Compile Include="..\Couchbase\Core\Buckets\MutationToken.cs">
       <Link>Core\Buckets\MutationToken.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Core\CouchbaseKeyValueResponseException.cs">
+      <Link>Core\CouchbaseKeyValueResponseException.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Core\ExpressionVisitors\LambdaSimplifyingExpressionVisitor.cs">
       <Link>Core\ExpressionVisitors\LambdaSimplifyingExpressionVisitor.cs</Link>
     </Compile>
@@ -557,6 +560,9 @@
     <Compile Include="..\Couchbase\ClusterInfo.cs">
       <Link>ClusterInfo.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\CouchbaseResponseException.cs">
+      <Link>CouchbaseResponseException.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\DocumentAlreadyExistsException.cs">
       <Link>DocumentAlreadyExistsException.cs</Link>
     </Compile>
@@ -854,6 +860,9 @@
     <Compile Include="..\Couchbase\N1QL\Compression.cs">
       <Link>N1QL\Compression.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\N1QL\CouchbaseQueryResponseException.cs">
+      <Link>N1QL\CouchbaseQueryResponseException.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\N1QL\Encoding.cs">
       <Link>N1QL\Encoding.cs</Link>
     </Compile>
@@ -923,8 +932,14 @@
     <Compile Include="..\Couchbase\DocumentFragment%27.cs">
       <Link>DocumentFragment%27.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\ResponseExtensions.cs">
+      <Link>ResponseExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\ScanConsistencyNameResolver.cs">
       <Link>ScanConsistencyNameResolver.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\CouchbaseSearchResponseException.cs">
+      <Link>Search\CouchbaseSearchResponseException.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\DateRangeFacet.cs">
       <Link>Search\DateRangeFacet.cs</Link>
@@ -1072,6 +1087,9 @@
     </Compile>
     <Compile Include="..\Couchbase\Utils\UrlUtil.cs">
       <Link>Utils\UrlUtil.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Views\CouchbaseViewResponseException.cs">
+      <Link>Views\CouchbaseViewResponseException.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Views\ISpatialViewQuery.cs">
       <Link>Views\ISpatialViewQuery.cs</Link>

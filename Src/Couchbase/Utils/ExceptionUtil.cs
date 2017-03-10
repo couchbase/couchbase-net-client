@@ -76,6 +76,8 @@ namespace Couchbase.Utils
         public const string NotConnectedMsg =
             "The SDK was disconnected from {0} before the operation was processed. This may be a temporary error while the SDK re-establishes a connection.";
 
+        public const string GenericResponseMessageFormat = "Couchbase response error {0}.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);
@@ -89,6 +91,12 @@ namespace Couchbase.Utils
         public static string WithParams(this string msg, params object[] args)
         {
             return GetMessage(msg, args);
+        }
+
+        public static string GetResponseExceptionMessage<T>(string responseMessage, T statusCode)
+            where T: struct
+        {
+            return responseMessage ?? GenericResponseMessageFormat.WithParams(statusCode);
         }
     }
 }
