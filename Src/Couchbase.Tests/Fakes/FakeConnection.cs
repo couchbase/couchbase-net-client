@@ -131,5 +131,10 @@ namespace Couchbase.Tests.Fakes
         {
             throw new NotImplementedException();
         }
+
+        public bool IsConnected
+        {
+            get { return true; }
+        }
     }
 }
