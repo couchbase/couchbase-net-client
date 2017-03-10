@@ -21,7 +21,7 @@ before_build:
 - ps: .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\Couchbase.snk
 - ps: Copy-Item .\Couchbase.snk .\Src\Couchbase\Couchbase.snk
 - ps: Copy-Item .\Couchbase.snk .\Src\Couchbase.NetStandard\Couchbase.snk
-- ps: Get-Content .\src\Couchbase\Properties\AssemblyInfo.cs | Where { $_ -notmatch "InternalsVisibleTo" } | Out-File .\src\Couchbase\Properties\AssemblyInfo.cs
+- ps: Get-Content .\src\Couchbase\Properties\AssemblyInfo.cs | Where { $_ -notmatch "InternalsVisibleTo" } | Set-Content .\src\Couchbase\Properties\AssemblyInfo.cs
 build_script:
 - cmd: msbuild Src\Couchbase\Couchbase.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
 - cmd: msbuild Src\Couchbase.NetStandard\Couchbase.NetStandard.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
