@@ -423,7 +423,8 @@ namespace Couchbase.IO.Services
         {
             var features = new List<short>
             {
-                (short) ServerFeatures.SubdocXAttributes
+                (short) ServerFeatures.SubdocXAttributes,
+                (short) ServerFeatures.SelectBucket
             };
 
             if (ConnectionPool.Configuration.UseEnhancedDurability)
@@ -438,6 +439,7 @@ namespace Couchbase.IO.Services
             {
                 SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
+                SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
             }
             else
             {
@@ -469,6 +471,14 @@ namespace Couchbase.IO.Services
         /// <c>true</c> if the server supports Subdocument XAttributes; otherwise, <c>false</c>.
         /// </value>
         public bool SupportsSubdocXAttributes { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports Enhanced Authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedAuthentication { get; private set; }
 
         /// <summary>
         /// Returns true if internal TCP connections are using SSL.

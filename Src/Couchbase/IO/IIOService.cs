@@ -119,6 +119,14 @@ namespace Couchbase.IO
         /// <c>true</c> if [supports subdoc x attributes]; otherwise, <c>false</c>.
         /// </value>
         bool SupportsSubdocXAttributes { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports Enhanced Authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedAuthentication { get; }
     }
 }
 

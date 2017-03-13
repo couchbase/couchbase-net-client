@@ -5,6 +5,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Authentication
 {
+    [Obsolete("Please use an implementation of IAuthenticator instead.")]
     public class ClusterCredentials : IClusterCredentials
     {
         public ClusterCredentials()
@@ -12,9 +13,9 @@ namespace Couchbase.Authentication
             BucketCredentials = new Dictionary<string, string>();
         }
 
-        public string ClusterPassword { private get; set; }
+        public string ClusterPassword { get; set; }
 
-        public string ClusterUsername { private get; set; }
+        public string ClusterUsername { get; set; }
 
         public Dictionary<string, string> BucketCredentials { get; set; }
 

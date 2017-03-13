@@ -22,9 +22,9 @@ namespace Couchbase.Core
 
         IConfigProvider GetProvider(string name);
 
-        IBucket CreateBucket(string bucketName, IClusterCredentials credentials = null);
+        IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null);
 
-        IBucket CreateBucket(string bucketName, string password, IClusterCredentials credentials = null);
+        IBucket CreateBucket(string bucketName, string username, string password, IAuthenticator authenticator = null);
 
         void DestroyBucket(IBucket bucket);
 
@@ -34,7 +34,7 @@ namespace Couchbase.Core
         /// Gets the first <see cref="CouchbaseBucket"/> instance found./>
         /// </summary>
         /// <returns></returns>
-        IBucket GetBucket(IClusterCredentials credentials);
+        IBucket GetBucket(IAuthenticator authenticator);
 
         [Obsolete("Use IClusterManager.ClusterInfo() instead")]
         IClusterInfo Info();

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Couchbase.Authentication
+﻿namespace Couchbase.Authentication
 {
     /// <summary>
     /// The type of authentication to use with a given bucket.

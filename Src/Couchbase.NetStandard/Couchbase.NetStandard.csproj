@@ -59,14 +59,29 @@
     <Compile Include="..\Couchbase\Authentication\AuthContext.cs">
       <Link>Authentication\AuthContext.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Authentication\AuthenticatorExtensions.cs">
+      <Link>Authentication\AuthenticatorExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Authentication\AuthenticatorType.cs">
+      <Link>Authentication\AuthenticatorType.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Authentication\AuthType.cs">
       <Link>Authentication\AuthType.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Authentication\ClassicAuthenticator.cs">
+      <Link>Authentication\ClassicAuthenticator.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Authentication\ClusterCredentials.cs">
       <Link>Authentication\ClusterCredentials.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Authentication\IAuthenticator.cs">
+      <Link>Authentication\IAuthenticator.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Authentication\IClusterCredentials.cs">
       <Link>Authentication\IClusterCredentials.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Authentication\PasswordAuthenticator.cs">
+      <Link>Authentication\PasswordAuthenticator.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Authentication\SASL\CramMd5Mechanism.cs">
       <Link>Authentication\SASL\CramMd5Mechanism.cs</Link>
@@ -1177,6 +1192,9 @@
     </Compile>
     <Compile Include="..\Couchbase\IO\Operations\Authentication\SaslStep.cs">
       <Link>IO\Operations\Authentication\SaslStep.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Authentication\SelectBucket.cs">
+      <Link>IO\Operations\Authentication\SelectBucket.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\IO\Operations\Replace.cs">
       <Link>IO\Operations\Replace.cs</Link>

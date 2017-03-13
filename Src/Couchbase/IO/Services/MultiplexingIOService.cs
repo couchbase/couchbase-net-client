@@ -64,6 +64,14 @@ namespace Couchbase.IO.Services
         /// </value>
         public bool SupportsSubdocXAttributes { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports Enhanced Authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedAuthentication { get; private set; }
+
         public IPEndPoint EndPoint
         {
             get { return _connectionPool.EndPoint; }
@@ -329,7 +337,8 @@ namespace Couchbase.IO.Services
         {
             var features = new List<short>
             {
-                (short) ServerFeatures.SubdocXAttributes
+                (short) ServerFeatures.SubdocXAttributes,
+                (short) ServerFeatures.SelectBucket
             };
 
             if (ConnectionPool.Configuration.UseEnhancedDurability)
@@ -344,6 +353,7 @@ namespace Couchbase.IO.Services
             {
                 SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
+                SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
             }
             else
             {

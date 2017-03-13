@@ -28,7 +28,13 @@
         /// <summary>
         /// Perform subdocument operations on document attributes
         /// </summary>
-        SubdocXAttributes = 0x06
+        SubdocXAttributes = 0x06,
+
+        /// <summary>
+        /// Indicates if the cluster supports RBAC and if a Select_Bucket operation should
+        /// be executed when opening a bucket.
+        /// </summary>
+        SelectBucket = 0x08
     }
 }
 

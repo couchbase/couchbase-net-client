@@ -7,6 +7,7 @@ using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
@@ -1009,18 +1010,63 @@ namespace Couchbase.Configuration.Client
             }
         }
 
-        internal IClusterCredentials Credentials { get; set; }
-
-        internal bool HasCredentials { get { return Credentials != null; } }
-
-        internal KeyValuePair<string, string> GetCredentials(string userName, AuthContext context)
+        internal void SetAuthenticator(IAuthenticator authenticator)
         {
-            return Credentials.GetCredentials(context, userName).FirstOrDefault();
+            if (authenticator == null)
+            {
+                throw new ArgumentNullException("authenticator");
+            }
+
+            string username;
+            if (TryGetUsernameFromConnectionString(out username))
+            {
+                switch (authenticator.AuthenticatorType)
+                {
+                    case AuthenticatorType.Classic:
+                        var classicAuthenticator = (ClassicAuthenticator) authenticator;
+                        if (string.IsNullOrWhiteSpace(classicAuthenticator.ClusterUsername))
+                        {
+                            classicAuthenticator.ClusterUsername = username;
+                        }
+                        break;
+                    case AuthenticatorType.Password:
+                        var passwordAuthenticator = (PasswordAuthenticator) authenticator;
+                        if (string.IsNullOrWhiteSpace(passwordAuthenticator.Username))
+                        {
+                            passwordAuthenticator.Username = username;
+                        }
+                        break;
+                }
+            }
+
+            Authenticator = authenticator;
+        }
+
+        private bool TryGetUsernameFromConnectionString(out string username)
+        {
+            var server = Servers.FirstOrDefault();
+            if (server == null) // no servers available to read from
+            {
+                username = null;
+                return false;
+            }
+
+            // check if the username part is available
+            var index = server.UserInfo.IndexOf(":", StringComparison.OrdinalIgnoreCase);
+            username = index >= 0 ? server.UserInfo.Substring(0, index) : server.UserInfo;
+            return !string.IsNullOrWhiteSpace(username);
+        }
+
+        internal IAuthenticator Authenticator { get; private set; }
+
+        internal bool HasCredentials
+        {
+            get { return Authenticator != null; }
         }
 
         internal IDictionary<string, string> GetCredentials(AuthContext context)
         {
-            return Credentials.GetCredentials(context);
+            return Authenticator.GetCredentials(context);
         }
     }
 }

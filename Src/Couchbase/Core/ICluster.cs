@@ -72,7 +72,15 @@ namespace Couchbase.Core
         /// Authenticates the specified credentials.
         /// </summary>
         /// <param name="credentials">The credentials.</param>
+        /// <remarks>Please use <see cref="Authenticate(IAuthenticator)"/> instead.</remarks>
+        [Obsolete("Please use Authenticate(IAuthenticator) instead.")]
         void Authenticate(IClusterCredentials credentials);
+
+        /// <summary>
+        /// Authenticates the specified authenticator.
+        /// </summary>
+        /// <param name="authenticator">The authenticator.</param>
+        void Authenticate(IAuthenticator authenticator);
 
         /// <summary>
         /// Executes a N1QL query against the Couchbase Cluster.

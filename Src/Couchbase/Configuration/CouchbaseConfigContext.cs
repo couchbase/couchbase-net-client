@@ -90,6 +90,7 @@ namespace Couchbase.Configuration
                                 server.CreateSaslMechanismIfNotExists();
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
+                                SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
                             }
                             else
                             {
@@ -173,6 +174,8 @@ namespace Couchbase.Configuration
                             server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                             SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
+                            SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+
                             if (adapter.IsQueryNode)
                             {
                                 var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
@@ -225,6 +228,7 @@ namespace Couchbase.Configuration
                                 //instead of having "newIoService" do it again, later.
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
+                                SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
                             }
                             else
                             {
@@ -314,6 +318,7 @@ namespace Couchbase.Configuration
                             server.CreateSaslMechanismIfNotExists();
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = newIoService.SupportsSubdocXAttributes;
+                            SupportsEnhancedAuthentication = newIoService.SupportsEnhancedAuthentication;
                         }
                         else
                         {

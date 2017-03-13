@@ -77,9 +77,14 @@
     <Compile Include="Analytics\AnalyticsClient.cs" />
     <Compile Include="Analytics\AnalyticsResult.cs" />
     <Compile Include="Authentication\AuthContext.cs" />
+    <Compile Include="Authentication\AuthenticatorExtensions.cs" />
     <Compile Include="Authentication\AuthType.cs" />
+    <Compile Include="Authentication\ClassicAuthenticator.cs" />
     <Compile Include="Authentication\ClusterCredentials.cs" />
+    <Compile Include="Authentication\AuthenticatorType.cs" />
+    <Compile Include="Authentication\IAuthenticator.cs" />
     <Compile Include="Authentication\IClusterCredentials.cs" />
+    <Compile Include="Authentication\PasswordAuthenticator.cs" />
     <Compile Include="Authentication\SASL\CramMd5Mechanism.cs" />
     <Compile Include="Authentication\SASL\ISaslMechanism.cs" />
     <Compile Include="Authentication\SASL\MechanismType.cs" />
@@ -249,6 +254,7 @@
     <Compile Include="IO\Http\NonAuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="Core\SubdocLookupFlags.cs" />
+    <Compile Include="IO\Operations\Authentication\SelectBucket.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />

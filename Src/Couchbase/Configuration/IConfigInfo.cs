@@ -108,6 +108,14 @@ namespace Couchbase.Configuration
         bool SupportsSubdocXAttributes { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the cluster supports Enhanced Authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedAuthentication { get; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this cluster is supports indexing
         /// </summary>
         /// <value>

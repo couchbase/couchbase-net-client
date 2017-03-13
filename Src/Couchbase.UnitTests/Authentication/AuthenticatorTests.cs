@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Authentication;
+using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Moq;
 using NUnit.Framework;
@@ -41,6 +40,100 @@ namespace Couchbase.UnitTests.Authentication
 
             //assert
             Assert.IsNotNull(bucket);
+        }
+
+        [Test]
+        public void Can_Authenticate_With_PasswordAuthenticator()
+        {
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(x => x.OpenBucket(It.IsAny<string>())).Returns(new Mock<IBucket>().Object);
+            clusterMock.Setup(x => x.Authenticate(It.IsAny<IAuthenticator>()));
+            var cluster = clusterMock.Object;
+
+            var authenticator = new PasswordAuthenticator("mike", "secure123");
+            cluster.Authenticate(authenticator);
+            var bucket = cluster.OpenBucket("defualt");
+
+            Assert.IsNotNull(bucket);
+        }
+
+        [Test]
+        public void Can_Authenticate_With_ClassicAuthenticator()
+        {
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(x => x.OpenBucket(It.IsAny<string>())).Returns(new Mock<IBucket>().Object);
+            clusterMock.Setup(x => x.Authenticate(It.IsAny<IAuthenticator>()));
+            var cluster = clusterMock.Object;
+
+            var authenticator = new ClassicAuthenticator("administrator", "password");
+            cluster.Authenticate(authenticator);
+            var bucket = cluster.OpenBucket("defualt");
+
+            Assert.IsNotNull(bucket);
+        }
+
+        [Test]
+        public void Legacy_Credentials_Sets_ClassicAuthenticator_Properties()
+        {
+            var credentials = new ClusterCredentials
+            {
+                ClusterUsername = "Administrator",
+                ClusterPassword = "",
+                BucketCredentials = new Dictionary<string, string>
+                {
+                    {"default", "" },
+                    {"authenticated", "secret" },
+                    {"memcached", "" },
+                    {"travel-sample", "wayward1" }
+                }
+            };
+
+            var authenticator = new ClassicAuthenticator(credentials);
+
+            Assert.AreEqual(credentials.ClusterUsername, authenticator.ClusterUsername);
+            Assert.AreEqual(credentials.ClusterPassword, authenticator.ClusterPassword);
+            CollectionAssert.AreEquivalent(credentials.BucketCredentials, authenticator.BucketCredentials);
+        }
+
+        [Test]
+        public void Null_Authenticator_Throws_NullArgumentException()
+        {
+            var cluster = new Cluster();
+            Assert.Throws<ArgumentNullException>(() => cluster.Authenticate((IAuthenticator) null));
+        }
+
+        [Test]
+        public void Authenticator_Uses_Username_From_ConnectionString_If_Not_Set()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri> {new Uri("couchbase://mike@localhost")}
+            };
+            var cluster = new Cluster(config);
+
+            var authenticator = new PasswordAuthenticator("password");
+            cluster.Authenticate(authenticator);
+
+            var credentials = cluster.Configuration.GetCredentials(AuthContext.BucketKv);
+
+            Assert.AreEqual("mike", credentials.Keys.First());
+        }
+
+        [Test]
+        public void Authenticator_Created_With_Username_Doesnt_Use_Useranme_From_ConnectionString()
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri> { new Uri("couchbase://mike@localhost") }
+            };
+            var cluster = new Cluster(config);
+
+            var authenticator = new PasswordAuthenticator("test_user", "password");
+            cluster.Authenticate(authenticator);
+
+            var credentials = cluster.Configuration.GetCredentials(AuthContext.BucketKv);
+
+            Assert.AreEqual("test_user", credentials.First().Key);
         }
     }
 }

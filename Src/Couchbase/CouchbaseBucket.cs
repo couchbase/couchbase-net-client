@@ -52,7 +52,7 @@ namespace Couchbase
         private readonly uint _operationLifespanTimeout;
         private IRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
-        private readonly IClusterCredentials _credentials;
+        private readonly IAuthenticator _authenticator;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -65,7 +65,7 @@ namespace Couchbase
             public int Count;
         }
 
-        internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder, IClusterCredentials credentials)
+        internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder, IAuthenticator authenticator)
         {
             _clusterController = clusterController;
             _converter = converter;
@@ -79,7 +79,7 @@ namespace Couchbase
                 : _clusterController.Configuration.DefaultOperationLifespan;
 
             //If ICluster.Authenticate was called.
-           _credentials = credentials;
+           _authenticator = authenticator;
         }
 
         /// <summary>
@@ -319,12 +319,12 @@ namespace Couchbase
         /// </exception>
         public IBucketManager CreateManager()
         {
-            if (_credentials == null)
+            if (_authenticator == null)
             {
                 throw new AuthenticationException("No credentials found.");
             }
 
-            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            var clusterCreds = _authenticator.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
             if (clusterCreds.Key == null || clusterCreds.Value == null)
             {
                 throw new AuthenticationException("No credentials found.");

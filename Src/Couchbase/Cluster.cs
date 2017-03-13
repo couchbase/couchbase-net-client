@@ -32,7 +32,6 @@ namespace Couchbase
         private readonly ClientConfiguration _configuration;
         private readonly IClusterController _clusterController;
         private volatile bool _disposed;
-        private IClusterCredentials _credentials;
 
         /// <summary>
         /// Ctor for creating Cluster instance using the default settings.
@@ -106,7 +105,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket()
         {
-            return _clusterController.CreateBucket(DefaultBucket, _credentials);
+            return _clusterController.CreateBucket(DefaultBucket, _configuration.Authenticator);
         }
 
         /// <summary>
@@ -118,7 +117,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket(string bucketname, string password)
         {
-            return _clusterController.CreateBucket(bucketname, password, _credentials);
+            return _clusterController.CreateBucket(bucketname, bucketname, password, _configuration.Authenticator);
         }
 
         /// <summary>
@@ -139,7 +138,7 @@ namespace Couchbase
                 }
                 throw new ArgumentException("bucketname cannot be null, empty or whitespace.");
             }
-            return _clusterController.CreateBucket(bucketname, _credentials);
+            return _clusterController.CreateBucket(bucketname, _configuration.Authenticator);
         }
 
         /// <summary>
@@ -195,12 +194,12 @@ namespace Couchbase
         /// </exception>
         public IClusterManager CreateManager()
         {
-            if (_credentials == null)
+            if (_configuration.Authenticator == null)
             {
                 throw new AuthenticationException("No credentials found.");
             }
 
-            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            var clusterCreds = _configuration.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
             if (clusterCreds.Key == null || clusterCreds.Value == null)
             {
                 throw new AuthenticationException("No credentials found.");
@@ -269,12 +268,12 @@ namespace Couchbase
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
         {
-            if (_credentials == null)
+            if (_configuration.Authenticator == null)
             {
                 throw new InvalidOperationException("An Authenticator is required to perform cluster level querying");
             }
 
-            var bucket = _clusterController.GetBucket(_credentials);
+            var bucket = _clusterController.GetBucket(_configuration.Authenticator);
 #pragma warning disable 618
             return bucket.Query<T>(queryRequest);
 #pragma warning restore 618;
@@ -288,12 +287,12 @@ namespace Couchbase
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         public Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest)
         {
-            if (_credentials == null)
+            if (_configuration.Authenticator == null)
             {
                 throw new InvalidOperationException("An Authenticator is required to perform cluster level querying");
             }
 
-            var bucket = _clusterController.GetBucket(_credentials);
+            var bucket = _clusterController.GetBucket(_configuration.Authenticator);
 #pragma warning disable 618
             return bucket.QueryAsync<T>(queryRequest);
 #pragma warning restore 618
@@ -303,11 +302,26 @@ namespace Couchbase
         /// Authenticates the specified credentials.
         /// </summary>
         /// <param name="credentials">The credentials.</param>
-        /// <exception cref="System.NotImplementedException"></exception>
+        /// <exception cref="System.ArgumentNullException">authenticator</exception>
         public void Authenticate(IClusterCredentials credentials)
         {
-            _credentials = credentials;
-            _configuration.Credentials = _credentials;
+            // create authenticator from legacy credentials
+            Authenticate(new ClassicAuthenticator(credentials));
+        }
+
+        /// <summary>
+        /// Authenticates the specified authenticator.
+        /// </summary>
+        /// <param name="authenticator">The authenticator.</param>
+        /// <exception cref="System.ArgumentNullException">authenticator</exception>
+        public void Authenticate(IAuthenticator authenticator)
+        {
+            if (authenticator == null)
+            {
+                throw new ArgumentNullException("authenticator");
+            }
+
+            _configuration.SetAuthenticator(authenticator);
         }
 
         /// <summary>

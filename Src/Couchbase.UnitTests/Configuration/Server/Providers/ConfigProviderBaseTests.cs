@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Configuration.Server.Providers
             {
             }
 
-            public override IConfigInfo GetConfig(string name, string password)
+            public override IConfigInfo GetConfig(string bucketName, string username, string password)
             {
                 throw new NotImplementedException();
             }

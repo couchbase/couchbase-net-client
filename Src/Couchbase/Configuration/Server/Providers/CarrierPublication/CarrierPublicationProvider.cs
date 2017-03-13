@@ -11,6 +11,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Timer = System.Threading.Timer;
@@ -88,7 +89,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             }
         }
 
-        public override IConfigInfo GetConfig(string bucketName, string password)
+        public override IConfigInfo GetConfig(string bucketName, string username, string password)
         {
             Log.Debug("Getting config for bucket {0}", bucketName);
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
@@ -115,12 +116,19 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
 
                     ioService = IOServiceFactory(connectionPool);
-                    var saslMechanism = SaslFactory(bucketName, password, ioService, Transcoder);
+                    var saslMechanism = SaslFactory(username, password, ioService, Transcoder);
                     ioService.SaslMechanism = saslMechanism;
 
-                    var operationResult = ioService.Execute(
-                        new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
+                    if (ioService.SupportsEnhancedAuthentication) // only execute this if RBAC is enabled on the cluster
+                    {
+                        var selectBucketResult = ioService.Execute(new SelectBucket(bucketName, Transcoder, ClientConfig.DefaultOperationLifespan));
+                        if (!selectBucketResult.Success)
+                        {
+                            throw new AuthenticationException(string.Format("Authentication failed for bucket '{0}'", bucketName));
+                        }
+                    }
 
+                    var operationResult = ioService.Execute(new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
                     if (operationResult.Success)
                     {
                         var bucketConfig = operationResult.Value;

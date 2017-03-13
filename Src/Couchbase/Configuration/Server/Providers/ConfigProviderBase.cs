@@ -76,7 +76,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         public ITypeTranscoder Transcoder { get; set; }
 
-        public abstract IConfigInfo GetConfig(string name, string password);
+        public abstract IConfigInfo GetConfig(string bucketName, string username, string password);
 
         public abstract bool RegisterObserver(IConfigObserver observer);
 
@@ -157,7 +157,7 @@ namespace Couchbase.Configuration.Server.Providers
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public virtual IConfigInfo GetConfig(string bucketName)
         {
-            return GetConfig(bucketName, string.Empty);
+            return GetConfig(bucketName, string.Empty, string.Empty);
         }
 
         /// <summary>

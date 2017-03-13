@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -16,8 +17,7 @@ namespace Couchbase.IO.Http
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseHttpClient>();
 
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
-            : this(CreateClientHandler(bucketConfig.Name, config.HasCredentials ?
-                config.GetCredentials(bucketConfig.Name, AuthContext.BucketKv).Value : bucketConfig.Password, config))
+            : this (CreateClientHandler(config, bucketConfig))
         {
             DefaultRequestHeaders.ExpectContinue = config.Expect100Continue;
         }
@@ -33,9 +33,20 @@ namespace Couchbase.IO.Http
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static AuthenticatingHttpClientHandler CreateClientHandler(string user, string password, ClientConfiguration config)
+        private static AuthenticatingHttpClientHandler CreateClientHandler(ClientConfiguration clientConfiguration, IBucketConfig bucketConfig)
         {
-            var handler = new AuthenticatingHttpClientHandler(user, password);
+            if (clientConfiguration.HasCredentials && clientConfiguration.Authenticator.AuthenticatorType == AuthenticatorType.Password)
+            {
+                var credentials = clientConfiguration.Authenticator.GetCredentials(AuthContext.BucketKv).First();
+                return CreateClientHandler(credentials.Key, credentials.Value, clientConfiguration);
+            }
+
+            return CreateClientHandler(bucketConfig.Name, bucketConfig.Password, clientConfiguration);
+        }
+
+        private static AuthenticatingHttpClientHandler CreateClientHandler(string username, string password, ClientConfiguration config)
+        {
+            var handler = new AuthenticatingHttpClientHandler(username, password);
 
 #if NET45
             handler.ServerCertificateValidationCallback = OnCertificateValidation;

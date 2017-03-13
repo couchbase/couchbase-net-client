@@ -68,7 +68,7 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
         }
 
 
-        public IConfigInfo GetConfig(string name,  string password)
+        public IConfigInfo GetConfig(string bucketname, string username, string password)
         {
             throw new NotImplementedException();
         }

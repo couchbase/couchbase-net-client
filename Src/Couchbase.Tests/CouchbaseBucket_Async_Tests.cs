@@ -54,7 +54,7 @@ namespace Couchbase.Tests
 
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(config);
-            mockController.Setup(x => x.CreateBucket("default", "", null))
+            mockController.Setup(x => x.CreateBucket("default", "", "", null))
                 .Returns(new CouchbaseBucket(mockController.Object, "default", _converter, _transcoder, null));
 
             var cluster = new Cluster(config, mockController.Object);

@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Authentication
 {
-   public interface IClusterCredentials
+    [Obsolete("Please use IAuthenticator instead.")]
+    public interface IClusterCredentials
     {
         string ClusterPassword { set; }
 

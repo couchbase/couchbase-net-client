@@ -24,11 +24,10 @@ namespace Couchbase.IO.Operations
 
         public override byte[] CreateBody()
         {
-            var offset = 0;
             var body = new byte[_value.Length * 2];
             for (var i = 0; i < _value.Length; i++)
             {
-                offset += i * 2;
+                var offset = i * 2;
                 Converter.FromInt16(_value[i], body, offset);
             }
 

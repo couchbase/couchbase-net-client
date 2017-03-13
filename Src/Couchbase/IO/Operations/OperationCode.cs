@@ -55,6 +55,9 @@
         //"Dirty" reads
         ReplicaRead = 0x83,
 
+        // used with RBAC to verify credentials with username / password
+        SelectBucket = 0x89,
+
         //Enhanced durability
         ObserveSeqNo = 0x91,
 

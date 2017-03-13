@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using Couchbase.Authentication;
-using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
-using Couchbase.Views;
+using Couchbase.Search;
+using Couchbase.Search.Queries.Simple;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 
@@ -125,6 +125,232 @@ namespace Couchbase.IntegrationTests.Authentication
             //assert - view does not exist but should still return a response and no auth error
             Assert.IsFalse(result.Success);
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+        }
+
+        #region Password Authenticator
+
+        private static PasswordAuthenticator GetPasswordAuthenticator()
+        {
+            return new PasswordAuthenticator("test_user", "secure123");
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_KV()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_N1QL()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("authenticated");
+
+            var query = new QueryRequest("SELECT * FROM `authenticated`;");
+            var result = bucket.Query<dynamic>(query);
+
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_Views()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var query = bucket.CreateQuery("somedoc", "someview");
+            var result = bucket.Query<dynamic>(query);
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_FTS()
+        {
+            var authenticator = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var query = new SearchQuery
+            {
+                Index = "hotel",
+                Query = new PhraseQuery("inn").Field("name")
+            };
+
+            var result = bucket.Query(query);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(SearchStatus.Success, result.Status);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_ClusterManager()
+        {
+            var authenticator = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var clusterManager = cluster.CreateManager();
+            var listbucketsResult = clusterManager.ListBuckets();
+
+            Assert.IsNotNull(clusterManager);
+            Assert.IsTrue(listbucketsResult.Success);
+            Assert.IsTrue(listbucketsResult.Value.Any());
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_BucketManager()
+        {
+            var authenticator = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var bucketManager = bucket.CreateManager();
+
+            var listIndexesResult = bucketManager.ListN1qlIndexes();
+
+            Assert.IsTrue(listIndexesResult.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_N1QL_Cluster()
+        {
+            var authenticator = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            // force bucket open before sumbitting query
+            cluster.OpenBucket("authenticated");
+
+            var query = new QueryRequest("SELECT * FROM `authenticated`;");
+            var result = cluster.Query<dynamic>(query);
+
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_Can_Connect_With_Username_From_ConnectionString()
+        {
+            const string username = "test_user";
+            var config = TestConfiguration.GetDefaultConfiguration();
+
+            // update server uri's to add the username segment
+            config.Servers = config.Servers.Select(x => InsertUsernameIntoUri(x, username)).ToList();
+
+            // create authenticator without username
+            var passwordAuthenticator = new PasswordAuthenticator("secure123");
+            var cluster = new Cluster(config);
+            cluster.Authenticate(passwordAuthenticator);
+
+            // perform KV operation
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        #endregion
+
+        #region ClassicAuthenticator
+
+        private static IAuthenticator GetClassicAuthenticator()
+        {
+            var authenticator = new ClassicAuthenticator("Administrator", "password");
+            authenticator.AddBucketCredential("authenticated", "secret");
+            return authenticator;
+        }
+
+        [Test]
+        public void ClassicAuthenticator_KV()
+        {
+            var authenticator = GetClassicAuthenticator();
+
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        public void ClassicAuthenticator_N1QL()
+        {
+            var authenticator = GetClassicAuthenticator();
+
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var bucket = cluster.OpenBucket("authenticated");
+
+            var query = new QueryRequest("SELECT * FROM `authenticated`;");
+            var result = bucket.Query<dynamic>(query);
+
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        public void ClassicAuthenticator_Views()
+        {
+            var authenticator = GetClassicAuthenticator();
+
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            //if authentication failed - an exception would be thrown during bootstrapping
+            var bucket = cluster.OpenBucket("authenticated");
+            var query = bucket.CreateQuery("somedoc", "someview");
+            var result = bucket.Query<dynamic>(query);
+
+            //assert - view does not exist but should still return a response and no auth error
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+        }
+
+        [Test]
+        public void ClassicAuthenticator_Can_Create_ClusterManager_With_Username_From_ConnectionString()
+        {
+            const string username = "Administrator";
+            var config = TestConfiguration.GetDefaultConfiguration();
+
+            // update server uri's to add the username segment
+            config.Servers = config.Servers.Select(x => InsertUsernameIntoUri(x, username)).ToList();
+
+            // create authenticator without username
+            var authenticator = new ClassicAuthenticator("password");
+            var cluster = new Cluster(config);
+            cluster.Authenticate(authenticator);
+
+            var clusterManager = cluster.CreateManager();
+            var listbucketsResult = clusterManager.ListBuckets();
+
+            Assert.IsNotNull(clusterManager);
+            Assert.IsTrue(listbucketsResult.Success);
+            Assert.IsTrue(listbucketsResult.Value.Any());
+        }
+
+        #endregion
+
+        private static Uri InsertUsernameIntoUri(Uri uri, string username)
+        {
+            var index = uri.OriginalString.IndexOf("://", StringComparison.OrdinalIgnoreCase);
+            return index > 0
+                ? new Uri(string.Format("{0}://{1}@{2}", uri.OriginalString.Substring(0, index), username, uri.OriginalString.Substring(index + 3)))
+                : uri;
         }
     }
 }

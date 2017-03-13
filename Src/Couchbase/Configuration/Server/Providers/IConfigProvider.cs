@@ -13,7 +13,7 @@ namespace Couchbase.Configuration.Server.Providers
 
         IConfigInfo GetConfig(string name);
 
-        IConfigInfo GetConfig(string name, string password);
+        IConfigInfo GetConfig(string name, string username, string password);
 
         bool RegisterObserver(IConfigObserver observer);
 

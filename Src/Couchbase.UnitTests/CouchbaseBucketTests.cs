@@ -467,7 +467,7 @@ namespace Couchbase.UnitTests
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
-            var mockCredentials = new Mock<IClusterCredentials>();
+            var mockCredentials = new Mock<IAuthenticator>();
 
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
@@ -490,7 +490,7 @@ namespace Couchbase.UnitTests
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
-            var mockCredentials = new Mock<IClusterCredentials>();
+            var mockCredentials = new Mock<IAuthenticator>();
 
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
@@ -513,7 +513,7 @@ namespace Couchbase.UnitTests
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
-            var mockCredentials = new Mock<IClusterCredentials>();
+            var mockCredentials = new Mock<IAuthenticator>();
 
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());
@@ -536,7 +536,7 @@ namespace Couchbase.UnitTests
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
-            var mockCredentials = new Mock<IClusterCredentials>();
+            var mockCredentials = new Mock<IAuthenticator>();
 
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.BucketConfig).Returns(new BucketConfig());

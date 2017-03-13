@@ -47,7 +47,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <param name="bucketName">The name of the Couchbase Bucket.</param>
         /// <param name="password">The SASL password used to connect to the Bucket.</param>
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
-        public override IConfigInfo GetConfig(string bucketName, string password)
+        public override IConfigInfo GetConfig(string bucketName, string username, string password)
         {
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
             StartProvider(bucketName, password);
@@ -71,7 +71,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                         using (new SynchronizationContextExclusion())
                         {
-                            using (var httpClient = new CouchbaseHttpClient(bucketName, password))
+                            using (var httpClient = new CouchbaseHttpClient(username, password))
                             {
                                 var body = httpClient.GetStringAsync(uri).Result;
                                 body = body.Replace("$HOST", uri.Host);

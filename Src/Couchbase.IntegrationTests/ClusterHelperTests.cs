@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using Couchbase.Configuration.Client;
@@ -177,12 +178,8 @@ namespace Couchbase.IntegrationTests
             }
             catch (AggregateException e)
             {
-                e = e.Flatten();
-                if (!(e.InnerException is AuthenticationException))
-                {
-                    Assert.Fail("Expected authentication exception, got " + e.InnerException);
-                }
-                //success
+                var exceptions = e.Flatten();
+                Assert.IsTrue(exceptions.InnerExceptions.OfType<AuthenticationException>().Any(), "Expected authentication exception");
             }
         }
 

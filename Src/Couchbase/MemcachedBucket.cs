@@ -33,7 +33,7 @@ namespace Couchbase
     /// <seealso cref="Couchbase.Core.IBucket" />
     /// <seealso cref="Couchbase.Configuration.Server.Providers.IConfigObserver" />
     /// <seealso cref="Couchbase.IRefCountable" />
-    public class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
+    public sealed class MemcachedBucket : IBucket, IConfigObserver, IRefCountable
     {
         private static readonly ILog Log = LogManager.GetLogger<MemcachedBucket>();
         private readonly IClusterController _clusterController;
@@ -44,7 +44,7 @@ namespace Couchbase
         private readonly uint _operationLifespanTimeout;
         private MemcachedRequestExecuter _requestExecuter;
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
-        private IClusterCredentials _credentials;
+        private readonly IAuthenticator _authenticator;
 
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
@@ -60,7 +60,7 @@ namespace Couchbase
         }
 
         internal MemcachedBucket(IClusterController clusterController, string bucketName, IByteConverter converter,
-            ITypeTranscoder transcoder, IClusterCredentials credentials)
+            ITypeTranscoder transcoder, IAuthenticator authenticator)
         {
             _clusterController = clusterController;
             _converter = converter;
@@ -74,7 +74,7 @@ namespace Couchbase
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
 
-            _credentials = credentials;
+            _authenticator = authenticator;
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Creates a <see cref="IBucketManager" /> instance for managing buckets using the <see cref="IClusterCredentials" /> for authentication.
+        /// Creates a <see cref="IBucketManager" /> instance for managing buckets using the <see cref="IAuthenticator" /> for authentication.
         /// </summary>
         /// <returns>
         /// A <see cref="IBucketManager" /> instance.
@@ -109,12 +109,12 @@ namespace Couchbase
         /// </exception>
         public IBucketManager CreateManager()
         {
-            if (_credentials == null)
+            if (_authenticator == null)
             {
                 throw new AuthenticationException("No credentials found.");
             }
 
-            var clusterCreds = _credentials.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
+            var clusterCreds = _authenticator.GetCredentials(AuthContext.ClusterMgmt).FirstOrDefault();
             if (clusterCreds.Key == null || clusterCreds.Value == null)
             {
                 throw new AuthenticationException("No credentials found.");

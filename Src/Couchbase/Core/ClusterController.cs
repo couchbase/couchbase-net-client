@@ -21,10 +21,9 @@ namespace Couchbase.Core
 {
     internal sealed class ClusterController : IClusterController
     {
-        private readonly static ILog Log = LogManager.GetLogger<ClusterController>();
+        private static readonly ILog Log = LogManager.GetLogger<ClusterController>();
         private readonly ClientConfiguration _clientConfig;
         private readonly ConcurrentDictionary<string, IBucket> _buckets = new ConcurrentDictionary<string, IBucket>();
-        private readonly ConcurrentDictionary<string, int> _refCount = new ConcurrentDictionary<string, int>();
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IIOService> _ioServiceFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
@@ -115,10 +114,12 @@ namespace Couchbase.Core
             }
         }
 
-        public IBucket CreateBucket(string bucketName, IClusterCredentials credentials = null)
+        public IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null)
         {
+            var username = bucketName;
             var password = string.Empty;
-            if (credentials == null)
+
+            if (authenticator == null)
             {
                 //try to find a password in configuration
                 BucketConfiguration bucketConfig;
@@ -131,20 +132,33 @@ namespace Couchbase.Core
             }
             else
             {
-                var bucketCreds = credentials.GetCredentials(AuthContext.BucketKv, bucketName);
-                if (bucketCreds.ContainsKey(bucketName))
+                var bucketCredentials = authenticator.GetCredentials(AuthContext.BucketKv, bucketName);
+                switch (authenticator.AuthenticatorType)
                 {
-                    password = bucketCreds[bucketName];
-                }
-                else
-                {
-                    throw new BucketNotFoundException(string.Format("Could not find credentials for bucket: {0}", bucketName));
+                    case AuthenticatorType.Classic:
+                        if (bucketCredentials.ContainsKey(bucketName))
+                        {
+                            username = bucketName;
+                            password = bucketCredentials.First().Value;
+                        }
+                        else
+                        {
+                            throw new BucketNotFoundException(string.Format("Could not find credentials for bucket: {0}", bucketName));
+                        }
+                        break;
+                    case AuthenticatorType.Password:
+                        username = bucketCredentials.First().Key;
+                        password = bucketCredentials.First().Value;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
-            return CreateBucket(bucketName, password, credentials);
+
+            return CreateBucket(bucketName, username, password, authenticator);
         }
 
-        public IBucket CreateBucket(string bucketName, string password, IClusterCredentials credentials = null)
+        public IBucket CreateBucket(string bucketName, string username, string password, IAuthenticator authenticator = null)
         {
             var exceptions = new List<Exception>();
             lock (_syncObject)
@@ -172,13 +186,13 @@ namespace Couchbase.Core
                     try
                     {
                         Log.Debug("Trying to bootstrap with {0}.", provider);
-                        var config = provider.GetConfig(bucketName, password);
+                        var config = provider.GetConfig(bucketName, username, password);
                         IRefCountable refCountable = null;
                         switch (config.NodeLocator)
                         {
                             case NodeLocatorEnum.VBucket:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder, credentials));
+                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder, authenticator));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -188,7 +202,7 @@ namespace Couchbase.Core
 
                             case NodeLocatorEnum.Ketama:
                                 bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder, credentials));
+                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder, authenticator));
                                 refCountable = bucket as IRefCountable;
                                 if (refCountable != null)
                                 {
@@ -257,16 +271,22 @@ namespace Couchbase.Core
         /// Gets the first <see cref="CouchbaseBucket"/> instance found./>
         /// </summary>
         /// <returns></returns>
-        public IBucket GetBucket(IClusterCredentials credentials)
+        public IBucket GetBucket(IAuthenticator authenticator)
         {
             if (_buckets.IsEmpty)
             {
+                if (authenticator.AuthenticatorType != AuthenticatorType.Classic)
+                {
+                    throw new NotSupportedException("Only ClassicAuthenticator supports storing bucket names.");
+                }
+
                 lock (_syncObject)
                 {
                     if (_buckets.IsEmpty)
                     {
-                       var bucketName = credentials.BucketCredentials.First().Key;
-                        return CreateBucket(bucketName, credentials);
+                        var classicAuthenticator = (ClassicAuthenticator) authenticator;
+                        var bucketName = classicAuthenticator.BucketCredentials.First().Key;
+                        return CreateBucket(bucketName, authenticator);
                     }
                 }
             }
