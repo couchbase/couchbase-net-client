@@ -35,11 +35,6 @@ artifacts:
 - path: '*.nupkg'
 test: off
 deploy:
-- provider: GitHub
-  auth_token:
-    secure: SKZPuqPpuYCGDlPa2hEJ6NmjNBWJ9J60/kM7Y5cEtvm3EHrYX5j3VhV2KV5os5gA
-  on:
-    appveyor_repo_tag: true
 - provider: S3
   access_key_id:
     secure: suuUVO/OK/7edFaS0HYlm9ouHqd4SIMt8FAE/iAnRR4=
