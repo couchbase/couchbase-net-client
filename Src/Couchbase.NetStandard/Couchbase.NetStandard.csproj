@@ -827,6 +827,9 @@
     <Compile Include="..\Couchbase\DocumentResult%27.cs">
       <Link>DocumentResult%27.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\HttpServiceBase.cs">
+      <Link>HttpServiceBase.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\IDocument%27.cs">
       <Link>IDocument%27.cs</Link>
     </Compile>

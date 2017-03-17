@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Couchbase.Views
@@ -28,11 +29,13 @@ namespace Couchbase.Views
         /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/>
         /// and mapping then to the queries Type paramater.
         /// </summary>
+        [Obsolete]
         IDataMapper Mapper { get; }
 
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
+        [Obsolete]
         HttpClient HttpClient { get; }
     }
 }

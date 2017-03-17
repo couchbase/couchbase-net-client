@@ -66,11 +66,13 @@ namespace Couchbase.N1QL
         /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
         /// </summary>
+        [Obsolete]
         IDataMapper DataMapper { get; set; }
 
         /// <summary>
         /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
         /// </summary>
+        [Obsolete]
         HttpClient HttpClient { get; set; }
     }
 }

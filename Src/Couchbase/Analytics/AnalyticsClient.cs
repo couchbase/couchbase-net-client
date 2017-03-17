@@ -13,20 +13,13 @@ using Couchbase.Views;
 
 namespace Couchbase.Analytics
 {
-    internal class AnalyticsClient : IAnalyticsClient
+    internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
 
-        private readonly HttpClient _client;
-        private readonly IDataMapper _dataMapper;
-        private readonly ClientConfiguration _configuration;
-
         public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClientConfiguration configuration)
-        {
-            _client = client;
-            _dataMapper = dataMapper;
-            _configuration = configuration;
-        }
+            : base(client, dataMapper, configuration)
+        { }
 
         /// <summary>
         /// Queries the specified request.
@@ -59,17 +52,17 @@ namespace Couchbase.Analytics
                 return result;
             }
 
-            ApplyCredentials(queryRequest, _configuration);
+            ApplyCredentials(queryRequest, ClientConfiguration);
 
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     Log.Trace("Sending analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    var request = await _client.PostAsync(baseUri, content, token).ContinueOnAnyContext();
+                    var request = await HttpClient.PostAsync(baseUri, content, token).ContinueOnAnyContext();
                     using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
-                        result = _dataMapper.Map<AnalyticsResultData<T>>(response).ToQueryResult();
+                        result = DataMapper.Map<AnalyticsResultData<T>>(response).ToQueryResult();
                         result.Success = result.Status == QueryStatus.Success;
                         result.HttpStatusCode = request.StatusCode;
                         Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());

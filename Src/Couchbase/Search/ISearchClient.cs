@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Views;
 
@@ -27,8 +28,10 @@ namespace Couchbase.Search
         /// <value>
         /// The data mapper.
         /// </value>
+        [Obsolete]
         IDataMapper DataMapper { get; }
 
+        [Obsolete]
         HttpClient CreateHttpClient();
     }
 }

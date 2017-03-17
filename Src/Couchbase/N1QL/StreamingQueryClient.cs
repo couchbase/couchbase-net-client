@@ -57,7 +57,7 @@ namespace Couchbase.N1QL
                             ResponseStream = stream,
                             HttpStatusCode = response.StatusCode,
                             Success = response.StatusCode == HttpStatusCode.OK,
-                            QueryTimer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming)
+                            QueryTimer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming)
                         };
                         Log.Trace("Received query cid{0}: {1}", queryRequest.CurrentContextId, queryResult.HttpStatusCode);
                     }

@@ -18,12 +18,11 @@ namespace Couchbase.N1QL
     /// <summary>
     /// A <see cref="IViewClient" /> implementation for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    internal class QueryClient : IQueryClient
+    internal class QueryClient : HttpServiceBase, IQueryClient
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
         // ReSharper disable once InconsistentNaming
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
-        protected readonly ClientConfiguration ClientConfig;
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper,  ClientConfiguration clientConfig)
@@ -32,10 +31,8 @@ namespace Couchbase.N1QL
         }
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
+            : base(httpClient, dataMapper, clientConfig)
         {
-            HttpClient = httpClient;
-            DataMapper = dataMapper;
-            ClientConfig = clientConfig;
             _queryCache = queryCache;
         }
 
@@ -256,7 +253,7 @@ namespace Couchbase.N1QL
         /// Prepares the statement if the <see cref="IQueryRequest"/> is not ad-hoc and caches it for reuse.
         /// </summary>
         /// <param name="originalRequest">The original query request.</param>
-        void PrepareStatementIfNotAdHoc(IQueryRequest originalRequest)
+        private void PrepareStatementIfNotAdHoc(IQueryRequest originalRequest)
         {
             if (originalRequest.IsAdHoc) return;
 
@@ -288,7 +285,7 @@ namespace Couchbase.N1QL
         /// </summary>
         /// <param name="originalRequest">The original query request.</param>
         /// <param name="cancellationToken">Token which can cancel the query.</param>
-        async Task PrepareStatementIfNotAdHocAsync(IQueryRequest originalRequest, CancellationToken cancellationToken)
+        private async Task PrepareStatementIfNotAdHocAsync(IQueryRequest originalRequest, CancellationToken cancellationToken)
         {
             if (originalRequest.IsAdHoc) return;
 
@@ -341,7 +338,7 @@ namespace Couchbase.N1QL
         /// <param name="queryRequest">The query request.</param>
         /// <returns></returns>
         /// <remarks>The format for the querying is JSON</remarks>
-        IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
+        private IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
         {
             // Cache and clear the current SynchronizationContext before we begin.
             // This eliminates the chance for deadlocks when we wait on an async task sychronously.
@@ -387,7 +384,7 @@ namespace Couchbase.N1QL
             {
                 try
                 {
-                    using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfig.EnableQueryTiming))
+                    using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming))
                     {
                         Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         var request = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
@@ -465,12 +462,22 @@ namespace Couchbase.N1QL
         /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
         /// </summary>
-        public IDataMapper DataMapper { get; set; }
+        [Obsolete]
+        public IDataMapper DataMapper
+        {
+            get { return base.DataMapper; }
+            set { base.DataMapper = value; }
+        }
 
         /// <summary>
         /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
         /// </summary>
-        public HttpClient HttpClient { get; set; }
+        [Obsolete]
+        public HttpClient HttpClient
+        {
+            get { return base.HttpClient; }
+            set { base.HttpClient = value; }
+        }
 
         /// <summary>
         /// Applies the credentials if they have been set by call <see cref="Cluster.Authenticate"/>.
@@ -478,9 +485,9 @@ namespace Couchbase.N1QL
         /// <param name="request">The request.</param>
         protected void ApplyCredentials(IQueryRequest request)
         {
-            if (ClientConfig.HasCredentials)
+            if (ClientConfiguration.HasCredentials)
             {
-                var creds = ClientConfig.GetCredentials(AuthContext.ClusterN1Ql);
+                var creds = ClientConfiguration.GetCredentials(AuthContext.ClusterN1Ql);
                 foreach (var cred in creds)
                 {
                     request.AddCredentials(cred.Key, cred.Value, false);
@@ -490,7 +497,7 @@ namespace Couchbase.N1QL
 
         protected bool TryGetQueryUri(out FailureCountingUri baseUri)
         {
-            baseUri = ConfigContextBase.GetQueryUri(ClientConfig.QueryFailedThreshold);
+            baseUri = ConfigContextBase.GetQueryUri(ClientConfiguration.QueryFailedThreshold);
             if (baseUri != null && !string.IsNullOrEmpty(baseUri.AbsoluteUri))
             {
                 return true;

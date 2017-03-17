@@ -11,15 +11,13 @@ namespace Couchbase.Views
     /// <summary>
     /// A base class for view clients that implements <see cref="IViewClient"/> for executing <see cref="IViewQuery"/> queries against a Couchbase View.
     /// </summary>
-    internal abstract class ViewClientBase : IViewClient
+    internal abstract class ViewClientBase : HttpServiceBase, IViewClient
     {
         protected const string Success = "Success";
 
         protected ViewClientBase(HttpClient httpClient, IDataMapper mapper)
-        {
-            HttpClient = httpClient;
-            Mapper = mapper;
-        }
+            : base(httpClient, mapper)
+        { }
 
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> asynchronously against a View.
@@ -48,12 +46,20 @@ namespace Couchbase.Views
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
-        public HttpClient HttpClient { get; private set; }
+        [Obsolete]
+        public HttpClient HttpClient
+        {
+            get { return base.HttpClient; }
+        }
 
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
-        public IDataMapper Mapper { get; private set; }
+        [Obsolete]
+        public IDataMapper Mapper
+        {
+            get { return base.DataMapper; }
+        }
 
         protected static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
         {

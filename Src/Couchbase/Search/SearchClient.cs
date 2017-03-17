@@ -15,16 +15,13 @@ namespace Couchbase.Search
     /// A client for making FTS <see cref="IFtsQuery"/> requests and mapping the responses to <see cref="ISearchQueryResult"/>'s.
     /// </summary>
     /// <seealso cref="Couchbase.Search.ISearchClient" />
-    public class SearchClient : ISearchClient, IDisposable
+    internal class SearchClient : HttpServiceBase, ISearchClient
     {
         private static readonly ILog Log = LogManager.GetLogger<SearchClient>();
-        private readonly HttpClient _httpClient;
 
         public SearchClient(HttpClient httpClient, IDataMapper dataMapper)
-        {
-            _httpClient = httpClient;
-            DataMapper = dataMapper;
-        }
+            : base(httpClient, dataMapper)
+        { }
 
         /// <summary>
         /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchParams" /> parameters.
@@ -53,7 +50,7 @@ namespace Couchbase.Search
             try
             {
                 using (var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json))
-                using (var response = await _httpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
+                using (var response = await HttpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
                 using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {
                     if (response.IsSuccessStatusCode)
@@ -118,25 +115,23 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        /// A <see cref="IDataMapper" /> implementation for mapping the FTS response to a <see cref="ISearchQueryResult" /> instance.
+        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
         /// </summary>
-        /// <value>
-        /// The data mapper.
-        /// </value>
-        public IDataMapper DataMapper { get; internal set; }
+        [Obsolete]
+        public IDataMapper DataMapper
+        {
+            get { return base.DataMapper; }
+        }
 
         /// <summary>
         /// Creates the HTTP client.
         /// </summary>
         /// <returns></returns>
+        /// <exception cref="System.NotSupportedException">Use CTOR to pass in HttpClient dependency.</exception>
+        [Obsolete]
         public virtual HttpClient CreateHttpClient()
         {
             throw new NotSupportedException("Use CTOR to pass in HttpClient dependency.");
-        }
-
-        public void Dispose()
-        {
-            throw new NotImplementedException();
         }
     }
 }

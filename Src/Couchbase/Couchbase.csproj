@@ -246,6 +246,7 @@
     <Compile Include="CouchbaseResponseException.cs" />
     <Compile Include="DocumentAlreadyExistsException.cs" />
     <Compile Include="DocumentDoesNotExistException.cs" />
+    <Compile Include="HttpServiceBase.cs" />
     <Compile Include="IDocument.cs" />
     <Compile Include="IDocumentFragment.cs" />
     <Compile Include="IO\BufferUnavailableException.cs" />
