@@ -326,6 +326,9 @@
     <Compile Include="Management\Indexes\IndexResult.cs" />
     <Compile Include="Management\Indexes\IndexType.cs" />
     <Compile Include="Management\MemcachedBucketManager.cs" />
+    <Compile Include="Management\Role.cs" />
+    <Compile Include="Management\User.cs" />
+    <Compile Include="Management\IUserManager.cs" />
     <Compile Include="MediaType.cs" />
     <Compile Include="MemcachedBucket.cs" />
     <Compile Include="Core\Buckets\NodeLocatorEnum.cs" />

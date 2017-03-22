@@ -1,13 +1,8 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
-using Couchbase.Utils;
-using Moq;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Management
@@ -256,6 +251,31 @@ namespace Couchbase.IntegrationTests.Management
         }
 
         #endregion
+
+        [Test, Ignore("RBAC is not yet supported in the Jenkins automated build")]
+        public void Can_Upsert_List_And_Remove_User()
+        {
+            var user = new User
+            {
+                Username = "alice",
+                Name = "Alice Liddell",
+                Type = "builtin",
+                Roles = new[] { new Role { Name = "fts_searcher", BucketName = "default" } }
+            };
+
+            // create user
+            var createResult = _clusterManager.UpsertUser(user.Username, "secure123", user.Name, user.Roles.ToArray());
+            Assert.IsTrue(createResult.Success);
+
+            // list users
+            var getResult = _clusterManager.GetUsers();
+            Assert.IsTrue(getResult.Success);
+            Assert.IsNotNull(getResult.Value.First(x => x.Username == user.Username));
+
+            // remove user
+            var removeResult = _clusterManager.RemoveUser(user.Username);
+            Assert.IsTrue(removeResult.Success);
+        }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()

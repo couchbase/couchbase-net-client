@@ -869,11 +869,20 @@
     <Compile Include="..\Couchbase\Management\IClusterManager.cs">
       <Link>Management\IClusterManager.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Management\IUserManager.cs">
+      <Link>Management\IUserManager.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Management\ReplicaIndex.cs">
       <Link>Management\ReplicaIndex.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Management\Role.cs">
+      <Link>Management\Role.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Management\ThreadNumber.cs">
       <Link>Management\ThreadNumber.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Management\User.cs">
+      <Link>Management\User.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\N1QL\Compression.cs">
       <Link>N1QL\Compression.cs</Link>

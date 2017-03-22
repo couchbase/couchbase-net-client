@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -746,6 +745,177 @@ namespace Couchbase.Management
             request.Headers.Accept.Add(contentType);
             request.Headers.Host = uri.Authority;
         }
+
+        #region UserManager
+
+        /// <summary>
+        /// Adds or replaces an existing Couchbase user with the provided <see cref="username" />, <see cref="password" />, <see cref="name" /> and <see cref="roles" />.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        /// <param name="name">The full name for the user.</param>
+        /// <param name="roles">The list of roles for the user.</param>
+        public IResult UpsertUser(string username, string password, string name, params Role[] roles)
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                return UpsertUserAsync(username, password, name, roles).Result;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously adds or replaces an existing Couchbase user with the provided <see cref="username" />, <see cref="password" />, <see cref="name" /> and <see cref="roles" />.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        /// <param name="name">The full name for the user.</param>
+        /// <param name="roles">The roles.</param>
+        public async Task<IResult> UpsertUserAsync(string username, string password, string name, params Role[] roles)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentException("username cannot be null or empty");
+            }
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException("password cannot be null or empty");
+            }
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("name cannot be null or empty");
+            }
+            if (roles == null || !roles.Any())
+            {
+                throw new ArgumentException("roles cannot be null or empty");
+            }
+
+            var uri = GetUserManagementUri(username);
+            var formValues = GetUserFormValues(password, name, roles);
+            using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
+            {
+                request.Content = new FormUrlEncodedContent(formValues);
+                SetHeaders(request, uri);
+                using (var response = await _httpClient.SendAsync(request).ContinueOnAnyContext())
+                {
+                    return new DefaultResult<bool>
+                    {
+                        Success = response.IsSuccessStatusCode
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// Removes a Couchbase user with the <see cref="username" />.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        public IResult RemoveUser(string username)
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                return RemoveUserAsync(username).Result;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously removes a Couchbase user with the <see cref="username" />.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        public async Task<IResult> RemoveUserAsync(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentException("username cannot be null or empty");
+            }
+
+            var uri = GetUserManagementUri(username);
+            using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
+            {
+                SetHeaders(request, uri);
+                using (var response = await _httpClient.SendAsync(request).ContinueOnAnyContext())
+                {
+                    return new DefaultResult<bool>
+                    {
+                        Success = response.IsSuccessStatusCode
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get a list of Couchbase users.
+        /// </summary>
+        public IResult<IEnumerable<User>> GetUsers()
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                return GetUsersAsync().Result;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously Get a list of Couchbase users.
+        /// </summary>
+        public async Task<IResult<IEnumerable<User>>> GetUsersAsync()
+        {
+            var uri = GetUserManagementUri();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+            {
+                SetHeaders(request, uri);
+                using (var response = await _httpClient.SendAsync(request).ContinueOnAnyContext())
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                        {
+                            return new DefaultResult<IEnumerable<User>>
+                            {
+                                Success = true,
+                                Value = (Mapper.Map<List<User.UserData>>(stream) ?? new List<User.UserData>()).Select(x => x.ToUser())
+                            };
+                        }
+                    }
+
+                    return new DefaultResult<IEnumerable<User>>
+                    {
+                        Success = false
+                    };
+                }
+            }
+        }
+
+        private Uri GetUserManagementUri(string username = null)
+        {
+            var server = _clientConfig.Servers.Shuffle().First();
+            var protocol = _clientConfig.UseSsl ? "https" : "http";
+            var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
+
+            var builder = new StringBuilder();
+            builder.AppendFormat("{0}://{1}:{2}/settings/rbac/users", protocol, server.Host, port);
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                builder.AppendFormat("/builtin/{0}", username);
+            }
+
+            return new Uri(builder.ToString());
+        }
+
+        private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(string password, string name, IEnumerable<Role> roles)
+        {
+            var rolesValue = string.Join(",",
+                roles.Select(role => string.IsNullOrWhiteSpace(role.BucketName)
+                    ? role.Name
+                    : string.Format("{0}[{1}]", role.Name, role.BucketName))
+            );
+            return new Dictionary<string, string>
+            {
+                {"password", password},
+                {"name", name},
+                {"roles", rolesValue}
+            };
+        }
+
+        #endregion
 
         public void Dispose()
         {
