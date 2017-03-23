@@ -1920,6 +1920,15 @@ namespace Couchbase.Core
         bool SupportsEnhancedDurability { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsKvErrorMap { get; }
+
+        /// <summary>
         /// Gets the configuration for the bucket
         /// </summary>
         /// <value>

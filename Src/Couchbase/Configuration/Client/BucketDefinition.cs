@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Configuration.Client
 {
@@ -22,6 +23,15 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
         /// </value>
         public bool UseEnhancedDurability { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to get an <see cref="ErrorMap"/> to get additional error information
+        /// for unknown errors returned from the server.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseKvErrorMap { get; set; }
 
         /// <summary>
         /// If true, use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.

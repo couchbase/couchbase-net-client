@@ -235,6 +235,11 @@ namespace Couchbase.Configuration.Server.Providers.FileSystem
             get { throw new NotImplementedException(); }
         }
 
+        public bool SupportsKvErrorMap
+        {
+            get { throw new NotImplementedException(); }
+        }
+
         public bool SupportsSubdocXAttributes
         {
             get { throw new NotImplementedException(); }

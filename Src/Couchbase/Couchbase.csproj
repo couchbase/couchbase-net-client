@@ -256,6 +256,7 @@
     <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="Core\SubdocLookupFlags.cs" />
     <Compile Include="IO\Operations\Authentication\SelectBucket.cs" />
+    <Compile Include="IO\Operations\GetErrorMap.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />

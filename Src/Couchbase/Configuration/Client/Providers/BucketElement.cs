@@ -1,5 +1,6 @@
 ﻿#if NET45
 using System.Configuration;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -22,6 +23,21 @@ namespace Couchbase.Configuration.Client.Providers
             get { return (bool)this["useEnhancedDurability"]; }
             set { this["useEnhancedDurability"] = value; }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to get an <see cref="ErrorMap"/> to get additional error information
+        /// for unknown errors returned from the server.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("useKvErrorMap", DefaultValue = false, IsRequired = false)]
+        public bool UseKvErrorMap
+        {
+            get { return (bool)this["useKvErrorMap"]; }
+            set { this["useKvErrorMap"] = value; }
+        }
+
         /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>

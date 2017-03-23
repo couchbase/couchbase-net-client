@@ -250,11 +250,18 @@ namespace Couchbase.Tests.Fakes
         {
         }
 
+        public void SetErrorMap(ErrorMap errorMap)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public bool SupportsEnhancedDurability { get; protected set; }
 
         public bool SupportsSubdocXAttributes { get; protected set; }
 
         public bool SupportsEnhancedAuthentication { get; protected set; }
+
+        public bool SupportsKvErrorMap { get; protected set; }
     }
 }

@@ -58,6 +58,9 @@
         // used with RBAC to verify credentials with username / password
         SelectBucket = 0x89,
 
+        // request a server error map
+        GetErrorMap = 0xfe,
+
         //Enhanced durability
         ObserveSeqNo = 0x91,
 

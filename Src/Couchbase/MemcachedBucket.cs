@@ -161,7 +161,22 @@ namespace Couchbase
         /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
         /// </value>
         /// <remarks>Note this will always be false for Memcached buckets.</remarks>
-        public bool SupportsEnhancedDurability { get { return false; } }
+        public bool SupportsEnhancedDurability
+        {
+            get { return false; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsKvErrorMap
+        {
+            get { return false; }
+        }
 
         /// <summary>
         /// Called when a configuration update has occurred from the server.

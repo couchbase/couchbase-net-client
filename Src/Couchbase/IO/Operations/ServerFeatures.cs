@@ -31,6 +31,12 @@
         SubdocXAttributes = 0x06,
 
         /// <summary>
+        /// Return extended error information for the client to use in K/V Error Mapping. Implies the client
+        /// will request that information from the server to use in mapping error attributes and classes.
+        /// </summary>
+        XError = 0x07,
+
+        /// <summary>
         /// Indicates if the cluster supports RBAC and if a Select_Bucket operation should
         /// be executed when opening a bucket.
         /// </summary>

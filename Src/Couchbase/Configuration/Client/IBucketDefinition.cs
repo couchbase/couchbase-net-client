@@ -1,3 +1,5 @@
+using Couchbase.IO.Operations;
+
 namespace Couchbase.Configuration.Client
 {
     /// <summary>
@@ -15,6 +17,15 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
         /// </value>
         bool UseEnhancedDurability { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to get an <see cref="ErrorMap"/> to get additional error information
+        /// for unknown errors returned from the server.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
+        /// </value>
+        bool UseKvErrorMap { get; }
 
         /// <summary>
         /// If true, use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.

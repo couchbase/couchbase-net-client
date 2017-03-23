@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection.Emit;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Client
@@ -58,6 +59,15 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
         /// </value>
         public bool UseEnhancedDurability { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to get an <see cref="ErrorMap"/> to get additional error information
+        /// for unknown errors returned from the server.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseKvErrorMap { get; set; }
 
         /// <summary>
         /// Set to true to enable Secure Socket Layer (SSL) encryption of all traffic between the client and the server.
@@ -133,15 +143,15 @@ namespace Couchbase.Configuration.Client
         /// The maximum time allowed for an operation to live, in milliseconds, for this specific bucket.
         /// <remarks>Default value is 2500 (2.5 seconds)</remarks>
         /// </summary>
-        public uint DefaultOperationLifespan {
+        public uint DefaultOperationLifespan
+        {
             get { return _operationLifespan; }
             set
             {
                 _operationLifespan = value;
                 _operationLifespanChanged = true;
             }
-         }
-
+        }
 
         /// <summary>
         /// Conditionally change the DefaultOperationLifespan property value, if and only if it wasn't already changed
@@ -194,6 +204,7 @@ namespace Couchbase.Configuration.Client
         {
             var poolConfig = PoolConfiguration.Clone(server);
             poolConfig.UseEnhancedDurability = UseEnhancedDurability;
+            poolConfig.UseKvErrorMap = UseKvErrorMap;
             poolConfig.UseSsl = UseSsl;
             return poolConfig;
         }

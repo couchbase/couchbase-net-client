@@ -137,6 +137,11 @@ namespace Couchbase.Tests.IO.Services
             throw new NotImplementedException();
         }
 
+        public void SetErrorMap(ErrorMap errorMap)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public bool SupportsEnhancedDurability
         {
@@ -149,6 +154,11 @@ namespace Couchbase.Tests.IO.Services
         }
 
         public bool SupportsEnhancedAuthentication
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public bool SupportsKvErrorMap
         {
             get { throw new NotImplementedException(); }
         }

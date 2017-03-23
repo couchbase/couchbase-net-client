@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Authentication;
 using Couchbase.Authentication;
+using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using NUnit.Framework;
@@ -91,6 +92,32 @@ namespace Couchbase.IntegrationTests
 
             Assert.Throws<InvalidOperationException>(() => cluster.Query<dynamic>("select * from authenticated limit 1;"));
         }
+
+        #region KV Error Map
+
+        [TestCase(true)]
+        [TestCase(false)]
+        [Ignore("Integration server does not support KV Error map yet")]
+        public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
+        {
+            var config = TestConfiguration.GetConfiguration("basic");
+            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
+            {
+                {
+                    "default", new BucketConfiguration
+                    {
+                        UseKvErrorMap = enabled
+                    }
+                }
+            };
+
+            var cluster = new Cluster(config);
+            cluster.Authenticate(new PasswordAuthenticator("session-webapp", "secure123"));
+            var bucket = cluster.OpenBucket("default");
+            Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
+        }
+
+        #endregion
     }
 }
 

@@ -27,6 +27,7 @@ namespace Couchbase.IO.Operations
         public const int HeaderLength = 24;
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
+        protected ErrorCode ErrorCode;
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
@@ -146,17 +147,52 @@ namespace Couchbase.IO.Operations
             Data.Write(msgBytes, 0, msgBytes.Length);
         }
 
+        [Obsolete]
         public virtual void Read(byte[] buffer, int offset, int length)
+        {
+            Read(buffer);
+        }
+
+        public void Read(byte[] buffer, ErrorMap errorMap = null)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                return;
+            }
+
+            ReadContent(buffer, errorMap);
+            Data.Write(buffer, 0, buffer.Length);
+        }
+
+        [Obsolete]
+        public async Task ReadAsync(byte[] buffer, int offset, int length)
+        {
+            await ReadAsync(buffer).ContinueOnAnyContext();
+        }
+
+        public async Task ReadAsync(byte[] buffer, ErrorMap errorMap = null)
+        {
+            if (buffer == null || buffer.Length == 0)
+            {
+                return;
+            }
+
+            ReadContent(buffer, errorMap);
+            await Data.WriteAsync(buffer, 0, buffer.Length).ContinueOnAnyContext();
+        }
+
+        private void ReadContent(byte[] buffer, ErrorMap errorMap)
         {
             if (Header.BodyLength == 0 && buffer.Length >= HeaderIndexFor.HeaderLength)
             {
+                var status = GetResponseStatus(Converter.ToInt16(buffer, HeaderIndexFor.Status), errorMap);
                 Header = new OperationHeader
                 {
                     Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
                     OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
                     KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
                     ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus) Converter.ToInt16(buffer, HeaderIndexFor.Status),
+                    Status = status,
                     BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
                     Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                     Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
@@ -168,34 +204,26 @@ namespace Couchbase.IO.Operations
                     HandleClientError(msg, ResponseStatus.ClientFailure);
                 }
             }
-            LengthReceived += length;
-            Data.Write(buffer, offset, length);
+            LengthReceived += buffer.Length;
         }
 
-        public async virtual Task ReadAsync(byte[] buffer, int offset, int length)
+        private ResponseStatus GetResponseStatus(short code, ErrorMap errorMap)
         {
-            if (Header.BodyLength == 0 && buffer.Length >= HeaderIndexFor.HeaderLength)
+            var status = (ResponseStatus) code;
+
+            // Is it a known response status?
+            if (Enum.IsDefined(typeof(ResponseStatus), status))
             {
-                Header = new OperationHeader
-                {
-                    Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
-                    OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
-                    KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
-                    ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    Status = (ResponseStatus)Converter.ToInt16(buffer, HeaderIndexFor.Status),
-                    BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
-                };
-            }
-            if (Opaque != Header.Opaque)
-            {
-                var msg = string.Format("Expected opaque {0} but got {1}", Opaque, Header.Opaque);
-                HandleClientError(msg, ResponseStatus.ClientFailure);
+                return status;
             }
 
-            await Data.WriteAsync(buffer, offset, length);
-            LengthReceived += length;
+            // If available, try and use the error map to get more details
+            if (errorMap != null && errorMap.TryGetGetErrorCode(code, out ErrorCode))
+            {
+                return ResponseStatus.Failure;
+            }
+
+            return ResponseStatus.UnknownError;
         }
 
         public virtual Task<byte[]> WriteAsync()
@@ -320,7 +348,7 @@ namespace Couchbase.IO.Operations
             return status;
         }
 
-        public virtual string GetMessage()
+        public string GetMessage()
         {
             var message = string.Empty;
             if (Success) return message;
@@ -330,7 +358,11 @@ namespace Couchbase.IO.Operations
             }
             else
             {
-                if (Exception == null)
+                if (ErrorCode != null)
+                {
+                    message = ErrorCode.ToString();
+                }
+                else if (Exception == null)
                 {
                     try
                     {

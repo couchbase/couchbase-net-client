@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -342,7 +342,8 @@ namespace Couchbase.Configuration.Client
                         ObserveInterval = bucket.ObserveInterval,
                         DefaultOperationLifespan = bucket.OperationLifespan ?? (uint) DefaultOperationLifespan,
                         ObserveTimeout = bucket.ObserveTimeout,
-                        UseEnhancedDurability = bucket.UseEnhancedDurability
+                        UseEnhancedDurability = bucket.UseEnhancedDurability,
+                        UseKvErrorMap =  bucket.UseKvErrorMap
                     };
 
                     //By skipping the bucket specific connection pool settings we allow inheritance from clien-wide connection pool settings.
@@ -368,6 +369,7 @@ namespace Couchbase.Configuration.Client
                             CloseAttemptInterval = bucket.ConnectionPool.CloseAttemptInterval,
                             MaxCloseAttempts = bucket.ConnectionPool.MaxCloseAttempts,
                             UseEnhancedDurability = bucket.UseEnhancedDurability,
+                            UseKvErrorMap = bucket.UseKvErrorMap,
                             ClientConfiguration = this
                         };
                         bucketConfiguration.PoolConfiguration.Validate();
@@ -377,6 +379,7 @@ namespace Couchbase.Configuration.Client
                         bucketConfiguration.PoolConfiguration = PoolConfiguration;
                         bucketConfiguration.PoolConfiguration.UseSsl = bucketConfiguration.UseSsl;
                         bucketConfiguration.PoolConfiguration.UseEnhancedDurability = bucketConfiguration.UseEnhancedDurability;
+                        bucketConfiguration.PoolConfiguration.UseKvErrorMap = bucketConfiguration.UseKvErrorMap;
                         PoolConfiguration.Validate();
                     }
                     BucketConfigs.Add(bucket.Name, bucketConfiguration);

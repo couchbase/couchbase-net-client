@@ -23,7 +23,10 @@ namespace Couchbase.IO.Operations
 
         ulong Cas { get; set; }
 
+        [Obsolete]
         void Read(byte[] buffer, int offset, int length);
+
+        void Read(byte[] buffer, ErrorMap errorMap = null);
 
         byte[] Write();
 
@@ -65,7 +68,10 @@ namespace Couchbase.IO.Operations
 
         Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
+        [Obsolete]
         Task ReadAsync(byte[] buffer, int offset, int length);
+
+        Task ReadAsync(byte[] buffer, ErrorMap errorMap = null);
 
         void BeginTimer(TimingLevel level);
 

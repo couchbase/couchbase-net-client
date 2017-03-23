@@ -127,6 +127,21 @@ namespace Couchbase.IO
         /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
         /// </value>
         bool SupportsEnhancedAuthentication { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsKvErrorMap { get; }
+
+        /// <summary>
+        /// Stores the error map.
+        /// </summary>
+        /// <param name="errorMap">The error map.</param>
+        void SetErrorMap(ErrorMap errorMap);
     }
 }
 

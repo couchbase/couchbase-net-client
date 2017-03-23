@@ -27,6 +27,7 @@ namespace Couchbase.IO.Services
         private readonly Guid _identity = Guid.NewGuid();
         private IConnection _connection;
         private readonly object _syncObj = new object();
+        private ErrorMap _errorMap;
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
@@ -37,8 +38,8 @@ namespace Couchbase.IO.Services
             //authenticate the connection
             if (!_connection.IsAuthenticated)
             {
-                Authenticate(_connection);
                 EnableServerFeatures(_connection);
+                Authenticate(_connection);
             }
         }
 
@@ -72,6 +73,15 @@ namespace Couchbase.IO.Services
         /// </value>
         public bool SupportsEnhancedAuthentication { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsKvErrorMap { get; private set; }
+
         public IPEndPoint EndPoint
         {
             get { return _connectionPool.EndPoint; }
@@ -93,12 +103,7 @@ namespace Couchbase.IO.Services
         {
             var request = operation.Write();
             var response = connection.Send(request);
-
-            //Read the response and return the completed operation
-            if (response != null)
-            {
-                operation.Read(response, 0, response.Length);
-            }
+            operation.Read(response, _errorMap);
             return operation.GetResultWithValue();
         }
 
@@ -132,11 +137,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            //Read the response and return the completed operation
-            if (response != null && response.Length > 0) //if the op was terminated in midflught this maybe null
-            {
-                operation.Read(response, 0, response.Length);
-            }
+            operation.Read(response, _errorMap);
             return operation.GetResultWithValue();//might have to handle a special null case her
         }
 
@@ -170,11 +171,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            //Read the response and return the completed operation
-            if (response != null && response.Length > 0)
-            {
-                operation.Read(response, 0, response.Length);
-            }
+            operation.Read(response, _errorMap);
             return operation.GetResult();
         }
 
@@ -347,6 +344,10 @@ namespace Couchbase.IO.Services
             {
                 features.Add((short) ServerFeatures.MutationSeqno);
             }
+            if (ConnectionPool.Configuration.UseKvErrorMap)
+            {
+                features.Add((short) ServerFeatures.XError);
+            }
 
             var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
 
@@ -356,6 +357,7 @@ namespace Couchbase.IO.Services
                 SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
                 SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
+                SupportsKvErrorMap = result.Value.Contains((short) ServerFeatures.XError);
             }
             else
             {
@@ -393,8 +395,8 @@ namespace Couchbase.IO.Services
                         Log.Info("Exchanging {0} for {1}", _connection.Identity, connection.Identity);
                         Interlocked.Exchange(ref _connection, connection);
 
-                        Authenticate(connection);
                         EnableServerFeatures(connection);
+                        Authenticate(connection);
                     }
                 }
                 catch (Exception e)
@@ -443,6 +445,11 @@ namespace Couchbase.IO.Services
                 }
             }
             _disposed = true;
+        }
+
+        public void SetErrorMap(ErrorMap errorMap)
+        {
+            _errorMap = errorMap;
         }
 
 #if DEBUG

@@ -1,6 +1,7 @@
 ﻿using System;
 using Couchbase.Core;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -51,6 +52,7 @@ namespace Couchbase.Configuration.Client
             public const uint CloseAttemptInterval = 100;
             public const int MaxCloseAttempts = 5;
             public const bool UseEnhancedDurability = false;
+            public const bool UseKvErrorMap = false;
             public const int MinConnectionValue = 1;
             public const int MaxConnectionValue = 500;
         }
@@ -77,6 +79,7 @@ namespace Couchbase.Configuration.Client
             CloseAttemptInterval = Defaults.CloseAttemptInterval;
             MaxCloseAttempts = Defaults.MaxCloseAttempts;
             UseEnhancedDurability = Defaults.UseEnhancedDurability;
+            UseKvErrorMap = Defaults.UseKvErrorMap;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
@@ -118,6 +121,15 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> to use enhanced durability; otherwise, <c>false</c>.
         /// </value>
         internal bool UseEnhancedDurability { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to get an <see cref="ErrorMap"/> to get additional error information
+        /// for unknown errors returned from the server.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
+        /// </value>
+        internal bool UseKvErrorMap { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether enable TCP keep alives.
@@ -293,6 +305,7 @@ namespace Couchbase.Configuration.Client
                 CloseAttemptInterval = CloseAttemptInterval,
                 MaxCloseAttempts = MaxCloseAttempts,
                 UseEnhancedDurability = UseEnhancedDurability,
+                UseKvErrorMap = UseKvErrorMap,
                 UseSsl = UseSsl,
                 TcpKeepAliveTime = TcpKeepAliveTime,
                 EnableTcpKeepAlives = EnableTcpKeepAlives,

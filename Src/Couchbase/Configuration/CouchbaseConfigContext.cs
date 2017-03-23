@@ -91,6 +91,7 @@ namespace Couchbase.Configuration
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                                 SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+                                SupportsKvErrorMap = ioService.SupportsKvErrorMap;
                             }
                             else
                             {
@@ -175,6 +176,7 @@ namespace Couchbase.Configuration
                             SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                             SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+                            SupportsKvErrorMap = ioService.SupportsKvErrorMap;
 
                             if (adapter.IsQueryNode)
                             {
@@ -229,6 +231,7 @@ namespace Couchbase.Configuration
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                                 SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+                                SupportsKvErrorMap = ioService.SupportsKvErrorMap;
                             }
                             else
                             {
@@ -319,6 +322,7 @@ namespace Couchbase.Configuration
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = newIoService.SupportsSubdocXAttributes;
                             SupportsEnhancedAuthentication = newIoService.SupportsEnhancedAuthentication;
+                            SupportsKvErrorMap = newIoService.SupportsKvErrorMap;
                         }
                         else
                         {

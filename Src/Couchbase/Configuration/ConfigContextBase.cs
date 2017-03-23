@@ -162,6 +162,15 @@ namespace Couchbase.Configuration
         public bool SupportsEnhancedAuthentication { get; protected set; }
 
         /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsKvErrorMap { get; protected set; }
+
+        /// <summary>
         /// The time at which this configuration context has been created.
         /// </summary>
         public DateTime CreationTime

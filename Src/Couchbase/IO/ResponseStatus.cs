@@ -1,5 +1,4 @@
-﻿
-namespace Couchbase.IO
+﻿namespace Couchbase.IO
 {
     /// <summary>
     /// The response status for binary Memcached and Couchbase operations.
@@ -11,6 +10,16 @@ namespace Couchbase.IO
         /// </summary>
         /// <remarks>0 has already been taken by the Memcached protocol for success.</remarks>
         None = -1,
+
+        /// <summary>
+        /// An unknown error occured. Please check logs for more details.
+        /// </summary>
+        UnknownError = -2,
+
+        /// <summary>
+        /// An Error occured and more details can be found in the operation message.
+        /// </summary>
+        Failure = -3,
 
         /// <summary>
         /// The operation was successful

@@ -3492,6 +3492,18 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsKvErrorMap
+        {
+            get { return _configInfo.SupportsKvErrorMap; }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether subdoc operations on xattributes are available.
         /// </summary>
         /// <value>

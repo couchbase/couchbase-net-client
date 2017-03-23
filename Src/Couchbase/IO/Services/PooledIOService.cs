@@ -27,6 +27,7 @@ namespace Couchbase.IO.Services
         private ISaslMechanism _saslMechanism;
         private readonly Guid _identity = Guid.NewGuid();
         private readonly object _syncObj = new object();
+        private ErrorMap _errorMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PooledIOService"/> class.
@@ -69,7 +70,7 @@ namespace Couchbase.IO.Services
             var response = connection.Send(request);
 
             //Read the response and return the completed operation
-            operation.Read(response, 0, response.Length);
+            operation.Read(response, _errorMap);
             return operation.GetResultWithValue();
         }
 
@@ -93,8 +94,8 @@ namespace Couchbase.IO.Services
                 {
                     lock (_syncObj)
                     {
-                        Authenticate(connection);
                         EnableServerFeatures(connection);
+                        Authenticate(connection);
                     }
                 }
 
@@ -133,11 +134,7 @@ namespace Couchbase.IO.Services
                 _connectionPool.Release(connection);
             }
 
-            //Read the response and return the completed operation
-            if (response != null && response.Length > 0)
-            {
-                operation.Read(response, 0, response.Length);
-            }
+            operation.Read(response, _errorMap);
             return operation.GetResult();
         }
 
@@ -162,8 +159,8 @@ namespace Couchbase.IO.Services
                 {
                     lock (_syncObj)
                     {
-                        Authenticate(connection);
                         EnableServerFeatures(connection);
+                        Authenticate(connection);
                     }
                 }
 
@@ -202,11 +199,7 @@ namespace Couchbase.IO.Services
                 _connectionPool.Release(connection);
             }
 
-            //Read the response and return the completed operation
-            if (response != null && response.Length > 0)
-            {
-                operation.Read(response, 0, response.Length);
-            }
+            operation.Read(response, _errorMap);
             return operation.GetResultWithValue();
         }
 
@@ -280,8 +273,8 @@ namespace Couchbase.IO.Services
                 {
                     lock (_syncObj)
                     {
-                        Authenticate(connection);
                         EnableServerFeatures(connection);
+                        Authenticate(connection);
                     }
                 }
                 await ExecuteAsync(operation, connection);
@@ -318,8 +311,8 @@ namespace Couchbase.IO.Services
                 {
                     lock (_syncObj)
                     {
-                        Authenticate(connection);
                         EnableServerFeatures(connection);
+                        Authenticate(connection);
                     }
                 }
                 await ExecuteAsync(operation, connection);
@@ -431,15 +424,19 @@ namespace Couchbase.IO.Services
             {
                 features.Add((short) ServerFeatures.MutationSeqno);
             }
+            if (ConnectionPool.Configuration.UseKvErrorMap)
+            {
+                features.Add((short) ServerFeatures.XError);
+            }
 
             var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
-
             var result = Execute(hello, connection);
             if (result.Success)
             {
                 SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
                 SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
+                SupportsKvErrorMap = result.Value.Contains((short) ServerFeatures.XError);
             }
             else
             {
@@ -481,6 +478,15 @@ namespace Couchbase.IO.Services
         public bool SupportsEnhancedAuthentication { get; private set; }
 
         /// <summary>
+        /// Gets a value indicating whether the cluster supports an error map that can
+        /// be used to return custom error information.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsKvErrorMap { get; private set; }
+
+        /// <summary>
         /// Returns true if internal TCP connections are using SSL.
         /// </summary>
         public bool IsSecure
@@ -517,6 +523,11 @@ namespace Couchbase.IO.Services
                 }
             }
             _disposed = true;
+        }
+
+        public void SetErrorMap(ErrorMap errorMap)
+        {
+            _errorMap = errorMap;
         }
 
 #if DEBUG
