@@ -60,6 +60,10 @@ namespace Couchbase
         public TContent Content<TContent>(int index)
         {
             var spec = Value[index];
+            if (spec.Bytes == null)
+            {
+                return default(TContent);
+            }
             return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes, 0, spec.Bytes.Length);
         }
 
