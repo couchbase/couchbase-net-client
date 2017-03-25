@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             {
                 MaxSize = maxSize,
                 MinSize = minSize
-            });
+            }.Validate());
         }
 
         [Test]

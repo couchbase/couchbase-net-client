@@ -230,6 +230,48 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual("http://localhost:8091/pools", config.Servers.First().ToString());
         }
 
+        [TestCase(0, 1, Description = "MaxSize is less than 1")]
+        [TestCase(501, 1, Description = "MaxSize is greater than 500")]
+        [TestCase(1, -1, Description = "MinSize is less than 0")]
+        [TestCase(501, 501, Description = "MinSize is greater than 500")]
+        [TestCase(5, 10, Description = "Maxsize is greater than MinSize")]
+        public void Throws_Argument_Exception_If_Connection_Values_Are_Not_Valid(int maxSize, int minSize)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ClientConfiguration
+            {
+                PoolConfiguration = new PoolConfiguration
+                {
+                    MaxSize = maxSize,
+                    MinSize = minSize
+                }
+            }.Initialize());
+        }
+
+        [TestCase(0, 1, Description = "MaxSize is less than 1")]
+        [TestCase(501, 1, Description = "MaxSize is greater than 500")]
+        [TestCase(1, -1, Description = "MinSize is less than 0")]
+        [TestCase(501, 501, Description = "MinSize is greater than 500")]
+        [TestCase(5, 10, Description = "Maxsize is greater than MinSize")]
+        public void Throws_Argument_Exception_If_Connection_Values_Are_Not_Valid_For_BucketConfigs(int maxSize, int minSize)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            PoolConfiguration = new PoolConfiguration
+                            {
+                                MaxSize = maxSize,
+                                MinSize = minSize
+                            }
+                        }
+                    }
+                }
+            }.Initialize());
+        }
+
 #if NET45
 
         [Test]

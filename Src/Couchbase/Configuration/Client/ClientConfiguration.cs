@@ -315,11 +315,13 @@ namespace Couchbase.Configuration.Client
                     MaxCloseAttempts = definition.ConnectionPool.MaxCloseAttempts,
                     ClientConfiguration = this
                 };
+                PoolConfiguration.Validate();
             }
             else
             {
                 ConnectionPoolCreator = ConnectionPoolFactory.GetFactory();
                 PoolConfiguration = new PoolConfiguration(this);
+                PoolConfiguration.Validate();
             }
 
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
@@ -363,12 +365,14 @@ namespace Couchbase.Configuration.Client
                             UseEnhancedDurability = bucket.UseEnhancedDurability,
                             ClientConfiguration = this
                         };
+                        bucketConfiguration.PoolConfiguration.Validate();
                     }
                     else
                     {
                         bucketConfiguration.PoolConfiguration = PoolConfiguration;
                         bucketConfiguration.PoolConfiguration.UseSsl = bucketConfiguration.UseSsl;
                         bucketConfiguration.PoolConfiguration.UseEnhancedDurability = bucketConfiguration.UseEnhancedDurability;
+                        PoolConfiguration.Validate();
                     }
                     BucketConfigs.Add(bucket.Name, bucketConfiguration);
                 }
@@ -929,6 +933,7 @@ namespace Couchbase.Configuration.Client
             {
                 PoolConfiguration.EnableTcpKeepAlives = EnableTcpKeepAlives;
             }
+            PoolConfiguration.Validate();
 
             if (_serversChanged)
             {
@@ -1002,6 +1007,7 @@ namespace Couchbase.Configuration.Client
                         }
                     }
                 }
+                bucketConfiguration.PoolConfiguration.Validate();
                 //operation lifespan: if it has changed at bucket level, use bucket level, else use global level
                 if (_operationLifespanChanged)
                 {

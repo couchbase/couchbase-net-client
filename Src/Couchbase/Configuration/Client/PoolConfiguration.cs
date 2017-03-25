@@ -154,7 +154,6 @@ namespace Couchbase.Configuration.Client
             get { return _maxSize; }
             set
             {
-                ValidateConnectionValues(value, _minSize);
                 _maxSize = value;
             }
         }
@@ -168,7 +167,6 @@ namespace Couchbase.Configuration.Client
             get { return _minSize; }
             set
             {
-                ValidateConnectionValues(_maxSize, value);
                 _minSize = value;
             }
         }
@@ -300,6 +298,11 @@ namespace Couchbase.Configuration.Client
                 EnableTcpKeepAlives = EnableTcpKeepAlives,
                 TcpKeepAliveInterval = TcpKeepAliveInterval
             };
+        }
+
+        public void Validate()
+        {
+            ValidateConnectionValues(MaxSize, MinSize);
         }
 
         private static void ValidateConnectionValues(int maxSize, int minSize)
