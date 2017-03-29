@@ -53,7 +53,7 @@ namespace Couchbase.IO
         {
             try
             {
-                var targetHost = EndPoint.ToString().Split(':')[0];
+                var targetHost = ConnectionPool.Configuration.Uri.Host;
                 Log.Info("Starting SSL encryption on {0}", targetHost);
 
                 using (new SynchronizationContextExclusion())
