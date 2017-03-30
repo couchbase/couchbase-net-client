@@ -84,6 +84,7 @@
     <Compile Include="Core\Buckets\KetamaKeyMapperTests.cs" />
     <Compile Include="Core\Monitoring\UriTesterTests.cs" />
     <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />
+    <Compile Include="DocumentFragmentTests.cs" />
     <Compile Include="GlobalSetup.cs" />
     <Compile Include="IO\ConnectionBaseTests.cs" />
     <Compile Include="IO\Converters\DefaultConverterTests.cs" />
