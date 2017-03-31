@@ -96,7 +96,7 @@ namespace Couchbase.Views
                     {
                         if (_reader.TokenType == JsonToken.StartObject)
                         {
-                            yield return JToken.FromObject(_reader, _jsonSerializer).ToObject<ViewRow<T>>();
+                            yield return JToken.ReadFrom(_reader).ToObject<ViewRow<T>>(_jsonSerializer);
                         }
                     }
                 }

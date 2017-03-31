@@ -94,6 +94,8 @@ namespace Couchbase.IntegrationTests
             foreach (var row in result.Rows)
             {
                 count++;
+                Assert.IsNotNull(row);
+                Assert.IsNotNull(row.Id);
             }
 
             Assert.AreEqual(10, count);
