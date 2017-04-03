@@ -853,15 +853,24 @@ namespace Couchbase.Configuration.Client
         /// <param name="bucketConfig">A new server configuration</param>
         internal void UpdateBootstrapList(IBucketConfig bucketConfig)
         {
-            foreach (var node in bucketConfig.Nodes)
+            foreach (var node in bucketConfig.GetNodes())
             {
-                var uri = new Uri(string.Concat("http://", node.Hostname, "/pools"));
                 ConfigLock.EnterWriteLock();
                 try
                 {
-                    if (!Servers.Contains(uri))
+                    if (!string.IsNullOrWhiteSpace(node.Hostname))
                     {
-                        Servers.Add(uri);
+                        var uriBuilder = new UriBuilder()
+                        {
+                            Host = node.Hostname,
+                            Path = "/pools",
+                            Port = bucketConfig.UseSsl ? node.MgmtApiSsl : node.MgmtApi
+                        };
+
+                        if (!Servers.Contains(uriBuilder.Uri))
+                        {
+                            Servers.Add(uriBuilder.Uri);
+                        }
                     }
                 }
                 finally
