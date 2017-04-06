@@ -66,7 +66,7 @@ namespace Couchbase.Core.Buckets
                 if (bucketConfig != null)
                 {
                     Log.Info("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev);
-                    Log.Debug(JsonConvert.SerializeObject(bucketConfig));
+                    Log.Debug("{0}", JsonConvert.SerializeObject(bucketConfig));
                     ClusterController.NotifyConfigPublished(bucketConfig);
                     requiresRetry = true;
                 }
