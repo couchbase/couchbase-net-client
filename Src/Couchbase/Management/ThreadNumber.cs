@@ -1,12 +1,10 @@
-﻿
-namespace Couchbase.Management
+﻿namespace Couchbase.Management
 {
     /// <summary>
     /// The number of concurrent readers and writers for the data bucket.
     /// </summary>
     public enum ThreadNumber
     {
-        Two = 2,
         Three = 3,
         Four = 4,
         Five = 5,

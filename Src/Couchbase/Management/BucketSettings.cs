@@ -21,7 +21,7 @@ namespace Couchbase.Management
             FlushEnabled = false;
             ParallelDbAndViewCompaction = false;
             SaslPassword = string.Empty;
-            ThreadNumber = ThreadNumber.Two;
+            ThreadNumber = ThreadNumber.Three;
             Services = new List<CouchbaseService> {CouchbaseService.Index, CouchbaseService.KV, CouchbaseService.N1QL};
         }
 

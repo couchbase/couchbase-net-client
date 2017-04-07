@@ -254,7 +254,7 @@ namespace Couchbase.Management
             BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two,
             AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
             bool parallelDbAndViewCompaction = false, string saslPassword = "",
-            ThreadNumber threadNumber = ThreadNumber.Two)
+            ThreadNumber threadNumber = ThreadNumber.Three)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -296,7 +296,7 @@ namespace Couchbase.Management
             ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl,
             bool indexReplicas = false, bool flushEnabled = false,
             bool parallelDbAndViewCompaction = false, string saslPassword = "",
-            ThreadNumber threadNumber = ThreadNumber.Two)
+            ThreadNumber threadNumber = ThreadNumber.Three)
         {
             var uri = GetBucketAPIUri();
 
