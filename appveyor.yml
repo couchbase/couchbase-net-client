@@ -55,7 +55,7 @@ deploy:
   on:
     appveyor_repo_tag: false
 - provider: NuGet
-  server: hhttps://www.nuget.org/api/v2/package
+  server: https://www.nuget.org/api/v2/package
   api_key:
     secure: RR63qaRziTfBDzeAHNLX/nNGavXrfzgXnSRniyuFgK493SzEw8DUa89bgVZHYSg8
   skip_symbols: true
