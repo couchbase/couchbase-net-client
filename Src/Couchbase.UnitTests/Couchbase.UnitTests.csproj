@@ -129,6 +129,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Search\BooleanFieldQueryTests.cs" />
     <Compile Include="Search\DocIdQueryTests.cs" />
+    <Compile Include="Search\GeoBoundingBoxQueryTests.cs" />
+    <Compile Include="Search\TermRangeQueryTests.cs" />
+    <Compile Include="Search\GeoDistanceQueryTests.cs" />
     <Compile Include="Search\MatchAllQueryTests.cs" />
     <Compile Include="Search\MatchNoneQueryTests.cs" />
     <Compile Include="Search\PhraseQueryTests.cs" />

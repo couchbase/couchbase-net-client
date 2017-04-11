@@ -1019,11 +1019,20 @@
     <Compile Include="..\Couchbase\Search\Queries\Compound\DisjunctionQuery.cs">
       <Link>Search\Queries\Compound\DisjunctionQuery.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Search\Queries\Geo\GeoDistanceQuery.cs">
+      <Link>Search\Queries\Geo\GeoDistanceQuery.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Queries\Geo\GeoBoundingBoxQuery.cs">
+      <Link>Search\Queries\Geo\GeoBoundingBoxQuery.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Search\Queries\Range\DateRangeQuery.cs">
       <Link>Search\Queries\Range\DateRangeQuery.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\Queries\Range\NumericRangeQuery.cs">
       <Link>Search\Queries\Range\NumericRangeQuery.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Queries\Range\TermRangeQuery.cs">
+      <Link>Search\Queries\Range\TermRangeQuery.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\ISearchFacet.cs">
       <Link>Search\ISearchFacet.cs</Link>

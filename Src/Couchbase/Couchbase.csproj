@@ -385,6 +385,9 @@
     <Compile Include="ScanConsistencyNameResolver.cs" />
     <Compile Include="Search\CouchbaseSearchResponseException.cs" />
     <Compile Include="Search\DateRangeFacet.cs" />
+    <Compile Include="Search\Queries\Range\TermRangeQuery.cs" />
+    <Compile Include="Search\Queries\Geo\GeoBoundingBoxQuery.cs" />
+    <Compile Include="Search\Queries\Geo\GeoDistanceQuery.cs" />
     <Compile Include="Search\Queries\Simple\QueryStringQuery.cs" />
     <Compile Include="Search\SearchMetrics.cs" />
     <Compile Include="Search\ISearchParams.cs" />
