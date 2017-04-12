@@ -147,11 +147,11 @@ namespace Couchbase.IO
 
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
-                    Log.Info("Trying to acquire new connection! Refs={0}", _refs.Count);
+                    Log.Debug("Trying to acquire new connection! Refs={0}", _refs.Count);
                     connection = _factory(this, _converter, _bufferAllocator);
                     _refs.TryAdd(connection.Identity, connection);
 
-                    Log.Info("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                    Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                         connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed);
 
                     Interlocked.Increment(ref _count);
@@ -200,13 +200,13 @@ namespace Couchbase.IO
         public void Release(T connection)
         {
             if (connection == null) return;
-            Log.Info("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
+            Log.Debug("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
                 connection.Dispose();
                 Interlocked.Decrement(ref _count);
-                Log.Info("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
+                Log.Debug("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
                     connection.Identity, EndPoint, _identity, _store.Count, _count);
 
                 if (Owner != null)
@@ -227,7 +227,7 @@ namespace Couchbase.IO
             {
                 _store.Enqueue(connection);
             }
-            Log.Info("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
+            Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             _autoResetEvent.Set();
         }
 
