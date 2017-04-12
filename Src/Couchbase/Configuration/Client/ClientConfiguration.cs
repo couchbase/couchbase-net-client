@@ -13,6 +13,7 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Services;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -246,8 +247,12 @@ namespace Couchbase.Configuration.Client
             Transcoder = definition.Transcoder != null
                 ? TranscoderFactory.GetTranscoder(this, definition.Transcoder)
                 : TranscoderFactory.GetTranscoder(this);
+
+            //A bit of a hack to ensure that if connection pooling is enabled
+            //then a connection pool will be created.
             IOServiceCreator = definition.IOService != null
-                ? IOServiceFactory.GetFactory(definition.IOService)
+                ? IOServiceFactory.GetFactory(UseConnectionPooling
+                ? typeof(PooledIOService).FullName : definition.IOService)
                 : IOServiceFactory.GetFactory(this);
 
 #if NETSTANDARD
