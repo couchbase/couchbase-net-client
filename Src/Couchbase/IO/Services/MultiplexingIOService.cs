@@ -185,6 +185,7 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
+                    Authenticate(_connection);
                     var request = await operation.WriteAsync().ContinueOnAnyContext();
                     connection.SendAsync(request, operation.Completed);
                 }
@@ -224,6 +225,7 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
+                    Authenticate(_connection);
                     var request = await operation.WriteAsync().ContinueOnAnyContext();
                     connection.SendAsync(request, operation.Completed);
                 }
