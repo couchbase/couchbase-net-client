@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using Couchbase.N1QL;
 using Couchbase.Search;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -85,6 +87,65 @@ namespace Couchbase.UnitTests.Search
                     timeout = 75000
                 },
                 sort = fields
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Sort_SearchSort_To_Output_Json()
+        {
+            var searchSort = new IdSearchSort();
+
+            var searchParams = new SearchParams();
+            searchParams.Sort(searchSort);
+
+            var result = searchParams.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000
+                },
+                sort = new[]
+                {
+                    new
+                    {
+                        by = "id"
+                    }
+                }
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Sort_JObject_To_Output_Json()
+        {
+            var json = new JObject
+            {
+                new JProperty("foo", "bar")
+            };
+
+            var searchParams = new SearchParams();
+            searchParams.Sort(json);
+
+            var result = searchParams.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000
+                },
+                sort = new []
+                {
+                    new
+                    {
+                        foo = "bar"
+                    }
+                }
             }, Formatting.None);
 
             Assert.AreEqual(expected, result);

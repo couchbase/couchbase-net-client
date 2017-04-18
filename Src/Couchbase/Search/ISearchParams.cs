@@ -1,5 +1,6 @@
 ﻿using System;
 using Couchbase.N1QL;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -80,6 +81,20 @@ namespace Couchbase.Search
         /// <param name="sort">The field names to sort by.</param>
         /// <returns></returns>
         ISearchParams Sort(params string[] sort);
+
+        /// <summary>
+        /// Configures the sorting criteria for the search results using an implementation of <see cref="ISearchSort"/>.
+        /// </summary>
+        /// <param name="sort">The sort.</param>
+        /// <returns></returns>
+        ISearchParams Sort(ISearchSort sort);
+
+        /// <summary>
+        /// Configures the sorting criteria for the search results using a custom <see cref="JObject"/>.
+        /// </summary>
+        /// <param name="sort">The sort.</param>
+        /// <returns></returns>
+        ISearchParams Sort(JObject sort);
 
         /// <summary>
         /// Gets the JSON representation of this object.

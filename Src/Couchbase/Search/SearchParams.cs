@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.N1QL;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -21,7 +22,7 @@ namespace Couchbase.Search
         private List<ISearchFacet> _facets;
         private TimeSpan _timeOut = new TimeSpan(0, 0, 0, 0, 75000);
         private ScanConsistency?  _scanConsistency;
-        private readonly List<string> _sort = new List<string>();
+        private readonly JArray _sort = new JArray();
 
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
@@ -155,7 +156,35 @@ namespace Couchbase.Search
         {
             if (sort != null)
             {
-                _sort.AddRange(sort);
+                _sort.Add(sort);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the sorting criteria for the search results using an implementation of <see cref="ISearchSort" />.
+        /// </summary>
+        /// <param name="sort">The sort.</param>
+        /// <returns></returns>
+        public ISearchParams Sort(ISearchSort sort)
+        {
+            if (sort != null)
+            {
+                _sort.Add(sort.Export());
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the sorting criteria for the search results using a custom <see cref="JObject" />.
+        /// </summary>
+        /// <param name="sort">The sort.</param>
+        /// <returns></returns>
+        public ISearchParams Sort(JObject sort)
+        {
+            if (sort != null)
+            {
+                _sort.Add(sort);
             }
             return this;
         }

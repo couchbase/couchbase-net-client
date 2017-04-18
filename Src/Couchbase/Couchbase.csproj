@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -387,9 +387,14 @@
     <Compile Include="Search\CouchbaseSearchResponseException.cs" />
     <Compile Include="Search\DateRangeFacet.cs" />
     <Compile Include="Search\Queries\Range\TermRangeQuery.cs" />
+    <Compile Include="Search\Sort\FieldSearchSort.cs" />
+    <Compile Include="Search\Sort\GeoDistanceSearchSort.cs" />
     <Compile Include="Search\Queries\Geo\GeoBoundingBoxQuery.cs" />
     <Compile Include="Search\Queries\Geo\GeoDistanceQuery.cs" />
+    <Compile Include="Search\Sort\IdSearchSort.cs" />
+    <Compile Include="Search\Sort\ISearchSort.cs" />
     <Compile Include="Search\Queries\Simple\QueryStringQuery.cs" />
+    <Compile Include="Search\Sort\ScoreSearchSort.cs" />
     <Compile Include="Search\SearchMetrics.cs" />
     <Compile Include="Search\ISearchParams.cs" />
     <Compile Include="Search\Queries\Simple\BooleanFieldQuery.cs" />
@@ -424,6 +429,7 @@
     <Compile Include="Search\SearchQuery.cs" />
     <Compile Include="Search\SearchQueryResult.cs" />
     <Compile Include="Search\SearchQueryRow.cs" />
+    <Compile Include="Search\Sort\SearchSortBase.cs" />
     <Compile Include="Search\SearchStatus.cs" />
     <Compile Include="Search\TermFacet.cs" />
     <Compile Include="SubdocExtensions.cs" />

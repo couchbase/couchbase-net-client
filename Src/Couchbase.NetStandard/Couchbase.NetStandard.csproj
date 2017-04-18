@@ -974,6 +974,24 @@
     <Compile Include="..\Couchbase\Search\DateRangeFacet.cs">
       <Link>Search\DateRangeFacet.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\FieldSearchSort.cs">
+      <Link>Search\Sort\FieldSearchSort.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\GeoDistanceSearchSort.cs">
+      <Link>Search\Sort\GeoDistanceSearchSort.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\IdSearchSort.cs">
+      <Link>Search\Sort\IdSearchSort.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\ISearchSort.cs">
+      <Link>Search\Sort\ISearchSort.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\ScoreSearchSort.cs">
+      <Link>Search\Sort\ScoreSearchSort.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Sort\SearchSortBase.cs">
+      <Link>Search\Sort\SearchSortBase.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Search\ISearchParams.cs">
       <Link>Search\ISearchParams.cs</Link>
     </Compile>
