@@ -713,7 +713,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public override Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation,
+        public override async Task<IOperationResult<T>> SendWithRetryAsync<T>(IOperation<T> operation,
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
@@ -744,9 +744,9 @@ namespace Couchbase.Core.Buckets
                 while ((server = vBucket.LocatePrimary()) == null)
                 {
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server.");}
-                    Thread.Sleep((int)Math.Pow(2, attempts));
+                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
                 }
-                server.SendAsync(operation).ConfigureAwait(false);
+                await server.SendAsync(operation).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -757,7 +757,7 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
-            return tcs.Task;
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
 
@@ -770,7 +770,7 @@ namespace Couchbase.Core.Buckets
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public override Task<IOperationResult> SendWithRetryAsync(IOperation operation,
+        public override async Task<IOperationResult> SendWithRetryAsync(IOperation operation,
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
@@ -801,10 +801,10 @@ namespace Couchbase.Core.Buckets
                 while ((server = vBucket.LocatePrimary()) == null)
                 {
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    Thread.Sleep((int)Math.Pow(2, attempts));
+                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
                 }
                 Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
-                server.SendAsync(operation).ConfigureAwait(false);
+                await server.SendAsync(operation).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -815,7 +815,7 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
-            return tcs.Task;
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
@@ -868,10 +868,10 @@ namespace Couchbase.Core.Buckets
                 while ((server = ConfigInfo.GetSearchNode()) == null)
                 {
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    Thread.Sleep((int)Math.Pow(2, attempts));
+                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
                 }
 
-                searchResult = await server.SendAsync(searchQuery);
+                searchResult = await server.SendAsync(searchQuery).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
