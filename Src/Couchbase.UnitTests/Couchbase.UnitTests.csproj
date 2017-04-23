@@ -74,6 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Authentication\AuthenticatorTests.cs" />
+    <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Collections\CouchbaseListTests.cs" />
     <Compile Include="Configuration\Client\PoolConfigurationTests.cs" />
     <Compile Include="Configuration\Client\ServerResolverTests.cs" />

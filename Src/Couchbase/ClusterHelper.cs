@@ -31,6 +31,15 @@ namespace Couchbase
             new ConcurrentDictionary<string, IBucket>();
 
         /// <summary>
+        /// True if the <see cref="ClusterHelper"/> has been initialized.  Calling
+        /// <see cref="Close()"/> will reset this value to false.
+        /// </summary>
+        public static bool Initialized
+        {
+            get { return _instance != null; }
+        }
+
+        /// <summary>
         /// Ctor for creating Cluster instance.
         /// </summary>
         /// <remarks>
@@ -265,7 +274,11 @@ namespace Couchbase
         {
             lock (SyncObj)
             {
-                if (_instance == null || !_instance.IsValueCreated) return;
+                if (_instance == null || !_instance.IsValueCreated)
+                {
+                    _instance = null;
+                    return;
+                }
                 foreach (var bucket in Buckets.Values)
                 {
                     bucket.Dispose();
