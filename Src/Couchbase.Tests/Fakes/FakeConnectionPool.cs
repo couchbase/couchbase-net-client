@@ -73,6 +73,7 @@ namespace Couchbase.Tests.Fakes
         public bool InitializationFailed { get; protected set; }
 
         public ISaslMechanism SaslMechanism { get; set; }
+	    public bool SupportsEnhancedAuthentication { get; set; }
     }
 }
 

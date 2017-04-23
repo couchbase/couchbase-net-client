@@ -121,15 +121,9 @@ namespace Couchbase.UnitTests.Configuration.Client
 
         private string GetResolverType(string resolverName)
         {
-            string resolverType = null;
-#if NET45
-            resolverType =  string.Format("Couchbase.UnitTests.Configuration.Client.{0}, Couchbase.UnitTests", resolverName);
-#else
-            resolverType =  string.Format("Couchbase.UnitTests.Configuration.Client.{0}, Couchbase.UnitTests.NetStandard", resolverName);
-#endif
-            return resolverType;
+            return string.Format("Couchbase.UnitTests.Configuration.Client.{0}, Couchbase.UnitTests", resolverName);
+        }
     }
-}
 
     public class InvalidServerResolver
     {

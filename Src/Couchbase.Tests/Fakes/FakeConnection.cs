@@ -132,7 +132,10 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public bool IsConnected
+	    public bool CheckedForEnhancedAuthentication { get; set; }
+	    public bool MustEnableServerFeatures { get; set; }
+
+	    public bool IsConnected
         {
             get { return true; }
         }

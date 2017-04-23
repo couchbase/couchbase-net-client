@@ -1,221 +1,53 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{5EABE2EB-7323-4DDF-AA43-75AAEE2A7C0F}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFrameworks>net45;netcoreapp1.1</TargetFrameworks>
     <RootNamespace>Couchbase.UnitTests</RootNamespace>
     <AssemblyName>Couchbase.UnitTests</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET45</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>5</LangVersion>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
+    <DefineConstants>$(DefineConstants);NET45</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NET45</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>5</LangVersion>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.1' ">
+    <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
   </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Common.Logging, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.3.3.1\lib\net40\Common.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Common.Logging.Core, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.Core.3.3.1\lib\net40\Common.Logging.Core.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Common.Logging.Log4Net1213, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.Log4Net1213.3.3.1\lib\net40\Common.Logging.Log4Net1213.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="log4net, Version=2.0.7.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\packages\log4net.2.0.7\lib\net45-full\log4net.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Moq">
-      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.4.1\lib\net45\nunit.framework.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
+    <PackageReference Include="Moq" Version="4.7.8" />
+    <PackageReference Include="NUnit" Version="3.6.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.8.0-alpha1" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+    <PackageReference Include="Common.Logging.Log4Net1213" Version="3.3.1" />
+    <PackageReference Include="log4net" Version="2.0.7" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Net.Http.WebRequest" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Authentication\AuthenticatorTests.cs" />
-    <Compile Include="ClusterHelperTests.cs" />
-    <Compile Include="Collections\CouchbaseListTests.cs" />
-    <Compile Include="Configuration\BucketConfigTests.cs" />
-    <Compile Include="Configuration\Client\PoolConfigurationTests.cs" />
-    <Compile Include="Configuration\Client\ServerResolverTests.cs" />
-    <Compile Include="Configuration\ConfigContextBaseTests.cs" />
-    <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
-    <Compile Include="Configuration\Server\Monitoring\ConfigMonitorTests.cs" />
-    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\ConfigProviderBaseTests.cs" />
-    <Compile Include="Core\Buckets\KetamaKeyMapperTests.cs" />
-    <Compile Include="Core\Monitoring\UriTesterTests.cs" />
-    <Compile Include="Core\Transcoders\BinaryToJsonTranscoderTests.cs" />
-    <Compile Include="DocumentFragmentTests.cs" />
-    <Compile Include="GlobalSetup.cs" />
-    <Compile Include="IO\ConnectionBaseTests.cs" />
-    <Compile Include="IO\Converters\DefaultConverterTests.cs" />
-    <Compile Include="IO\Http\AuthenticatingHttpClientHandler.cs" />
-    <Compile Include="IO\Http\CouchbaseHttpClientTests.cs" />
-    <Compile Include="IO\SharedConnectionPoolTests.cs" />
-    <Compile Include="IO\Operations\AddTests.cs" />
-    <Compile Include="IO\Operations\AppendTests.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslAuthenticationTests.cs" />
-    <Compile Include="IO\Operations\GetLTests.cs" />
-    <Compile Include="IO\Operations\GetTests.cs" />
-    <Compile Include="IO\Operations\GetTTests.cs" />
-    <Compile Include="IO\Operations\HelloTests.cs" />
-    <Compile Include="IO\Operations\Subdocument\MultiGetTests.cs" />
-    <Compile Include="IO\Operations\MutationOperationBaseTests.cs" />
-    <Compile Include="IO\Operations\ObserveTests.cs" />
-    <Compile Include="IO\Operations\ReplaceTests.cs" />
-    <Compile Include="IO\Operations\ReplicaReadTests.cs" />
-    <Compile Include="IO\Operations\Subdocument\MultiMutationTests.cs" />
-    <Compile Include="IO\Operations\Subdocument\SubdocumentSinglarBaseTests.cs" />
-    <Compile Include="IO\Operations\TouchTests.cs" />
-    <Compile Include="IO\Operations\UnlockOperationTests.cs" />
-    <Compile Include="IO\Services\MultiplexingIOServiceTests.cs" />
-    <Compile Include="IO\Services\PooledIOServiceTests.cs" />
-    <Compile Include="Management\ClusterManager_Tests.cs" />
-    <Compile Include="Management\BucketManager_Tests.cs" />
-    <Compile Include="Management\BucketManager_Index_Tests.cs" />
-    <Compile Include="Authentication\ScramSha1MechanismTests.cs" />
-    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
-    <Compile Include="Core\Buckets\CouchbaseRequestExecutorTests.cs" />
-    <Compile Include="Core\MutateInBuilderTests.cs" />
-    <Compile Include="Core\IO\Operations\MultiLookupTests.cs" />
-    <Compile Include="Core\LookupBuilderTests.cs" />
-    <Compile Include="Core\Serialization\DefaultSerializerTests.cs" />
-    <Compile Include="Core\Serialization\DeserializationOptionsTests.cs" />
-    <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs" />
-    <Compile Include="CouchbaseBucketTests.cs" />
-    <Compile Include="IO\ConnectionTests.cs" />
-    <Compile Include="N1Ql\QueryRequestTests.cs" />
-    <Compile Include="N1Ql\StreamingQueryRequestTests.cs" />
-    <Compile Include="N1Ql\N1qlRyowTests.cs" />
-    <Compile Include="N1Ql\QueryClientTests.cs" />
-    <Compile Include="OperationResultTests.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Search\BooleanFieldQueryTests.cs" />
-    <Compile Include="Search\DocIdQueryTests.cs" />
-    <Compile Include="Search\GeoBoundingBoxQueryTests.cs" />
-    <Compile Include="Search\TermRangeQueryTests.cs" />
-    <Compile Include="Search\GeoDistanceQueryTests.cs" />
-    <Compile Include="Search\FieldSearchSortTests.cs" />
-    <Compile Include="Search\GeoDistanceSearchSortTests.cs" />
-    <Compile Include="Search\IdSearchSortTests.cs" />
-    <Compile Include="Search\MatchAllQueryTests.cs" />
-    <Compile Include="Search\MatchNoneQueryTests.cs" />
-    <Compile Include="Search\PhraseQueryTests.cs" />
-    <Compile Include="ResourceHelper.cs" />
-    <Compile Include="Search\QueryStringQueryTests.cs" />
-    <Compile Include="Search\ScoreSearchSortTests.cs" />
-    <Compile Include="Search\TermQueryTests.cs" />
-    <Compile Include="Search\SearchClientTests.cs" />
-    <Compile Include="Search\SearchParamsTests.cs" />
-    <Compile Include="Search\WildcardQueryTests.cs" />
-    <Compile Include="StringExtensionTests.cs" />
-    <Compile Include="Search\FtsDataMapperTests.cs" />
-    <Compile Include="Search\RegexpQueryTests.cs" />
-    <Compile Include="Search\PrefixQueryTests.cs" />
-    <Compile Include="Search\MatchQueryTests.cs" />
-    <Compile Include="Search\MatchPhraseQueryTests.cs" />
-    <Compile Include="Search\NumericRangeQueryTests.cs" />
-    <Compile Include="Search\DateRangeQueryTests.cs" />
-    <Compile Include="Search\DisjunctionQueryTests.cs" />
-    <Compile Include="Search\ConjunctionQueryTests.cs" />
-    <Compile Include="Search\IBucket_Search_Tests.cs" />
-    <Compile Include="Search\SearchFacetTests.cs" />
-    <Compile Include="Search\BooleanQueryTests.cs" />
-    <Compile Include="SubdocExtensionTests.cs" />
-    <Compile Include="SubDocumentAPITests.cs" />
-    <Compile Include="Utils\ArrayExtensionsTests.cs" />
-    <Compile Include="Utils\FakeHttpMessageHandler.cs" />
-    <Compile Include="Views\StreamingViewResultTests.cs" />
+    <EmbeddedResource Include="Data\*.json" />
+    <EmbeddedResource Include="Search\*.js" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <EmbeddedResource Include="Data\n1ql-response.json" />
-    <EmbeddedResource Include="Data\chunked.json" />
-    <EmbeddedResource Include="Data\errors_and_warnings.json" />
-    <EmbeddedResource Include="Data\no_client_id.json" />
-    <EmbeddedResource Include="Data\no_pretty.json" />
-    <EmbeddedResource Include="Data\parse_error.json" />
-    <EmbeddedResource Include="Data\short_client_id.json" />
-    <EmbeddedResource Include="Data\signature_array.json" />
-    <EmbeddedResource Include="Data\signature_null.json" />
-    <EmbeddedResource Include="Data\signature_scalar.json" />
-    <EmbeddedResource Include="Data\signature_simple_string.json" />
-    <EmbeddedResource Include="Data\success_0.json" />
-    <EmbeddedResource Include="Data\success_1.json" />
-    <EmbeddedResource Include="Data\success_5.json" />
-    <EmbeddedResource Include="Data\with_escaped_quotes.json" />
-    <EmbeddedResource Include="Data\view_result.json" />
-    <EmbeddedResource Include="Data\view_result_with_reduce.json" />
-    <EmbeddedResource Include="Data\ketama-ring-hashes.json" />
-    <EmbeddedResource Include="Data\cb-mds-missing-hostname.json" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase\Couchbase.csproj">
-      <Project>{244EB9C8-8BCB-421D-A6DC-D54DCEB206E8}</Project>
-      <Name>Couchbase</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Search\search-response-success.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
+
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Search\search-response-with-facets.js" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

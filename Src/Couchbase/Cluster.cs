@@ -276,7 +276,7 @@ namespace Couchbase
             var bucket = _clusterController.GetBucket(_configuration.Authenticator);
 #pragma warning disable 618
             return bucket.Query<T>(queryRequest);
-#pragma warning restore 618;
+#pragma warning restore 618
         }
 
         /// <summary>
