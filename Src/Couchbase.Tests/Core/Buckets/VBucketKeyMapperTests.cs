@@ -22,7 +22,7 @@ namespace Couchbase.Tests.Core.Buckets
     public class VBucketKeyMapperTests
     {
         const string Key = "XXXXX";
-        private Dictionary<IPAddress, IServer> _servers;
+        private Dictionary<IPEndPoint, IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
         private IBucketConfig _bucketConfig;
 
@@ -32,10 +32,10 @@ namespace Couchbase.Tests.Core.Buckets
             _bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name =="default");
             _vBucketServerMap = _bucketConfig.VBucketServerMap;
 
-            _servers = new Dictionary<IPAddress, IServer>();
+            _servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in _bucketConfig.GetNodes())
             {
-                _servers.Add(node.GetIPAddress(),
+                _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), _bucketConfig,

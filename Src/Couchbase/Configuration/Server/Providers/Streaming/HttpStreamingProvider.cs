@@ -67,13 +67,24 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         nodes.Remove(node);
 
                         IBucketConfig newConfig;
-                        var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
-
                         using (new SynchronizationContextExclusion())
                         {
                             using (var httpClient = new CouchbaseHttpClient(username, password))
                             {
-                                var body = httpClient.GetStringAsync(uri).Result;
+                                // try to get config using terse uri
+                                var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
+                                var response = httpClient.GetAsync(uri).Result;
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    // try to get config using verbose uri
+                                    uri = bucketConfig.GetUri(node, bucketConfiguration.UseSsl);
+                                    response = httpClient.GetAsync(uri).Result;
+                                }
+
+                                // if still not a success, let it throw
+                                response.EnsureSuccessStatusCode();
+
+                                var body = response.Content.ReadAsStringAsync().Result;
                                 body = body.Replace("$HOST", uri.Host);
                                 newConfig = JsonConvert.DeserializeObject<BucketConfig>(body);
                             }
@@ -86,6 +97,14 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                 : BucketTypeEnum.Ephemeral).ToString().ToLowerInvariant();
                         }
                         newConfig.Password = password;
+                        if (ClientConfig.UseSsl)
+                        {
+                            foreach (var ipEndPoint in bucketConfig.VBucketServerMap.IPEndPoints)
+                            {
+                                ipEndPoint.Port = ClientConfig.SslPort;
+                            }
+                        }
+
                         configInfo = CreateConfigInfo(newConfig);
                         Configs[bucketName] = configInfo;
                         break;

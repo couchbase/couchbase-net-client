@@ -16,9 +16,9 @@ namespace Couchbase.Core
         private readonly static ILog Log = LogManager.GetLogger<VBucket>();
         private readonly int[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;
-        private readonly IDictionary<IPAddress, IServer> _cluster;
+        private readonly IDictionary<IPEndPoint, IServer> _cluster;
 
-        public VBucket(IDictionary<IPAddress, IServer> cluster, int index, int primary, int[] replicas, uint rev, VBucketServerMap vBucketServerMap, string bucketName)
+        public VBucket(IDictionary<IPEndPoint, IServer> cluster, int index, int primary, int[] replicas, uint rev, VBucketServerMap vBucketServerMap, string bucketName)
         {
             _cluster = cluster;
             Index = index;
@@ -43,7 +43,7 @@ namespace Couchbase.Core
                 try
                 {
                     var hostname = _vBucketServerMap.IPEndPoints[Primary];
-                    server = _cluster[hostname.Address];
+                    server = _cluster[hostname];
                 }
                 catch (Exception e)
                 {
@@ -61,7 +61,7 @@ namespace Couchbase.Core
                         try
                         {
                             var hostname = _vBucketServerMap.IPEndPoints[index];
-                            server = _cluster[hostname.Address];
+                            server = _cluster[hostname];
                         }
                         catch (Exception e)
                         {
@@ -83,7 +83,7 @@ namespace Couchbase.Core
             try
             {
                 var hostname = _vBucketServerMap.IPEndPoints[index];
-                return _cluster[hostname.Address];
+                return _cluster[hostname];
             }
             catch
             {

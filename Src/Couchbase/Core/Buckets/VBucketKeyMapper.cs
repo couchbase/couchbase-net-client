@@ -19,10 +19,10 @@ namespace Couchbase.Core.Buckets
         private readonly Dictionary<int, IVBucket> _vBuckets;
         private readonly Dictionary<int, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
-        private readonly IDictionary<IPAddress, IServer> _servers;
+        private readonly IDictionary<IPEndPoint, IServer> _servers;
         private readonly string _bucketName;
 
-        public VBucketKeyMapper(IDictionary<IPAddress, IServer> servers, VBucketServerMap vBucketServerMap, uint revision, string bucketName)
+        public VBucketKeyMapper(IDictionary<IPEndPoint, IServer> servers, VBucketServerMap vBucketServerMap, uint revision, string bucketName)
         {
             Rev = revision;
             _servers = servers;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -60,7 +60,7 @@ namespace Couchbase.Configuration
             if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || force)
             {
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
-                var servers = new Dictionary<IPAddress, IServer>();
+                var servers = new Dictionary<IPEndPoint, IServer>();
 
                 Log.Info("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
                 foreach (var adapter in nodes)
@@ -77,7 +77,7 @@ namespace Couchbase.Configuration
 
                             var ioService = IOServiceFactory(connectionPool);
                             var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder);
-                            servers.Add(endpoint.Address, server);
+                            servers.Add(endpoint, server);
                         }
                     }
                     catch (Exception e)
@@ -118,7 +118,7 @@ namespace Couchbase.Configuration
         /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public override void LoadConfig()
         {
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
             var nodes = BucketConfig.GetNodes();
             foreach (var adapter in nodes)
@@ -136,7 +136,7 @@ namespace Couchbase.Configuration
                         var ioService = IOServiceFactory(connectionPool);
 
                         var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder);
-                        servers.Add(endpoint.Address, server);
+                        servers.Add(endpoint, server);
                     }
                 }
                 catch (Exception e)

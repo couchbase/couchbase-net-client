@@ -40,10 +40,10 @@ namespace Couchbase.Tests.IO.Operations
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x => x.Name=="default");
             var vBucketServerMap = bucketConfig.VBucketServerMap;
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(IPEndPointExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue).Address,
+                servers.Add(IPEndPointExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                     new Server(_ioService,
                         node,
                         new ClientConfiguration(), bucketConfig,

@@ -47,10 +47,10 @@ namespace Couchbase.UnitTests.Core.Buckets
                 VBucketMap = new[] {new[] {0}},
                 VBucketMapForward = new[] {new[] {1}}
             };
-            var keyMapper = new VBucketKeyMapper(new Dictionary<IPAddress, IServer>
+            var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { IPAddress.Loopback, server1.Object},
-                { IPAddress.Parse("255.255.0.0"), server2.Object}
+                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 2, "default");
 
             var configInfo = new Mock<IConfigInfo>();
@@ -90,10 +90,10 @@ namespace Couchbase.UnitTests.Core.Buckets
                 VBucketMap = new[] { new[] { 0 } },
                 VBucketMapForward = new[] { new[] { 1 } }
             };
-            var keyMapper = new VBucketKeyMapper(new Dictionary<IPAddress, IServer>
+            var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { IPAddress.Loopback, server1.Object},
-                { IPAddress.Parse("255.255.0.0"), server2.Object}
+                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 1, "default");
 
             var configInfo = new Mock<IConfigInfo>();
@@ -133,10 +133,10 @@ namespace Couchbase.UnitTests.Core.Buckets
                 VBucketMap = new[] { new[] { 0 } },
                 VBucketMapForward = new[] { new[] { 1 } }
             };
-            var keyMapper = new VBucketKeyMapper(new Dictionary<IPAddress, IServer>
+            var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { IPAddress.Loopback, server1.Object},
-                { IPAddress.Parse("255.255.0.0"), server2.Object}
+                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 3, "default");
 
             var configInfo = new Mock<IConfigInfo>();
@@ -176,10 +176,10 @@ namespace Couchbase.UnitTests.Core.Buckets
                 VBucketMap = new[] { new[] { 0, 1 } },
                 VBucketMapForward = new[] { new[] { 1 } }
             };
-            var keyMapper = new VBucketKeyMapper(new Dictionary<IPAddress, IServer>
+            var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { IPAddress.Loopback, server1.Object},
-                { IPAddress.Parse("255.255.0.0"), server2.Object}
+                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 3, "default");
 
             var configInfo = new Mock<IConfigInfo>();

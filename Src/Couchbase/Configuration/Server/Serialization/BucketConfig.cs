@@ -11,6 +11,8 @@ namespace Couchbase.Configuration.Server.Serialization
     public sealed class BucketConfig : IBucketConfig
     {
         private string _surrogateHost = "127.0.0.1";
+        private const string HttpProtocol = "http://";
+        private const string HttpsProtocol = "https://";
 
         public BucketConfig()
         {
@@ -155,30 +157,41 @@ namespace Couchbase.Configuration.Server.Serialization
 
         public Uri GetTerseStreamingUri(Node node, bool useSsl)
         {
-            var protocol = useSsl ? "https://" : "http://";
-            var hostName = node.Hostname;
-            var streamingUri = string.IsNullOrEmpty(TerseStreamingUri) ? StreamingUri : TerseStreamingUri;
-
-            if (useSsl)
-            {
-                hostName = hostName.Replace(((int) DefaultPorts.MgmtApi).ToString(CultureInfo.InvariantCulture),
-                    ((int) DefaultPorts.HttpsMgmt).ToString(CultureInfo.InvariantCulture));
-            }
-            return new Uri(string.Concat(protocol, hostName, streamingUri));
+            return BuildUri(useSsl, node.Hostname, string.IsNullOrEmpty(TerseStreamingUri) ? StreamingUri : TerseStreamingUri);
         }
 
         public Uri GetTerseUri(Node node, bool useSsl)
         {
-            var protocol = useSsl ? "https://" : "http://";
-            var hostName = node.Hostname;
-            var streamingUri = TerseUri;
+            return BuildUri(useSsl, node.Hostname, string.IsNullOrWhiteSpace(TerseUri) ? Uri : TerseUri);
+        }
 
+        public Uri GetStreamingUri(Node node, bool useSsl)
+        {
+            return BuildUri(useSsl, node.Hostname, StreamingUri);
+        }
+
+        public Uri GetUri(Node node, bool useSsl)
+        {
+            return BuildUri(useSsl, node.Hostname, Uri);
+        }
+
+        private static Uri BuildUri(bool useSsl, string hostname, string path)
+        {
+            string protocol;
             if (useSsl)
             {
-                hostName = hostName.Replace(((int)DefaultPorts.MgmtApi).ToString(CultureInfo.InvariantCulture),
-                    ((int)DefaultPorts.HttpsMgmt).ToString(CultureInfo.InvariantCulture));
+                protocol = HttpsProtocol;
+                hostname = hostname.Replace(
+                    ((int) DefaultPorts.MgmtApi).ToString(CultureInfo.InvariantCulture),
+                    ((int) DefaultPorts.HttpsMgmt).ToString(CultureInfo.InvariantCulture)
+                );
             }
-            return new Uri(string.Concat(protocol, hostName, streamingUri));
+            else
+            {
+                protocol = HttpProtocol;
+            }
+
+            return new Uri(string.Concat(protocol, hostname, path));
         }
 
         public bool AreNodesEqual(IBucketConfig other)

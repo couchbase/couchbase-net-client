@@ -26,6 +26,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly HttpClient _httpClient;
         private readonly string _bucketName;
 
+        private const string DefaultVerboseBucketsBase = "/pools/default/buckets/";
+        private const string DefaultVerboseStreamingBucketsBase = "/pools/default/bucketsStreaming/";
+        private const string DefaultTerseBucketsBase = "/pools/default/b/";
+        private const string DefaultTerseStreamingBucketsBase = "/pools/default/bs/";
+
         public HttpServerConfig(ClientConfiguration clientConfig)
             : this(clientConfig, "default", string.Empty)
         {
@@ -96,8 +101,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             var buckets = pools.Buckets;
             foreach (var bucketConfig in bucketConfigs)
             {
-                bucketConfig.TerseUri = string.Concat(buckets.TerseBucketsBase, bucketConfig.Name);
-                bucketConfig.TerseStreamingUri = string.Concat(buckets.TerseStreamingBucketsBase, bucketConfig.Name);
+                bucketConfig.TerseUri = string.Concat(buckets.TerseBucketsBase ?? DefaultTerseBucketsBase , bucketConfig.Name);
+                bucketConfig.TerseStreamingUri = string.Concat(buckets.TerseStreamingBucketsBase ?? DefaultTerseStreamingBucketsBase, bucketConfig.Name);
             }
         }
 

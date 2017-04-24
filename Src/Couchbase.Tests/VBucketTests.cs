@@ -25,7 +25,7 @@ namespace Couchbase.Tests
     public class VBucketTests
     {
         private IVBucket _vBucket;
-        private IDictionary<IPAddress, IServer> _servers;
+        private IDictionary<IPEndPoint, IServer> _servers;
         private VBucketServerMap _vBucketServerMap;
 
         [OneTimeSetUp]
@@ -34,10 +34,10 @@ namespace Couchbase.Tests
             var bucketConfig = ConfigUtil.ServerConfig.Buckets.First(x=>x.Name=="default");
             _vBucketServerMap = bucketConfig.VBucketServerMap;
 
-            _servers = new Dictionary<IPAddress, IServer>();
+            _servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(node.GetIPAddress(),
+                _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -68,7 +68,7 @@ namespace Couchbase.Tests
             Assert.IsNotNull(replica);
 
             var hostname = _vBucketServerMap.IPEndPoints[replicaIndex];
-            var expected = _servers[hostname.Address];
+            var expected = _servers[hostname];
             Assert.AreSame(expected, replica);
         }
 
@@ -78,10 +78,10 @@ namespace Couchbase.Tests
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(node.GetIPAddress(),
+                servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -101,10 +101,10 @@ namespace Couchbase.Tests
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(node.GetIPAddress(),
+                servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -128,10 +128,10 @@ namespace Couchbase.Tests
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(node.GetIPAddress(),
+                servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -157,10 +157,10 @@ namespace Couchbase.Tests
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(node.GetIPAddress(),
+                servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -184,10 +184,10 @@ namespace Couchbase.Tests
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var servers = new Dictionary<IPAddress, IServer>();
+            var servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                servers.Add(node.GetIPAddress(),
+                servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
                         new ClientConfiguration(), bucketConfig,
@@ -195,7 +195,7 @@ namespace Couchbase.Tests
             }
 
             //remove one server
-            servers.Remove(_vBucketServerMap.IPEndPoints.Skip(1).First().Address);
+            servers.Remove(_vBucketServerMap.IPEndPoints.Skip(1).First());
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
 
@@ -220,10 +220,10 @@ namespace Couchbase.Tests
                new FakeTranscoder());
 
             var vbucket =
-                new VBucket(new Dictionary<IPAddress, IServer>
+                new VBucket(new Dictionary<IPEndPoint, IServer>
                 {
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210"), server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210"), server}
                 },
                 100, -1, new[] {2}, 0, new VBucketServerMap {ServerList = new []{"127.0.0.1:10210"}}, "default");
             var found = vbucket.LocatePrimary();
@@ -233,7 +233,7 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_1_LocatePrimary_Returns_Random_Server()
         {
-            var vbucket = new VBucket(new Dictionary<IPAddress, IServer>{}, 100, -1, new[] { 0 }, 0, new VBucketServerMap{ ServerList = new []{ "127.0.0.1:10210" }}, "default");
+            var vbucket = new VBucket(new Dictionary<IPEndPoint, IServer>{}, 100, -1, new[] { 0 }, 0, new VBucketServerMap{ ServerList = new []{ "127.0.0.1:10210" }}, "default");
             var found = vbucket.LocatePrimary();
             Assert.IsNull(found);//should be null
         }
@@ -251,10 +251,10 @@ namespace Couchbase.Tests
                 new FakeTranscoder());
 
             var vbucket =
-                new VBucket(new Dictionary<IPAddress, IServer>
+                new VBucket(new Dictionary<IPEndPoint, IServer>
                 {
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210"), server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210"), server}
                 },
                 100, -1, new[] { -1 }, 0,  new VBucketServerMap{ ServerList = new[] { "127.0.0.1:10210" }}, "default");
             var found = vbucket.LocatePrimary();
@@ -274,10 +274,10 @@ namespace Couchbase.Tests
                 new FakeTranscoder());
 
             var vbucket =
-                new VBucket(new Dictionary<IPAddress, IServer>
+                new VBucket(new Dictionary<IPEndPoint, IServer>
                 {
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210").Address, server},
-                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210").Address, server}
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.1:10210"), server},
+                    {IPEndPointExtensions.GetEndPoint("127.0.0.2:10210"), server}
                 },
                 100, -1, new[] { 0 }, 0, new VBucketServerMap { ServerList = new[] { "127.0.0.1:10210", "127.0.0.2:10210" } }, "default");
             var found = vbucket.LocatePrimary();

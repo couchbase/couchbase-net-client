@@ -24,9 +24,9 @@ namespace Couchbase.UnitTests.Core.Buckets
             }
             .Select(x =>
             {
-                var ipAddress = IPAddress.Parse(x.Key);
+                var ipAddress = new IPEndPoint(IPAddress.Parse(x.Key), x.Value);
                 var server = new Mock<IServer>();
-                server.Setup(y => y.EndPoint).Returns(new IPEndPoint(ipAddress, x.Value));
+                server.Setup(y => y.EndPoint).Returns(ipAddress);
                 server.Setup(y => y.IsDataNode).Returns(true);
 
                 return new {ipAddress, server};

@@ -95,6 +95,14 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         }
                         bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
                         bucketConfig.Password = password;
+                        if (ClientConfig.UseSsl)
+                        {
+                            foreach (var ipEndPoint in bucketConfig.VBucketServerMap.IPEndPoints)
+                            {
+                                ipEndPoint.Port = ClientConfig.SslPort;
+                            }
+                        }
+
                         configInfo = new CouchbaseConfigContext(bucketConfig,
                             ClientConfig,
                             IOServiceFactory,

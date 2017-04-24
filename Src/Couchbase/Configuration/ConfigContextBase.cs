@@ -30,7 +30,7 @@ namespace Couchbase.Configuration
         protected IKeyMapper KeyMapper;
         private readonly DateTime _creationTime;
         private readonly ClientConfiguration _clientConfig;
-        protected IDictionary<IPAddress, IServer> Servers = new Dictionary<IPAddress, IServer>();
+        protected IDictionary<IPEndPoint, IServer> Servers = new Dictionary<IPEndPoint, IServer>();
         protected Func<IConnectionPool, IIOService> IOServiceFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> SaslFactory;

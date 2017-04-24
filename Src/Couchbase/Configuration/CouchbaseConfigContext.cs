@@ -52,7 +52,7 @@ namespace Couchbase.Configuration
                     var queryUris = new ConcurrentBag<FailureCountingUri>();
                     var analyticsUris = new ConcurrentBag<FailureCountingUri>();
                     var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
-                    var servers = new Dictionary<IPAddress, IServer>();
+                    var servers = new Dictionary<IPEndPoint, IServer>();
                     foreach (var adapter in nodes)
                     {
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
@@ -95,7 +95,7 @@ namespace Couchbase.Configuration
                             {
                                 server = new Core.Server(null, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
                             }
-                            servers.Add(endpoint.Address, server);
+                            servers.Add(endpoint, server);
                         }
                         catch (Exception e)
                         {
@@ -166,7 +166,7 @@ namespace Couchbase.Configuration
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var analyticsUris = new ConcurrentBag<FailureCountingUri>();
                 var clientBucketConfig = ClientConfig.BucketConfigs[BucketConfig.Name];
-                var servers = new Dictionary<IPAddress, IServer>();
+                var servers = new Dictionary<IPEndPoint, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
@@ -239,7 +239,7 @@ namespace Couchbase.Configuration
                                 server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                             }
                         }
-                        servers.Add(endpoint.Address, server);
+                        servers.Add(endpoint, server);
                     }
                     catch (Exception e)
                     {
@@ -284,7 +284,7 @@ namespace Couchbase.Configuration
                 var searchUris = new ConcurrentBag<FailureCountingUri>();
                 var queryUris = new ConcurrentBag<FailureCountingUri>();
                 var analyticsUris = new ConcurrentBag<FailureCountingUri>();
-                var servers = new Dictionary<IPAddress, IServer>();
+                var servers = new Dictionary<IPEndPoint, IServer>();
                 var nodes = BucketConfig.GetNodes();
                 foreach (var adapter in nodes)
                 {
@@ -327,7 +327,7 @@ namespace Couchbase.Configuration
                         {
                             server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
                         }
-                        servers.Add(endpoint.Address, server);
+                        servers.Add(endpoint, server);
                     }
                     catch (Exception e)
                     {
@@ -366,7 +366,7 @@ namespace Couchbase.Configuration
         /// </summary>
         /// <param name="servers">The servers.</param>
         /// <exception cref="Couchbase.Configuration.CouchbaseBootstrapException"></exception>
-        void UpdateServices(Dictionary<IPAddress, IServer> servers)
+        void UpdateServices(Dictionary<IPEndPoint, IServer> servers)
         {
             //If servers is empty that means we could not initialize _any_ nodes
             //We fail-fast here so that the problem can be indentified and handled.

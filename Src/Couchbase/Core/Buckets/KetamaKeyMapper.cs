@@ -12,11 +12,11 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class KetamaKeyMapper : IKeyMapper
     {
-        private readonly IDictionary<IPAddress, IServer> _servers;
+        private readonly IDictionary<IPEndPoint, IServer> _servers;
         private readonly int _totalWeight;
         internal readonly SortedDictionary<long, IServer> Hashes = new SortedDictionary<long, IServer>();
 
-        public KetamaKeyMapper(IDictionary<IPAddress, IServer> servers)
+        public KetamaKeyMapper(IDictionary<IPEndPoint, IServer> servers)
         {
             _servers = servers;
             _totalWeight = _servers.Count;

@@ -97,6 +97,10 @@ namespace Couchbase.Configuration.Server.Serialization
 
         Uri GetTerseUri(Node node, bool useSsl);
 
+        Uri GetStreamingUri(Node node, bool useSsl);
+
+        Uri GetUri(Node node, bool useSsl);
+
         bool AreNodesEqual(IBucketConfig other);
 
         bool IsVBucketServerMapEqual(IBucketConfig other);

@@ -23,7 +23,7 @@ namespace Couchbase.Tests.Core.Buckets
     public class KetamaMapperTests
     {
         private KetamaKeyMapper _keyMapper;
-        private Dictionary<IPAddress, IServer> _servers;
+        private Dictionary<IPEndPoint, IServer> _servers;
 
         [OneTimeSetUp]
         public void SetUp()
@@ -31,10 +31,10 @@ namespace Couchbase.Tests.Core.Buckets
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            _servers = new Dictionary<IPAddress, IServer>();
+            _servers = new Dictionary<IPEndPoint, IServer>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(node.GetIPAddress(),
+                _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                        node,
                        new ClientConfiguration(), bucketConfig,
