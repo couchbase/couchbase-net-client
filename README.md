@@ -1,4 +1,4 @@
-Official Couchbase .NET SDK
+Official Couchbase .NET SDK [![Build Status](http://sdkbuilds.sc.couchbase.com/buildStatus/icon?job=netclient-build-test)](http://sdkbuilds.sc.couchbase.com/job/netclient-build-test/)
 ====================
 
 * master is 2.0 development branch
