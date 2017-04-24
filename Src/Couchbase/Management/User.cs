@@ -12,7 +12,7 @@ namespace Couchbase.Management
 
         public string Name { get; set; }
 
-        public string Type { get; set; }
+        public string Domain { get; set; }
 
         public IEnumerable<Role> Roles { get; set; }
 
@@ -20,7 +20,7 @@ namespace Couchbase.Management
         {
             public string id { get; set; }
             public string name { get; set; }
-            public string type { get; set; }
+            public string domain { get; set; }
             public IEnumerable<Role> roles { get; set; }
 
             public User ToUser()
@@ -29,7 +29,7 @@ namespace Couchbase.Management
                 {
                     Username = id,
                     Name = name,
-                    Type = type,
+                    Domain = domain,
                     Roles = roles
                 };
             }

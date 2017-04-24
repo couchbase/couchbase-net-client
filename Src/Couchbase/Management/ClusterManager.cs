@@ -894,7 +894,7 @@ namespace Couchbase.Management
             builder.AppendFormat("{0}://{1}:{2}/settings/rbac/users", protocol, server.Host, port);
             if (!string.IsNullOrWhiteSpace(username))
             {
-                builder.AppendFormat("/builtin/{0}", username);
+                builder.AppendFormat("/local/{0}", username);
             }
 
             return new Uri(builder.ToString());

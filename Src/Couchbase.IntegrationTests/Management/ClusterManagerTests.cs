@@ -259,7 +259,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 Username = "alice",
                 Name = "Alice Liddell",
-                Type = "builtin",
+                Domain = "builtin",
                 Roles = new[] { new Role { Name = "fts_searcher", BucketName = "default" } }
             };
 

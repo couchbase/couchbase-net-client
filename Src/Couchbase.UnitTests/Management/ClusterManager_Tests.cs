@@ -173,7 +173,7 @@ namespace Couchbase.UnitTests.Management
         [Test]
         public void UpsertUser_Builds_Correct_Uri()
         {
-            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/builtin/alice";
+            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/local/alice";
 
             var handler = FakeHttpMessageHandler.Create(request =>
             {
@@ -210,7 +210,7 @@ namespace Couchbase.UnitTests.Management
         [Test]
         public void RemoveUser_Builds_Correct_Uri()
         {
-            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/builtin/alice";
+            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/local/alice";
 
             var handler = FakeHttpMessageHandler.Create(request =>
             {
@@ -238,21 +238,21 @@ namespace Couchbase.UnitTests.Management
                 {
                     Username = "alice",
                     Name = "Alice Liddell",
-                    Type = "builtin",
+                    Domain = "builtin",
                     Roles = new List<Role> {new Role {Name = "Admin"}}
                 },
                 new User
                 {
                     Username = "rabbit",
                     Name = "White Rabbit",
-                    Type = "builtin",
+                    Domain = "builtin",
                     Roles = new List<Role> {new Role {Name = "BucketManager", BucketName = "default"}}
                 },
                 new User
                 {
                     Username = "hatter",
                     Name = "Mad Hatter",
-                    Type = "builtin",
+                    Domain = "builtin",
                     Roles = new List<Role> {new Role {Name = "FTSAdmin"}}
                 }
             };
