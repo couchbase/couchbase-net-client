@@ -228,35 +228,43 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 IConfigInfo configInfo;
                 if (Configs.TryGetValue(bucketConfig.Name, out configInfo))
                 {
-                    var lockTaken = false;
                     try
                     {
-                        Monitor.TryEnter(configInfo, ref lockTaken);
-                        if (!lockTaken) return;
-
+                        Log.Debug("1. Checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
                         var oldBucketConfig = configInfo.BucketConfig;
-                        if (bucketConfig.Rev > oldBucketConfig.Rev || !bucketConfig.Equals(oldBucketConfig) || force)
+                        if (bucketConfig.Rev > oldBucketConfig.Rev)
                         {
-                            Log.Info(
-                                "Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force,
+                            lock (SyncObj)
+                            {
+                                Log.Debug("2. Checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                                if (bucketConfig.Rev > oldBucketConfig.Rev || !bucketConfig.Equals(oldBucketConfig) ||
+                                    force)
+                                {
+                                    Log.Info(
+                                        "Config changed (forced:{0}) new Rev#{1} | old Rev#{2} CCCP: {3}", force,
                                         bucketConfig.Rev, oldBucketConfig.Rev,
                                         JsonConvert.SerializeObject(bucketConfig));
 
-                            //Set the password on the new server configuration
-                            var clientBucketConfig = GetOrCreateConfiguration(bucketConfig.Name);
-                            bucketConfig.Password = clientBucketConfig.Password;
+                                    //Set the password on the new server configuration
+                                    var clientBucketConfig = GetOrCreateConfiguration(bucketConfig.Name);
+                                    bucketConfig.Password = clientBucketConfig.Password;
 
-                            configInfo.LoadConfig(bucketConfig, force);
-                            ClientConfig.UpdateBootstrapList(bucketConfig);
-                            configObserver.NotifyConfigChanged(configInfo);
+                                    configInfo.LoadConfig(bucketConfig, force);
+                                    ClientConfig.UpdateBootstrapList(bucketConfig);
+                                    configObserver.NotifyConfigChanged(configInfo);
+                                    Log.Debug("3. Completed checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Log.Info("Ignoring config with rev#{0}", bucketConfig.Rev);
                         }
                     }
-                    finally
+                    catch(Exception e)
                     {
-                        if (lockTaken)
-                        {
-                            Monitor.Exit(configInfo);
-                        }
+                        Log.Debug("Ack! rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                        Log.Info(e);
                     }
                 }
                 else

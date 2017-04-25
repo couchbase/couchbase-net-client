@@ -424,16 +424,14 @@ namespace Couchbase.IO.Services
         public void Dispose()
         {
             Log.Info("Disposing IOService for {0} - {1}", EndPoint, _identity);
-            lock (_syncObj)
-            {
-                Dispose(true);
-            }
+            Dispose(true);
         }
 
         void Dispose(bool disposing)
         {
             if (!_disposed)
             {
+                _disposed = true;
                 if (disposing)
                 {
                     GC.SuppressFinalize(this);
@@ -444,7 +442,6 @@ namespace Couchbase.IO.Services
                     _connectionPool.Dispose();
                 }
             }
-            _disposed = true;
         }
 
         public void SetErrorMap(ErrorMap errorMap)
