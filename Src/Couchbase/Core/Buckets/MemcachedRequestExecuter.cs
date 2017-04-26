@@ -6,6 +6,7 @@ using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
 {
@@ -172,9 +173,9 @@ namespace Couchbase.Core.Buckets
                 while ((server = GetServer(operation.Key)) == null)
                 {
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ConfigureAwait(false);
+                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
                 }
-                await server.SendAsync(operation).ConfigureAwait(false);
+                await server.SendAsync(operation).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -185,7 +186,7 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
-            return await tcs.Task.ConfigureAwait(false);
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -216,9 +217,9 @@ namespace Couchbase.Core.Buckets
                 while ((server = GetServer(operation.Key)) == null)
                 {
                     if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ConfigureAwait(false);
+                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
                 }
-                await server.SendAsync(operation).ConfigureAwait(false);
+                await server.SendAsync(operation).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -229,7 +230,7 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
-            return await tcs.Task.ConfigureAwait(false);
+            return await tcs.Task.ContinueOnAnyContext();
         }
     }
 }

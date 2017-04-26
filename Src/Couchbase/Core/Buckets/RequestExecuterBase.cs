@@ -61,7 +61,7 @@ namespace Couchbase.Core.Buckets
         {
             while (true)
             {
-                var result = await execute(operation, configInfo).ConfigureAwait(false);
+                var result = await execute(operation, configInfo).ContinueOnAnyContext();
                 if (result.Success || operation.TimedOut())
                 {
                     if (operation.TimedOut())
@@ -78,7 +78,7 @@ namespace Couchbase.Core.Buckets
                 }
 
                 operation.Attempts++;
-                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ConfigureAwait(false);
+                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ContinueOnAnyContext();
                 try
                 {
                     await task;
@@ -109,7 +109,7 @@ namespace Couchbase.Core.Buckets
         {
             while (true)
             {
-                var result = await execute(operation, configInfo).ConfigureAwait(false);
+                var result = await execute(operation, configInfo).ContinueOnAnyContext();
                 if (result.Success || operation.TimedOut())
                 {
                     if (operation.TimedOut())
@@ -125,7 +125,7 @@ namespace Couchbase.Core.Buckets
                     return result;
                 }
                 operation.Attempts++;
-                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ConfigureAwait(false);
+                var task = Task.Delay(VBucketRetrySleepTime, cancellationToken).ContinueOnAnyContext();
                 try
                 {
                     await task;
@@ -438,7 +438,7 @@ namespace Couchbase.Core.Buckets
                     var replica = vBucket.LocateReplica(index);
                     if (replica == null) continue;
 
-                    await replica.SendAsync(operation).ConfigureAwait(false);
+                    await replica.SendAsync(operation).ContinueOnAnyContext();
                     result = await tcs.Task;
                     if (result.Success && !result.IsNmv())
                     {

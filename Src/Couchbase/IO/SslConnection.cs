@@ -87,13 +87,13 @@ namespace Couchbase.IO
                     Completed = callback
                 };
 
-                await _sslStream.WriteAsync(request, 0, request.Length).ConfigureAwait(false);
+                await _sslStream.WriteAsync(request, 0, request.Length).ContinueOnAnyContext();
 
                 state.SetIOBuffer(BufferAllocator.GetBuffer());
-                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength).ConfigureAwait(false);
+                state.BytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength).ContinueOnAnyContext();
 
                 //write the received buffer to the state obj
-                await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived).ConfigureAwait(false);
+                await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived).ContinueOnAnyContext();
 
                 state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.BodyLength);
                 while (state.BytesReceived < state.BodyLength + 24)
@@ -102,10 +102,10 @@ namespace Couchbase.IO
                         ? state.BufferLength - state.BytesSent
                         : state.BufferLength;
 
-                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, bufferLength).ConfigureAwait(false);
-                    await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length).ConfigureAwait(false);
+                    state.BytesReceived += await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, bufferLength).ContinueOnAnyContext();
+                    await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length).ContinueOnAnyContext();
                 }
-                await callback(state).ConfigureAwait(false);
+                await callback(state).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -132,12 +132,12 @@ namespace Couchbase.IO
                         Status = (sourceException is SocketException)
                             ? ResponseStatus.TransportFailure
                             : ResponseStatus.ClientFailure
-                    }).ConfigureAwait(false);
+                    }).ContinueOnAnyContext();
                 }
                 else
                 {
                     state.Exception = sourceException;
-                    await state.Completed(state).ConfigureAwait(false);
+                    await state.Completed(state).ContinueOnAnyContext();
                     Log.Debug(sourceException);
                 }
             }
@@ -188,7 +188,7 @@ namespace Couchbase.IO
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
             };
 
-            await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+            await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ContinueOnAnyContext();
 
             try
             {
@@ -198,7 +198,7 @@ namespace Couchbase.IO
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var bytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength, cancellationToken).ConfigureAwait(false);
+                    var bytesReceived = await _sslStream.ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength, cancellationToken).ContinueOnAnyContext();
                     state.BytesReceived += bytesReceived;
 
                     if (state.BytesReceived == 0)

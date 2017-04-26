@@ -682,7 +682,7 @@ namespace Couchbase.Core.Buckets
                         var server = c.GetViewNode();
                         return await server.SendAsync<T>(query).ContinueOnAnyContext();
                     },
-                    query, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+                    query, ConfigInfo, cancellationTokenSource.Token).ContinueOnAnyContext();
 
                     viewResult = await task;
                 }
@@ -1017,7 +1017,7 @@ namespace Couchbase.Core.Buckets
                             }
                             return result;
                         },
-                        queryRequest, ConfigInfo, cancellationTokenSource.Token).ConfigureAwait(false);
+                        queryRequest, ConfigInfo, cancellationTokenSource.Token).ContinueOnAnyContext();
                     }
                 }
             }
