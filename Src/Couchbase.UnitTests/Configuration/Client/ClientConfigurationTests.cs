@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
@@ -8,6 +9,7 @@ using Couchbase.IO;
 using Couchbase.IO.Services;
 using Couchbase.Utils;
 using Moq;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 #if NET45
@@ -20,6 +22,43 @@ namespace Couchbase.UnitTests.Configuration.Client
     [TestFixture]
     public class ClientConfigurationTests
     {
+        [Test]
+        public void Test_That_ClientConfiguration_Is_NotNull()
+        {
+            var config = new ClientConfiguration();
+            config.UseSsl = false;
+
+            config.BucketConfigs.Remove("default");
+            BucketConfiguration bucketConfiguration = new BucketConfiguration();
+            bucketConfiguration.BucketName = "default";
+            bucketConfiguration.Password = "password";
+            bucketConfiguration.UseSsl = false;
+            bucketConfiguration.UseEnhancedDurability = true;
+            config.Servers.Clear();
+
+            config.Servers.Add(
+                new UriBuilder("http://",
+                    "127.0.0.1",
+                    8091,
+                    "pools").Uri
+            );
+
+
+            config.PoolConfiguration.ShutdownTimeout = 15;
+            bucketConfiguration.Servers.Clear(); //we remove default localhost server
+            config.BucketConfigs.Add("default",
+                bucketConfiguration);
+
+            config.Initialize();
+
+            foreach (var bucketConfigurationServer in bucketConfiguration.Servers)
+            {
+                var bucketConfig = config.BucketConfigs["default"];
+                var cloned = bucketConfig.PoolConfiguration.Clone(bucketConfigurationServer);
+                Assert.IsNotNull(cloned.ClientConfiguration);
+            }
+        }
+
         [Test]
         public void When_TcpKeepAliveTime_Set_On_ClientConfiguration_Defaults_Are_Not_Used()
         {

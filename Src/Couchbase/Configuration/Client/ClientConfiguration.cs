@@ -1002,6 +1002,10 @@ namespace Couchbase.Configuration.Client
                 {
                     bucketConfiguration.PoolConfiguration.UseSsl = true;
                 }
+                if (bucketConfiguration.PoolConfiguration.ClientConfiguration == null)
+                {
+                    bucketConfiguration.PoolConfiguration.ClientConfiguration = this;
+                }
                 if (UseSsl)
                 {
                     //Setting ssl to true at parent level overrides child level ssl settings
