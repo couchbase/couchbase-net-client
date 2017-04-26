@@ -45,6 +45,7 @@ namespace Couchbase.Core
         private readonly IQueryClient _streamingQueryClient;
         private readonly IViewClient _streamingViewClient;
         private readonly IAnalyticsClient _analyticsClient;
+        private readonly AutoResetEvent _resetEvent = new AutoResetEvent(true);
 
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
@@ -411,21 +412,23 @@ namespace Couchbase.Core
         {
             if (isDead && IsDataNode)
             {
-                lock (_syncObj)
+                try
                 {
+                    _resetEvent.WaitOne();
+
                     var current = DateTime.Now;
                     var last = _lastIOErrorCheckedTime.AddMilliseconds(_clientConfiguration.IOErrorCheckInterval);
                     Interlocked.Increment(ref _ioErrorCount);
 
                     Log.Info("Checking if node {0} should be down - last: {1}, current: {2}, count: {3}",
-                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+                        EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
 
                     if (_ioErrorCount > _clientConfiguration.IOErrorThreshold)
                     {
-                        if(last < current)
+                        if (last < current)
                         {
                             Log.Info("Marking node {0} as down - last: {1}, current: {2}, count: {3}",
-                               EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
+                                EndPoint, last.TimeOfDay, current.TimeOfDay, _ioErrorCount);
 
                             _isDown = true;
                             StartHeartbeatTimer();
@@ -433,6 +436,10 @@ namespace Couchbase.Core
                         Interlocked.Exchange(ref _ioErrorCount, 0);
                         _lastIOErrorCheckedTime = DateTime.Now;
                     }
+                }
+                finally
+                {
+                    _resetEvent.Set();
                 }
             }
         }
