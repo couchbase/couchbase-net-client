@@ -495,7 +495,7 @@ namespace Couchbase.IntegrationTests
                 var lockedResult = _bucket.Get<dynamic>(key);
                 Assert.AreEqual(ulong.MaxValue, lockedResult.Cas); // ulong.max indicates doc is locked
 
-                Thread.Sleep(TimeSpan.FromMilliseconds(1500)); // wait until lock has expired
+                Thread.Sleep(TimeSpan.FromSeconds(2)); // wait until lock has expired
 
                 var getResult = _bucket.Get<dynamic>(key);
                 Assert.AreNotEqual(ulong.MaxValue, getResult.Cas); // cas != ulong.max means not locked
