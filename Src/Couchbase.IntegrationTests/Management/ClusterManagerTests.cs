@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using NUnit.Framework;
@@ -25,17 +26,20 @@ namespace Couchbase.IntegrationTests.Management
         #region bucket tests
 
         [Test]
-        public void CreateBucket_DoesNotExist_Success()
+        [TestCase(BucketTypeEnum.Couchbase)]
+        [TestCase(BucketTypeEnum.Ephemeral)]
+        [TestCase(BucketTypeEnum.Memcached)]
+        public void CreateBucket_DoesNotExist_Success(BucketTypeEnum bucketType)
         {
             // Arrange
 
             // Ensure the bucket doesn't already exist
-            _clusterManager.RemoveBucket(BucketName);
+            _clusterManager.RemoveBucket(BucketName + "_" + bucketType);
             Thread.Sleep(250);
 
             // Act
 
-            var result = _clusterManager.CreateBucket(BucketName);
+            var result = _clusterManager.CreateBucket(BucketName, bucketType:bucketType);
 
             try
             {

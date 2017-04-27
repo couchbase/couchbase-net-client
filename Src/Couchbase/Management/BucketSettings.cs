@@ -112,6 +112,15 @@ namespace Couchbase.Management
         /// The services: kv, query and/or data.
         /// </value>
         public List<CouchbaseService> Services { get; set; }
+
+        /// <summary>
+        /// Gets or sets the proxy port.
+        /// </summary>
+        /// <remarks>Not supported by Ephemeral buckets.</remarks>
+        /// <value>
+        /// The proxy port.
+        /// </value>
+        public int ProxyPort { get; set; }
     }
 }
 

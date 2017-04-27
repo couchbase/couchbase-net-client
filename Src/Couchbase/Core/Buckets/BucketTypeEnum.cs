@@ -9,11 +9,16 @@
         /// A persistent Bucket supporting replication and rebalancing.
         /// </summary>
         Couchbase = 0x00,
-        
+
         /// <summary>
         /// A Bucket supporting in-memory Key/Value operations.
         /// </summary>
-        Memcached = 0x01
+        Memcached = 0x01,
+
+        /// <summary>
+        /// The ephemeral bucket type for in-memory buckets with Couchbase bucket behavior.
+        /// </summary>
+        Ephemeral = 0x02
     }
 }
 

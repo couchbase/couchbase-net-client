@@ -271,11 +271,10 @@ namespace Couchbase.Management
         /// <returns></returns>
         public Task<IResult> CreateBucketAsync(BucketSettings settings)
         {
-            return CreateBucketAsync(settings.Name, settings.RamQuota, settings.BucketType, settings.ReplicaNumber,
+            return CreateBucketAsync(settings.Name, settings.ProxyPort, settings.RamQuota, settings.BucketType, settings.ReplicaNumber,
                 settings.AuthType, settings.IndexReplicas, settings.FlushEnabled, settings.ParallelDbAndViewCompaction,
                 settings.SaslPassword, settings.ThreadNumber);
         }
-
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -291,12 +290,68 @@ namespace Couchbase.Management
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
         /// <returns>A boolean value indicating the result.</returns>
-        public async Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100,
+        public Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100,
             BucketTypeEnum bucketType = BucketTypeEnum.Couchbase,
             ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl,
             bool indexReplicas = false, bool flushEnabled = false,
             bool parallelDbAndViewCompaction = false, string saslPassword = "",
             ThreadNumber threadNumber = ThreadNumber.Three)
+        {
+            return CreateBucketAsync(name, 0, ramQuota, bucketType, replicaNumber, authType, indexReplicas,
+                flushEnabled, parallelDbAndViewCompaction, saslPassword, threadNumber);
+        }
+
+        /// <summary>
+        /// Creates a new bucket on the cluster
+        /// </summary>
+        /// <param name="name">Required parameter. Name for new bucket.</param>
+        /// <param name="proxyPort">Optional parameter. Does not apply to Ephemeral buckets.</param>
+        /// <param name="ramQuota">The RAM quota in megabytes. The default is 100.</param>
+        /// <param name="bucketType">Required parameter. Type of bucket to be created. “Memcached” configures as Memcached bucket. “Couchbase” configures as Couchbase bucket</param>
+        /// <param name="replicaNumber">The number of replicas of each document: minimum 0, maximum 3.</param>
+        /// <param name="authType">The authentication type.</param>
+        /// <param name="indexReplicas">Disable or enable indexes for bucket replicas.</param>
+        /// <param name="flushEnabled">Enables the flush functionality on the specified bucket.</param>
+        /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
+        /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
+        /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket.</param>
+        /// <returns>
+        /// A boolean value indicating the result.
+        /// </returns>
+        public IResult CreateBucket(string name, int proxyPort, uint ramQuota = 100,
+            BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two,
+            AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
+            bool parallelDbAndViewCompaction = false, string saslPassword = "",
+            ThreadNumber threadNumber = ThreadNumber.Three)
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                return CreateBucketAsync(name, proxyPort, ramQuota, bucketType, replicaNumber, authType, indexReplicas,
+                    flushEnabled, parallelDbAndViewCompaction, saslPassword, threadNumber).Result;
+            }
+        }
+
+        /// <summary>
+        /// Creates a new bucket on the cluster
+        /// </summary>
+        /// <param name="name">Required parameter. Name for new bucket.</param>
+        /// <param name="proxyPort">Optional parameter. Does not apply to Ephemeral buckets.</param>
+        /// <param name="ramQuota">The RAM quota in megabytes. The default is 100.</param>
+        /// <param name="bucketType">Required parameter. Type of bucket to be created. “Memcached” configures as Memcached bucket. “Couchbase” configures as Couchbase bucket</param>
+        /// <param name="replicaNumber">The number of replicas of each document: minimum 0, maximum 3.</param>
+        /// <param name="authType">The authentication type.</param>
+        /// <param name="indexReplicas">Disable or enable indexes for bucket replicas.</param>
+        /// <param name="flushEnabled">Enables the flush functionality on the specified bucket.</param>
+        /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
+        /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
+        /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket.</param>
+        /// <returns>
+        /// A boolean value indicating the result.
+        /// </returns>
+        public async Task<IResult> CreateBucketAsync(string name, int proxyPort, uint ramQuota = 100,
+            BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two,
+            AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
+            bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three)
         {
             var uri = GetBucketAPIUri();
 
@@ -308,14 +363,21 @@ namespace Couchbase.Management
                 {"authType", authType.ToString().ToLowerInvariant()},
                 {"bucketType", bucketType.ToString().ToLowerInvariant()},
                 {"flushEnabled", flushEnabled ? "1" : "0"},
-                {"proxyPort", 0.ToString(CultureInfo.InvariantCulture)},
                 {"parallelDBAndViewCompaction", parallelDbAndViewCompaction.ToString().ToLowerInvariant()},
                 {"ramQuotaMB", ramQuota.ToString(CultureInfo.InvariantCulture)},
-                {"replicaIndex", indexReplicas ? "1" : "0"},
                 {"replicaNumber", ((int) replicaNumber).ToString(CultureInfo.InvariantCulture)},
                 {"saslPassword", saslPassword},
                 {"threadsNumber", ((int) threadNumber).ToString(CultureInfo.InvariantCulture)}
             };
+
+            if (bucketType != BucketTypeEnum.Ephemeral)
+            {
+                formData.Add("replicaIndex", indexReplicas ? "1" : "0");
+                if (proxyPort > 0)
+                {
+                    formData.Add("proxyPort", proxyPort.ToString(CultureInfo.InvariantCulture));
+                }
+            }
 
             return await PostFormDataAsync(uri, formData).ContinueOnAnyContext();
         }
