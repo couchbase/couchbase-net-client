@@ -83,8 +83,10 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration());
 
-            var service = new PooledIOService(mockConnectionPool.Object);
-            service.SetErrorMap(errorMap);
+            var service = new PooledIOService(mockConnectionPool.Object)
+            {
+                ErrorMap = errorMap
+            };
 
             var result = service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0, 0));
 
@@ -117,8 +119,10 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration());
 
-            var service = new PooledIOService(mockConnectionPool.Object);
-            service.SetErrorMap(errorMap);
+            var service = new PooledIOService(mockConnectionPool.Object)
+            {
+                ErrorMap = errorMap
+            };
 
             var result = service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0, 0));
 

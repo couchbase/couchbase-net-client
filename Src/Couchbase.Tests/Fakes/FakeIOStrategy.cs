@@ -250,10 +250,7 @@ namespace Couchbase.Tests.Fakes
         {
         }
 
-        public void SetErrorMap(ErrorMap errorMap)
-        {
-            throw new NotImplementedException();
-        }
+        public ErrorMap ErrorMap { get; protected set; }
 
 
         public bool SupportsEnhancedDurability { get; protected set; }

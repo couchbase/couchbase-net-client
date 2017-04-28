@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -79,6 +79,11 @@ namespace Couchbase.IO.Services
         /// </value>
         public bool SupportsKvErrorMap { get; private set; }
 
+        /// <summary>
+        /// The Error Map that is used to map error codes from the server to error messages.
+        /// </summary>
+        public ErrorMap ErrorMap { get; internal set; }
+
         public IPEndPoint EndPoint
         {
             get { return _connectionPool.EndPoint; }
@@ -100,7 +105,7 @@ namespace Couchbase.IO.Services
         {
             var request = operation.Write();
             var response = connection.Send(request);
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResultWithValue();
         }
 
@@ -133,7 +138,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResultWithValue();//might have to handle a special null case her
         }
 
@@ -166,7 +171,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResult();
         }
 
@@ -310,7 +315,8 @@ namespace Couchbase.IO.Services
                 features.Add((short) ServerFeatures.XError);
             }
 
-            var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
+            var transcoder = new DefaultTranscoder();
+            var hello = new Hello(features.ToArray(), transcoder, 0, 0);
 
             var result = Execute(hello, connection);
             if (result.Success)
@@ -319,6 +325,17 @@ namespace Couchbase.IO.Services
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
                 SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
                 SupportsKvErrorMap = result.Value.Contains((short) ServerFeatures.XError);
+
+                if (SupportsKvErrorMap)
+                {
+                    var errorMapResult = Execute(new GetErrorMap(transcoder, 0));
+                    if (!errorMapResult.Success)
+                    {
+                        throw new Exception("Error retrieving error map. Cluster indicated it was available.");
+                    }
+
+                    ErrorMap = errorMapResult.Value;
+                }
             }
             else
             {
@@ -406,11 +423,6 @@ namespace Couchbase.IO.Services
                     _resetEvent.Dispose();
                 }
             }
-        }
-
-        public void SetErrorMap(ErrorMap errorMap)
-        {
-            _errorMap = errorMap;
         }
 
 #if DEBUG

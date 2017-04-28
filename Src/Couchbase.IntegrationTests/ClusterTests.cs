@@ -97,7 +97,7 @@ namespace Couchbase.IntegrationTests
 
         [TestCase(true)]
         [TestCase(false)]
-        [Ignore("Integration server does not support KV Error map yet")]
+        [Ignore("Only supported on cluster 5.0+ or CouchbaseMock")]
         public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
         {
             var config = TestConfiguration.GetConfiguration("basic");
@@ -112,7 +112,6 @@ namespace Couchbase.IntegrationTests
             };
 
             var cluster = new Cluster(config);
-            cluster.Authenticate(new PasswordAuthenticator("session-webapp", "secure123"));
             var bucket = cluster.OpenBucket("default");
             Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
         }

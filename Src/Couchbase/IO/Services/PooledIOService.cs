@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -70,7 +70,7 @@ namespace Couchbase.IO.Services
             var response = connection.Send(request);
 
             //Read the response and return the completed operation
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResultWithValue();
         }
 
@@ -129,7 +129,7 @@ namespace Couchbase.IO.Services
                 _connectionPool.Release(connection);
             }
 
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResult();
         }
 
@@ -190,7 +190,7 @@ namespace Couchbase.IO.Services
                 _connectionPool.Release(connection);
             }
 
-            operation.Read(response, _errorMap);
+            operation.Read(response, ErrorMap);
             return operation.GetResultWithValue();
         }
 
@@ -384,14 +384,25 @@ namespace Couchbase.IO.Services
                 features.Add((short) ServerFeatures.XError);
             }
 
-            var hello = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0);
-            var result = Execute(hello, connection);
+            var transcoder = new DefaultTranscoder();
+            var result = Execute(new Hello(features.ToArray(), transcoder, 0, 0), connection);
             if (result.Success)
             {
                 SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
                 SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
                 SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
                 SupportsKvErrorMap = result.Value.Contains((short) ServerFeatures.XError);
+
+                if (SupportsKvErrorMap)
+                {
+                    var errorMapResult = Execute(new GetErrorMap(transcoder, 0));
+                    if (!errorMapResult.Success)
+                    {
+                        throw new Exception("Error retrieving error map. Cluster indicated it was available.");
+                    }
+
+                    ErrorMap = errorMapResult.Value;
+                }
             }
             else
             {
@@ -456,6 +467,11 @@ namespace Couchbase.IO.Services
         public bool SupportsKvErrorMap { get; private set; }
 
         /// <summary>
+        /// The Error Map that is used to map error codes from the server to error messages.
+        /// </summary>
+        public ErrorMap ErrorMap { get; internal set; }
+
+        /// <summary>
         /// Returns true if internal TCP connections are using SSL.
         /// </summary>
         public bool IsSecure
@@ -492,11 +508,6 @@ namespace Couchbase.IO.Services
                 }
             }
             _disposed = true;
-        }
-
-        public void SetErrorMap(ErrorMap errorMap)
-        {
-            _errorMap = errorMap;
         }
 
 #if DEBUG

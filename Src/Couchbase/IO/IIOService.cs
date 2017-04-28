@@ -138,10 +138,9 @@ namespace Couchbase.IO
         bool SupportsKvErrorMap { get; }
 
         /// <summary>
-        /// Stores the error map.
+        /// The Error Map that is used to map error codes from the server to error messages.
         /// </summary>
-        /// <param name="errorMap">The error map.</param>
-        void SetErrorMap(ErrorMap errorMap);
+        ErrorMap ErrorMap { get; }
     }
 }
 

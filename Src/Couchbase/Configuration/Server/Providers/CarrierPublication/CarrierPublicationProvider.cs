@@ -63,17 +63,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
                     ioService = IOServiceFactory(connectionPool);
 
-                    if (ioService.SupportsKvErrorMap)
-                    {
-                        var errorMapResult = ioService.Execute(new GetErrorMap(Transcoder, ClientConfig.DefaultOperationLifespan));
-                        if (!errorMapResult.Success)
-                        {
-                            throw new Exception("Error retrieving error map. Cluster indicated it was available.");
-                        }
-
-                        ioService.SetErrorMap(errorMapResult.Value);
-                    }
-
                     if (ioService.SupportsEnhancedAuthentication) // only execute this if RBAC is enabled on the cluster
                     {
                         var selectBucketResult = ioService.Execute(new SelectBucket(bucketName, Transcoder, ClientConfig.DefaultOperationLifespan));

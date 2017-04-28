@@ -137,11 +137,10 @@ namespace Couchbase.Tests.IO.Services
             throw new NotImplementedException();
         }
 
-        public void SetErrorMap(ErrorMap errorMap)
+        public ErrorMap ErrorMap
         {
-            throw new NotImplementedException();
+            get { throw new NotImplementedException(); }
         }
-
 
         public bool SupportsEnhancedDurability
         {
