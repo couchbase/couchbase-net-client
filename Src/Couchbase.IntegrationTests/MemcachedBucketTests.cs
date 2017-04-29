@@ -24,6 +24,7 @@ namespace Couchbase.IntegrationTests
         {
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             _cluster = new Cluster(config);
+            _cluster.OpenBucket("memcached"); // load memcached bucket before tests run
         }
 
         [Test]
@@ -864,7 +865,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void OneTimeTearDown()
         {
             _cluster.Dispose();
