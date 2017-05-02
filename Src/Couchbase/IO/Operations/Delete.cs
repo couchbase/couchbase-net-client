@@ -38,7 +38,8 @@ namespace Couchbase.IO.Operations
                 CreationTime = CreationTime,
                 Opaque = Opaque,
                 MutationToken = MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried
+                LastConfigRevisionTried = LastConfigRevisionTried,
+                BucketName = BucketName
             };
             return cloned;
         }

@@ -105,7 +105,8 @@ namespace Couchbase.IO.Operations.EnhancedDurability
             var cloned = new ObserveSeqno(MutationToken, Transcoder, Timeout)
             {
                 Attempts = Attempts,
-                CreationTime = CreationTime
+                CreationTime = CreationTime,
+                BucketName = BucketName
             };
             return cloned;
         }

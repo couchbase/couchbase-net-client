@@ -24,7 +24,8 @@ namespace Couchbase.IO.Operations
                 Cas = Cas,
                 CreationTime = CreationTime,
                 Opaque = Opaque,
-                LastConfigRevisionTried = LastConfigRevisionTried
+                LastConfigRevisionTried = LastConfigRevisionTried,
+                BucketName = BucketName
             };
             return cloned;
         }

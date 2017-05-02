@@ -70,7 +70,8 @@ namespace Couchbase.IO.Operations
                 Cas = Cas,
                 CreationTime = CreationTime,
                 MutationToken =  MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried
+                LastConfigRevisionTried = LastConfigRevisionTried,
+                BucketName = BucketName
             };
             return cloned;
         }

@@ -28,7 +28,8 @@ namespace Couchbase.IO.Operations.SubDocument
                 Attempts = Attempts,
                 Cas = Cas,
                 CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried
+                LastConfigRevisionTried = LastConfigRevisionTried,
+                BucketName = BucketName
             };
         }
     }
