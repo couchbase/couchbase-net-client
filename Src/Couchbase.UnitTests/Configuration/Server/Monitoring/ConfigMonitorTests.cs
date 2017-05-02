@@ -41,8 +41,9 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
                             Username = "travel-sample",
                             Password = ""
                         }
-                    }
-                }
+                    },
+                },
+                HeartbeatConfigInterval = 500
             };
             clientConfig.Initialize();
             var configProvider = new Mock<IConfigProvider>();
@@ -53,8 +54,56 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
             var cts = new CancellationTokenSource();
             var monitor = new ConfigMonitor(controller.Object, cts);
             monitor.StartMonitoring();
-            cts.CancelAfter(1000);
-            Thread.Sleep(2500);
+
+            Thread.Sleep(1500);
+            controller.Verify(x => x.LastConfigCheckedTime, Times.AtLeast(1));
+            monitor.Dispose();
+        }
+
+        [Test]
+        public void Test_Dispose()
+        {
+            var clientConfig = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                    new Uri("http://10.111.160.101:8091"),
+                    new Uri("http://10.111.160.102:8091"),
+                    new Uri("http://10.111.160.104:8091")
+                },
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            BucketName = "default",
+                            Username = "default",
+                            Password = ""
+                        }
+                    },
+                    {
+                        "travel-sample", new BucketConfiguration
+                        {
+                            BucketName = "travel-sample",
+                            Username = "travel-sample",
+                            Password = ""
+                        }
+                    }
+                },
+                HeartbeatConfigInterval = 1000
+            };
+            clientConfig.Initialize();
+            var configProvider = new Mock<IConfigProvider>();
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(clientConfig);
+            controller.Setup(x => x.ConfigProviders).Returns(new List<IConfigProvider> { configProvider.Object });
+
+            var cts = new CancellationTokenSource();
+            var monitor = new ConfigMonitor(controller.Object, cts);
+            monitor.StartMonitoring();
+            Thread.Sleep(1500);
+            monitor.Dispose();
+            Assert.IsTrue(cts.IsCancellationRequested);
         }
     }
 }

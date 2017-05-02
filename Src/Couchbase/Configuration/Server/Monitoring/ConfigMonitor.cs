@@ -9,6 +9,7 @@ using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Logging;
+using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Server.Monitoring
 {
@@ -98,6 +99,7 @@ namespace Couchbase.Configuration.Server.Monitoring
                     catch (OperationCanceledException)
                     {
                         /*ignore*/
+                        break;
                     }
                     catch (Exception ex)
                     {
@@ -108,13 +110,14 @@ namespace Couchbase.Configuration.Server.Monitoring
                         ClusterController.LastConfigCheckedTime = DateTime.Now;
                     }
                 }
-            }, _cts.Token);
+            }, _cts.Token).ContinueOnAnyContext();
         }
 
         public void Dispose()
         {
             if (_cts != null)
             {
+                _cts.Cancel();
                 _cts.Dispose();
             }
         }
