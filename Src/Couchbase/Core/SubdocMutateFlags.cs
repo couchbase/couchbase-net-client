@@ -26,10 +26,10 @@ namespace Couchbase.Core
         /// <summary>
         /// Path refers to a location within the document’s attributes section.
         /// </summary>
-        AttributePath = 0x04,
+        XattrPath = 0x04,
 
         /// <summary>
-        /// Indicates that the server should expand any macros before storing the value. Infers <see cref="F:SubdocMutateFlags.AttributePath"/>.
+        /// Indicates that the server should expand any macros before storing the value. Infers <see cref="F:SubdocMutateFlags.XattrPath"/>.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
         ExpandMacro = 0x010

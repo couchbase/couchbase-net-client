@@ -16,10 +16,10 @@ namespace Couchbase.Core
         /// <summary>
         /// Path refers to a location within the document’s attributes section.
         /// </summary>
-        AttributePath = 0x04,
+        XattrPath = 0x04,
 
         /// <summary>
-        /// Allows access to a deleted document's attributes section. Infers <see cref="F:SubdocLookupFlags.AttributePath"/>.
+        /// Allows access to a deleted document's attributes section. Infers <see cref="F:SubdocLookupFlags.XattrPath"/>.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
         AccessDeleted = 0x08

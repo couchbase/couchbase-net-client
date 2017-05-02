@@ -478,7 +478,7 @@ namespace Couchbase.UnitTests
             (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
 
             var result = couchbaseBucket.LookupIn<dynamic>("key")
-                .Get("username", SubdocLookupFlags.AttributePath)
+                .Get("username", SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsFalse(result.Success);
@@ -501,7 +501,7 @@ namespace Couchbase.UnitTests
             (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
 
             var result = await couchbaseBucket.LookupIn<dynamic>("key")
-                .Get("username", SubdocLookupFlags.AttributePath)
+                .Get("username", SubdocLookupFlags.XattrPath)
                 .ExecuteAsync();
 
             Assert.IsFalse(result.Success);
@@ -524,7 +524,7 @@ namespace Couchbase.UnitTests
             (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
 
             var result = couchbaseBucket.MutateIn<dynamic>("key")
-                .Upsert("username", "value", SubdocMutateFlags.AttributePath)
+                .Upsert("username", "value", SubdocMutateFlags.XattrPath)
                 .Execute();
 
             Assert.IsFalse(result.Success);
@@ -547,7 +547,7 @@ namespace Couchbase.UnitTests
             (couchbaseBucket as IConfigObserver).NotifyConfigChanged(mockConfig.Object);
 
             var result = await couchbaseBucket.MutateIn<dynamic>("key")
-                .Upsert("username", "value", SubdocMutateFlags.AttributePath)
+                .Upsert("username", "value", SubdocMutateFlags.XattrPath)
                 .ExecuteAsync();
 
             Assert.IsFalse(result.Success);

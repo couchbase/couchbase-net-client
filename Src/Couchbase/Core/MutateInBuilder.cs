@@ -129,14 +129,14 @@ namespace Couchbase.Core
         /// </value>
         internal bool ContainsXattrOperations
         {
-            get { return _commands.Any(x => (x.Flags & (byte) SubdocMutateFlags.AttributePath) != 0); }
+            get { return _commands.Any(x => (x.Flags & (byte) SubdocMutateFlags.XattrPath) != 0); }
         }
 
         private static byte GetFlagsValue(SubdocMutateFlags flags)
         {
-            if (flags.HasFlag(SubdocMutateFlags.ExpandMacro) && !flags.HasFlag(SubdocMutateFlags.AttributePath))
+            if (flags.HasFlag(SubdocMutateFlags.ExpandMacro) && !flags.HasFlag(SubdocMutateFlags.XattrPath))
             {
-                flags |= SubdocMutateFlags.AttributePath;
+                flags |= SubdocMutateFlags.XattrPath;
             }
 
             return (byte)flags;

@@ -21,9 +21,9 @@ namespace Couchbase.UnitTests.Core
             Assert.AreEqual(3, count);
         }
 
-        [TestCase(SubdocLookupFlags.AttributePath, 4)]
+        [TestCase(SubdocLookupFlags.XattrPath, 4)]
         [TestCase(SubdocLookupFlags.AccessDeleted, 12)]
-        [TestCase(SubdocLookupFlags.AttributePath | SubdocLookupFlags.AccessDeleted, 12)]
+        [TestCase(SubdocLookupFlags.XattrPath | SubdocLookupFlags.AccessDeleted, 12)]
         public void Get_For_Xattr_Sets_Correct_Flag(SubdocLookupFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -48,9 +48,9 @@ namespace Couchbase.UnitTests.Core
             );
         }
 
-        [TestCase(SubdocLookupFlags.AttributePath, 4)]
+        [TestCase(SubdocLookupFlags.XattrPath, 4)]
         [TestCase(SubdocLookupFlags.AccessDeleted, 12)]
-        [TestCase(SubdocLookupFlags.AttributePath | SubdocLookupFlags.AccessDeleted, 12)]
+        [TestCase(SubdocLookupFlags.XattrPath | SubdocLookupFlags.AccessDeleted, 12)]
         public void Exists_For_Xattr_Sets_Correct_Flag(SubdocLookupFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();

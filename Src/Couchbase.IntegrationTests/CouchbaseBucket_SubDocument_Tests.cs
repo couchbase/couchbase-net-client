@@ -1281,20 +1281,20 @@ namespace Couchbase.IntegrationTests
             _bucket.Upsert(key, new {first = "foo", last = "bar"});
 
             var mutateResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert("_data.created_by", username, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Upsert("_data.created_by", username, SubdocMutateFlags.CreatePath | SubdocMutateFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(mutateResult.Success);
 
             var getResult = _bucket.LookupIn<dynamic>(key)
-                .Get("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Get("_data.created_by", SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(getResult.Success);
             Assert.AreEqual(username, getResult.Content<string>(0));
 
             var existsResult = _bucket.LookupIn<dynamic>(key)
-                .Exists("_data.created_by", SubdocLookupFlags.AttributePath)
+                .Exists("_data.created_by", SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(existsResult.Success);
@@ -1318,15 +1318,15 @@ namespace Couchbase.IntegrationTests
             const string modifiedBy = "jill";
 
             var mutateResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert("_data.created_by", createdBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
-                .Upsert("_data.modified_by", modifiedBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Upsert("_data.created_by", createdBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.XattrPath)
+                .Upsert("_data.modified_by", modifiedBy, SubdocMutateFlags.CreatePath | SubdocMutateFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(mutateResult.Success);
 
             var getResult = _bucket.LookupIn<dynamic>(key)
-                .Get("_data.created_by", SubdocLookupFlags.AttributePath)
-                .Get("_data.modified_by", SubdocLookupFlags.AttributePath)
+                .Get("_data.created_by", SubdocLookupFlags.XattrPath)
+                .Get("_data.modified_by", SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(getResult.Success);
@@ -1334,8 +1334,8 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(modifiedBy, getResult.Content<string>(1));
 
             var existsResult = _bucket.LookupIn<dynamic>(key)
-                .Exists("_data.created_by", SubdocLookupFlags.AttributePath)
-                .Exists("_data.modified_by", SubdocLookupFlags.AttributePath)
+                .Exists("_data.created_by", SubdocLookupFlags.XattrPath)
+                .Exists("_data.modified_by", SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(existsResult.Success);
@@ -1361,7 +1361,7 @@ namespace Couchbase.IntegrationTests
 
             // Add XATTR
             var createResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(createResult.Success);
@@ -1373,7 +1373,7 @@ namespace Couchbase.IntegrationTests
 
             // Try to get the xattr
             var getResult = _bucket.LookupIn<dynamic>(key)
-                .Get(field, SubdocLookupFlags.AttributePath)
+                .Get(field, SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(getResult.Success);
@@ -1398,13 +1398,13 @@ namespace Couchbase.IntegrationTests
             _bucket.Upsert(key, new {name = "mike"});
 
             var mutateResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.AttributePath)
+                .Upsert(field, value, SubdocMutateFlags.CreatePath | SubdocMutateFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(mutateResult.Success);
 
             var getResult = _bucket.LookupIn<dynamic>(key)
-                .Get(field, SubdocLookupFlags.AttributePath)
+                .Get(field, SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(getResult.Success);
@@ -1465,7 +1465,7 @@ namespace Couchbase.IntegrationTests
             _bucket.Upsert(key, new {name = "mike"});
 
             var mutateResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert(field, value, SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath)
+                .Upsert(field, value, SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath)
                 .Execute();
 
             Assert.IsTrue(mutateResult.Success);
@@ -1500,13 +1500,13 @@ namespace Couchbase.IntegrationTests
             _bucket.Upsert(key, new {name = "mike"});
 
             var mutateResult = _bucket.MutateIn<dynamic>(key)
-                .Upsert(field, value, SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro)
+                .Upsert(field, value, SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro)
                 .Execute();
 
             Assert.IsTrue(mutateResult.Success);
 
             var getResult = _bucket.LookupIn<dynamic>(key)
-                .Get(field, SubdocLookupFlags.AttributePath)
+                .Get(field, SubdocLookupFlags.XattrPath)
                 .Execute();
 
             Assert.IsTrue(getResult.Success);

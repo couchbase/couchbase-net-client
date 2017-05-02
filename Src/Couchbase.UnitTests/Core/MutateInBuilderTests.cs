@@ -121,11 +121,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void Insert_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -154,11 +154,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void Replace_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -187,11 +187,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void Upsert_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -220,11 +220,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void Remove_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -252,11 +252,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void Counter_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -285,11 +285,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayAddUnique_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -318,11 +318,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayAppend_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -351,11 +351,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayAppend_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -385,11 +385,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayPrepend_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -418,11 +418,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayPrepend_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -452,11 +452,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayInsert_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
@@ -485,11 +485,11 @@ namespace Couchbase.UnitTests.Core
 
         [TestCase(SubdocMutateFlags.CreatePath, 1)]
         [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.AttributePath, 4)]
+        [TestCase(SubdocMutateFlags.XattrPath, 4)]
         [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.AttributePath | SubdocMutateFlags.ExpandMacro, 20)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
+        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
         public void ArrayInsert_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
         {
             var mockResult = new Mock<IDocumentFragment<dynamic>>();

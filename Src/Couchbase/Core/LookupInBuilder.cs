@@ -106,7 +106,7 @@ namespace Couchbase.Core
         /// </value>
         internal bool ContainsXattrOperations
         {
-            get { return _commands.Any(x => (x.Flags & (byte) SubdocLookupFlags.AttributePath) != 0); }
+            get { return _commands.Any(x => (x.Flags & (byte) SubdocLookupFlags.XattrPath) != 0); }
         }
 
         /// <summary>
@@ -123,9 +123,9 @@ namespace Couchbase.Core
 
         private static byte GetFlagsValue(SubdocLookupFlags flags)
         {
-            if (flags.HasFlag(SubdocLookupFlags.AccessDeleted) && !flags.HasFlag(SubdocLookupFlags.AttributePath))
+            if (flags.HasFlag(SubdocLookupFlags.AccessDeleted) && !flags.HasFlag(SubdocLookupFlags.XattrPath))
             {
-                flags |= SubdocLookupFlags.AttributePath;
+                flags |= SubdocLookupFlags.XattrPath;
             }
 
             return (byte) flags;
