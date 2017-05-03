@@ -9,11 +9,22 @@ namespace Couchbase.Search.Queries.Range
     /// </summary>
     public class TermRangeQuery : FtsQueryBase
     {
+        private readonly string _term;
         private string _min;
         private bool _minInclusive = true;
         private string _max;
         private bool _maxInclusive = false;
         private string _field;
+
+        public TermRangeQuery(string term)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+            {
+                throw new ArgumentException("term cannot be null or empty");
+            }
+
+            _term = term;
+        }
 
         public TermRangeQuery Min(string min, bool inclusive = true)
         {
@@ -39,10 +50,11 @@ namespace Couchbase.Search.Queries.Range
         {
             if (string.IsNullOrWhiteSpace(_min) && string.IsNullOrWhiteSpace(_max))
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("either min or max must be specified");
             }
 
             var json = base.Export();
+            json.Add("term", _term);
             if (!string.IsNullOrWhiteSpace(_min))
             {
                 json.Add("min", _min);
