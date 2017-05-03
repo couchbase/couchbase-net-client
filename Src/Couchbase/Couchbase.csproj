@@ -176,6 +176,7 @@
     <Compile Include="Core\Serialization\DeserializationOptions.cs" />
     <Compile Include="Core\Services\ServiceNotSupportedException.cs" />
     <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitor.cs" />
+    <Compile Include="Core\Transcoders\BinaryTranscoder.cs" />
     <Compile Include="Core\Transcoders\ITypeTranscoder.cs" />
     <Compile Include="Core\Transcoders\DefaultTranscoder.cs" />
     <Compile Include="Core\Transcoders\BinaryToJsonTranscoder.cs" />
