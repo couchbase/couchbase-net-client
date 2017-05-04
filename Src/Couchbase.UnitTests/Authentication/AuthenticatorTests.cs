@@ -135,6 +135,19 @@ namespace Couchbase.UnitTests.Authentication
 
             Assert.AreEqual("test_user", credentials.First().Key);
         }
+
+        [Test]
+        public void Authenticate_Username_Password_Creates_PasswordAuthenticator()
+        {
+            const string username = "test_user", password = "password";
+
+            var cluster = new Cluster();
+            cluster.Authenticate(username, password);
+
+            var authenticator = (PasswordAuthenticator) cluster.Configuration.Authenticator;
+            Assert.AreEqual(username, authenticator.Username);
+            Assert.AreEqual(password, authenticator.Password);
+        }
     }
 }
 

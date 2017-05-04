@@ -325,6 +325,18 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Authenticate using a username and password.
+        /// </summary>
+        /// <remarks>Internally uses a <see cref="PasswordAuthenticator" />.</remarks>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        public void Authenticate(string username, string password)
+        {
+            var authenticator = new PasswordAuthenticator(username, password);
+            _configuration.SetAuthenticator(authenticator);
+        }
+
+        /// <summary>
         /// Closes and releases all internal resources.
         /// </summary>
         public void Dispose()

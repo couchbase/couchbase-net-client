@@ -83,6 +83,14 @@ namespace Couchbase.Core
         void Authenticate(IAuthenticator authenticator);
 
         /// <summary>
+        /// Authenticate using a username and password.
+        /// </summary>
+        /// <remarks> Internally uses a <see cref="PasswordAuthenticator"/>.</remarks>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        void Authenticate(string username, string password);
+
+        /// <summary>
         /// Executes a N1QL query against the Couchbase Cluster.
         /// </summary>
         /// <typeparam name="T">The Type to deserialze the results to. The dynamic Type works well.</typeparam>
