@@ -133,7 +133,7 @@ namespace Couchbase.Authentication.SASL
                 Log.Debug("Server First Message {0} - {1}: {2}", connection.EndPoint, connection.Identity, serverFirstResult.Message);
 
                 //get the server nonce, salt and iterationcount from the server
-                var serverFirstMessage = DecodeResponse(serverFirstResult.Message);
+                var serverFirstMessage = DecodeResponse(serverFirstResult.Value);
                 ServerNonce = serverFirstMessage["r"];
                 Salt = Convert.FromBase64String(serverFirstMessage["s"]);
                 IterationCount = Convert.ToInt32(serverFirstMessage["i"]);

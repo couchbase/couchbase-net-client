@@ -90,7 +90,7 @@ namespace Couchbase.Authentication.SASL
             var result = Execute(operation, connection);
             if (result.Status == ResponseStatus.AuthenticationContinue)
             {
-                var challenge = result.Message;
+                var challenge = result.Value;
                 var reply = ComputeResponse(challenge);
 
                 operation = new SaslStep(MechanismType, reply, _transcoder, SaslFactory.DefaultTimeout);

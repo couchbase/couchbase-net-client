@@ -329,7 +329,7 @@ namespace Couchbase.IO.Services
 
                 if (SupportsKvErrorMap)
                 {
-                    var errorMapResult = Execute(new GetErrorMap(transcoder, 0));
+                    var errorMapResult = Execute(new GetErrorMap(transcoder, 0), connection);
                     if (!errorMapResult.Success)
                     {
                         throw new Exception("Error retrieving error map. Cluster indicated it was available.");

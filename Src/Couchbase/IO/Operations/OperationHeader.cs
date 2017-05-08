@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Couchbase.IO.Operations
+﻿namespace Couchbase.IO.Operations
 {
     public struct OperationHeader
     {
@@ -14,7 +12,7 @@ namespace Couchbase.IO.Operations
 
         public int ExtrasLength { get; set; }
 
-        public TypeCode DataType { get; set; }
+        public DataType DataType { get; set; }
 
         public ResponseStatus Status { get; set; }
 

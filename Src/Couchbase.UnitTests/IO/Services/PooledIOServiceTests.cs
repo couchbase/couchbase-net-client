@@ -136,7 +136,7 @@ namespace Couchbase.UnitTests.IO.Services
             var result = service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0, 0));
 
             Assert.AreEqual(ResponseStatus.UnknownError, result.Status);
-            Assert.AreEqual(converter.ToString(responseBytes, 0, 24), result.Message);
+            Assert.AreEqual("Status code: UnknownError [-2]", result.Message);
         }
     }
 }

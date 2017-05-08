@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -12,14 +11,17 @@ using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Errors;
-using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Utils;
+using Couchbase.Logging;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 
 namespace Couchbase.IO.Operations
 {
     internal abstract class OperationBase : IOperation
     {
+        private readonly ILog _log = LogManager.GetLogger<OperationBase>();
+
         private bool _timedOut;
         protected IByteConverter Converter;
         protected Flags Flags;
@@ -70,7 +72,7 @@ namespace Couchbase.IO.Operations
         public IVBucket VBucket { get; set; }
         public int LengthReceived { get; protected set; }
         public int TotalLength { get { return Header.TotalLength; }}
-        public virtual bool Success { get { return Header.Status == ResponseStatus.Success && Exception == null; } }
+        public virtual bool Success { get { return GetSuccess(); } }
         public uint Expires { get; set; }
         public int Attempts { get; set; }
         public int MaxRetries { get; set; }
@@ -193,6 +195,7 @@ namespace Couchbase.IO.Operations
                     OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
                     KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
                     ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
+                    DataType = (DataType) Converter.ToByte(buffer, HeaderIndexFor.Datatype),
                     Status = status,
                     BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
                     Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
@@ -336,7 +339,7 @@ namespace Couchbase.IO.Operations
 
         public virtual bool GetSuccess()
         {
-            return Header.Status == ResponseStatus.Success && Exception == null;
+            return (Header.Status == ResponseStatus.Success || Header.Status == ResponseStatus.AuthenticationContinue) && Exception == null;
         }
 
         public virtual ResponseStatus GetResponseStatus()
@@ -351,53 +354,108 @@ namespace Couchbase.IO.Operations
 
         public string GetMessage()
         {
-            var message = string.Empty;
-            if (Success) return message;
+            if (Success)
+            {
+                return string.Empty;
+            }
+
             if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
             {
-                message = ResponseStatus.VBucketBelongsToAnotherServer.ToString();
+                return ResponseStatus.VBucketBelongsToAnotherServer.ToString();
+            }
+
+            // Read the status and response body
+            var status = GetResponseStatus();
+            var responseBody = GetResponseBodyAsString();
+
+            // If the status is temp failure and response (string or JSON) contains "lock_error", create a temp lock error
+            if (status == ResponseStatus.TemporaryFailure &&
+                responseBody.IndexOf("lock_error", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Key));
+            }
+
+            // Try and figure out the most descriptive message
+            string message;
+            if (ErrorCode != null)
+            {
+                message = ErrorCode.ToString();
+            }
+            else if (Exception != null)
+            {
+                message = Exception.Message;
             }
             else
             {
-                if (ErrorCode != null)
+                message = string.Format("Status code: {0} [{1}]", status, (int) status);
+            }
+
+            // If JSON bit is not set there is no additional information
+            if (!Header.DataType.HasFlag(DataType.Json))
+            {
+                return message;
+            }
+
+            try
+            {
+                // Try and get the additional error context and reference information from response body
+                var response = JsonConvert.DeserializeObject<dynamic>(responseBody);
+                if (response != null && response.error != null)
                 {
-                    message = ErrorCode.ToString();
+                    // Read context and ref data from reponse body
+                    var context = (string) response.error.context;
+                    var reference = (string) response.error.@ref;
+
+                    // Append context and reference data to message
+                    message = FormatMessage(message, context, reference);
+
+                    // Create KV exception if missing and add context and referece data
+                    Exception = Exception ?? new CouchbaseKeyValueResponseException(message, Header.Status);
+                    Exception.Data.Add("Context", context);
+                    Exception.Data.Add("Ref", reference);
                 }
-                else if (Exception == null)
+            }
+            catch (JsonReaderException)
+            {
+                // This means the response body wasn't valid JSON
+                _log.Warn("Expected response body to be JSON but is invalid. {0}", responseBody);
+            }
+
+            return message;
+        }
+
+        private static string FormatMessage(string message, string context, string reference)
+        {
+            if (string.IsNullOrEmpty(context) && string.IsNullOrWhiteSpace(reference))
+            {
+                return message;
+            }
+
+            const string defaultValue = "<none>";
+            return string.Format("{0} (Context: {1}, Ref #: {2})",
+                message,
+                string.IsNullOrWhiteSpace(context) ? defaultValue : context,
+                string.IsNullOrWhiteSpace(reference) ? defaultValue : reference
+            );
+        }
+
+        private string GetResponseBodyAsString()
+        {
+            var body = string.Empty;
+            if (GetResponseStatus() != ResponseStatus.Success && Data != null && Data.Length > 0)
+            {
+                var buffer = Data.ToArray();
+                if (buffer.Length > 0 && TotalLength == 24)
                 {
-                    try
-                    {
-                        if (Header.Status != ResponseStatus.Success)
-                        {
-                            if (Data == null || Data.Length == 0)
-                            {
-                                message = string.Empty;
-                            }
-                            else
-                            {
-                                var buffer = Data.ToArray();
-                                if (buffer.Length > 0 && TotalLength == 24)
-                                {
-                                    message = Converter.ToString(buffer, 0, buffer.Length);
-                                }
-                                else
-                                {
-                                    message = Converter.ToString(buffer, 24, Math.Min(buffer.Length - 24, TotalLength - 24));
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        message = e.Message;
-                    }
+                    body = Converter.ToString(buffer, 0, buffer.Length);
                 }
                 else
                 {
-                    message = Exception.Message;
+                    body = Converter.ToString(buffer, 24, Math.Min(buffer.Length - 24, TotalLength - 24));
                 }
             }
-            return message;
+
+            return body;
         }
 
         [Obsolete("Please use Getconfig(ITypeTranscoder) instead.")]
