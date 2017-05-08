@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.IO
 {
-    public sealed class SocketAsyncState
+    public sealed class SocketAsyncState : IDisposable
     {
         public IPEndPoint EndPoint { get; set; }
 
@@ -70,6 +70,11 @@ namespace Couchbase.IO
                 IOBuffer = null;
                 Buffer = null;
             }
+        }
+
+        public void Dispose()
+        {
+            if (Data != null) Data.Dispose();
         }
     }
 

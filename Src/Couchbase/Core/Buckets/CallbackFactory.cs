@@ -74,8 +74,11 @@ namespace Couchbase.Core.Buckets
                                     var attempts = 0;
                                     while ((server = mappedNode.LocatePrimary()) == null)
                                     {
-                                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                                        Thread.Sleep((int)Math.Pow(2, attempts));
+                                        if (attempts++ > 10)
+                                        {
+                                            throw new TimeoutException("Could not acquire a server.");
+                                        }
+                                        Thread.Sleep((int) Math.Pow(2, attempts));
                                     }
                                     server.SendAsync(o).ContinueOnAnyContext();
 
@@ -85,7 +88,7 @@ namespace Couchbase.Core.Buckets
                             }
                             else
                             {
-                                ((OperationResult)result).SetException();
+                                ((OperationResult) result).SetException();
                                 tcs.SetResult(result);
                             }
                         }
@@ -96,9 +99,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                         tcs.SetResult(actual.GetResultWithValue());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
@@ -190,9 +198,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                         tcs.SetResult(op.GetResult());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
@@ -290,9 +303,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, s.Status);
                         tcs.SetResult(actual.GetResultWithValue());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
@@ -386,9 +404,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                         tcs.SetResult(op.GetResult());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
@@ -445,9 +468,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                         tcs.SetResult(actual.GetResultWithValue());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
@@ -503,9 +531,14 @@ namespace Couchbase.Core.Buckets
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                         tcs.SetResult(op.GetResult());
                     }
+                    finally
+                    {
+                        s.Dispose();
+                    }
                 }
                 else
                 {
+                    s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
                 }
