@@ -131,12 +131,12 @@ namespace Couchbase.Authentication.SASL
             ClientFirstMessage = "n,,n=" + username + ",r=" + ClientNonce;
             ClientFirstMessageBare = ClientFirstMessage.Substring(3);
 
-            Log.Debug("Client First Message: {0}", ClientFirstMessage);
+            Log.Debug("Client First Message {0}: {1}", connection.EndPoint, ClientFirstMessage);
             var authOp = new SaslStart(MechanismType, ClientFirstMessage, _transcoder, SaslFactory.DefaultTimeout);
             var serverFirstResult = _service.Execute(authOp, connection);
             if (serverFirstResult.Status == ResponseStatus.AuthenticationContinue)
             {
-                Log.Debug("Server First Message: {0}", serverFirstResult.Message);
+                Log.Debug("Server First Message {0}: {1}", connection.EndPoint, serverFirstResult.Message);
 
                 //get the server nonce, salt and iterationcount from the server
                 var serverFirstMessage = DecodeResponse(serverFirstResult.Message);
@@ -151,12 +151,12 @@ namespace Couchbase.Authentication.SASL
                 //build the final client message
                 ClientFinalMessageNoProof = "c=biws,r=" + ServerNonce;
                 ClientFinalMessage = ClientFinalMessageNoProof + ",p=" + Convert.ToBase64String(GetClientProof());
-                Log.Debug("Client Final Message: {0}", ClientFinalMessage);
+                Log.Debug("Client Final Message {0}: {1}", connection.EndPoint, ClientFinalMessage);
 
                 //send the final client message
                 authOp = new SaslStep(MechanismType, ClientFinalMessage, _transcoder, SaslFactory.DefaultTimeout);
                 var serverFinalResult  = _service.Execute(authOp, connection);
-                Log.Debug("Server Final Message: {0}", serverFinalResult.Message);
+                Log.Debug("Server Final Message {0}: {1}", connection.EndPoint, serverFinalResult.Message);
                 authenticated = serverFinalResult.Status == ResponseStatus.Success;
             }
             return authenticated;

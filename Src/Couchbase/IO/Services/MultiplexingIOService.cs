@@ -28,6 +28,7 @@ namespace Couchbase.IO.Services
         private IConnection _connection;
         private readonly object _syncObj = new object();
         private ErrorMap _errorMap;
+        private readonly AutoResetEvent _resetEvent = new AutoResetEvent(true);
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
@@ -35,12 +36,9 @@ namespace Couchbase.IO.Services
             _connectionPool = connectionPool;
             _connection = _connectionPool.Acquire();
 
-            //authenticate the connection
-            if (!_connection.IsAuthenticated)
-            {
-                EnableServerFeatures(_connection);
-                Authenticate(_connection);
-            }
+            //enable the server features
+            EnableServerFeatures(_connection);
+
         }
 
         public MultiplexingIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
@@ -298,34 +296,46 @@ namespace Couchbase.IO.Services
 
         private void Authenticate(IConnection connection)
         {
-            if (!connection.IsAuthenticated && !connection.IsDead)
+            Log.Trace("1. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated, connection.IsDead, EndPoint, connection.Identity);
+            if (connection.IsAuthenticated || connection.IsDead) return;
+            Log.Trace("2. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated, connection.IsDead, EndPoint, connection.Identity);
+
+            try
             {
-                lock (_syncObj)
+                //give it one 1s after an IO timeout before failing
+                _resetEvent.WaitOne(ConnectionPool.Configuration.SendTimeout + 1000);
+
+                Log.Trace("3. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
+                    connection.IsDead, EndPoint, connection.Identity);
+                if (connection.IsAuthenticated || connection.IsDead) return;
+                Log.Trace("4. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
+                    connection.IsDead, EndPoint, connection.Identity);
+                if (SaslMechanism != null)
                 {
-                    if (!connection.IsAuthenticated && !connection.IsDead)
+                    Log.Trace("5. Checking authentication [{0}]: {1} - {2}", connection.IsAuthenticated, EndPoint,
+                        connection.Identity);
+                    var result = SaslMechanism.Authenticate(connection);
+                    if (result)
                     {
-                        if (SaslMechanism != null)
-                        {
-                            var result = SaslMechanism.Authenticate(connection);
-                            if (result)
-                            {
-                                Log.Info(
-                                    "Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
-                                    SaslMechanism.GetType(),
-                                    _identity, connection.Identity, EndPoint);
-                                connection.IsAuthenticated = true;
-                            }
-                            else
-                            {
-                                Log.Info(
-                                    "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
-                                    SaslMechanism.GetType(), _identity, EndPoint);
-                                throw new AuthenticationException(
-                                    ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
-                            }
-                        }
+                        Log.Info(
+                            "Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
+                            SaslMechanism.GetType(),
+                            _identity, connection.Identity, EndPoint);
+                        connection.IsAuthenticated = true;
+                    }
+                    else
+                    {
+                        Log.Info(
+                            "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
+                            SaslMechanism.GetType(), _identity, EndPoint);
+                        throw new AuthenticationException(
+                            ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
                     }
                 }
+            }
+            finally
+            {
+                _resetEvent.Set();
             }
         }
 
@@ -441,6 +451,10 @@ namespace Couchbase.IO.Services
                 {
                     _connectionPool.Release(_connection);
                     _connectionPool.Dispose();
+                }
+                if (_resetEvent != null)
+                {
+                    _resetEvent.Dispose();
                 }
             }
         }
