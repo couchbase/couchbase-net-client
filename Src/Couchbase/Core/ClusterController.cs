@@ -36,6 +36,8 @@ namespace Couchbase.Core
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
         private readonly ConfigMonitor _configMonitor;
+        private readonly BlockingCollection<IBucketConfig> _configQueue = new BlockingCollection<IBucketConfig>(new ConcurrentQueue<IBucketConfig>());
+        private readonly Thread _configThread;
 
         public ClusterController(ClientConfiguration clientConfig)
             : this(clientConfig,
@@ -80,6 +82,38 @@ namespace Couchbase.Core
                 _configMonitor = new ConfigMonitor(this);
                 _configMonitor.StartMonitoring();
             }
+
+            _configThread = new Thread(ProcessConfig)
+            {
+                Name = "CT",
+                IsBackground = true
+            };
+            _configThread.Start();
+        }
+
+        /// <summary>
+        /// "Consumer" for config processing on a single thread.
+        /// </summary>
+        internal void ProcessConfig()
+        {
+            foreach (var config in _configQueue.GetConsumingEnumerable())
+            {
+                foreach (var provider in _configProviders.OfType<CarrierPublicationProvider>())
+                {
+                    Log.Debug("Processing config rev#{0}", config.Rev);
+                    provider.UpdateConfig(config);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enqueues the configuration for processing by the configuration thread "CT"; Any thread can "Produce" a configuration for processing.
+        /// </summary>
+        /// <param name="config">The cluster map to check.</param>
+        public void EnqueueConfigForProcessing(IBucketConfig config)
+        {
+            Log.Debug("Queueing config rev#{0}", config.Rev);
+            _configQueue.Add(config);
         }
 
         public DateTime LastConfigCheckedTime { get; set; }
@@ -117,15 +151,7 @@ namespace Couchbase.Core
 
         public void NotifyConfigPublished(IBucketConfig bucketConfig, bool force = false)
         {
-            var provider = _configProviders.FirstOrDefault(x => x is CarrierPublicationProvider);
-            if (provider != null)
-            {
-                var carrierPublicationProvider = provider as CarrierPublicationProvider;
-                if (carrierPublicationProvider != null)
-                {
-                    carrierPublicationProvider.UpdateConfig(bucketConfig, force);
-                }
-            }
+            EnqueueConfigForProcessing(bucketConfig);
         }
 
         public IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null)
@@ -366,7 +392,11 @@ namespace Couchbase.Core
                         Log.Info("Checking for new config {0}", server.EndPoint);
                         var config = server.Send(
                             new Config(Transcoder, _clientConfig.DefaultOperationLifespan, server.EndPoint));
-                        ((CarrierPublicationProvider) provider).UpdateConfig(config.Value);
+
+                        if (config.Success)
+                        {
+                            EnqueueConfigForProcessing(config.Value);
+                        }
                     }
                 }
             }

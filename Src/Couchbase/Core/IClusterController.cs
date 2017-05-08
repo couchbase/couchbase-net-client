@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 
@@ -44,6 +45,12 @@ namespace Couchbase.Core
         IClusterInfo Info();
 
         void CheckConfigUpdate(string bucketName, IPEndPoint excludeEndPoint);
+
+        /// <summary>
+        /// Enqueues the configuration for processing by the configuration thread "CT"; Any thread can "Produce" a configuration for processing.
+        /// </summary>
+        /// <param name="config">The cluster map to check.</param>
+        void EnqueueConfigForProcessing(IBucketConfig config);
     }
 }
 

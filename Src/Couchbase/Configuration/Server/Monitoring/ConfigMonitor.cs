@@ -37,17 +37,18 @@ namespace Couchbase.Configuration.Server.Monitoring
         {
             Task.Run(async () =>
             {
-                var count = 0; var index = 0;
+                Thread.CurrentThread.Name = "CM";
+                var index = 0;
                 while (!_cts.IsCancellationRequested)
                 {
                     try
                     {
-                        _log.Debug("Waiting to check configs [{0}].", count++);
+                        _log.Debug("Waiting to check configs...");
 
                         // Test at every interval.  Wait before first test.
                         await Task.Delay(TimeSpan.FromMilliseconds(Configuration.HeartbeatConfigInterval), _cts.Token);
 
-                        _log.Debug("Checking configs [{0}].", count);
+                        _log.Debug("Checking configs...");
 
                         var now = DateTime.Now;
                         var lastCheckedPlus = ClusterController.
@@ -89,7 +90,7 @@ namespace Couchbase.Configuration.Server.Monitoring
                                     if (config != null)
                                     {
                                         _log.Info("Checking config with revision #{0}", config.Rev);
-                                        provider.UpdateConfig(config);
+                                        ClusterController.EnqueueConfigForProcessing(config);
                                         break;
                                     }
                                 }
