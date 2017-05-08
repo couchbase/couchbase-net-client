@@ -634,7 +634,7 @@ namespace Couchbase.Core
                 }).ContinueOnAnyContext();
                 return;
             }
-            await _ioService.ExecuteAsync(operation);
+            await _ioService.ExecuteAsync(operation).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -660,7 +660,7 @@ namespace Couchbase.Core
                 }).ContinueOnAnyContext();
                 return;
             }
-            await _ioService.ExecuteAsync(operation);
+            await _ioService.ExecuteAsync(operation).ContinueOnAnyContext();
         }
 
         /// <summary>
