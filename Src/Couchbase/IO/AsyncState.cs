@@ -24,7 +24,10 @@ namespace Couchbase.IO
         /// </summary>
         public void Cancel(ResponseStatus status, Exception e = null)
         {
-            Timer.Dispose();
+            if (Timer != null)
+            {
+                Timer.Dispose();
+            }
 
             var response = new byte[24];
             Converter.FromUInt32(Id, response, HeaderIndexFor.Opaque);
@@ -46,7 +49,10 @@ namespace Couchbase.IO
         /// <param name="response">The Memcached response packet.</param>
         public void Complete(byte[] response)
         {
-            Timer.Dispose();
+            if (Timer != null)
+            {
+                Timer.Dispose();
+            }
 
             //defaults
             var status = ResponseStatus.None;
