@@ -27,7 +27,7 @@ namespace Couchbase.IntegrationTests.Management
 
         [Test]
         [TestCase(BucketTypeEnum.Couchbase)]
-        [TestCase(BucketTypeEnum.Ephemeral)]
+        [TestCase(BucketTypeEnum.Ephemeral), Ignore("Ephemeral buckets not supported on CI server")]
         [TestCase(BucketTypeEnum.Memcached)]
         public void CreateBucket_DoesNotExist_Success(BucketTypeEnum bucketType)
         {
