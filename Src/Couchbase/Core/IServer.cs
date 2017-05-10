@@ -188,21 +188,8 @@ namespace Couchbase.Core
         /// <returns></returns>
         Task<IAnalyticsResult<T>> SendAsync<T>(IAnalyticsRequest analyticsRequest, CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Gets or sets the SASL factory for authenticating each TCP connection.
-        /// </summary>
-        /// <value>
-        /// The sasl factory.
-        /// </value>
-        Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
-
         Uri CachedViewBaseUri { get; }
         Uri CachedQueryBaseUri { get; }
-
-        /// <summary>
-        /// Creates the sasl mechanism using the <see cref="SaslFactory"/> provided if it is null.
-        /// </summary>
-        void CreateSaslMechanismIfNotExists();
 
         /// <summary>
         /// Gets the clustermap rev# of the <see cref="Server"/>.

@@ -28,6 +28,7 @@ namespace Couchbase.IO.Services
         private readonly Guid _identity = Guid.NewGuid();
         private readonly object _syncObj = new object();
         private ErrorMap _errorMap;
+        private volatile bool _enableServerFeatures = true;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PooledIOService"/> class.
@@ -89,13 +90,13 @@ namespace Couchbase.IO.Services
             byte[] response =  null;
             try
             {
-                //A new connection will have to be authenticated
-                if (!connection.IsAuthenticated)
+                //A new connection will have to check for server features
+                if (_enableServerFeatures)
                 {
                     lock (_syncObj)
                     {
                         EnableServerFeatures(connection);
-                        Authenticate(connection);
+                        _enableServerFeatures = false;
                     }
                 }
 
@@ -154,13 +155,13 @@ namespace Couchbase.IO.Services
             byte[] response = null;
             try
             {
-                //A new connection will have to be authenticated
-                if (!connection.IsAuthenticated)
+                //A new connection will have to check for server features
+                if (_enableServerFeatures)
                 {
                     lock (_syncObj)
                     {
                         EnableServerFeatures(connection);
-                        Authenticate(connection);
+                        _enableServerFeatures = false;
                     }
                 }
 
@@ -245,6 +246,10 @@ namespace Couchbase.IO.Services
                 Log.Debug(e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
+            finally
+            {
+                _connectionPool.Release(connection);
+            }
 
             if (capturedException != null)
             {
@@ -269,12 +274,14 @@ namespace Couchbase.IO.Services
             try
             {
                 var connection = _connectionPool.Acquire();
-                if (!connection.IsAuthenticated)
+
+                //A new connection will have to check for server features
+                if (_enableServerFeatures)
                 {
                     lock (_syncObj)
                     {
                         EnableServerFeatures(connection);
-                        Authenticate(connection);
+                        _enableServerFeatures = false;
                     }
                 }
                 await ExecuteAsync(operation, connection);
@@ -307,12 +314,14 @@ namespace Couchbase.IO.Services
             try
             {
                 var connection = _connectionPool.Acquire();
-                if (!connection.IsAuthenticated)
+
+                //A new connection will have to check for server features
+                if (_enableServerFeatures)
                 {
                     lock (_syncObj)
                     {
                         EnableServerFeatures(connection);
-                        Authenticate(connection);
+                        _enableServerFeatures = false;
                     }
                 }
                 await ExecuteAsync(operation, connection);
@@ -376,36 +385,6 @@ namespace Couchbase.IO.Services
         {
             get { return _saslMechanism; }
             set { _saslMechanism = value; }
-        }
-
-        /// <summary>
-        /// Authenticates the specified connection.
-        /// </summary>
-        /// <param name="connection">The connection.</param>
-        /// <exception cref="System.Security.Authentication.AuthenticationException"></exception>
-        private void Authenticate(IConnection connection)
-        {
-            if (!connection.IsAuthenticated)
-            {
-                if (_saslMechanism != null)
-                {
-                    var result = _saslMechanism.Authenticate(connection);
-                    if (result)
-                    {
-                        Log.Debug(
-                            "Authenticated {0} using {1} - {2}.", _saslMechanism.Username,
-                                    _saslMechanism.GetType(), _identity);
-                        connection.IsAuthenticated = true;
-                    }
-                    else
-                    {
-                        Log.Debug(
-                            "Could not authenticate {0} using {1} - {2}.", _saslMechanism.Username,
-                                    _saslMechanism.GetType(), _identity);
-                        throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
-                    }
-                }
-            }
         }
 
         /// <summary>

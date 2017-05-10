@@ -24,7 +24,7 @@ namespace Couchbase.Configuration
         public CouchbaseConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
             : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
         {
@@ -80,14 +80,12 @@ namespace Couchbase.Configuration
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+                                connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                                connectionPool.Initialize();
 
                                 var ioService = IOServiceFactory(connectionPool);
+                                server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
 
-                                server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache)
-                                {
-                                    SaslFactory = SaslFactory
-                                };
-                                server.CreateSaslMechanismIfNotExists();
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                                 SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
@@ -222,14 +220,11 @@ namespace Couchbase.Configuration
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+                                connectionPool.Initialize();
+                                connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
 
                                 var newIoService = IOServiceFactory(connectionPool);
-
-                                server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
-                                {
-                                    SaslFactory = SaslFactory
-                                };
-                                server.CreateSaslMechanismIfNotExists();
+                                server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
 
                                 //Note: "ioService has" already made a HELO command to check what features
                                 //the cluster supports (eg enhanced durability) so we are reusing the flag
@@ -317,14 +312,12 @@ namespace Couchbase.Configuration
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
                             var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
+                            connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                            connectionPool.Initialize();
 
                             var newIoService = IOServiceFactory(connectionPool);
+                            server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
 
-                            server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache)
-                            {
-                                SaslFactory = SaslFactory
-                            };
-                            server.CreateSaslMechanismIfNotExists();
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = newIoService.SupportsSubdocXAttributes;
                             SupportsEnhancedAuthentication = newIoService.SupportsEnhancedAuthentication;

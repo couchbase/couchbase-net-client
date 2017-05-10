@@ -25,10 +25,6 @@ namespace Couchbase.Core.Buckets
                     var actual = (IOperation<T>)op;
                     try
                     {
-                        if (s.Status == ResponseStatus.TransportFailure)
-                        {
-                            controller.CheckConfigUpdate(op.BucketName, s.EndPoint);
-                        }
                         //check if an error occurred earlier
                         if (s.Exception != null)
                         {
@@ -125,11 +121,6 @@ namespace Couchbase.Core.Buckets
                 {
                     try
                     {
-                        if (s.Status == ResponseStatus.TransportFailure)
-                        {
-                            controller.CheckConfigUpdate(op.BucketName, s.EndPoint);
-                        }
-
                         //check if an error occurred earlier
                         if (s.Exception != null)
                         {

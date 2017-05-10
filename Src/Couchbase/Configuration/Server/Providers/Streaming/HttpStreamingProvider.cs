@@ -34,7 +34,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public HttpStreamingProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)

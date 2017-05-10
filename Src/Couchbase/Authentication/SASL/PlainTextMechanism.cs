@@ -6,6 +6,7 @@ using Couchbase.IO.Operations.Authentication;
 using System;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Authentication.SASL
 {
@@ -121,6 +122,11 @@ namespace Couchbase.Authentication.SASL
             sb.Append(empty);
             sb.Append(passWord);
             return sb.ToString();
+        }
+
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
+        {
+            throw new NotImplementedException();
         }
     }
 }

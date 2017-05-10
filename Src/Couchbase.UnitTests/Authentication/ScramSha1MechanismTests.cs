@@ -7,6 +7,7 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Authentication;
 using Moq;
 using NUnit.Framework;
@@ -39,9 +40,11 @@ namespace Couchbase.UnitTests.Authentication
             service.Setup(x => x.Execute(It.IsAny<SaslList>(), It.IsAny<IConnection>()))
                 .Returns(opResult.Object);
 
+            SaslFactory.Execute = (op, conn) => opResult.Object;
+
             //act
             var factory = SaslFactory.GetFactory();
-            var mechanism = factory("authenticated", "secret", service.Object, transcoder);
+            var mechanism = factory("authenticated", "secret", connectionPool.Object, transcoder);
 
             //assert
             Assert.IsTrue(mechanism is ScramShaMechanism);
@@ -49,25 +52,13 @@ namespace Couchbase.UnitTests.Authentication
         }
 
         [Test]
-        public void ScramShaMechanism_WhenServiceIsNullInCtor_ThrowArgumentNullException()
-        {
-            IIOService service = null;
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
-
-            // ReSharper disable once ExpressionIsAlwaysNull
-            // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(service, transcoder, MechanismType.ScramSha256));
-        }
-
-        [Test]
         public void ScramShaMechanism_WhenTranscoderIsNullinCtor_ThrowArgumentNullException()
         {
-            var service = new Mock<IIOService>().Object;
             ITypeTranscoder transcoder = null;
 
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(service, transcoder, MechanismType.ScramSha256));
+            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(transcoder, MechanismType.ScramSha256));
         }
 
         [Test]
@@ -76,14 +67,13 @@ namespace Couchbase.UnitTests.Authentication
         [TestCase(null)]
         public void ScramShaMechanism_WhenUsernameIsInvalidinCtor_ThrowArgumentNullException(string username)
         {
-            var service = new Mock<IIOService>().Object;
             var transcoder = new DefaultTranscoder(new DefaultConverter());
             string password = null;
 
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once ObjectCreationAsStatement
             // ReSharper disable once ExpressionIsAlwaysNull
-            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha256));
+            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha256));
         }
 
         [Test]
@@ -91,14 +81,13 @@ namespace Couchbase.UnitTests.Authentication
         [TestCase("CRAM-MD5")]
         public void ScramShaMechanism_WhenMechanismIsInavlid_ThrowArgumentOutOfRangeException(string mechanismType)
         {
-            var service = new Mock<IIOService>().Object;
             ITypeTranscoder transcoder = new DefaultTranscoder(new DefaultConverter());
             string username = "beef";
             string password = "stew";
 
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ScramShaMechanism(service, transcoder, username, password, mechanismType));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ScramShaMechanism(transcoder, username, password, mechanismType));
         }
 
         [Test]
@@ -107,38 +96,42 @@ namespace Couchbase.UnitTests.Authentication
         [TestCase(null)]
         public void ScramShaMechanism_WhenMechanismIsInavlid_ThrowArgumentNullException(string mechanismType)
         {
-            var service = new Mock<IIOService>().Object;
             ITypeTranscoder transcoder = new DefaultTranscoder(new DefaultConverter());
             string username = "beef";
             string password = "stew";
 
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(service, transcoder, username, password, mechanismType));
+            Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(transcoder, username, password, mechanismType));
         }
 
         [Test]
         public void ScramShaMechanism_ClientNonce_IsPopulated()
         {
-            var service = new Mock<IIOService>().Object;
             var transcoder = new DefaultTranscoder(new DefaultConverter());
             string password = "secret";
             string username = "authenticated";
 
-            var mech = new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha256);
+            var mech = new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha256);
             Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
         }
 
         [Test]
         public void ScramShaMechanism_Authenticate_IsPopulated()
         {
-            var service = new Mock<IIOService>().Object;
             var transcoder = new DefaultTranscoder(new DefaultConverter());
             string password = "secret";
             string username = "authenticated";
 
-            var mech = new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha256);
+            var mech = new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha256);
             Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
+        }
+
+        [TearDown]
+        public static void TearDown()
+        {
+            //resets Execute back to original func
+            typeof(SaslFactory).TypeInitializer.Invoke(null, null);
         }
     }
 }

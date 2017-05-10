@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net;
-using System.Reflection;
 using Couchbase.Configuration.Client;
 
 #if NET45
@@ -38,7 +37,6 @@ namespace Couchbase.IO
                         connectionPool = new ConnectionPool<MultiplexingConnection>(config, endpoint);
                     }
                 }
-                connectionPool.Initialize();
                 return connectionPool;
             };
         }

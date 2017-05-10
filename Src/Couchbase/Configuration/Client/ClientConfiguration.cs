@@ -603,7 +603,7 @@ namespace Couchbase.Configuration.Client
         /// The create sasl mechanism.
         /// </value>
         [JsonIgnore]
-        internal Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
+        internal Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> CreateSaslMechanism { get; set; }
 
 #if NETSTANDARD
         public ILoggerFactory LoggerFactory { get; set; }

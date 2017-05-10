@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 
@@ -71,5 +72,13 @@ namespace Couchbase.IO
         ///   <c>true</c> if initialization failed; otherwise, <c>false</c>.
         /// </value>
         bool InitializationFailed { get; }
+
+        /// <summary>
+        /// Gets or sets the sasl mechanism used to authenticate against the server.
+        /// </summary>
+        /// <value>
+        /// The sasl mechanism.
+        /// </value>
+        ISaslMechanism SaslMechanism { get; set; }
     }
 }

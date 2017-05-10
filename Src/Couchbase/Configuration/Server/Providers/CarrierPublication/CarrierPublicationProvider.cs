@@ -22,7 +22,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         public CarrierPublicationProvider(ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
             : base(clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, converter, transcoder)
@@ -56,10 +56,11 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     var poolConfig = bucketConfiguration.ClonePoolConfiguration(server);
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
+                    var saslMechanism = SaslFactory(username, password, connectionPool, Transcoder);
+                    connectionPool.SaslMechanism = saslMechanism;
+                    connectionPool.Initialize();
 
                     ioService = IOServiceFactory(connectionPool);
-                    var saslMechanism = SaslFactory(username, password, ioService, Transcoder);
-                    ioService.SaslMechanism = saslMechanism;
 
                     if (ioService.SupportsKvErrorMap)
                     {

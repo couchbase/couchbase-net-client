@@ -31,7 +31,7 @@ namespace Couchbase.Core
         private readonly List<IConfigProvider> _configProviders = new List<IConfigProvider>();
         private readonly Func<IConnectionPool, IIOService> _ioServiceFactory;
         private readonly Func<PoolConfiguration, IPEndPoint, IConnectionPool> _connectionPoolFactory;
-        private readonly Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> _saslFactory;
+        private readonly Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> _saslFactory;
         private readonly ClusterMonitor _clusterMonitor;
         private readonly object _syncObject = new object();
         private volatile bool _disposed;
@@ -58,7 +58,7 @@ namespace Couchbase.Core
         public ClusterController(ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
             IByteConverter converter,
             ITypeTranscoder transcoder)
         {
@@ -112,7 +112,7 @@ namespace Couchbase.Core
         /// <param name="config">The cluster map to check.</param>
         public void EnqueueConfigForProcessing(IBucketConfig config)
         {
-            Log.Debug("Queueing config rev#{0}", config.Rev);
+            Log.Debug("Queueing config rev#{0} for [{1}].", config.Rev, config.Name);
             _configQueue.Add(config);
         }
 

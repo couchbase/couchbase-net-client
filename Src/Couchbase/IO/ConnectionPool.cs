@@ -2,11 +2,15 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
+using System.Security.Authentication;
 using System.Threading;
+using Couchbase.Authentication.SASL;
 using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -48,6 +52,14 @@ namespace Couchbase.IO
             _bufferAllocator = Configuration.BufferAllocator(Configuration);
             EndPoint = endPoint;
         }
+
+        /// <summary>
+        /// Gets or sets the sasl mechanism used to authenticate against the server.
+        /// </summary>
+        /// <value>
+        /// The sasl mechanism.
+        /// </value>
+        public ISaslMechanism SaslMechanism { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the pool failed to initialize properly.
@@ -107,6 +119,9 @@ namespace Couchbase.IO
                     try
                     {
                         var connection = _factory(this, _converter, _bufferAllocator);
+
+                        Authenticate(connection);
+
                         Log.Info("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
                             EndPoint, connection.Identity, _identity, _disposed);
 
@@ -133,9 +148,11 @@ namespace Couchbase.IO
         public T Acquire()
         {
             T connection = AcquireFromPool();
-
             if (connection != null)
+            {
+                Authenticate(connection);
                 return connection;
+            }
 
             lock (_lock)
             {
@@ -143,12 +160,17 @@ namespace Couchbase.IO
                 //in case connection released while operation waited in Monitor.Enter (lock)
                 connection = AcquireFromPool();
                 if (connection != null)
+                {
+                    Authenticate(connection);
                     return connection;
+                }
 
                 if (_count < _configuration.MaxSize && !_disposed)
                 {
                     Log.Debug("Trying to acquire new connection! Refs={0}", _refs.Count);
                     connection = _factory(this, _converter, _bufferAllocator);
+
+                    Authenticate(connection);
                     _refs.TryAdd(connection.Identity, connection);
 
                     Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
@@ -229,6 +251,40 @@ namespace Couchbase.IO
             }
             Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             _autoResetEvent.Set();
+        }
+
+        private void Authenticate(IConnection connection)
+        {
+            Log.Trace("1. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
+                connection.IsDead, EndPoint, connection.Identity);
+
+            if (connection.IsAuthenticated || connection.IsDead) return;
+
+            Log.Trace("2. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
+                connection.IsDead, EndPoint, connection.Identity);
+
+            if (SaslMechanism != null)
+            {
+                Log.Trace("3. Checking authentication [{0}]: {1} - {2}", connection.IsAuthenticated, EndPoint,
+                    connection.Identity);
+                var result = SaslMechanism.Authenticate(connection);
+                if (result)
+                {
+                    Log.Info(
+                        "4. Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
+                        SaslMechanism.GetType(),
+                        _identity, connection.Identity, EndPoint);
+                    connection.IsAuthenticated = true;
+                }
+                else
+                {
+                    Log.Info(
+                        "4. Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
+                        SaslMechanism.GetType(), _identity, EndPoint);
+                    throw new AuthenticationException(
+                        ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
+                }
+            }
         }
 
         /// <summary>

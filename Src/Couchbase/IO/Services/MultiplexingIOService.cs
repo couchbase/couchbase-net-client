@@ -38,7 +38,6 @@ namespace Couchbase.IO.Services
 
             //enable the server features
             EnableServerFeatures(_connection);
-
         }
 
         public MultiplexingIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
@@ -114,7 +113,6 @@ namespace Couchbase.IO.Services
             {
                 if (_connection.IsConnected)
                 {
-                    Authenticate(_connection);
                     response = _connection.Send(request);
                 }
                 else
@@ -148,7 +146,6 @@ namespace Couchbase.IO.Services
             {
                 if (_connection.IsConnected)
                 {
-                    Authenticate(_connection);
                     response = _connection.Send(request);
                 }
                 else
@@ -180,7 +177,6 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
-                    Authenticate(_connection);
                     var request = await operation.WriteAsync().ContinueOnAnyContext();
                     connection.SendAsync(request, operation.Completed);
                 }
@@ -220,7 +216,6 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
-                    Authenticate(_connection);
                     var request = await operation.WriteAsync().ContinueOnAnyContext();
                     connection.SendAsync(request, operation.Completed);
                 }
@@ -294,51 +289,6 @@ namespace Couchbase.IO.Services
             operation.HandleClientError(capturedException.Message, status);
         }
 
-        private void Authenticate(IConnection connection)
-        {
-            Log.Trace("1. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated, connection.IsDead, EndPoint, connection.Identity);
-            if (connection.IsAuthenticated || connection.IsDead) return;
-            Log.Trace("2. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated, connection.IsDead, EndPoint, connection.Identity);
-
-            try
-            {
-                //give it one 1s after an IO timeout before failing
-                _resetEvent.WaitOne(ConnectionPool.Configuration.SendTimeout + 1000);
-
-                Log.Trace("3. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
-                    connection.IsDead, EndPoint, connection.Identity);
-                if (connection.IsAuthenticated || connection.IsDead) return;
-                Log.Trace("4. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
-                    connection.IsDead, EndPoint, connection.Identity);
-                if (SaslMechanism != null)
-                {
-                    Log.Trace("5. Checking authentication [{0}]: {1} - {2}", connection.IsAuthenticated, EndPoint,
-                        connection.Identity);
-                    var result = SaslMechanism.Authenticate(connection);
-                    if (result)
-                    {
-                        Log.Info(
-                            "Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
-                            SaslMechanism.GetType(),
-                            _identity, connection.Identity, EndPoint);
-                        connection.IsAuthenticated = true;
-                    }
-                    else
-                    {
-                        Log.Info(
-                            "Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
-                            SaslMechanism.GetType(), _identity, EndPoint);
-                        throw new AuthenticationException(
-                            ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
-                    }
-                }
-            }
-            finally
-            {
-                _resetEvent.Set();
-            }
-        }
-
         /// <summary>
         /// Send request to server to try and enable server features.
         /// </summary>
@@ -406,8 +356,7 @@ namespace Couchbase.IO.Services
                         Log.Info("Exchanging {0} for {1}", _connection.Identity, connection.Identity);
                         Interlocked.Exchange(ref _connection, connection);
 
-                        EnableServerFeatures(connection);
-                        Authenticate(connection);
+                        EnableServerFeatures(_connection);
                     }
                 }
                 catch (Exception e)

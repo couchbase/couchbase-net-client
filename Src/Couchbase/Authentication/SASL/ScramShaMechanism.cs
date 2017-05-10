@@ -6,6 +6,7 @@ using System.Text;
 using Couchbase.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL
@@ -19,6 +20,7 @@ namespace Couchbase.Authentication.SASL
         private static readonly ILog Log = LogManager.GetLogger<ScramShaMechanism>();
         private static readonly string ClientKey = "Client Key";
         private static readonly int ShaByteLength = 20;
+        private ErrorMap _errorMap;
 
         //leaving for later patchset to support SHA256 and SHA512
         private static readonly Dictionary<string, string> _hmacs = new Dictionary<string, string>
@@ -28,7 +30,6 @@ namespace Couchbase.Authentication.SASL
             {SASL.MechanismType.ScramSha1, "System.Security.Cryptography.HMACSHA1" }
         };
 
-        private readonly IIOService _service;
         private readonly ITypeTranscoder _transcoder;
 
         public byte[] Salt { get; private set; }
@@ -45,18 +46,16 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// Initializes a new instance of the <see cref="ScramShaMechanism"/> class.
         /// </summary>
-        /// <param name="service">The service.</param>
         /// <param name="transcoder">The transcoder.</param>
         /// <param name="mechanismType">Type of the mechanism.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public ScramShaMechanism(IIOService service, ITypeTranscoder transcoder, string mechanismType)
+        public ScramShaMechanism(ITypeTranscoder transcoder, string mechanismType)
         {
-            if (service == null || transcoder == null)
+            if (transcoder == null)
             {
-                throw new ArgumentNullException(service == null ? "service" : "transcoder");
+                throw new ArgumentNullException("transcoder");
             }
 
-            _service = service;
             _transcoder = transcoder;
             MechanismType = mechanismType;
             ClientNonce = GenerateClientNonce();
@@ -65,7 +64,6 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// Initializes a new instance of the <see cref="ScramShaMechanism"/> class.
         /// </summary>
-        /// <param name="service">The service.</param>
         /// <param name="transcoder">The transcoder.</param>
         /// <param name="username">The username.</param>
         /// <param name="password">The password.</param>
@@ -76,8 +74,8 @@ namespace Couchbase.Authentication.SASL
         /// mechanismType
         /// </exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public ScramShaMechanism(IIOService service, ITypeTranscoder transcoder, string username, string password, string mechanismType)
-            : this(service, transcoder, mechanismType)
+        public ScramShaMechanism(ITypeTranscoder transcoder, string username, string password, string mechanismType)
+            : this(transcoder, mechanismType)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -113,11 +111,6 @@ namespace Couchbase.Authentication.SASL
         public string MechanismType { get; internal set; }
 
         /// <summary>
-        /// The I/O service to use <see cref="IOService" />
-        /// </summary>
-        public IIOService IOService { get; set; }
-
-        /// <summary>
         /// Gets or sets the client nonce.
         /// </summary>
         /// <value>
@@ -131,12 +124,12 @@ namespace Couchbase.Authentication.SASL
             ClientFirstMessage = "n,,n=" + username + ",r=" + ClientNonce;
             ClientFirstMessageBare = ClientFirstMessage.Substring(3);
 
-            Log.Debug("Client First Message {0}: {1}", connection.EndPoint, ClientFirstMessage);
+            Log.Debug("Client First Message {0} - {1}: {2} [U:{3}|P:{4}", connection.EndPoint, connection.Identity, ClientFirstMessage, username, password);
             var authOp = new SaslStart(MechanismType, ClientFirstMessage, _transcoder, SaslFactory.DefaultTimeout);
-            var serverFirstResult = _service.Execute(authOp, connection);
+            var serverFirstResult = Execute(authOp, connection);
             if (serverFirstResult.Status == ResponseStatus.AuthenticationContinue)
             {
-                Log.Debug("Server First Message {0}: {1}", connection.EndPoint, serverFirstResult.Message);
+                Log.Debug("Server First Message {0} - {1}: {2}", connection.EndPoint, connection.Identity, serverFirstResult.Message);
 
                 //get the server nonce, salt and iterationcount from the server
                 var serverFirstMessage = DecodeResponse(serverFirstResult.Message);
@@ -151,15 +144,23 @@ namespace Couchbase.Authentication.SASL
                 //build the final client message
                 ClientFinalMessageNoProof = "c=biws,r=" + ServerNonce;
                 ClientFinalMessage = ClientFinalMessageNoProof + ",p=" + Convert.ToBase64String(GetClientProof());
-                Log.Debug("Client Final Message {0}: {1}", connection.EndPoint, ClientFinalMessage);
+                Log.Debug("Client Final Message {0} - {1}: {2}", connection.EndPoint, connection.Identity, ClientFinalMessage);
 
                 //send the final client message
                 authOp = new SaslStep(MechanismType, ClientFinalMessage, _transcoder, SaslFactory.DefaultTimeout);
-                var serverFinalResult  = _service.Execute(authOp, connection);
-                Log.Debug("Server Final Message {0}: {1}", connection.EndPoint, serverFinalResult.Message);
+                var serverFinalResult  = Execute(authOp, connection);
+                Log.Debug("Server Final Message {0} - {1}: {2}", connection.EndPoint, connection.Identity, serverFinalResult.Message);
                 authenticated = serverFinalResult.Status == ResponseStatus.Success;
             }
             return authenticated;
+        }
+
+        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
+        {
+            var request = operation.Write();
+            var response = connection.Send(request);
+            operation.Read(response, _errorMap);
+            return operation.GetResultWithValue();
         }
 
         /// <summary>

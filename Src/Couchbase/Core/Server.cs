@@ -209,14 +209,6 @@ namespace Couchbase.Core
         public bool IsSearchNode { get; private set; }
 
         /// <summary>
-        /// Gets or sets the SASL factory for authenticating each TCP connection.
-        /// </summary>
-        /// <value>
-        /// The sasl factory.
-        /// </value>
-        public Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> SaslFactory { get; set; }
-
-        /// <summary>
         /// Gets the remote <see cref="IPEndPoint"/> of this node.
         /// </summary>
         /// <value>
@@ -338,9 +330,6 @@ namespace Couchbase.Core
             IConnection connection = null;
             try
             {
-                //once we can connect, we need a sasl mechanism for auth
-                CreateSaslMechanismIfNotExists();
-
                 //if we have a sasl mechanism, we just try a noop
                 connection = _ioService.ConnectionPool.Acquire();
                 var noop = new Noop(new DefaultTranscoder(), 1000);
@@ -384,21 +373,6 @@ namespace Couchbase.Core
                 {
                     StartHeartbeatTimer();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Creates the sasl mechanism using the <see cref="SaslFactory" /> provided if it is null.
-        /// </summary>
-        public void CreateSaslMechanismIfNotExists()
-        {
-            if (_ioService.SaslMechanism == null && SaslFactory != null)
-            {
-                _ioService.SaslMechanism = SaslFactory(
-                    _bucketConfig.Name,
-                    _bucketConfig.Password,
-                    _ioService,
-                    _typeTranscoder);
             }
         }
 

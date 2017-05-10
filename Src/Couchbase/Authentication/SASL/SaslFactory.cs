@@ -2,6 +2,7 @@
 using Couchbase.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL
@@ -18,29 +19,29 @@ namespace Couchbase.Authentication.SASL
         /// </summary>
         public const uint DefaultTimeout = 2500; //2.5sec
 
-        public static Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> GetFactory()
+        public static Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> GetFactory()
         {
-            return (username, password, service, transcoder) =>
+            return (username, password, pool, transcoder) =>
             {
                 ISaslMechanism saslMechanism = null;
                 IConnection connection = null;
                 try
                 {
-                    connection = service.ConnectionPool.Acquire();
-                    var saslListResult = service.Execute(new SaslList(transcoder, DefaultTimeout), connection);
+                    connection = pool.Acquire();
+                    var saslListResult = Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)
                     {
                         if (saslListResult.Value.Contains("SCRAM-SHA1"))
                         {
-                            return new ScramShaMechanism(service, transcoder, username, password, MechanismType.ScramSha1);
+                            return new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha1);
                         }
                         if (saslListResult.Value.Contains("CRAM-MD5"))
                         {
-                            return new CramMd5Mechanism(service, username, password, transcoder);
+                            return new CramMd5Mechanism(username, password, transcoder);
                         }
                         if (saslListResult.Value.Contains("PLAIN"))
                         {
-                            return new PlainTextMechanism(service, username, password, transcoder);
+                            return new PlainTextMechanism(username, password, transcoder);
                         }
                     }
                 }
@@ -52,11 +53,19 @@ namespace Couchbase.Authentication.SASL
                 {
                     if (connection != null)
                     {
-                        service.ConnectionPool.Release(connection);
+                        pool.Release(connection);
                     }
                 }
                 return saslMechanism;
             };
         }
+
+         public static Func<IOperation<string>, IConnection, IOperationResult<string>> Execute = (op , conn ) =>
+         {
+             var request = op.Write();
+             var response = conn.Send(request);
+             op.Read(response, null);
+             return op.GetResultWithValue();
+         };
     }
 }

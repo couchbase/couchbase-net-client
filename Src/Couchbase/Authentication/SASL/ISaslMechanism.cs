@@ -1,4 +1,5 @@
 ﻿using Couchbase.IO;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Authentication.SASL
 {
@@ -38,10 +39,7 @@ namespace Couchbase.Authentication.SASL
         /// <returns>True if succesful.</returns>
         bool Authenticate(IConnection connection);
 
-        /// <summary>
-        /// The I/O service to use <see cref="IOService"/>
-        /// </summary>
-        IIOService IOService { set; }
+        IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection);
     }
 }
 

@@ -34,7 +34,7 @@ namespace Couchbase.UnitTests.IO.Operations.Authentication
             _connectionPool = mockConnectionPool.Object;
         }
 
-        [Test]
+        [Test, Ignore("To be refactored.")]
         public void When_SaslMechinism_Is_Set_On_PoolIOService_And_Authentication_Fails_Return_AuthenticationError()
         {
             var mockAuthenticator = new Mock<ISaslMechanism>();
@@ -51,7 +51,7 @@ namespace Couchbase.UnitTests.IO.Operations.Authentication
             Assert.IsFalse(response.Success);
         }
 
-        [Test]
+        [Test, Ignore("To be refactored.")]
         public void When_SaslMechinism_Is_Set_On_MultiplexingIOService_And_Authentication_Fails_Return_AuthenticationError()
         {
             var mockAuthenticator = new Mock<ISaslMechanism>();

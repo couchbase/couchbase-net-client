@@ -24,7 +24,7 @@ namespace Couchbase.Configuration
         public MemcachedConfigContext(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
-            Func<string, string, IIOService, ITypeTranscoder, ISaslMechanism> saslFactory,
+            Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
             ITypeTranscoder transcoder)
             : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
         {
@@ -72,12 +72,11 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
+                            connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                            connectionPool.Initialize();
+
                             var ioService = IOServiceFactory(connectionPool);
-                            var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder)
-                            {
-                                SaslFactory = SaslFactory
-                            };
-                            server.CreateSaslMechanismIfNotExists();
+                            var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder);
                             servers.Add(endpoint.Address, server);
                         }
                     }
@@ -131,13 +130,12 @@ namespace Couchbase.Configuration
                     {
                         var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
+                        connectionPool.Initialize();
+
+                        connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                         var ioService = IOServiceFactory(connectionPool);
 
-                        var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder)
-                        {
-                            SaslFactory = SaslFactory
-                        };
-                        server.CreateSaslMechanismIfNotExists();
+                        var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder);
                         servers.Add(endpoint.Address, server);
                     }
                 }
