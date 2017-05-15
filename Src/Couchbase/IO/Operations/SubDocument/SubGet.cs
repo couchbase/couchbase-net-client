@@ -31,7 +31,8 @@ namespace Couchbase.IO.Operations.SubDocument
                 Cas = Cas,
                 CreationTime = CreationTime,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName
+                BucketName = BucketName,
+                ErrorCode = ErrorCode
             };
         }
     }

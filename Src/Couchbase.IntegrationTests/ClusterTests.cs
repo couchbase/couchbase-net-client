@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Security.Authentication;
 using Couchbase.Authentication;
-using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using NUnit.Framework;
@@ -95,26 +94,6 @@ namespace Couchbase.IntegrationTests
 
         #region KV Error Map
 
-        [TestCase(true)]
-        [TestCase(false)]
-        [Ignore("Only supported on cluster 5.0+ or CouchbaseMock")]
-        public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
-        {
-            var config = TestConfiguration.GetConfiguration("basic");
-            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
-            {
-                {
-                    "default", new BucketConfiguration
-                    {
-                        UseKvErrorMap = enabled
-                    }
-                }
-            };
-
-            var cluster = new Cluster(config);
-            var bucket = cluster.OpenBucket("default");
-            Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
-        }
 
         #endregion
     }

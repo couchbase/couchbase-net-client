@@ -261,7 +261,13 @@
     <Compile Include="IO\Services\SharedPooledIOService.cs" />
     <Compile Include="IO\SharedConnectionPool.cs" />
     <Compile Include="IO\Operations\Authentication\SelectBucket.cs" />
-    <Compile Include="IO\Operations\GetErrorMap.cs" />
+    <Compile Include="IO\Operations\Errors\EnumDescription.cs" />
+    <Compile Include="IO\Operations\Errors\ErrorAttribute.cs" />
+    <Compile Include="IO\Operations\Errors\ErrorCode.cs" />
+    <Compile Include="IO\Operations\Errors\ErrorMap.cs" />
+    <Compile Include="IO\Operations\Errors\GetErrorMap.cs" />
+    <Compile Include="IO\Operations\Errors\RetrySpec.cs" />
+    <Compile Include="IO\Operations\Errors\RetryStrategy.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiMutation.cs" />
     <Compile Include="IO\Operations\SubDocument\SubDocDictUpsert.cs" />

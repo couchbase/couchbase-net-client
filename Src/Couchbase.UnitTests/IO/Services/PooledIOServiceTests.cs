@@ -6,6 +6,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Services;
 using Couchbase.IO.Utils;
 using Couchbase.UnitTests.IO.Operations;
@@ -58,14 +59,14 @@ namespace Couchbase.UnitTests.IO.Services
         [Test]
         public void Result_Has_Failure_Status_If_ErrorMap_Available()
         {
-            const string codeString = "2C"; // 44
+            const string codeString = "2c"; // 44
             var code = short.Parse(codeString, NumberStyles.HexNumber);
-            var errorCode = new ErrorCode { name = "test" };
+            var errorCode = new ErrorCode { Name = "test" };
             var errorMap = new ErrorMap
             {
-                version = 1,
-                revision = 1,
-                errors = new Dictionary<string, ErrorCode>
+                Version = 1,
+                Revision = 1,
+                Errors = new Dictionary<string, ErrorCode>
                 {
                     {codeString, errorCode}
                 }
@@ -97,14 +98,14 @@ namespace Couchbase.UnitTests.IO.Services
         [Test]
         public void Result_Has_UnknownError_Status_If_ErrorMap_Not_Available()
         {
-            const string codeString = "2C"; // 44
+            const string codeString = "2c"; // 44
             var code = short.Parse(codeString, NumberStyles.HexNumber);
-            var errorCode = new ErrorCode { name = "test" };
+            var errorCode = new ErrorCode { Name = "test" };
             var errorMap = new ErrorMap
             {
-                version = 1,
-                revision = 1,
-                errors = new Dictionary<string, ErrorCode>()
+                Version = 1,
+                Revision = 1,
+                Errors = new Dictionary<string, ErrorCode>()
             };
 
             var converter = new DefaultConverter();

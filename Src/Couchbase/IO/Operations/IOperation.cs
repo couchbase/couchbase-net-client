@@ -3,6 +3,7 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO.Operations.Errors;
 using System;
 using System.IO;
 using System.Net;
@@ -92,6 +93,8 @@ namespace Couchbase.IO.Operations
         uint LastConfigRevisionTried { get; set; }
 
         string BucketName { get; set; }
+
+        int GetRetryTimeout(int defaultTimeout);
     }
 }
 

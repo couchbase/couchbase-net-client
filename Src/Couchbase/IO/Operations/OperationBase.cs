@@ -11,6 +11,7 @@ using Couchbase.Core.Buckets;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -428,7 +429,7 @@ namespace Couchbase.IO.Operations
             if (_timedOut) return _timedOut;
 
             var elasped = DateTime.UtcNow.Subtract(CreationTime).TotalMilliseconds;
-            if (elasped >= Timeout)
+            if (elasped >= Timeout || (ErrorCode != null && ErrorCode.HasTimedOut(elasped)))
             {
                 _timedOut = true;
             }
@@ -476,6 +477,16 @@ namespace Couchbase.IO.Operations
         public uint LastConfigRevisionTried { get; set; }
 
         public IPEndPoint CurrentHost { get; set; }
+
+        public int GetRetryTimeout(int defaultTimeout)
+        {
+            if (ErrorCode == null)
+            {
+                return defaultTimeout;
+            }
+
+            return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
+        }
 
 #region "New" Write API Methods - override and implement these methods for new operations
 

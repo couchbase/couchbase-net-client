@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -223,9 +223,6 @@
     </Compile>
     <Compile Include="..\Couchbase\IO\ConnectionPoolBase.cs">
       <Link>IO\ConnectionPoolBase.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase\IO\Operations\GetErrorMap.cs">
-      <Link>IO\Operations\GetErrorMap.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
       <Link>IO\SendTimeoutExpiredException.cs</Link>
@@ -1237,6 +1234,27 @@
     </Compile>
     <Compile Include="..\Couchbase\IO\Operations\Delete.cs">
       <Link>IO\Operations\Delete.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\EnumDescription.cs">
+      <Link>IO\Operations\Errors\EnumDescription.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\ErrorAttribute.cs">
+      <Link>IO\Operations\Errors\ErrorAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\ErrorCode.cs">
+      <Link>IO\Operations\Errors\ErrorCode.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\ErrorMap.cs">
+      <Link>IO\Operations\Errors\ErrorMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\GetErrorMap.cs">
+      <Link>IO\Operations\Errors\GetErrorMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\RetrySpec.cs">
+      <Link>IO\Operations\Errors\RetrySpec.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\Operations\Errors\RetryStrategy.cs">
+      <Link>IO\Operations\Errors\RetryStrategy.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\IO\Operations\Get.cs">
       <Link>IO\Operations\Get.cs</Link>

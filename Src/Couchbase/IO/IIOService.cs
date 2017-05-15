@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 
 namespace Couchbase.IO
 {

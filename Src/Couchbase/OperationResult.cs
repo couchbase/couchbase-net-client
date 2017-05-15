@@ -85,6 +85,8 @@ namespace Couchbase
                 case ResponseStatus.OperationTimeout:
                 case ResponseStatus.TemporaryFailure:
                     return false;
+                case ResponseStatus.Failure: // used for server retry straegies
+                    return true;
                 default:
                     return false;
             }

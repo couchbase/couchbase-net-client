@@ -42,7 +42,8 @@ namespace Couchbase.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName
+                BucketName = BucketName,
+                ErrorCode = ErrorCode
             };
             return cloned;
         }

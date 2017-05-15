@@ -536,6 +536,7 @@ namespace Couchbase.Core.Buckets
                 operation.VBucket = vBucket;
                 operation.LastConfigRevisionTried = vBucket.Rev;
                 operationResult = server.Send(operation);
+                operation.Attempts++;
 
                 if (operationResult.Success)
                 {
@@ -548,7 +549,9 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = operation.Clone();
-                    Thread.Sleep(VBucketRetrySleepTime);
+
+                    // Get retry timeout, uses default timeout if no retry stratergy available
+                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
                 else
                 {
@@ -619,6 +622,7 @@ namespace Couchbase.Core.Buckets
                 operation.VBucket = vBucket;
                 operation.LastConfigRevisionTried = vBucket.Rev;
                 operationResult = server.Send(operation);
+                operation.Attempts++;
 
                 if (operationResult.Success)
                 {
@@ -631,7 +635,9 @@ namespace Couchbase.Core.Buckets
                 {
                     LogFailure(operation, operationResult);
                     operation = (IOperation<T>)operation.Clone();
-                    Thread.Sleep(VBucketRetrySleepTime);
+
+                    // Get retry timeout, uses default timeout if no retry stratergy available
+                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
                 else
                 {

@@ -106,7 +106,8 @@ namespace Couchbase.IO.Operations.EnhancedDurability
             {
                 Attempts = Attempts,
                 CreationTime = CreationTime,
-                BucketName = BucketName
+                BucketName = BucketName,
+                ErrorCode = ErrorCode
             };
             return cloned;
         }

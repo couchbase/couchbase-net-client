@@ -8,6 +8,7 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.Tests.Fakes;
 
 namespace Couchbase.Tests.IO.Services

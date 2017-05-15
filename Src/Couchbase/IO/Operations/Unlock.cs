@@ -25,7 +25,8 @@ namespace Couchbase.IO.Operations
                 CreationTime = CreationTime,
                 Opaque = Opaque,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName
+                BucketName = BucketName,
+                ErrorCode = ErrorCode
             };
             return cloned;
         }

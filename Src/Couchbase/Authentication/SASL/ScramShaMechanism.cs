@@ -7,6 +7,7 @@ using Couchbase.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Operations.Authentication;
 
 namespace Couchbase.Authentication.SASL

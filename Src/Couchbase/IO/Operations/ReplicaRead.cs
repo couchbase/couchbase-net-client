@@ -58,7 +58,8 @@ namespace Couchbase.IO.Operations
                 Cas = Cas,
                 CreationTime = CreationTime,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName
+                BucketName = BucketName,
+                ErrorCode = ErrorCode
             };
             return cloned;
         }

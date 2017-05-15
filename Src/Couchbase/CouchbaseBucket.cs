@@ -117,6 +117,16 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets the key mapper used to map document keys to servers.
+        /// </summary>
+        internal IKeyMapper GetKeyMapper()
+        {
+            return _configInfo != null
+                ? _configInfo.GetKeyMapper()
+                : null;
+        }
+
+        /// <summary>
         /// Called when a configuration update has occurred from the server.
         /// </summary>
         /// <param name="configInfo">The new configuration</param>
@@ -130,7 +140,7 @@ namespace Couchbase
                 new CouchbaseRequestExecuter(_clusterController, _configInfo, Name, _pending));
         }
 
-        IServer GetServer(string key, out IVBucket vBucket)
+        private IServer GetServer(string key, out IVBucket vBucket)
         {
             var keyMapper = _configInfo.GetKeyMapper();
             vBucket = (IVBucket)keyMapper.MapKey(key);

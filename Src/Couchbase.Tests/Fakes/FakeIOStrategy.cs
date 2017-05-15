@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.Utils;
 
 namespace Couchbase.Tests.Fakes

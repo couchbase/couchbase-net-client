@@ -68,7 +68,9 @@ namespace Couchbase.Core.Buckets
                     var result = operationResult;
                     Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
                         operation.Key, result.Message);
-                    Thread.Sleep(VBucketRetrySleepTime);
+
+                    // Get retry timeout, uses default timeout if no retry stratergy available
+                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
                 else
                 {
@@ -121,7 +123,9 @@ namespace Couchbase.Core.Buckets
                     var result = operationResult;
                     Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
                     operation.Key, result.Message);
-                    Thread.Sleep(VBucketRetrySleepTime);
+
+                    // Get retry timeout, uses default timeout if no retry stratergy available
+                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
                 else
                 {
