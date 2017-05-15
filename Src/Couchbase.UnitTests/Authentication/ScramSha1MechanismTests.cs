@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
@@ -125,6 +127,15 @@ namespace Couchbase.UnitTests.Authentication
 
             var mech = new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha256);
             Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
+        }
+
+        [TearDown]
+        public static void TearDown()
+        {
+#if NET45
+            //resets Execute back to original func
+            typeof(SaslFactory).TypeInitializer.Invoke(null, null);
+#endif
         }
     }
 }
