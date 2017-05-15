@@ -154,6 +154,7 @@
     <Compile Include="CouchbaseBucket_Ssl_Tests.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="EphemeralBucketTests.cs" />
     <Compile Include="GlobalSetup.cs" />
     <Compile Include="Management\ClusterManagerTests.cs" />
     <Compile Include="Management\BucketManagerTests.cs" />

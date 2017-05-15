@@ -281,6 +281,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             configInfo.Setup(x => x.IsViewCapable).Returns(true);
             configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
             configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            configInfo.Setup(x => x.BucketConfig.BucketType).Returns("couchbase");
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 
@@ -313,6 +314,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             configInfo.Setup(x => x.IsViewCapable).Returns(true);
             configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
             configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            configInfo.Setup(x => x.BucketConfig.BucketType).Returns("couchbase");
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 

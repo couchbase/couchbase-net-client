@@ -11,6 +11,7 @@ using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using System;
 using System.Net;
+using Couchbase.Core.Buckets;
 using Couchbase.IO.Operations.Authentication;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -86,6 +87,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     if (operationResult.Success)
                     {
                         var bucketConfig = operationResult.Value;
+                        if (string.IsNullOrWhiteSpace(bucketConfig.BucketType) && bucketConfig.BucketCapabilities != null)
+                        {
+                            bucketConfig.BucketType = (bucketConfig.BucketCapabilities.Contains("couchapi", StringComparer.OrdinalIgnoreCase)
+                                ? BucketTypeEnum.Couchbase
+                                : BucketTypeEnum.Ephemeral).ToString().ToLowerInvariant();
+                        }
                         bucketConfig.SurrogateHost = connectionPool.EndPoint.Address.ToString();
                         bucketConfig.Password = password;
                         configInfo = new CouchbaseConfigContext(bucketConfig,

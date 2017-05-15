@@ -81,6 +81,8 @@ namespace Couchbase.Utils
 
         public const string GenericResponseMessageFormat = "Couchbase response error {0}.";
 
+        public const string EphemeralBucketViewQueries = "Ephemeral buckets do not support View Queries";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

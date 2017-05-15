@@ -449,6 +449,12 @@ namespace Couchbase.Core.Buckets
             IViewResult<T> viewResult;
             try
             {
+                // Is this an ephemeral bucket?
+                if (string.Equals("ephemeral", ConfigInfo.BucketConfig.BucketType, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new NotSupportedException(ExceptionUtil.EphemeralBucketViewQueries);
+                }
+
                 //Is the cluster configured for View services?
                 if (!ConfigInfo.IsViewCapable)
                 {

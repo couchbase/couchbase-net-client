@@ -79,6 +79,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             }
                         }
 
+                        if (string.IsNullOrWhiteSpace(newConfig.BucketType) && newConfig.BucketCapabilities != null)
+                        {
+                            newConfig.BucketType = (newConfig.BucketCapabilities.Contains("couchapi", StringComparer.OrdinalIgnoreCase)
+                                ? BucketTypeEnum.Couchbase
+                                : BucketTypeEnum.Ephemeral).ToString().ToLowerInvariant();
+                        }
                         newConfig.Password = password;
                         configInfo = CreateConfigInfo(newConfig);
                         Configs[bucketName] = configInfo;
