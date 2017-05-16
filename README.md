@@ -1,28 +1,33 @@
-Official Couchbase .NET SDK [![Build Status](http://sdkbuilds.sc.couchbase.com/buildStatus/icon?job=netclient-build-test)](http://sdkbuilds.sc.couchbase.com/job/netclient-build-test/)
-====================
+# Official Couchbase .NET SDK [![Build Status](http://sdkbuilds.sc.couchbase.com/buildStatus/icon?job=netclient-build-test)](http://sdkbuilds.sc.couchbase.com/job/netclient-build-test/)
 
 * master is 2.0 development branch
 * release13 is 1.3.X development branch
 
-## Getting Started ##
+## Getting Started
 
 To get up and running with the SDK, please visit the [online documentation](http://developer.couchbase.com/documentation/server/4.5/sdk/dotnet/start-using-sdk.html).
 
-## Running the Unit Tests ##
+## Running Tests
 
-To run the unit tests (for master), the following are required:
+We maintain a collection of both unit and integration test projects, with a version for the full .NET framework and Net Standard (projects with a NetStandard suffix).
 
+### Unit Tests
 
-1. Couchbase Server >= 3.0 installed on localhost
-2. N1QL DP4 downloaded, copied to disk and connected to your localhost Couchbase Server: see [here](http://docs.couchbase.com/developer/n1ql-dp3/n1ql-intro.html).
-4. The ["beer-sample"](http://docs.couchbase.com/admin/admin/Misc/sample-bucket-beer.html) sample Bucket and data set installed. This can be installed by logging into the Couchbase Console (http://localhost:8091) and then Settings->Sample Buckets.
-4. The following buckets installed on localhost:
+There are two unit tests projects, Couchbase.UnitTests and Couchbase.UnitTests.NetStandard, that contain environment independent tests and do not require a local cluster to run.
+
+### Running the Integration Tests ##
+
+There are two integration test projects, Couchbase.IntegrationTests and Couchbase.IntegationTests.NetStandard, and require the following  to run:
+
+1. Couchbase Server >= 4.0 installed on localhost
+2. The "beer-sample" and "travel-sample" sample buckets installed. They can be installed by logging into the Couchbase Console (http://localhost:8091) and then Settings->Sample Buckets.
+3. The following buckets installed on localhost:
 	1. "default" - the standard default bucket
 	2. "authenticated" - a Couchbase bucket with a password of "secret"
 	3. "memcached" - a Memcached bucket with no password
-5. Install an SSL certificate (copied from the Couchbase console) if you wish to run the SSL/TLS tests
-
-Note that some tests require a cluster (Observe tests and Replica Read tests for example) and will fail if running on localhost.
+4. Install an SSL certificate (copied from the Couchbase console Security->Root Certificate)
+5. A default primary index configured for both the `default` and `authenticated` buckets (eg <code>create primary index on &#96;default&#96;</code> and <code>create primary index on &#96;authenticated&#96;</code>)
+6. Add an FTS index to the *travel-sample* bucket called `idx-travel`
 
 ## Pull Requests and Submissions ##
 Being an Open Source project, the Couchbase SDK depends upon feedback and submissions from the community. If you feel as if you want to submit a bug fix or a feature, please post a Pull Request. The Pull Request will go through a formal code review process and merged after being +2'd by a Couchbase Engineer. In order to accept a submission, Couchbase requires that all contributors sign the Contributor License Agreement (CLA). You can do this by creating an account in [Gerrit](http://review.couchbase.com), our official Code Review system. After you have created your account, login and check the CLA checkbox.
