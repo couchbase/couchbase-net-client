@@ -23,7 +23,8 @@ namespace Couchbase.UnitTests.Configuration.Server.Providers.CarrierPublication
     {
         [TestCase(true)]
         [TestCase(false)]
-        public void Only_Execute_SelectBuket_When_EnhancedAuthentication_Is_Enabled(bool enabled)
+        [Ignore("RBAC is only available for couchbase server 5+")]
+        public void Only_Execute_SelectBucket_When_EnhancedAuthentication_Is_Enabled(bool enabled)
         {
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.EndPoint)
