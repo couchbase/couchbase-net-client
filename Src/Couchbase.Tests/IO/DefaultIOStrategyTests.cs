@@ -44,7 +44,7 @@ namespace Couchbase.Tests.IO
         [Test]
         public void When_Authentication_Fails_AuthenticationException_Or_ConnectionUnavailableException_Is_Thrown()
         {
-            var authenticator = new CramMd5Mechanism(_ioService, "authenticated", "secretw", new DefaultTranscoder());
+            var authenticator = new CramMd5Mechanism("authenticated", "secretw", new DefaultTranscoder());
             _ioService.SaslMechanism = authenticator;
 
             //The first two iterations will throw auth exceptions and then a CUE;

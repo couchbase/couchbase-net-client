@@ -18,7 +18,6 @@ namespace Couchbase.Tests.Authentication.Sasl
     [TestFixture]
     public class SaslFactoryTests
     {
-        private PooledIOService _ioService;
         private IConnectionPool<Connection> _connectionPool;
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
 
@@ -28,7 +27,6 @@ namespace Couchbase.Tests.Authentication.Sasl
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var connectionPoolConfig = new PoolConfiguration { UseSsl = false };
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, ipEndpoint);
-            _ioService = new PooledIOService(_connectionPool);
         }
 
         [Test]
@@ -42,7 +40,7 @@ namespace Couchbase.Tests.Authentication.Sasl
         public void When_PlainText_Provided_Factory_Returns_ScramShaMechanism()
         {
             var factory = SaslFactory.GetFactory();
-            var mechanism = factory("authenticated", "secret", _ioService, new DefaultTranscoder());
+            var mechanism = factory("authenticated", "secret", _connectionPool, new DefaultTranscoder());
             Assert.IsTrue(mechanism is ScramShaMechanism);
         }
     }

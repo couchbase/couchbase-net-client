@@ -126,12 +126,5 @@ namespace Couchbase.UnitTests.Authentication
             var mech = new ScramShaMechanism(transcoder, username, password, MechanismType.ScramSha256);
             Assert.That(() => !string.IsNullOrEmpty(mech.ClientNonce));
         }
-
-        [TearDown]
-        public static void TearDown()
-        {
-            //resets Execute back to original func
-            typeof(SaslFactory).TypeInitializer.Invoke(null, null);
-        }
     }
 }

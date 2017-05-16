@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IO;
@@ -70,6 +71,8 @@ namespace Couchbase.Tests.Fakes
 
 
         public bool InitializationFailed { get; protected set; }
+
+        public ISaslMechanism SaslMechanism { get; set; }
     }
 }
 
