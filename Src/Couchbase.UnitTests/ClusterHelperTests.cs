@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 
@@ -14,55 +10,37 @@ namespace Couchbase.UnitTests
         [Test]
         public void Initialized_AfterInit_ReturnsTrue()
         {
-            try
-            {
-                // Arrange
+            Assert.False(ClusterHelper.Initialized);
+            ClusterHelper.Initialize(new ClientConfiguration());
 
-                Assert.False(ClusterHelper.Initialized);
-
-                // Act
-
-                ClusterHelper.Initialize(new ClientConfiguration());
-
-                // Assert
-
-                Assert.True(ClusterHelper.Initialized);
-            }
-            finally
-            {
-                // Cleanup
-
-                ClusterHelper.Close();
-            }
+            Assert.True(ClusterHelper.Initialized);
         }
 
         [Test]
         public void Initialized_AfterClose_ReturnsFalse()
         {
-            try
-            {
-                // Arrange
+            ClusterHelper.Initialize(new ClientConfiguration());
+            Assert.True(ClusterHelper.Initialized);
 
-                Assert.False(ClusterHelper.Initialized);
+            ClusterHelper.Close();
+            Assert.False(ClusterHelper.Initialized);
+        }
 
-                ClusterHelper.Initialize(new ClientConfiguration());
+        [Test]
+        public void Cluster_Uses_Provided_Authenticator()
+        {
+            var config = new ClientConfiguration();
+            config.SetAuthenticator(new PasswordAuthenticator("username", "password"));
+            ClusterHelper.Initialize(config);
 
-                Assert.True(ClusterHelper.Initialized);
+            Assert.AreEqual(config.Authenticator, ClusterHelper.Get().Configuration.Authenticator);
+        }
 
-                // Act
-
-                ClusterHelper.Close();
-
-                // Assert
-
-                Assert.False(ClusterHelper.Initialized);
-            }
-            finally
-            {
-                // Cleanup
-
-                ClusterHelper.Close();
-            }
+        [TearDown]
+        public void TearDown()
+        {
+            // clear after each test
+            ClusterHelper.Close();
         }
     }
 }

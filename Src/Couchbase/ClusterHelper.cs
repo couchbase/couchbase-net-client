@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 
@@ -21,10 +17,7 @@ namespace Couchbase
     /// <remarks>Call <see cref="Initialize()"/> before calling <see cref="Get()"/> to get the instance.</remarks>
     public class ClusterHelper
     {
-        private const string DefaultBucket = "default";
         private static Lazy<Cluster> _instance;
-        private readonly ClientConfiguration _configuration;
-        private readonly IClusterController _clusterManager;
         private static readonly object SyncObj = new object();
 
         private static readonly ConcurrentDictionary<string, IBucket> Buckets =
@@ -37,40 +30,6 @@ namespace Couchbase
         public static bool Initialized
         {
             get { return _instance != null; }
-        }
-
-        /// <summary>
-        /// Ctor for creating Cluster instance.
-        /// </summary>
-        /// <remarks>
-        /// This is the default configuration and will attempt to bootstrap off of localhost.
-        /// </remarks>
-        public ClusterHelper()
-            : this(new ClientConfiguration())
-        {
-        }
-
-        /// <summary>
-        /// Ctor for creating Cluster instance.
-        /// </summary>
-        /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        public ClusterHelper(ClientConfiguration configuration)
-            : this(configuration, new ClusterController(configuration))
-        {
-        }
-
-        /// <summary>
-        /// Ctor for creating Cluster instance.
-        /// </summary>
-        /// <param name="configuration">The ClientCOnfiguration to use for initialization.</param>
-        /// <param name="clusterManager">The ClusterManager instance use.</param>
-        /// <remarks>
-        /// This overload is primarly added for testing.
-        /// </remarks>
-        internal ClusterHelper(ClientConfiguration configuration, IClusterController clusterManager)
-        {
-            _configuration = configuration;
-            _clusterManager = clusterManager;
         }
 
         /// <summary>

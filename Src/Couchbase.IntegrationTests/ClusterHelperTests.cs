@@ -2,9 +2,11 @@
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
+using Couchbase.Management;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -187,6 +189,32 @@ namespace Couchbase.IntegrationTests
         public void When_GetBucket_Is_Called_And_NotInitialized_ThrowInitializationException()
         {
             Assert.Throws<InitializationException>(()=>ClusterHelper.GetBucket("default"));
+        }
+
+        [Test]
+        public void When_Authenticator_Is_Set_It_Is_Used()
+        {
+            try
+            {
+                var config = TestConfiguration.GetDefaultConfiguration();
+                config.SetAuthenticator(new ClassicAuthenticator
+                {
+                    BucketCredentials =
+                    {
+                        {"authenticated", "secret"}
+                    }
+                });
+
+                ClusterHelper.Initialize(config);
+
+                var bucket = ClusterHelper.GetBucket("authenticated");
+                Assert.IsNotNull(bucket);
+                Assert.AreEqual("authenticated", bucket.Name);
+            }
+            finally
+            {
+                ClusterHelper.Close();
+            }
         }
 
         [TearDown]
