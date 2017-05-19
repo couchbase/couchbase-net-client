@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Security.Authentication;
 using System.Threading;
@@ -247,7 +248,13 @@ namespace Couchbase.IO
             }
             else
             {
-                _store.Enqueue(connection);
+                lock (_store)
+                {
+                    if (!_store.Contains(connection))
+                    {
+                        _store.Enqueue(connection);
+                    }
+                }
             }
             Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
             _autoResetEvent.Set();
