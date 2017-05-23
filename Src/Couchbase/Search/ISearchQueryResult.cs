@@ -19,9 +19,9 @@ namespace Couchbase.Search
         IList<ISearchQueryRow> HitsOrFail { get; }
 
         /// <summary>
-        /// The facets for the result.
+        /// The results for the facet components of the query.
         /// </summary>
-        IList<SearchFacet> Facets { get; }
+        IDictionary<string, IFacetResult> Facets { get; }
 
         /// <summary>
         /// The errors returned from the server if the request failed.

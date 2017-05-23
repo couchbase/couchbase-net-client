@@ -77,14 +77,15 @@ namespace Couchbase.IntegrationTests
                 {
                     var results = bucket.Query(new SearchQuery
                     {
-                        Index = "id_travel",
+                        Index = "idx_travel",
                         Query = new MatchQuery("inn")
                     }.Facets(
-                        new TermFacet("termfacet", "thefield", 10),
+                        new TermFacet("termfacet", "name", 1),
                         new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
                         new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)));
 
-                    Assert.IsFalse(results.Success);
+                    Assert.IsTrue(results.Success);
+                    Assert.AreEqual(3, results.Facets.Count);
                 }
             }
         }

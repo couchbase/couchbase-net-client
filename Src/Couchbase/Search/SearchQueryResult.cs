@@ -17,7 +17,7 @@ namespace Couchbase.Search
         internal SearchQueryResult()
         {
             Hits = new List<ISearchQueryRow>();
-            Facets = new List<SearchFacet>();
+            Facets = new Dictionary<string, IFacetResult>();
             Errors = new List<string>();
             Metrics = new SearchMetrics();
         }
@@ -77,7 +77,7 @@ namespace Couchbase.Search
         /// <summary>
         /// The facets for the result.
         /// </summary>
-        public IList<SearchFacet> Facets { get; internal set; }
+        public IDictionary<string, IFacetResult> Facets { get; internal set; }
 
         /// <summary>
         /// The errors returned from the server if the request failed.
@@ -96,15 +96,6 @@ namespace Couchbase.Search
         internal void Add(ISearchQueryRow row)
         {
             Hits.Add(row);
-        }
-
-        /// <summary>
-        /// Adds the specified facet.
-        /// </summary>
-        /// <param name="facet">The facet.</param>
-        internal void Add(SearchFacet facet)
-        {
-            Facets.Add(facet);
         }
 
         bool IResult.ShouldRetry()

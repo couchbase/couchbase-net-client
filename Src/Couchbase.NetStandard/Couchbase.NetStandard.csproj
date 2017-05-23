@@ -974,8 +974,20 @@
     <Compile Include="..\Couchbase\Search\CouchbaseSearchResponseException.cs">
       <Link>Search\CouchbaseSearchResponseException.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Search\DateRange.cs">
+      <Link>Search\DateRange.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Search\DateRangeFacet.cs">
       <Link>Search\DateRangeFacet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\DateRangeFacetResult.cs">
+      <Link>Search\DateRangeFacetResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\DefaultFacetResult.cs">
+      <Link>Search\DefaultFacetResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\FacetResultType.cs">
+      <Link>Search\FacetResultType.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\Sort\FieldSearchSort.cs">
       <Link>Search\Sort\FieldSearchSort.cs</Link>
@@ -1022,8 +1034,23 @@
     <Compile Include="..\Couchbase\Search\SearchDataMapper.cs">
       <Link>Search\SearchDataMapper.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\Search\IFacetResult.cs">
+      <Link>Search\IFacetResult.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\Search\ISearchClient.cs">
       <Link>Search\ISearchClient.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\NumericRange.cs">
+      <Link>Search\NumericRange.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\NumericRangeFacetResult.cs">
+      <Link>Search\NumericRangeFacetResult.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\Term.cs">
+      <Link>Search\Term.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\Search\TermFacetResult.cs">
+      <Link>Search\TermFacetResult.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\Search\Queries\FtsQueryBase.cs">
       <Link>Search\Queries\FtsQueryBase.cs</Link>

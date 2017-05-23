@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Resources;
 using Couchbase.Search;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 
@@ -111,6 +113,65 @@ namespace Couchbase.UnitTests.Search
                 Assert.AreEqual(0.907210290772297, first.Score);
                Assert.AreEqual("1.5 miles of the old Plymouth-Tavistock Great Western line, restored by local enthusiasts. Runs a number of old steam engines and other stock, which take visitors up this historic stretch of railway into Plym Woods.", first.Fields.First().Value);
             }
+        }
+
+        [Test]
+        public void Facets_Are_Populated_When_Result_Contains_Facets()
+        {
+            ISearchQueryResult result;
+            var mapper = new SearchDataMapper();
+            using (var stream = OpenResource("search-response-with-facets.js"))
+            {
+                result = mapper.Map(stream);
+            }
+
+            var expectedFacets = JsonConvert.SerializeObject(new
+            {
+                category = new TermFacetResult
+                {
+                    Name = "category",
+                    Field = "term_field",
+                    Total = 100,
+                    Missing = 65,
+                    Other = 35,
+                    Terms = new[]
+                    {
+                        new Term {Name = "term1", Count = 10}
+                    }
+                },
+                strength = new NumericRangeFacetResult
+                {
+                    Name = "strength",
+                    Field = "numeric_field",
+                    Total = 13,
+                    Missing = 11,
+                    Other = 2,
+                    NumericRanges = new[]
+                    {
+                        new NumericRange {Name = "numeric1", Min = 0.1f, Max = 0.2f, Count = 50}
+                    }
+                },
+                updateRange = new DateRangeFacetResult
+                {
+                    Name = "updateRange",
+                    Field = "daterange_field",
+                    Total = 65,
+                    Missing = 43,
+                    Other = 22,
+                    DateRanges = new[]
+                    {
+                        new DateRange
+                        {
+                            Name = "daterange1",
+                            Start = new DateTime(2017, 1, 1),
+                            End = new DateTime(2017, 1, 2),
+                            Count = 54
+                        }
+                    }
+                }
+            });
+
+            Assert.AreEqual(expectedFacets, JsonConvert.SerializeObject(result.Facets));
         }
 
         private Stream OpenResource(string resourceName)

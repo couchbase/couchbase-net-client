@@ -28,7 +28,7 @@
     },
     "embed": [
       "..\\Couchbase.UnitTests\\Data\\*.json",
-      "..\\Couchbase.UnitTests\\Search\\search-response-success.js"
+      "..\\Couchbase.UnitTests\\Search\\*.js"
     ]
   },
   "frameworks": {
