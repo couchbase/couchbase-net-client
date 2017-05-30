@@ -87,6 +87,8 @@ namespace Couchbase.IO.Services
             //Get the buffer and a connection
             var request = operation.Write();
             var connection = _connectionPool.Acquire();
+
+            Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
             byte[] response =  null;
             try
             {
@@ -152,6 +154,9 @@ namespace Couchbase.IO.Services
             //Get the buffer and a connection
             var request = operation.Write();
             var connection = _connectionPool.Acquire();
+
+            Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
+
             byte[] response = null;
             try
             {
@@ -238,6 +243,8 @@ namespace Couchbase.IO.Services
             ExceptionDispatchInfo capturedException = null;
             try
             {
+                Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
+
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
                 connection.SendAsync(request, operation.Completed);
             }
@@ -274,6 +281,8 @@ namespace Couchbase.IO.Services
             try
             {
                 var connection = _connectionPool.Acquire();
+
+                Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
                 if (_enableServerFeatures)
@@ -314,6 +323,8 @@ namespace Couchbase.IO.Services
             try
             {
                 var connection = _connectionPool.Acquire();
+
+                Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
                 if (_enableServerFeatures)

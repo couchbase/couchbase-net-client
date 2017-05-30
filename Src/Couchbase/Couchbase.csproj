@@ -252,11 +252,13 @@
     <Compile Include="IDocument.cs" />
     <Compile Include="IDocumentFragment.cs" />
     <Compile Include="IO\BufferUnavailableException.cs" />
+    <Compile Include="IO\ConnectionPoolBase.cs" />
     <Compile Include="IO\Http\AuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\Http\CouchbaseHttpClient.cs" />
     <Compile Include="IO\Http\NonAuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="Core\SubdocLookupFlags.cs" />
+    <Compile Include="IO\SharedConnectionPool.cs" />
     <Compile Include="IO\Operations\Authentication\SelectBucket.cs" />
     <Compile Include="IO\Operations\GetErrorMap.cs" />
     <Compile Include="IO\Operations\SubDocument\MultiLookup.cs" />

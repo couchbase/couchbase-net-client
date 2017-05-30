@@ -397,6 +397,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Indicates if the client should use connection pooling instead of a multiplexing connection. Defaults to false.
         /// </summary>
+        [Obsolete("Connection pooling is always enabled. Use PoolConfiguration.MaxSize to configure your pool size.")]
         public bool UseConnectionPooling { get; set; }
 
         /// <summary>

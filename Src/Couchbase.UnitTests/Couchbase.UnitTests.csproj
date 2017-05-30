@@ -92,6 +92,7 @@
     <Compile Include="IO\Converters\DefaultConverterTests.cs" />
     <Compile Include="IO\Http\AuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\Http\CouchbaseHttpClientTests.cs" />
+    <Compile Include="IO\SharedConnectionPoolTests.cs" />
     <Compile Include="IO\Operations\AddTests.cs" />
     <Compile Include="IO\Operations\AppendTests.cs" />
     <Compile Include="IO\Operations\Authentication\SaslAuthenticationTests.cs" />

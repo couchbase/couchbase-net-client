@@ -1,9 +1,9 @@
 ﻿namespace Couchbase.IO
 {
     /// <summary>
-    /// Represents a pool of <see cref="IConnection"/> objects which are TCP connections to Couchbase Server. 
+    /// Represents a pool of <see cref="IConnection"/> objects which are TCP connections to Couchbase Server.
     /// </summary>
-    interface IConnectionPool<in T> : IConnectionPool where T : IConnection
+    public interface IConnectionPool<in T> : IConnectionPool where T : IConnection
     {
         /// <summary>
         /// Releases an acquired <see cref="IConnection"/> object back into the pool so that it can be reused by another operation.

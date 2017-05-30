@@ -221,11 +221,17 @@
     <Compile Include="..\Couchbase\Core\IO\SubDocument\OperationSpec.cs">
       <Link>Core\IO\SubDocument\OperationSpec.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\IO\ConnectionPoolBase.cs">
+      <Link>IO\ConnectionPoolBase.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\IO\Operations\GetErrorMap.cs">
       <Link>IO\Operations\GetErrorMap.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
       <Link>IO\SendTimeoutExpiredException.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase\IO\SharedConnectionPool.cs">
+      <Link>IO\SharedConnectionPool.cs</Link>
     </Compile>
     <Compile Include="..\Couchbase\IO\TransportFailureException.cs">
       <Link>IO\TransportFailureException.cs</Link>

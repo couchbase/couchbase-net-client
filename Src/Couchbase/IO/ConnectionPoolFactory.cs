@@ -28,14 +28,7 @@ namespace Couchbase.IO
                 }
                 else
                 {
-                    if (config.ClientConfiguration.UseConnectionPooling)
-                    {
-                        connectionPool = new ConnectionPool<Connection>(config, endpoint);
-                    }
-                    else
-                    {
-                        connectionPool = new ConnectionPool<MultiplexingConnection>(config, endpoint);
-                    }
+                    connectionPool = new SharedConnectionPool<MultiplexingConnection>(config, endpoint);
                 }
                 return connectionPool;
             };

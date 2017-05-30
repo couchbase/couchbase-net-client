@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Threading;
-using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
 
@@ -18,7 +15,7 @@ namespace Couchbase.IO
         /// Returns a functory for creating <see cref="Connection"/> objects.
         /// </summary>
         /// <returns>A <see cref="Connection"/> based off of the <see cref="PoolConfiguration"/> of the <see cref="IConnectionPool"/>.</returns>
-        internal static Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> GetGeneric<T>() where T : class, IConnection
+        internal static Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> GetGeneric<T>() where T : class, IConnection
         {
             Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory = (p, c, b) =>
             {

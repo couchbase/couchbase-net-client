@@ -3,95 +3,56 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Authentication;
 using System.Threading;
-using Couchbase.Authentication.SASL;
 using Couchbase.Logging;
 using Couchbase.Configuration.Client;
-using Couchbase.Core;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
-using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
     /// <summary>
     /// Represents a pool of TCP connections to a Couchbase Server node.
     /// </summary>
-    public class ConnectionPool<T> : IConnectionPool<T> where T : class, IConnection
+    public class ConnectionPool<T> : ConnectionPoolBase<T> where T : class, IConnection
     {
+        // ReSharper disable once StaticMemberInGenericType
         private static readonly ILog Log = LogManager.GetLogger<ConnectionPool<IConnection>>();
         private readonly ConcurrentQueue<T> _store = new ConcurrentQueue<T>();
-        private readonly Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> _factory;
         private readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
-        private readonly PoolConfiguration _configuration;
         private readonly object _lock = new object();
-        private readonly IByteConverter _converter;
         private int _count;
         private bool _disposed;
-        private ConcurrentDictionary<Guid, T> _refs = new ConcurrentDictionary<Guid, T>();
-        private Guid _identity = Guid.NewGuid();
+        private readonly ConcurrentDictionary<Guid, T> _refs = new ConcurrentDictionary<Guid, T>();
         private int _acquireFailedCount;
-        private readonly BufferAllocator _bufferAllocator;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConnectionPool{T}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="endPoint">The remote endpoint or server node to connect to.</param>
         public ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
-            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
+            : base(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
         {
         }
 
         /// <summary>
-        /// CTOR for testing/dependency injection.
+        /// Initializes a new instance of the <see cref="ConnectionPool{T}"/> class.
         /// </summary>
-        /// <param name="configuration">The <see cref="PoolConfiguration"/> to use.</param>
-        /// <param name="endPoint">The <see cref="IPEndPoint"/> of the Couchbase Server.</param>
-        /// <param name="factory">A functory for creating <see cref="IConnection"/> objects./></param>
-        internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint, Func<ConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="endPoint">The end point.</param>
+        /// <param name="factory">The factory.</param>
+        /// <param name="converter">The converter.</param>
+        internal ConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint,
+           Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
+            : base(configuration, endPoint, factory, converter)
         {
-            _configuration = configuration;
-            _factory = factory;
-            _converter = converter;
-            _bufferAllocator = Configuration.BufferAllocator(Configuration);
-            EndPoint = endPoint;
         }
-
-        /// <summary>
-        /// Gets or sets the sasl mechanism used to authenticate against the server.
-        /// </summary>
-        /// <value>
-        /// The sasl mechanism.
-        /// </value>
-        public ISaslMechanism SaslMechanism { get; set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the pool failed to initialize properly.
-        /// If for example, TCP connection to the server couldn't be made, then this
-        /// would return false until the connection could be made (after the node went
-        /// back online).
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if initialization failed; otherwise, <c>false</c>.
-        /// </value>
-        public bool InitializationFailed { get; private set; }
-
-        /// <summary>
-        /// The configuration passed into the pool when it is created. It has fields
-        /// for MaxSize, MinSize, etc.
-        /// </summary>
-        public PoolConfiguration Configuration
-        {
-            get { return _configuration; }
-        }
-
-        /// <summary>
-        /// The <see cref="IPEndPoint"/> of the server that the <see cref="IConnection"/>s are connected to.
-        /// </summary>
-        public IPEndPoint EndPoint { get; set; }
 
         /// <summary>
         /// Returns a collection of <see cref="IConnection"/> objects.
         /// </summary>
         /// <remarks>Only returns what is available in the queue at the point in time it is called.</remarks>
-        public IEnumerable<T> Connections
+        public override IEnumerable<IConnection> Connections
         {
             get { return _store.ToArray(); }
         }
@@ -100,7 +61,7 @@ namespace Couchbase.IO
         /// Gets the number of <see cref="IConnection"/> within the pool, whether or not they are available or not.
         /// </summary>
         /// <returns></returns>
-        public int Count()
+        public override int Count()
         {
             return _count;
         }
@@ -110,21 +71,21 @@ namespace Couchbase.IO
         /// </summary>After the <see cref="PoolConfiguration.MinSize"/> is reached, the pool will grow to <see cref="PoolConfiguration.MaxSize"/>
         /// and any pending requests will then wait for a <see cref="IConnection"/> to be released back into the pool.
         /// <remarks></remarks>
-        public void Initialize()
+        public override void Initialize()
         {
             lock (_lock)
             {
-                var count = _configuration.MinSize;
+                var count = Configuration.MinSize;
                 do
                 {
                     try
                     {
-                        var connection = _factory(this, _converter, _bufferAllocator);
+                        var connection = Factory(this, Converter, BufferAllocator);
 
                         Authenticate(connection);
 
                         Log.Info("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
-                            EndPoint, connection.Identity, _identity, _disposed);
+                            EndPoint, connection.Identity, Identity, _disposed);
 
                         _store.Enqueue(connection);
                         _refs.TryAdd(connection.Identity, connection);
@@ -146,7 +107,7 @@ namespace Couchbase.IO
         /// </summary>
         /// <returns>A TCP <see cref="IConnection"/> object to a Couchbase Server.</returns>
         /// <exception cref="ConnectionUnavailableException">thrown if a thread waits more than the <see cref="PoolConfiguration.MaxAcquireIterationCount"/>.</exception>
-        public T Acquire()
+        public override IConnection Acquire()
         {
             T connection = AcquireFromPool();
             if (connection != null)
@@ -166,16 +127,16 @@ namespace Couchbase.IO
                     return connection;
                 }
 
-                if (_count < _configuration.MaxSize && !_disposed)
+                if (_count < Configuration.MaxSize && !_disposed)
                 {
                     Log.Debug("Trying to acquire new connection! Refs={0}", _refs.Count);
-                    connection = _factory(this, _converter, _bufferAllocator);
+                    connection = Factory(this, Converter, BufferAllocator);
 
                     Authenticate(connection);
                     _refs.TryAdd(connection.Identity, connection);
 
                     Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
-                        connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed);
+                        connection.Identity, EndPoint, _store.Count, _count, Identity, _disposed);
 
                     Interlocked.Increment(ref _count);
                     Interlocked.Exchange(ref _acquireFailedCount, 0);
@@ -184,9 +145,9 @@ namespace Couchbase.IO
                 }
             }
 
-            _autoResetEvent.WaitOne(_configuration.WaitTimeout);
+            _autoResetEvent.WaitOne(Configuration.WaitTimeout);
             var acquireFailedCount = Interlocked.Increment(ref _acquireFailedCount);
-            if (acquireFailedCount >= _configuration.MaxAcquireIterationCount)
+            if (acquireFailedCount >= Configuration.MaxAcquireIterationCount)
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
                 const string msg = "Failed to acquire a pooled client connection on {0} after {1} tries.";
@@ -207,7 +168,7 @@ namespace Couchbase.IO
             {
                 Interlocked.Exchange(ref _acquireFailedCount, 0);
                 Log.Debug("Acquire existing: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5} - Refs={6}",
-                    connection.Identity, EndPoint, _store.Count, _count, _identity, _disposed, _refs.Count);
+                    connection.Identity, EndPoint, _store.Count, _count, Identity, _disposed, _refs.Count);
 
                 connection.MarkUsed(true);
                 return connection;
@@ -220,17 +181,17 @@ namespace Couchbase.IO
         /// Releases an acquired <see cref="IConnection"/> object back into the pool so that it can be reused by another operation.
         /// </summary>
         /// <param name="connection">The <see cref="IConnection"/> to release back into the pool.</param>
-        public void Release(T connection)
+        public override void Release(T connection)
         {
             if (connection == null) return;
-            Log.Debug("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
+            Log.Debug("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, Identity, _refs.Count);
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
                 connection.Dispose();
                 Interlocked.Decrement(ref _count);
                 Log.Debug("Connection is dead: {0} on {1} - {2} - [{3}, {4}] ",
-                    connection.Identity, EndPoint, _identity, _store.Count, _count);
+                    connection.Identity, EndPoint, Identity, _store.Count, _count);
 
                 if (Owner != null)
                 {
@@ -256,50 +217,16 @@ namespace Couchbase.IO
                     }
                 }
             }
-            Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, _identity, _refs.Count);
+            Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, Identity, _refs.Count);
             _autoResetEvent.Set();
-        }
-
-        private void Authenticate(IConnection connection)
-        {
-            Log.Trace("1. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
-                connection.IsDead, EndPoint, connection.Identity);
-
-            if (connection.IsAuthenticated || connection.IsDead) return;
-
-            Log.Trace("2. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
-                connection.IsDead, EndPoint, connection.Identity);
-
-            if (SaslMechanism != null)
-            {
-                Log.Trace("3. Checking authentication [{0}]: {1} - {2}", connection.IsAuthenticated, EndPoint,
-                    connection.Identity);
-                var result = SaslMechanism.Authenticate(connection);
-                if (result)
-                {
-                    Log.Info(
-                        "4. Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
-                        SaslMechanism.GetType(),
-                        _identity, connection.Identity, EndPoint);
-                    connection.IsAuthenticated = true;
-                }
-                else
-                {
-                    Log.Info(
-                        "4. Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
-                        SaslMechanism.GetType(), _identity, EndPoint);
-                    throw new AuthenticationException(
-                        ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
-                }
-            }
         }
 
         /// <summary>
         /// Removes and disposes all <see cref="IConnection"/> objects in the pool.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
-            Log.Debug("Disposing ConnectionPool for {0} - {1}", EndPoint, _identity);
+            Log.Debug("Disposing ConnectionPool for {0} - {1}", EndPoint, Identity);
             lock (_lock)
             {
                 Dispose(true);
@@ -315,7 +242,7 @@ namespace Couchbase.IO
             if (!_disposed)
             {
                 _disposed = true;
-                var interval = _configuration.CloseAttemptInterval;
+                var interval = Configuration.CloseAttemptInterval;
 
                 foreach (var key in _refs.Keys)
                 {
@@ -361,34 +288,12 @@ namespace Couchbase.IO
                 {
                     Log.Debug(e);
                 }
+                // ReSharper disable once EmptyGeneralCatchClause
                 catch
                 {
                 }
             }
         }
 #endif
-
-        IConnection IConnectionPool.Acquire()
-        {
-            return Acquire();
-        }
-
-        void IConnectionPool.Release(IConnection connection)
-        {
-            Release((T)connection);
-        }
-
-        IEnumerable<IConnection> IConnectionPool.Connections
-        {
-            get { return _store.ToArray(); }
-        }
-
-        /// <summary>
-        /// Gets or sets the <see cref="IServer" /> instance which "owns" this pool.
-        /// </summary>
-        /// <value>
-        /// The owner.
-        /// </value>
-        public IServer Owner { get; set; }
     }
 }
