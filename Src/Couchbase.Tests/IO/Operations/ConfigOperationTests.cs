@@ -49,7 +49,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_GetConfig_Non_Default_Bucket()
         {
-            var saslMechanism = new PlainTextMechanism(_ioService, "authenticated", "secret", new DefaultTranscoder());
+            var saslMechanism = new PlainTextMechanism("authenticated", "secret", new DefaultTranscoder());
             _ioService = new PooledIOService(_connectionPool, saslMechanism);
 
             var response = _ioService.Execute(new Config(new DefaultTranscoder(), OperationLifespan, _endPoint));

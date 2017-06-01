@@ -5,7 +5,6 @@ using Couchbase.Logging;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Authentication;
 
@@ -17,15 +16,11 @@ namespace Couchbase.Authentication.SASL
     internal class CramMd5Mechanism : ISaslMechanism
     {
         private static readonly ILog Log = LogManager.GetLogger<CramMd5Mechanism>();
-        private ITypeTranscoder _transcoder;
-
+        private readonly ITypeTranscoder _transcoder;
 
         /// <summary>
-#pragma warning disable 612
-        /// Creates a <see cref="CramMd5Mechanism"/> object using a given <see cref="IOService"/>.
-#pragma warning restore 612
+        /// Creates a <see cref="CramMd5Mechanism"/> object.
         /// </summary>
-        /// <param name="ioService">The I/O service to use.</param>
         /// <param name="transcoder"></param>
         public CramMd5Mechanism(ITypeTranscoder transcoder)
         {
@@ -46,9 +41,6 @@ namespace Couchbase.Authentication.SASL
         /// <summary>
         /// Creates a <see cref="CramMd5Mechanism"/> object using a given username (which is a Couchbase Bucket) and password.
         /// </summary>
-#pragma warning disable 612
-        /// <param name="ioService">The <see cref="IOService"/>to use for I/O.</param>
-#pragma warning restore 612
         /// <param name="username">The name of the Bucket you are connecting to.</param>
         /// <param name="password">The password for the Bucket.</param>
         /// <param name="transcoder"></param>
@@ -160,20 +152,11 @@ namespace Couchbase.Authentication.SASL
             return Authenticate(connection, Username, Password);
         }
 
-        /// <summary>
-        /// The <see cref="IOService"/> to use for I/O connectivity with the Couchbase cluster or server.
-        /// </summary>
-        [Obsolete]
-        public IIOService IOService
-        {
-            set { throw new NotSupportedException(); }
-        }
-
         public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
         {
             var request = operation.Write();
             var response = connection.Send(request);
-            operation.Read(response, null);
+            operation.Read(response);
             return operation.GetResultWithValue();
         }
     }
