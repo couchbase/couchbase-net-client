@@ -380,6 +380,11 @@ namespace Couchbase.N1QL
 
             ApplyCredentials(queryRequest);
 
+            if (Log.IsDebugEnabled)
+            {
+                Log.Debug(queryRequest.ToString());
+            }
+
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
