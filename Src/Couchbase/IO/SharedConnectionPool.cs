@@ -95,9 +95,7 @@ namespace Couchbase.IO
                     {
                         Owner.CheckOnline(connection.IsDead);
                     }
-                    Console.WriteLine("Release {0}", connection.GetHashCode());
                     _connections.Remove(connection);
-                    _connections.Add(CreateAndAuthConnection());
                 }
             }
         }
