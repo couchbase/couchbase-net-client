@@ -29,7 +29,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Allows specific configurations of Bucket's to be defined, overriding the parent's settings.
         /// </summary>
-        public List<BucketDefinition> Buckets { get; set;  }
+        public List<IBucketDefinition> Buckets { get; set;  }
 
         /// <summary>
         /// Overrides the default and sets the SSL port to use for Key/Value operations using the Binary Memcached protocol.
