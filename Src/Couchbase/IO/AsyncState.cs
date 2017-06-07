@@ -68,14 +68,14 @@ namespace Couchbase.IO
             }
 
             //somewhat of hack for backwards compatibility
-            Callback(new SocketAsyncState
+            Task.Run(() => Callback(new SocketAsyncState
             {
-                Data = new MemoryStream(response),
-                Opaque = Id,
-                Exception = e,
-                Status = status,
-                EndPoint = EndPoint
-            });
+	            Data = new MemoryStream(response),
+	            Opaque = Id,
+	            Exception = e,
+	            Status = status,
+	            EndPoint = EndPoint
+            }));
         }
     }
 }

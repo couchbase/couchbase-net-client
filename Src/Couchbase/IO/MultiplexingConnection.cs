@@ -249,11 +249,12 @@ namespace Couchbase.IO
                 lock (_statesInFlight)
                 {
                     _statesInFlight.TryRemove(opaque, out state);
-                }
-
-                if (state != null)
-                {
-                    Task.Run(()=> state.Complete(response));
+                    
+                    //must be inside the lock to prevent race condition between read and timeout
+                    if (state != null)
+                    {
+                        state.Complete(response);
+                    }
                 }
             }
 
@@ -314,7 +315,7 @@ namespace Couchbase.IO
                         {
                             //this hould have a correct handling where some kind of exception is thrown in the unblocked method
                             var state1 = state;
-                            Task.Run(() => state1.Complete(null));
+                            state1.Complete(null);
                         }
                     }
                 }
