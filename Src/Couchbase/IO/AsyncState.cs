@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.IO
 {
@@ -68,14 +69,14 @@ namespace Couchbase.IO
             }
 
             //somewhat of hack for backwards compatibility
-            Callback(new SocketAsyncState
+            Task.Run(() => Callback(new SocketAsyncState
             {
                 Data = new MemoryStream(response),
                 Opaque = Id,
                 Exception = e,
                 Status = status,
                 EndPoint = EndPoint
-            });
+            }));
         }
     }
 }
