@@ -11,7 +11,7 @@ namespace Couchbase.Core.Buckets
 {
     internal static class CallbackFactory
     {
-        private readonly static ILog Log = LogManager.GetLogger(typeof(CouchbaseRequestExecuter));
+        private static readonly ILog Log = LogManager.GetLogger(typeof(CouchbaseRequestExecuter));
 
         public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForMemcached<T>(IRequestExecuter executer,
             ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
@@ -35,8 +35,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = actual.GetResultWithValue();
                         if (result.Success)
@@ -131,8 +130,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = op.GetResult();
                         if (result.Success)
@@ -234,8 +232,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = actual.GetResultWithValue();
                         if (result.Success)
@@ -335,8 +332,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = op.GetResult();
                         if (result.Success)
@@ -438,8 +434,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = actual.GetResultWithValue();
                         if (result.IsNmv())
@@ -501,8 +496,7 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response, 0, response.Length)
-                            .ContinueOnAnyContext();
+                        await op.ReadAsync(response).ContinueOnAnyContext();
 
                         var result = op.GetResult();
                         if (result.IsNmv())
