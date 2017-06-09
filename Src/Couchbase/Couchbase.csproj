@@ -258,6 +258,7 @@
     <Compile Include="IO\Http\NonAuthenticatingHttpClientHandler.cs" />
     <Compile Include="IO\IOBuffer.cs" />
     <Compile Include="Core\SubdocLookupFlags.cs" />
+    <Compile Include="IO\Services\SharedPooledIOService.cs" />
     <Compile Include="IO\SharedConnectionPool.cs" />
     <Compile Include="IO\Operations\Authentication\SelectBucket.cs" />
     <Compile Include="IO\Operations\GetErrorMap.cs" />

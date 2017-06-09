@@ -158,7 +158,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 
         [Test]
-        public void When_UseConnectionPooling_Is_False_IOServiceFactory_Returns_MultiplexingIOService()
+        public void When_UseConnectionPooling_Is_False_IOServiceFactory_Returns_SharedPooledIOService()
         {
             var definition = new CouchbaseClientDefinition
             {
@@ -176,7 +176,7 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
 
-            Assert.IsInstanceOf<MultiplexingIOService>(service);
+            Assert.IsInstanceOf<SharedPooledIOService>(service);
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 
         [Test]
-        public void When_UseSsl_Is_False_IOServiceFactory_Returns_MultiplexingIOService()
+        public void When_UseSsl_Is_False_IOServiceFactory_Returns_SharedPooledIOService()
         {
             var config = new ClientConfiguration
             {
@@ -236,11 +236,11 @@ namespace Couchbase.UnitTests.Configuration.Client
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
 
             var service = config.IOServiceCreator(connectionPool.Object);
-            Assert.IsInstanceOf<MultiplexingIOService>(service);
+            Assert.IsInstanceOf<SharedPooledIOService>(service);
         }
 
         [Test]
-        public void When_Defaults_Are_Used_IOServiceFactory_Returns_MultiplexingIOService()
+        public void When_Defaults_Are_Used_IOServiceFactory_Returns_SharedPooledIOService()
         {
             var config = new ClientConfiguration();
 
@@ -252,7 +252,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
 
             var service = config.IOServiceCreator(connectionPool.Object);
-            Assert.IsInstanceOf<MultiplexingIOService>(service);
+            Assert.IsInstanceOf<SharedPooledIOService>(service);
         }
 
         [TestCase("http://localhost:80/pools")]

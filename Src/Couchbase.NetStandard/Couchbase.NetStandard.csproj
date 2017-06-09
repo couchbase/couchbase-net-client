@@ -230,6 +230,9 @@
     <Compile Include="..\Couchbase\IO\SendTimeoutExpiredException.cs">
       <Link>IO\SendTimeoutExpiredException.cs</Link>
     </Compile>
+    <Compile Include="..\Couchbase\IO\Services\SharedPooledIOService.cs">
+      <Link>IO\Services\SharedPooledIOService.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase\IO\SharedConnectionPool.cs">
       <Link>IO\SharedConnectionPool.cs</Link>
     </Compile>

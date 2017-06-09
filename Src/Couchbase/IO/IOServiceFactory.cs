@@ -25,11 +25,11 @@ namespace Couchbase.IO
             //UseSsl is enabled. This will likely change in the future when a muxio-ssl implementation exists
             return pool =>
             {
-                if (config.UseConnectionPooling || config.UseSsl)
+                if (config.UseSsl)
                 {
                     return new PooledIOService(pool);
                 }
-                return new MultiplexingIOService(pool);
+                return new SharedPooledIOService(pool);
             };
         }
 

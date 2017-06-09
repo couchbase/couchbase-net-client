@@ -21,14 +21,13 @@ namespace Couchbase.IO.Services
     public class PooledIOService : IIOService
     {
         private static readonly ILog Log = LogManager.GetLogger<PooledIOService>();
-        private readonly IConnectionPool _connectionPool;
+        protected readonly IConnectionPool _connectionPool;
 
         private volatile bool _disposed;
-        private ISaslMechanism _saslMechanism;
-        private readonly Guid _identity = Guid.NewGuid();
-        private readonly object _syncObj = new object();
+        protected readonly Guid Identity = Guid.NewGuid();
+        protected readonly object SyncObj = new object();
         private ErrorMap _errorMap;
-        private volatile bool _enableServerFeatures = true;
+        protected volatile bool MustEnableServerFeatures = true;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PooledIOService"/> class.
@@ -36,7 +35,7 @@ namespace Couchbase.IO.Services
         /// <param name="connectionPool">The connection pool.</param>
         public PooledIOService(IConnectionPool connectionPool)
         {
-            Log.Debug("Creating PooledIOService {0}", _identity);
+            Log.Debug("Creating PooledIOService {0}", Identity);
             _connectionPool = connectionPool;
         }
 
@@ -47,9 +46,9 @@ namespace Couchbase.IO.Services
         /// <param name="saslMechanism">The sasl mechanism.</param>
         public PooledIOService(IConnectionPool connectionPool, ISaslMechanism saslMechanism)
         {
-            Log.Debug("Creating PooledIOService {0}", _identity);
+            Log.Debug("Creating PooledIOService {0}", Identity);
             _connectionPool = connectionPool;
-            _saslMechanism = saslMechanism;
+            SaslMechanism = saslMechanism;
         }
 
         /// <summary>
@@ -93,14 +92,7 @@ namespace Couchbase.IO.Services
             try
             {
                 //A new connection will have to check for server features
-                if (_enableServerFeatures)
-                {
-                    lock (_syncObj)
-                    {
-                        EnableServerFeatures(connection);
-                        _enableServerFeatures = false;
-                    }
-                }
+                CheckEnabledServerFeatures(connection);
 
                 //Send the request buffer and release the connection
                 response = connection.Send(request);
@@ -161,14 +153,7 @@ namespace Couchbase.IO.Services
             try
             {
                 //A new connection will have to check for server features
-                if (_enableServerFeatures)
-                {
-                    lock (_syncObj)
-                    {
-                        EnableServerFeatures(connection);
-                        _enableServerFeatures = false;
-                    }
-                }
+                CheckEnabledServerFeatures(connection);
 
                 //Send the request buffer and release the connection
                 response = connection.Send(request);
@@ -221,7 +206,7 @@ namespace Couchbase.IO.Services
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public async Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
+        public virtual async Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
             var request = await operation.WriteAsync().ContinueOnAnyContext();
             connection.SendAsync(request, operation.Completed);
@@ -238,7 +223,7 @@ namespace Couchbase.IO.Services
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public async Task ExecuteAsync(IOperation operation, IConnection connection)
+        public virtual async Task ExecuteAsync(IOperation operation, IConnection connection)
         {
             ExceptionDispatchInfo capturedException = null;
             try
@@ -252,10 +237,6 @@ namespace Couchbase.IO.Services
             {
                 Log.Debug(e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
-            }
-            finally
-            {
-                _connectionPool.Release(connection);
             }
 
             if (capturedException != null)
@@ -275,7 +256,7 @@ namespace Couchbase.IO.Services
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public async Task ExecuteAsync<T>(IOperation<T> operation)
+        public virtual async Task ExecuteAsync<T>(IOperation<T> operation)
         {
             ExceptionDispatchInfo capturedException = null;
             try
@@ -285,14 +266,8 @@ namespace Couchbase.IO.Services
                 Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
-                if (_enableServerFeatures)
-                {
-                    lock (_syncObj)
-                    {
-                        EnableServerFeatures(connection);
-                        _enableServerFeatures = false;
-                    }
-                }
+                CheckEnabledServerFeatures(connection);
+
                 await ExecuteAsync(operation, connection);
             }
             catch (Exception e)
@@ -317,7 +292,7 @@ namespace Couchbase.IO.Services
         /// <remarks>
         /// This overload is used to perform authentication on the connection if it has not already been authenticated.
         /// </remarks>
-        public async Task ExecuteAsync(IOperation operation)
+        public virtual async Task ExecuteAsync(IOperation operation)
         {
             ExceptionDispatchInfo capturedException = null;
             try
@@ -327,14 +302,8 @@ namespace Couchbase.IO.Services
                 Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
-                if (_enableServerFeatures)
-                {
-                    lock (_syncObj)
-                    {
-                        EnableServerFeatures(connection);
-                        _enableServerFeatures = false;
-                    }
-                }
+                CheckEnabledServerFeatures(connection);
+
                 await ExecuteAsync(operation, connection);
             }
             catch (Exception e)
@@ -349,7 +318,7 @@ namespace Couchbase.IO.Services
             }
         }
 
-        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
+        protected static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation)
         {
             var sourceException = capturedException.SourceException;
             var status = ResponseStatus.ClientFailure;
@@ -392,17 +361,13 @@ namespace Couchbase.IO.Services
         /// <remarks>
         /// This could be PLAIN or CRAM-MD5 depending upon what the server supports.
         /// </remarks>
-        public ISaslMechanism SaslMechanism
-        {
-            get { return _saslMechanism; }
-            set { _saslMechanism = value; }
-        }
+        public ISaslMechanism SaslMechanism { get; set; }
 
         /// <summary>
         /// Send request to server to try and enable server features.
         /// </summary>
         /// <param name="connection">The connection.</param>
-        private void EnableServerFeatures(IConnection connection)
+        protected void EnableServerFeatures(IConnection connection)
         {
             var features = new List<short>
             {
@@ -431,6 +396,20 @@ namespace Couchbase.IO.Services
             else
             {
                 LogFailedHelloOperation(result);
+            }
+        }
+
+        /// <summary>
+        /// Checks the that the server features have been enabled on the <see cref="IConnection"/>.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        protected void CheckEnabledServerFeatures(IConnection connection)
+        {
+            if (!MustEnableServerFeatures) return;
+            lock (SyncObj)
+            {
+                EnableServerFeatures(connection);
+                MustEnableServerFeatures = false;
             }
         }
 
@@ -495,7 +474,7 @@ namespace Couchbase.IO.Services
         /// </summary>
         public void Dispose()
         {
-            Log.Debug("Disposing PooledIOService for {0} - {1}", EndPoint, _identity);
+            Log.Debug("Disposing PooledIOService for {0} - {1}", EndPoint, Identity);
             Dispose(true);
         }
 
@@ -523,7 +502,7 @@ namespace Couchbase.IO.Services
 #if DEBUG
         ~PooledIOService()
         {
-            Log.Debug("Finalizing PooledIOService for {0} - {1}", EndPoint, _identity);
+            Log.Debug("Finalizing PooledIOService for {0} - {1}", EndPoint, Identity);
             Dispose(false);
         }
 #endif
