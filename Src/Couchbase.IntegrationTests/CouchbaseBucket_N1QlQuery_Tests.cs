@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
+using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
 
@@ -279,6 +282,39 @@ namespace Couchbase.IntegrationTests
                     cluster.CloseBucket(bucket);
                 }
             }
+        }
+
+        [Test(Description = "https://issues.couchbase.com/browse/NCBC-1447")]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task PrettyPrint_AffectsWhitespace(bool pretty)
+        {
+            string content = null;
+
+            var dataMapper = new Mock<IDataMapper>();
+            dataMapper
+                .Setup(p => p.Map<QueryResultData<dynamic>>(It.IsAny<Stream>()))
+                .Callback((Stream stream) =>
+                {
+                    using (var reader = new StreamReader(stream, System.Text.Encoding.UTF8))
+                    {
+                        content = reader.ReadToEnd();
+                    }
+                });
+
+            var request = new QueryRequest("SELECT META().id FROM `default` WHERE name = $1 LIMIT 2;")
+                {
+                    DataMapper = dataMapper.Object
+                }
+                .Pretty(pretty);
+
+            await _bucket.QueryAsync<dynamic>(request);
+
+            Assert.IsNotNull(content);
+
+            // Test to see if content contains whitespace at the beginning of lines
+            // Even with pretty=false it will still have line feeds and some spaces
+            Assert.AreEqual(pretty, Regex.IsMatch(content, @"^ ", RegexOptions.Multiline));
         }
 
         [OneTimeTearDown]

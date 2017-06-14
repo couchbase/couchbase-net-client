@@ -29,7 +29,7 @@ namespace Couchbase.N1QL
         private ScanConsistency? _scanConsistency;
         private bool? _includeSignature;
         private TimeSpan? _scanWait;
-        private bool _pretty;
+        private bool? _pretty;
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
         private string _clientContextId;
         private Uri _baseUri;
@@ -721,9 +721,9 @@ namespace Couchbase.N1QL
             {
                 formValues.Add(QueryParameters.ScanWait, string.Format("{0}ms", (uint) _scanWait.Value.TotalMilliseconds));
             }
-            if (_pretty)
+            if (_pretty != null)
             {
-                formValues.Add(QueryParameters.Pretty, _pretty);
+                formValues.Add(QueryParameters.Pretty, _pretty.Value);
             }
             if (_credentials.Count > 0)
             {

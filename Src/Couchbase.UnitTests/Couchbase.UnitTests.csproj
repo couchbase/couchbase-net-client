@@ -125,6 +125,7 @@
     <Compile Include="Core\ExpressionVisitors\SubDocumentPathExpressionVisitorTests.cs" />
     <Compile Include="CouchbaseBucketTests.cs" />
     <Compile Include="IO\ConnectionTests.cs" />
+    <Compile Include="N1Ql\QueryRequestTests.cs" />
     <Compile Include="N1Ql\StreamingQueryRequestTests.cs" />
     <Compile Include="N1Ql\N1qlRyowTests.cs" />
     <Compile Include="N1Ql\QueryClientTests.cs" />
