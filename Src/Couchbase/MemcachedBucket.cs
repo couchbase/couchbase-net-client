@@ -976,6 +976,29 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a document using a replica by it's given id. Unsupported for Memcached buckets.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="IDocumentResult{T}"/></returns>
+
+        public IDocumentResult<T> GetDocumentFromReplica<T>(string id)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
+        /// Gets a document using a replica by it's given id as an asynchronous operation. Unsupported for Memcached buckets.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="Task{IDocumentResult{T}}"/> object representing the asynchronous operation.</returns>
+        public Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
         /// Gets a value for a given key from a Memcached Bucket on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>

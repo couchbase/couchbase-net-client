@@ -771,6 +771,39 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a document using a replica by it's given id.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="IDocumentResult{T}"/></returns>
+        public IDocumentResult<T> GetDocumentFromReplica<T>(string id)
+        {
+            var result = GetFromReplica<T>(id);
+            return new DocumentResult<T>(result);
+        }
+
+        /// <summary>
+        /// Gets a document using a replica by it's given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="Task{IDocumentResult{T}}"/> object representing the asynchronous operation.</returns>
+        public async Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetFromReplicaAsync<T>(id).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
+        }
+
+        /// <summary>
         /// Gets a value for a key by checking each replica.
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> of the value being retrieved.</typeparam>

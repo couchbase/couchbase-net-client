@@ -1356,6 +1356,22 @@ namespace Couchbase.Core
         Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids);
 
         /// <summary>
+        /// Gets a document using a replica by it's given id.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="IDocumentResult{T}"/></returns>
+        IDocumentResult<T> GetDocumentFromReplica<T>(string id);
+
+        /// <summary>
+        /// Gets a document using a replica by it's given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <returns>The <see cref="Task{IDocumentResult{T}}"/> object representing the asynchronous operation.</returns>
+        Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id);
+
+        /// <summary>
         /// Gets value for a given key
         /// </summary>
         /// <typeparam name="T">The type T to convert the value to.</typeparam>

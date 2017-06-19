@@ -118,6 +118,34 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void GetDocumentFromReplica_Success()
+        {
+            IgnoreIfNoReplicas();
+
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value, ReplicateTo.One);
+            var result = _bucket.GetDocumentFromReplica<string>(key);
+            Assert.True(result.Success);
+        }
+
+        [Test]
+        public async Task GetDocumentFromReplicaAsync_Success()
+        {
+            IgnoreIfNoReplicas();
+
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value, ReplicateTo.One);
+            var result = await _bucket.GetDocumentFromReplicaAsync<string>(key).ConfigureAwait(false);
+            Assert.True(result.Success);
+        }
+
+        [Test]
         public void Test_Upsert()
         {
             var key = "thekey";
@@ -533,6 +561,28 @@ namespace Couchbase.IntegrationTests
                 _bucket.Remove(key);
             }
         }
+
+        #region Helpers
+
+        private void IgnoreIfNoReplicas()
+        {
+            var clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername,
+                TestConfiguration.Settings.AdminPassword);
+
+            var clusterInfo = clusterManager.ClusterInfo();
+            if (!clusterInfo.Success)
+            {
+                return;
+            }
+
+            var bucketConfig = clusterInfo.Value.BucketConfigs().FirstOrDefault(p => p.Name == _bucket.Name);
+            if (bucketConfig != null && bucketConfig.ReplicaNumber <= 0)
+            {
+                Assert.Ignore("Bucket doesn't support replicas");
+            }
+        }
+
+        #endregion
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
