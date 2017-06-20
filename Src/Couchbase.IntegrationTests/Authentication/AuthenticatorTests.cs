@@ -263,6 +263,16 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
+#if NET45
+        [Test]
+        public void PasswordAuthenticator_Can_Auth_Using_ConfigSection()
+        {
+            var cluster = new Cluster(configurationSectionName: "couchbaseClients/basic");
+            var auth = new PasswordAuthenticator("authenticated", "secret");
+            cluster.Authenticate(auth);
+            Assert.IsNotNull(cluster.OpenBucket("authenticated"));
+        }
+#endif
         #endregion
 
         #region ClassicAuthenticator
@@ -343,6 +353,19 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(listbucketsResult.Value.Any());
         }
 
+#if NET45
+        [Test]
+        public void ClassicAuthenticator_Can_Auth_Using_ConfigSection()
+        {
+            var cluster = new Cluster(configurationSectionName: "couchbaseClients/basic");
+            var auth = new ClassicAuthenticator
+            {
+                BucketCredentials = {{"authenticated", "secret"}}
+            };
+            cluster.Authenticate(auth);
+            Assert.IsNotNull(cluster.OpenBucket("authenticated"));
+        }
+#endif
         #endregion
 
         private static Uri InsertUsernameIntoUri(Uri uri, string username)
