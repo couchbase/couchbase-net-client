@@ -67,7 +67,7 @@ namespace Couchbase.Tests.IO
         {
             //Arrange
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
-            var factoryWithDelay = new Func<ConnectionPool<Connection>, IByteConverter, BufferAllocator, Connection>(
+            var factoryWithDelay = new Func<IConnectionPool<Connection>, IByteConverter, BufferAllocator, Connection>(
                 (a, b, c) =>
                 {
                     var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
