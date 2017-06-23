@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Version;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
 using Couchbase.N1QL;
@@ -2242,6 +2243,18 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="key">The key for the document.</param>
         Task<IResult<int>> QueueSizeAsync(string key);
+
+        /// <summary>
+        /// Gets the cluster version using the configured bucket or cluster credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        ClusterVersion? GetClusterVersion();
+
+        /// <summary>
+        /// Gets the cluster version using the configured bucket or cluster credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        Task<ClusterVersion?> GetClusterVersionAsync();
     }
 }
 

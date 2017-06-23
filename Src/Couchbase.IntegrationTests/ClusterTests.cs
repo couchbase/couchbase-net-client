@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Authentication;
+using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using NUnit.Framework;
@@ -115,6 +117,42 @@ namespace Couchbase.IntegrationTests
             cluster.Authenticate(new PasswordAuthenticator("session-webapp", "secure123"));
             var bucket = cluster.OpenBucket("default");
             Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
+        }
+
+        #endregion
+
+        #region GetClusterVersion
+
+        [Test]
+        public void GetClusterVersion_ReturnsValue()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("basic")))
+            {
+                cluster.Authenticate(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+                var version = cluster.GetClusterVersion();
+
+                Assert.IsNotNull(version);
+                Assert.True(version.Value >= new ClusterVersion(new Version(1, 0, 0)));
+
+                Console.WriteLine(version);
+            }
+        }
+
+        [Test]
+        public async Task GetClusterVersionAsync_ReturnsValue()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetConfiguration("basic")))
+            {
+                cluster.Authenticate(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+                var version = await cluster.GetClusterVersionAsync();
+
+                Assert.IsNotNull(version);
+                Assert.True(version.Value >= new ClusterVersion(new Version(1, 0, 0)));
+
+                Console.WriteLine(version);
+            }
         }
 
         #endregion

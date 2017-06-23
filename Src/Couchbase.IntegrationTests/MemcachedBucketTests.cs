@@ -5,6 +5,7 @@ using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Version;
 using Couchbase.IO;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -730,6 +731,32 @@ namespace Couchbase.IntegrationTests
             get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
+
+        #region GetClusterVersion
+
+        [Test]
+        public void GetClusterVersion_ReturnsValue()
+        {
+            var version = _cluster.OpenBucket("memcached").GetClusterVersion();
+
+            Assert.IsNotNull(version);
+            Assert.True(version.Value >= new ClusterVersion(new Version(1, 0, 0)));
+
+            Console.WriteLine(version);
+        }
+
+        [Test]
+        public async Task GetClusterVersionAsync_ReturnsValue()
+        {
+            var version = await _cluster.OpenBucket("memcached").GetClusterVersionAsync();
+
+            Assert.IsNotNull(version);
+            Assert.True(version.Value >= new ClusterVersion(new Version(1, 0, 0)));
+
+            Console.WriteLine(version);
+        }
+
+        #endregion
 
         [OneTimeTearDown]
         public void OneTimeTearDown()

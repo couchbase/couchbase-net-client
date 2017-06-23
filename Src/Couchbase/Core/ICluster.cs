@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using Couchbase.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Version;
 using Couchbase.Management;
 using Couchbase.N1QL;
 
@@ -122,6 +123,24 @@ namespace Couchbase.Core
         /// <param name="queryRequest">An <see cref="IQueryRequest"/> object that contains a statement or a prepared statement and the appropriate properties.</param>
         /// <returns>An instance of an object that implements the <see cref="Couchbase.N1QL.IQueryResult{T}"/> interface; the results of the query.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest queryRequest);
+
+        /// <summary>
+        /// Gets the cluster version using the configured credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        /// <remarks>
+        /// Will fail on Couchbase Server 5.0 and later if the cluster is not authenticated.
+        /// </remarks>
+        ClusterVersion? GetClusterVersion();
+
+        /// <summary>
+        /// Gets the cluster version using the configured credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        /// <remarks>
+        /// Will fail on Couchbase Server 5.0 and later if the cluster is not authenticated.
+        /// </remarks>
+        Task<ClusterVersion?> GetClusterVersionAsync();
     }
 }
 

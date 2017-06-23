@@ -41,7 +41,13 @@ namespace Couchbase.IO.Http
                 return CreateClientHandler(credentials.Key, credentials.Value, clientConfiguration);
             }
 
-            return CreateClientHandler(bucketConfig.Name, bucketConfig.Password, clientConfiguration);
+            if (bucketConfig != null)
+            {
+                return CreateClientHandler(bucketConfig.Name, bucketConfig.Password, clientConfiguration);
+            }
+
+            // This is not a bucket-specific client, use no authentication if there are not cluster level credentials
+            return CreateClientHandler(null, null, clientConfiguration);
         }
 
         private static AuthenticatingHttpClientHandler CreateClientHandler(string username, string password, ClientConfiguration config)

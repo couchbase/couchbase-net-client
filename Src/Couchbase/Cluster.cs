@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading.Tasks;
@@ -8,6 +8,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Version;
 using Couchbase.IO.Http;
 using Couchbase.Management;
 using Couchbase.N1QL;
@@ -335,6 +336,34 @@ namespace Couchbase
             var authenticator = new PasswordAuthenticator(username, password);
             _configuration.SetAuthenticator(authenticator);
         }
+
+        #region Cluster Version
+
+        /// <summary>
+        /// Gets the cluster version using the configured credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        /// <remarks>
+        /// Will fail on Couchbase Server 5.0 and later if the cluster is not authenticated.
+        /// </remarks>
+        public ClusterVersion? GetClusterVersion()
+        {
+            return ClusterVersionProvider.Instance.GetVersion(this);
+        }
+
+        /// <summary>
+        /// Gets the cluster version using the configured credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        /// <remarks>
+        /// Will fail on Couchbase Server 5.0 and later if the cluster is not authenticated.
+        /// </remarks>
+        public async Task<ClusterVersion?> GetClusterVersionAsync()
+        {
+            return await ClusterVersionProvider.Instance.GetVersionAsync(this);
+        }
+
+        #endregion
 
         /// <summary>
         /// Closes and releases all internal resources.

@@ -11,12 +11,17 @@ namespace Couchbase.Configuration.Server.Providers
         /// The name of the observer - the Bucket's name.
         /// </summary>
         string Name { get; }
-        
+
         /// <summary>
         /// Notifies the observer that a configuration change has occured and it's internal state must be updated.
         /// </summary>
         /// <param name="configInfo"></param>
         void NotifyConfigChanged(IConfigInfo configInfo);
+
+        /// <summary>
+        /// Returns the current configuration, if any.
+        /// </summary>
+        IConfigInfo ConfigInfo { get; }
     }
 }
 

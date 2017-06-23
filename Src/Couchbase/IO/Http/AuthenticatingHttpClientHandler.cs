@@ -29,13 +29,19 @@ namespace Couchbase.IO.Http
             AllowPipelining = false;
 #endif
 
-            // Just build once for speed
-            _headerValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(username, ":", password)));
+            if (!string.IsNullOrEmpty(username))
+            {
+                // Just build once for speed
+                _headerValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(username, ":", password)));
+            }
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue(BasicScheme, _headerValue);
+            if (_headerValue != null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue(BasicScheme, _headerValue);
+            }
 
             return base.SendAsync(request, cancellationToken);
         }

@@ -31,7 +31,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
 #pragma warning disable 618
-                new DefaultConverter(), 
+                new DefaultConverter(),
                 new DefaultTranscoder(new ManualByteConverter()));
 #pragma warning restore 618
         }
@@ -90,6 +90,11 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
         public void NotifyConfigChanged(IConfigInfo configInfo)
         {
             Assert.IsNotNull(configInfo);
+        }
+
+        public IConfigInfo ConfigInfo
+        {
+            get { return null; }
         }
 
         [OneTimeTearDown]

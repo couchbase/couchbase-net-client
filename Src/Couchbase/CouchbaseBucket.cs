@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +18,7 @@ using Couchbase.Core.Buckets;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
+using Couchbase.Core.Version;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Http;
@@ -63,6 +64,11 @@ namespace Couchbase
         private sealed class RefCount
         {
             public int Count;
+        }
+
+        IConfigInfo IConfigObserver.ConfigInfo
+        {
+            get { return _configInfo; }
         }
 
         internal CouchbaseBucket(IClusterController clusterController, string bucketName, IByteConverter converter, ITypeTranscoder transcoder, IAuthenticator authenticator)
@@ -3707,6 +3713,24 @@ namespace Couchbase
         public int InvalidateQueryCache()
         {
             return _configInfo.InvalidateQueryCache();
+        }
+
+        /// <summary>
+        /// Gets the cluster version using the configured bucket or cluster credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        public ClusterVersion? GetClusterVersion()
+        {
+            return ClusterVersionProvider.Instance.GetVersion(this);
+        }
+
+        /// <summary>
+        /// Gets the cluster version using the configured bucket or cluster credentials.
+        /// </summary>
+        /// <returns>The cluster version, or null if unavailable.</returns>
+        public async Task<ClusterVersion?> GetClusterVersionAsync()
+        {
+            return await ClusterVersionProvider.Instance.GetVersionAsync(this);
         }
 
         void CheckDisposed()
