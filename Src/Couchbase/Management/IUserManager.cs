@@ -44,5 +44,15 @@ namespace Couchbase.Management
         /// Asynchronously Get a list of Couchbase users.
         /// </summary>
         Task<IResult<IEnumerable<User>>> GetUsersAsync();
+
+        /// <summary>
+        /// Get a Couchbase user by username.
+        /// </summary>
+        IResult<User> GetUser(string username);
+
+        /// <summary>
+        /// Asynchronously get a Couchbase user by username.
+        /// </summary>
+        Task<IResult<User>> GetUserAsync(string username);
     }
 }

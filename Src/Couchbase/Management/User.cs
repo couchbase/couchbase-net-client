@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Couchbase.Management
 {
@@ -8,31 +9,16 @@ namespace Couchbase.Management
     /// </summary>
     public class User
     {
+        [JsonProperty("id")]
         public string Username { get; set; }
 
+        [JsonProperty("name")]
         public string Name { get; set; }
 
+        [JsonProperty("domain")]
         public string Domain { get; set; }
 
+        [JsonProperty("roles")]
         public IEnumerable<Role> Roles { get; set; }
-
-        internal struct UserData
-        {
-            public string id { get; set; }
-            public string name { get; set; }
-            public string domain { get; set; }
-            public IEnumerable<Role> roles { get; set; }
-
-            public User ToUser()
-            {
-                return new User
-                {
-                    Username = id,
-                    Name = name,
-                    Domain = domain,
-                    Roles = roles
-                };
-            }
-        }
     }
 }

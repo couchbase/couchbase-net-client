@@ -286,7 +286,7 @@ namespace Couchbase.UnitTests.Management
         [Test]
         public void GetUsers_Builds_Correct_Uri()
         {
-            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users";
+            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/local";
 
             var handler = FakeHttpMessageHandler.Create(request =>
             {
@@ -302,6 +302,68 @@ namespace Couchbase.UnitTests.Management
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
             manager.GetUsers();
+        }
+
+        [TestCase(HttpStatusCode.OK)]
+        [TestCase(HttpStatusCode.BadRequest)]
+        [TestCase(HttpStatusCode.InternalServerError)]
+        public void GetUser_Returns_Users_When_Response_Is_Success(HttpStatusCode responseHttpCode)
+        {
+            var user = new User
+            {
+                Username = "alice",
+                Name = "Alice Liddell",
+                Domain = "local",
+                Roles = new List<Role> {new Role {Name = "Admin"}}
+            };
+
+            var handler = FakeHttpMessageHandler.Create(
+                request => new HttpResponseMessage(responseHttpCode)
+                {
+                    Content = new StringContent(JsonConvert.SerializeObject(user))
+                }
+            );
+            var client = new HttpClient(handler);
+            var clientConfig = new ClientConfiguration();
+            var serverConfigMock = new Mock<IServerConfig>();
+            var dataMapper = new JsonDataMapper(clientConfig);
+
+            var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
+            var result = manager.GetUser(user.Username);
+
+            if (responseHttpCode == HttpStatusCode.OK)
+            {
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(user.Username, result.Value.Username);
+                Assert.AreEqual(user.Name, result.Value.Name);
+                Assert.AreEqual("local", result.Value.Domain);
+            }
+            else
+            {
+                Assert.IsFalse(result.Success);
+                Assert.IsNull(result.Value);
+            }
+        }
+
+        [Test]
+        public void GetUser_Builds_Correct_Uri()
+        {
+            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/local/alice";
+
+            var handler = FakeHttpMessageHandler.Create(request =>
+            {
+                Assert.AreEqual(expectedFormValueString, request.RequestUri.OriginalString);
+                Assert.AreEqual(HttpMethod.Get, request.Method);
+                var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
+                return response;
+            });
+            var client = new HttpClient(handler);
+            var clientConfig = new ClientConfiguration();
+            var serverConfigMock = new Mock<IServerConfig>();
+            var dataMapper = new JsonDataMapper(clientConfig);
+
+            var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
+            manager.GetUser("alice");
         }
 
         #endregion

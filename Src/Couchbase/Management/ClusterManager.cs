@@ -933,7 +933,7 @@ namespace Couchbase.Management
                             return new DefaultResult<IEnumerable<User>>
                             {
                                 Success = true,
-                                Value = (Mapper.Map<List<User.UserData>>(stream) ?? new List<User.UserData>()).Select(x => x.ToUser())
+                                Value = Mapper.Map<List<User>>(stream) ?? new List<User>()
                             };
                         }
                     }
@@ -946,20 +946,63 @@ namespace Couchbase.Management
             }
         }
 
+        /// <summary>
+        /// Get a Couchbase user using it's username.
+        /// </summary>
+        public IResult<User> GetUser(string username)
+        {
+            using (new SynchronizationContextExclusion())
+            {
+                return GetUserAsync(username).Result;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously get a Couchbase user using it's username.
+        /// </summary>
+        public async Task<IResult<User>> GetUserAsync(string username)
+        {
+            var uri = GetUserManagementUri(username);
+            using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+            {
+                SetHeaders(request, uri);
+                using (var response = await _httpClient.SendAsync(request).ContinueOnAnyContext())
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                        {
+                            return new DefaultResult<User>
+                            {
+                                Success = true,
+                                Value = Mapper.Map<User>(stream) ?? new User()
+                            };
+                        }
+                    }
+
+                    return new DefaultResult<User>
+                    {
+                        Success = false
+                    };
+                }
+            }
+        }
+
         private Uri GetUserManagementUri(string username = null)
         {
-            var server = _clientConfig.Servers.Shuffle().First();
-            var protocol = _clientConfig.UseSsl ? "https" : "http";
+            var scheme = _clientConfig.UseSsl ? "https" : "http";
+            var host = _clientConfig.Servers.Shuffle().First().Host;
             var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
 
-            var builder = new StringBuilder();
-            builder.AppendFormat("{0}://{1}:{2}/settings/rbac/users", protocol, server.Host, port);
+            const string userManagementPath = "settings/rbac/users/local";
+            var builder = new UriBuilder(scheme, host, port, userManagementPath);
+
             if (!string.IsNullOrWhiteSpace(username))
             {
-                builder.AppendFormat("/local/{0}", username);
+                builder.Path = string.Format("{0}/{1}", builder.Path, username);
             }
 
-            return new Uri(builder.ToString());
+            return builder.Uri;
         }
 
         private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(string password, string name, IEnumerable<Role> roles)

@@ -263,18 +263,24 @@ namespace Couchbase.IntegrationTests.Management
             {
                 Username = "alice",
                 Name = "Alice Liddell",
-                Domain = "builtin",
-                Roles = new[] { new Role { Name = "fts_searcher", BucketName = "default" } }
+                Roles = new[] {new Role {Name = "fts_searcher", BucketName = "*"}}
             };
 
             // create user
             var createResult = _clusterManager.UpsertUser(user.Username, "secure123", user.Name, user.Roles.ToArray());
             Assert.IsTrue(createResult.Success);
 
-            // list users
-            var getResult = _clusterManager.GetUsers();
-            Assert.IsTrue(getResult.Success);
-            Assert.IsNotNull(getResult.Value.First(x => x.Username == user.Username));
+            // get all users
+            var getUsersResult = _clusterManager.GetUsers();
+            Assert.IsTrue(getUsersResult.Success);
+            Assert.IsNotNull(getUsersResult.Value.First(x => x.Username == user.Username));
+
+            // get individual user
+            var getUserResult = _clusterManager.GetUser(user.Username);
+            Assert.IsTrue(getUserResult.Success);
+            Assert.AreEqual(user.Username, getUserResult.Value.Username);
+            Assert.AreEqual(user.Name, getUserResult.Value.Name);
+            Assert.AreEqual("local", getUserResult.Value.Domain);
 
             // remove user
             var removeResult = _clusterManager.RemoveUser(user.Username);
