@@ -817,7 +817,7 @@ namespace Couchbase.Management
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The list of roles for the user.</param>
-        public IResult UpsertUser(string username, string password, string name, params Role[] roles)
+        public IResult UpsertUser(string username, string password, string name = null, params Role[] roles)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -832,7 +832,7 @@ namespace Couchbase.Management
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The roles.</param>
-        public async Task<IResult> UpsertUserAsync(string username, string password, string name, params Role[] roles)
+        public async Task<IResult> UpsertUserAsync(string username, string password, string name = null, params Role[] roles)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -841,10 +841,6 @@ namespace Couchbase.Management
             if (string.IsNullOrWhiteSpace(password))
             {
                 throw new ArgumentException("password cannot be null or empty");
-            }
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentException("name cannot be null or empty");
             }
             if (roles == null || !roles.Any())
             {
@@ -1012,12 +1008,19 @@ namespace Couchbase.Management
                     ? role.Name
                     : string.Format("{0}[{1}]", role.Name, role.BucketName))
             );
-            return new Dictionary<string, string>
+
+            var values = new Dictionary<string, string>
             {
                 {"password", password},
-                {"name", name},
                 {"roles", rolesValue}
             };
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                values.Add("name", name);
+            }
+
+            return values;
         }
 
         #endregion

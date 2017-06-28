@@ -12,7 +12,7 @@ namespace Couchbase.Management
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The list of roles for the user.</param>
-        IResult UpsertUser(string username, string password, string name, params Role[] roles);
+        IResult UpsertUser(string username, string password, string name = null, params Role[] roles);
 
         /// <summary>
         /// Asynchronously adds or replaces an existing Couchbase user with the provided <see cref="username"/>, <see cref="password"/>, <see cref="name"/> and <see cref="roles"/>.
@@ -21,7 +21,7 @@ namespace Couchbase.Management
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The roles.</param>
-        Task<IResult> UpsertUserAsync(string username, string password, string name, params Role[] roles);
+        Task<IResult> UpsertUserAsync(string username, string password, string name = null, params Role[] roles);
 
         /// <summary>
         /// Removes a Couchbase user with the <see cref="username"/>.

@@ -151,11 +151,11 @@ namespace Couchbase.UnitTests.Management
             Assert.AreEqual(responseHttpCode == HttpStatusCode.OK, result.Success);
         }
 
-        [Test]
-        public void UpsertUser_Formats_FormValues()
+        [TestCase(null, "password=secure123&roles=Admin%2CBucketManager%5Bdefault%5D")]
+        [TestCase("", "password=secure123&roles=Admin%2CBucketManager%5Bdefault%5D")]
+        [TestCase("Alice Liddell", "password=secure123&roles=Admin%2CBucketManager%5Bdefault%5D&name=Alice+Liddell")]
+        public void UpsertUser_Formats_FormValues(string name, string expectedFormValueString)
         {
-            const string expectedFormValueString = "password=secure123&name=Alice+Liddell&roles=Admin%2CBucketManager%5Bdefault%5D";
-
             var handler = FakeHttpMessageHandler.Create(request =>
             {
                 Assert.AreEqual(expectedFormValueString, request.Content.ReadAsStringAsync().Result);
@@ -167,7 +167,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.UpsertUser("alice", "secure123", "Alice Liddell", new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default"});
+            manager.UpsertUser("alice", "secure123", name, new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default"});
         }
 
         [Test]
