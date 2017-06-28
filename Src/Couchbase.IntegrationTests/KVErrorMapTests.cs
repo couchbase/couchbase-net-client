@@ -34,7 +34,7 @@ namespace Couchbase.IntegrationTests
         [TestCase("7ff2")] // exponential
         public void Test_Operation_Retry_Strategys(string code)
         {
-            // convert hex error code into integerq.d`nxbOBO9XL`N, .,        /
+            // convert hex error code into integer
             var errorCode = int.Parse(code, NumberStyles.AllowHexSpecifier);
 
             // boostrap client
