@@ -56,21 +56,14 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 try
                 {
                     var poolConfig = bucketConfiguration.ClonePoolConfiguration(server);
+                    poolConfig.BucketName = bucketName;
+
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
                     var saslMechanism = SaslFactory(username, password, connectionPool, Transcoder);
                     connectionPool.SaslMechanism = saslMechanism;
                     connectionPool.Initialize();
 
                     ioService = IOServiceFactory(connectionPool);
-
-                    if (ioService.SupportsEnhancedAuthentication) // only execute this if RBAC is enabled on the cluster
-                    {
-                        var selectBucketResult = ioService.Execute(new SelectBucket(bucketName, Transcoder, ClientConfig.DefaultOperationLifespan));
-                        if (!selectBucketResult.Success)
-                        {
-                            throw new AuthenticationException(string.Format("Authentication failed for bucket '{0}'", bucketName));
-                        }
-                    }
 
                     var operationResult = ioService.Execute(new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
                     if (operationResult.Success)

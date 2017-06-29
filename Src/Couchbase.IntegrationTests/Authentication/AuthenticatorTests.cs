@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Castle.Core.Internal;
 using Couchbase.Authentication;
+using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using Couchbase.Search;
@@ -147,6 +149,23 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 
         [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_KV_SSL()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var config = TestConfiguration.GetCurrentConfiguration();
+            config.UseSsl = true;
+
+            ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;
+
+            var cluster = new Cluster(config);
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
         public void PasswordAuthenticator_N1QL()
         {
             var authentictor = GetPasswordAuthenticator();
@@ -264,11 +283,11 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 
 #if NET45
-        [Test]
+        [Test, Ignore("RBAC not available yet")]
         public void PasswordAuthenticator_Can_Auth_Using_ConfigSection()
         {
             var cluster = new Cluster(configurationSectionName: "couchbaseClients/basic");
-            var auth = new PasswordAuthenticator("authenticated", "secret");
+            var auth = new PasswordAuthenticator("test_user", "secure123");
             cluster.Authenticate(auth);
             Assert.IsNotNull(cluster.OpenBucket("authenticated"));
         }
@@ -288,8 +307,26 @@ namespace Couchbase.IntegrationTests.Authentication
         public void ClassicAuthenticator_KV()
         {
             var authenticator = GetClassicAuthenticator();
-
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authenticator);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+
+        [Test, Ignore("Requires SSL cert to be configured.")]
+        public void ClassicAuthenticator_KV_SSL()
+        {
+            var authenticator = GetClassicAuthenticator();
+            var config = TestConfiguration.GetCurrentConfiguration();
+            config.UseSsl = true;
+
+            //disable for testing
+            ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;
+
+            var cluster = new Cluster(config);
             cluster.Authenticate(authenticator);
 
             var bucket = cluster.OpenBucket("authenticated");

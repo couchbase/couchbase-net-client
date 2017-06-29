@@ -112,6 +112,8 @@ namespace Couchbase.UnitTests.IO
             {
                 throw new NotImplementedException();
             }
+
+            public bool CheckedForEnhancedAuthentication { get; set; }
         }
     }
 }

@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
 using Couchbase.Logging;
-using Couchbase.Utils;
 
 namespace Couchbase.IO.Services
 {

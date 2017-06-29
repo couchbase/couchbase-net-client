@@ -38,6 +38,10 @@ namespace Couchbase.IO.Services
         {
             Log.Debug("Creating PooledIOService {0}", Identity);
             _connectionPool = connectionPool;
+
+            var conn = _connectionPool.Connections.FirstOrDefault();
+            CheckEnabledServerFeatures(conn);
+            _connectionPool.SupportsEnhancedAuthentication = SupportsEnhancedAuthentication;
         }
 
         /// <summary>

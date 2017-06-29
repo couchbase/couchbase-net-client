@@ -79,6 +79,8 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
+                                poolConfiguration.BucketName = BucketConfig.Name;
+
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
                                 connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                                 connectionPool.Initialize();
@@ -219,6 +221,8 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
+                                poolConfiguration.BucketName = BucketConfig.Name;
+
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
                                 connectionPool.Initialize();
                                 connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
@@ -311,6 +315,8 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
+                            poolConfiguration.BucketName = BucketConfig.Name;
+
                             var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
                             connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                             connectionPool.Initialize();

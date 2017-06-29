@@ -129,6 +129,8 @@ namespace Couchbase.IO
         /// Authenticates this instance.
         /// </summary>
         void Authenticate();
+
+        bool CheckedForEnhancedAuthentication { get; set; }
     }
 }
 

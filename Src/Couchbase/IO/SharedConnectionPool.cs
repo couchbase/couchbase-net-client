@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Security.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.Logging;
 
 namespace Couchbase.IO
@@ -39,6 +43,12 @@ namespace Couchbase.IO
         {
         }
 
+        public override IEnumerable<IConnection> Connections
+        {
+            get { return _connections; }
+            set { throw new NotSupportedException(); }
+        }
+
         internal int GetIndex()
         {
             //we don't care necessarily about thread safety as long as
@@ -58,7 +68,12 @@ namespace Couchbase.IO
         public override IConnection Acquire()
         {
             // ReSharper disable once InconsistentlySynchronizedField
-            if (_connections.Count >= Configuration.MaxSize) return _connections[GetIndex()];
+            if (_connections.Count >= Configuration.MaxSize)
+            {
+                var connection = _connections[GetIndex()];
+                EnableEnhancedAuthentication(connection);
+                return connection;
+            }
             lock (_lockObj)
             {
                 var connection = CreateAndAuthConnection();
@@ -75,6 +90,7 @@ namespace Couchbase.IO
 
             //Perform sasl auth
             Authenticate(connection);
+            EnableEnhancedAuthentication(connection);
 
             Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                     connection.Identity, EndPoint, _connections.Count, Configuration.MaxSize, _identity, _disposed);
@@ -85,6 +101,11 @@ namespace Couchbase.IO
         public override void Release(T connection)
         {
             if (connection == null) return;
+            if (!connection.IsAuthenticated)
+            {
+                Authenticate(connection);
+                EnableEnhancedAuthentication(connection);
+            }
             connection.MarkUsed(false);
             if (connection.IsDead)
             {
@@ -106,13 +127,17 @@ namespace Couchbase.IO
             {
                 lock (_lockObj)
                 {
-                    _connections.ForEach(x => { x.Dispose(); });
-                    _connections.Clear();
-
-                    for (var i = 0; i < Configuration.MaxSize; i++)
+                    var connectionsToCreate = Configuration.MaxSize - _connections.Count;
+                    for (var i = 0; i < connectionsToCreate; i++)
                     {
                         var connection = CreateAndAuthConnection();
                         _connections.Add(connection);
+                    }
+                    //auth the connection used to select the SASL type to use for auth
+                    foreach (var connection in _connections.Where(x=>!x.IsAuthenticated))
+                    {
+                        Authenticate(connection);
+                        EnableEnhancedAuthentication(connection);
                     }
                 }
             }

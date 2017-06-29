@@ -7,7 +7,9 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Logging;
 using System.Security.Authentication;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Authentication;
 using Couchbase.Utils;
 
 namespace Couchbase.IO
@@ -45,7 +47,6 @@ namespace Couchbase.IO
             BufferAllocator = Configuration.BufferAllocator(Configuration);
             EndPoint = endPoint;
         }
-
 
         public abstract void Release(T connection);
         public abstract void Dispose();
@@ -132,6 +133,37 @@ namespace Couchbase.IO
                         SaslMechanism.GetType(), Identity, EndPoint);
                     throw new AuthenticationException(
                         ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the server supports enhanced authentication for RBAC.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the server supports enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool SupportsEnhancedAuthentication { get; set; }
+
+        /// <summary>
+        /// Enables enhanced authentication for RBAC on a connection.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <exception cref="AuthenticationException"></exception>
+        protected void EnableEnhancedAuthentication(IConnection connection)
+        {
+            if (SupportsEnhancedAuthentication && !connection.CheckedForEnhancedAuthentication) // only execute this if RBAC is enabled on the cluster
+            {
+                var selectBucketOp = new SelectBucket(Configuration.BucketName, new DefaultTranscoder(), 0);
+                var response = connection.Send(selectBucketOp.Write());
+                selectBucketOp.Read(response);
+
+                var selectBucketResult = selectBucketOp.GetResult();
+                connection.CheckedForEnhancedAuthentication = true;
+
+                if (!selectBucketResult.Success)
+                {
+                    throw new AuthenticationException(string.Format("Authentication failed for bucket '{0}'", Configuration.BucketName));
                 }
             }
         }

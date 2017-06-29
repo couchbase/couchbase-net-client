@@ -80,5 +80,13 @@ namespace Couchbase.IO
         /// The sasl mechanism.
         /// </value>
         ISaslMechanism SaslMechanism { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the server supports enhanced authentication for RBAC.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [supports enhanced authentication]; otherwise, <c>false</c>.
+        /// </value>
+        bool SupportsEnhancedAuthentication { get; set; }
     }
 }

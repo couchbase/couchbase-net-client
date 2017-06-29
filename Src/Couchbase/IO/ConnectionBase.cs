@@ -258,6 +258,8 @@ namespace Couchbase.IO
         {
             //noop
         }
+
+        public bool CheckedForEnhancedAuthentication { get; set; }
     }
 }
 

@@ -83,6 +83,7 @@ namespace Couchbase.IO
                         var connection = Factory(this, Converter, BufferAllocator);
 
                         Authenticate(connection);
+                        EnableEnhancedAuthentication(connection);
 
                         Log.Info("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
                             EndPoint, connection.Identity, Identity, _disposed);
@@ -113,6 +114,7 @@ namespace Couchbase.IO
             if (connection != null)
             {
                 Authenticate(connection);
+                EnableEnhancedAuthentication(connection);
                 return connection;
             }
 
@@ -124,6 +126,7 @@ namespace Couchbase.IO
                 if (connection != null)
                 {
                     Authenticate(connection);
+                    EnableEnhancedAuthentication(connection);
                     return connection;
                 }
 
@@ -133,6 +136,8 @@ namespace Couchbase.IO
                     connection = Factory(this, Converter, BufferAllocator);
 
                     Authenticate(connection);
+                    EnableEnhancedAuthentication(connection);
+
                     _refs.TryAdd(connection.Identity, connection);
 
                     Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",

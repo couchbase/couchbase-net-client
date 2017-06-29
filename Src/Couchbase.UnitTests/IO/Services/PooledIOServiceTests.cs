@@ -25,6 +25,7 @@ namespace Couchbase.UnitTests.IO.Services
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = true });
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
             var service = new PooledIOService(mockConnectionPool.Object);
 
@@ -44,6 +45,7 @@ namespace Couchbase.UnitTests.IO.Services
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = false });
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
             var service = new PooledIOService(mockConnectionPool.Object);
 
@@ -83,6 +85,7 @@ namespace Couchbase.UnitTests.IO.Services
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration());
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
             var service = new PooledIOService(mockConnectionPool.Object)
             {
@@ -119,6 +122,7 @@ namespace Couchbase.UnitTests.IO.Services
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration());
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {mockConnection.Object});
 
             var service = new PooledIOService(mockConnectionPool.Object)
             {

@@ -77,7 +77,6 @@ namespace Couchbase.IO
         /// </summary>
         bool IsSecure { get; }
 
-
         /// <summary>
         /// Asynchrounously executes an operation for a given key.
         /// </summary>

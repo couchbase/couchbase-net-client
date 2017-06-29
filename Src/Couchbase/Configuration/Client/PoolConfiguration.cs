@@ -339,6 +339,8 @@ namespace Couchbase.Configuration.Client
                     ExceptionUtil.PoolConfigMaxGreaterThanMin.WithParams(maxSize, minSize));
             }
         }
+
+        internal string BucketName { get; set; }
     }
 }
 

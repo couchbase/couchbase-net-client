@@ -173,6 +173,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {mockConnection.Object});
 
             var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
 
@@ -195,6 +196,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
             var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
 
@@ -215,8 +217,10 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
 
             var service = config.IOServiceCreator(connectionPool.Object);
+
             Assert.IsInstanceOf<PooledIOService>(service);
         }
 
@@ -234,6 +238,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
 
             var service = config.IOServiceCreator(connectionPool.Object);
             Assert.IsInstanceOf<SharedPooledIOService>(service);
@@ -250,6 +255,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
 
             var service = config.IOServiceCreator(connectionPool.Object);
             Assert.IsInstanceOf<SharedPooledIOService>(service);
