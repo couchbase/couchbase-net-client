@@ -76,6 +76,7 @@
     <Compile Include="Authentication\AuthenticatorTests.cs" />
     <Compile Include="ClusterHelperTests.cs" />
     <Compile Include="Collections\CouchbaseListTests.cs" />
+    <Compile Include="Configuration\BucketConfigTests.cs" />
     <Compile Include="Configuration\Client\PoolConfigurationTests.cs" />
     <Compile Include="Configuration\Client\ServerResolverTests.cs" />
     <Compile Include="Configuration\ConfigContextBaseTests.cs" />
@@ -188,6 +189,7 @@
     <EmbeddedResource Include="Data\view_result.json" />
     <EmbeddedResource Include="Data\view_result_with_reduce.json" />
     <EmbeddedResource Include="Data\ketama-ring-hashes.json" />
+    <EmbeddedResource Include="Data\cb-mds-missing-hostname.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
