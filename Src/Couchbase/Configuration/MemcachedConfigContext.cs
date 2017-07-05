@@ -71,6 +71,7 @@ namespace Couchbase.Configuration
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+
                             var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
                             connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                             connectionPool.Initialize();
@@ -129,10 +130,11 @@ namespace Couchbase.Configuration
                     if (adapter.IsDataNode) //a data node so create a connection pool
                     {
                         var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+
                         var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
+                        connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                         connectionPool.Initialize();
 
-                        connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
                         var ioService = IOServiceFactory(connectionPool);
 
                         var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder);

@@ -22,6 +22,8 @@ namespace Couchbase.UnitTests.IO.Services
         public void When_EnhanchedDurability_Is_True_Hello_Requests_MutationSeqNo()
         {
             var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.MustEnableServerFeatures).Returns(true);
+
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = true });
@@ -42,6 +44,8 @@ namespace Couchbase.UnitTests.IO.Services
         public void When_EnhanchedDurability_Is_False_Hello_Doesnt_Requests_MutationSeqNo()
         {
             var mockConnection = new Mock<IConnection>();
+            mockConnection.Setup(x => x.MustEnableServerFeatures).Returns(true);
+
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration { UseEnhancedDurability = false });

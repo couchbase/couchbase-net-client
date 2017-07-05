@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.IO
@@ -68,6 +71,20 @@ namespace Couchbase.UnitTests.IO
                     throw;
                 }
             }
+        }
+
+        [Test]
+        public void Test_All_Connections_Are_Authenticated_After_Initialize()
+        {
+            var pool = new SharedConnectionPool<IConnection>(new PoolConfiguration {MaxSize = 5}, new IPEndPoint(0, 10210), _factory, new DefaultConverter());
+
+            var saslMechanism = new Mock<ISaslMechanism>();
+            saslMechanism.Setup(x => x.Authenticate(It.IsAny<IConnection>())).Returns(true);
+            pool.SaslMechanism = saslMechanism.Object;
+
+            pool.Initialize();
+
+            Assert.IsTrue(pool.Connections.Any(x => x.IsAuthenticated));
         }
 
         public class FakeConnection : IConnection

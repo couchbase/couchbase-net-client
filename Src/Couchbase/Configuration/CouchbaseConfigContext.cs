@@ -224,8 +224,8 @@ namespace Couchbase.Configuration
                                 poolConfiguration.BucketName = BucketConfig.Name;
 
                                 var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
-                                connectionPool.Initialize();
                                 connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                                connectionPool.Initialize();
 
                                 var newIoService = IOServiceFactory(connectionPool);
                                 server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);

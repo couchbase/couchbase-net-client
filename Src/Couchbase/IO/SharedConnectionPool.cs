@@ -101,12 +101,7 @@ namespace Couchbase.IO
         public override void Release(T connection)
         {
             if (connection == null) return;
-            if (!connection.IsAuthenticated)
-            {
-                Authenticate(connection);
-                EnableEnhancedAuthentication(connection);
-            }
-            connection.MarkUsed(false);
+
             if (connection.IsDead)
             {
                 lock (_lockObj)
