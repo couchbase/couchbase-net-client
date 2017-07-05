@@ -2,7 +2,6 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using Couchbase.IO.Operations;
 
 namespace Couchbase.IO
 {
@@ -130,7 +129,21 @@ namespace Couchbase.IO
         /// </summary>
         void Authenticate();
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the connection has been checked for enhanced authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the connection has been checked for enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
         bool CheckedForEnhancedAuthentication { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the connection must enable server features.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the connection must enable server features; otherwise, <c>false</c>.
+        /// </value>
+        bool MustEnableServerFeatures { get; set; }
     }
 }
 

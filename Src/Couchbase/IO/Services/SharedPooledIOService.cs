@@ -32,14 +32,8 @@ namespace Couchbase.IO.Services
                 Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
-                if (MustEnableServerFeatures)
-                {
-                    lock (SyncObj)
-                    {
-                        EnableServerFeatures(connection);
-                        MustEnableServerFeatures = false;
-                    }
-                }
+                CheckEnabledServerFeatures(connection);
+
                 await ExecuteAsync(operation, connection);
             }
             catch (Exception e)

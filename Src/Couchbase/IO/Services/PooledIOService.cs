@@ -421,11 +421,11 @@ namespace Couchbase.IO.Services
         /// <param name="connection">The connection.</param>
         protected void CheckEnabledServerFeatures(IConnection connection)
         {
-            if (!MustEnableServerFeatures) return;
+            if (!connection.MustEnableServerFeatures) return;
             lock (SyncObj)
             {
                 EnableServerFeatures(connection);
-                MustEnableServerFeatures = false;
+                connection.MustEnableServerFeatures = false;
             }
         }
 

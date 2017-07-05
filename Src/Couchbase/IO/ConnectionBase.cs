@@ -39,6 +39,7 @@ namespace Couchbase.IO
             Converter = converter;
             BufferAllocator = bufferAllocator;
             EndPoint = socket.RemoteEndPoint;
+            MustEnableServerFeatures = true;
         }
 
         internal OperationAsyncState State
@@ -259,7 +260,21 @@ namespace Couchbase.IO
             //noop
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the connection has been checked for enhanced authentication.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the connection has been checked for enhanced authentication; otherwise, <c>false</c>.
+        /// </value>
         public bool CheckedForEnhancedAuthentication { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the connection must enable server features.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the connection must enable server features; otherwise, <c>false</c>.
+        /// </value>
+        public bool MustEnableServerFeatures { get; set; }
     }
 }
 

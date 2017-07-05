@@ -114,6 +114,7 @@ namespace Couchbase.UnitTests.IO
             }
 
             public bool CheckedForEnhancedAuthentication { get; set; }
+            public bool MustEnableServerFeatures { get; set; }
         }
     }
 }
