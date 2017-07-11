@@ -400,7 +400,13 @@ namespace Couchbase.IO.Operations
             return message;
         }
 
+        [Obsolete("Please use Getconfig(ITypeTranscoder) instead.")]
         public virtual IBucketConfig GetConfig()
+        {
+            return GetConfig(Transcoder);
+        }
+
+        public virtual IBucketConfig GetConfig(ITypeTranscoder transcoder)
         {
             IBucketConfig config = null;
             if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data != null)
@@ -409,7 +415,7 @@ namespace Couchbase.IO.Operations
                 var length = Header.BodyLength - Header.ExtrasLength;
 
                 //Override any flags settings since the body of the response has changed to a config
-                config = Transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
+                config = transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
                 {
                     Compression = Compression.None,
                     DataFormat = DataFormat.Json,

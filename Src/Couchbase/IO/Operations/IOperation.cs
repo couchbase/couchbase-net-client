@@ -57,7 +57,10 @@ namespace Couchbase.IO.Operations
 
         void HandleClientError(string message, ResponseStatus responseStatus);
 
+        [Obsolete("Please use Getconfig(ITypeTranscoder) instead.")]
         IBucketConfig GetConfig();
+
+        IBucketConfig GetConfig(ITypeTranscoder transcoder);
 
         uint Opaque { get; }
 

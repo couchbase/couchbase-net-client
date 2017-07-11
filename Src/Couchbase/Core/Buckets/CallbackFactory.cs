@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Transcoders;
 using Couchbase.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -46,7 +47,7 @@ namespace Couchbase.Core.Buckets
                         {
                             if (result.IsNmv())
                             {
-                                var config = op.GetConfig();
+                                var config = op.GetConfig(controller.ServerConfigTranscoder);
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
@@ -141,7 +142,7 @@ namespace Couchbase.Core.Buckets
                         {
                             if (result.IsNmv())
                             {
-                                var config = op.GetConfig();
+                                var config = op.GetConfig(controller.ServerConfigTranscoder);
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
@@ -243,7 +244,7 @@ namespace Couchbase.Core.Buckets
                         {
                             if (result.IsNmv())
                             {
-                                var config = op.GetConfig();
+                                var config = op.GetConfig(controller.ServerConfigTranscoder);
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
@@ -343,7 +344,7 @@ namespace Couchbase.Core.Buckets
                         {
                             if (result.IsNmv())
                             {
-                                var config = op.GetConfig();
+                                var config = op.GetConfig(controller.ServerConfigTranscoder);
                                 if (config != null)
                                 {
                                     controller.NotifyConfigPublished(config);
@@ -439,7 +440,7 @@ namespace Couchbase.Core.Buckets
                         var result = actual.GetResultWithValue();
                         if (result.IsNmv())
                         {
-                            var config = actual.GetConfig();
+                            var config = actual.GetConfig(controller.ServerConfigTranscoder);
                             if (config != null)
                             {
                                 controller.NotifyConfigPublished(config);
@@ -501,7 +502,7 @@ namespace Couchbase.Core.Buckets
                         var result = op.GetResult();
                         if (result.IsNmv())
                         {
-                            var config = op.GetConfig();
+                            var config = op.GetConfig(controller.ServerConfigTranscoder);
                             if (config != null)
                             {
                                 controller.NotifyConfigPublished(config);

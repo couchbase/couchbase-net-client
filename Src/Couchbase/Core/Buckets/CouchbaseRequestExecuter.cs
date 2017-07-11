@@ -9,6 +9,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
+using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -62,7 +63,7 @@ namespace Couchbase.Core.Buckets
             var requiresRetry = false;
             try
             {
-                var bucketConfig = operation.GetConfig();
+                var bucketConfig = operation.GetConfig(ClusterController.ServerConfigTranscoder);
                 if (bucketConfig != null)
                 {
                     Log.Info("New config found {0}|{1}", bucketConfig.Rev, ConfigInfo.BucketConfig.Rev);

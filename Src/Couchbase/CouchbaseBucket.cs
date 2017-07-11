@@ -3732,7 +3732,7 @@ namespace Couchbase
             {
                 try
                 {
-                    var bucketConfig = operation.GetConfig();
+                    var bucketConfig = operation.GetConfig(_clusterController.ServerConfigTranscoder);
                     if (bucketConfig != null)
                     {
                         Log.Info("New config found {0}|{1}: {2}", bucketConfig.Rev, _configInfo.BucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig));

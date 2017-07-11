@@ -68,6 +68,7 @@ namespace Couchbase.Core
             _saslFactory = saslFactory;
             Converter = converter;
             Transcoder = transcoder;
+            ServerConfigTranscoder = new DefaultTranscoder();
             Initialize();
 
             if (clientConfig.EnableDeadServiceUriPing)
@@ -123,6 +124,8 @@ namespace Couchbase.Core
         public IByteConverter Converter { get; private set; }
 
         public ITypeTranscoder Transcoder { get; private set; }
+
+        public ITypeTranscoder ServerConfigTranscoder { get; private set; }
 
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 

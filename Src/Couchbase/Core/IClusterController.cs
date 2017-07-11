@@ -25,6 +25,8 @@ namespace Couchbase.Core
 
         ITypeTranscoder Transcoder { get; }
 
+        ITypeTranscoder ServerConfigTranscoder { get; }
+
         IConfigProvider GetProvider(string name);
 
         IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null);
