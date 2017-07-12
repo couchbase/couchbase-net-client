@@ -4,22 +4,22 @@ using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Configuration
 {
-	[TestFixture]
-	public class CouchbaseBucketTests
-	{
-		[Test]
-		public void Can_Parse_Json_With_Missing_Hostnames()
-		{
-			var json = ResourceHelper.ReadResource(@"Data\cb-mds-missing-hostname.json");
-			var config = JsonConvert.DeserializeObject<BucketConfig>(json);
+    [TestFixture]
+    public class CouchbaseBucketTests
+    {
+        [Test]
+        public void Can_Parse_Json_With_Missing_Hostnames()
+        {
+            var json = ResourceHelper.ReadResource(@"Data\cb-mds-missing-hostname.json");
+            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-			Assert.AreEqual(3, config.NodesExt.Length);
-			Assert.AreEqual("192.168.0.102", config.NodesExt[0].Hostname);
-			Assert.AreEqual("127.0.0.1", config.NodesExt[1].Hostname);
-			Assert.AreEqual("127.0.0.1", config.NodesExt[2].Hostname);
-			Assert.IsTrue(config.NodesExt[0].Services.KV > 0);
-			Assert.IsTrue(config.NodesExt[1].Services.KV > 0);
-			Assert.IsFalse(config.NodesExt[2].Services.KV > 0);
-		}
-	}
+            Assert.AreEqual(3, config.NodesExt.Length);
+            Assert.AreEqual("192.168.0.102", config.NodesExt[0].Hostname);
+            Assert.IsNull(config.NodesExt[1].Hostname);
+            Assert.IsNull(config.NodesExt[2].Hostname);
+            Assert.IsTrue(config.NodesExt[0].Services.KV > 0);
+            Assert.IsTrue(config.NodesExt[1].Services.KV > 0);
+            Assert.IsFalse(config.NodesExt[2].Services.KV > 0);
+        }
+    }
 }

@@ -8,12 +8,9 @@ namespace Couchbase.Configuration.Server.Serialization
     /// </summary>
     public sealed class NodeExt
     {
-	    private const string DefaultHostname = "127.0.0.1";
-
-		public NodeExt()
+        public NodeExt()
         {
             Services = new Services();
-	        Hostname = DefaultHostname;
         }
 
         /// <summary>
