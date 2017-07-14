@@ -1,4 +1,5 @@
 version: 2.4.8.{build}
+configuration: Release
 image: Visual Studio 2017
 init:
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
@@ -7,11 +8,14 @@ environment:
     secure: Mpa4faeUiC2uggKSC5ZgiA==
 cache:
 - src\packages -> **\packages.config
-build_script:
+install:
 - ps: nuget install secure-file -ExcludeVersion
+before_build:
 - ps: .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\Src\Couchbase\Couchbase.snk
 - ps: (Get-Content .\src\Couchbase\Properties\AssemblyInfo.cs) | Where { $_ -notmatch "InternalsVisibleTo" } | Set-Content .\src\Couchbase\Properties\AssemblyInfo.cs
+build_script:
 - ps: msbuild Src\Couchbase\Couchbase.csproj /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version="$env:APPVEYOR_BUILD_VERSION" /t:restore /t:pack /p:PackageOutputPath=..\..\
+after_build:
 - ps: Compress-Archive -Path .\Src\Couchbase\bin\Release\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
 artifacts:
 - path: '*.zip'
