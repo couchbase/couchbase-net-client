@@ -813,26 +813,28 @@ namespace Couchbase.Management
         /// <summary>
         /// Adds or replaces an existing Couchbase user with the provided <see cref="username" />, <see cref="password" />, <see cref="name" /> and <see cref="roles" />.
         /// </summary>
+        /// <param name="domain">The authentication domain.</param>
         /// <param name="username">The username.</param>
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The list of roles for the user.</param>
-        public IResult UpsertUser(string username, string password, string name = null, params Role[] roles)
+        public IResult UpsertUser(AuthenticationDomain domain, string username, string password = null, string name = null, params Role[] roles)
         {
             using (new SynchronizationContextExclusion())
             {
-                return UpsertUserAsync(username, password, name, roles).Result;
+                return UpsertUserAsync(domain, username, password, name, roles).Result;
             }
         }
 
         /// <summary>
         /// Asynchronously adds or replaces an existing Couchbase user with the provided <see cref="username" />, <see cref="password" />, <see cref="name" /> and <see cref="roles" />.
         /// </summary>
+        /// <param name="domain">The authentication domain.</param>
         /// <param name="username">The username.</param>
         /// <param name="password">The password.</param>
         /// <param name="name">The full name for the user.</param>
         /// <param name="roles">The roles.</param>
-        public async Task<IResult> UpsertUserAsync(string username, string password, string name = null, params Role[] roles)
+        public async Task<IResult> UpsertUserAsync(AuthenticationDomain domain, string username, string password = null, string name = null, params Role[] roles)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -846,8 +848,12 @@ namespace Couchbase.Management
             {
                 throw new ArgumentException("roles cannot be null or empty");
             }
+            if (domain == AuthenticationDomain.External && !string.IsNullOrWhiteSpace(password))
+            {
+                Log.Warn("Unable to update external user's password");
+            }
 
-            var uri = GetUserManagementUri(username);
+            var uri = GetUserManagementUri(domain, username);
             var formValues = GetUserFormValues(password, name, roles);
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
@@ -866,27 +872,29 @@ namespace Couchbase.Management
         /// <summary>
         /// Removes a Couchbase user with the <see cref="username" />.
         /// </summary>
+        /// <param name="domain">The authentication domain.</param>
         /// <param name="username">The username.</param>
-        public IResult RemoveUser(string username)
+        public IResult RemoveUser(AuthenticationDomain domain, string username)
         {
             using (new SynchronizationContextExclusion())
             {
-                return RemoveUserAsync(username).Result;
+                return RemoveUserAsync(domain, username).Result;
             }
         }
 
         /// <summary>
         /// Asynchronously removes a Couchbase user with the <see cref="username" />.
         /// </summary>
+        /// <param name="domain">The authentication domain.</param>
         /// <param name="username">The username.</param>
-        public async Task<IResult> RemoveUserAsync(string username)
+        public async Task<IResult> RemoveUserAsync(AuthenticationDomain domain, string username)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
                 throw new ArgumentException("username cannot be null or empty");
             }
 
-            var uri = GetUserManagementUri(username);
+            var uri = GetUserManagementUri(domain, username);
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
                 SetHeaders(request, uri);
@@ -903,20 +911,22 @@ namespace Couchbase.Management
         /// <summary>
         /// Get a list of Couchbase users.
         /// </summary>
-        public IResult<IEnumerable<User>> GetUsers()
+        /// <param name="domain">The authentication domain.</param>
+        public IResult<IEnumerable<User>> GetUsers(AuthenticationDomain domain)
         {
             using (new SynchronizationContextExclusion())
             {
-                return GetUsersAsync().Result;
+                return GetUsersAsync(domain).Result;
             }
         }
 
         /// <summary>
         /// Asynchronously Get a list of Couchbase users.
         /// </summary>
-        public async Task<IResult<IEnumerable<User>>> GetUsersAsync()
+        /// <param name="domain">The authentication domain.</param>
+        public async Task<IResult<IEnumerable<User>>> GetUsersAsync(AuthenticationDomain domain)
         {
-            var uri = GetUserManagementUri();
+            var uri = GetUserManagementUri(domain);
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
                 SetHeaders(request, uri);
@@ -945,20 +955,22 @@ namespace Couchbase.Management
         /// <summary>
         /// Get a Couchbase user using it's username.
         /// </summary>
-        public IResult<User> GetUser(string username)
+        /// <param name="domain">The authentication domain.</param>
+        public IResult<User> GetUser(AuthenticationDomain domain, string username)
         {
             using (new SynchronizationContextExclusion())
             {
-                return GetUserAsync(username).Result;
+                return GetUserAsync(domain, username).Result;
             }
         }
 
         /// <summary>
         /// Asynchronously get a Couchbase user using it's username.
         /// </summary>
-        public async Task<IResult<User>> GetUserAsync(string username)
+        /// <param name="domain">The authentication domain.</param>
+        public async Task<IResult<User>> GetUserAsync(AuthenticationDomain domain, string username)
         {
-            var uri = GetUserManagementUri(username);
+            var uri = GetUserManagementUri(domain, username);
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
                 SetHeaders(request, uri);
@@ -984,13 +996,13 @@ namespace Couchbase.Management
             }
         }
 
-        private Uri GetUserManagementUri(string username = null)
+        private Uri GetUserManagementUri(AuthenticationDomain domain, string username = null)
         {
             var scheme = _clientConfig.UseSsl ? "https" : "http";
             var host = _clientConfig.Servers.Shuffle().First().Host;
             var port = _clientConfig.UseSsl ? _clientConfig.HttpsMgmtPort : _clientConfig.MgmtPort;
 
-            const string userManagementPath = "settings/rbac/users/local";
+            var userManagementPath = "settings/rbac/users/" + (domain == AuthenticationDomain.Local ? "local" : "external");
             var builder = new UriBuilder(scheme, host, port, userManagementPath);
 
             if (!string.IsNullOrWhiteSpace(username))

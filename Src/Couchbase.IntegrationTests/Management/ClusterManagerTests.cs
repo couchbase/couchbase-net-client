@@ -267,23 +267,23 @@ namespace Couchbase.IntegrationTests.Management
             };
 
             // create user
-            var createResult = _clusterManager.UpsertUser(user.Username, "secure123", user.Name, user.Roles.ToArray());
+            var createResult = _clusterManager.UpsertUser(AuthenticationDomain.Local, user.Username, "secure123", user.Name, user.Roles.ToArray());
             Assert.IsTrue(createResult.Success);
 
             // get all users
-            var getUsersResult = _clusterManager.GetUsers();
+            var getUsersResult = _clusterManager.GetUsers(AuthenticationDomain.Local);
             Assert.IsTrue(getUsersResult.Success);
             Assert.IsNotNull(getUsersResult.Value.First(x => x.Username == user.Username));
 
             // get individual user
-            var getUserResult = _clusterManager.GetUser(user.Username);
+            var getUserResult = _clusterManager.GetUser(AuthenticationDomain.Local, user.Username);
             Assert.IsTrue(getUserResult.Success);
             Assert.AreEqual(user.Username, getUserResult.Value.Username);
             Assert.AreEqual(user.Name, getUserResult.Value.Name);
             Assert.AreEqual("local", getUserResult.Value.Domain);
 
             // remove user
-            var removeResult = _clusterManager.RemoveUser(user.Username);
+            var removeResult = _clusterManager.RemoveUser(AuthenticationDomain.Local, user.Username);
             Assert.IsTrue(removeResult.Success);
         }
 

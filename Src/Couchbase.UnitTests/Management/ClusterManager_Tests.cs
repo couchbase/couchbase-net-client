@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            var result = manager.UpsertUser("alice", "secure123", "Alice Liddell", new Role {Name = "Admin"});
+            var result = manager.UpsertUser(AuthenticationDomain.Local, "alice", "secure123", "Alice Liddell", new Role {Name = "Admin"});
 
             Assert.AreEqual(responseHttpCode == HttpStatusCode.OK, result.Success);
         }
@@ -167,7 +167,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.UpsertUser("alice", "secure123", name, new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default"});
+            manager.UpsertUser(AuthenticationDomain.Local, "alice", "secure123", name, new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default"});
         }
 
         [Test]
@@ -187,7 +187,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.UpsertUser("alice", "secure123", "Alice Liddell", new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default" });
+            manager.UpsertUser(AuthenticationDomain.Local, "alice", "secure123", "Alice Liddell", new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default" });
         }
 
         [TestCase(HttpStatusCode.OK, true)]
@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            var result = manager.RemoveUser("alice");
+            var result = manager.RemoveUser(AuthenticationDomain.Local, "alice");
 
             Assert.AreEqual(expectedResult, result.Success);
         }
@@ -224,7 +224,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.RemoveUser("alice");
+            manager.RemoveUser(AuthenticationDomain.Local, "alice");
         }
 
         [TestCase(HttpStatusCode.OK)]
@@ -269,7 +269,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            var result = manager.GetUsers();
+            var result = manager.GetUsers(AuthenticationDomain.Local);
 
             if (responseHttpCode == HttpStatusCode.OK)
             {
@@ -301,7 +301,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.GetUsers();
+            manager.GetUsers(AuthenticationDomain.Local);
         }
 
         [TestCase(HttpStatusCode.OK)]
@@ -329,7 +329,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            var result = manager.GetUser(user.Username);
+            var result = manager.GetUser(AuthenticationDomain.Local, user.Username);
 
             if (responseHttpCode == HttpStatusCode.OK)
             {
@@ -345,16 +345,20 @@ namespace Couchbase.UnitTests.Management
             }
         }
 
-        [Test]
-        public void GetUser_Builds_Correct_Uri()
+        [TestCase(AuthenticationDomain.Local)]
+        [TestCase(AuthenticationDomain.External)]
+        public void GetUser_Builds_Correct_Uri(AuthenticationDomain domain)
         {
-            const string expectedFormValueString = "http://localhost:8091/settings/rbac/users/local/alice";
+            var expextedRequestPath = string.Format(
+                "http://localhost:8091/settings/rbac/users/{0}/alice",
+                domain == AuthenticationDomain.Local ? "local" : "external"
+            );
 
             var handler = FakeHttpMessageHandler.Create(request =>
             {
-                Assert.AreEqual(expectedFormValueString, request.RequestUri.OriginalString);
+                Assert.AreEqual(expextedRequestPath, request.RequestUri.OriginalString);
                 Assert.AreEqual(HttpMethod.Get, request.Method);
-                var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {Content = new StringContent("")};
                 return response;
             });
             var client = new HttpClient(handler);
@@ -363,7 +367,7 @@ namespace Couchbase.UnitTests.Management
             var dataMapper = new JsonDataMapper(clientConfig);
 
             var manager = new ClusterManager(clientConfig, serverConfigMock.Object, dataMapper, client, "username", "password");
-            manager.GetUser("alice");
+            manager.GetUser(domain, "alice");
         }
 
         #endregion
