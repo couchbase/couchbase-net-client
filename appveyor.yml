@@ -1,35 +1,18 @@
-version: 2.4.3.{build}
+version: 2.4.8.{build}
 configuration: Release
+image: Visual Studio 2017
 init:
 - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME".TrimStart("v") }
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '%APPVEYOR_BUILD_VERSION%'
-  assembly_file_version: '%APPVEYOR_BUILD_VERSION%'
-  assembly_informational_version: '%APPVEYOR_BUILD_VERSION%'
 environment:
   SnkSecret:
     secure: Mpa4faeUiC2uggKSC5ZgiA==
 cache:
 - src\packages -> **\packages.config
-install:
-- ps: appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/v3.5.0/NuGet.exe
-- ps: nuget install secure-file -ExcludeVersion
-before_build:
-- ps: nuget restore .\src\couchbase-net-client.sln
-- ps: .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\Couchbase.snk
-- ps: Copy-Item .\Couchbase.snk .\Src\Couchbase\Couchbase.snk
-- ps: Copy-Item .\Couchbase.snk .\Src\Couchbase.NetStandard\Couchbase.snk
-- ps: (Get-Content .\src\Couchbase\Properties\AssemblyInfo.cs) | Where { $_ -notmatch "InternalsVisibleTo" } | Set-Content .\src\Couchbase\Properties\AssemblyInfo.cs
 build_script:
-- cmd: msbuild Src\Couchbase\Couchbase.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
-- cmd: msbuild Src\Couchbase.NetStandard\Couchbase.NetStandard.csproj /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk
-after_build:
-- ps: Copy-Item -Path .\Src\Couchbase\bin\Release -Filter "Couchbase.*" -Destination .\binaries\net45 -Recurse
-- ps: Copy-Item -Path .\Src\Couchbase.NetStandard\bin\Release -Filter "Couchbase.*" -Destination .\binaries\netstandard1.5 -Recurse
-- ps: Compress-Archive -Path .\binaries\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
-- ps: nuget pack .\src\Couchbase\Couchbase.nuspec -Properties "Configuration=Release;Platform=AnyCPU;" -version "$env:APPVEYOR_BUILD_VERSION"
+- ps: nuget install secure-file -ExcludeVersion
+- ps: .\secure-file\tools\secure-file.exe -decrypt .\build-utils\Couchbase.snk.enc -secret $env:SnkSecret -out .\Src\Couchbase\Couchbase.snk
+- ps: msbuild Src\Couchbase\Couchbase.csproj /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version="$env:APPVEYOR_BUILD_VERSION" /t:restore /t:pack /p:PackageOutputPath=..\..\
+- ps: Compress-Archive -Path .\Src\Couchbase\bin\Release\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$env:APPVEYOR_BUILD_VERSION.zip
 artifacts:
 - path: '*.zip'
 - path: '*.nupkg'
