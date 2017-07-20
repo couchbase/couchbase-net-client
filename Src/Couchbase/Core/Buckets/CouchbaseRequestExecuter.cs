@@ -439,6 +439,121 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
+        /// Sends an operation to the server while observing its durability requirements using async/await
+        /// </summary>
+        /// <param name="operation">A binary memcached operation - must be a mutation operation.</param>
+        /// <param name="deletion">True if mutation is a deletion.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with its <see cref="Durability"/> status.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
+        public override async Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            IOperationResult result;
+            try
+            {
+                //Is the cluster configured for Data services?
+                if (!ConfigInfo.IsDataCapable)
+                {
+                    throw new ServiceNotSupportedException(
+                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                }
+
+                result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
+                if (result.Success)
+                {
+                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                    using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+                    {
+                        if (ConfigInfo.SupportsEnhancedDurability)
+                        {
+                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
+                                ClusterController,
+                                config.ObserveInterval, (uint)config.ObserveTimeout);
+
+                            var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
+                                .ContinueOnAnyContext();
+
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                            ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                        }
+                        else
+                        {
+                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
+                                config.ObserveInterval, config.ObserveTimeout);
+
+                            var observed = await observer.ObserveAsync(operation.Key, result.Cas,
+                                deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
+
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                            ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                        }
+                    }
+                }
+                else
+                {
+                    result.Durability = Durability.NotSatisfied;
+                    ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                }
+            }
+            catch (TaskCanceledException e)
+            {
+                result = new OperationResult
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.OperationTimeout,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
+            }
+            catch (ReplicaNotConfiguredException e)
+            {
+                result = new OperationResult
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.NoReplicasFound,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
+            }
+            catch (DocumentMutationLostException e)
+            {
+                result = new OperationResult
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationLost,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
+            }
+            catch (DocumentMutationException e)
+            {
+                result = new OperationResult
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.DocumentMutationDetected,
+                    Durability = Durability.NotSatisfied,
+                    Success = false
+                };
+            }
+            catch (Exception e)
+            {
+                result = new OperationResult
+                {
+                    Id = operation.Key,
+                    Exception = e,
+                    Status = ResponseStatus.ClientFailure,
+                    Success = false
+                };
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Sends a View request with retry.
         /// </summary>
         /// <typeparam name="T">The Type T of the <see cref="ViewRow{T}"/> value.</typeparam>

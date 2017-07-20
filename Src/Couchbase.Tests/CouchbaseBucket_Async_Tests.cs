@@ -402,6 +402,26 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
+        public async Task Test_ReplaceAsync_With_Durability()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "CouchbaseBucket_Async_Tests.Test_ReplaceAsync_With_Durability";
+                    bucket.Remove(key);
+                    bucket.Insert(key, "NA");
+                    var result = await bucket.ReplaceAsync(key, "BA", ReplicateTo.Zero);
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual("BA", result2.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
         public async Task Test_RemoveAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -412,6 +432,26 @@ namespace Couchbase.Tests
                     bucket.Remove(key);
                     bucket.Insert(key, "NA");
                     var result = await bucket.RemoveAsync(key);
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual(ResponseStatus.KeyNotFound, result2.Status);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async Task Test_RemoveAsync_With_Durability()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "CouchbaseBucket_Async_Tests.Test_RemoveAsync_With_Durability";
+                    bucket.Remove(key);
+                    bucket.Insert(key, "NA");
+                    var result = await bucket.RemoveAsync(key, ReplicateTo.Zero);
                     var result2 = bucket.Get<string>(key);
                     Assert.IsTrue(result.Success);
                     Assert.AreEqual(ResponseStatus.KeyNotFound, result2.Status);
@@ -447,6 +487,31 @@ namespace Couchbase.Tests
         [Test]
         [Category("Integration")]
         [Category("Couchbase")]
+        public async Task Test_UpsertAsync_With_Durability()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "CouchbaseBucket_Async_Tests.Test_UpsertAsync_With_Durability";
+                    bucket.Remove(key);
+
+                    var result = await bucket.UpsertAsync(key, "BA", ReplicateTo.Zero);
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual("BA", result2.Value);
+
+                    result = await bucket.UpsertAsync(key, "AB", ReplicateTo.Zero);
+                    result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual("AB", result2.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
         public async Task Test_InsertAsync()
         {
             using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
@@ -456,6 +521,25 @@ namespace Couchbase.Tests
                     var key = "CouchbaseBucket_Async_Tests.Test_InsertAsync";
                     bucket.Remove(key);
                     var result = await bucket.InsertAsync(key, "BA");
+                    var result2 = bucket.Get<string>(key);
+                    Assert.IsTrue(result.Success);
+                    Assert.AreEqual("BA", result2.Value);
+                }
+            }
+        }
+
+        [Test]
+        [Category("Integration")]
+        [Category("Couchbase")]
+        public async Task Test_InsertAsync_With_Durability()
+        {
+            using (var cluster = new Cluster(ClientConfigUtil.GetConfiguration()))
+            {
+                using (var bucket = cluster.OpenBucket())
+                {
+                    var key = "CouchbaseBucket_Async_Tests.Test_InsertAsync_With_Durability";
+                    bucket.Remove(key);
+                    var result = await bucket.InsertAsync(key, "BA", ReplicateTo.Zero);
                     var result2 = bucket.Get<string>(key);
                     Assert.IsTrue(result.Success);
                     Assert.AreEqual("BA", result2.Value);
