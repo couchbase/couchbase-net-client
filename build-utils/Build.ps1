@@ -8,6 +8,9 @@ if ($env:APPVEYOR_REPO_TAG -eq "true") {
     $versionNumber = .\build-utils\AutoVersionNumber.ps1 -VersionSuffix "alpha-$buildCounter"
 }
 
+Write-Host "Using version: $versionNumber"
+Update-AppveyorBuild -Version $versionNumber
+
 # replace AssemblyInfo with version that doesn't include IntervalsVisibleTo attributes
 Copy-Item .\build-utils\AssemblyInfo.cs .\Src\Couchbase\Properties\AssemblyInfo.cs -Force
 
@@ -17,7 +20,7 @@ nuget install secure-file -ExcludeVersion
 
 # clean then build with snk & version number creating nuget package
 msbuild Src\Couchbase\Couchbase.csproj /t:Clean /p:Configuration=Release
-msbuild Src\Couchbase\Couchbase.csproj /t:Restore,Pack /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version=$versionNumber /p:PackageOutputPath=..\..\
+msbuild Src\Couchbase\Couchbase.csproj /t:Restore,Pack /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version=$versionNumber /p:PackageOutputPath=..\..\ /v:quiet
 
 # create zip from release folder
 Compress-Archive -Path .\Src\Couchbase\bin\Release\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$versionNumber.zip
