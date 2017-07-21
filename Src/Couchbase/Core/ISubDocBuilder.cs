@@ -37,5 +37,10 @@ namespace Couchbase.Core
         /// </summary>
         /// <returns></returns>
         int Count { get; }
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        TimeSpan? Timeout { get; }
     }
 }

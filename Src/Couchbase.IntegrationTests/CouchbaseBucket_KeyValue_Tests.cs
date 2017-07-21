@@ -53,6 +53,18 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public async Task Test_UpsertAsync_WithTimeout()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            await _bucket.RemoveAsync(key);
+            var result = await _bucket.UpsertAsync(key, value, new TimeSpan(0, 0, 0, 1));
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+
+        [Test]
         public async Task Test_InsertAsync()
         {
             var key = "thekey";
@@ -136,6 +148,20 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void GetDocumentFromReplica_Success_WithTimeout()
+        {
+            IgnoreIfNoReplicas();
+
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            _bucket.Insert(key, value, ReplicateTo.One);
+            var result = _bucket.GetDocumentFromReplica<string>(key, new TimeSpan(0, 0, 0, 1));
+            Assert.True(result.Success);
+        }
+
+        [Test]
         public async Task GetDocumentFromReplicaAsync_Success()
         {
             IgnoreIfNoReplicas();
@@ -157,6 +183,17 @@ namespace Couchbase.IntegrationTests
 
             _bucket.Remove(key);
             var result = _bucket.Upsert(key, value);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
+        public void Test_Upsert_WithTimeout()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            var result = _bucket.Upsert(key, value, new TimeSpan(0, 0, 0, 1));
             Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
 
@@ -189,11 +226,32 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public void Test_Insert_WithTimeout()
+        {
+            var key = "thekey";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+            var result = _bucket.Insert(key, value, new TimeSpan(0,0,0,1));
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+        }
+
+        [Test]
         public void Test_Remove()
         {
             var key = "thekey";
 
             _bucket.Remove(key);
+            var result = _bucket.Get<string>(key);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
+        }
+
+        [Test]
+        public void Test_Remove_WithTimeout()
+        {
+            var key = "thekey";
+
+            _bucket.Remove(key, new TimeSpan(0, 0, 0, 1));
             var result = _bucket.Get<string>(key);
             Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
@@ -232,6 +290,25 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public async Task UpsertAsync_Batch_WithTimeout()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "UpsertAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "UpsertAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "UpsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = results.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
         public async Task ReplaceAsync_Batch()
         {
             var documents = new List<IDocument<object>>
@@ -246,6 +323,27 @@ namespace Couchbase.IntegrationTests
             };
             var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
             var resultsReplaced = await _bucket.ReplaceAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsReplaced.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+
+        [Test]
+        public async Task ReplaceAsync_Batch_WithTimeout()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "ReplaceAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "ReplaceAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "ReplaceAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsReplaced = await _bucket.ReplaceAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
             Assert.AreEqual(3, results.Length);
             var trueForAll = resultsReplaced.ToList().TrueForAll(x => x.Success);
             Assert.IsTrue(trueForAll);
@@ -272,6 +370,26 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public async Task RemoveAsync_Batch_WithTimeout()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "RemoveAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "RemoveAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "RemoveAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsRemoved = await _bucket.RemoveAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsRemoved.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
         public async Task InsertAsync_Batch()
         {
             var documents = new List<IDocument<object>>
@@ -286,6 +404,26 @@ namespace Couchbase.IntegrationTests
             };
             var results = await _bucket.RemoveAsync(documents).ConfigureAwait(false);
             var resultsInsert = await _bucket.InsertAsync(documents).ConfigureAwait(false);
+            Assert.AreEqual(3, results.Length);
+            var trueForAll = resultsInsert.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
+        public async Task InsertAsync_Batch_WithTimeout()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "InsertAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "InsertAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "InsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            var results = await _bucket.RemoveAsync(documents).ConfigureAwait(false);
+            var resultsInsert = await _bucket.InsertAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
             Assert.AreEqual(3, results.Length);
             var trueForAll = resultsInsert.ToList().TrueForAll(x => x.Success);
             Assert.IsTrue(trueForAll);
@@ -307,6 +445,26 @@ namespace Couchbase.IntegrationTests
             };
             await _bucket.UpsertAsync(documents).ConfigureAwait(false);
             var resultsGet = await _bucket.GetDocumentsAsync<object>(documents.Select(x=>x.Id)).ConfigureAwait(false);
+            Assert.AreEqual(3, resultsGet.Length);
+            var trueForAll = resultsGet.ToList().TrueForAll(x => x.Success);
+            Assert.IsTrue(trueForAll);
+        }
+
+        [Test]
+        public async Task GetAsync_Batch_WithTimeout()
+        {
+            var documents = new List<IDocument<object>>
+            {
+                new Document<object>
+                {
+                    Id = "GetAsync_Batch_doc1",
+                    Content = new {Name = "bob", Species = "Cat", Age = 5}
+                },
+                new Document<object> {Id = "GetAsync_Batch_doc2", Content = 10},
+                new Document<object> {Id = "GetAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+            };
+            await _bucket.UpsertAsync(documents).ConfigureAwait(false);
+            var resultsGet = await _bucket.GetDocumentsAsync<object>(documents.Select(x => x.Id), new TimeSpan(0,0,0,1)).ConfigureAwait(false);
             Assert.AreEqual(3, resultsGet.Length);
             var trueForAll = resultsGet.ToList().TrueForAll(x => x.Success);
             Assert.IsTrue(trueForAll);
@@ -384,6 +542,22 @@ namespace Couchbase.IntegrationTests
 
             await _bucket.RemoveAsync(key);
             var result = await _bucket.InsertAsync(doc);
+
+            Assert.AreEqual(doc.Content, result.Content);
+        }
+
+        [Test]
+        public async Task InsertAsync_ReturnsDocument_WithTimeout()
+        {
+            var key = "InsertAsync_ReturnsDocument_WithTimeout";
+            var doc = new Document<dynamic>
+            {
+                Id = key,
+                Content = new { Name = "foo" }
+            };
+
+            await _bucket.RemoveAsync(key);
+            var result = await _bucket.InsertAsync(doc, new TimeSpan(0,0,0,1));
 
             Assert.AreEqual(doc.Content, result.Content);
         }

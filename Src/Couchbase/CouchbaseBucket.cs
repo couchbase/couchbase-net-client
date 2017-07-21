@@ -84,8 +84,11 @@ namespace Couchbase
                 ? bucketConfig.DefaultOperationLifespan
                 : _clusterController.Configuration.DefaultOperationLifespan;
 
+            //the global timeout for all operations unless an overload with timeout is called
+            GlobalTimeout = new TimeSpan(0, 0, 0, (int)_operationLifespanTimeout);
+
             //If ICluster.Authenticate was called.
-           _authenticator = authenticator;
+            _authenticator = authenticator;
         }
 
         /// <summary>
@@ -113,6 +116,11 @@ namespace Couchbase
         /// The Bucket's name. You can view this from the Couchbase Management Console.
         /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// The default or globally set operation lifetime.
+        /// </summary>
+        private TimeSpan GlobalTimeout { get; set; }
 
         /// <summary>
         /// Returns the <see cref="ICluster"/> that this bucket belongs to
@@ -161,11 +169,25 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Append(string key, string value)
         {
+            return Append(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult" /> with the status of the operation.
+        /// </returns>
+        public IOperationResult<string> Append(string key, string value, TimeSpan timeout)
+        {
             CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            var operation = new Append<string>(key, value, vBucket, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -185,13 +207,26 @@ namespace Couchbase
         /// <returns>True if the key exists.</returns>
         public bool Exists(string key)
         {
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            return Exists(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Checks for the existance of a given key.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// True if the key exists.
+        /// </returns>
+        public bool Exists(string key, TimeSpan timeout)
+        {
+            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             var result = _requestExecuter.SendWithRetry(observe);
             return result.Success && result.Value.KeyState != KeyState.NotFound
-                && result.Value.KeyState != KeyState.LogicalDeleted;
+                   && result.Value.KeyState != KeyState.LogicalDeleted;
         }
 
         /// <summary>
@@ -231,14 +266,27 @@ namespace Couchbase
         /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
         public async Task<bool> ExistsAsync(string key)
         {
+            return await ExistsAsync(key, GlobalTimeout).ContinueOnAnyContext();
+        }
+
+        /// <summary>
+        /// Checks for the existance of a given key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<bool> ExistsAsync(string key, TimeSpan timeout)
+        {
             CheckDisposed();
-            var observe = new Observe(key, null, _transcoder, _operationLifespanTimeout)
+            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
             return result.Success && result.Value.KeyState != KeyState.NotFound
-                && result.Value.KeyState != KeyState.LogicalDeleted;
+                   && result.Value.KeyState != KeyState.LogicalDeleted;
         }
 
         /// <summary>
@@ -272,6 +320,26 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Appends a value to a give key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<string>> AppendAsync(string key, string value, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            var result = _requestExecuter.SendWithRetryAsync(operation);
+            return result;
+        }
+
+        /// <summary>
         /// Appends a value to a give key.
         /// </summary>
         /// <param name="key">The key to append too.</param>
@@ -279,11 +347,25 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<byte[]> Append(string key, byte[] value)
         {
+            return Append(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Appends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult" /> with the status of the operation.
+        /// </returns>
+        public IOperationResult<byte[]> Append(string key, byte[] value, TimeSpan timeout)
+        {
             CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Append<byte[]>(key, value, vBucket,  _transcoder, _operationLifespanTimeout)
+            var operation = new Append<byte[]>(key, value, vBucket, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -304,13 +386,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<string>> AppendAsync(string key, string value)
         {
-            CheckDisposed();
-            var operation = new Append<string>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            var result = _requestExecuter.SendWithRetryAsync(operation);
-            return result;
+            return AppendAsync(key, value, GlobalTimeout);
         }
 
         /// <summary>
@@ -321,8 +397,22 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value)
         {
+            return AppendAsync(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Appends a value to a give key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to append too.</param>
+        /// <param name="value">The value to append to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Append<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -380,7 +470,19 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
         public IOperationResult Touch(string key, TimeSpan expiration)
         {
-            var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
+            return Touch(key, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Updates the expiration a key without modifying or returning it's value.
+        /// </summary>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
+        public IOperationResult Touch(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -396,7 +498,12 @@ namespace Couchbase
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
         public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration)
         {
-            var touch = new Touch(key, null, _transcoder, _operationLifespanTimeout)
+            return TouchAsync(key, expiration, GlobalTimeout);
+        }
+
+        public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -448,7 +555,46 @@ namespace Couchbase
             const ulong delta = 1;
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
-            return Decrement(key, delta, initial, expiration);
+            return Decrement(key, delta, initial, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Decrement(string key, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return Decrement(key, delta, initial, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by one as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return DecrementAsync(key, delta, initial, expiration, timeout);
         }
 
         /// <summary>
@@ -460,10 +606,46 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta)
         {
+            return Decrement(key, delta, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, TimeSpan timeout)
+        {
             const ulong initial = 1;
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
-            return Decrement(key, delta, initial, expiration);
+            return Decrement(key, delta, initial, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return DecrementAsync(key, delta, initial, expiration, timeout);
         }
 
         /// <summary>
@@ -496,21 +678,59 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.</returns>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration)
         {
-            CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
+            return Decrement(key, delta, initial, expiration, GlobalTimeout);
+        }
 
-            var operation = new Decrement(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout)
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
-            var operationResult = server.Send(operation);
+            return _requestExecuter.SendWithRetry(operation);
+        }
 
-            if (CheckForConfigUpdates(operationResult, operation))
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, timeout.GetSeconds())
             {
-                Log.Info("Requires retry {0}", key);
-            }
-            return operationResult;
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -527,6 +747,23 @@ namespace Couchbase
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
             return Decrement(key, delta, initial, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Decrement(key, delta, initial, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
@@ -583,12 +820,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
-            CheckDisposed();
-            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return DecrementAsync(key, delta, initial, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -604,6 +836,32 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
             return DecrementAsync(key, delta, initial, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Decrements the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+
+        /// <remarks>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the decremented value will be returned.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Decrement(key, initial, delta, expiration.ToTtl(), null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -629,6 +887,21 @@ namespace Couchbase
             return obj is CouchbaseBucket && Equals((CouchbaseBucket)obj);
         }
 
+        public async Task<IDocumentResult<T>> GetDocumentAsync<T>(string id, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetAsync<T>(id).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
+        }
+
         /// <summary>
         /// Gets a list of documents by their given id as an asynchronous operation.
         /// </summary>
@@ -639,9 +912,47 @@ namespace Couchbase
         /// </returns>
         public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids)
         {
+            return GetDocumentsAsync<T>(ids, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a list of documents by their given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="ids">The documents primary keys.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> array representing the asynchronous operation results.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> GetDocumentsAsync<T>(IEnumerable<string> ids, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            ids.ToList().ForEach(id => tasks.Add(GetDocumentAsync<T>(id)));
+            ids.ToList().ForEach(id => tasks.Add(GetDocumentAsync<T>(id, timeout)));
             return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Gets a document using a replica by it's given id as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetFromReplicaAsync<T>(id).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -652,11 +963,32 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Get<T>(string key)
         {
-            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout)
+            return Get<T>(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets value for a given key
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="key">The key to use as a lookup.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Get<T>(string key, TimeSpan timeout)
+        {
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        public Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key, TimeSpan timeout)
+        {
+            //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
+            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetSeconds());
+            return _requestExecuter.ReadFromReplicaAsync(operation);
         }
 
         /// <summary>
@@ -667,6 +999,20 @@ namespace Couchbase
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys)
         {
+            return Get<T>(keys, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.Dictionary`2" /> of the keys sent and the <see cref="T:Couchbase.IOperationResult`1" /> result.
+        /// </returns>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (keys != null && keys.Count > 0)
             {
@@ -676,7 +1022,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Get<T>(key);
+                        var result = Get<T>(key, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -693,6 +1039,24 @@ namespace Couchbase
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options)
         {
+            return Get<T>(keys, options, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options">A <see cref="T:System.Threading.Tasks.ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.Dictionary`2" /> of the keys sent and the <see cref="T:Couchbase.IOperationResult`1" /> result.
+        /// </returns>
+        /// <remarks>
+        /// Use the <see cref="T:System.Threading.Tasks.ParallelOptions" /> parameter to control the level of parallelism to use and/or to associate a <see cref="T:System.Threading.CancellationToken" /> with the operation.
+        /// </remarks>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (keys != null && keys.Count > 0)
             {
@@ -702,7 +1066,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Get<T>(key);
+                        var result = Get<T>(key, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -720,6 +1084,25 @@ namespace Couchbase
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize)
         {
+            return Get<T>(keys, options, rangeSize, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a range of values for a given set of keys
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned</typeparam>
+        /// <param name="keys">The keys to get</param>
+        /// <param name="options">A <see cref="T:System.Threading.Tasks.ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.Dictionary`2" /> of the keys sent and the <see cref="T:Couchbase.IOperationResult`1" /> result.
+        /// </returns>
+        /// <remarks>
+        /// Use the <see cref="T:System.Threading.Tasks.ParallelOptions" /> parameter to control the level of parallelism to use and/or to associate a <see cref="T:System.Threading.CancellationToken" /> with the operation.
+        /// </remarks>
+        public IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
             if (keys != null && keys.Count > 0)
             {
@@ -729,7 +1112,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Get<T>(key);
+                        var result = Get<T>(key, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -745,12 +1128,51 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<T>> GetAsync<T>(string key)
         {
+            return GetAsync<T>(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a Task that can be awaited on for a given Key and value as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value object to be retrieved.</typeparam>
+        /// <param name="key">The unique Key to use to lookup the value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetAsync<T>(string key, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:System.Threading.Tasks.Task`1" />object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await GetAndTouchAsync<T>(key, expiration, timeout).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -761,7 +1183,21 @@ namespace Couchbase
         /// <returns>An <see cref="IResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
         public IDocumentResult<T> GetDocument<T>(string id)
         {
-            var result = Get<T>(id);
+            return GetDocument<T>(id, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a document by it's given id.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The documents primary key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IDocumentResult`1" /> object containing the document if it's found and any other operation specific info.
+        /// </returns>
+        public IDocumentResult<T> GetDocument<T>(string id, TimeSpan timeout)
+        {
+            var result = Get<T>(id, timeout);
             return new DocumentResult<T>(result);
         }
 
@@ -773,17 +1209,7 @@ namespace Couchbase
         /// <returns>An <see cref="IDocumentResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
         public async Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await GetAsync<T>(id).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return await GetDocumentAsync<T>(id, GlobalTimeout);
         }
 
         /// <summary>
@@ -794,7 +1220,21 @@ namespace Couchbase
         /// <returns>The <see cref="IDocumentResult{T}"/></returns>
         public IDocumentResult<T> GetDocumentFromReplica<T>(string id)
         {
-            var result = GetFromReplica<T>(id);
+            return GetDocumentFromReplica<T>(id, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a document using a replica by it's given id.
+        /// </summary>
+        /// <typeparam name="T">The type T to convert the value to.</typeparam>
+        /// <param name="id">The document's primary key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:Couchbase.IDocumentResult`1" />
+        /// </returns>
+        public IDocumentResult<T> GetDocumentFromReplica<T>(string id, TimeSpan timeout)
+        {
+            var result = GetFromReplica<T>(id, timeout);
             return new DocumentResult<T>(result);
         }
 
@@ -804,19 +1244,9 @@ namespace Couchbase
         /// <typeparam name="T">The type T to convert the value to.</typeparam>
         /// <param name="id">The document's primary key.</param>
         /// <returns>The <see cref="Task{IDocumentResult{T}}"/> object representing the asynchronous operation.</returns>
-        public async Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id)
+        public Task<IDocumentResult<T>> GetDocumentFromReplicaAsync<T>(string id)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await GetFromReplicaAsync<T>(id).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return GetDocumentFromReplicaAsync<T>(id, GlobalTimeout);
         }
 
         /// <summary>
@@ -827,8 +1257,20 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the results of the operation.</returns>
         public IOperationResult<T> GetFromReplica<T>(string key)
         {
+            return GetFromReplica<T>(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Returns a value for a
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
+        public IOperationResult<T> GetFromReplica<T>(string key, TimeSpan timeout)
+        {
             //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
-            var operation = new ReplicaRead<T>(key, null, _transcoder, _operationLifespanTimeout);
+            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.ReadFromReplica(operation);
         }
 
@@ -842,9 +1284,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key)
         {
-            //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
-            var operation = new ReplicaRead<T>(key, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.ReadFromReplicaAsync(operation);
+            return GetFromReplicaAsync<T>(key, GlobalTimeout);
         }
 
         /// <summary>
@@ -879,12 +1319,28 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
+            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 Expiration = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(getl);
+        }
+
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, uint expiration, TimeSpan timeout)
+        {
+            const uint defaultExpiration = 15;
+            const uint maxExpiration = 30;
+            if (expiration > maxExpiration)
+            {
+                expiration = defaultExpiration;
+            }
+            var getl = new GetL<T>(key, null, _transcoder, timeout.GetSeconds())
+            {
+                Expiration = expiration,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(getl);
         }
 
         /// <summary>
@@ -915,13 +1371,28 @@ namespace Couchbase
         /// <remarks>An expiration value of 0 will be defaulted to 15 seconds at the cluster.</remarks>
         public IOperationResult<T> GetAndLock<T>(string key, uint expiration)
         {
+            return GetAndLock<T>(key, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult`1" /> with the value.
+        /// </returns>
+        public IOperationResult<T> GetAndLock<T>(string key, uint expiration, TimeSpan timeout)
+        {
             const uint defaultExpiration = 15;
             const uint maxExpiration = 30;
             if (expiration > maxExpiration)
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
+            var getl = new GetL<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -946,6 +1417,21 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a document and locks it for a specified time period.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult`1" /> with the value.
+        /// </returns>
+        public IOperationResult<T> GetAndLock<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            return GetAndLock<T>(key, expiration.ToTtl(), timeout);
+        }
+
+        /// <summary>
         /// Gets a document and locks it for a specified time period as an asynchronous operation.
         /// </summary>
         /// <typeparam name="T">The <see cref="Type" /> of the values to be returned.</typeparam>
@@ -963,7 +1449,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
+            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -997,18 +1483,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, uint expiration)
         {
-            const uint defaultExpiration = 15;
-            const uint maxExpiration = 30;
-            if (expiration > maxExpiration)
-            {
-                expiration = defaultExpiration;
-            }
-            var getl = new GetL<T>(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Expiration = expiration,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(getl);
+            return GetAndLockAsync<T>(key, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -1026,6 +1501,41 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Gets a document and locks it for a specified time period as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="T:System.Type" /> of the values to be returned.</typeparam>
+        /// <param name="key">The key of the document to retrieve.</param>
+        /// <param name="expiration">The seconds until the document is unlocked. The default is 15 seconds and the maximum supported by the server is 30 seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            return GetAndLockAsync<T>(key, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="M:Couchbase.Core.IBucket.GetAndLockAsync``1(System.String,System.UInt32)" /> as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> UnlockAsync(string key, ulong cas, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Unlock(key, null, _transcoder, timeout.GetSeconds())
+            {
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
         /// Increments the value of a key by one. If the key doesn't exist, it will be created
         /// and seeded with the defaut initial value 1.
         /// </summary>
@@ -1033,11 +1543,41 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key)
         {
+            return Increment(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by one. If the key doesn't exist, it will be created
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
+        public IOperationResult<ulong> Increment(string key, TimeSpan timeout)
+        {
             const ulong initial = 1;
             const ulong delta = 1;
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
-            return Increment(key, delta, initial, expiration);
+            return Increment(key, delta, initial, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by one as an asynchronous operation. If the key doesn't exist, it will be created.
+        /// and seeded with 1.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+            const ulong delta = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return IncrementAsync(key, delta, initial, expiration, timeout);
         }
 
         /// <summary>
@@ -1053,6 +1593,43 @@ namespace Couchbase
             const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Increment(key, delta, initial, expiration);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+
+            return Increment(key, delta, initial, timeout);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, TimeSpan timeout)
+        {
+            const ulong initial = 1;
+
+            return IncrementAsync(key, delta, initial, timeout);
         }
 
         /// <summary>
@@ -1085,11 +1662,32 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
+            return Increment(key, delta, initial, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
+        {
             CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Increment(key, initial, delta, vBucket, _transcoder, _operationLifespanTimeout)
+            var operation = new Increment(key, initial, delta, vBucket, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name,
                 Expires = expiration
@@ -1101,6 +1699,28 @@ namespace Couchbase
                 Log.Info("Requires retry {0}", key);
             }
             return operationResult;
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        /// &gt;
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
+        {
+            return IncrementAsync(key, delta, initial, new TimeSpan(expiration), timeout);
         }
 
         /// <summary>
@@ -1116,7 +1736,24 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration)
         {
-            return Increment(key, delta, initial, expiration.ToTtl());
+            return Increment(key, delta, initial, expiration.ToTtl(), GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Increments the value of a key by the delta. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </returns>
+        public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Increment(key, delta, initial, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
@@ -1140,7 +1777,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta)
         {
-            return IncrementAsync(key, delta, 1);
+            return IncrementAsync(key, delta, 1, GlobalTimeout);
         }
 
         /// <summary>
@@ -1154,7 +1791,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial)
         {
-            return IncrementAsync(key, delta, initial, 0);
+            return IncrementAsync(key, delta, initial, 0, GlobalTimeout);
         }
 
         /// <summary>
@@ -1172,13 +1809,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
-            CheckDisposed();
-            var operation = new Increment(key, initial, delta, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name,
-                Expires = expiration
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return IncrementAsync(key, delta, initial, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -1197,6 +1828,52 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Increments the value of a key by the delta as an asynchronous operation. If the key doesn't exist, it will be created
+        /// and seeded with the defaut initial value 1.
+        /// </summary>
+        /// <param name="key">The key to us for the counter.</param>
+        /// <param name="delta">The number to increment the key by.</param>
+        /// <param name="initial">The initial value to use. If the key doesn't exist, this value will returned.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the counter.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.
+        /// </remarks>
+        public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name,
+                Expires = expiration.ToTtl()
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -1204,7 +1881,21 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Insert<T>(IDocument<T> document)
         {
-            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl());
+            return Insert(document, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="T:Couchbase.Core.IBucket" />failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl(), timeout);
             return new DocumentResult<T>(result, document);
         }
 
@@ -1216,8 +1907,13 @@ namespace Couchbase
         /// <returns></returns>
         public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents)
         {
+            return InsertAsync(documents, GlobalTimeout);
+        }
+
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc=>tasks.Add(InsertAsync(doc)));
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc)));
             return Task.WhenAll(tasks);
         }
 
@@ -1230,8 +1926,21 @@ namespace Couchbase
         /// <returns></returns>
         public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
         {
+            return InsertAsync(documents, replicateTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo)));
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo, timeout)));
             return Task.WhenAll(tasks);
         }
 
@@ -1245,9 +1954,38 @@ namespace Couchbase
         /// <returns></returns>
         public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return InsertAsync(documents, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a list of JSON documents asynchronously, each document failing if it already exists.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
+        public Task<IDocumentResult<T>[]> InsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo, persistTo)));
+            documents.ForEach(doc => tasks.Add(InsertAsync(doc, replicateTo, persistTo, timeout)));
             return Task.WhenAll(tasks);
+        }
+
+        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo, timeout).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, document));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -1260,7 +1998,7 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -1280,13 +2018,59 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration)
         {
+            return Insert(key, value, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Insert<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
 
         /// <summary>
@@ -1305,6 +2089,46 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Insert(key, value, expiration.ToTtl(), timeout);
+        }
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="T:Couchbase.Core.IBucket" /> failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl(), timeout).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, document));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
+        }
+
+        /// <summary>
         /// Inserts a JSON document into the <see cref="IBucket"/>failing if it exists.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -1317,6 +2141,38 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts a JSON document into the <see cref="T:Couchbase.Core.IBucket" />failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Insert(document, replicateTo, PersistTo.Zero, timeout);
+
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return InsertAsync(key, value, expiration, timeout);
+        }
+
+        /// <summary>
         /// Inserts a document into the database using a given key, failing if the key exists.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -1326,7 +2182,38 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo)
         {
-            return Insert(key, value, replicateTo, PersistTo.Zero);
+            return Insert(key, value, replicateTo, PersistTo.Zero, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Insert(key, value, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="T:Couchbase.Core.IBucket" />failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return InsertAsync(document, replicateTo, PersistTo.Zero, timeout);
         }
 
         /// <summary>
@@ -1339,8 +2226,40 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo);
+            return Insert(document, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a JSON document into the <see cref="T:Couchbase.Core.IBucket" />failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Insert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var result = Insert(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo, timeout);
             return new DocumentResult<T>(result, document);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return InsertAsync(key, value, replicateTo, PersistTo.Zero, timeout);
         }
 
         /// <summary>
@@ -1354,12 +2273,51 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return Insert<T>(key, value, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1377,13 +2335,65 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return Insert(key, value, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Insert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -1400,7 +2410,26 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            return Insert(key, value, expiration.ToTtl(), replicateTo, persistTo);
+            return Insert(key, value, expiration.ToTtl(), replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Insert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return Insert(key, value, expiration.ToTtl(), replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -1413,7 +2442,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -1428,19 +2457,9 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return InsertAsync(document, GlobalTimeout);
         }
 
         /// <summary>
@@ -1467,19 +2486,9 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> InsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await InsertAsync<T>(document.Id, document.Content, document.Expiry.ToTtl(), replicateTo, persistTo).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return InsertAsync(document, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -1498,13 +2507,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration)
         {
-            CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync<T>(operation);
+            return InsertAsync(key, value, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -1550,12 +2553,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
+            return InsertAsync(key, value, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -1576,13 +2574,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
+            return InsertAsync(key, value, expiration, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -1599,7 +2591,26 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            return InsertAsync(key, value, expiration.ToTtl(), replicateTo, persistTo);
+            return InsertAsync(key, value, expiration.ToTtl(), replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts a document into the database for a given key, failing if it exists as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return InsertAsync(key, value, expiration.ToTtl(), replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -1650,6 +2661,30 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied asynchronously.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:System.Threading.Tasks.Task`1" /> value indicating if the durability requirement were or were not met.
+        /// </returns>
+        public async Task<ObserveResponse> ObserveAsync(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var config = _configInfo.ClientConfig.BucketConfigs[Name];
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetSeconds());
+            using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+            {
+                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts);
+                return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
+            }
+        }
+
+        /// <summary>
         /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied.
         /// </summary>
         /// <param name="key">The key to 'observe'.</param>
@@ -1664,6 +2699,30 @@ namespace Couchbase
             var config = _configInfo.ClientConfig.BucketConfigs[Name];
 
             var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, config.ObserveTimeout);
+
+            return observer.Observe(key, cas, deletion, replicateTo, persistTo)
+                ? ObserveResponse.DurabilitySatisfied
+                : ObserveResponse.DurabilityNotSatisfied;
+        }
+
+        /// <summary>
+        /// Performs 'observe' on a given key to ensure that it's durability requirements with respect to persistence and replication are satisfied.
+        /// </summary>
+        /// <param name="key">The key to 'observe'.</param>
+        /// <param name="cas">The 'Check and Set' or CAS value for the key.</param>
+        /// <param name="deletion">True if the operation performed is a 'remove' operation.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IO.Operations.ObserveResponse" /> value indicating if the durability requirement were or were not met.
+        /// </returns>
+        public ObserveResponse Observe(string key, ulong cas, bool deletion, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var config = _configInfo.ClientConfig.BucketConfigs[Name];
+
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetSeconds());
 
             return observer.Observe(key, cas, deletion, replicateTo, persistTo)
                 ? ObserveResponse.DurabilitySatisfied
@@ -1701,11 +2760,25 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<string> Prepend(string key, string value)
         {
+            return Prepend(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult" /> with the status of the operation.
+        /// </returns>
+        public IOperationResult<string> Prepend(string key, string value, TimeSpan timeout)
+        {
             CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<string>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            var operation = new Prepend<string>(key, value, vBucket, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -1726,7 +2799,22 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult{T}"/> with the key's value.</returns>
         public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration)
         {
-            var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
+            return GetAndTouch<T>(key, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult`1" /> with the key's value.
+        /// </returns>
+        public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -1742,7 +2830,22 @@ namespace Couchbase
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
         public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration)
         {
-            var operation = new GetT<T>(key, null, _transcoder, _operationLifespanTimeout)
+            return GetAndTouchAsync<T>(key, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Retrieves a value by key and additionally updates the expiry with a new value as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:System.Threading.Tasks.Task`1" />object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -1758,10 +2861,24 @@ namespace Couchbase
         /// <returns>An <see cref="IDocumentResult{T}"/> with the key's document.</returns>
         public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration)
         {
-            var result = GetAndTouch<T>(key, expiration);
-            return new DocumentResult<T>(result);
+            return GetAndTouchDocument<T>(key, expiration, GlobalTimeout);
         }
 
+        /// <summary>
+        /// Retrieves a document by key and additionally updates the expiry with a new value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key to "touch".</param>
+        /// <param name="expiration">The expiration to extend.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IDocumentResult`1" /> with the key's document.
+        /// </returns>
+        public IDocumentResult<T> GetAndTouchDocument<T>(string key, TimeSpan expiration, TimeSpan timeout)
+        {
+            var result = GetAndTouch<T>(key, expiration, timeout);
+            return new DocumentResult<T>(result);
+        }
 
         /// <summary>
         /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
@@ -1769,19 +2886,28 @@ namespace Couchbase
         /// <param name="key">The key to "touch".</param>
         /// <param name="expiration">The expiration to extend.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
-        public async Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
+        public Task<IDocumentResult<T>> GetAndTouchDocumentAsync<T>(string key, TimeSpan expiration)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
+            return GetAndTouchDocumentAsync<T>(key, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<string>> PrependAsync(string key, string value, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds())
             {
-                var result = await GetAndTouchAsync<T>(key, expiration).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -1792,11 +2918,25 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status of the operation.</returns>
         public IOperationResult<byte[]> Prepend(string key, byte[] value)
         {
+            return Prepend(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult" /> with the status of the operation.
+        /// </returns>
+        public IOperationResult<byte[]> Prepend(string key, byte[] value, TimeSpan timeout)
+        {
             CheckDisposed();
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, _operationLifespanTimeout)
+            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -1817,12 +2957,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<string>> PrependAsync(string key, string value)
         {
-            CheckDisposed();
-            var operation = new Prepend<string>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return PrependAsync(key, value, GlobalTimeout);
         }
 
         /// <summary>
@@ -1833,8 +2968,22 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value)
         {
+            return PrependAsync(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to a give key as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to Prepend too.</param>
+        /// <param name="value">The value to prepend to the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -1940,6 +3089,38 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IOperationResult Remove<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            return Remove(document.Id, timeout);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="T:Couchbase.IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A list of <see cref="T:System.Threading.Tasks.Task`1" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var tasks = new List<Task<IOperationResult>>();
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo, persistTo, timeout)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
@@ -1954,15 +3135,75 @@ namespace Couchbase
         /// Removes a document for a given key from the database.
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, TimeSpan timeout)
+        {
+            const ulong cas = 0;
+            return Remove(key, cas, timeout);
+        }
+
+        /// <summary>
+        /// Asynchronously removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas)
         {
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            return Remove(key, cas, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, ulong cas, TimeSpan timeout)
+        {
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            return RemoveAsync(document.Id, timeout);
         }
 
         /// <summary>
@@ -1978,6 +3219,41 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Remove(document, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            {
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
+        }
+
+        /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
@@ -1986,6 +3262,20 @@ namespace Couchbase
         public IOperationResult Remove(string key, ReplicateTo replicateTo)
         {
             return Remove(key, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Remove(key, replicateTo, PersistTo.Zero, timeout);
         }
 
         /// <summary>
@@ -1998,6 +3288,41 @@ namespace Couchbase
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo)
         {
             return Remove(key, cas, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Remove(key, cas, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(document.Id, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
         }
 
         /// <summary>
@@ -2014,6 +3339,43 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Removes a document from the database.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IOperationResult Remove<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            return Remove(document.Id, replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            {
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
         /// For a given key, removes a document from the database.
         /// </summary>
         /// <param name="key">The unique key for indexing.</param>
@@ -2022,11 +3384,46 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            return Remove(key, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -2039,12 +3436,50 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            return Remove(key, cas, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas,
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, true, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            {
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -2056,6 +3491,11 @@ namespace Couchbase
         /// </returns>
         public IDictionary<string, IOperationResult> Remove(IList<string> keys)
         {
+            return Remove(keys, GlobalTimeout);
+        }
+
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult>();
             if (keys != null && keys.Count > 0)
             {
@@ -2065,7 +3505,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Remove(key);
+                        var result = Remove(key, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -2086,6 +3526,11 @@ namespace Couchbase
         /// </remarks>
         public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options)
         {
+            return Remove(keys, GlobalTimeout);
+        }
+
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult>();
             if (keys != null && keys.Count > 0)
             {
@@ -2095,7 +3540,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Remove(key);
+                        var result = Remove(key, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -2117,6 +3562,12 @@ namespace Couchbase
         /// </remarks>
         public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize)
         {
+            return Remove(keys, options, rangeSize, GlobalTimeout);
+        }
+
+
+        public IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize, TimeSpan timeout)
+        {
             var results = new ConcurrentDictionary<string, IOperationResult>();
             if (keys != null && keys.Count > 0)
             {
@@ -2126,7 +3577,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Remove(key);
+                        var result = Remove(key, timeout.GetSeconds());
                         results.TryAdd(key, result);
                     }
                 });
@@ -2143,12 +3594,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return RemoveAsync(key, GlobalTimeout);
         }
 
         /// <summary>
@@ -2161,12 +3607,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document)
         {
-            CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return RemoveAsync(document, GlobalTimeout);
         }
 
         /// <summary>
@@ -2180,12 +3621,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            return RemoveAsync(document, replicateTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2200,8 +3636,24 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return RemoveAsync(document, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a document from the database as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The type T of the object.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> to remove from the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Delete(document.Id, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -2218,8 +3670,22 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents)
         {
+            return RemoveAsync(documents, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="T:Couchbase.IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A list of <see cref="T:System.Threading.Tasks.Task`1" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, TimeSpan timeout)
+        {
             var tasks = new List<Task<IOperationResult>>();
-            documents.ForEach(doc => tasks.Add(RemoveAsync(doc)));
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, timeout)));
             return Task.WhenAll(tasks);
         }
 
@@ -2234,8 +3700,23 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
         {
+            return RemoveAsync(documents, replicateTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a list of <see cref="T:Couchbase.IDocument" /> from  the bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type T of the document.</typeparam>
+        /// <param name="documents">The documents.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A list of <see cref="T:System.Threading.Tasks.Task`1" /> objects representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, TimeSpan timeout)
+        {
             var tasks = new List<Task<IOperationResult>>();
-            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo)));
+            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo, timeout)));
             return Task.WhenAll(tasks);
         }
 
@@ -2251,9 +3732,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult[]> RemoveAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var tasks = new List<Task<IOperationResult>>();
-            documents.ForEach(doc => tasks.Add(RemoveAsync(doc, replicateTo, persistTo)));
-            return Task.WhenAll(tasks);
+            return RemoveAsync(documents, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2266,13 +3745,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return RemoveAsync(key, cas, GlobalTimeout);
         }
 
         /// <summary>
@@ -2285,12 +3758,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            return RemoveAsync(key, replicateTo, PersistTo.Zero, GlobalTimeout);
         }
 
         /// <summary>
@@ -2304,13 +3772,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            return RemoveAsync(key, cas, replicateTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2324,12 +3786,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+            return RemoveAsync(key, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2344,13 +3801,43 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return RemoveAsync(key, cas, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="T:System.Collections.Generic.IDictionary`2" /> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="T:System.Threading.Tasks.ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <param name="rangeSize">The size of each subrange</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IDictionary`2" /> of <see cref="T:Couchbase.IOperationResult" /> which for which each is the result of the individual operation.
+        /// </returns>
+        /// <remarks>
+        /// An item is <see cref="T:System.Collections.Generic.KeyValuePair`2" /> where K is a <see cref="T:System.String" /> and V is the <see cref="T:System.Type" />of the value use wish to store.
+        /// </remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
+            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
+            if (items != null && items.Count > 0)
             {
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
+                {
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        var result = Upsert(key, value, timeout);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
+            return results;
         }
 
         /// <summary>
@@ -2361,8 +3848,38 @@ namespace Couchbase
         /// <returns>An object implementing <see cref="IResult{T}"/> with information regarding the operation.</returns>
         public IDocumentResult<T> Replace<T>(IDocument<T> document)
         {
-            var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
+            return Replace(document, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), timeout);
             return new DocumentResult<T>(result, document);
+        }
+
+        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await ReplaceAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
+                    replicateTo, persistTo, timeout).ContinueOnAnyContext();
+                tcs.SetResult(new DocumentResult<T>(result, document));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -2374,11 +3891,27 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, 0, expiration, timeout);
         }
 
         /// <summary>
@@ -2391,7 +3924,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -2411,12 +3944,52 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            return Replace(key, value, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Replace<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, 0, expiration, timeout);
         }
 
         /// <summary>
@@ -2440,6 +4013,22 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Replace(key, value, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
@@ -2448,13 +4037,62 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            return Replace(key, value, cas, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
+        {
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas,
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration,
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
 
         /// <summary>
@@ -2474,6 +4112,40 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Replace(key, value, cas, expiration.ToTtl(), timeout);
+        }
+
+        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await ReplaceAsync(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
+                    timeout).ContinueOnAnyContext();
+
+                tcs.SetResult(new DocumentResult<T>(result, document));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
+        }
+
+        /// <summary>
         /// Replaces a document if it exists, otherwise fails.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -2483,6 +4155,38 @@ namespace Couchbase
         public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Replace(document, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Replace(document, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, cas, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
@@ -2496,6 +4200,38 @@ namespace Couchbase
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo)
         {
             return Replace(key, value, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Replace(key, value, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, 0, replicateTo, timeout);
         }
 
         /// <summary>
@@ -2513,6 +4249,23 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Replace(key, value, cas, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
         /// Replaces a document if it exists, otherwise fails.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
@@ -2527,6 +4280,40 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Replaces a document if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Replace<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var result = Replace(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo, timeout);
+            return new DocumentResult<T>(result, document);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, cas, 0, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
         /// Replaces a value for a key if it exists, otherwise fails.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -2537,11 +4324,37 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+            return Replace(key, value, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces the specified key.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns></returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            return Replace(key, value, 0, 0, replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Replaces the asynchronous.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns></returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, 0, 0, replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -2556,11 +4369,42 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
-            {
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+            return Replace(key, value, cas, 0, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces the specified key.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="cas">The cas.</param>
+        /// <param name="replicateTo">The replicate to.</param>
+        /// <param name="persistTo">The persist to.</param>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns></returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo,
+                    TimeSpan timeout)
+        {
+            return Replace(key, value, cas, 0, replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            return ReplaceAsync(key, value, cas, 0, replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -2579,12 +4423,69 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, _operationLifespanTimeout)
+            return Replace(key, value, cas, expiration, replicateTo, persistTo,
+                GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new IO.Operations.Replace<T>(key, value, null, _transcoder,
+                timeout.GetSeconds())
+            {
+                Expires = expiration,
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -2602,7 +4503,27 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            return Replace(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
+            return Replace(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a document for a given key if it exists, otherwise fails.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Replace<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo,
+            PersistTo persistTo, TimeSpan timeout)
+        {
+            return Replace(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -2613,19 +4534,9 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document)
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await ReplaceAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return ReplaceAsync(document, GlobalTimeout);
         }
 
         /// <summary>
@@ -2642,20 +4553,91 @@ namespace Couchbase
             return ReplaceAsync(document, replicateTo, PersistTo.Zero);
         }
 
+        /// <summary>
+        /// Replaces a document if it exists, otherwise fails as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return ReplaceAsync(document, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
         public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents)
         {
-            var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc)));
-            return Task.WhenAll(tasks);
+            return ReplaceAsync(documents, GlobalTimeout);
         }
 
-        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, TimeSpan timeout)
         {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc, replicateTo)));
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc, timeout)));
             return Task.WhenAll(tasks);
         }
 
+        /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
+        {
+            return ReplaceAsync(documents, replicateTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(ReplaceAsync(doc, replicateTo, timeout)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
         public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
         {
             var tasks = new List<Task<IDocumentResult<T>>>();
@@ -2673,21 +4655,9 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public async Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> ReplaceAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await ReplaceAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
-                    replicateTo, persistTo).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return ReplaceAsync(document, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2702,7 +4672,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -2775,14 +4745,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration)
         {
-            CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync<T>(operation);
+            return ReplaceAsync(key, value, cas, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -2878,23 +4841,14 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IOperationResult}" /> object representing the asynchronous operation.
         /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <remarks>
         /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
         /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
         /// </remarks>
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new IO.Operations.Replace<T>(key, value, null, _transcoder,
-                _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
-
+            return ReplaceAsync(key, value, cas, expiration, replicateTo, persistTo,
+                GlobalTimeout);
         }
 
         /// <summary>
@@ -2912,7 +4866,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            return ReplaceAsync(key, value, cas, expiration.ToTtl(), replicateTo, persistTo);
+            return ReplaceAsync(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -2923,7 +4877,21 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with the status.</returns>
         public IOperationResult Unlock(string key, ulong cas)
         {
-            var unlock = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
+            return Unlock(key, cas, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Unlocks a key that was locked with <see cref="M:Couchbase.Core.IBucket.GetAndLock``1(System.String,System.UInt32)" />.
+        /// </summary>
+        /// <param name="key">The key of the document to unlock.</param>
+        /// <param name="cas">The 'check and set' value to use as a comparison</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IOperationResult" /> with the status.
+        /// </returns>
+        public IOperationResult Unlock(string key, ulong cas, TimeSpan timeout)
+        {
+            var unlock = new Unlock(key, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -2939,13 +4907,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult> UnlockAsync(string key, ulong cas)
         {
-            CheckDisposed();
-            var operation = new Unlock(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return UnlockAsync(key, cas, GlobalTimeout);
         }
 
         /// <summary>
@@ -2961,6 +4923,39 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl());
+            return new DocumentResult<T>(result, document);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var tasks = new List<Task<IDocumentResult<T>>>();
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo, persistTo, timeout)));
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -2970,11 +4965,27 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, 0, expiration, timeout);
         }
 
         /// <summary>
@@ -3014,6 +5025,48 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
+            const int cas = 0;
+            return Upsert(key, value, cas, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, TimeSpan timeout)
+        {
+            const int cas = 0;
+            return UpsertAsync(key, value, cas, expiration, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key.</param>
         /// <returns>
         /// An object implementing the <see cref="IOperationResult{T}" />interface.
@@ -3021,6 +5074,22 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration)
         {
             return Upsert(key, value, expiration.ToTtl());
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Upsert(key, value, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
@@ -3037,14 +5106,47 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration)
         {
+            return Upsert(key, value, cas, expiration, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas,
                 Expires = expiration,
                 BucketName = Name
             };
             return _requestExecuter.SendWithRetry(operation);
+        }
+
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration,
+                Cas = cas,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithRetryAsync<T>(operation);
         }
 
         /// <summary>
@@ -3063,6 +5165,49 @@ namespace Couchbase
             return Upsert(key, value, cas, expiration.ToTtl());
         }
 
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, TimeSpan timeout)
+        {
+            return Upsert(key, value, cas, expiration.ToTtl(), timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, TimeSpan timeout)
+        {
+            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
+            try
+            {
+                var result = await UpsertAsync(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), timeout)
+                    .ContinueOnAnyContext();
+
+                tcs.SetResult(new DocumentResult<T>(result, document));
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
+            }
+            return await tcs.Task.ContinueOnAnyContext();
+        }
+
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
@@ -3072,6 +5217,38 @@ namespace Couchbase
         public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
             return Upsert(document, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Upsert(document, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration, TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, cas, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
@@ -3085,6 +5262,37 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo)
         {
             return Upsert(key, value, replicateTo, PersistTo.Zero);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return Upsert(key, value, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return UpsertAsync(document, replicateTo, PersistTo.Zero, timeout);
         }
 
         /// <summary>
@@ -3102,6 +5310,39 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing <see cref="T:Couchbase.IDocumentResult`1" /> with information regarding the operation.
+        /// </returns>
+        public IDocumentResult<T> Upsert<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            var result = Upsert(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(), replicateTo, persistTo, timeout);
+            return new DocumentResult<T>(result, document);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
         /// Inserts or replaces an existing document into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -3112,8 +5353,25 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return Upsert(key, value, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
@@ -3135,13 +5393,40 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return Upsert(key, value, expiration, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new IO.Operations.Set<T>(key, value, null, _transcoder,
+                timeout.GetSeconds())
             {
                 Expires = expiration,
+                Cas = cas,
                 BucketName = Name
             };
-            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
         }
 
         /// <summary>
@@ -3167,6 +5452,48 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return Upsert(key, value, expiration.ToTtl(), replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, 0, expiration, replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <remarks>Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
@@ -3177,14 +5504,57 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            return Upsert(key, value, cas, expiration, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo,
+            PersistTo persistTo, TimeSpan timeout)
+        {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 Cas = cas,
                 BucketName = Name
             };
             return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, expiration.ToTtl(), 0, replicateTo, persistTo, timeout);
         }
 
         /// <summary>
@@ -3206,6 +5576,46 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo,
+            PersistTo persistTo, TimeSpan timeout)
+        {
+            return Upsert(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, cas, expiration.ToTtl(), replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
         /// Inserts or replaces a range of items into Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
@@ -3214,6 +5624,23 @@ namespace Couchbase
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items)
+        {
+            return Upsert(items, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="T:System.Collections.Generic.IDictionary`2" /> of items to be stored in Couchbase.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IDictionary`2" /> of <see cref="T:Couchbase.IOperationResult" /> which for which each is the result of the individual operation.
+        /// </returns>
+        /// <remarks>
+        /// An item is <see cref="T:System.Collections.Generic.KeyValuePair`2" /> where K is a <see cref="T:System.String" /> and V is the <see cref="T:System.Type" />of the value use wish to store.
+        /// </remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, TimeSpan timeout)
         {
             CheckDisposed();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
@@ -3227,7 +5654,7 @@ namespace Couchbase
                     {
                         var key = keys[i];
                         var value = items[key];
-                        var result = Upsert(key, value);
+                        var result = Upsert(key, value, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -3245,6 +5672,24 @@ namespace Couchbase
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options)
+        {
+            return Upsert(items, options, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces a range of items into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="items">A <see cref="T:System.Collections.Generic.IDictionary`2" /> of items to be stored in Couchbase.</param>
+        /// <param name="options">A <see cref="T:System.Threading.Tasks.ParallelOptions" /> instance with the options for the given operation.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IDictionary`2" /> of <see cref="T:Couchbase.IOperationResult" /> which for which each is the result of the individual operation.
+        /// </returns>
+        /// <remarks>
+        /// An item is <see cref="T:System.Collections.Generic.KeyValuePair`2" /> where K is a <see cref="T:System.String" /> and V is the <see cref="T:System.Type" />of the value use wish to store.
+        /// </remarks>
+        public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, TimeSpan timeout)
         {
             CheckDisposed();
             var results = new ConcurrentDictionary<string, IOperationResult<T>>();
@@ -3278,24 +5723,7 @@ namespace Couchbase
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize)
         {
-            CheckDisposed();
-            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
-            if (items != null && items.Count > 0)
-            {
-                var keys = items.Keys.ToList();
-                var partitionar = Partitioner.Create(0, items.Count(), rangeSize);
-                Parallel.ForEach(partitionar, options, (range, loopstate) =>
-                {
-                    for (var i = range.Item1; i < range.Item2; i++)
-                    {
-                        var key = keys[i];
-                        var value = items[key];
-                        var result = Upsert(key, value);
-                        results.TryAdd(key, result);
-                    }
-                });
-            }
-            return results;
+            return Upsert(items, options, rangeSize, GlobalTimeout);
         }
 
         /// <summary>
@@ -3306,19 +5734,9 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document)
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document)
         {
-            var tcs = new TaskCompletionSource<IDocumentResult<T>>();
-            try
-            {
-                var result = await UpsertAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl()).ContinueOnAnyContext();
-                tcs.SetResult(new DocumentResult<T>(result, document));
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return await tcs.Task.ContinueOnAnyContext();
+            return UpsertAsync(document, GlobalTimeout);
         }
 
         /// <summary>
@@ -3345,13 +5763,29 @@ namespace Couchbase
         /// <returns>
         /// The <see cref="Task{IDocumentResult}" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        public Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo)
+        {
+            return UpsertAsync(document, replicateTo, persistTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing JSON document into <see cref="T:Couchbase.Core.IBucket" /> on a Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
+        /// <param name="document">The <see cref="T:Couchbase.IDocument`1" /> JSON document to add to the database.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public async Task<IDocumentResult<T>> UpsertAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             var tcs = new TaskCompletionSource<IDocumentResult<T>>();
             try
             {
-                var result = await UpsertAsync<T>(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
-                    replicateTo, persistTo).ContinueOnAnyContext();
+                var result = await UpsertAsync(document.Id, document.Content, document.Cas, document.Expiry.ToTtl(),
+                    replicateTo, persistTo, timeout).ContinueOnAnyContext();
                 tcs.SetResult(new DocumentResult<T>(result, document));
             }
             catch (Exception e)
@@ -3371,8 +5805,22 @@ namespace Couchbase
         /// </returns>
         public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents)
         {
+            return UpsertAsync(documents, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(UpsertAsync(doc)));
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, timeout)));
             return Task.WhenAll(tasks);
         }
 
@@ -3387,8 +5835,23 @@ namespace Couchbase
         /// </returns>
         public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo)
         {
+            return UpsertAsync(documents, replicateTo, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Upserts a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously..
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, TimeSpan timeout)
+        {
             var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo)));
+            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo, timeout)));
             return Task.WhenAll(tasks);
         }
 
@@ -3404,9 +5867,7 @@ namespace Couchbase
         /// </returns>
         public Task<IDocumentResult<T>[]> UpsertAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            var tasks = new List<Task<IDocumentResult<T>>>();
-            documents.ForEach(doc => tasks.Add(UpsertAsync(doc, replicateTo, persistTo)));
-            return Task.WhenAll(tasks);
+            return UpsertAsync(documents, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -3421,7 +5882,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -3491,14 +5952,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration)
         {
-            CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithRetryAsync<T>(operation);
+            return UpsertAsync(key, value, cas, expiration, GlobalTimeout);
         }
 
         /// <summary>
@@ -3554,6 +6008,52 @@ namespace Couchbase
         /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
         /// <param name="key">The unique key for indexing.</param>
         /// <param name="value">The value for the key.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
+        /// </returns>
+        public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            return UpsertAsync(key, value, 0, 0, replicateTo, persistTo, timeout);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
+        /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An object implementing the <see cref="T:Couchbase.IOperationResult`1" />interface.
+        /// </returns>
+        /// <remarks>
+        /// Expirations over 30 * 24 * 60 * 60 (the amount of seconds in 30 days) are interpreted as a UNIX timestamp of the date at which the document expires.
+        /// see <see href="http://docs.couchbase.com/couchbase-devguide-2.5/#about-document-expiration">documentation section about expiration</see>.
+        /// </remarks>
+        public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, ReplicateTo replicateTo, PersistTo persistTo,
+            TimeSpan timeout)
+        {
+            CheckDisposed();
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration,
+                BucketName = Name
+            };
+            return _requestExecuter.SendWithDurability(operation, false, replicateTo, persistTo);
+        }
+
+        /// <summary>
+        /// Inserts or replaces an existing document into Couchbase Server as an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value to be inserted.</typeparam>
+        /// <param name="key">The unique key for indexing.</param>
+        /// <param name="value">The value for the key.</param>
         /// <param name="expiration">The time-to-live (ttl) for the key in seconds.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
@@ -3588,16 +6088,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new IO.Operations.Set<T>(key, value, null, _transcoder,
-                _operationLifespanTimeout)
-            {
-                Expires = expiration,
-                Cas = cas,
-                BucketName = Name
-            };
-            return _requestExecuter.SendWithDurabilityAsync<T>(operation, false, replicateTo, persistTo);
-;
+            return UpsertAsync(key, value, cas, expiration, replicateTo, persistTo, GlobalTimeout);
         }
 
         /// <summary>
@@ -3825,9 +6316,21 @@ namespace Couchbase
             return new MutateInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key);
         }
 
+        public IMutateInBuilder<TDocument> MutateIn<TDocument>(string key, TimeSpan timeout)
+        {
+            return new MutateInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key)
+                .WithTimeout(timeout);
+        }
+
         public ILookupInBuilder<TDocument> LookupIn<TDocument>(string key)
         {
             return new LookupInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key);
+        }
+
+        public ILookupInBuilder<TDocument> LookupIn<TDocument>(string key, TimeSpan timeout)
+        {
+            return new LookupInBuilder<TDocument>(this, _clusterController.Configuration.Serializer, key)
+                .WithTimeout(timeout);
         }
 
         private SubDocSingularMutationBase<T> OptimizeSingleMutation<T>(MutateInBuilder<T> builder)
@@ -3836,23 +6339,23 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubArrayAddUnique:
-                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout){ BucketName = Name };
+                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()){ BucketName = Name };
                 case OperationCode.SubArrayInsert:
-                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubArrayPushFirst:
-                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubArrayPushLast:
-                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubCounter:
-                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubDelete:
-                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubDictAdd:
-                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubDictUpsert:
-                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubReplace:
-                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }
@@ -3871,7 +6374,7 @@ namespace Couchbase
 
         public IDocumentFragment<T> Invoke<T>(IMutateInBuilder<T> builder)
         {
-            var theBuilder = (MutateInBuilder<T>) builder;
+            var theBuilder = (MutateInBuilder<T>)builder;
 
             // Ensure we're not trying to use XATTRs with a cluster that doesn't support them
             if (theBuilder.ContainsXattrOperations && !_configInfo.SupportsSubdocXAttributes)
@@ -3885,8 +6388,9 @@ namespace Couchbase
                 return (DocumentFragment<T>)_requestExecuter.SendWithRetry(OptimizeSingleMutation(theBuilder));
             }
 
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
-            return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiMutate);
+            var timeout = builder.Timeout.HasValue ? builder.Timeout.Value: GlobalTimeout;
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds());
+            return (DocumentFragment<T>)_requestExecuter.SendWithRetry(multiMutate);
         }
 
         public async Task<IDocumentFragment<T>> InvokeAsync<T>(IMutateInBuilder<T> builder)
@@ -3905,19 +6409,22 @@ namespace Couchbase
                 return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(OptimizeSingleMutation(theBuilder)).ContinueOnAnyContext();
             }
 
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout);
+            var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds());
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
         }
 
         private SubDocSingularLookupBase<T> OptimizeSingleLookup<T>(LookupInBuilder<T> builder)
         {
+            var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
             var spec = builder.FirstSpec();
+
             switch (spec.OpCode)
             {
                 case OperationCode.SubGet:
-                    return new SubGet<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubGet<T>(builder, builder.Key, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubExist:
-                    return new SubExists<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                    return new SubExists<T>(builder, builder.Key, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
                 case OperationCode.SubGetCount:
                     return new SubGetCount<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 default:
@@ -3942,7 +6449,8 @@ namespace Couchbase
             }
 
             //this is a multi operation
-            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+            var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
+            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
         }
 
@@ -3962,7 +6470,8 @@ namespace Couchbase
                 return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(OptimizeSingleLookup(theBuilder)).ContinueOnAnyContext();
             }
 
-            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+            var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
+            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
         }
 
@@ -3995,7 +6504,22 @@ namespace Couchbase
         /// </returns>
         public IResult<TContent> MapGet<TContent>(string key, string mapkey)
         {
-            var result = LookupIn<TContent>(key).Get(mapkey).Execute();
+            return MapGet<TContent>(key, mapkey, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The value as <see cref="T:Couchbase.IResult`1" />
+        /// </returns>
+        public IResult<TContent> MapGet<TContent>(string key, string mapkey, TimeSpan timeout)
+        {
+            var result = LookupIn<TContent>(key).WithTimeout(timeout).Get(mapkey).Execute();
             return new DefaultResult<TContent>
             {
                 Success = result.Success,
@@ -4015,7 +6539,21 @@ namespace Couchbase
         /// </returns>
         public IResult MapRemove(string key, string mapkey)
         {
-            var result = MutateIn<object>(key).Remove(mapkey).Execute();
+            return MapRemove(key, mapkey, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult MapRemove(string key, string mapkey, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).Remove(mapkey).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4033,7 +6571,20 @@ namespace Couchbase
         /// </returns>
         public IResult<int> MapSize(string key)
         {
-            var result = Get<Dictionary<string, object>>(key);
+            return MapSize(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<int> MapSize(string key, TimeSpan timeout)
+        {
+            var result = Get<Dictionary<string, object>>(key, timeout);
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4055,7 +6606,23 @@ namespace Couchbase
         /// </returns>
         public IResult MapAdd(string key, string mapkey, string value, bool createMap)
         {
-            var result = MutateIn<object>(key).Insert(mapkey, value, createMap).Execute();
+            return MapAdd(key, mapkey, value, createMap, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult MapAdd(string key, string mapkey, string value, bool createMap, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4075,7 +6642,22 @@ namespace Couchbase
         /// </returns>
         public IResult<TContent> ListGet<TContent>(string key, int index)
         {
-            var result = LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).Execute();
+            return ListGet<TContent>(key, index, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The value as <see cref="T:Couchbase.IResult`1" />
+        /// </returns>
+        public IResult<TContent> ListGet<TContent>(string key, int index, TimeSpan timeout)
+        {
+            var result = LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).WithTimeout(timeout).Execute();
             return new DefaultResult<TContent>
             {
                 Success = result.Success,
@@ -4096,7 +6678,22 @@ namespace Couchbase
         /// </returns>
         public IResult ListAppend(string key, object value, bool createList)
         {
-            var result = MutateIn<object>(key).ArrayAppend(value, createList).Execute();
+            return ListAppend(key, value, createList, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Appends a value to the back of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListAppend(string key, object value, bool createList, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4116,7 +6713,22 @@ namespace Couchbase
         /// </returns>
         public IResult ListPrepend(string key, object value, bool createList)
         {
-            var result = MutateIn<object>(key).ArrayPrepend(value, createList).Execute();
+            return ListPrepend(key, value, createList, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to the front of a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListPrepend(string key, object value, bool createList, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).ArrayPrepend(value, createList).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4135,7 +6747,21 @@ namespace Couchbase
         /// </returns>
         public IResult ListRemove(string key, int index)
         {
-            var result = MutateIn<object>(key).Remove(string.Format("[{0}]", index)).Execute();
+            return ListRemove(key, index, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value at a given index with a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListRemove(string key, int index, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).Remove(string.Format("[{0}]", index)).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4155,7 +6781,22 @@ namespace Couchbase
         /// </returns>
         public IResult ListSet(string key, int index, string value)
         {
-            var result = MutateIn<object>(key).Replace(string.Format("[{0}]", index), value).Execute();
+            return ListSet(key, index, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult ListSet(string key, int index, string value, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).Replace(string.Format("[{0}]", index), value).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4173,7 +6814,20 @@ namespace Couchbase
         /// </returns>
         public IResult<int> ListSize(string key)
         {
-            var result = Get<List<object>>(key);
+            return ListSize(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<int> ListSize(string key, TimeSpan timeout)
+        {
+            var result = Get<List<object>>(key, timeout);
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4194,7 +6848,22 @@ namespace Couchbase
         /// </returns>
         public IResult SetAdd(string key, string value, bool createSet)
         {
-            var result = MutateIn<object>(key).ArrayAddUnique(value, createSet).Execute();
+            return SetAdd(key, value, createSet, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult SetAdd(string key, string value, bool createSet, TimeSpan timeout)
+        {
+            var result = MutateIn<object>(key).ArrayAddUnique(value, createSet).WithTimeout(timeout).Execute();
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4213,7 +6882,21 @@ namespace Couchbase
         /// </returns>
         public IResult<bool> SetContains(string key, string value)
         {
-            var result = Get<List<object>>(key);
+            return SetContains(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Checks if a set contains a given value within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<bool> SetContains(string key, string value, TimeSpan timeout)
+        {
+            var result = Get<List<object>>(key, timeout);
             return new DefaultResult<bool>
             {
                 Success = result.Success,
@@ -4232,7 +6915,20 @@ namespace Couchbase
         /// </returns>
         public IResult<int> SetSize(string key)
         {
-            var result = Get<List<object>>(key);
+            return SetSize(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<int> SetSize(string key, TimeSpan timeout)
+        {
+            var result = Get<List<object>>(key, timeout);
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4252,11 +6948,26 @@ namespace Couchbase
         /// </returns>
         public IResult SetRemove<T>(string key, T value)
         {
+            return SetRemove(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public IResult SetRemove<T>(string key, T value, TimeSpan timeout)
+        {
             const int maxAttempts = 10; //can be made a config option in a later commit
             var attempted = 0;
             do
             {
-                var result = GetDocument<List<T>>(key);
+                var result = GetDocument<List<T>>(key, timeout);
                 if (!result.Success)
                 {
                     return new DefaultResult
@@ -4277,7 +6988,7 @@ namespace Couchbase
                     Id = key,
                     Content = doc,
                     Cas = result.Document.Cas
-                });
+                }, timeout);
 
                 //return on success or anything but a CAS mismatch
                 if (update.Success || update.Status != ResponseStatus.KeyExists)
@@ -4310,7 +7021,21 @@ namespace Couchbase
         /// <returns></returns>
         public IResult QueuePush<T>(string key, T value, bool createQueue = true)
         {
-            var appendResult = MutateIn<List<T>>(key).ArrayAppend(value).Execute();
+            return QueuePush(key, value, createQueue, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
+        public IResult QueuePush<T>(string key, T value, bool createQueue, TimeSpan timeout)
+        {
+            var appendResult = MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).Execute();
             if (appendResult.Success)
             {
                 return new DefaultResult
@@ -4321,7 +7046,7 @@ namespace Couchbase
 
             if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
             {
-                var insertResult = Insert(key, new List<T> {value});
+                var insertResult = Insert(key, new List<T> { value }, timeout);
                 if (insertResult.Success)
                 {
                     return new DefaultResult
@@ -4332,7 +7057,7 @@ namespace Couchbase
 
                 if (insertResult.Exception is DocumentAlreadyExistsException)
                 {
-                    return QueuePush(key, value);
+                    return QueuePush(key, value, true, timeout);
                 }
 
                 return new DefaultResult
@@ -4359,12 +7084,26 @@ namespace Couchbase
         /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
         public IResult<T> QueuePop<T>(string key)
         {
+            return QueuePop<T>(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<T> QueuePop<T>(string key, TimeSpan timeout)
+        {
             DefaultResult<T> result = null;
             var attempts = 0;
 
             while (attempts++ < 10)
             {
-                var getResult = Get<List<T>>(key);
+                var getResult = Get<List<T>>(key, timeout);
                 if (!getResult.Success)
                 {
                     result = new DefaultResult<T>
@@ -4390,6 +7129,7 @@ namespace Couchbase
                 var mutateResult = MutateIn<List<T>>(key)
                     .Remove("[-1]")
                     .WithCas(getResult.Cas)
+                    .WithTimeout(timeout)
                     .Execute();
 
                 if (!mutateResult.Success && mutateResult.Exception is CasMismatchException)
@@ -4417,7 +7157,20 @@ namespace Couchbase
         /// <returns>An <see cref="IResult{T}"/> with the operation result.</returns>
         public IResult<int> QueueSize(string key)
         {
-            var result = Get<List<object>>(key);
+            return QueueSize(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public IResult<int> QueueSize(string key, TimeSpan timeout)
+        {
+            var result = Get<List<object>>(key, timeout);
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4436,9 +7189,26 @@ namespace Couchbase
         /// <returns>
         /// The value as <see cref="IResult{TContent}" />
         /// </returns>
-        public async Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey)
+        public Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey)
         {
-            var result = await LookupIn<TContent>(key).Get(mapkey).ExecuteAsync();
+            return MapGetAsync<TContent>(key, mapkey, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The value as <see cref="T:Couchbase.IResult`1" />
+        /// </returns>
+        public async Task<IResult<TContent>> MapGetAsync<TContent>(string key, string mapkey, TimeSpan timeout)
+        {
+            var result = await LookupIn<TContent>(key).Get(mapkey).
+                WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult<TContent>
             {
                 Success = result.Success,
@@ -4456,9 +7226,26 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> MapRemoveAsync(string key, string mapkey)
+        public Task<IResult> MapRemoveAsync(string key, string mapkey)
         {
-            var result = await MutateIn<object>(key).Remove(mapkey).ExecuteAsync();
+            return MapRemoveAsync(key, mapkey, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes the value for a given key from a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> MapRemoveAsync(string key, string mapkey, TimeSpan timeout)
+        {
+
+            var result = await MutateIn<object>(key).Remove(mapkey).WithTimeout(timeout).
+                ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4474,9 +7261,14 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult{integer}" /> with the operation result.
         /// </returns>
-        public async Task<IResult<int>> MapSizeAsync(string key)
+        public Task<IResult<int>> MapSizeAsync(string key)
         {
-            var result = await GetAsync<Dictionary<string, object>>(key);
+            return MapSizeAsync(key, GlobalTimeout);
+        }
+
+        public async Task<IResult<int>> MapSizeAsync(string key, TimeSpan timeout)
+        {
+            var result = await GetAsync<Dictionary<string, object>>(key, timeout).ContinueOnAnyContext();
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4496,9 +7288,16 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap)
+        public Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap)
         {
-            var result = await MutateIn<object>(key).Insert(mapkey, value, createMap).ExecuteAsync();
+            return MapAddAsync(key, mapkey, value, createMap, GlobalTimeout);
+        }
+
+        public async Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout)
+                .ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4516,9 +7315,26 @@ namespace Couchbase
         /// <returns>
         /// The value as <see cref="IResult{TContent}" />
         /// </returns>
-        public async Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index)
+        public Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index)
         {
-            var result = await LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).ExecuteAsync();
+            return ListGetAsync<TContent>(key, index, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Returns the value at a given index assuming a JSON array asynchronously.
+        /// </summary>
+        /// <typeparam name="TContent">The type of the content.</typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// The value as <see cref="T:Couchbase.IResult`1" />
+        /// </returns>
+        public async Task<IResult<TContent>> ListGetAsync<TContent>(string key, int index, TimeSpan timeout)
+        {
+            var result = await LookupIn<TContent>(key).Get(string.Format("[{0}]", index)).WithTimeout(timeout)
+                .ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult<TContent>
             {
                 Success = result.Success,
@@ -4537,9 +7353,26 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListAppendAsync(string key, object value, bool createList)
+        public Task<IResult> ListAppendAsync(string key, object value, bool createList)
         {
-            var result = await MutateIn<object>(key).ArrayAppend(value, createList).ExecuteAsync();
+            return ListAppendAsync(key, value, createList, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Appends a value to the back of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListAppendAsync(string key, object value, bool createList, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout)
+                .ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4557,9 +7390,26 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListPrependAsync(string key, object value, bool createList)
+        public Task<IResult> ListPrependAsync(string key, object value, bool createList)
         {
-            var result = await MutateIn<object>(key).ArrayPrepend(value, createList).ExecuteAsync();
+            return ListPrependAsync(key, value, createList, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Prepends a value to the front of a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createList">If set to <c>true</c> [create list].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListPrependAsync(string key, object value, bool createList, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).ArrayPrepend(value, createList)
+                .WithTimeout(timeout).ExecuteAsync();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4576,9 +7426,25 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListRemoveAsync(string key, int index)
+        public Task<IResult> ListRemoveAsync(string key, int index)
         {
-            var result = await MutateIn<object>(key).Remove(string.Format("[{0}]", index)).ExecuteAsync();
+            return ListRemoveAsync(key, index, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value at a given index with a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListRemoveAsync(string key, int index, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).Remove(string.Format("[{0}]", index)).
+                WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4596,9 +7462,26 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> ListSetAsync(string key, int index, string value)
+        public Task<IResult> ListSetAsync(string key, int index, string value)
         {
-            var result = await MutateIn<object>(key).Replace(string.Format("[{0}]", index), value).ExecuteAsync();
+            return ListSetAsync(key, index, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a value to an array within a JSON document at a given index asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="index">The index.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> ListSetAsync(string key, int index, string value, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).Replace(string.Format("[{0}]", index), value)
+                .WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4614,9 +7497,22 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult{integer}" /> with the operation result.
         /// </returns>
-        public async Task<IResult<int>> ListSizeAsync(string key)
+        public Task<IResult<int>> ListSizeAsync(string key)
         {
-            var result = await GetAsync<List<object>>(key);
+            return ListSizeAsync(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the size of an array within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<int>> ListSizeAsync(string key, TimeSpan timeout)
+        {
+            var result = await GetAsync<List<object>>(key, timeout).ContinueOnAnyContext();
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4635,9 +7531,26 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> SetAddAsync(string key, string value, bool createSet)
+        public Task<IResult> SetAddAsync(string key, string value, bool createSet)
         {
-            var result = await MutateIn<object>(key).ArrayAddUnique(value, createSet).ExecuteAsync();
+            return SetAddAsync(key, value, createSet, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Adds a value to a set within a JSON array within a document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createSet">If set to <c>true</c> [create set].</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> SetAddAsync(string key, string value, bool createSet, TimeSpan timeout)
+        {
+            var result = await MutateIn<object>(key).ArrayAddUnique(value, createSet)
+                .WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
+
             return new DefaultResult
             {
                 Success = result.Success,
@@ -4654,9 +7567,23 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult{boolean}" /> with the operation result.
         /// </returns>
-        public async Task<IResult<bool>> SetContainsAsync(string key, string value)
+        public Task<IResult<bool>> SetContainsAsync(string key, string value)
         {
-            var result = await GetAsync<List<object>>(key);
+            return SetContainsAsync(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Checks if a set contains a given value within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<bool>> SetContainsAsync(string key, string value, TimeSpan timeout)
+        {
+            var result = await GetAsync<List<object>>(key, timeout).ContinueOnAnyContext();
             return new DefaultResult<bool>
             {
                 Success = result.Success,
@@ -4673,9 +7600,22 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult{integer}" /> with the operation result.
         /// </returns>
-        public async Task<IResult<int>> SetSizeAsync(string key)
+        public Task<IResult<int>> SetSizeAsync(string key)
         {
-            var result = await GetAsync<List<object>>(key);
+            return SetSizeAsync(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Gets the size of a set within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<int>> SetSizeAsync(string key, TimeSpan timeout)
+        {
+            var result = await GetAsync<List<object>>(key, timeout).ContinueOnAnyContext();
             return new DefaultResult<int>
             {
                 Success = result.Success,
@@ -4693,13 +7633,28 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="IResult" /> with the operation result.
         /// </returns>
-        public async Task<IResult> SetRemoveAsync<T>(string key, T value)
+        public Task<IResult> SetRemoveAsync<T>(string key, T value)
+        {
+            return SetRemoveAsync(key, value, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value from a set withing a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
+        public async Task<IResult> SetRemoveAsync<T>(string key, T value, TimeSpan timeout)
         {
             const int maxAttempts = 10; //can be made a config option in a later commit
             var attempted = 0;
             do
             {
-                var result = await GetDocumentAsync<List<T>>(key);
+                var result = await GetDocumentAsync<List<T>>(key, timeout).ContinueOnAnyContext();
                 if (!result.Success)
                 {
                     return new DefaultResult
@@ -4720,7 +7675,7 @@ namespace Couchbase
                     Content = doc,
                     Cas = result.Document.Cas,
                     Id = key
-                });
+                }, timeout).ContinueOnAnyContext();
                 if (result.Success || result.Status != ResponseStatus.KeyExists)
                 {
                     return new DefaultResult
@@ -4749,9 +7704,16 @@ namespace Couchbase
         /// <param name="value">The value that is to be added to the queue.</param>
         /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
         /// <returns></returns>
-        public async Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue = true)
+        public Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue = true)
         {
-            var appendResult = await MutateIn<List<T>>(key).ArrayAppend(value).ExecuteAsync();
+            return QueuePushAsync(key, value, createQueue, GlobalTimeout);
+        }
+
+        public async Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue, TimeSpan timeout)
+        {
+            var appendResult = await MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).
+                ExecuteAsync().ContinueOnAnyContext();
+
             if (appendResult.Success)
             {
                 return new DefaultResult
@@ -4762,7 +7724,7 @@ namespace Couchbase
 
             if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
             {
-                var insertResult = await InsertAsync(key, new List<T> { value });
+                var insertResult = await InsertAsync(key, new List<T> { value }, timeout).ContinueOnAnyContext();
                 if (insertResult.Success)
                 {
                     return new DefaultResult
@@ -4773,7 +7735,7 @@ namespace Couchbase
 
                 if (insertResult.Exception is DocumentAlreadyExistsException)
                 {
-                    return await QueuePushAsync(key, value);
+                    return await QueuePushAsync(key, value, true, timeout).ContinueOnAnyContext();
                 }
 
                 return new DefaultResult
@@ -4798,14 +7760,28 @@ namespace Couchbase
         /// <typeparam name="T">The type of the value being retrieved.</typeparam>
         /// <param name="key">The key for the queue.</param>
         /// <returns>A <see cref="IResult{T}"/> with the operation result.</returns>
-        public async Task<IResult<T>> QueuePopAsync<T>(string key)
+        public Task<IResult<T>> QueuePopAsync<T>(string key)
+        {
+            return QueuePopAsync<T>(key, GlobalTimeout);
+        }
+
+        /// <summary>
+        /// Removes a value from the front of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of the value being retrieved.</typeparam>
+        /// <param name="key">The key for the queue.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
+        public async Task<IResult<T>> QueuePopAsync<T>(string key, TimeSpan timeout)
         {
             DefaultResult<T> result = null;
             var attempts = 0;
 
             while (attempts++ < 10)
             {
-                var getResult = await GetAsync<List<T>>(key);
+                var getResult = await GetAsync<List<T>>(key, timeout).ContinueOnAnyContext();
                 if (!getResult.Success)
                 {
                     result = new DefaultResult<T>
@@ -4831,7 +7807,9 @@ namespace Couchbase
                 var mutateResult = await MutateIn<List<T>>(key)
                     .Remove("[-1]")
                     .WithCas(getResult.Cas)
-                    .ExecuteAsync();
+                    .WithTimeout(timeout)
+                    .ExecuteAsync()
+                    .ContinueOnAnyContext();
 
                 if (!mutateResult.Success && mutateResult.Exception is CasMismatchException)
                 {
@@ -4855,9 +7833,14 @@ namespace Couchbase
         /// Returns the number of items in the queue stored in the JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key for the document.</param>
-        public async Task<IResult<int>> QueueSizeAsync(string key)
+        public Task<IResult<int>> QueueSizeAsync(string key)
         {
-            var result = await GetAsync<List<object>>(key);
+            return QueueSizeAsync(key, GlobalTimeout);
+        }
+
+        public async Task<IResult<int>> QueueSizeAsync(string key, TimeSpan timeout)
+        {
+            var result = await GetAsync<List<object>>(key, timeout).ContinueOnAnyContext();
             return new DefaultResult<int>
             {
                 Success = result.Success,

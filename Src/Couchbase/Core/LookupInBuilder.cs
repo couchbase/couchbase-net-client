@@ -99,6 +99,11 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        public TimeSpan? Timeout { get; private set; }
+
+        /// <summary>
         /// Gets a value indicating whether any of the pending commands target an XATTR.
         /// </summary>
         /// <value>
@@ -294,6 +299,17 @@ namespace Couchbase.Core
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>An <see cref="ILookupInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        public ILookupInBuilder<TDocument> WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
         }
     }
 }

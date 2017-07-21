@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase", "Couchbase\Couchbase.csproj", "{244EB9C8-8BCB-421D-A6DC-D54DCEB206E8}"
 EndProject
@@ -8,9 +8,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Tests", "Couchbas
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Tests.Management", "Couchbase.Tests.Management\Couchbase.Tests.Management.csproj", "{6AE683A2-5E42-4C5D-982B-71EADA2C8F42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.UnitTests", "Couchbase.UnitTests\Couchbase.UnitTests.csproj", "{5EABE2EB-7323-4DDF-AA43-75AAEE2A7C0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.UnitTests", "Couchbase.UnitTests\Couchbase.UnitTests.csproj", "{5EABE2EB-7323-4DDF-AA43-75AAEE2A7C0F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.IntegrationTests", "Couchbase.IntegrationTests\Couchbase.IntegrationTests.csproj", "{9B97D72D-D135-4559-98E6-F3F982E92922}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.IntegrationTests", "Couchbase.IntegrationTests\Couchbase.IntegrationTests.csproj", "{9B97D72D-D135-4559-98E6-F3F982E92922}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

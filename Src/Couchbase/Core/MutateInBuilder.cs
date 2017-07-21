@@ -121,6 +121,8 @@ namespace Couchbase.Core
             get { return _commands.Count; }
         }
 
+        public TimeSpan? Timeout { get; private set; }
+
         /// <summary>
         /// Gets a value indicating whether any of the pending commands target an XATTR.
         /// </summary>
@@ -833,6 +835,17 @@ namespace Couchbase.Core
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        public IMutateInBuilder<TDocument> WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
         }
     }
 }

@@ -199,14 +199,16 @@ namespace Couchbase.UnitTests.Core.Buckets
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.IsDataCapable).Returns(false);
             mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
-            var pending = new ConcurrentDictionary<uint, IOperation>();
 
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var mockBuilder = new Mock<ISubDocBuilder<dynamic>>();
             var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
 
-            var result = executor.SendWithRetry(new FakeSubDocumentOperation<dynamic>(null, "key", null, new DefaultTranscoder(), 0));
+            var result = executor.SendWithRetry(new FakeSubDocumentOperation<dynamic>(mockBuilder.Object, "key", null, new DefaultTranscoder(), 0));
 
             Assert.IsFalse(result.Success);
             Assert.IsInstanceOf<ServiceNotSupportedException>(result.Exception);
@@ -218,16 +220,18 @@ namespace Couchbase.UnitTests.Core.Buckets
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
             var mockConfig = new Mock<IConfigInfo>();
             mockConfig.Setup(x => x.IsDataCapable).Returns(false);
             mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
-            var pending = new ConcurrentDictionary<uint, IOperation>();
 
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var mockBuilder = new Mock<ISubDocBuilder<dynamic>>();
             var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
 
             Assert.ThrowsAsync<ServiceNotSupportedException>(
                 async () =>
-                    await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(null, "key", null,
+                    await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(mockBuilder.Object, "key", null,
                         new DefaultTranscoder(), 0)),
                 ExceptionUtil.ServiceNotSupportedMsg, "Data");
         }

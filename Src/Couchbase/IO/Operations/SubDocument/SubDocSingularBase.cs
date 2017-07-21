@@ -19,12 +19,30 @@ namespace Couchbase.IO.Operations.SubDocument
             : base(key, default(T), vBucket, transcoder, opaque, timeout)
         {
             Builder = builder;
+
+            //override the default timeout if provided by the builder
+            SetTimeoutIfNotDefault(builder);
         }
 
         protected SubDocSingularBase(ISubDocBuilder<T> builder, string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
         {
             Builder = builder;
+
+            //override the default timeout if provided by the builder
+            SetTimeoutIfNotDefault(builder);
+        }
+
+        /// <summary>
+        /// Sets the timeout with the value from the builder if it was changed by calling WithTimeout()
+        /// </summary>
+        /// <param name="builder">The builder.</param>
+        private void SetTimeoutIfNotDefault(ISubDocBuilder<T> builder)
+        {
+            if (builder.Timeout.HasValue)
+            {
+                Timeout = builder.Timeout.Value.GetSeconds();
+            }
         }
 
         public string Path { get; protected set; }

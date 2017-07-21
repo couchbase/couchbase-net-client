@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Core
+﻿using System;
+
+namespace Couchbase.Core
 {
     /// <summary>
     /// Exposes a "builder" API for constructing a chain of read commands on a document within Couchbase.
@@ -52,5 +54,12 @@
         /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
         /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
         ILookupInBuilder<TDocument> GetCount(string path, SubdocLookupFlags flags);
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>An <see cref="ILookupInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        ILookupInBuilder<TDocument> WithTimeout(TimeSpan timeout);
     }
 }

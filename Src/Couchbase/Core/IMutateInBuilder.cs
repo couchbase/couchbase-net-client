@@ -320,5 +320,12 @@ namespace Couchbase.Core
         /// <param name="replicateTo">The <see cref="ReplicateTo"/> value.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> WithDurability(PersistTo persistTo, ReplicateTo replicateTo);
+
+        /// <summary>
+        /// The maximum time allowed for an operation to live before timing out.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> WithTimeout(TimeSpan timeout);
     }
 }

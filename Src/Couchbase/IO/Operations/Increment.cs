@@ -12,7 +12,8 @@ namespace Couchbase.IO.Operations
             : base(key, vBucket, transcoder, timeout)
         {
             _delta = delta;
-            _initial = initial;        }
+            _initial = initial;
+        }
 
         private Increment(string key, ulong initial, ulong delta, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
             : base(key, initial, vBucket, transcoder, opaque, timeout)

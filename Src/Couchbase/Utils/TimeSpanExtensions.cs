@@ -34,5 +34,15 @@ namespace Couchbase.Utils
         {
             return ToTtl(TimeSpan.FromMilliseconds(duration));
         }
+
+        /// <summary>
+        /// Retrieves the number of seconds expressed in a <see cref="TimeSpan"/> as an <see cref="uint"/>.
+        /// </summary>
+        /// <param name="timeSpan">The timespan.</param>
+        /// <returns>An <see cref="uint"/> that is the total number of seconds in the <see cref="TimeSpan"/>.</returns>
+        public static uint GetSeconds(this TimeSpan timeSpan)
+        {
+            return (uint) timeSpan.TotalSeconds;
+        }
     }
 }
