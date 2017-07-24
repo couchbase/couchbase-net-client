@@ -1,9 +1,4 @@
-﻿using Couchbase.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace Couchbase.Utils
 {
@@ -30,6 +25,11 @@ namespace Couchbase.Utils
             }
         }
 
+        /// <summary>
+        /// Converts a duration expressed as milliseconds to a unix-based TTL.
+        /// </summary>
+        /// <param name="duration">Milliseconds to use as TTL.</param>
+        /// <returns>The TTL, expressed as a unix-based TTL in milliseconds.</returns>
         public static uint ToTtl(this uint duration)
         {
             return ToTtl(new TimeSpan(0, 0, 0, 0, (int)duration));
