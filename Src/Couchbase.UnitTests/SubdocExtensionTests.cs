@@ -70,6 +70,24 @@ namespace Couchbase.UnitTests
             builder.Verify(m => m.Exists("`prop`"), Times.Once);
         }
 
+        [Test]
+        public void GetCount_WithExpression_CallsGetCountWithString()
+        {
+            // Arrange
+
+            var builder = new Mock<ILookupInBuilder<MyDoc>>();
+            builder.Setup(m => m.GetCount(It.IsAny<string>())).Returns((string path) => builder.Object);
+            builder.As<ITypeSerializerProvider>().Setup(m => m.Serializer).Returns(new DefaultSerializer());
+
+            // Act
+
+            builder.Object.GetCount(p => p.Array);
+
+            // Assert
+
+            builder.Verify(m => m.GetCount("`array`"), Times.Once);
+        }
+
         #endregion
 
         #region MutateInBuilder

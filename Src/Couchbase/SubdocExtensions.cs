@@ -69,6 +69,31 @@ namespace Couchbase
             return builder.Exists(ParsePath(builder as ITypeSerializerProvider, path));
         }
 
+        /// <summary>
+        /// Get the number of items in a fragment of type <typeparamref name="TContent"/> within a document of type <typeparamref name="TDocument"/>,
+        /// using a given lambda expression path.
+        /// </summary>
+        /// <typeparam name="TDocument">Type of the parent document.</typeparam>
+        /// <typeparam name="TContent">Type of the subdocument.</typeparam>
+        /// <param name="builder"><see cref="ILookupInBuilder{TDocument}"/> where the the subdocument lookup is being built.</param>
+        /// <param name="path">Lambda expression path that navigates to the subdocument from the parent document.</param>
+        /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
+        public static ILookupInBuilder<TDocument> GetCount<TDocument, TContent>(this ILookupInBuilder<TDocument> builder,
+            Expression<Func<TDocument, TContent>> path)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException("builder");
+            }
+            if (path == null)
+            {
+                throw new ArgumentNullException("path");
+            }
+
+            return builder.GetCount(ParsePath(builder as ITypeSerializerProvider, path));
+        }
+
         #endregion
 
         #region MutateInBuilder

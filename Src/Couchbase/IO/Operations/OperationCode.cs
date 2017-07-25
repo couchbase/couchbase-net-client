@@ -69,20 +69,21 @@
         /// </summary>
         Hello = 0x1f,
 
-       /* sub document api shinizzle */
-       SubGet = 0xc5,
-       SubExist = 0xc6,
-       SubDictAdd = 0xc7,
-       SubDictUpsert = 0xc8,
-       SubDelete = 0xc9,
-       SubReplace = 0xca,
-       SubArrayPushLast = 0xcb,
-       SubArrayPushFirst = 0xcc,
-       SubArrayInsert = 0xcd,
-       SubArrayAddUnique = 0xce,
-       SubCounter = 0xcf,
-       MultiLookup = 0xd0,
-       SubMultiMutation = 0xd1
+        /* sub document api shinizzle */
+        SubGet = 0xc5,
+        SubExist = 0xc6,
+        SubDictAdd = 0xc7,
+        SubDictUpsert = 0xc8,
+        SubDelete = 0xc9,
+        SubReplace = 0xca,
+        SubArrayPushLast = 0xcb,
+        SubArrayPushFirst = 0xcc,
+        SubArrayInsert = 0xcd,
+        SubArrayAddUnique = 0xce,
+        SubCounter = 0xcf,
+        MultiLookup = 0xd0,
+        SubMultiMutation = 0xd1,
+        SubGetCount = 0xd2
     }
 }
 

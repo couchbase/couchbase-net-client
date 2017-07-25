@@ -3892,6 +3892,8 @@ namespace Couchbase
                     return new SubGet<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 case OperationCode.SubExist:
                     return new SubExists<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
+                case OperationCode.SubGetCount:
+                    return new SubGetCount<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 default:
                     throw new NotSupportedException("Opcode is not supported for LookupInBuilder.");
             }

@@ -35,5 +35,22 @@
         /// <param name="flags">The subdocument lookup flags.</param>
         /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
         ILookupInBuilder<TDocument> Exists(string path, SubdocLookupFlags flags);
+
+        /// <summary>
+        /// Gets the number of items in a collection or dictionary at a specified N1QL path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
+        /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
+        ILookupInBuilder<TDocument> GetCount(string path);
+
+        /// <summary>
+        /// Gets the number of items in a collection or dictionary at a specified N1QL path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="flags">The subdocument lookup flags.</param>
+        /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
+        /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
+        ILookupInBuilder<TDocument> GetCount(string path, SubdocLookupFlags flags);
     }
 }

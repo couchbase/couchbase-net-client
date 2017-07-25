@@ -1300,6 +1300,52 @@ namespace Couchbase.IntegrationTests
             Assert.IsTrue(existsResult.Success);
         }
 
+        [Test]
+        [Ignore("Subdoc GetCount only available on 5.0 or Mock")]
+        public void Can_Create_And_Count_Subdoc_Property()
+        {
+            using (var cluster = new Cluster(Utils.TestConfiguration.GetDefaultConfiguration()))
+            {
+                cluster.Authenticate("Administrator", "password");
+                var bucket = cluster.OpenBucket("default");
+
+                const string key = "Can_Create_And_Count_Subdoc_Property";
+                var fruit = new List<string> {"apple", "pear", "bannana", "peach"};
+                bucket.Upsert(key, new {fruit});
+
+                var getResult = bucket.LookupIn<dynamic>(key)
+                    .GetCount("fruit")
+                    .Execute();
+
+                Assert.IsTrue(getResult.Success);
+                Assert.AreEqual(fruit.Count, getResult.Content<int>(0));
+            }
+        }
+
+        [Test]
+        [Ignore("Subdoc GetCount only available on 5.0 or Mock")]
+        public void Can_Create_And_Count_Subdoc_Property_With_Multi_Operations()
+        {
+            using (var cluster = new Cluster(Utils.TestConfiguration.GetDefaultConfiguration()))
+            {
+                cluster.Authenticate("Administrator", "password");
+                var bucket = cluster.OpenBucket("default");
+
+                const string key = "Can_Create_And_Count_Subdoc_Property_With_Multi_Operations";
+                var fruit = new List<string> { "apple", "pear", "bannana", "peach" };
+                bucket.Upsert(key, new { fruit });
+
+                var getResult = bucket.LookupIn<dynamic>(key)
+                    .Get("fruit")
+                    .GetCount("fruit")
+                    .Execute();
+
+                Assert.IsTrue(getResult.Success);
+                Assert.AreEqual(fruit, getResult.Content<List<string>>(0));
+                Assert.AreEqual(fruit.Count, getResult.Content<int>(1));
+            }
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void Can_Create_Get_And_Check_Multiple_Xattrs_Exist(bool useMutation)
@@ -1518,8 +1564,11 @@ namespace Couchbase.IntegrationTests
         [TearDown]
         public void OneTimeTearDown()
         {
-            _cluster.CloseBucket(_bucket);
-            _cluster.Dispose();
+            if (_cluster != null)
+            {
+                _cluster.Dispose();
+                _cluster = null;
+            }
         }
     }
 }

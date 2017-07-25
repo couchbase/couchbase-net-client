@@ -74,5 +74,28 @@ namespace Couchbase.UnitTests.Core
                 ), Times.Once
             );
         }
+
+        [Test]
+        public void GetCount_Sends_Correct_OperationCode_And_Path()
+        {
+            var mockResult = new Mock<IDocumentFragment<dynamic>>();
+
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            mockedInvoker.Setup(x => x.Invoke(It.IsAny<LookupInBuilder<dynamic>>())).Returns(mockResult.Object);
+
+            var lookupBuilder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
+
+            var result = lookupBuilder.GetCount("path")
+                .Execute();
+
+            Assert.AreSame(mockResult.Object, result);
+            mockedInvoker.Verify(
+                invoker => invoker.Invoke(It.Is<LookupInBuilder<dynamic>>(
+                    builder =>
+                        builder.FirstSpec().OpCode == OperationCode.SubGetCount &&
+                        builder.FirstSpec().Path == "path")
+                ), Times.Once
+            );
+        }
     }
 }

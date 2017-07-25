@@ -182,6 +182,35 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Gets the number of items in a collection or dictionary at a specified N1QL path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
+        /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
+        public ILookupInBuilder<TDocument> GetCount(string path)
+        {
+            return GetCount(path, SubdocLookupFlags.None);
+        }
+
+        /// <summary>
+        /// Gets the number of items in a collection or dictionary at a specified N1QL path.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="flags">The subdocument lookup flags.</param>
+        /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
+        /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
+        public ILookupInBuilder<TDocument> GetCount(string path, SubdocLookupFlags flags)
+        {
+            _commands.Enqueue(new OperationSpec
+            {
+                Path = path,
+                OpCode = OperationCode.SubGetCount,
+                Flags = GetFlagsValue(flags)
+            });
+            return this;
+        }
+
+        /// <summary>
         /// Executes the chained operations.
         /// </summary>
         /// <returns>
