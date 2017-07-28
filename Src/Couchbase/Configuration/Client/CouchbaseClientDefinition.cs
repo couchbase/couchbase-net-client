@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Authentication;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
@@ -30,6 +31,18 @@ namespace Couchbase.Configuration.Client
         /// Allows specific configurations of Bucket's to be defined, overriding the parent's settings.
         /// </summary>
         public List<BucketDefinition> Buckets { get; set;  }
+
+        /// <summary>
+        /// Application user username to authenticate to the Couchbase Cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        public string Username { get; set; }
+
+        /// <summary>
+        /// Application user password to authenticate to the Couchbase Cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        public string Password { get; set; }
 
         /// <summary>
         /// Overrides the default and sets the SSL port to use for Key/Value operations using the Binary Memcached protocol.

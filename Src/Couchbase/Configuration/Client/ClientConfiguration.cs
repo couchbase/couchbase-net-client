@@ -389,6 +389,14 @@ namespace Couchbase.Configuration.Client
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(definition.Password))
+            {
+                var authenticator = string.IsNullOrWhiteSpace(definition.Username)
+                    ? new PasswordAuthenticator(definition.Password)
+                    : new PasswordAuthenticator(definition.Username, definition.Password);
+                SetAuthenticator(authenticator);
+            }
+
             //Set back to default
             _operationLifespanChanged = false;
             _poolConfigurationChanged = false;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 
@@ -60,6 +61,28 @@ namespace Couchbase.IntegrationTests.Configuration.Client
 
             Assert.AreEqual(1, config.BucketConfigs.Count);
             Assert.IsTrue(config.BucketConfigs.ContainsKey("default"));
+        }
+
+        [Test]
+        public void ClientConfiguration_Username_Password_From_Config()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("secure");
+            var authenticator = config.Authenticator as PasswordAuthenticator;
+
+            Assert.IsNotNull(authenticator);
+            Assert.AreEqual("CustomUser", authenticator.Username);
+            Assert.AreEqual("secure123", authenticator.Password);
+        }
+
+        [Test]
+        public void ClientConfiguration_Username_Password_From_Config_And_ConnectionString()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("secureConnectionString");
+            var authenticator = config.Authenticator as PasswordAuthenticator;
+
+            Assert.IsNotNull(authenticator);
+            Assert.AreEqual("CustomUser", authenticator.Username);
+            Assert.AreEqual("secure123", authenticator.Password);
         }
     }
 }

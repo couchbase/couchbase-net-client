@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using Couchbase.Authentication;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -45,6 +46,28 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get { return (BucketElementCollection) this["buckets"]; }
             set { this["buckets"] = value; }
+        }
+
+        /// <summary>
+        /// Application user username to authenticate to the Couchbase cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        [ConfigurationProperty("username", DefaultValue = null, IsRequired = false)]
+        public string Username
+        {
+            get { return (string) this["username"]; }
+            set { this["username"] = value; }
+        }
+
+        /// <summary>
+        /// Application user password to authenticate to the Couchbase Cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        [ConfigurationProperty("password", DefaultValue = null, IsRequired = false)]
+        public string Password
+        {
+            get { return (string)this["password"]; }
+            set { this["password"] = value; }
         }
 
         /// <summary>

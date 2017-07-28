@@ -36,6 +36,18 @@ namespace Couchbase.Configuration.Client
         IEnumerable<IBucketDefinition> Buckets { get; }
 
         /// <summary>
+        /// Application user username to authenticate to the Couchbase cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        string Username { get; set; }
+
+        /// <summary>
+        /// Application user password to authenticate to the Couchbase Cluster.
+        /// </summary>
+        /// <remarks>Internally creates a <see cref="PasswordAuthenticator"/> to authenticate with.</remarks>
+        string Password { get; set; }
+
+        /// <summary>
         /// Overrides the default and sets the SSL port to use for Key/Value operations using the Binary Memcached protocol.
         /// </summary>
         /// <remarks>The default and suggested port for SSL is 11207.</remarks>

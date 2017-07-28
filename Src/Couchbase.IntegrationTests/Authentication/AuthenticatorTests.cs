@@ -291,6 +291,36 @@ namespace Couchbase.IntegrationTests.Authentication
             cluster.Authenticate(auth);
             Assert.IsNotNull(cluster.OpenBucket("authenticated"));
         }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void Creates_Password_Authenticator_Using_Username_Password_From_Config()
+        {
+            var cluster = new Cluster(configurationSectionName: "couchbaseClients/secure");
+
+            // test the password authenticator is setup correctly
+            var authenticator = cluster.Configuration.Authenticator as PasswordAuthenticator;
+            Assert.IsNotNull(authenticator);
+            Assert.AreEqual("CustomUser", authenticator.Username);
+            Assert.AreEqual("secure123", authenticator.Password);
+
+            // make sure you can open a bucket
+            Assert.IsNotNull(cluster.OpenBucket("default"));
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void Creates_Password_Authenticator_Using_Password_From_Config_And_Username_From_ConnectionString()
+        {
+            var cluster = new Cluster(configurationSectionName: "couchbaseClients/secureConnectionString");
+
+            // test the password authenticator is setup correctly
+            var authenticator = cluster.Configuration.Authenticator as PasswordAuthenticator;
+            Assert.IsNotNull(authenticator);
+            Assert.AreEqual("CustomUser", authenticator.Username);
+            Assert.AreEqual("secure123", authenticator.Password);
+
+            // make sure you can open a bucket
+            Assert.IsNotNull(cluster.OpenBucket("default"));
+        }
 #endif
         #endregion
 

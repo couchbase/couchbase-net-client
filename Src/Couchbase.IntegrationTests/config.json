@@ -58,6 +58,16 @@
           "useEnhancedDurability": false
         }
       ]
+    },
+
+    "secure": {
+      "username": "CustomUser",
+      "password": "secure123"
+    },
+
+    "secureConnectionString": {
+      "password": "secure123",
+      "servers": ["http://CustomUser@localhost:8081"]
     }
   }
 }
