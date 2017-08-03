@@ -32,7 +32,7 @@ namespace Couchbase.Utils
         /// <returns>The TTL, expressed as a unix-based TTL in milliseconds.</returns>
         public static uint ToTtl(this uint duration)
         {
-            return ToTtl(new TimeSpan(0, 0, 0, 0, (int)duration));
+            return ToTtl(TimeSpan.FromMilliseconds(duration));
         }
     }
 }
