@@ -6,23 +6,19 @@ namespace Couchbase.IO.Operations
     internal class Increment : MutationOperationBase<ulong>
     {
         private readonly ulong _delta;
-        private readonly uint _expiration;
         private readonly ulong _initial;
 
-        public Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+        public Increment(string key, ulong initial, ulong delta, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
         {
             _delta = delta;
-            _initial = initial;
-            _expiration = expiration;
-        }
+            _initial = initial;        }
 
-        private Increment(string key, ulong initial, ulong delta, uint expiration, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
+        private Increment(string key, ulong initial, ulong delta, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
             : base(key, initial, vBucket, transcoder, opaque, timeout)
         {
             _delta = delta;
             _initial = initial;
-            _expiration = expiration;
         }
 
         public override OperationCode OperationCode
@@ -40,7 +36,7 @@ namespace Couchbase.IO.Operations
             var extras = new byte[20];
             Converter.FromUInt64(_delta, extras, 0);
             Converter.FromUInt64(_initial, extras, 8);
-            Converter.FromUInt32(_expiration, extras, 16);
+            Converter.FromUInt32(Expires, extras, 16);
             return extras;
         }
 
@@ -51,7 +47,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Increment(Key, _initial, _delta, _expiration, VBucket, Transcoder, Opaque, Timeout)
+            var cloned = new Increment(Key, _initial, _delta, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
@@ -59,7 +55,8 @@ namespace Couchbase.IO.Operations
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
                 BucketName = BucketName,
-                ErrorCode = ErrorCode
+                ErrorCode = ErrorCode,
+                Expires = Expires
             };
             return cloned;
         }

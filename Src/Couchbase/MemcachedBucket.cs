@@ -1242,8 +1242,11 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration)
         {
-            var operation = new Increment(key, initial, delta, expiration, null, _transcoder,
-                _operationLifespanTimeout);
+            var operation = new Increment(key, initial, delta, null, _transcoder,
+                _operationLifespanTimeout)
+            {
+                Expires = expiration
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2342,7 +2345,10 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout);
+            var operation = new Increment(key, initial, delta, null, _transcoder, _operationLifespanTimeout)
+            {
+                Expires = expiration
+            };
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 

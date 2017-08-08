@@ -31,7 +31,8 @@ namespace Couchbase.IO.Operations.SubDocument
                 CreationTime = CreationTime,
                 LastConfigRevisionTried = LastConfigRevisionTried,
                 BucketName = BucketName,
-                ErrorCode = ErrorCode
+                ErrorCode = ErrorCode,
+                Expires = Expires
             };
         }
     }

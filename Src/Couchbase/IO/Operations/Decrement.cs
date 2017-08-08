@@ -6,7 +6,6 @@ namespace Couchbase.IO.Operations
     internal sealed class Decrement : MutationOperationBase<ulong>
     {
         private readonly ulong _delta;
-        private readonly uint _expiration;
         private readonly ulong _initial;
 
         public Decrement(string key,
@@ -20,7 +19,7 @@ namespace Couchbase.IO.Operations
         {
             _delta = delta;
             _initial = initial;
-            _expiration = expiration;
+            Expires = expiration;
         }
 
         private Decrement(string key,
@@ -35,7 +34,7 @@ namespace Couchbase.IO.Operations
         {
             _delta = delta;
             _initial = initial;
-            _expiration = expiration;
+            Expires = expiration;
         }
 
         public override OperationCode OperationCode
@@ -53,7 +52,7 @@ namespace Couchbase.IO.Operations
             var extras = new byte[20];
             Converter.FromUInt64(_delta, extras, 0);
             Converter.FromUInt64(_initial, extras, 8);
-            Converter.FromUInt32(_expiration, extras, 16);
+            Converter.FromUInt32(Expires, extras, 16);
             return extras;
         }
 
@@ -64,7 +63,7 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Decrement(Key, _initial,_delta, _expiration, VBucket, Transcoder, Opaque, Timeout)
+            var cloned = new Decrement(Key, _initial,_delta, Expires, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,

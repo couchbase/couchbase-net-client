@@ -1083,9 +1083,10 @@ namespace Couchbase
             IVBucket vBucket;
             var server = GetServer(key, out vBucket);
 
-            var operation = new Increment(key, initial, delta, expiration, vBucket, _transcoder, _operationLifespanTimeout)
+            var operation = new Increment(key, initial, delta, vBucket, _transcoder, _operationLifespanTimeout)
             {
-                BucketName = Name
+                BucketName = Name,
+                Expires = expiration
             };
             var operationResult = server.Send(operation);
 
@@ -1166,9 +1167,10 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, expiration, null, _transcoder, _operationLifespanTimeout)
+            var operation = new Increment(key, initial, delta, null, _transcoder, _operationLifespanTimeout)
             {
-                BucketName = Name
+                BucketName = Name,
+                Expires = expiration
             };
             return _requestExecuter.SendWithRetryAsync(operation);
         }

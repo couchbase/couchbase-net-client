@@ -36,7 +36,7 @@ namespace Couchbase.Tests.IO.Operations
             var result = IOService.Execute(delete);
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
-            var increment = new Increment(key, 0, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout);
+            var increment = new Increment(key, 0, 1, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result1 = IOService.Execute(increment);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, uint.MinValue);
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.IO.Operations
         [Test]
         public void Test_Clone()
         {
-            var operation = new Increment("key", 1, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout)
+            var operation = new Increment("key", 1, 1, GetVBucket(), Transcoder, OperationLifespanTimeout)
             {
                 Cas = 1123
             };

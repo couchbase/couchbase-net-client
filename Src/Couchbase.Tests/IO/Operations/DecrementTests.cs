@@ -19,7 +19,7 @@ namespace Couchbase.Tests.IO.Operations
             Console.WriteLine("Deleting key {0}: {1}", key, result.Success);
 
             //increment the key
-            var operation = new Increment(key, 1, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout);
+            var operation = new Increment(key, 1, 1, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result1 = IOService.Execute(operation);
             Assert.IsTrue(result1.Success);
             Assert.AreEqual(result1.Value, 1);
