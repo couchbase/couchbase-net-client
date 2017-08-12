@@ -117,7 +117,7 @@ namespace Couchbase
         /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket(string bucketname, string password)
         {
-            return _clusterController.CreateBucket(bucketname, bucketname, password, _configuration.Authenticator);
+            return _clusterController.CreateBucket(bucketname, password, _configuration.Authenticator);
         }
 
         /// <summary>

@@ -1,17 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
-using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations;
-using Couchbase.IO.Operations.Errors;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Services
@@ -19,25 +12,21 @@ namespace Couchbase.IO.Services
     /// <summary>
     /// An IO service that dispatches without using a pool.
     /// </summary>
-    public class MultiplexingIOService : IIOService
+    public class MultiplexingIOService : IOServiceBase
     {
         private static readonly ILog Log = LogManager.GetLogger<MultiplexingIOService>();
-        private readonly IConnectionPool _connectionPool;
-
         private volatile bool _disposed;
-        private readonly Guid _identity = Guid.NewGuid();
         private IConnection _connection;
-        private readonly object _syncObj = new object();
-        private ErrorMap _errorMap;
         private readonly AutoResetEvent _resetEvent = new AutoResetEvent(true);
 
         public MultiplexingIOService(IConnectionPool connectionPool)
         {
-            Log.Info("Creating IOService {0}", _identity);
-            _connectionPool = connectionPool;
-            _connection = _connectionPool.Acquire();
+            Log.Info("Creating IOService {0}", Identity);
+            ConnectionPool = connectionPool;
+            _connection = ConnectionPool.Acquire();
 
             //enable the server features
+            CheckEnabledServerFeatures(_connection);
             EnableServerFeatures(_connection);
         }
 
@@ -48,69 +37,23 @@ namespace Couchbase.IO.Services
         }
 
         /// <summary>
-        /// Gets a value indicating whether enhanced durability is enabled.
+        /// Returns true if internal TCP connections are using SSL.
         /// </summary>
-        /// <value>
-        /// <c>true</c> if the server supports enhanced durability and it is enabled; otherwise, <c>false</c>.
-        /// </value>
-        public bool SupportsEnhancedDurability { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether Subdocument XAttributes are supported.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the server supports Subdocument XAttributes; otherwise, <c>false</c>.
-        /// </value>
-        public bool SupportsSubdocXAttributes { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the cluster supports Enhanced Authentication.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the cluster supports enhanced authentication; otherwise, <c>false</c>.
-        /// </value>
-        public bool SupportsEnhancedAuthentication { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the cluster supports an error map that can
-        /// be used to return custom error information.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the cluster supports KV error map; otherwise, <c>false</c>.
-        /// </value>
-        public bool SupportsKvErrorMap { get; private set; }
-
-        /// <summary>
-        /// The Error Map that is used to map error codes from the server to error messages.
-        /// </summary>
-        public ErrorMap ErrorMap { get; internal set; }
-
-        public IPEndPoint EndPoint
+        /// <exception cref="NotSupportedException"></exception>
+        public override bool IsSecure
         {
-            get { return _connectionPool.EndPoint; }
+            get => _connection != null && _connection.IsSecure;
+            protected set => throw new NotSupportedException();
         }
 
-        public IConnectionPool ConnectionPool
-        {
-            get { return _connectionPool; }
-        }
-
-        public ISaslMechanism SaslMechanism { get; set; }
-
-        public bool IsSecure
-        {
-            get { return _connection != null && _connection.IsSecure; }
-        }
-
-        public IOperationResult<T> Execute<T>(IOperation<T> operation, IConnection connection)
-        {
-            var request = operation.Write();
-            var response = connection.Send(request);
-            operation.Read(response, ErrorMap);
-            return operation.GetResultWithValue();
-        }
-
-        public IOperationResult<T> Execute<T>(IOperation<T> operation)
+        /// <summary>
+        /// Executes the specified operation.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation">The operation.</param>
+        /// <returns></returns>
+        /// <exception cref="TransportFailureException"></exception>
+        public override IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
             var request = operation.Write();
             byte[] response = null;
@@ -128,7 +71,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, Identity, _connection.Identity, e);
                 HandleException(e, operation);
             }
             finally
@@ -143,7 +86,13 @@ namespace Couchbase.IO.Services
             return operation.GetResultWithValue();//might have to handle a special null case her
         }
 
-        public IOperationResult Execute(IOperation operation)
+        /// <summary>
+        /// Executes the specified operation.
+        /// </summary>
+        /// <param name="operation">The operation.</param>
+        /// <returns></returns>
+        /// <exception cref="TransportFailureException"></exception>
+        public override IOperationResult Execute(IOperation operation)
         {
             var request = operation.Write();
             byte[] response = null;
@@ -161,7 +110,7 @@ namespace Couchbase.IO.Services
             }
             catch (Exception e)
             {
-                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, _connection.Identity, e);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, Identity, _connection.Identity, e);
                 HandleException(e, operation);
             }
             finally
@@ -176,189 +125,114 @@ namespace Couchbase.IO.Services
             return operation.GetResult();
         }
 
-        public async Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
-        {
-            ExceptionDispatchInfo capturedException = null;
-            try
-            {
-                if (connection.IsConnected)
-                {
-                    var request = await operation.WriteAsync().ContinueOnAnyContext();
-                    connection.SendAsync(request, operation.Completed);
-                }
-                else
-                {
-                    throw new TransportFailureException(ExceptionUtil.GetMessage(ExceptionUtil.NotConnectedMsg, EndPoint));
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, connection.Identity, e);
-                capturedException = ExceptionDispatchInfo.Capture(e);
-            }
-            finally
-            {
-                if (_connection.IsDead)
-                {
-                    CheckConnection();
-                }
-            }
-
-            if (capturedException != null)
-            {
-                await HandleException(capturedException, operation, EndPoint);
-            }
-        }
-
-        public Task ExecuteAsync<T>(IOperation<T> operation)
-        {
-            return ExecuteAsync(operation, _connection);
-        }
-
-        public async Task ExecuteAsync(IOperation operation, IConnection connection)
-        {
-            ExceptionDispatchInfo capturedException = null;
-            try
-            {
-                if (connection.IsConnected)
-                {
-                    var request = await operation.WriteAsync().ContinueOnAnyContext();
-                    connection.SendAsync(request, operation.Completed);
-                }
-                else
-                {
-                    throw new TransportFailureException(ExceptionUtil.GetMessage(ExceptionUtil.NotConnectedMsg, EndPoint));
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, _identity, connection.Identity, e);
-                capturedException = ExceptionDispatchInfo.Capture(e);
-            }
-            finally
-            {
-                if (_connection.IsDead)
-                {
-                    CheckConnection();
-                }
-            }
-
-            if (capturedException != null)
-            {
-                await HandleException(capturedException, operation, EndPoint);
-            }
-        }
-
-        public Task ExecuteAsync(IOperation operation)
-        {
-            return ExecuteAsync(operation, _connection);
-        }
-
-        private static async Task HandleException(ExceptionDispatchInfo capturedException, IOperation operation, IPEndPoint endPoint)
-        {
-            var sourceException = capturedException.SourceException;
-            var status = ResponseStatus.ClientFailure;
-            if (sourceException is SocketException ||
-                sourceException is TransportFailureException ||
-                sourceException is SendTimeoutExpiredException)
-            {
-                status = ResponseStatus.TransportFailure;
-            }
-            else if (sourceException is AuthenticationException)
-            {
-                status = ResponseStatus.AuthenticationError;
-            }
-
-            await operation.Completed(new SocketAsyncState
-            {
-                Exception = sourceException,
-                Opaque = operation.Opaque,
-                Status = status,
-                EndPoint = endPoint
-            }).ContinueOnAnyContext();
-        }
-
-        private static void HandleException(Exception capturedException, IOperation operation)
-        {
-            var status = ResponseStatus.ClientFailure;
-            if (capturedException is SocketException ||
-                capturedException is TransportFailureException ||
-                capturedException is SendTimeoutExpiredException)
-            {
-                status = ResponseStatus.TransportFailure;
-            }
-            else if (capturedException is AuthenticationException)
-            {
-                status = ResponseStatus.AuthenticationError;
-            }
-            operation.Exception = capturedException;
-            operation.HandleClientError(capturedException.Message, status);
-        }
-
         /// <summary>
-        /// Send request to server to try and enable server features.
+        /// Executes the asynchronous.
         /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation">The operation.</param>
         /// <param name="connection">The connection.</param>
-        private void EnableServerFeatures(IConnection connection)
+        /// <returns></returns>
+        /// <exception cref="TransportFailureException"></exception>
+        public override async Task ExecuteAsync<T>(IOperation<T> operation, IConnection connection)
         {
-            var features = new List<short>
+            ExceptionDispatchInfo capturedException = null;
+            try
             {
-                (short) ServerFeatures.SubdocXAttributes,
-                (short) ServerFeatures.SelectBucket
-            };
-
-            if (ConnectionPool.Configuration.UseEnhancedDurability)
-            {
-                features.Add((short) ServerFeatures.MutationSeqno);
-            }
-            if (ConnectionPool.Configuration.UseKvErrorMap)
-            {
-                features.Add((short) ServerFeatures.XError);
-            }
-
-            var transcoder = new DefaultTranscoder();
-            var hello = new Hello(features.ToArray(), transcoder, 0, 0);
-
-            var result = Execute(hello, connection);
-            if (result.Success)
-            {
-                SupportsEnhancedDurability = result.Value.Contains((short) ServerFeatures.MutationSeqno);
-                SupportsSubdocXAttributes = result.Value.Contains((short) ServerFeatures.SubdocXAttributes);
-                SupportsEnhancedAuthentication = result.Value.Contains((short) ServerFeatures.SelectBucket);
-                SupportsKvErrorMap = result.Value.Contains((short) ServerFeatures.XError);
-
-                if (SupportsKvErrorMap)
+                if (connection.IsConnected)
                 {
-                    var errorMapResult = Execute(new GetErrorMap(transcoder, 0), connection);
-                    if (!errorMapResult.Success)
-                    {
-                        throw new Exception("Error retrieving error map. Cluster indicated it was available.");
-                    }
-
-                    ErrorMap = errorMapResult.Value;
+                    var request = await operation.WriteAsync().ContinueOnAnyContext();
+                    connection.SendAsync(request, operation.Completed);
+                }
+                else
+                {
+                    throw new TransportFailureException(ExceptionUtil.GetMessage(ExceptionUtil.NotConnectedMsg, EndPoint));
                 }
             }
-            else
+            catch (Exception e)
             {
-                LogFailedHelloOperation(result);
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, Identity, connection.Identity, e);
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                if (_connection.IsDead)
+                {
+                    CheckConnection();
+                }
+            }
+
+            if (capturedException != null)
+            {
+                await HandleException(capturedException, operation, EndPoint);
             }
         }
 
         /// <summary>
-        /// Logs a failed HELO operation
+        /// Executes the asynchronous.
         /// </summary>
-        /// <param name="result"></param>
-        private static void LogFailedHelloOperation(IResult result)
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation">The operation.</param>
+        /// <returns></returns>
+        public override Task ExecuteAsync<T>(IOperation<T> operation)
         {
-            Log.Info("Error when trying to execute HELO operation - {0} - {1}", result.Message, result.Exception);
+            return ExecuteAsync(operation, _connection);
         }
 
+        /// <summary>
+        /// Executes the asynchronous.
+        /// </summary>
+        /// <param name="operation">The operation.</param>
+        /// <param name="connection">The connection.</param>
+        /// <returns></returns>
+        /// <exception cref="TransportFailureException"></exception>
+        public override async Task ExecuteAsync(IOperation operation, IConnection connection)
+        {
+            ExceptionDispatchInfo capturedException = null;
+            try
+            {
+                if (connection.IsConnected)
+                {
+                    var request = await operation.WriteAsync().ContinueOnAnyContext();
+                    connection.SendAsync(request, operation.Completed);
+                }
+                else
+                {
+                    throw new TransportFailureException(ExceptionUtil.GetMessage(ExceptionUtil.NotConnectedMsg, EndPoint));
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info("Endpoint: {0} - {1} - {2} {3}", EndPoint, Identity, connection.Identity, e);
+                capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                if (_connection.IsDead)
+                {
+                    CheckConnection();
+                }
+            }
+
+            if (capturedException != null)
+            {
+                await HandleException(capturedException, operation, EndPoint);
+            }
+        }
+
+        public override Task ExecuteAsync(IOperation operation)
+        {
+            return ExecuteAsync(operation, _connection);
+        }
+
+        /// <summary>
+        /// Checks the connection.
+        /// </summary>
         void CheckConnection()
         {
             var lockTaken = false;
             try
             {
-                Monitor.TryEnter(_syncObj, ref lockTaken);
+                Monitor.TryEnter(SyncObj, ref lockTaken);
                 if (!lockTaken) return;
                 IConnection connection = null;
                 try
@@ -368,9 +242,9 @@ namespace Couchbase.IO.Services
                     {
                         Log.Info("Trying to acquire a new connection for {0}", _connection.Identity,
                             _connection.IsDead);
-                        _connectionPool.Release(_connection);
+                        ConnectionPool.Release(_connection);
 
-                        connection = _connectionPool.Acquire();
+                        connection = ConnectionPool.Acquire();
                         Log.Info("Exchanging {0} for {1}", _connection.Identity, connection.Identity);
                         Interlocked.Exchange(ref _connection, connection);
 
@@ -382,7 +256,7 @@ namespace Couchbase.IO.Services
                     if (connection != null)
                     {
                         connection.IsDead = true;
-                        _connectionPool.Release(connection);
+                        ConnectionPool.Release(connection);
                         Log.Info("Connection {0} {1}", _connection.Identity, e);
                     }
                 }
@@ -391,7 +265,7 @@ namespace Couchbase.IO.Services
             {
                 if (lockTaken)
                 {
-                    Monitor.Exit(_syncObj);
+                    Monitor.Exit(SyncObj);
                 }
             }
         }
@@ -399,9 +273,9 @@ namespace Couchbase.IO.Services
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
-            Log.Info("Disposing IOService for {0} - {1}", EndPoint, _identity);
+            Log.Info("Disposing IOService for {0} - {1}", EndPoint, Identity);
             Dispose(true);
         }
 
@@ -414,22 +288,19 @@ namespace Couchbase.IO.Services
                 {
                     GC.SuppressFinalize(this);
                 }
-                if (_connectionPool != null)
+                if (ConnectionPool != null)
                 {
-                    _connectionPool.Release(_connection);
-                    _connectionPool.Dispose();
+                    ConnectionPool.Release(_connection);
+                    ConnectionPool.Dispose();
                 }
-                if (_resetEvent != null)
-                {
-                    _resetEvent.Dispose();
-                }
+                _resetEvent?.Dispose();
             }
         }
 
 #if DEBUG
         ~MultiplexingIOService()
         {
-            Log.Info("Finalizing IOService for {0} - {1}", EndPoint, _identity);
+            Log.Info("Finalizing IOService for {0} - {1}", EndPoint, Identity);
             Dispose(false);
         }
 #endif

@@ -157,11 +157,9 @@ namespace Couchbase.Core
             EnqueueConfigForProcessing(bucketConfig);
         }
 
-        public IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null)
+        private KeyValuePair<string, string> ResolveCredentials(string bucketName, string password, IAuthenticator authenticator = null)
         {
             var username = bucketName;
-            var password = string.Empty;
-
             if (authenticator == null)
             {
                 //try to find a password in configuration
@@ -198,10 +196,15 @@ namespace Couchbase.Core
                 }
             }
 
-            return CreateBucket(bucketName, username, password, authenticator);
+            return new KeyValuePair<string, string>(username ?? bucketName, password);
         }
 
-        public IBucket CreateBucket(string bucketName, string username, string password, IAuthenticator authenticator = null)
+        public IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null)
+        {
+            return CreateBucket(bucketName, null, authenticator);
+        }
+
+        public IBucket CreateBucket(string bucketName, string password, IAuthenticator authenticator = null)
         {
             var exceptions = new List<Exception>();
             lock (_syncObject)
@@ -215,21 +218,19 @@ namespace Couchbase.Core
                         Log.Debug("Bootstraping was already done, returning existing bucket {0}", bucketName);
                         return existingBucket; // This is the only short circuit. All other cases fall through to bootstrapping.
                     }
-                    else
-                    {
-                        Log.Debug("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
-                        DestroyBucket(existingBucket);
-                    }
+                    Log.Debug("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
+                    DestroyBucket(existingBucket);
                 }
                 //otherwise bootstrap a new bucket
                 var success = false;
+                var credentials = ResolveCredentials(bucketName, password, authenticator);
                 IBucket bucket = null;
                 foreach (var provider in _configProviders)
                 {
                     try
                     {
                         Log.Debug("Trying to bootstrap with {0}.", provider);
-                        var config = provider.GetConfig(bucketName, username, password);
+                        var config = provider.GetConfig(bucketName, credentials.Key, credentials.Value);
                         IRefCountable refCountable = null;
                         switch (config.NodeLocator)
                         {

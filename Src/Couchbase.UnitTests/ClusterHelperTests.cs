@@ -36,6 +36,28 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(config.Authenticator, ClusterHelper.Get().Configuration.Authenticator);
         }
 
+        [Test]
+        public void Cluster_Uses_Provided_Authenticator_When_Passed_To_Initialize()
+        {
+            var config = new ClientConfiguration();
+            ClusterHelper.Initialize(config, new PasswordAuthenticator("username", "password"));
+
+            var authenticator = ClusterHelper.Get().Configuration.Authenticator;
+            Assert.AreEqual(config.Authenticator, authenticator);
+        }
+
+        [Test]
+        public void Cluster_Uses_Provided_Authenticator_When_Passed_To_SetAuthenticator()
+        {
+            var config = new ClientConfiguration();
+            config.SetAuthenticator(new PasswordAuthenticator("username", "password"));
+
+            ClusterHelper.Initialize(config);
+
+            var authenticator = ClusterHelper.Get().Configuration.Authenticator;
+            Assert.AreEqual(config.Authenticator, authenticator);
+        }
+
         [TearDown]
         public void TearDown()
         {

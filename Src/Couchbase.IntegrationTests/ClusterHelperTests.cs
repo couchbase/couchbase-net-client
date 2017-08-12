@@ -137,8 +137,12 @@ namespace Couchbase.IntegrationTests
 
         static void OpenBucket()
         {
-            var bucket1 = ClusterHelper.GetBucket("default");
-            TwoThreadsCompleted.Signal();
+            try
+            {
+                var bucket1 = ClusterHelper.GetBucket("default");
+            }
+            catch (Exception e) { Console.WriteLine(e); }
+            finally { TwoThreadsCompleted.Signal(); }
         }
 
         [Test]
@@ -210,6 +214,49 @@ namespace Couchbase.IntegrationTests
                 var bucket = ClusterHelper.GetBucket("authenticated");
                 Assert.IsNotNull(bucket);
                 Assert.AreEqual("authenticated", bucket.Name);
+            }
+            finally
+            {
+                ClusterHelper.Close();
+            }
+        }
+
+        [Test]
+        [Ignore("Only works with CB 5.0 or greater.")]
+        public void Initialize_Using_PasswordAuthenticator()
+        {
+            try
+            {
+                var config = TestConfiguration.GetDefaultConfiguration();
+                var authenticator = new PasswordAuthenticator("myuser", "myuserpassword");
+
+                ClusterHelper.Initialize(config, authenticator);
+                var bucket = ClusterHelper.GetBucket("default");
+
+                Assert.IsNotNull(bucket);
+                Assert.AreEqual("default", bucket.Name);
+            }
+            finally
+            {
+                ClusterHelper.Close();
+            }
+        }
+
+        [Test]
+        [Ignore("Only works with CB 5.0 or greater.")]
+        public void SetAuthenticator_Using_PasswordAuthenticator()
+        {
+            try
+            {
+                var config = TestConfiguration.GetDefaultConfiguration();
+                var authenticator = new PasswordAuthenticator("myuser", "myuserpassword");
+                config.SetAuthenticator(authenticator);
+
+                ClusterHelper.Initialize(config);
+                var bucket = ClusterHelper.GetBucket("default");
+
+                Assert.IsNotNull(bucket);
+                Assert.AreEqual("default", bucket.Name);
             }
             finally
             {

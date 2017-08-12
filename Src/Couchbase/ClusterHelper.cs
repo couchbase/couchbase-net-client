@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 
@@ -169,6 +170,38 @@ namespace Couchbase
 
             configuration.Initialize();
             var factory = new Func<Cluster>(() => new Cluster(configuration));
+            Initialize(factory);
+        }
+
+        /// <summary>
+        /// Creates a Cluster instance.
+        /// </summary>
+        /// <param name="configuration">
+        /// The ClientConfiguration to use when initialize the internal ClusterManager
+        /// </param>
+        /// <param name="authenticator">The <see cref="IAuthenticator"/> for auethenticating against the cluster.
+        /// Use a <see cref="PasswordAuthenticator"/> for RBAC in Couchbase Server 5.0 and greater.</param>
+        /// <remarks>
+        /// This is an heavy-weight object intended to be long-lived. Create one per process or App.Domain.
+        /// </remarks>
+        public static void Initialize(ClientConfiguration configuration, IAuthenticator authenticator)
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException("configuration");
+            }
+            if (authenticator == null)
+            {
+                throw new ArgumentNullException("authenticator");
+            }
+
+            configuration.Initialize();
+            var factory = new Func<Cluster>(() =>
+            {
+                var cluster = new Cluster(configuration);
+                cluster.Authenticate(authenticator);
+                return cluster;
+            });
             Initialize(factory);
         }
 

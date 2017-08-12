@@ -143,7 +143,11 @@ namespace Couchbase.IO
         /// <value>
         /// <c>true</c> if the server supports enhanced authentication; otherwise, <c>false</c>.
         /// </value>
-        public bool SupportsEnhancedAuthentication { get; set; }
+        public bool SupportsEnhancedAuthentication
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Enables enhanced authentication for RBAC on a connection.

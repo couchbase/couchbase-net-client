@@ -31,7 +31,7 @@ namespace Couchbase.Core
 
         IBucket CreateBucket(string bucketName, IAuthenticator authenticator = null);
 
-        IBucket CreateBucket(string bucketName, string username, string password, IAuthenticator authenticator = null);
+        IBucket CreateBucket(string bucketName, string password, IAuthenticator authenticator = null);
 
         void DestroyBucket(IBucket bucket);
 

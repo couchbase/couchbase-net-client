@@ -1066,7 +1066,7 @@ namespace Couchbase.Configuration.Client
             }
         }
 
-        internal void SetAuthenticator(IAuthenticator authenticator)
+        public void SetAuthenticator(IAuthenticator authenticator)
         {
             if (authenticator == null)
             {
