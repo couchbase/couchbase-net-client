@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
@@ -10,6 +10,7 @@ using Couchbase.Authentication;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Serialization;
 using Couchbase.Views;
 using Couchbase.Utils;
 
@@ -24,6 +25,7 @@ namespace Couchbase.N1QL
         // ReSharper disable once InconsistentNaming
         internal static readonly string ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND = "queryport.indexNotFound";
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
+        private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
 
         public QueryClient(HttpClient httpClient, IDataMapper dataMapper,  ClientConfiguration clientConfig)
             : this(httpClient,dataMapper, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
@@ -84,6 +86,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
+            query.DataMapper = _queryPlanDataMapper;
             return ExecuteQuery<QueryPlan>(query);
         }
 
@@ -108,6 +111,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
+            query.DataMapper = _queryPlanDataMapper;
             return await ExecuteQueryAsync<QueryPlan>(query, cancellationToken).ContinueOnAnyContext();
         }
 
