@@ -14,11 +14,11 @@ namespace Couchbase.N1QL
     /// This class makes sure it gets deserialized with the DefaultSerializer instead of the
     /// one passed in via the ClientConfiguration.
     /// </summary>
-    internal class QueryDataMapper : IDataMapper
+    internal class QueryPlanDataMapper : IDataMapper
     {
         private readonly ITypeSerializer _serializer;
 
-        public QueryDataMapper()
+        public QueryPlanDataMapper()
         {
             _serializer = SerializerFactory.GetSerializer()();
         }
