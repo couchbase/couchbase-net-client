@@ -87,7 +87,7 @@ namespace Couchbase.Configuration.Client
         }
 
         public PoolConfiguration(int maxSize, int minSize, int waitTimeout, int receiveTimeout, int shutdownTimeout,
-            int operationTimeout, int maxAcquireIterationCount, int connectTimeout, ClientConfiguration clientConfiguration = null)
+            int operationTimeout, int maxAcquireIterationCount, int connectTimeout, string bucketName, ClientConfiguration clientConfiguration = null)
         {
             //todo enable app.configuration
             ValidateConnectionValues(maxSize, minSize);
@@ -110,6 +110,7 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = (uint)1000;
             CloseAttemptInterval = 100u;
             MaxCloseAttempts = 5;
+            BucketName = bucketName;
         }
 
         /// <summary>
@@ -295,7 +296,7 @@ namespace Couchbase.Configuration.Client
 #pragma warning disable 612, 618
             return new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout,
                 ShutdownTimeout, OperationTimeout, MaxAcquireIterationCount,
-                ConnectTimeout, ClientConfiguration)
+                ConnectTimeout, BucketName, ClientConfiguration)
 #pragma warning restore 612, 618
             {
                 Uri = uri,
@@ -309,7 +310,9 @@ namespace Couchbase.Configuration.Client
                 UseSsl = UseSsl,
                 TcpKeepAliveTime = TcpKeepAliveTime,
                 EnableTcpKeepAlives = EnableTcpKeepAlives,
-                TcpKeepAliveInterval = TcpKeepAliveInterval
+                TcpKeepAliveInterval = TcpKeepAliveInterval,
+                ClientConfiguration = ClientConfiguration,
+                BucketName = BucketName
             };
         }
 

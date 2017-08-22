@@ -27,7 +27,8 @@ namespace Couchbase.UnitTests.Configuration.Client
             var poolConfig = new PoolConfiguration
             {
                 MaxSize = 10,
-                MinSize = 5
+                MinSize = 5,
+                BucketName = "default"
             };
 
             var clonedConfig = poolConfig.Clone(new Uri("http://test.com"));
@@ -35,6 +36,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.IsNotNull(clonedConfig);
             Assert.AreEqual(poolConfig.MaxSize, clonedConfig.MaxSize);
             Assert.AreEqual(poolConfig.MinSize, clonedConfig.MinSize);
+            Assert.AreEqual(poolConfig.BucketName, clonedConfig.BucketName);
         }
     }
 }

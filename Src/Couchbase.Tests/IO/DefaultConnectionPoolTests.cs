@@ -29,13 +29,14 @@ namespace Couchbase.Tests.IO
         private readonly string _address = ConfigurationManager.AppSettings["OperationTestAddress"];
         private const int MaxConnectionAcquireCount = 10;
         private const int ConnectTimeout = 5000;
+        private const string BucketName = "default";
 
         [SetUp]
         public void SetUp()
         {
             var ipEndpoint = UriExtensions.GetEndPoint(_address);
             var factory = DefaultConnectionFactory.GetGeneric<Connection>();
-            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount);
+            _configuration = new PoolConfiguration(MaxSize, MinSize, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount, BucketName);
             _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factory, new DefaultConverter());
             _connectionPool.Initialize();
         }
@@ -76,7 +77,7 @@ namespace Couchbase.Tests.IO
                     return new Connection(a, socket, b, c);
                 });
 
-            _configuration = new PoolConfiguration(MaxSize, 1, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount);
+            _configuration = new PoolConfiguration(MaxSize, 1, WaitTimeout, RecieveTimeout, ShutdownTimeout, SendTimeout, ConnectTimeout, MaxConnectionAcquireCount, BucketName);
             _connectionPool = new ConnectionPool<Connection>(_configuration, ipEndpoint, factoryWithDelay, new DefaultConverter());
             _connectionPool.Initialize();
 
