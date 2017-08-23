@@ -84,6 +84,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
+            query.DataMapper = new QueryPlanDataMapper();
             return ExecuteQuery<QueryPlan>(query);
         }
 
@@ -108,6 +109,7 @@ namespace Couchbase.N1QL
             }
             var query = new QueryRequest(statement);
             query.BaseUri(toPrepare.GetBaseUri());
+            query.DataMapper = new QueryPlanDataMapper();
             return await ExecuteQueryAsync<QueryPlan>(query, cancellationToken).ContinueOnAnyContext();
         }
 
