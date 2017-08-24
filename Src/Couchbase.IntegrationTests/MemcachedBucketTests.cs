@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
@@ -16,111 +16,97 @@ namespace Couchbase.IntegrationTests
     public class MemcachedBucketTests
     {
         private ICluster _cluster;
+        private IBucket _bucket;
 
         [OneTimeSetUp]
         public void SetUp()
         {
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             _cluster = new Cluster(config);
-            _cluster.OpenBucket("memcached"); // load memcached bucket before tests run
+            _bucket = _cluster.OpenBucket("memcached");
         }
 
         [Test]
         public void Replace_DocumentDoesNotExistException()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                //setup
-                var key = "Replace_DocumentDoesNotExistException";
-                bucket.Remove(new Document<dynamic> {Id = key});
 
-                //act
-                var result = bucket.Replace(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+            //setup
+            var key = "Replace_DocumentDoesNotExistException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
 
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
-            }
+            //act
+            var result = _bucket.Replace(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
         }
 
         [Test]
         public async Task ReplaceAsync_DocumentDoesNotExistException()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                //setup
-                var key = "ReplaceAsync_DocumentDoesNotExistException";
-                bucket.Remove(new Document<dynamic> {Id = key});
+            //setup
+            var key = "ReplaceAsync_DocumentDoesNotExistException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
 
-                //act
-                var result = await bucket.ReplaceAsync(new Document<dynamic> {Id = key, Content = new {name = "foo"}})
-                        .ContinueOnAnyContext();
+            //act
+            var result = await _bucket.ReplaceAsync(new Document<dynamic> {Id = key, Content = new {name = "foo"}})
+                .ContinueOnAnyContext();
 
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
-            }
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentDoesNotExistException));
         }
 
         [Test]
         public void Insert_DocumentAlreadyExistsException()
         {
+            //setup
+            var key = "Insert_DocumentAlreadyExistsException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
+            _bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
 
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                //setup
-                var key = "Insert_DocumentAlreadyExistsException";
-                bucket.Remove(new Document<dynamic> {Id = key});
-                bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+            //act
+            var result = _bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
 
-                //act
-                var result = bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
-
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
-            }
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
         }
 
         [Test]
         public async Task InsertAsync_DocumentAlreadyExistsException()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                //setup
-                var key = "Insert_DocumentAlreadyExistsException";
-                bucket.Remove(new Document<dynamic> {Id = key});
-                bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+            //setup
+            var key = "Insert_DocumentAlreadyExistsException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
+            _bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
 
-                //act
-                var result = await bucket.InsertAsync(new Document<dynamic> {Id = key, Content = new {name = "foo"}})
-                        .ContinueOnAnyContext();
+            //act
+            var result = await _bucket.InsertAsync(new Document<dynamic> {Id = key, Content = new {name = "foo"}})
+                .ContinueOnAnyContext();
 
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
-            }
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(DocumentAlreadyExistsException));
         }
 
         [Test]
         public void Replace_WithCasAndMutated_CasMismatchException()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            //setup
+            var key = "ReplaceWithCas_CasMismatchException";
+            _bucket.Remove(new Document<dynamic> {Id = key});
+
+            var docWithCas = _bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+            _bucket.Upsert(new Document<dynamic> {Id = key, Content = new {name = "foochanged!"}});
+
+            //act
+            var result = _bucket.Replace(new Document<dynamic>
             {
-                //setup
-                var key = "ReplaceWithCas_CasMismatchException";
-                bucket.Remove(new Document<dynamic> {Id = key});
+                Id = key,
+                Content = new {name = "foobarr"},
+                Cas = docWithCas.Document.Cas
+            });
 
-                var docWithCas = bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
-                bucket.Upsert(new Document<dynamic> {Id = key, Content = new {name = "foochanged!"}});
-
-                //act
-                var result = bucket.Replace(new Document<dynamic>
-                {
-                    Id = key,
-                    Content = new {name = "foobarr"},
-                    Cas = docWithCas.Document.Cas
-                });
-
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
-            }
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
         }
 
         [Test]
@@ -128,44 +114,35 @@ namespace Couchbase.IntegrationTests
         {
             //setup
             var key = "ReplaceWithCas_CasMismatchException";
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            _bucket.Remove(new Document<dynamic> {Id = key});
+
+            var docWithCas = _bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
+            _bucket.Upsert(new Document<dynamic> {Id = key, Content = new {name = "foochanged!"}});
+
+            //act
+            var result = await _bucket.ReplaceAsync(new Document<dynamic>
             {
-                bucket.Remove(new Document<dynamic> {Id = key});
+                Id = key,
+                Content = new {name = "foobarr"},
+                Cas = docWithCas.Document.Cas
+            }).ContinueOnAnyContext();
 
-                var docWithCas = bucket.Insert(new Document<dynamic> {Id = key, Content = new {name = "foo"}});
-                bucket.Upsert(new Document<dynamic> {Id = key, Content = new {name = "foochanged!"}});
-
-                //act
-                var result = await bucket.ReplaceAsync(new Document<dynamic>
-                {
-                    Id = key,
-                    Content = new {name = "foobarr"},
-                    Cas = docWithCas.Document.Cas
-                }).ContinueOnAnyContext();
-
-                //assert
-                Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
-            }
+            //assert
+            Assert.AreEqual(result.Exception.GetType(), typeof(CasMismatchException));
         }
 
         [Test]
         public void Test_OpenBucket()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                Assert.IsNotNull(bucket);
-            }
+            Assert.IsNotNull(_bucket);
         }
 
         [Test]
         public void When_Key_Does_Not_Exist_Exists_Returns_False()
         {
             var key = "thekeythatdoesnotexists_perhaps";
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var result = bucket.Exists(key);
-                Assert.IsFalse(result);
-            }
+            var result = _bucket.Exists(key);
+            Assert.IsFalse(result);
         }
 
         [Test]
@@ -181,12 +158,10 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-
         [Test]
         public void Test_That_OpenBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
         {
             var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
-
             Assert.True(ex.InnerExceptions.OfType<AuthenticationException>().Any());
         }
 
@@ -197,15 +172,12 @@ namespace Couchbase.IntegrationTests
             const string key = "memkey1";
             const string value = "somedata";
 
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var result = bucket.Upsert(key, value);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-                Assert.AreEqual(string.Empty, result.Message);
-                Assert.AreEqual(string.Empty, result.Value);
-                Assert.Greater(result.Cas, zero);
-            }
+            var result = _bucket.Upsert(key, value);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(string.Empty, result.Message);
+            Assert.AreEqual(string.Empty, result.Value);
+            Assert.Greater(result.Cas, zero);
         }
 
         [Test]
@@ -215,353 +187,287 @@ namespace Couchbase.IntegrationTests
             const string key = "memkey1";
             const string value = "somedata";
 
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Upsert(key, value);
-                var result = bucket.Get<string>(key);
+            _bucket.Upsert(key, value);
+            var result = _bucket.Get<string>(key);
 
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-                Assert.AreEqual(string.Empty, result.Message);
-                Assert.AreEqual(value, result.Value);
-                Assert.Greater(result.Cas, zero);
-            }
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(string.Empty, result.Message);
+            Assert.AreEqual(value, result.Value);
+            Assert.Greater(result.Cas, zero);
         }
 
         [Test]
         public void When_Key_Does_Not_Exist_Replace_Fails()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                const string key = "When_Key_Does_Not_Exist_Replace_Fails";
-                var value = new { P1 = "p1" };
-                var result = bucket.Replace(key, value);
-                Assert.IsFalse(result.Success);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
-            }
+            const string key = "When_Key_Does_Not_Exist_Replace_Fails";
+            var value = new {P1 = "p1"};
+            var result = _bucket.Replace(key, value);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
 
         [Test]
         public void When_Key_Exists_Replace_Succeeds()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                const string key = "When_Key_Exists_Replace_Succeeds";
-                var value = new { P1 = "p1" };
-                bucket.Upsert(key, value);
+            const string key = "When_Key_Exists_Replace_Succeeds";
+            var value = new {P1 = "p1"};
+            _bucket.Upsert(key, value);
 
-                var result = bucket.Replace(key, value);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(ResponseStatus.Success, result.Status);
-            }
+            var result = _bucket.Replace(key, value);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
         }
 
         [Test]
         public void When_Cas_Has_Changed_Replace_Fails()
         {
             const string key = "CouchbaseBucket.When_Cas_Has_Changed_Replace_Fails";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var set = bucket.Insert(key, "value");
-                Assert.IsTrue(set.Success);
+            _bucket.Remove(key);
+            var set = _bucket.Insert(key, "value");
+            Assert.IsTrue(set.Success);
 
-                var upsert = bucket.Upsert(key, "newvalue");
-                Assert.IsTrue(upsert.Success);
+            var upsert = _bucket.Upsert(key, "newvalue");
+            Assert.IsTrue(upsert.Success);
 
-                var replace = bucket.Replace(key, "should fail", set.Cas);
-                Assert.IsFalse(replace.Success);
-            }
+            var replace = _bucket.Replace(key, "should fail", set.Cas);
+            Assert.IsFalse(replace.Success);
         }
 
         [Test]
         public void When_Cas_Has_Not_Changed_Replace_Succeeds()
         {
             const string key = "CouchbaseBucket.When_Cas_Has_Not_Changed_Replace_Succeeds";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var set = bucket.Insert(key, "value");
-                Assert.IsTrue(set.Success);
+            _bucket.Remove(key);
+            var set = _bucket.Insert(key, "value");
+            Assert.IsTrue(set.Success);
 
-                var get = bucket.Get<string>(key);
-                Assert.AreEqual(get.Cas, set.Cas);
+            var get = _bucket.Get<string>(key);
+            Assert.AreEqual(get.Cas, set.Cas);
 
-                var replace = bucket.Replace(key, "should succeed", get.Cas);
-                Assert.True(replace.Success);
+            var replace = _bucket.Replace(key, "should succeed", get.Cas);
+            Assert.True(replace.Success);
 
-                get = bucket.Get<string>(key);
-                Assert.AreEqual("should succeed", get.Value);
-            }
+            get = _bucket.Get<string>(key);
+            Assert.AreEqual("should succeed", get.Value);
         }
 
         [Test]
         public void When_Key_Exists_Delete_Returns_Success()
         {
             const string key = "When_Key_Exists_Delete_Returns_Success";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Upsert(key, new { Foo = "foo" });
-                var result = bucket.Remove(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(result.Status, ResponseStatus.Success);
-            }
+            _bucket.Upsert(key, new {Foo = "foo"});
+            var result = _bucket.Remove(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(result.Status, ResponseStatus.Success);
         }
 
         [Test]
         public void When_Key_Does_Not_Exist_Delete_Returns_Success()
         {
             const string key = "When_Key_Does_Not_Exist_Delete_Returns_Success";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var result = bucket.Remove(key);
-                Assert.IsFalse(result.Success);
-                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
-            }
+            var result = _bucket.Remove(key);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
         }
 
         [Test]
         public void Test_Upsert()
         {
             const string key = "Test_Upsert";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var expDoc1 = new { Bar = "Bar1" };
-                var expDoc2 = new { Bar = "Bar2" };
+            var expDoc1 = new {Bar = "Bar1"};
+            var expDoc2 = new {Bar = "Bar2"};
 
-                bucket.Remove(key);
-                var result = bucket.Upsert(key, expDoc1);
-                Assert.IsTrue(result.Success);
+            _bucket.Remove(key);
+            var result = _bucket.Upsert(key, expDoc1);
+            Assert.IsTrue(result.Success);
 
-                var result1 = bucket.Get<dynamic>(key);
-                Assert.IsTrue(result1.Success);
+            var result1 = _bucket.Get<dynamic>(key);
+            Assert.IsTrue(result1.Success);
 
-                var actDoc1 = result1.Value;
-                Assert.AreEqual(expDoc1.Bar, actDoc1.bar.Value);
+            var actDoc1 = result1.Value;
+            Assert.AreEqual(expDoc1.Bar, actDoc1.bar.Value);
 
-                var result2 = bucket.Upsert(key, expDoc2);
-                Assert.IsTrue(result2.Success);
+            var result2 = _bucket.Upsert(key, expDoc2);
+            Assert.IsTrue(result2.Success);
 
-                var result3 = bucket.Get<dynamic>(key);
-                Assert.IsTrue(result3.Success);
+            var result3 = _bucket.Get<dynamic>(key);
+            Assert.IsTrue(result3.Success);
 
-                var actDoc2 = result3.Value;
-                Assert.AreEqual(expDoc2.Bar, actDoc2.bar.Value);
-            }
+            var actDoc2 = result3.Value;
+            Assert.AreEqual(expDoc2.Bar, actDoc2.bar.Value);
         }
 
         [Test]
         public void When_KeyExists_Insert_Fails()
         {
             const string key = "When_KeyExists_Insert_Fails";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                dynamic doc = new { Bar = "Bar1" };
-                var result = bucket.Upsert(key, doc);
-                Assert.IsTrue(result.Success);
+            dynamic doc = new {Bar = "Bar1"};
+            var result = _bucket.Upsert(key, doc);
+            Assert.IsTrue(result.Success);
 
-                //Act
-                var result1 = bucket.Insert(key, doc);
+            //Act
+            var result1 = _bucket.Insert(key, doc);
 
-                //Assert
-                Assert.IsFalse(result1.Success);
-                Assert.AreEqual(result1.Status, ResponseStatus.KeyExists);
-            }
+            //Assert
+            Assert.IsFalse(result1.Success);
+            Assert.AreEqual(result1.Status, ResponseStatus.KeyExists);
         }
 
         [Test]
         public void When_Key_Does_Not_Exist_Insert_Succeeds()
         {
             const string key = "When_Key_Does_Not_Exist_Insert_Fails";
-            using (var bucket = _cluster.OpenBucket())
-            {
-                //Arrange - delete key if it exists
-                bucket.Remove(key);
+            //Arrange - delete key if it exists
+            _bucket.Remove(key);
 
-                //Act
-                var result1 = bucket.Insert(key, new { Bar = "somebar" });
+            //Act
+            var result1 = _bucket.Insert(key, new {Bar = "somebar"});
 
-                //Assert
-                Assert.IsTrue(result1.Success);
-                Assert.AreEqual(result1.Status, ResponseStatus.Success);
-            }
+            //Assert
+            Assert.IsTrue(result1.Success);
+            Assert.AreEqual(result1.Status, ResponseStatus.Success);
         }
 
         [Test]
         public void When_Query_Called_On_Memcached_Bucket_With_N1QL_NotSupportedException_Is_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
+            const string query = "SELECT * FROM tutorial WHERE fname = 'Ian'";
 
-                Assert.Throws<NotSupportedException>(() => bucket.Query<dynamic>(query));
-            }
+            Assert.Throws<NotSupportedException>(() => _bucket.Query<dynamic>(query));
         }
 
         [Test]
         public void When_Query_Called_On_Memcached_Bucket_With_ViewQuery_NotSupportedException_Is_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var query = new ViewQuery();
+            var query = new ViewQuery();
 
-                Assert.Throws<NotSupportedException>(() => bucket.Query<dynamic>(query));
-            }
+            Assert.Throws<NotSupportedException>(() => _bucket.Query<dynamic>(query));
         }
 
         [Test]
         public void When_CreateQuery_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view", true));
-            }
+            Assert.Throws<NotSupportedException>(() => _bucket.CreateQuery("designdoc", "view", true));
         }
 
         [Test]
         public void When_CreateQuery2_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var ex = Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view"));
-            }
+            var ex = Assert.Throws<NotSupportedException>(() => _bucket.CreateQuery("designdoc", "view"));
         }
 
         [Test]
         public void When_CreateQuery3_Called_On_Memcached_Bucket_NotSupportedException_Is_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var ex = Assert.Throws<NotSupportedException>(() => bucket.CreateQuery("designdoc", "view", true));
-            }
+            var ex = Assert.Throws<NotSupportedException>(() => _bucket.CreateQuery("designdoc", "view", true));
         }
 
         [Test]
         public void When_Integer_Is_Incremented_By_Default_Value_Increases_By_One()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                const string key = "When_Integer_Is_Incremented_Value_Increases_By_One";
-                bucket.Remove(key);
+            const string key = "When_Integer_Is_Incremented_Value_Increases_By_One";
+            _bucket.Remove(key);
 
-                var result = bucket.Increment(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(1, result.Value);
+            var result = _bucket.Increment(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value);
 
-                result = bucket.Increment(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(2, result.Value);
-            }
+            result = _bucket.Increment(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(2, result.Value);
         }
 
         [Test]
         public void When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12()
         {
             const string key = "When_Delta_Is_10_And_Initial_Is_2_The_Result_Is_12";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var result = bucket.Increment(key, 10, 2);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(2, result.Value);
+            _bucket.Remove(key);
+            var result = _bucket.Increment(key, 10, 2);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(2, result.Value);
 
-                result = bucket.Increment(key, 10, 2);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(12, result.Value);
-            }
+            result = _bucket.Increment(key, 10, 2);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(12, result.Value);
         }
 
         [Test]
         public void When_Expiration_Is_2_Key_Expires_After_2_Seconds()
         {
             const string key = "When_Expiration_Is_10_Key_Expires_After_10_Seconds";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var result = bucket.Increment(key, 1, 1, 1);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(1, result.Value);
-                Thread.Sleep(2000);
-                result = bucket.Get<ulong>(key);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
-            }
+            _bucket.Remove(key);
+            var result = _bucket.Increment(key, 1, 1, 1);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value);
+            Thread.Sleep(2000);
+            result = _bucket.Get<ulong>(key);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
 
         [Test]
         public void When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero";
+            const string key = "When_Key_Is_Decremented_Past_Zero_It_Remains_At_Zero";
 
-                //remove key if it exists
-                bucket.Remove(key);
+            //remove key if it exists
+            _bucket.Remove(key);
 
-                //will add the initial value
-                var result = bucket.Decrement(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(1, result.Value);
+            //will add the initial value
+            var result = _bucket.Decrement(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value);
 
-                //decrement the key
-                result = bucket.Decrement(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(0, result.Value);
+            //decrement the key
+            result = _bucket.Decrement(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(0, result.Value);
 
-                //Should still be zero
-                result = bucket.Decrement(key);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(0, result.Value);
-            }
+            //Should still be zero
+            result = _bucket.Decrement(key);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(0, result.Value);
         }
 
         [Test]
         public void When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2()
         {
             const string key = "When_Delta_Is_2_And_Initial_Is_4_The_Result_When_Decremented_Is_2";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var result = bucket.Decrement(key, 2, 4);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(4, result.Value);
+            _bucket.Remove(key);
+            var result = _bucket.Decrement(key, 2, 4);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(4, result.Value);
 
-                result = bucket.Decrement(key, 2, 4);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(2, result.Value);
-            }
+            result = _bucket.Decrement(key, 2, 4);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(2, result.Value);
         }
 
         [Test]
         public void When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds()
         {
             const string key = "When_Expiration_Is_2_Decremented_Key_Expires_After_2_Seconds";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                var result = bucket.Decrement(key, 1, 1, 1);
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(1, result.Value);
-                Thread.Sleep(2000);
-                result = bucket.Get<ulong>(key);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
-            }
+            _bucket.Remove(key);
+            var result = _bucket.Decrement(key, 1, 1, 1);
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(1, result.Value);
+            Thread.Sleep(2000);
+            result = _bucket.Get<ulong>(key);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, result.Status);
         }
 
         [Test]
         public void Test_MultiGet()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var keys = new List<string>();
+            for (int i = 0; i < 1000; i++)
             {
-                var keys = new List<string>();
-                for (int i = 0; i < 1000; i++)
-                {
-                    var key = "key" + i;
-                    bucket.Upsert(key, key);
-                    keys.Add(key);
-                }
-                var multiget = bucket.Get<string>(keys);
-                Assert.AreEqual(1000, multiget.Count);
+                var key = "key" + i;
+                _bucket.Upsert(key, key);
+                keys.Add(key);
             }
+            var multiget = _bucket.Get<string>(keys);
+            Assert.AreEqual(1000, multiget.Count);
         }
 
         [Test]
@@ -589,25 +495,19 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void When_Increment_Overflows_Value_Wraps_To_Zero()
         {
-            using (var bucket = _cluster.OpenBucket())
-            {
-                var key = "When_Increment_Overflows_Value_Wraps_To_Zero";
-                bucket.Remove(key);
-                Assert.IsTrue(bucket.Insert(key, ulong.MaxValue.ToString()).Success);
-                var result = bucket.Increment(key);
-                Assert.AreEqual(0, result.Value);
-                result = bucket.Increment(key);
-                Assert.AreEqual(1, result.Value);
-            }
+            var key = "When_Increment_Overflows_Value_Wraps_To_Zero";
+            _bucket.Remove(key);
+            Assert.IsTrue(_bucket.Insert(key, ulong.MaxValue.ToString()).Success);
+            var result = _bucket.Increment(key);
+            Assert.AreEqual(0, result.Value);
+            result = _bucket.Increment(key);
+            Assert.AreEqual(1, result.Value);
         }
 
         [Test]
         public void Test_Memcached_BucketType()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                Assert.AreEqual(Couchbase.Core.Buckets.BucketTypeEnum.Memcached, bucket.BucketType);
-            }
+            Assert.AreEqual(Couchbase.Core.Buckets.BucketTypeEnum.Memcached, _bucket.BucketType);
         }
 
         [Test]
@@ -620,26 +520,24 @@ namespace Couchbase.IntegrationTests
             {
                 items.Add("key" + i, "Value" + i);
             }
-            using (var bucket = _cluster.OpenBucket("memcached"))
+
+            var multiUpsert = _bucket.Upsert(items);
+            Assert.AreEqual(items.Count, multiUpsert.Count);
+            foreach (var pair in multiUpsert)
             {
-                var multiUpsert = bucket.Upsert(items);
-                Assert.AreEqual(items.Count, multiUpsert.Count);
-                foreach (var pair in multiUpsert)
-                {
-                    Assert.IsTrue(pair.Value.Success);
-                }
+                Assert.IsTrue(pair.Value.Success);
+            }
 
-                var multiRemove = bucket.Remove(multiUpsert.Keys.ToList());
-                foreach (var pair in multiRemove)
-                {
-                    Assert.IsTrue(pair.Value.Success);
-                }
+            var multiRemove = _bucket.Remove(multiUpsert.Keys.ToList());
+            foreach (var pair in multiRemove)
+            {
+                Assert.IsTrue(pair.Value.Success);
+            }
 
-                var multiGet = bucket.Get<string>(multiUpsert.Keys.ToList());
-                foreach (var pair in multiGet)
-                {
-                    Assert.IsFalse(pair.Value.Success);
-                }
+            var multiGet = _bucket.Get<string>(multiUpsert.Keys.ToList());
+            foreach (var pair in multiGet)
+            {
+                Assert.IsFalse(pair.Value.Success);
             }
         }
 
@@ -648,24 +546,21 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void Test_Multi_Remove_With_MaxDegreeOfParallelism_2()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var items = new Dictionary<string, dynamic>
             {
-                var items = new Dictionary<string, dynamic>
-                {
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
-                };
-                bucket.Upsert(items);
+                {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+            };
+            _bucket.Upsert(items);
 
-                var multiRemove = bucket.Remove(items.Keys.ToList(), new ParallelOptions { MaxDegreeOfParallelism = 2 });
-                Assert.AreEqual(multiRemove.Count, items.Count);
-                foreach (var item in multiRemove)
-                {
-                    Assert.IsTrue(item.Value.Success);
-                }
+            var multiRemove = _bucket.Remove(items.Keys.ToList(), new ParallelOptions {MaxDegreeOfParallelism = 2});
+            Assert.AreEqual(multiRemove.Count, items.Count);
+            foreach (var item in multiRemove)
+            {
+                Assert.IsTrue(item.Value.Success);
             }
         }
 
@@ -674,27 +569,24 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void Test_Multi_Remove_With_MaxDegreeOfParallelism_2_RangeSize_2()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var items = new Dictionary<string, dynamic>
             {
-                var items = new Dictionary<string, dynamic>
-                {
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
-                    {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
-                };
-                bucket.Upsert(items);
+                {"CouchbaseBucketTests.Test_Multi_Upsert.String", "string"},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Json", new {Foo = "Bar", Baz = 2}},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Int", 2},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Number", 5.8},
+                {"CouchbaseBucketTests.Test_Multi_Upsert.Binary", new[] {0x00, 0x00}}
+            };
+            _bucket.Upsert(items);
 
-                var multiRemove = bucket.Remove(items.Keys.ToList(), new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = 2
-                }, 2);
-                Assert.AreEqual(multiRemove.Count, items.Count);
-                foreach (var item in multiRemove)
-                {
-                    Assert.IsTrue(item.Value.Success);
-                }
+            var multiRemove = _bucket.Remove(items.Keys.ToList(), new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 2
+            }, 2);
+            Assert.AreEqual(multiRemove.Count, items.Count);
+            foreach (var item in multiRemove)
+            {
+                Assert.IsTrue(item.Value.Success);
             }
         }
 
@@ -703,12 +595,9 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void When_Keys_For_MultiGet_Are_Empty_Exception_Is_Not_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var keys = new List<string>();
-                var results = bucket.Get<dynamic>(keys);
-                Assert.AreEqual(0, results.Count);
-            }
+            var keys = new List<string>();
+            var results = _bucket.Get<dynamic>(keys);
+            Assert.AreEqual(0, results.Count);
         }
 
         [Test]
@@ -716,12 +605,9 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void When_Keys_For_MultiRemove_Are_Empty_Exception_Is_Not_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var keys = new List<string>();
-                var results = bucket.Remove(keys);
-                Assert.AreEqual(0, results.Count);
-            }
+            var keys = new List<string>();
+            var results = _bucket.Remove(keys);
+            Assert.AreEqual(0, results.Count);
         }
 
         [Test]
@@ -729,12 +615,9 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void When_Keys_For_MultiUpsert_Are_Empty_Exception_Is_Not_Thrown()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                var keys = new Dictionary<string, object>();
-                var results = bucket.Upsert(keys);
-                Assert.AreEqual(0, results.Count);
-            }
+            var keys = new Dictionary<string, object>();
+            var results = _bucket.Upsert(keys);
+            Assert.AreEqual(0, results.Count);
         }
 
         [Test]
@@ -743,22 +626,19 @@ namespace Couchbase.IntegrationTests
         public void When_GetAndTouch_Is_Called_Expiration_Is_Extended()
         {
             var key = "When_GetAndTouch_Is_Called_Expiration_Is_Extended";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
-                Thread.Sleep(3000);
-                var result = bucket.Get<string>(key);
-                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
-                bucket.Remove(key);
-                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
-                result = bucket.GetAndTouch<string>(key, new TimeSpan(0, 0, 0, 5));
-                Assert.IsTrue(result.Success);
-                Assert.AreEqual(result.Value, "{value}");
-                Thread.Sleep(3000);
-                result = bucket.Get<string>(key);
-                Assert.AreEqual(result.Status, ResponseStatus.Success);
-            }
+            _bucket.Remove(key);
+            _bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            Thread.Sleep(3000);
+            var result = _bucket.Get<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+            _bucket.Remove(key);
+            _bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            result = _bucket.GetAndTouch<string>(key, new TimeSpan(0, 0, 0, 5));
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(result.Value, "{value}");
+            Thread.Sleep(3000);
+            result = _bucket.Get<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.Success);
         }
 
         [Test]
@@ -767,100 +647,88 @@ namespace Couchbase.IntegrationTests
         public void When_Key_Is_Touched_Expiration_Is_Extended()
         {
             var key = "When_Key_Is_Touched_Expiration_Is_Extended";
-            using (var bucket = _cluster.OpenBucket("memcached"))
-            {
-                bucket.Remove(key);
-                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
-                Thread.Sleep(3000);
-                var result = bucket.Get<string>(key);
-                Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
-                bucket.Remove(key);
-                bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
-                bucket.Touch(key, new TimeSpan(0, 0, 0, 5));
-                Thread.Sleep(3000);
-                result = bucket.Get<string>(key);
-                Assert.AreEqual(result.Status, ResponseStatus.Success);
-            }
+            _bucket.Remove(key);
+            _bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            Thread.Sleep(3000);
+            var result = _bucket.Get<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+            _bucket.Remove(key);
+            _bucket.Insert(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            _bucket.Touch(key, new TimeSpan(0, 0, 0, 5));
+            Thread.Sleep(3000);
+            result = _bucket.Get<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.Success);
         }
 
         [Test]
         public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var document = new Document<dynamic>
             {
-                var document = new Document<dynamic>
-                {
-                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert",
-                    Expiry = 2000,
-                    Content = new { name = "I expire in 2000 milliseconds." }
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert",
+                Expiry = 2000,
+                Content = new {name = "I expire in 2000 milliseconds."}
 
-                };
+            };
 
-                var upsert = bucket.Upsert(document);
-                Assert.IsTrue(upsert.Success);
+            var upsert = _bucket.Upsert(document);
+            Assert.IsTrue(upsert.Success);
 
-                var get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.Success, get.Status);
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-                Thread.Sleep(3000);
-                get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
-            }
+            Thread.Sleep(3000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
 
         [Test]
         public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var document = new Document<dynamic>
             {
-                var document = new Document<dynamic>
-                {
-                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert",
-                    Expiry = 2000,
-                    Content = new { name = "I expire in 2000 milliseconds." }
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert",
+                Expiry = 2000,
+                Content = new {name = "I expire in 2000 milliseconds."}
 
-                };
+            };
 
-                bucket.Remove(document);
-                var upsert = bucket.Insert(document);
-                Assert.IsTrue(upsert.Success);
+            _bucket.Remove(document);
+            var upsert = _bucket.Insert(document);
+            Assert.IsTrue(upsert.Success);
 
-                var get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.Success, get.Status);
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-                Thread.Sleep(3000);
-                get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
-            }
+            Thread.Sleep(3000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
 
         [Test]
         public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace()
         {
-            using (var bucket = _cluster.OpenBucket("memcached"))
+            var document = new Document<dynamic>
             {
-                var document = new Document<dynamic>
-                {
-                    Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace",
-                    Expiry = 2000,
-                    Content = new { name = "I expire in 2000 milliseconds." }
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace",
+                Expiry = 2000,
+                Content = new {name = "I expire in 2000 milliseconds."}
 
-                };
+            };
 
-                bucket.Remove(document);
-                var upsert = bucket.Insert(document);
-                Assert.IsTrue(upsert.Success);
+            _bucket.Remove(document);
+            var upsert = _bucket.Insert(document);
+            Assert.IsTrue(upsert.Success);
 
-                var replace = bucket.Replace(document);
-                Assert.IsTrue(replace.Success);
+            var replace = _bucket.Replace(document);
+            Assert.IsTrue(replace.Success);
 
-                var get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.Success, get.Status);
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-                Thread.Sleep(3000);
-                get = bucket.GetDocument<dynamic>(document.Id);
-                Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
-            }
+            Thread.Sleep(3000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
 
         [OneTimeTearDown]
