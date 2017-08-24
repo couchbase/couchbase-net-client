@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -7,19 +8,19 @@ namespace Couchbase.IntegrationTests
     public class MutationTokenTests
     {
         private ICluster _cluster;
-        private IBucket _bucket;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
+            _cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            _cluster.SetupEnhancedAuth();
         }
 
         [Test]
         public void BucketName_IsCurrentBucket()
         {
             var expectedBucketName = "travel-sample";
-            var bucket = ClusterHelper.GetBucket(expectedBucketName);
+            var bucket = _cluster.OpenBucket(expectedBucketName);
             Assert.IsTrue(bucket.SupportsEnhancedDurability);
 
             var doc = new Document<dynamic>

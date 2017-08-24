@@ -1,4 +1,4 @@
-﻿using Couchbase.Authentication;
+using Couchbase.Authentication;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Utils;
@@ -15,7 +15,7 @@ namespace Couchbase.IntegrationTests
         public void Setup()
         {
             _cluster = new Cluster(TestConfiguration.GetDefaultConfiguration());
-            _cluster.Authenticate(new PasswordAuthenticator("Administrator", "password"));
+            _cluster.SetupEnhancedAuth();
         }
 
         [OneTimeTearDown]
@@ -24,9 +24,14 @@ namespace Couchbase.IntegrationTests
             _cluster.Dispose();
         }
 
-        [Test, Ignore("Ephemeral buckets are only supported for Couchbase server 5.0")]
+        [Test]
         public void Submitting_View_Query_To_Ephemeral_Bucket_Fails()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("Ephemeral buckets are only supported for Couchbase server 5.0");
+            }
+
             var bucket = _cluster.OpenBucket("ephemeral");
 
             var viewQuery = bucket.CreateQuery("designDoc", "viewName");

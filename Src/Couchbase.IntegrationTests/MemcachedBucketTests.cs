@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Version;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -24,6 +25,7 @@ namespace Couchbase.IntegrationTests
         {
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             _cluster = new Cluster(config);
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket("memcached");
         }
 

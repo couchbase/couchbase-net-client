@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.SubDocument;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Moq;
 using NUnit.Framework;
@@ -22,6 +23,7 @@ namespace Couchbase.IntegrationTests
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             config.BucketConfigs.First().Value.UseEnhancedDurability = useMutation;
             _cluster = new Cluster(config);
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }
 
@@ -1301,12 +1303,16 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        [Ignore("Subdoc GetCount only available on 5.0 or Mock")]
         public void Can_Create_And_Count_Subdoc_Property()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("Requires CB server 5.0+");
+            }
+
             using (var cluster = new Cluster(Utils.TestConfiguration.GetDefaultConfiguration()))
             {
-                cluster.Authenticate("Administrator", "password");
+                cluster.SetupEnhancedAuth();
                 var bucket = cluster.OpenBucket("default");
 
                 const string key = "Can_Create_And_Count_Subdoc_Property";
@@ -1323,12 +1329,16 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        [Ignore("Subdoc GetCount only available on 5.0 or Mock")]
         public void Can_Create_And_Count_Subdoc_Property_With_Multi_Operations()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("Requires CB server 5.0+");
+            }
+
             using (var cluster = new Cluster(Utils.TestConfiguration.GetDefaultConfiguration()))
             {
-                cluster.Authenticate("Administrator", "password");
+                cluster.SetupEnhancedAuth();
                 var bucket = cluster.OpenBucket("default");
 
                 const string key = "Can_Create_And_Count_Subdoc_Property_With_Multi_Operations";

@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Core.Transcoders
@@ -22,6 +23,7 @@ namespace Couchbase.IntegrationTests.Core.Transcoders
 
             using (var cluster = new Cluster(config))
             {
+                cluster.SetupEnhancedAuth();
                 using (var bucket = cluster.OpenBucket())
                 {
                     var result = bucket.Get<dynamic>("user_1");

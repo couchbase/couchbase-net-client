@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
@@ -14,8 +14,6 @@ namespace Couchbase.IntegrationTests
     [TestFixture]
     public class ClusterHelperTests
     {
-        private ICluster _cluster;
-
         [Test]
         public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
         {
@@ -28,6 +26,8 @@ namespace Couchbase.IntegrationTests
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
             var cluster = ClusterHelper.Get();
+            cluster.SetupEnhancedAuth();
+
             var bucket = cluster.OpenBucket();
             Assert.AreEqual("default", bucket.Name);
         }
@@ -36,10 +36,11 @@ namespace Couchbase.IntegrationTests
         public void Test_GetBucket_Using_HttpStreamingProvider()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
-            _cluster = ClusterHelper.Get();
+            var cluster = ClusterHelper.Get();
+            cluster.SetupEnhancedAuth();
 
             const string expected = "default";
-            using (var bucket = _cluster.OpenBucket("default"))
+            using (var bucket = cluster.OpenBucket("default"))
             {
                 Assert.AreEqual(expected, bucket.Name);
             }
@@ -49,10 +50,11 @@ namespace Couchbase.IntegrationTests
         public void Test_GetBucket_Using_CarrierPublicationProvider()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
-            _cluster = ClusterHelper.Get();
+            var cluster = ClusterHelper.Get();
+            cluster.SetupEnhancedAuth();
 
             const string expected = "default";
-            using (var bucket = _cluster.OpenBucket("default"))
+            using (var bucket = cluster.OpenBucket("default"))
             {
                 Assert.IsNotNull(bucket);
                 Assert.AreEqual(expected, bucket.Name);
@@ -64,6 +66,8 @@ namespace Couchbase.IntegrationTests
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
             var cluster = ClusterHelper.Get();
+            cluster.SetupEnhancedAuth();
+
             Assert.IsNotNull(cluster);
             cluster.Dispose();
         }
@@ -72,10 +76,11 @@ namespace Couchbase.IntegrationTests
         public void When_OpenBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
-            _cluster = ClusterHelper.Get();
+            var cluster = ClusterHelper.Get();
+            cluster.SetupEnhancedAuth();
 
-            var bucket1 = _cluster.OpenBucket("default");
-            var bucket2 = _cluster.OpenBucket("default");
+            var bucket1 = cluster.OpenBucket("default");
+            var bucket2 = cluster.OpenBucket("default");
 
             Assert.AreSame(bucket1, bucket2);
         }
@@ -84,6 +89,7 @@ namespace Couchbase.IntegrationTests
         public void When_GetBucket_Is_Called_Multiple_Times_Same_Bucket_Object_IsReturned()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
+            ClusterHelper.Get().SetupEnhancedAuth();
 
             var bucket1 = ClusterHelper.GetBucket("default");
             var bucket2 = ClusterHelper.GetBucket("default");
@@ -95,6 +101,7 @@ namespace Couchbase.IntegrationTests
         public void When_Close_Called_Bucket_Count_Is_Zero()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
+            ClusterHelper.Get().SetupEnhancedAuth();
 
             Assert.AreEqual(0, ClusterHelper.Count());
             var bucket1 = ClusterHelper.GetBucket("default");
@@ -108,6 +115,7 @@ namespace Couchbase.IntegrationTests
         public void When_RemoveBucket_Is_Called_Bucket_Count_Is_Zero()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
+            ClusterHelper.Get().SetupEnhancedAuth();
 
             //open a bucket and get the reference
             var bucket1 = ClusterHelper.GetBucket("default");
@@ -123,6 +131,8 @@ namespace Couchbase.IntegrationTests
         public void When_Bucket_Is_Opened_On_Two_Seperate_Threads_And_RemoveBucket_Is_Called_Count_Is_Zero()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
+            ClusterHelper.Get().SetupEnhancedAuth();
+
             var t1 = new Thread(OpenBucket);
             var t2 = new Thread(OpenBucket);
 
@@ -149,6 +159,7 @@ namespace Couchbase.IntegrationTests
         public void When_A_Bucket_Instance_Is_Nulled_Its_Reference_Still_Exists()
         {
             ClusterHelper.Initialize(TestConfiguration.GetCurrentConfiguration());
+            ClusterHelper.Get().SetupEnhancedAuth();
 
             var bucket1 = ClusterHelper.GetBucket("default");
             bucket1 = null;
@@ -161,6 +172,11 @@ namespace Couchbase.IntegrationTests
         [Category("Integration")]
         public void When_Configuration_Has_Password_For_Bucket_It_Is_Used()
         {
+            if (TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("BucketConfigurtions cannot be used with Server 5.0+");
+            }
+
             //first check that without password default one is used (which should work)
             var config = TestConfiguration.GetCurrentConfiguration();
 
@@ -198,6 +214,11 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void When_Authenticator_Is_Set_It_Is_Used()
         {
+            if (TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("ClassicAuthenticator does not work with Server 5.0+");
+            }
+
             try
             {
                 var config = TestConfiguration.GetDefaultConfiguration();
@@ -222,13 +243,17 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        [Ignore("Only works with CB 5.0 or greater.")]
         public void Initialize_Using_PasswordAuthenticator()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("PasswordAuthenticator requires CB 5.0 or greater.");
+            }
+
             try
             {
                 var config = TestConfiguration.GetDefaultConfiguration();
-                var authenticator = new PasswordAuthenticator("myuser", "myuserpassword");
+                var authenticator = new PasswordAuthenticator(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
 
                 ClusterHelper.Initialize(config, authenticator);
                 var bucket = ClusterHelper.GetBucket("default");
@@ -243,13 +268,17 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        [Ignore("Only works with CB 5.0 or greater.")]
         public void SetAuthenticator_Using_PasswordAuthenticator()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("PasswordAuthenticator requires CB 5.0 or greater.");
+            }
+
             try
             {
                 var config = TestConfiguration.GetDefaultConfiguration();
-                var authenticator = new PasswordAuthenticator("myuser", "myuserpassword");
+                var authenticator = new PasswordAuthenticator(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
                 config.SetAuthenticator(authenticator);
 
                 ClusterHelper.Initialize(config);
@@ -267,9 +296,9 @@ namespace Couchbase.IntegrationTests
         [TearDown]
         public void TearDown()
         {
-            if (_cluster != null)
+            if (ClusterHelper.Initialized)
             {
-                _cluster.Dispose();
+                ClusterHelper.Close();
             }
         }
     }

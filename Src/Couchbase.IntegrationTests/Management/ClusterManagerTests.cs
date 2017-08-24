@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
@@ -20,6 +20,7 @@ namespace Couchbase.IntegrationTests.Management
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster.SetupEnhancedAuth();
             _clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
         }
 
@@ -27,11 +28,14 @@ namespace Couchbase.IntegrationTests.Management
 
         [Test]
         [TestCase(BucketTypeEnum.Couchbase)]
-        [TestCase(BucketTypeEnum.Ephemeral), Ignore("Ephemeral buckets not supported on CI server")]
+        [TestCase(BucketTypeEnum.Ephemeral)]
         [TestCase(BucketTypeEnum.Memcached)]
         public void CreateBucket_DoesNotExist_Success(BucketTypeEnum bucketType)
         {
-            // Arrange
+            if (!TestConfiguration.Settings.EnhancedAuth && bucketType == BucketTypeEnum.Ephemeral)
+            {
+                Assert.Ignore("Emphemeral buckets require CB server 5.0+");
+            }
 
             // Ensure the bucket doesn't already exist
             _clusterManager.RemoveBucket(BucketName + "_" + bucketType);
@@ -256,9 +260,14 @@ namespace Couchbase.IntegrationTests.Management
 
         #endregion
 
-        [Test, Ignore("RBAC is not yet supported in the Jenkins automated build")]
+        [Test]
         public void Can_Upsert_List_And_Remove_User()
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("User Managment requires CB server 5.0+");
+            }
+
             var user = new User
             {
                 Username = "alice",

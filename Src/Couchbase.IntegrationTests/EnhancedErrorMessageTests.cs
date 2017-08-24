@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -12,11 +12,11 @@ using NUnit.Framework;
 namespace Couchbase.IntegrationTests
 {
     [TestFixture]
-    [Ignore("Only supported on cluster 5.0+ or CouchbaseMock")]
     public class EnhancedErrorMessageTests
     {
         [TestCase(true)]
         [TestCase(false)]
+        [Ignore("Only supported on CouchbaseMock")]
         public async Task Test_Enhanced_Error_Messages(bool enabled)
         {
             // boostrap client
@@ -31,6 +31,7 @@ namespace Couchbase.IntegrationTests
             {
                 using (var cluster = new Cluster(config))
                 {
+                    cluster.SetupEnhancedAuth();
                     var bucket = cluster.OpenBucket("default");
 
                     // make sure document doesn't exist

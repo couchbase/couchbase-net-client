@@ -1,10 +1,11 @@
-﻿{
+{
   "testSettings": {
     "current": "multiplexio",
     "hostname": "localhost",
     "bootPort": "8091",
     "adminUsername": "Administrator",
-    "adminPassword": "password"
+    "adminPassword": "password",
+    "enhancedAuth": false
   },
 
   "couchbase": {

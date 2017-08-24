@@ -576,7 +576,7 @@ namespace Couchbase.N1QL
             {
                 username = "local:" + username;
             }
-            _credentials.Add(username, password);
+            _credentials[username] = password;
             return this;
         }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,7 +40,15 @@ namespace Couchbase.IntegrationTests.Management
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster.SetupEnhancedAuth();
             _clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+            var listbucketsResult = _clusterManager.ListBuckets();
+            if (listbucketsResult.Value.Any(bucket => bucket.Name == BucketName))
+            {
+                var removeResult =_clusterManager.RemoveBucket(BucketName);
+                Assert.IsTrue(removeResult.Success);
+            }
 
             var createResult = _clusterManager.CreateBucket(BucketName, replicaNumber:ReplicaNumber.Zero, flushEnabled: true);
             Assert.True(createResult.Success);

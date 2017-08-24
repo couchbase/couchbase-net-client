@@ -17,6 +17,7 @@ namespace Couchbase.IntegrationTests
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket("default");
         }
 

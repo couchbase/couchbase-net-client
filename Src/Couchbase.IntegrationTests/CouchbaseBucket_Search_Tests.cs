@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Search;
@@ -15,6 +15,7 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {
+                cluster.SetupEnhancedAuth();
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                      var query = new MatchQuery("inn");
@@ -34,6 +35,7 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {
+                cluster.SetupEnhancedAuth();
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var query = new MatchQuery("inn");
@@ -54,6 +56,7 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {
+                cluster.SetupEnhancedAuth();
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var query = new MatchQuery("inn");
@@ -73,6 +76,7 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {
+                cluster.SetupEnhancedAuth();
                 using (var bucket = cluster.OpenBucket("travel-sample"))
                 {
                     var results = bucket.Query(new SearchQuery

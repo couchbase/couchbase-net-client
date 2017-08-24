@@ -1,6 +1,7 @@
-﻿using System.Linq;
+using System.Linq;
 using Couchbase.Collections;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Collections
@@ -24,6 +25,7 @@ namespace Couchbase.IntegrationTests.Collections
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             config.BucketConfigs.First().Value.UseEnhancedDurability = false;
             _cluster = new Cluster(config);
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }
 

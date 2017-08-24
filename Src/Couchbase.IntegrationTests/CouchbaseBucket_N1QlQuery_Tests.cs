@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,7 +25,8 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("multiplexio"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetCurrentConfiguration());
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }
 
@@ -265,6 +266,7 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("ignoreandpopulate")))
             {
+                cluster.SetupEnhancedAuth();
                 var bucket = cluster.OpenBucket();
                 try
                 {

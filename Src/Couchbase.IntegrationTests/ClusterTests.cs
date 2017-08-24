@@ -18,14 +18,22 @@ namespace Couchbase.IntegrationTests
         public void Test_Query()
         {
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
-            var credentials = new ClusterCredentials
+            if (TestConfiguration.Settings.EnhancedAuth)
             {
-                BucketCredentials = new Dictionary<string, string>
+                cluster.SetupEnhancedAuth();
+                cluster.OpenBucket("authenticated");
+            }
+            else
+            {
+                var credentials = new ClusterCredentials
                 {
-                    {"authenticated", "secret"}
-                }
-            };
-            cluster.Authenticate(credentials);
+                    BucketCredentials = new Dictionary<string, string>
+                    {
+                        {"authenticated", "secret"}
+                    }
+                };
+                cluster.Authenticate(credentials);
+            }
 
             var result = cluster.Query<dynamic>("select * from authenticated limit 1;");
             Assert.AreEqual(QueryStatus.Success, result.Status);
@@ -35,14 +43,22 @@ namespace Couchbase.IntegrationTests
         public void Test_Query_WhenBucketOpen_Succeeds()
         {
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
-            var credentials = new ClusterCredentials
+            if (TestConfiguration.Settings.EnhancedAuth)
             {
-                BucketCredentials = new Dictionary<string, string>
+                cluster.SetupEnhancedAuth();
+            }
+            else
+            {
+                var credentials = new ClusterCredentials
                 {
-                    {"authenticated", "secret"}
-                }
-            };
-            cluster.Authenticate(credentials);
+                    BucketCredentials = new Dictionary<string, string>
+                    {
+                        {"authenticated", "secret"}
+                    }
+                };
+                cluster.Authenticate(credentials);
+            }
+
             cluster.OpenBucket("authenticated");
 
             var result = cluster.Query<dynamic>("select * from authenticated limit 1;");
@@ -84,14 +100,6 @@ namespace Couchbase.IntegrationTests
         public void Test_Query_WhenAuthenticateNotCalled_ThrowsInvalidOperationException()
         {
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
-            var credentials = new ClusterCredentials
-            {
-                BucketCredentials = new Dictionary<string, string>
-                {
-                    {"authenticated", "secret1"}
-                }
-            };
-
             Assert.Throws<InvalidOperationException>(() => cluster.Query<dynamic>("select * from authenticated limit 1;"));
         }
 
@@ -99,9 +107,13 @@ namespace Couchbase.IntegrationTests
 
         [TestCase(true)]
         [TestCase(false)]
-        [Ignore("Integration server does not support KV Error map yet")]
         public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("KV Error Map requires CB server 5.0+");
+            }
+
             var config = TestConfiguration.GetConfiguration("basic");
             config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
@@ -114,7 +126,8 @@ namespace Couchbase.IntegrationTests
             };
 
             var cluster = new Cluster(config);
-            cluster.Authenticate(new PasswordAuthenticator("session-webapp", "secure123"));
+            cluster.SetupEnhancedAuth();
+
             var bucket = cluster.OpenBucket("default");
             Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
         }

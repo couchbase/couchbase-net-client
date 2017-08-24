@@ -1,5 +1,6 @@
-﻿using System.Threading;
+using System.Threading;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
@@ -16,6 +17,7 @@ namespace Couchbase.IntegrationTests
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket("beer-sample");
         }
 

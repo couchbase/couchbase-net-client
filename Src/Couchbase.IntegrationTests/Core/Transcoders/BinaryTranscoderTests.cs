@@ -1,7 +1,8 @@
-﻿#if NET45
+#if NET45
 using System;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Core.Transcoders
@@ -17,6 +18,7 @@ namespace Couchbase.IntegrationTests.Core.Transcoders
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             config.Transcoder = () => new BinaryTranscoder();
             _cluster = new Cluster(config);
+            _cluster.SetupEnhancedAuth();
         }
 
         [OneTimeTearDown]

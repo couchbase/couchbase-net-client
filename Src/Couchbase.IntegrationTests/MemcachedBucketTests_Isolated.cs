@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -19,7 +20,9 @@ namespace Couchbase.IntegrationTests
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
 
             //if the configuration thread is a foreground thread, this would hang indefinitly
-            new Cluster(config).OpenBucket("memcached");
+            var cluster = new Cluster(config);
+            cluster.SetupEnhancedAuth();
+            cluster.OpenBucket("memcached");
         }
     }
 }

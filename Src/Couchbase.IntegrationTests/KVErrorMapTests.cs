@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -11,13 +11,17 @@ using NUnit.Framework;
 namespace Couchbase.IntegrationTests
 {
     [TestFixture]
-    [Ignore("Only supported on cluster 5.0+ or CouchbaseMock")]
     public class KVErrorMapTests
     {
         [TestCase(true)]
         [TestCase(false)]
         public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
         {
+            if (!TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("Only supported on cluster 5.0+ or CouchbaseMock");
+            }
+
             var config = TestConfiguration.GetConfiguration("basic");
             config.BucketConfigs = new Dictionary<string, BucketConfiguration>
             {
@@ -25,6 +29,7 @@ namespace Couchbase.IntegrationTests
             };
 
             var cluster = new Cluster(config);
+            cluster.SetupEnhancedAuth();
             var bucket = cluster.OpenBucket("default");
             Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
         }
@@ -32,6 +37,7 @@ namespace Couchbase.IntegrationTests
         [TestCase("7ff0")] // constant
         [TestCase("7ff1")] // linear
         [TestCase("7ff2")] // exponential
+        [Ignore("Only supported on CouchbaseMock")]
         public void Test_Operation_Retry_Strategys(string code)
         {
             // convert hex error code into integer
@@ -46,6 +52,7 @@ namespace Couchbase.IntegrationTests
 
             using (var cluster = new Cluster(config))
             {
+                cluster.SetupEnhancedAuth();
                 var bucket = cluster.OpenBucket("default");
 
                 // preload document to ensure everything is connected and working as expected

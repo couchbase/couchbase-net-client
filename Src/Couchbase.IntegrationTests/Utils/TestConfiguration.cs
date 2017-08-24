@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 using System.Linq;
+using Couchbase.Core;
 
 namespace Couchbase.IntegrationTests.Utils
 {
@@ -90,6 +91,17 @@ namespace Couchbase.IntegrationTests.Utils
                 var builder = new ConfigurationBuilder();
                 builder.AddJsonFile("config.json");
                 _jsonConfiguration = builder.Build();
+            }
+        }
+    }
+
+    public static class ClusterTestExtensions
+    {
+        public static void SetupEnhancedAuth(this ICluster cluster)
+        {
+            if (TestConfiguration.Settings.EnhancedAuth)
+            {
+                cluster.Authenticate(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
             }
         }
     }

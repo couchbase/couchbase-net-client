@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
@@ -21,7 +22,10 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetCurrentConfiguration());
+            var config = TestConfiguration.GetCurrentConfiguration();
+            _cluster = new Cluster(config);
+            _cluster.SetupEnhancedAuth();
+
             _bucket = _cluster.OpenBucket();
         }
 
@@ -322,6 +326,8 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("multiplexio")))
             {
+                cluster.SetupEnhancedAuth();
+
                 using (var bucket = cluster.OpenBucket("default"))
                 {
                     var key = Guid.NewGuid().ToString();
@@ -346,6 +352,8 @@ namespace Couchbase.IntegrationTests
         {
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
             {
+                cluster.SetupEnhancedAuth();
+
                 using (var bucket = cluster.OpenBucket("default"))
                 {
                     var insertsAndUpdates = new List<Task<IOperationResult<string>>>();

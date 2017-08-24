@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using NUnit.Framework;
 
@@ -19,6 +20,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         public void OneTimeSetUp()
         {
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }
 
