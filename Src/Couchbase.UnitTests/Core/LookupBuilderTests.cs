@@ -21,11 +21,12 @@ namespace Couchbase.UnitTests.Core
             Assert.AreEqual(3, count);
         }
 
-        [TestCase(SubdocLookupFlags.XattrPath, 4)]
-        [TestCase(SubdocLookupFlags.AccessDeleted, 12)]
-        [TestCase(SubdocLookupFlags.XattrPath | SubdocLookupFlags.AccessDeleted, 12)]
-        public void Get_For_Xattr_Sets_Correct_Flag(SubdocLookupFlags flags, byte expected)
+        [Test]
+        public void Get_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -34,7 +35,7 @@ namespace Couchbase.UnitTests.Core
 
             var lookupBuilder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = lookupBuilder.Get("path", flags)
+            var result = lookupBuilder.Get("path", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -43,16 +44,18 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubGet &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected)
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags)
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocLookupFlags.XattrPath, 4)]
-        [TestCase(SubdocLookupFlags.AccessDeleted, 12)]
-        [TestCase(SubdocLookupFlags.XattrPath | SubdocLookupFlags.AccessDeleted, 12)]
-        public void Exists_For_Xattr_Sets_Correct_Flag(SubdocLookupFlags flags, byte expected)
+        [Test]
+        public void Exists_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -61,7 +64,7 @@ namespace Couchbase.UnitTests.Core
 
             var lookupBuilder = new LookupInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = lookupBuilder.Exists("path", flags)
+            var result = lookupBuilder.Exists("path", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -70,7 +73,8 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubExist &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected)
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags)
                 ), Times.Once
             );
         }

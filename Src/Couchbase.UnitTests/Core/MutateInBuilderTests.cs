@@ -119,15 +119,12 @@ namespace Couchbase.UnitTests.Core
             builder.ArrayPrepend(path, 1, false);
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void Insert_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void Insert_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -136,7 +133,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.Insert("path", "value", flags)
+            var result = mutateBuilder.Insert("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -145,22 +142,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubDictAdd &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void Replace_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void Replace_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -169,7 +164,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.Replace("path", "value", flags)
+            var result = mutateBuilder.Replace("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -178,22 +173,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubReplace &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void Upsert_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void Upsert_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -202,7 +195,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.Upsert("path", "value", flags)
+            var result = mutateBuilder.Upsert("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -211,22 +204,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubDictUpsert &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void Remove_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void Remove_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -235,7 +226,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.Remove("path", flags)
+            var result = mutateBuilder.Remove("path", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -244,21 +235,19 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubDelete &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void Counter_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void Counter_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -267,7 +256,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.Counter("path", 100, flags)
+            var result = mutateBuilder.Counter("path", 100, pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -276,22 +265,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubCounter &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (long) builder.FirstSpec().Value == 100
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayAddUnique_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayAddUnique_Single_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -300,7 +287,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.ArrayAddUnique("path", "value", flags)
+            var result = mutateBuilder.ArrayAddUnique("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -309,22 +296,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayAddUnique &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayAppend_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayAppend_Single_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -333,7 +318,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.ArrayAppend("path", "value", flags)
+            var result = mutateBuilder.ArrayAppend("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -342,22 +327,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayPushLast &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayAppend_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayAppend_Multiple_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -367,7 +350,7 @@ namespace Couchbase.UnitTests.Core
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
             var value = new object[] { 1, 2, 3};
-            var result = mutateBuilder.ArrayAppend("path", flags, value)
+            var result = mutateBuilder.ArrayAppend("path", pathFlags, docFlags, value)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -376,22 +359,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayPushLast &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         builder.FirstSpec().Value == value
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayPrepend_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayPrepend_Single_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -400,7 +381,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.ArrayPrepend("path", "value", flags)
+            var result = mutateBuilder.ArrayPrepend("path", "value", pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -409,23 +390,22 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayPushFirst &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (string) builder.FirstSpec().Value == "value"
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayPrepend_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayPrepend_Multiple_For_Xattr_Sets_Correct_Flag()
         {
-            var mockResult = new Mock<IDocumentFragment<dynamic>>();
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
+            var mockResult = new Mock<
+                IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
             mockedInvoker.Setup(x => x.Invoke(It.IsAny<MutateInBuilder<dynamic>>()))
@@ -434,7 +414,7 @@ namespace Couchbase.UnitTests.Core
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
             var value = new object[] { 1, 2, 3 };
-            var result = mutateBuilder.ArrayPrepend("path", flags, value)
+            var result = mutateBuilder.ArrayPrepend("path", pathFlags, docFlags, value)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -443,22 +423,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayPushFirst &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         builder.FirstSpec().Value == value
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayInsert_Single_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayInsert_Single_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -467,7 +445,7 @@ namespace Couchbase.UnitTests.Core
 
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
-            var result = mutateBuilder.ArrayInsert("path", 1, flags)
+            var result = mutateBuilder.ArrayInsert("path", 1, pathFlags, docFlags)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -476,22 +454,20 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayInsert &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         (int) builder.FirstSpec().Value == 1
                     )
                 ), Times.Once
             );
         }
 
-        [TestCase(SubdocMutateFlags.CreatePath, 1)]
-        [TestCase(SubdocMutateFlags.CreateDocument, 2)]
-        [TestCase(SubdocMutateFlags.XattrPath, 4)]
-        [TestCase(SubdocMutateFlags.ExpandMacro, 20)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreatePath, 5)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.CreateDocument, 6)]
-        [TestCase(SubdocMutateFlags.XattrPath | SubdocMutateFlags.ExpandMacro, 20)]
-        public void ArrayInsert_Multiple_For_Xattr_Sets_Correct_Flag(SubdocMutateFlags flags, byte expected)
+        [Test]
+        public void ArrayInsert_Multiple_For_Xattr_Sets_Correct_Flag()
         {
+            const SubdocPathFlags pathFlags = SubdocPathFlags.Xattr;
+            const SubdocDocFlags docFlags = SubdocDocFlags.InsertDocument;
+
             var mockResult = new Mock<IDocumentFragment<dynamic>>();
 
             var mockedInvoker = new Mock<ISubdocInvoker>();
@@ -501,7 +477,7 @@ namespace Couchbase.UnitTests.Core
             var mutateBuilder = new MutateInBuilder<dynamic>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
 
             var value = new object[] { 1, 2, 3 };
-            var result = mutateBuilder.ArrayInsert("path", flags, value)
+            var result = mutateBuilder.ArrayInsert("path", pathFlags, docFlags, value)
                 .Execute();
 
             Assert.AreSame(mockResult.Object, result);
@@ -510,7 +486,8 @@ namespace Couchbase.UnitTests.Core
                     builder =>
                         builder.FirstSpec().OpCode == OperationCode.SubArrayInsert &&
                         builder.FirstSpec().Path == "path" &&
-                        builder.FirstSpec().Flags == expected &&
+                        builder.FirstSpec().PathFlags == pathFlags &&
+                        builder.FirstSpec().DocFlags == docFlags &&
                         builder.FirstSpec().Value == value
                     )
                 ), Times.Once

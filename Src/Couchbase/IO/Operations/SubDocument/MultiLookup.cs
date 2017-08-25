@@ -53,14 +53,14 @@ namespace Couchbase.IO.Operations.SubDocument
             var buffer = new List<byte>();
             foreach (var lookup in _builder)
             {
-                var opcode = (byte)lookup.OpCode;
-                var flags = lookup.Flags;
+                var opcode = (byte) lookup.OpCode;
+                var flags = (byte) lookup.PathFlags;
                 var pathLength = Encoding.UTF8.GetByteCount(lookup.Path);
 
                 var spec = new byte[pathLength + 4];
                 Converter.FromByte(opcode, spec, 0);
                 Converter.FromByte(flags, spec, 1);
-                Converter.FromUInt16((ushort)pathLength, spec, 2);
+                Converter.FromUInt16((ushort) pathLength, spec, 2);
                 Converter.FromString(lookup.Path, spec, 4);
 
                 buffer.AddRange(spec);

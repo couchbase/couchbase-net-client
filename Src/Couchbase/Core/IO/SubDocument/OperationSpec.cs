@@ -48,12 +48,20 @@ namespace Couchbase.Core.IO.SubDocument
         public byte[] Bytes { get; set; }
 
         /// <summary>
-        /// Gets or sets the additional flags for the operation.
+        /// Gets or sets the path flags for the operation.
         /// </summary>
         /// <value>
         /// The flags.
         /// </value>
-        public byte Flags { get; set; }
+        public SubdocPathFlags PathFlags { get; set; }
+
+        /// <summary>
+        /// Gets or sets the docuemnt flags for the operation.
+        /// </summary>
+        /// <value>
+        /// The flags.
+        /// </value>
+        public SubdocDocFlags DocFlags { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="ResponseStatus"/> returned by the server indicating the status of the operation - i.e. failed, succeeded, etc.
@@ -91,7 +99,8 @@ namespace Couchbase.Core.IO.SubDocument
             return new OperationSpec
             {
                 Bytes = null,
-                Flags = Flags,
+                PathFlags = PathFlags,
+                DocFlags = DocFlags,
                 OpCode = OpCode,
                 Path = Path,
                 RemoveBrackets = RemoveBrackets,
@@ -111,7 +120,10 @@ namespace Couchbase.Core.IO.SubDocument
         {
             var spec = obj as OperationSpec;
             if (spec == null) return false;
-            return Path == spec.Path && OpCode == spec.OpCode && Flags == spec.Flags;
+            return Path == spec.Path &&
+                   OpCode == spec.OpCode &&
+                   PathFlags == spec.PathFlags &&
+                   DocFlags == spec.DocFlags;
         }
 
         /// <summary>
@@ -127,7 +139,10 @@ namespace Couchbase.Core.IO.SubDocument
             var spec1 = x as OperationSpec;
             var spec2 = y as OperationSpec;
             if (spec1 == null || spec2 == null) return false;
-            return spec1.Path == spec2.Path && spec1.OpCode == spec2.OpCode && spec1.Flags == spec2.Flags;
+            return spec1.Path == spec2.Path &&
+                   spec1.OpCode == spec2.OpCode &&
+                   spec1.PathFlags == spec2.PathFlags &&
+                   spec1.DocFlags == spec2.DocFlags;
         }
 
         /// <summary>
@@ -144,7 +159,8 @@ namespace Couchbase.Core.IO.SubDocument
             var hash = 17;
             hash = hash*23 + (spec.Path == null ? 0 : spec.Path.GetHashCode());
             hash = hash*23 + spec.OpCode.GetHashCode();
-            hash = hash*23 + Flags.GetHashCode();
+            hash = hash*23 + PathFlags.GetHashCode();
+            hash = hash*23 + DocFlags.GetHashCode();
             return hash;
         }
 

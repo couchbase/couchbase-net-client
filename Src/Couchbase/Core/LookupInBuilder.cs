@@ -111,7 +111,7 @@ namespace Couchbase.Core
         /// </value>
         internal bool ContainsXattrOperations
         {
-            get { return _commands.Any(x => (x.Flags & (byte) SubdocLookupFlags.XattrPath) != 0); }
+            get { return _commands.Any(command => command.PathFlags.HasFlag(SubdocPathFlags.Xattr)); }
         }
 
         /// <summary>
@@ -123,34 +123,26 @@ namespace Couchbase.Core
         /// </returns>
         public ILookupInBuilder<TDocument> Get(string path)
         {
-            return Get(path, SubdocLookupFlags.None);
-        }
-
-        private static byte GetFlagsValue(SubdocLookupFlags flags)
-        {
-            if (flags.HasFlag(SubdocLookupFlags.AccessDeleted) && !flags.HasFlag(SubdocLookupFlags.XattrPath))
-            {
-                flags |= SubdocLookupFlags.XattrPath;
-            }
-
-            return (byte) flags;
+            return Get(path, SubdocPathFlags.None);
         }
 
         /// <summary>
         /// Gets the value at a specified path.
         /// </summary>
         /// <param name="path">The path.</param>
-        /// <param name="flags">The Subdoc flags.</param>
+        /// <param name="pathFlags">The Subdoc pathFlags.</param>
+        /// <param name="docFlags">The document flags.</param>
         /// <returns>
         /// A <see cref="T:Couchbase.Core.ILookupInBuilder`1" /> implementation reference for chaining operations.
         /// </returns>
-        public ILookupInBuilder<TDocument> Get(string path, SubdocLookupFlags flags)
+        public ILookupInBuilder<TDocument> Get(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
             _commands.Enqueue(new OperationSpec
             {
                 Path = path,
                 OpCode = OperationCode.SubGet,
-                Flags = GetFlagsValue(flags)
+                PathFlags = pathFlags,
+                DocFlags = docFlags
             });
             return this;
         }
@@ -164,24 +156,26 @@ namespace Couchbase.Core
         /// </returns>
         public ILookupInBuilder<TDocument> Exists(string path)
         {
-            return Exists(path, SubdocLookupFlags.None);
+            return Exists(path, SubdocPathFlags.None);
         }
 
         /// <summary>
         /// Checks for the existence of a given N1QL path.
         /// </summary>
         /// <param name="path">The path.</param>
-        /// <param name="flags">The Subdoc flags.</param>
+        /// <param name="pathFlags">The Subdoc pathFlags.</param>
+        /// <param name="docFlags">The document flags.</param>
         /// <returns>
         /// A <see cref="T:Couchbase.Core.ILookupInBuilder`1" /> implementation reference for chaining operations.
         /// </returns>
-        public ILookupInBuilder<TDocument> Exists(string path, SubdocLookupFlags flags)
+        public ILookupInBuilder<TDocument> Exists(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
             _commands.Enqueue(new OperationSpec
             {
                 Path = path,
                 OpCode = OperationCode.SubExist,
-                Flags = GetFlagsValue(flags)
+                PathFlags = pathFlags,
+                DocFlags = docFlags
             });
             return this;
         }
@@ -194,23 +188,25 @@ namespace Couchbase.Core
         /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
         public ILookupInBuilder<TDocument> GetCount(string path)
         {
-            return GetCount(path, SubdocLookupFlags.None);
+            return GetCount(path, SubdocPathFlags.None);
         }
 
         /// <summary>
         /// Gets the number of items in a collection or dictionary at a specified N1QL path.
         /// </summary>
         /// <param name="path">The path.</param>
-        /// <param name="flags">The subdocument lookup flags.</param>
+        /// <param name="pathFlags">The subdocument lookup pathFlags.</param>
+        /// <param name="docFlags">The document flags.</param>
         /// <returns>A <see cref="ILookupInBuilder{TDocument}"/> implementation reference for chaining operations.</returns>
         /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
-        public ILookupInBuilder<TDocument> GetCount(string path, SubdocLookupFlags flags)
+        public ILookupInBuilder<TDocument> GetCount(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
             _commands.Enqueue(new OperationSpec
             {
                 Path = path,
                 OpCode = OperationCode.SubGetCount,
-                Flags = GetFlagsValue(flags)
+                PathFlags = pathFlags,
+                DocFlags = docFlags
             });
             return this;
         }

@@ -56,7 +56,7 @@ namespace Couchbase.IO.Operations.SubDocument
             foreach (var mutate in _builder)
             {
                 var opcode = (byte)mutate.OpCode;
-                var flags = mutate.Flags;
+                var flags = (byte) mutate.PathFlags;
                 var pathLength = Encoding.UTF8.GetByteCount(mutate.Path);
                 var fragment = mutate.Value == null ? new byte[0] : GetBytes(mutate);
 

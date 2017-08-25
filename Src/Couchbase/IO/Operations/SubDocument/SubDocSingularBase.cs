@@ -66,7 +66,20 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override short ExtrasLength
         {
-            get { return (short)(Expires == 0 ? 3 : 7); }
+            get
+            {
+                short length = 3;
+                if (Expires > 0)
+                {
+                    length += 4;
+                }
+                if (CurrentSpec.DocFlags != SubdocDocFlags.None)
+                {
+                    length += 1;
+                }
+
+                return length;
+            }
         }
 
         protected virtual ResponseStatus GetParentStatus(ResponseStatus status)

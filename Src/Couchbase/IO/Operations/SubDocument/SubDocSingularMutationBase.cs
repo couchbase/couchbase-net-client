@@ -42,9 +42,9 @@ namespace Couchbase.IO.Operations.SubDocument
 
             WriteHeader(buffer);
             WriteExtras(buffer, 24);
-            WriteKey(buffer, Expires == 0 ? 27 : 31);
-            WritePath(buffer, (Expires == 0 ? 27 : 31) + KeyLength);
-            WriteBody(buffer, (Expires == 0 ? 27 : 31) + KeyLength + PathLength);
+            WriteKey(buffer, HeaderLength + ExtrasLength);
+            WritePath(buffer, HeaderLength + ExtrasLength + KeyLength);
+            WriteBody(buffer, HeaderLength + ExtrasLength + KeyLength + PathLength);
 
             return buffer;
         }
@@ -52,10 +52,17 @@ namespace Couchbase.IO.Operations.SubDocument
         public override void WriteExtras(byte[] buffer, int offset)
         {
             Converter.FromInt16(PathLength, buffer, offset); //2@24 Path length
-            Converter.FromByte(CurrentSpec.Flags, buffer, offset + 2); //1@26 Flags
-            if (Expires > 0)
+            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer, offset + 2); //1@26 PathFlags
+
+            var hasExpiry = Expires > 0;
+            if (hasExpiry)
             {
                 Converter.FromUInt32(Expires, buffer, offset + 3); //4@27 Expiration time (if present, extras is 7)
+            }
+            if (CurrentSpec.DocFlags != SubdocDocFlags.None)
+            {
+                // write doc flags, offset depends on if there is an expiry
+                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer, offset + (hasExpiry ? 7 : 3));
             }
         }
 

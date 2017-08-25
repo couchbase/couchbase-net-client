@@ -3,13 +3,13 @@
 namespace Couchbase.Core
 {
     /// <summary>
-    /// Flags for Subdoc mutate operations.
+    /// Flags for indicating additional actions when working with subdocument paths.
     /// </summary>
     [Flags]
-    public enum SubdocMutateFlags : byte
+    public enum SubdocPathFlags : byte
     {
         /// <summary>
-        /// No subdoc flags have been specified.
+        /// No path flags have been specified.
         /// </summary>
         None = 0x00,
 
@@ -19,19 +19,14 @@ namespace Couchbase.Core
         CreatePath = 0x01,
 
         /// <summary>
-        /// Creates the document if it does not exist.
-        /// </summary>
-        CreateDocument = 0x02,
-
-        /// <summary>
         /// Path refers to a location within the document’s attributes section.
         /// </summary>
-        XattrPath = 0x04,
+        Xattr = 0x04,
 
         /// <summary>
-        /// Indicates that the server should expand any macros before storing the value. Infers <see cref="F:SubdocMutateFlags.XattrPath"/>.
+        /// Indicates that the server should expand any macros before storing the value. Infers <see cref="F:SubdocDocFlags.Xattr"/>.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
-        ExpandMacro = 0x010
+        ExpandMacroValues = 0x010
     }
 }
