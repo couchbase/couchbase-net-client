@@ -371,5 +371,87 @@ namespace Couchbase.UnitTests.N1Ql
             request.ClientContextId("0");
             Assert.AreEqual("http://localhost:8093/query[{\"statement\":\"SELECT * from Who WHERE $1\",\"timeout\":\"10000ms\",\"readonly\":false,\"metrics\":true,\"args\":[\"boo\"],\"compression\":\"RLE\",\"signature\":true,\"scan_consistency\":\"request_plus\",\"scan_wait\":\"100ms\",\"pretty\":true,\"creds\":[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}],\"client_context_id\":\"0::1\"}]", request.ToString());
         }
+
+        [Test]
+        public void ScanCap_is_set_if_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default")
+                .ScanCapacity(10);
+
+            var fields = request.GetFormValues();
+
+            Assert.IsTrue(fields.ContainsKey("scan_cap"));
+            Assert.AreEqual("10", fields["scan_cap"]);
+        }
+
+        [Test]
+        public void ScanCap_is_omited_if_not_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default");
+
+            var fields = request.GetFormValues();
+            Assert.IsFalse(fields.ContainsKey("scan_cap"));
+        }
+
+        [Test]
+        public void PipelineBatch_is_set_if_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default")
+                .PipelineBatch(10);
+
+            var fields = request.GetFormValues();
+            Assert.IsTrue(fields.ContainsKey("pipeline_batch"));
+            Assert.AreEqual("10", fields["pipeline_batch"]);
+        }
+
+        [Test]
+        public void PipelineBatch_is_omitted_if_not_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default");
+
+            var fields = request.GetFormValues();
+            Assert.IsFalse(fields.ContainsKey("pipeline_batch"));
+        }
+
+        [Test]
+        public void PipelineCap_is_set_if_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default")
+                .PipelineCapacity(10);
+
+            var fields = request.GetFormValues();
+            Assert.IsTrue(fields.ContainsKey("pipeline_cap"));
+            Assert.AreEqual("10", fields["pipeline_cap"]);
+        }
+
+        [Test]
+        public void PipelineCap_is_omitted_if_not_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default");
+
+            var fields = request.GetFormValues();
+            Assert.IsFalse(fields.ContainsKey("pipeline_cap"));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Readonly_is_set_if_provided(bool value)
+        {
+            var request = new QueryRequest("SELECT * FROM default")
+                .ReadOnly(value);
+
+            var fields = request.GetFormValues();
+            Assert.IsTrue(fields.ContainsKey("readonly"));
+            Assert.AreEqual(value, fields["readonly"]);
+        }
+
+        [Test]
+        public void Readonly_is_omitted_if_not_provided()
+        {
+            var request = new QueryRequest("SELECT * FROM default");
+
+            var fields = request.GetFormValues();
+            Assert.IsFalse(fields.ContainsKey("readonly"));
+        }
     }
 }

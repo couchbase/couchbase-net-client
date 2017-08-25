@@ -39,6 +39,9 @@ namespace Couchbase.N1QL
         private volatile uint _requestContextId;
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors;
         private bool? _useStreaming;
+        private int? _scanCapacity;
+        private int? _pipelineBatch;
+        private int? _pipelineCapacity;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -101,6 +104,9 @@ namespace Couchbase.N1QL
             public const string Creds = "creds";
             public const string ClientContextId = "client_context_id";
             public const string MaxServerParallelism = "max_parallelism";
+            public const string ScanCapacity = "scan_cap";
+            public const string PipelineBatch = "pipeline_batch";
+            public const string PipelineCapacity = "pipeline_cap";
         }
 
         /// <summary>
@@ -600,6 +606,51 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        /// <summary>
+        /// Sets maximum buffered channel size between the indexer client
+        /// and the query service for index scans.
+        ///
+        /// This parameter controls when to use scan backfill.
+        /// Use 0 or a negative number to disable.
+        /// </summary>
+        /// <param name="capacity">The maximum number of channels.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        public IQueryRequest ScanCapacity(int capacity)
+        {
+            _scanCapacity = capacity;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the number of items execution operators can batch for
+        /// fetch from the KV.
+        /// </summary>
+        /// <param name="batchSize">The maximum number of items.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        public IQueryRequest PipelineBatch(int batchSize)
+        {
+            _pipelineBatch = batchSize;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets maximum number of items each execution operator can buffer
+        /// between various operators.
+        /// </summary>
+        /// <param name="capacity">The maximum number of items.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IQueryRequest" /> for method chaining.
+        /// </returns>
+        public IQueryRequest PipelineCapacity(int capacity)
+        {
+            _pipelineCapacity = capacity;
+            return this;
+        }
+
         public Uri GetBaseUri()
         {
             return _baseUri;
@@ -733,6 +784,18 @@ namespace Couchbase.N1QL
                     creds.Add(new { user = credential.Key, pass = credential.Value });
                 }
                 formValues.Add(QueryParameters.Creds, creds);
+            }
+            if (_scanCapacity.HasValue)
+            {
+                formValues.Add(QueryParameters.ScanCapacity, _scanCapacity.Value.ToString());
+            }
+            if (_pipelineBatch.HasValue)
+            {
+                formValues.Add(QueryParameters.PipelineBatch, _pipelineBatch.Value.ToString());
+            }
+            if (_pipelineCapacity.HasValue)
+            {
+                formValues.Add(QueryParameters.PipelineCapacity, _pipelineCapacity.Value.ToString());
             }
 
             _requestContextId = QuerySequenceGenerator.GetNext();
