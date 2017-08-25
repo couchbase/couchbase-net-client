@@ -60,9 +60,12 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
                     var saslMechanism = SaslFactory(username, password, connectionPool, Transcoder);
                     connectionPool.SaslMechanism = saslMechanism;
-                    connectionPool.Initialize();
 
+                    // setup IO service, this does SASL negotiation & hello
                     ioService = IOServiceFactory(connectionPool);
+
+                    // finish initialising connection pool ready to be used
+                    connectionPool.Initialize();
 
                     var operationResult = ioService.Execute(new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
                     if (operationResult.Success)

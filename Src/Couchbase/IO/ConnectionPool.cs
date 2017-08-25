@@ -75,8 +75,16 @@ namespace Couchbase.IO
         {
             lock (_lock)
             {
-                var count = Configuration.MinSize;
-                do
+                // make sure all existing connections are authenticated and enable
+                // enhanved auth when required
+                foreach (var connection in _refs.Values)
+                {
+                    Authenticate(connection);
+                    EnableEnhancedAuthentication(connection);
+                }
+
+                // create and configure connections to minsize
+                while (_refs.Count < Configuration.MinSize)
                 {
                     try
                     {
@@ -98,7 +106,7 @@ namespace Couchbase.IO
                         InitializationFailed = true;
                         return;
                     }
-                } while (_store.Count < count);
+                }
             }
         }
 
