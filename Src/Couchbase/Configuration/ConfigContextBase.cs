@@ -61,11 +61,16 @@ namespace Couchbase.Configuration
         public static ConcurrentBag<FailureCountingUri> SearchUris = new ConcurrentBag<FailureCountingUri>();
         public static ConcurrentBag<FailureCountingUri> AnalyticsUris = new ConcurrentBag<FailureCountingUri>();
 
+        protected string UserName { get; }
+        protected string Password { get; }
+
         protected ConfigContextBase(IBucketConfig bucketConfig, ClientConfiguration clientConfig,
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
-            ITypeTranscoder transcoder)
+            ITypeTranscoder transcoder,
+            string userName,
+            string password)
         {
             _bucketConfig = bucketConfig;
             _clientConfig = clientConfig;
@@ -74,6 +79,9 @@ namespace Couchbase.Configuration
             _creationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Transcoder = transcoder;
+
+            UserName = !string.IsNullOrWhiteSpace(userName) ? userName : bucketConfig.Name;
+            Password = password;
         }
 
         public static FailureCountingUri GetQueryUri(int queryFailedThreshold)

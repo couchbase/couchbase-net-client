@@ -25,7 +25,7 @@ namespace Couchbase.Tests.Configuration.Server.Providers.Streaming
             _clientConfig = new ClientConfiguration();
             _clientConfig.Servers.Add(new Uri(string.Format("http://{0}:8091/pools/", _serverIp)));
 
-            _serverConfig = new HttpServerConfig(_clientConfig);
+            _serverConfig = new HttpServerConfig(_clientConfig, "default", "default", string.Empty);
             _serverConfig.Initialize();
         }
 

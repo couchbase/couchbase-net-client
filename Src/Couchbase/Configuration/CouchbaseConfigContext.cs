@@ -25,8 +25,10 @@ namespace Couchbase.Configuration
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
-            ITypeTranscoder transcoder)
-            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
+            ITypeTranscoder transcoder,
+            string userName,
+            string password)
+            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder, userName, password)
         {
             //for caching query plans
             QueryCache = new ConcurrentDictionary<string, QueryPlan>();
@@ -79,11 +81,8 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
-                                poolConfiguration.BucketName = BucketConfig.Name;
 
-                                var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
-                                connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
-                                connectionPool.Initialize();
+                                var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
 
                                 var ioService = IOServiceFactory(connectionPool);
                                 server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
@@ -221,11 +220,8 @@ namespace Couchbase.Configuration
                             {
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
-                                poolConfiguration.BucketName = BucketConfig.Name;
 
-                                var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
-                                connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
-                                connectionPool.Initialize();
+                                var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
 
                                 var newIoService = IOServiceFactory(connectionPool);
                                 server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
@@ -315,11 +311,8 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
-                            poolConfiguration.BucketName = BucketConfig.Name;
 
-                            var connectionPool = ConnectionPoolFactory(poolConfiguration.Clone(uri), endpoint);
-                            connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
-                            connectionPool.Initialize();
+                            var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
 
                             var newIoService = IOServiceFactory(connectionPool);
                             server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
@@ -425,6 +418,15 @@ namespace Couchbase.Configuration
                 .Select(x => x.Value)
                 .ToList();
             Interlocked.Exchange(ref AnalyticsNodes, analyticsNodes);
+        }
+
+        IConnectionPool CreateConnectionPool(PoolConfiguration poolConfiguration, IPEndPoint endpoint)
+        {
+            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+            connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
+            connectionPool.Initialize();
+
+            return connectionPool;
         }
 
         internal List<IServer> GetServers()

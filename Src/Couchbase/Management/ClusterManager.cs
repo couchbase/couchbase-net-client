@@ -453,7 +453,7 @@ namespace Couchbase.Management
 
         HttpServerConfig GetConfig(string name, string password)
         {
-            var config = new HttpServerConfig(_clientConfig, name, password);
+            var config = new HttpServerConfig(_clientConfig, name, name, password);
             config.Initialize();
             return config;
         }

@@ -6,6 +6,7 @@ using System.Threading;
 using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
@@ -875,6 +876,15 @@ namespace Couchbase.Configuration.Client
                 _operationLifespanChanged = true;
             }
         }
+
+        /// <summary>
+        /// Control which server configuration providers are enabled.
+        /// </summary>
+        /// <remarks>
+        /// Intended for testing to force the use of specific providers.
+        /// </remarks>
+        internal ServerConfigurationProviders ConfigurationProviders { get; set; } =
+            ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
 
         /// <summary>
         /// Updates the internal bootstrap url with the new list from a server configuration.

@@ -157,7 +157,7 @@ namespace Couchbase.Configuration.Server.Providers
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public virtual IConfigInfo GetConfig(string bucketName)
         {
-            return GetConfig(bucketName, string.Empty, string.Empty);
+            return GetConfig(bucketName, bucketName, string.Empty);
         }
 
         /// <summary>

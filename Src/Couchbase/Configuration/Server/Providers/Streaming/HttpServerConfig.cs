@@ -31,17 +31,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private const string DefaultTerseBucketsBase = "/pools/default/b/";
         private const string DefaultTerseStreamingBucketsBase = "/pools/default/bs/";
 
-        public HttpServerConfig(ClientConfiguration clientConfig)
-            : this(clientConfig, "default", string.Empty)
-        {
-        }
-
-        public HttpServerConfig(ClientConfiguration clientConfig, string bucketName, string password)
+        public HttpServerConfig(ClientConfiguration clientConfig, string bucketName, string userName, string password)
         {
             _clientConfig = clientConfig;
             _bucketName = bucketName;
 
-            _httpClient = new CouchbaseHttpClient(bucketName, password);
+            _httpClient = new CouchbaseHttpClient(userName, password);
         }
 
         public string BucketName

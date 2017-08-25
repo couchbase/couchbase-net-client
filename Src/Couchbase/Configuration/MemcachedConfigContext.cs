@@ -25,8 +25,10 @@ namespace Couchbase.Configuration
             Func<IConnectionPool, IIOService> ioServiceFactory,
             Func<PoolConfiguration, IPEndPoint, IConnectionPool> connectionPoolFactory,
             Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> saslFactory,
-            ITypeTranscoder transcoder)
-            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder)
+            ITypeTranscoder transcoder,
+            string userName,
+            string password)
+            : base(bucketConfig, clientConfig, ioServiceFactory, connectionPoolFactory, saslFactory, transcoder, userName, password)
         {
         }
 
@@ -72,8 +74,8 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
 
-                            var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
-                            connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                            var connectionPool = ConnectionPoolFactory(clientBucketConfig.ClonePoolConfiguration(uri), endpoint);
+                            connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
                             connectionPool.Initialize();
 
                             var ioService = IOServiceFactory(connectionPool);
@@ -131,8 +133,8 @@ namespace Couchbase.Configuration
                     {
                         var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
 
-                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.PoolConfiguration.Clone(uri), endpoint);
-                        connectionPool.SaslMechanism = SaslFactory(BucketConfig.Name, BucketConfig.Password, connectionPool, Transcoder);
+                        var connectionPool = ConnectionPoolFactory(clientBucketConfig.ClonePoolConfiguration(uri), endpoint);
+                        connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
                         connectionPool.Initialize();
 
                         var ioService = IOServiceFactory(connectionPool);

@@ -56,7 +56,6 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 try
                 {
                     var poolConfig = bucketConfiguration.ClonePoolConfiguration(server);
-                    poolConfig.BucketName = bucketName;
 
                     var connectionPool = ConnectionPoolFactory(poolConfig, endPoint);
                     var saslMechanism = SaslFactory(username, password, connectionPool, Transcoder);
@@ -90,7 +89,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             IOServiceFactory,
                             ConnectionPoolFactory,
                             SaslFactory,
-                            Transcoder);
+                            Transcoder,
+                            username,
+                            password);
 
                         Log.Info("Bootstrap config: {0}", JsonConvert.SerializeObject(bucketConfig));
 

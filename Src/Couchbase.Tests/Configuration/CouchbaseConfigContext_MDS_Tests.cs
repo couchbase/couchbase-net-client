@@ -44,7 +44,8 @@ namespace Couchbase.Tests.Configuration
                 pool => ioService,
                 (c, e) => new FakeConnectionPool(),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
 
             _configContext.LoadConfig();
         }

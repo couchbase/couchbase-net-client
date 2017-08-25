@@ -50,7 +50,15 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         public override IConfigInfo GetConfig(string bucketName, string username, string password)
         {
             var bucketConfiguration = GetOrCreateConfiguration(bucketName);
-            StartProvider(bucketName, password);
+
+            //if the client is using a password make sure the client configuration references it
+            password = string.IsNullOrEmpty(password) ? bucketConfiguration.Password : password;
+            if (string.IsNullOrEmpty(bucketConfiguration.Password))
+            {
+                bucketConfiguration.Password = password;
+            }
+
+            StartProvider(bucketName, username, password);
             var bucketConfig = GetBucketConfig(bucketName, password);
 
             try
@@ -105,7 +113,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             }
                         }
 
-                        configInfo = CreateConfigInfo(newConfig);
+                        configInfo = CreateConfigInfo(newConfig, username, password);
                         Configs[bucketName] = configInfo;
                         break;
 
@@ -232,7 +240,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 }
                 else
                 {
-                    configInfo = CreateConfigInfo(bucketConfig);
+                    configInfo = CreateConfigInfo(bucketConfig, null, null);
                     Configs.TryAdd(bucketConfig.Name, configInfo);
                 }
 
@@ -257,8 +265,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// Creates a Bucket specific <see cref="IConfigInfo"/> instance.
         /// </summary>
         /// <param name="bucketConfig">The <see cref="IBucketConfig"/> to use for client configuration.</param>
+        /// <param name="username">Username for authentication.</param>
+        /// <param name="password">Password for authentication.</param>
         /// <returns></returns>
-        IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig)
+        IConfigInfo CreateConfigInfo(IBucketConfig bucketConfig, string username, string password)
         {
             IConfigInfo configInfo;
             switch (bucketConfig.NodeLocator.ToEnum<NodeLocatorEnum>())
@@ -269,7 +279,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         IOServiceFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
-                        Transcoder);
+                        Transcoder,
+                        username,
+                        password);
                     break;
                 case NodeLocatorEnum.Ketama:
                     configInfo = new MemcachedConfigContext(bucketConfig,
@@ -277,7 +289,9 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         IOServiceFactory,
                         ConnectionPoolFactory,
                         SaslFactory,
-                        Transcoder);
+                        Transcoder,
+                        username,
+                        password);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -290,11 +304,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// <summary>
         /// Starts the HTTP streaming connection.
         /// </summary>
+        /// <param name="bucketName"></param>
         /// <param name="username"></param>
         /// <param name="password"></param>
-        void StartProvider(string username, string password)
+        void StartProvider(string bucketName, string username, string password)
         {
-            _serverConfig = new HttpServerConfig(ClientConfig, username, password);
+            _serverConfig = new HttpServerConfig(ClientConfig, bucketName, username, password);
             _serverConfig.Initialize();
             Log.Debug("Starting provider on main thread: {0}", Thread.CurrentThread.ManagedThreadId);
         }

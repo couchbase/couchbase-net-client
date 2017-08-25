@@ -132,19 +132,28 @@ namespace Couchbase.Core
         private void Initialize()
         {
             _clientConfig.Initialize();
-            _configProviders.Add(new CarrierPublicationProvider(_clientConfig,
-                _ioServiceFactory,
-                _connectionPoolFactory,
-                _saslFactory,
-                Converter,
-                Transcoder));
 
-            _configProviders.Add(new HttpStreamingProvider(_clientConfig,
-                _ioServiceFactory,
-                _connectionPoolFactory,
-                _saslFactory,
-                Converter,
-                Transcoder));
+            if ((_clientConfig.ConfigurationProviders & ServerConfigurationProviders.CarrierPublication) ==
+                ServerConfigurationProviders.CarrierPublication)
+            {
+                _configProviders.Add(new CarrierPublicationProvider(_clientConfig,
+                    _ioServiceFactory,
+                    _connectionPoolFactory,
+                    _saslFactory,
+                    Converter,
+                    Transcoder));
+            }
+
+            if ((_clientConfig.ConfigurationProviders & ServerConfigurationProviders.HttpStreaming) ==
+                ServerConfigurationProviders.HttpStreaming)
+            {
+                _configProviders.Add(new HttpStreamingProvider(_clientConfig,
+                    _ioServiceFactory,
+                    _connectionPoolFactory,
+                    _saslFactory,
+                    Converter,
+                    Transcoder));
+            }
         }
 
         public IConfigProvider GetProvider(string name)

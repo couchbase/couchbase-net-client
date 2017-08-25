@@ -33,7 +33,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig();
 
@@ -61,7 +62,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockBucketConfig.Object);
 
@@ -89,7 +91,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockIoService.Object);
 
@@ -117,7 +120,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig();
 
@@ -145,7 +149,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockBucketConfig.Object);
 
@@ -173,7 +178,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockIoService.Object);
 
@@ -201,7 +207,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig();
 
@@ -229,7 +236,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockBucketConfig.Object);
 
@@ -257,7 +265,8 @@ namespace Couchbase.UnitTests.Configuration
                 p => mockIoService.Object,
                 (a, b) => mockConnectionPool.Object,
                 (a, b, c, d) => mockSasl.Object,
-                new DefaultTranscoder());
+                new DefaultTranscoder(),
+                null, null);
 
             context.LoadConfig(mockIoService.Object);
 

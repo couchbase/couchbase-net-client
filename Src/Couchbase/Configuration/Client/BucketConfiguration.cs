@@ -206,6 +206,7 @@ namespace Couchbase.Configuration.Client
             poolConfig.UseEnhancedDurability = UseEnhancedDurability;
             poolConfig.UseKvErrorMap = UseKvErrorMap;
             poolConfig.UseSsl = UseSsl;
+            poolConfig.BucketName = BucketName;
             return poolConfig;
         }
     }

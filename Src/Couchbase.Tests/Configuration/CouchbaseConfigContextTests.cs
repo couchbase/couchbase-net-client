@@ -48,7 +48,8 @@ namespace Couchbase.Tests.Configuration
                 pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
             configInfo.LoadConfig();
 
 
@@ -103,7 +104,8 @@ namespace Couchbase.Tests.Configuration
                 pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
             Assert.IsNotNull(configInfo.GetKeyMapper());
@@ -134,7 +136,8 @@ namespace Couchbase.Tests.Configuration
                 pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
             Assert.IsNotNull(configInfo.GetKeyMapper());
@@ -191,7 +194,8 @@ namespace Couchbase.Tests.Configuration
                 pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
 
             configInfo.LoadConfig();
             Assert.AreEqual(1070, configInfo.BucketConfig.Rev);
@@ -222,7 +226,8 @@ namespace Couchbase.Tests.Configuration
                 pool => new PooledIOService(pool),
                 (config, endpoint) => new ConnectionPool<Connection>(config, endpoint),
                 SaslFactory.GetFactory(),
-                new DefaultTranscoder(new DefaultConverter()));
+                new DefaultTranscoder(new DefaultConverter()),
+                null, null);
 
             Assert.DoesNotThrow(() => configInfo.LoadConfig());
             Assert.IsNotNull(configInfo.GetKeyMapper());

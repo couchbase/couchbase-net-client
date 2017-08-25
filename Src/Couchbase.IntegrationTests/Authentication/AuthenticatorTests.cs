@@ -5,6 +5,7 @@ using System.Net;
 using Castle.Core.Internal;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using Couchbase.Search;
@@ -31,6 +32,31 @@ namespace Couchbase.IntegrationTests.Authentication
             };
 
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+
+            cluster.Authenticate(credentials);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        public void Test_CanAuthenticate_KV_HTTP()
+        {
+            var credentials = new ClusterCredentials
+            {
+                ClusterUsername = "Administrator",
+                ClusterPassword = "password",
+                BucketCredentials = new AttributeDictionary
+                {
+                    {"authenticated", "secret"}
+                }
+            };
+
+            var config = TestConfiguration.GetCurrentConfiguration();
+            config.ConfigurationProviders = ServerConfigurationProviders.HttpStreaming;
+
+            var cluster = new Cluster(config);
 
             cluster.Authenticate(credentials);
 
@@ -102,6 +128,19 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 
         [Test]
+        public void Test_Legacy_CanAuthenticate_KV_HTTP()
+        {
+            var config = TestConfiguration.GetCurrentConfiguration();
+            config.ConfigurationProviders = ServerConfigurationProviders.HttpStreaming;
+
+            var cluster = new Cluster(config);
+
+            var bucket = cluster.OpenBucket("authenticated", "secret");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
         public void Test_Legacy_CanAuthenticate_N1QL()
         {
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
@@ -141,6 +180,21 @@ namespace Couchbase.IntegrationTests.Authentication
         {
             var authentictor = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_KV_HTTP()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var config = TestConfiguration.GetCurrentConfiguration();
+            config.ConfigurationProviders = ServerConfigurationProviders.HttpStreaming;
+
+            var cluster = new Cluster(config);
             cluster.Authenticate(authentictor);
 
             var bucket = cluster.OpenBucket("authenticated");
@@ -278,6 +332,18 @@ namespace Couchbase.IntegrationTests.Authentication
 
             // perform KV operation
             var bucket = cluster.OpenBucket("authenticated");
+            var result = bucket.Upsert("thekey", "thevalue");
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test, Ignore("RBAC not available yet")]
+        public void PasswordAuthenticator_Memcached_KV()
+        {
+            var authentictor = GetPasswordAuthenticator();
+            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            cluster.Authenticate(authentictor);
+
+            var bucket = cluster.OpenBucket("memcached");
             var result = bucket.Upsert("thekey", "thevalue");
             Assert.IsTrue(result.Success);
         }
