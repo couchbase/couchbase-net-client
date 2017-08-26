@@ -195,8 +195,8 @@ namespace Couchbase.Configuration.Client.Providers
         /// <summary>
         /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
-        /// <remarks>The default is 10000ms.</remarks>
-        [ConfigurationProperty("heartbeatConfigInterval", DefaultValue = 10000, IsRequired = false)]
+        /// <remarks>The default is 2500ms.</remarks>
+        [ConfigurationProperty("heartbeatConfigInterval", DefaultValue = 2500, IsRequired = false)]
         public int HeartbeatConfigInterval
         {
             get { return (int)this["heartbeatConfigInterval"]; }

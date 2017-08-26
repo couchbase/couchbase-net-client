@@ -197,7 +197,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
-            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
+            mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {mockConnection.Object});
 
             var service = clientConfig.IOServiceCreator.Invoke(mockConnectionPool.Object);
 
@@ -218,7 +218,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
-            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {conn.Object});
 
             var service = config.IOServiceCreator(connectionPool.Object);
 
@@ -239,7 +239,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
-            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {conn.Object});
 
             var service = config.IOServiceCreator(connectionPool.Object);
             Assert.IsInstanceOf<SharedPooledIOService>(service);
@@ -256,7 +256,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(conn.Object);
             connectionPool.Setup(x => x.Configuration).Returns(new PoolConfiguration());
-            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { conn.Object });
+            connectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {conn.Object});
 
             var service = config.IOServiceCreator(connectionPool.Object);
             Assert.IsInstanceOf<SharedPooledIOService>(service);
@@ -303,7 +303,8 @@ namespace Couchbase.UnitTests.Configuration.Client
         [TestCase(1, -1, Description = "MinSize is less than 0")]
         [TestCase(501, 501, Description = "MinSize is greater than 500")]
         [TestCase(5, 10, Description = "Maxsize is greater than MinSize")]
-        public void Throws_Argument_Exception_If_Connection_Values_Are_Not_Valid_For_BucketConfigs(int maxSize, int minSize)
+        public void Throws_Argument_Exception_If_Connection_Values_Are_Not_Valid_For_BucketConfigs(int maxSize,
+            int minSize)
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new ClientConfiguration
             {
@@ -329,17 +330,22 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurability_UseEnhancedDurabilityIsTrue()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.IsTrue(clientConfig.BucketConfigs["beer-sample"].UseEnhancedDurability);
         }
 
         [Test]
-        public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurabilityIsFalse_UseEnhancedDurabilityIsFalse()
+        public void
+            BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurabilityIsFalse_UseEnhancedDurabilityIsFalse()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.IsFalse(clientConfig.BucketConfigs["default1"].UseEnhancedDurability);
@@ -349,7 +355,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void BucketConfiguration_NoPoolConfigurationDefinedAndUseSsl_UseSslIsTrue()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.IsTrue(clientConfig.BucketConfigs["beer-sample"].UseSsl);
@@ -359,7 +367,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void BucketConfiguration_NoPoolConfigurationDefinedAndUseSsl_UseSslIsFalse()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.IsFalse(clientConfig.BucketConfigs["default1"].UseSsl);
@@ -369,7 +379,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void BucketConfiguration_PoolConfigurationDefined_UsesConfiguredSettings()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.AreEqual(15, clientConfig.BucketConfigs["default1"].PoolConfiguration.MinSize);
@@ -380,7 +392,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void BucketConfiguration_NoPoolConfigurationDefined_UsesDerivedPoolSettings()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             //assert
             Assert.AreEqual(5, clientConfig.BucketConfigs["beer-sample"].PoolConfiguration.MinSize);
@@ -391,7 +405,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void ClientConfiguration_IgnoreHostnameValidation()
         {
             //arrange/act
-            var clientConfig = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             Assert.IsTrue(ClientConfiguration.IgnoreRemoteCertificateNameMismatch);
         }
@@ -408,7 +424,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void ClientConfigSection_VBucketRetrySleepTime_DefaultsTo100ms()
         {
             //arrange/act
-            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+            var config =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/couchbase"));
 
             Assert.AreEqual(100, config.VBucketRetrySleepTime);
         }
@@ -416,7 +434,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void ClientConfigSection_Get_Username_Password_From_Config()
         {
-            var config = new ClientConfiguration((CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/secure"));
+            var config =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection("couchbaseClients/secure"));
             var authenticator = config.Authenticator as PasswordAuthenticator;
 
             Assert.IsNotNull(authenticator);
@@ -427,7 +447,10 @@ namespace Couchbase.UnitTests.Configuration.Client
         [Test]
         public void ClientConfigSection_Username_From_ConnectionString()
         {
-            var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/secureConnectionString"));
+            var config =
+                new ClientConfiguration(
+                    (CouchbaseClientSection) ConfigurationManager.GetSection(
+                        "couchbaseClients/secureConnectionString"));
             var authenticator = config.Authenticator as PasswordAuthenticator;
 
             Assert.IsNotNull(authenticator);
@@ -437,7 +460,8 @@ namespace Couchbase.UnitTests.Configuration.Client
 #endif
 
         [Test]
-        public void When_HeartbeatConfigInterval_Is_Less_Than_HeartbeatConfigCheckFloor_Throw_ArgumentOutOfRangeException()
+        public void
+            When_HeartbeatConfigInterval_Is_Less_Than_HeartbeatConfigCheckFloor_Throw_ArgumentOutOfRangeException()
         {
             var clientConfig = new ClientConfiguration
             {
@@ -461,7 +485,8 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 
         [Test]
-        public void When_HeartbeatConfigInterval_Is_Greater_Than_HeartbeatConfigCheckFloor_DoNotThrow_ArgumentOutOfRangeException()
+        public void
+            When_HeartbeatConfigInterval_Is_Greater_Than_HeartbeatConfigCheckFloor_DoNotThrow_ArgumentOutOfRangeException()
         {
             var clientConfig = new ClientConfiguration
             {
@@ -471,5 +496,24 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.DoesNotThrow(() => clientConfig.Initialize());
         }
+
+        [Test]
+        public void ClientConfiguration_HeartbeachConfigCheckInterval_Defaults_To_2500()
+        {
+            var clientConfig = new ClientConfiguration();
+            Assert.AreEqual(2500, clientConfig.HeartbeatConfigInterval);
+        }
+
+#if NET45
+        [Test]
+        public void CouchbaseClientSection_HeartbeachConfigCheckInterval_Defaults_To_2500()
+        {
+            var clientConfig =
+                new ClientConfiguration(
+                    (CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase"));
+
+            Assert.AreEqual(2500, clientConfig.HeartbeatConfigInterval);
+        }
+#endif
     }
 }

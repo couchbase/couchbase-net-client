@@ -65,7 +65,7 @@ namespace Couchbase.Configuration.Client
             public static uint ObserveTimeout = 500; //ms
             public static uint MaxViewRetries = 2;
             public static uint ViewHardTimeout = 30000; //ms
-            public static uint HeartbeatConfigInterval = 10000; //ms
+            public static uint HeartbeatConfigInterval = 2500; //ms
             public static bool EnableConfigHeartBeat = true;
             public static uint ViewRequestTimeout = 75000; //ms
             public static uint SearchRequestTimeout = 75000; //ms
@@ -776,7 +776,7 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
-        /// <remarks>The default is 10000ms.</remarks>
+        /// <remarks>The default is 2500ms.</remarks>
         public double HeartbeatConfigInterval
         {
             get { return _heartbeatConfigInterval; }
