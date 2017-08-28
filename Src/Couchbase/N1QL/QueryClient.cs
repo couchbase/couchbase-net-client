@@ -386,7 +386,9 @@ namespace Couchbase.N1QL
 
             if (Log.IsDebugEnabled)
             {
-                Log.Debug(queryRequest.ToString());
+                //need to remove the brackets or else string.format will fail in Log.Debug
+                var req = queryRequest.ToString();
+                Log.Debug(req.Replace("{", "").Replace("}", ""));
             }
 
             using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
