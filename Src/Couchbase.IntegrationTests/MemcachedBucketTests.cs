@@ -162,10 +162,13 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void Test_That_OpenBucket_Throws_AuthenticationException_If_Bucket_Does_Not_Exist()
+        public void Test_That_OpenBucket_Throws_Correct_Exception_If_Bucket_Does_Not_Exist()
         {
             var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
-            Assert.True(ex.InnerExceptions.OfType<AuthenticationException>().Any());
+
+            Assert.True(TestConfiguration.Settings.EnhancedAuth
+                ? ex.InnerExceptions.OfType<BucketNotFoundException>().Any()
+                : ex.InnerExceptions.OfType<AuthenticationException>().Any());
         }
 
         [Test]
@@ -476,7 +479,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Multi_Upsert()
         {
-            using (var bucket = _cluster.OpenBucket("beer-sample")) //TODO fix this to "memcached"
+            using (var bucket = _cluster.OpenBucket("memcached"))
             {
                 var items = new Dictionary<string, dynamic>
                 {
