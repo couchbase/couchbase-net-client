@@ -97,7 +97,7 @@ namespace Couchbase.N1QL
         /// <remarks>
         /// Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.
         /// </remarks>
-        public async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare, CancellationToken cancellationToken)
+        public virtual async Task<IQueryResult<QueryPlan>> PrepareAsync(IQueryRequest toPrepare, CancellationToken cancellationToken)
         {
             var statement = toPrepare.GetOriginalStatement();
             if (!statement.ToUpper().StartsWith("PREPARE "))
@@ -162,17 +162,18 @@ namespace Couchbase.N1QL
                 return errorResult;
             }
 
-            //execute first attempt
-            var result = await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
-            //if needed, do a second attempt after having cleared the cache
-            if (CheckRetry(queryRequest, result))
+
+            var queryResult = await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
+
+            //the query plan may be stale so evict it so that its retried
+            if (!queryRequest.IsAdHoc && queryResult.IsQueryPlanStale())
             {
-                return await RetryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
+                var originalStatement = queryRequest.GetOriginalStatement();
+                QueryPlan oldPlan;
+                _queryCache.TryRemove(originalStatement, out oldPlan);
             }
-            else
-            {
-                return result;
-            }
+
+            return queryResult;
         }
 
         /// <summary>
@@ -260,7 +261,7 @@ namespace Couchbase.N1QL
         /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns></returns>
         /// <remarks>The format for the querying is JSON</remarks>
-        protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
+        internal virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             var queryResult = new QueryResult<T>();
 
