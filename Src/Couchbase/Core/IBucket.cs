@@ -447,6 +447,7 @@ namespace Couchbase.Core
         /// <param name="items">A <see cref="IDictionary{K, T}"/> of items to be stored in Couchbase.</param>
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items);
 
         /// <summary>
@@ -458,6 +459,7 @@ namespace Couchbase.Core
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options);
 
         /// <summary>
@@ -470,6 +472,7 @@ namespace Couchbase.Core
         /// <returns>A <see cref="IDictionary{K, V}"/> of <see cref="IOperationResult"/> which for which each is the result of the individual operation.</returns>
         /// <remarks>An item is <see cref="KeyValuePair{K, V}"/> where K is a <see cref="string"/> and V is the <see cref="Type"/>of the value use wish to store.</remarks>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, int rangeSize);
 
         /// <summary>
@@ -1263,6 +1266,7 @@ namespace Couchbase.Core
         /// </summary>
         /// <param name="keys">The keys to remove</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult> Remove(IList<string> keys);
 
         /// <summary>
@@ -1272,6 +1276,7 @@ namespace Couchbase.Core
         /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options);
 
         /// <summary>
@@ -1282,6 +1287,7 @@ namespace Couchbase.Core
         /// <param name="rangeSize">The size of each subrange</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult> Remove(IList<string> keys, ParallelOptions options, int rangeSize);
 
         /// <summary>
@@ -1410,6 +1416,7 @@ namespace Couchbase.Core
         /// <typeparam name="T">The <see cref="Type"/> of the values to be returned</typeparam>
         /// <param name="keys">The keys to get</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys);
 
         /// <summary>
@@ -1420,6 +1427,7 @@ namespace Couchbase.Core
         /// <param name="options">A <see cref="ParallelOptions"/> instance with the options for the given operation.</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options);
 
         /// <summary>
@@ -1431,6 +1439,7 @@ namespace Couchbase.Core
         /// <param name="rangeSize">The size of each subrange</param>
         /// <returns>A <see cref="Dictionary{k, v}"/> of the keys sent and the <see cref="IOperationResult{T}"/> result.</returns>
         /// <remarks>Use the <see cref="ParallelOptions"/> parameter to control the level of parallelism to use and/or to associate a <see cref="CancellationToken"/> with the operation.</remarks>
+        [Obsolete("Use the async overloads that take a list of keys for multi-operations.")]
         IDictionary<string, IOperationResult<T>> Get<T>(IList<string> keys, ParallelOptions options, int rangeSize);
 
         /// <summary>
