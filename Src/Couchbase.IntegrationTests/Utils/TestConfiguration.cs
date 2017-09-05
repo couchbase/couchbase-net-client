@@ -93,6 +93,14 @@ namespace Couchbase.IntegrationTests.Utils
                 _jsonConfiguration = builder.Build();
             }
         }
+
+        public static void IgnoreIfRbacOnly()
+        {
+            if (!Settings.EnhancedAuth)
+            {
+                Assert.Ignore("RBAC only test.");
+            }
+        }
     }
 
     public static class ClusterTestExtensions

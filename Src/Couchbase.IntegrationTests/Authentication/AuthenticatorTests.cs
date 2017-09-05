@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Authentication;
 using Castle.Core.Internal;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
@@ -334,6 +335,53 @@ namespace Couchbase.IntegrationTests.Authentication
             var bucket = cluster.OpenBucket("authenticated");
             var result = bucket.Upsert("thekey", "thevalue");
             Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        public void PasswordAuthenticator_When_Password_Invalid_Return_Error_Msg()
+        {
+            TestConfiguration.IgnoreIfRbacOnly();
+
+            var config = TestConfiguration.GetDefaultConfiguration();
+
+            // create authenticator without username
+            var passwordAuthenticator = new PasswordAuthenticator("default", "badpassword");
+            var cluster = new Cluster(config);
+            cluster.Authenticate(passwordAuthenticator);
+
+            // perform KV operation
+            try
+            {
+                var bucket = cluster.OpenBucket("default");
+            }
+            catch (AggregateException e)
+            {
+                var exp =  e.Flatten().InnerExceptions;
+                Assert.AreEqual("Authentication failed for user 'default'", exp[1].Message);
+            }
+        }
+
+        [Test]
+        public void PasswordAuthenticator_When_User_Does_Not_Have_Access_Return_Error_Message()
+        {
+            TestConfiguration.IgnoreIfRbacOnly();
+
+            var config = TestConfiguration.GetDefaultConfiguration();
+
+            // create authenticator without username
+            var cluster = new Cluster(config);
+            cluster.SetupEnhancedAuth();
+
+            // perform KV operation
+            try
+            {
+                var bucket = cluster.OpenBucket("doesnotexist");
+            }
+            catch (AggregateException e)
+            {
+                var exp = e.Flatten().InnerExceptions;
+                Assert.AreEqual(exp[1].Message, "Authentication failed for bucket 'doesnotexist'");
+            }
         }
 
         [Test, Ignore("RBAC not available yet")]

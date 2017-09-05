@@ -42,6 +42,8 @@ namespace Couchbase.Utils
 
         public const string FailedBucketAuthenticationMsg = "Authentication failed for bucket '{0}'";
 
+        public const string FailedUserAuthenticationMsg = "Authentication failed for user '{0}'";
+
         public const string EmptyKeyErrorMsg = "Key cannot be null or empty.";
 
         public const string BucketCredentialsMissingMsg = "Bucket credentials missing for `{0}`.";

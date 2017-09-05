@@ -131,8 +131,12 @@ namespace Couchbase.IO
                     Log.Info(
                         "4. Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
                         SaslMechanism.GetType(), Identity, EndPoint);
-                    throw new AuthenticationException(
-                        ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(SaslMechanism.Username));
+
+                    var message = SupportsEnhancedAuthentication
+                        ? ExceptionUtil.FailedUserAuthenticationMsg.WithParams(SaslMechanism.Username)
+                        : ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(Configuration.BucketName);
+
+                    throw new AuthenticationException(message);
                 }
             }
         }
@@ -167,7 +171,7 @@ namespace Couchbase.IO
 
                 if (!selectBucketResult.Success)
                 {
-                    throw new AuthenticationException(string.Format("Authentication failed for bucket '{0}'", Configuration.BucketName));
+                    throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(Configuration.BucketName));
                 }
             }
         }
