@@ -9,25 +9,34 @@ To get up and running with the SDK, please visit the [online documentation](http
 
 ## Running Tests
 
-We maintain a collection of both unit and integration test projects, with a version for the full .NET framework and Net Standard (projects with a NetStandard suffix).
+We maintain a collection of both unit and integration test projects.
 
 ### Unit Tests
 
-There are two unit tests projects, Couchbase.UnitTests and Couchbase.UnitTests.NetStandard, that contain environment independent tests and do not require a local cluster to run.
+Couchbase.UnitTests contains environment independent tests and do not require a local cluster to run.
 
 ### Running the Integration Tests ##
 
-There are two integration test projects, Couchbase.IntegrationTests and Couchbase.IntegationTests.NetStandard, and require the following  to run:
+Couchbase.IntegrationTests contains tests that are run against a real Couchbase Server and has different requirements depending on what server version you are running them against:
 
-1. Couchbase Server >= 4.0 installed on localhost
-2. The "beer-sample" and "travel-sample" sample buckets installed. They can be installed by logging into the Couchbase Console (http://localhost:8091) and then Settings->Sample Buckets.
-3. The following buckets installed on localhost:
-	1. "default" - the standard default bucket
+Couchbase Server 4.0+
+1. The "beer-sample" and "travel-sample" sample buckets installed. They can be installed by logging into the Couchbase Console and then Settings->Sample Buckets.
+2. Create the following buckets:
+	1. "default" - a Couchbase bucket with no password
 	2. "authenticated" - a Couchbase bucket with a password of "secret"
 	3. "memcached" - a Memcached bucket with no password
-4. Install an SSL certificate (copied from the Couchbase console Security->Root Certificate)
-5. A default primary index configured for both the `default` and `authenticated` buckets (eg <code>create primary index on &#96;default&#96;</code> and <code>create primary index on &#96;authenticated&#96;</code>)
-6. Add an FTS index to the *travel-sample* bucket called `idx-travel`
+3. Install an SSL certificate (copied from the Couchbase console Security->Root Certificate)
+4. A default primary index configured on the following buckets: `default`, `authenticated`, `beer-sample` and `travel-sample` (eg <code>create primary index on &#96;default&#96;</code>)
+5. Add an FTS index to the `travel-sample` bucket called `idx-travel`
+6. Update config.json with the hostname of your Couchbase Server IP and set enhancedAuth to `false`
+7. Update app.config's hostname and *basic* Couchbase client section with the Couchbase Server IP
+
+Couchbase Server 5.0+ - In addition to the steps above:
+1. "ephemeral" - an Ephemeral bucket
+2. Update config.json enhancedAuth to `true`
+3. A user called `authenticated` with a password of `secret`
+
+NOTE: Couchbase Server 5.0+ uses Role-Based Access Control (RBAC) for authentication. This supersedes configuring bucket passwords with discrete users with their own passwords and offers much more granular control.
 
 ## Pull Requests and Submissions ##
 Being an Open Source project, the Couchbase SDK depends upon feedback and submissions from the community. If you feel as if you want to submit a bug fix or a feature, please post a Pull Request. The Pull Request will go through a formal code review process and merged after being +2'd by a Couchbase Engineer. In order to accept a submission, Couchbase requires that all contributors sign the Contributor License Agreement (CLA). You can do this by creating an account in [Gerrit](http://review.couchbase.com), our official Code Review system. After you have created your account, login and check the CLA checkbox.
