@@ -130,6 +130,11 @@ namespace Couchbase.IO.Services
                 SupportsKvErrorMap = result.Value.Contains((short)ServerFeatures.XError);
                 ConnectionPool.SupportsEnhancedAuthentication = SupportsEnhancedAuthentication;
 
+                Log.Info("SupportsEnhancedDurability={0}", SupportsEnhancedDurability);
+                Log.Info("SupportsSubdocXAttributes={0}", SupportsSubdocXAttributes);
+                Log.Info("SupportsEnhancedAuthentication={0}", SupportsEnhancedAuthentication);
+                Log.Info("SupportsKvErrorMap={0}", SupportsKvErrorMap);
+
                 if (SupportsKvErrorMap)
                 {
                     var errorMapResult = Execute(new GetErrorMap(transcoder, 0), connection);
