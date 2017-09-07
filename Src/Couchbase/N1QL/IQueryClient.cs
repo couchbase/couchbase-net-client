@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Views;
 
 namespace Couchbase.N1QL
 {
@@ -62,18 +60,6 @@ namespace Couchbase.N1QL
         /// <param name="cancellationToken">Token which can cancel the query.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(IQueryRequest request, CancellationToken cancellationToken);
-
-        /// <summary>
-        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
-        /// </summary>
-        [Obsolete]
-        IDataMapper DataMapper { get; set; }
-
-        /// <summary>
-        /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
-        /// </summary>
-        [Obsolete]
-        HttpClient HttpClient { get; set; }
     }
 }
 

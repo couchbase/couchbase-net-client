@@ -471,26 +471,6 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
-        /// </summary>
-        [Obsolete]
-        public IDataMapper DataMapper
-        {
-            get { return base.DataMapper; }
-            set { base.DataMapper = value; }
-        }
-
-        /// <summary>
-        /// The <see cref="HttpClient"/> to use for the HTTP POST to the Server.
-        /// </summary>
-        [Obsolete]
-        public HttpClient HttpClient
-        {
-            get { return base.HttpClient; }
-            set { base.HttpClient = value; }
-        }
-
-        /// <summary>
         /// Applies the credentials if they have been set by call <see cref="Cluster.Authenticate"/>.
         /// </summary>
         /// <param name="request">The request.</param>
