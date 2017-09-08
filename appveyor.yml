@@ -15,9 +15,9 @@ test: off
 deploy:
 - provider: S3
   access_key_id:
-    secure: ZN8iaiaD5DRAeHvrDvweL/aO6x+z0M2rIwSKMRlZhH8=
+    secure: d3wpee/z6nV/NH8gMd6dEW1sS/z1k1SIpdYheMSoE3k=
   secret_access_key:
-    secure: CLuoLJj7yC18cvdyrcrrnk1RETvmOipNqrPYzbubrDVCVBBIYsjs6+UVuMlSBQZo
+    secure: 8qvahmXRlwR+UOBtl5fjJNDaCPlf1++8YwpcSKu3qAfSRU0XQz+MoYyVQ4U0N01Y
   bucket: packages.couchbase.com
   folder: clients/net/2.5/
   artifact: /.*\.zip/
