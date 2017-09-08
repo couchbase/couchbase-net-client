@@ -15,11 +15,11 @@ test: off
 deploy:
 - provider: S3
   access_key_id:
-    secure: suuUVO/OK/7edFaS0HYlm9ouHqd4SIMt8FAE/iAnRR4=
+    secure: ZN8iaiaD5DRAeHvrDvweL/aO6x+z0M2rIwSKMRlZhH8=
   secret_access_key:
-    secure: Nh6AbaBk7P++ymDgtuY7OmkGoXR8s1X+lm5sIZ2Ao39Bw52HLhuPoqy8O3DsgMTQ
+    secure: CLuoLJj7yC18cvdyrcrrnk1RETvmOipNqrPYzbubrDVCVBBIYsjs6+UVuMlSBQZo
   bucket: packages.couchbase.com
-  folder: clients/net/2.4/
+  folder: clients/net/2.5/
   artifact: /.*\.zip/
   set_public: true
   on:
