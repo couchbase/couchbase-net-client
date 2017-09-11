@@ -18,3 +18,4 @@ project.lock.json
 local.config
 *.lock.json
 Couchbase.snk
+*.nupkg

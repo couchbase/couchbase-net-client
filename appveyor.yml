@@ -26,17 +26,17 @@ deploy:
     appveyor_repo_tag: true
 - provider: NuGet
   server: https://www.myget.org/F/couchbasenetclient/api/v2/package
+  symbol_server: https://www.myget.org/F/couchbasenetclient/symbols/v2/package
   api_key:
     secure: Cov0c7H0EvTAcF+4heoatFrtbFVvnz9PR0bTNbDKVTjcN47Vy1k2C3Siep6NsdA7
-  skip_symbols: true
+  skip_symbols: false
   artifact: /.*\.nupkg/
   on:
     appveyor_repo_tag: false
 - provider: NuGet
-  server: https://www.nuget.org/api/v2/package
   api_key:
     secure: RR63qaRziTfBDzeAHNLX/nNGavXrfzgXnSRniyuFgK493SzEw8DUa89bgVZHYSg8
-  skip_symbols: true
+  skip_symbols: false
   artifact: /.*\.nupkg/
   on:
     appveyor_repo_tag: true

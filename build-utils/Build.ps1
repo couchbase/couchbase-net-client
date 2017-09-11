@@ -20,7 +20,7 @@ nuget install secure-file -ExcludeVersion
 
 # clean then build with snk & version number creating nuget package
 msbuild Src\Couchbase\Couchbase.csproj /t:Clean /p:Configuration=Release
-msbuild Src\Couchbase\Couchbase.csproj /t:Restore,Pack /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version=$versionNumber /p:PackageOutputPath=..\..\ /v:quiet
+msbuild Src\Couchbase\Couchbase.csproj /t:Restore,Pack /p:Configuration=Release /p:SignAssembly=true /p:AssemblyOriginatorKeyFile=Couchbase.snk /p:version=$versionNumber /p:PackageOutputPath=..\..\ /p:IncludeSymbols=true /p:IncludeSource=true /v:quiet
 
 # create zip from release folder
 Compress-Archive -Path .\Src\Couchbase\bin\Release\* -CompressionLevel Optimal -DestinationPath .\Couchbase-Net-Client-$versionNumber.zip
