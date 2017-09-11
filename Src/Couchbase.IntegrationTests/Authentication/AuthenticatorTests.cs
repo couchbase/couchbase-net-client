@@ -7,7 +7,9 @@ using Castle.Core.Internal;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
+using Couchbase.Management;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -548,6 +550,118 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 #endif
         #endregion
+
+        [Test]
+        public void Data_Reader_Cannot_Write()
+        {
+            TestConfiguration.IgnoreIfRbacOnly();
+            const string username = "reader_user",
+                password = "secure123",
+                bucketName = "default",
+                key = "test-key";
+
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                var clusterManager = cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+                try
+                {
+                    // create user with write only permissions
+                    var upsertUserResult = clusterManager.UpsertUser(
+                        AuthenticationDomain.Local,
+                        username,
+                        password,
+                        roles: new Role { BucketName = bucketName, Name = "data_reader" }
+                    );
+                    Assert.IsTrue(upsertUserResult.Success);
+
+                    // authenticate with new credentials and open bucket
+                    cluster.Authenticate(username, password);
+                    var bucket = cluster.OpenBucket(bucketName);
+
+                    // test getting a document
+                    var getResult = bucket.Get<dynamic>(key);
+                    Assert.IsTrue(getResult.Success);
+
+                    // test lookup via subdoc
+                    var lookupResult = bucket.LookupIn<dynamic>(key)
+                        .Get("goodbye")
+                        .Execute();
+                    Assert.IsTrue(lookupResult.Success);
+
+                    // test writing a document - should fail
+                    var upsertResult = bucket.Upsert(key, new { });
+                    Assert.IsFalse(upsertResult.Success);
+
+                    // test mutating via sub doc - should fail
+                    var mutateResult = bucket.MutateIn<dynamic>(key)
+                        .Upsert("goodbye", "world", SubdocPathFlags.CreatePath)
+                        .Execute();
+                    Assert.IsFalse(mutateResult.Success);
+                }
+                finally
+                {
+                    // remove test user
+                    clusterManager.RemoveUser(AuthenticationDomain.Local, username);
+                }
+            }
+        }
+
+        [Test]
+        public void Data_Writer_Cannot_Read()
+        {
+            TestConfiguration.IgnoreIfRbacOnly();
+            const string username = "writer_user",
+                password = "secure123",
+                bucketName = "default",
+                key = "test-key";
+
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                var clusterManager = cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);
+
+                try
+                {
+                    // create user with write only permissions
+                    var upsertUserResult = clusterManager.UpsertUser(
+                        AuthenticationDomain.Local,
+                        username,
+                        password,
+                        roles: new Role {BucketName = bucketName, Name = "data_writer"}
+                    );
+                    Assert.IsTrue(upsertUserResult.Success);
+
+                    // authenticate with new credentials and open bucket
+                    cluster.Authenticate(username, password);
+                    var bucket = cluster.OpenBucket(bucketName);
+
+                    // test writing a document
+                    var upsertResult = bucket.Upsert(key, new { });
+                    Assert.IsTrue(upsertResult.Success);
+
+                    // test mutating via subdoc
+                    var mutateResult = bucket.MutateIn<dynamic>(key)
+                        .Upsert("goodbye", "world", SubdocPathFlags.CreatePath)
+                        .Execute();
+                    Assert.IsTrue(mutateResult.Success);
+
+                    // test reading a document - should fail
+                    var getResult = bucket.Get<dynamic>(key);
+                    Assert.IsFalse(getResult.Success);
+
+                    // test lookup via subdoc - should fail
+                    var lookupResult = bucket.LookupIn<dynamic>(key)
+                        .Get("goodbye")
+                        .Execute();
+                    Assert.IsFalse(lookupResult.Success);
+                }
+                finally
+                {
+                    // remove test user
+                    clusterManager.RemoveUser(AuthenticationDomain.Local, username);
+                }
+            }
+        }
 
         private static Uri InsertUsernameIntoUri(Uri uri, string username)
         {
