@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Couchbase.Configuration.Client;
@@ -33,7 +33,7 @@ namespace Couchbase.UnitTests.IO.Services
 
             service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0));
 
-            var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket, (byte) ServerFeatures.MutationSeqno};
+            var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket, (short)ServerFeatures.XError, (byte) ServerFeatures.MutationSeqno};
             var expectedBytes = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0).Write();
 
             mockConnectionPool.Verify(x => x.Acquire(), Times.Once);
@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.IO.Services
 
             service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0));
 
-            var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket};
+            var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket, (short)ServerFeatures.XError};
             var expectedBytes = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0).Write();
 
             mockConnectionPool.Verify(x => x.Acquire(), Times.Once);

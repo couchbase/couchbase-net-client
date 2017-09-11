@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -108,16 +108,13 @@ namespace Couchbase.IO.Services
             var features = new List<short>
             {
                 (short) ServerFeatures.SubdocXAttributes,
-                (short) ServerFeatures.SelectBucket
+                (short) ServerFeatures.SelectBucket,
+                (short) ServerFeatures.XError
             };
 
             if (ConnectionPool.Configuration.UseEnhancedDurability)
             {
                 features.Add((short)ServerFeatures.MutationSeqno);
-            }
-            if (ConnectionPool.Configuration.UseKvErrorMap)
-            {
-                features.Add((short)ServerFeatures.XError);
             }
 
             var transcoder = new DefaultTranscoder();

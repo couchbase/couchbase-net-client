@@ -13,25 +13,14 @@ namespace Couchbase.IntegrationTests
     [TestFixture]
     public class KVErrorMapTests
     {
-        [TestCase(true)]
-        [TestCase(false)]
-        public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
+        public void SupportsKvErrorMap_Retuns_True_When_KVErrorMap_Is_Available()
         {
-            if (!TestConfiguration.Settings.EnhancedAuth)
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
             {
-                Assert.Ignore("Only supported on cluster 5.0+ or CouchbaseMock");
+                cluster.SetupEnhancedAuth();
+                var bucket = cluster.OpenBucket("default");
+                Assert.AreEqual(TestConfiguration.Settings.EnhancedAuth, bucket.SupportsKvErrorMap);
             }
-
-            var config = TestConfiguration.GetConfiguration("basic");
-            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
-            {
-                {"default", new BucketConfiguration {UseKvErrorMap = enabled}}
-            };
-
-            var cluster = new Cluster(config);
-            cluster.SetupEnhancedAuth();
-            var bucket = cluster.OpenBucket("default");
-            Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
         }
 
         [TestCase("7ff0")] // constant
@@ -45,11 +34,6 @@ namespace Couchbase.IntegrationTests
 
             // boostrap client
             var config = TestConfiguration.GetConfiguration("basic");
-            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
-            {
-                {"default", new BucketConfiguration {UseKvErrorMap = true}}
-            };
-
             using (var cluster = new Cluster(config))
             {
                 cluster.SetupEnhancedAuth();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,6 +31,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
         /// </value>
+        [Obsolete("KV Error Map are always enabled if available.")]
         public bool UseKvErrorMap { get; set; }
 
         /// <summary>

@@ -103,37 +103,6 @@ namespace Couchbase.IntegrationTests
             Assert.Throws<InvalidOperationException>(() => cluster.Query<dynamic>("select * from authenticated limit 1;"));
         }
 
-        #region KV Error Map
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void UseKvErrorMap_Retuns_True_When_KVErrorMap_Is_Enabled(bool enabled)
-        {
-            if (!TestConfiguration.Settings.EnhancedAuth)
-            {
-                Assert.Ignore("KV Error Map requires CB server 5.0+");
-            }
-
-            var config = TestConfiguration.GetConfiguration("basic");
-            config.BucketConfigs = new Dictionary<string, BucketConfiguration>
-            {
-                {
-                    "default", new BucketConfiguration
-                    {
-                        UseKvErrorMap = enabled
-                    }
-                }
-            };
-
-            var cluster = new Cluster(config);
-            cluster.SetupEnhancedAuth();
-
-            var bucket = cluster.OpenBucket("default");
-            Assert.AreEqual(enabled, bucket.SupportsKvErrorMap);
-        }
-
-        #endregion
-
         #region GetClusterVersion
 
         [Test]

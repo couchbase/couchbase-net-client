@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Couchbase.Utils;
 using NUnit.Framework;
@@ -17,7 +18,8 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("ssl"));
+            _cluster = new Cluster(TestConfiguration.GetConfiguration("ssl"));
+            _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }
 

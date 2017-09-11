@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -130,6 +130,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
         /// </value>
+        [Obsolete("KV Error Map are always enabled if available.")]
         internal bool UseKvErrorMap { get; set; }
 
         /// <summary>

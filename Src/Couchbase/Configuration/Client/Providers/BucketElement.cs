@@ -1,4 +1,5 @@
-﻿#if NET45
+#if NET45
+using System;
 using System.Configuration;
 using Couchbase.IO.Operations;
 
@@ -31,6 +32,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// <c>true</c> to use kv error map; otherwise, <c>false</c>.
         /// </value>
+        [Obsolete("KV Error Map are always enabled if available.")]
         [ConfigurationProperty("useKvErrorMap", DefaultValue = false, IsRequired = false)]
         public bool UseKvErrorMap
         {
