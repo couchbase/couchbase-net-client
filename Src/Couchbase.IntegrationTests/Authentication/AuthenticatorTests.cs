@@ -178,9 +178,11 @@ namespace Couchbase.IntegrationTests.Authentication
             return new PasswordAuthenticator("test_user", "secure123");
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_KV()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authentictor);
@@ -190,9 +192,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_KV_HTTP()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var config = TestConfiguration.GetCurrentConfiguration();
             config.ConfigurationProviders = ServerConfigurationProviders.HttpStreaming;
@@ -205,9 +209,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_KV_SSL()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var config = TestConfiguration.GetCurrentConfiguration();
             config.UseSsl = true;
@@ -222,9 +228,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_N1QL()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
 
@@ -238,9 +246,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_Views()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authentictor);
@@ -253,9 +263,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_FTS()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authenticator = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authenticator);
@@ -273,9 +285,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.AreEqual(SearchStatus.Success, result.Status);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_ClusterManager()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authenticator = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authenticator);
@@ -288,9 +302,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(listbucketsResult.Value.Any());
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_BucketManager()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authenticator = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authenticator);
@@ -303,9 +319,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(listIndexesResult.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_N1QL_Cluster()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authenticator = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authenticator);
@@ -319,9 +337,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_Can_Connect_With_Username_From_ConnectionString()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             const string username = "test_user";
             var config = TestConfiguration.GetDefaultConfiguration();
 
@@ -358,7 +378,7 @@ namespace Couchbase.IntegrationTests.Authentication
             }
             catch (AggregateException e)
             {
-                var exp =  e.Flatten().InnerExceptions;
+                var exp = e.Flatten().InnerExceptions;
                 Assert.AreEqual("Authentication failed for user 'default'", exp[1].Message);
             }
         }
@@ -386,9 +406,11 @@ namespace Couchbase.IntegrationTests.Authentication
             }
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_Memcached_KV()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var authentictor = GetPasswordAuthenticator();
             var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             cluster.Authenticate(authentictor);
@@ -399,18 +421,22 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 
 #if NET45
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void PasswordAuthenticator_Can_Auth_Using_ConfigSection()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var cluster = new Cluster(configurationSectionName: "couchbaseClients/basic");
             var auth = new PasswordAuthenticator("test_user", "secure123");
             cluster.Authenticate(auth);
             Assert.IsNotNull(cluster.OpenBucket("authenticated"));
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void Creates_Password_Authenticator_Using_Username_Password_From_Config()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var cluster = new Cluster(configurationSectionName: "couchbaseClients/secure");
 
             // test the password authenticator is setup correctly
@@ -423,9 +449,11 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsNotNull(cluster.OpenBucket("default"));
         }
 
-        [Test, Ignore("RBAC not available yet")]
+        [Test]
         public void Creates_Password_Authenticator_Using_Password_From_Config_And_Username_From_ConnectionString()
         {
+            TestConfiguration.IgnoreIfRbacOnly();
+
             var cluster = new Cluster(configurationSectionName: "couchbaseClients/secureConnectionString");
 
             // test the password authenticator is setup correctly
