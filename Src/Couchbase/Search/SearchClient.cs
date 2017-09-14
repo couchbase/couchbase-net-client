@@ -7,7 +7,7 @@ using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Utils;
 using Couchbase.Views;
-using Encoding = System.Text.Encoding;
+using System.Text;
 
 namespace Couchbase.Search
 {
@@ -112,26 +112,6 @@ namespace Couchbase.Search
             result.Status = SearchStatus.Failed;
             result.Success = false;
             result.Exception = e;
-        }
-
-        /// <summary>
-        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
-        /// </summary>
-        [Obsolete]
-        public IDataMapper DataMapper
-        {
-            get { return base.DataMapper; }
-        }
-
-        /// <summary>
-        /// Creates the HTTP client.
-        /// </summary>
-        /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">Use CTOR to pass in HttpClient dependency.</exception>
-        [Obsolete]
-        public virtual HttpClient CreateHttpClient()
-        {
-            throw new NotSupportedException("Use CTOR to pass in HttpClient dependency.");
         }
     }
 }

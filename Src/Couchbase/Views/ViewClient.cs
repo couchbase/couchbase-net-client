@@ -30,7 +30,7 @@ namespace Couchbase.Views
                 var content = result.Content;
                 using (var stream = await content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {
-                    viewResult = Mapper.Map<ViewResultData<T>>(stream).ToViewResult();
+                    viewResult = DataMapper.Map<ViewResultData<T>>(stream).ToViewResult();
                     viewResult.Success = result.IsSuccessStatusCode;
                     viewResult.StatusCode = result.StatusCode;
                     viewResult.Message = Success;

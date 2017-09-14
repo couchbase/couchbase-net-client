@@ -43,24 +43,6 @@ namespace Couchbase.Views
             }
         }
 
-        /// <summary>
-        /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
-        /// </summary>
-        [Obsolete]
-        public HttpClient HttpClient
-        {
-            get { return base.HttpClient; }
-        }
-
-        /// <summary>
-        /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
-        /// </summary>
-        [Obsolete]
-        public IDataMapper Mapper
-        {
-            get { return base.DataMapper; }
-        }
-
         protected static void ProcessError<T>(Exception ex, ViewResult<T> viewResult)
         {
             const string message = "Check Exception and Error fields for details.";

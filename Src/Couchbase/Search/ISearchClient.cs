@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Couchbase.Views;
+﻿using System.Threading.Tasks;
 
 namespace Couchbase.Search
 {
@@ -21,18 +18,6 @@ namespace Couchbase.Search
         /// </summary>
         /// <returns></returns>
         Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery);
-
-        /// <summary>
-        /// A <see cref="IDataMapper"/> implementation for mapping the FTS response to a <see cref="ISearchQueryResult"/> instance.
-        /// </summary>
-        /// <value>
-        /// The data mapper.
-        /// </value>
-        [Obsolete]
-        IDataMapper DataMapper { get; }
-
-        [Obsolete]
-        HttpClient CreateHttpClient();
     }
 }
 

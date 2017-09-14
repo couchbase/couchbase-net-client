@@ -1,6 +1,4 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace Couchbase.Views
 {
@@ -24,19 +22,6 @@ namespace Couchbase.Views
         /// <param name="query">The <see cref="IViewQueryable"/> to execute on.</param>
         /// <returns>The <see cref="IViewResult{T}"/> instance which is the results of the query.</returns>
         IViewResult<T> Execute<T>(IViewQueryable query);
-
-        /// <summary>
-        /// An <see cref="IDataMapper"/> instance for handling deserialization of <see cref="IViewResult{T}"/>
-        /// and mapping then to the queries Type paramater.
-        /// </summary>
-        [Obsolete]
-        IDataMapper Mapper { get; }
-
-        /// <summary>
-        /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
-        /// </summary>
-        [Obsolete]
-        HttpClient HttpClient { get; }
     }
 }
 
