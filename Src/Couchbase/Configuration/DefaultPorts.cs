@@ -38,6 +38,16 @@
         /// <summary>
         /// The SSL port used by the Managment REST API's.
         /// </summary>
-        HttpsMgmt = 18091
+        HttpsMgmt = 18091,
+
+        /// <summary>
+        /// The port used to submit analytics (CBAS) operations.
+        /// </summary>
+        Analytics = 8095,
+
+        /// <summary>
+        /// The SSL port used to submit analytics (CBAS) operations.
+        /// </summary>
+        AnalytucsSsl = 18095
     }
 }

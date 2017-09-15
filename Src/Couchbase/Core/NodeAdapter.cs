@@ -66,10 +66,8 @@ namespace Couchbase.Core
                 N1QL = _nodeExt.Services.N1QL;
                 N1QLSsl = _nodeExt.Services.N1QLSsl;
                 Fts = _nodeExt.Services.Fts;
-
-                // Hardcoded for now, may be retrieved from server in future
-                Analytics = 8095;
-                AnalyticsSsl = 18095;
+                Analytics = _nodeExt.Services.Analytics;
+                AnalyticsSsl = _nodeExt.Services.AnalyticsSsl;
             }
         }
 
@@ -227,7 +225,7 @@ namespace Couchbase.Core
         /// </value>
         public bool IsAnalyticsNode
         {
-            get { return Analytics > 0; }
+            get { return Analytics > 0 || AnalyticsSsl > 0; }
         }
     }
 }

@@ -61,5 +61,11 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("n1qlSSL")]
         // ReSharper disable once InconsistentNaming
         public int N1QLSsl { get; set; }
+
+        [JsonProperty("cbas")]
+        public int Analytics { get; set; }
+
+        [JsonProperty("cbasSSL")]
+        public int AnalyticsSsl { get; set; }
     }
 }
