@@ -1,19 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Resources;
 using Couchbase.Search;
 using Newtonsoft.Json;
 using NUnit.Framework;
-using NUnit.Framework.Internal;
 
 namespace Couchbase.UnitTests.Search
 {
     [TestFixture]
     public class FtsDataMapperTests
     {
+        [Test]
+        public void Success_Is_False_When_Errors_Returned()
+        {
+            var mapper = new SearchDataMapper();
+            using (var stream = OpenResource("error-with-errors.js"))
+            {
+                var result = mapper.Map(stream);
+                foreach(var err in result.Errors)
+                {
+                    Assert.IsNotNull(err);
+                    Console.WriteLine(err);
+                }
+                Assert.IsFalse(result.Success);
+            }
+        }
+
+
         [Test]
         public void Success_WhenSuccess_IsTrue()
         {

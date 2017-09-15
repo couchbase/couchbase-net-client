@@ -86,7 +86,7 @@ namespace Couchbase.Search
                 if (failed != null)
                 {
                     response.Metrics.ErrorCount = (long)failed;
-                    response.Success = failed.Value >= 0;
+                    response.Success = failed.Value == 0;
                     return;
                 }
             }
@@ -107,12 +107,19 @@ namespace Couchbase.Search
                     response.Metrics.TotalCount = total.Value;
                 }
             }
-            if (reader.Path == "status.errors")
+            if (reader.Path == "status.errors" && reader.TokenType == JsonToken.StartObject)
             {
-                var errors = reader.ReadAsString();
-                if (errors != null)
+                var obj = JObject.Load(reader);
+                if(obj != null)
                 {
-                    response.Errors = JsonConvert.DeserializeObject<List<string>>(errors);
+                    if(response.Errors == null)
+                    {
+                        response.Errors = new List<string>();
+                    }
+                    foreach(var err in obj)
+                    {
+                        response.Errors.Add(string.Concat(err.Key, " : ", err.Value));
+                    }
                 }
             }
             if (reader.Path == "facets" && reader.TokenType == JsonToken.StartObject)
