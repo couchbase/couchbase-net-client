@@ -299,9 +299,9 @@ namespace Couchbase.N1QL
 
                 while (_reader.Read())
                 {
-                    if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
+                    if (_reader.Depth == 2)
                     {
-                        yield return ReadObject<T>(_reader);
+                        yield return ReadItem<T>(_reader);
                     }
                     if (_reader.Path == "results" && _reader.TokenType == JsonToken.EndArray)
                     {
@@ -410,7 +410,7 @@ namespace Couchbase.N1QL
                     {
                         if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                         {
-                            Warnings.Add(ReadObject<Warning>(_reader));
+                            Warnings.Add(ReadItem<Warning>(_reader));
                         }
                         if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)
                         {
@@ -424,7 +424,7 @@ namespace Couchbase.N1QL
                     {
                         if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                         {
-                            Errors.Add(ReadObject<Error>(_reader));
+                            Errors.Add(ReadItem<Error>(_reader));
                         }
                         if (_reader.Path == "errors" && _reader.TokenType == JsonToken.EndArray)
                         {
@@ -444,16 +444,10 @@ namespace Couchbase.N1QL
         /// <typeparam name="K"></typeparam>
         /// <param name="jtr">The JTR.</param>
         /// <returns></returns>
-        private K ReadObject<K>(JsonTextReader jtr)
+        private K ReadItem<K>(JsonTextReader jtr)
         {
-            if (jtr.TokenType == JsonToken.StartObject ||
-                jtr.TokenType == JsonToken.StartArray ||
-                jtr.TokenType == JsonToken.StartConstructor)
-            {
-                var jObject = JToken.ReadFrom(jtr);
-                return jObject.ToObject<K>();
-            }
-            return default(K);
+            var jObject = JToken.ReadFrom(jtr);
+            return jObject.ToObject<K>();
         }
 
         /// <summary>

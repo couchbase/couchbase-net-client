@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
 using Couchbase.Views;
@@ -235,6 +236,29 @@ namespace Couchbase.IntegrationTests
                 //assert
                 Assert.IsTrue(result.Success);
                 Assert.IsTrue(typeof(StreamingQueryResult<dynamic>) == result.GetType());
+            }
+        }
+
+        [Test]
+        public void Test_Streaming_SelectScalar()
+        {
+            if (_bucket.GetClusterVersion() < new ClusterVersion(new Version(5, 0, 0)))
+            {
+                Assert.Ignore("SELECT RAW is not supported on clusters before version 5.0");
+            }
+
+            //arrange
+            var request = new QueryRequest("SELECT RAW `travel-sample`.`call-sign` FROM `travel-sample` WHERE type = 'airline' LIMIT 100;")
+                .UseStreaming(true)
+                .AdHoc(false);
+
+            //act
+            using (var result = _bucket.Query<string>(request))
+            {
+                //assert
+                Assert.IsTrue(result.Success);
+                Assert.IsTrue(typeof(StreamingQueryResult<string>) == result.GetType());
+                Assert.IsNotEmpty(result.First());
             }
         }
 
