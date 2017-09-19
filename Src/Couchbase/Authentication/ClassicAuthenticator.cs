@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Authentication;
+using Couchbase.Utils;
 
 namespace Couchbase.Authentication
 {
@@ -90,9 +93,15 @@ namespace Couchbase.Authentication
         /// <summary>
         /// Gets the type of the authenticator.
         /// </summary>
-        public AuthenticatorType AuthenticatorType
+        public AuthenticatorType AuthenticatorType => AuthenticatorType.Classic;
+
+        /// <inheritdoc />
+        public void Validate()
         {
-            get { return AuthenticatorType.Classic; }
+            if (!BucketCredentials.Any())
+            {
+                throw new ArgumentException(ExceptionUtil.NoBucketCredentialsDefined);
+            }
         }
     }
 }

@@ -85,6 +85,13 @@ namespace Couchbase.Utils
 
         public const string EphemeralBucketViewQueries = "Ephemeral buckets do not support View Queries";
 
+        public const string NoBucketCredentialsDefined = "ClassicAuthenticator requires at least one(1) BucketCredential. " +
+                                                         "Use ClassicAuthenticator.AddBucketCredential(bucketname, password) to add one.";
+
+        public const string NoPasswordDefined = "The Password field must be non-null and contain a value.";
+
+        public const string NoUsernameDefined = "The Username field must be non-null and contain a value.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

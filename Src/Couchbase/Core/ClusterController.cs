@@ -14,6 +14,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Authentication;
 using System.Threading;
 using Couchbase.Authentication;
 using Couchbase.Core.Monitoring;
@@ -337,7 +338,7 @@ namespace Couchbase.Core
                 {
                     if (_buckets.IsEmpty)
                     {
-                        var classicAuthenticator = (ClassicAuthenticator) authenticator;
+                        var classicAuthenticator = (ClassicAuthenticator)authenticator;
                         var bucketName = classicAuthenticator.BucketCredentials.First().Key;
                         return CreateBucket(bucketName, authenticator);
                     }

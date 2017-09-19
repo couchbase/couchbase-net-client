@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.Utils;
 
 namespace Couchbase.Authentication
 {
@@ -53,9 +54,20 @@ namespace Couchbase.Authentication
         /// <summary>
         /// Gets the type of the authenticator.
         /// </summary>
-        public AuthenticatorType AuthenticatorType
+        public AuthenticatorType AuthenticatorType => AuthenticatorType.Password;
+
+        /// <inheritdoc />
+        /// <remarks>Duplicates password and username logic within constructors.</remarks>
+        public void Validate()
         {
-            get { return AuthenticatorType.Password; }
+            if (string.IsNullOrWhiteSpace(Password))
+            {
+                throw new ArgumentException(ExceptionUtil.NoPasswordDefined);
+            }
+            if (string.IsNullOrWhiteSpace(Username))
+            {
+                throw new ArgumentException(ExceptionUtil.NoUsernameDefined);
+            }
         }
     }
 }

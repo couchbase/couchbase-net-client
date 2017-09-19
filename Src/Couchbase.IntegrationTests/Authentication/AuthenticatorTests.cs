@@ -497,6 +497,19 @@ namespace Couchbase.IntegrationTests.Authentication
         }
 
         [Test]
+        public void When_No_BucketCredentials_Defined_Throw_ArgumentException()
+        {
+            var config = TestConfiguration.GetCurrentConfiguration();
+            var cluster = new Cluster(config);
+
+            var cred = new ClassicAuthenticator("Administrator", "password");
+            //cred.AddBucketCredential("buck", "");
+            //cred.AddBucketCredential("travel-sample", "");
+
+            Assert.Throws<ArgumentException>(()=>cluster.Authenticate(cred));
+        }
+
+        [Test]
         public void ClassicAuthenticator_KV()
         {
             var authenticator = GetClassicAuthenticator();
