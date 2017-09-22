@@ -315,6 +315,12 @@ namespace Couchbase.IntegrationTests
         [TestCase(false)]
         public async Task PrettyPrint_AffectsWhitespace(bool pretty)
         {
+            var clusterVersion = ClusterVersionProvider.Instance.GetVersion(_bucket);
+            if (clusterVersion < new ClusterVersion(new Version(4, 6)))
+            {
+                Assert.Ignore("N1QL pretty print query parameter is not supported on server versions < 4.6");
+            }
+
             string content = null;
 
             var dataMapper = new Mock<IDataMapper>();
