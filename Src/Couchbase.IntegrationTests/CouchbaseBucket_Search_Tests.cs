@@ -52,6 +52,27 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public async Task Test_Async_With_HighLightStyle_Html_And_Fields()
+        {
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                cluster.SetupEnhancedAuth();
+                using (var bucket = cluster.OpenBucket("travel-sample"))
+                {
+                    var query = new MatchQuery("inn");
+
+                    var results = await bucket.QueryAsync(new SearchQuery
+                    {
+                        Index = "idx_travel",
+                        Query = query
+                    }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlighting(HighLightStyle.Html, "inn"));
+
+                    Assert.IsTrue(results.Success, results.ToString());
+                }
+            }
+        }
+
+        [Test]
         public void Test_Sync_failed()
         {
             using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))

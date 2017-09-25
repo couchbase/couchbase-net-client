@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Couchbase.N1QL;
 using Couchbase.Search;
+using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Sort;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -68,6 +69,33 @@ namespace Couchbase.UnitTests.Search
             fc.Index = "beer-ft";
             fc.Highlighting(HighLightStyle.Html);
             Assert.Throws<ArgumentNullException>(() => fc.Fields());
+        }
+
+        [Test]
+        public void Test_HighLightStyle_Html_And_Fields_Returns_LowerCase()
+        {
+            var query = new SearchQuery
+            {
+                Index = "idx_travel",
+                Query = new MatchQuery("inn")
+            }.Highlighting(HighLightStyle.Html, "inn");
+
+            var result = query.ToJson();
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000
+                },
+                highlight = new
+                {
+                    style="html",
+                    fields = new [] {"inn"}
+                },
+                query=new {match="inn", prefix_length=0, fuzziness=0}
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
         }
 
         [Test]

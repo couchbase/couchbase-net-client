@@ -80,7 +80,11 @@ namespace Couchbase.Search
         /// <returns></returns>
         public ISearchParams Highlighting(HighLightStyle highLightStyle, params string[] fields)
         {
-            _highLightStyle = Enum.GetName(typeof(HighLightStyle), highLightStyle);
+            var name = Enum.GetName(typeof(HighLightStyle), highLightStyle);
+            if (name != null)
+            {
+                _highLightStyle = name.ToLowerInvariant();
+            }
             if (_highLightFields == null)
             {
                 _highLightFields = new List<string>();
