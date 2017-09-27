@@ -8,6 +8,7 @@ using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
+using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.N1QL;
@@ -106,18 +107,27 @@ namespace Couchbase.IntegrationTests.Authentication
                 }
             };
 
-            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                cluster.Authenticate(credentials);
 
-            cluster.Authenticate(credentials);
+                //if authentication failed - an exception would be thrown during bootstrapping
+                var bucket = cluster.OpenBucket("authenticated");
+                var query = bucket.CreateQuery("somedoc", "someview");
+                var result = bucket.Query<dynamic>(query);
 
-            //if authentication failed - an exception would be thrown during bootstrapping
-            var bucket = cluster.OpenBucket("authenticated");
-            var query = bucket.CreateQuery("somedoc", "someview");
-            var result = bucket.Query<dynamic>(query);
+                //assert - view does not exist but should still return a response and no auth error
+                Assert.IsFalse(result.Success);
 
-            //assert - view does not exist but should still return a response and no auth error
-            Assert.IsFalse(result.Success);
-            Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+                // Can see ServiceUnavailable on 4.x server versions when quering unknown design doc/view
+                // https://issues.couchbase.com/browse/NCBC-1533
+                var expectedStatusCodes = new List<HttpStatusCode> { HttpStatusCode.NotFound };
+                if (ClusterVersionProvider.Instance.GetVersion(bucket) < new ClusterVersion(new Version(5, 0, 0)))
+                {
+                    expectedStatusCodes.Add(HttpStatusCode.ServiceUnavailable);
+                }
+                Assert.IsTrue(expectedStatusCodes.Contains(result.StatusCode));
+            }
         }
 
         [Test]
@@ -159,16 +169,25 @@ namespace Couchbase.IntegrationTests.Authentication
         [Test]
         public void Test_Legacy_CanAuthenticate_Views()
         {
-            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                //if authentication failed - an exception would be thrown during bootstrapping
+                var bucket = cluster.OpenBucket("authenticated", "secret");
+                var query = bucket.CreateQuery("somedoc", "someview");
+                var result = bucket.Query<dynamic>(query);
 
-            //if authentication failed - an exception would be thrown during bootstrapping
-            var bucket = cluster.OpenBucket("authenticated", "secret");
-            var query = bucket.CreateQuery("somedoc", "someview");
-            var result = bucket.Query<dynamic>(query);
+                //assert - view does not exist but should still return a response and no auth error
+                Assert.IsFalse(result.Success);
 
-            //assert - view does not exist but should still return a response and no auth error
-            Assert.IsFalse(result.Success);
-            Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+                // Can see ServiceUnavailable on 4.x server versions when quering unknown design doc/view
+                // https://issues.couchbase.com/browse/NCBC-1533
+                var expectedStatusCodes = new List<HttpStatusCode> { HttpStatusCode.NotFound };
+                if (ClusterVersionProvider.Instance.GetVersion(bucket) < new ClusterVersion(new Version(5, 0, 0)))
+                {
+                    expectedStatusCodes.Add(HttpStatusCode.ServiceUnavailable);
+                }
+                Assert.IsTrue(expectedStatusCodes.Contains(result.StatusCode));
+            }
         }
 
         #region Password Authenticator
@@ -529,17 +548,27 @@ namespace Couchbase.IntegrationTests.Authentication
         {
             var authenticator = GetClassicAuthenticator();
 
-            var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
-            cluster.Authenticate(authenticator);
+            using (var cluster = new Cluster(TestConfiguration.GetCurrentConfiguration()))
+            {
+                cluster.Authenticate(authenticator);
 
-            //if authentication failed - an exception would be thrown during bootstrapping
-            var bucket = cluster.OpenBucket("authenticated");
-            var query = bucket.CreateQuery("somedoc", "someview");
-            var result = bucket.Query<dynamic>(query);
+                //if authentication failed - an exception would be thrown during bootstrapping
+                var bucket = cluster.OpenBucket("authenticated");
+                var query = bucket.CreateQuery("somedoc", "someview");
+                var result = bucket.Query<dynamic>(query);
 
-            //assert - view does not exist but should still return a response and no auth error
-            Assert.IsFalse(result.Success);
-            Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
+                //assert - view does not exist but should still return a response and no auth error
+                Assert.IsFalse(result.Success);
+
+                // Can see ServiceUnavailable on 4.x server versions when quering unknown design doc/view
+                // https://issues.couchbase.com/browse/NCBC-1533
+                var expectedStatusCodes = new List<HttpStatusCode> {HttpStatusCode.NotFound};
+                if (ClusterVersionProvider.Instance.GetVersion(bucket) < new ClusterVersion(new Version(5, 0, 0)))
+                {
+                    expectedStatusCodes.Add(HttpStatusCode.ServiceUnavailable);
+                }
+                Assert.IsTrue(expectedStatusCodes.Contains(result.StatusCode));
+            }
         }
 
         [Test]

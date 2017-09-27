@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core;
 
 namespace Couchbase.Views
@@ -51,5 +51,10 @@ namespace Couchbase.Views
         /// </summary>
         /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
         bool IsStreaming { get; }
+
+        /// <summary>
+        /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.
+        /// </summary>
+        string CreateRequestBody();
     }
 }

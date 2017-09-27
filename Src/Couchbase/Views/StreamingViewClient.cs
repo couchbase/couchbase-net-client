@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
@@ -29,15 +30,32 @@ namespace Couchbase.Views
         {
             var uri = query.RawUri();
             var viewResult = new StreamingViewResult<T>();
+            var body = query.CreateRequestBody();
+
             try
             {
-                var response = await HttpClient.GetAsync(uri).ContinueOnAnyContext();
-                viewResult = new StreamingViewResult<T>(
-                    response.IsSuccessStatusCode,
-                    response.StatusCode,
-                    Success,
-                    await response.Content.ReadAsStreamAsync().ContinueOnAnyContext()
-                );
+                Log.Debug("Sending view request to: {0}", uri.ToString());
+
+                var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
+                var response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+                if (response.IsSuccessStatusCode)
+                {
+                    viewResult = new StreamingViewResult<T>(
+                        response.IsSuccessStatusCode,
+                        response.StatusCode,
+                        Success,
+                        await response.Content.ReadAsStreamAsync().ContinueOnAnyContext()
+                    );
+                }
+                else
+                {
+                    viewResult = new StreamingViewResult<T>
+                    {
+                        Success = false,
+                        StatusCode = response.StatusCode,
+                        Message = response.ReasonPhrase
+                    };
+                }
             }
             catch (AggregateException ae)
             {
@@ -52,6 +70,11 @@ namespace Couchbase.Views
             {
                 const string error = "The request has timed out.";
                 ProcessError(e, error, viewResult);
+                Log.Error(uri.ToString(), e);
+            }
+            catch (HttpRequestException e)
+            {
+                ProcessError(e, viewResult);
                 Log.Error(uri.ToString(), e);
             }
             return viewResult;

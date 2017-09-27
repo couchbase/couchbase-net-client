@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -374,6 +374,16 @@ namespace Couchbase.Views
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.Development, _development.ToLowerString());
             }
             return queryParams.ToString().TrimEnd('&');
+        }
+
+        /// <summary>
+        /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.
+        /// </summary>
+        public string CreateRequestBody()
+        {
+            // Spatial queries do not need any parameters in the post body.
+            const string emptyValue = "{}";
+            return emptyValue;
         }
     }
 }

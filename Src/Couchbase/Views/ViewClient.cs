@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Utils;
@@ -24,16 +25,32 @@ namespace Couchbase.Views
         {
             var uri = query.RawUri();
             var viewResult = new ViewResult<T>();
+            var body = query.CreateRequestBody();
+
             try
             {
-                var result = await HttpClient.GetAsync(uri).ContinueOnAnyContext();
-                var content = result.Content;
-                using (var stream = await content.ReadAsStreamAsync().ContinueOnAnyContext())
+                Log.Debug("Sending view request to: {0}", uri.ToString());
+
+                var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
+                var response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+                if (response.IsSuccessStatusCode)
                 {
-                    viewResult = DataMapper.Map<ViewResultData<T>>(stream).ToViewResult();
-                    viewResult.Success = result.IsSuccessStatusCode;
-                    viewResult.StatusCode = result.StatusCode;
-                    viewResult.Message = Success;
+                    using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                    {
+                        viewResult = DataMapper.Map<ViewResultData<T>>(stream).ToViewResult();
+                        viewResult.Success = response.IsSuccessStatusCode;
+                        viewResult.StatusCode = response.StatusCode;
+                        viewResult.Message = Success;
+                    }
+                }
+                else
+                {
+                    viewResult = new ViewResult<T>
+                    {
+                        Success = false,
+                        StatusCode = response.StatusCode,
+                        Message = response.ReasonPhrase
+                    };
                 }
             }
             catch (AggregateException ae)
@@ -49,6 +66,11 @@ namespace Couchbase.Views
             {
                 const string error = "The request has timed out.";
                 ProcessError(e, error, viewResult);
+                Log.Error(uri.ToString(), e);
+            }
+            catch (HttpRequestException e)
+            {
+                ProcessError(e, viewResult);
                 Log.Error(uri.ToString(), e);
             }
             return viewResult;

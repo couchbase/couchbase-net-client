@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Views
 {
@@ -290,7 +291,7 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery Keys(IEnumerable keys)
         {
-            _keys = EncodeParameter(keys);
+            _keys = keys;
             return this;
         }
 
@@ -300,9 +301,10 @@ namespace Couchbase.Views
         /// <param name="keys">The keys to retrieve</param>
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
         /// <returns>An IViewQuery object for chaining</returns>
+        [Obsolete("Keys attribute is no longer submitted via query string. Use Keys(IEnumerable) instead.")]
         public IViewQuery Keys(IEnumerable keys, bool encode)
         {
-            _keys = encode ? EncodeParameter(keys) : keys;
+            _keys = keys;
             return this;
         }
 
@@ -454,7 +456,7 @@ namespace Couchbase.Views
                 _baseUri = new Uri(string.Format(UriFormat, protocol, DefaultHost, port, BucketName));
             }
 
-            return new Uri(_baseUri, GetRelativeUri() + GetQueryParams());
+            return new Uri(_baseUri, GetRelativeUri());
         }
 
         public string GetRelativeUri()
@@ -481,7 +483,13 @@ namespace Couchbase.Views
             relativeUri.Append(ViewMethod);
             relativeUri.Append(ForwardSlash);
             relativeUri.Append(_viewName);
-            relativeUri.Append(QueryOperator);
+
+            var queryParameters = GetQueryParams();
+            if (!string.IsNullOrEmpty(queryParameters))
+            {
+                relativeUri.Append(QueryOperator);
+                relativeUri.Append(queryParameters);
+            }
 
             return relativeUri.ToString();
         }
@@ -529,10 +537,6 @@ namespace Couchbase.Views
             {
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.Key, _key);
             }
-            if (_keys != null)
-            {
-                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Keys, _keys);
-            }
             if (_limit.HasValue)
             {
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.Limit, _limit);
@@ -558,7 +562,7 @@ namespace Couchbase.Views
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
             }
 
-           return queryParams.ToString().TrimEnd('&');
+            return queryParams.ToString().TrimEnd('&');
         }
 
         /// <summary>
@@ -566,6 +570,20 @@ namespace Couchbase.Views
         /// </summary>
         /// <remarks>Used internally.</remarks>
         public int RetryAttempts { get; set; }
+
+        /// <summary>
+        /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.
+        /// </summary>
+        public string CreateRequestBody()
+        {
+            var json = new JObject();
+            if (_keys != null)
+            {
+                json[QueryArguments.Keys] = JToken.FromObject(_keys);
+            }
+
+            return json.ToString(Formatting.None);
+        }
     }
 }
 

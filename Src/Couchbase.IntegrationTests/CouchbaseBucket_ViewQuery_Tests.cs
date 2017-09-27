@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
@@ -16,7 +17,7 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster = new Cluster(TestConfiguration.GetConfiguration("basic"));
             _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket("beer-sample");
         }
@@ -102,6 +103,16 @@ namespace Couchbase.IntegrationTests
 
             Assert.AreEqual(10, count);
             Assert.IsAssignableFrom<StreamingViewResult<dynamic>>(result);
+        }
+
+        [Test]
+        public void Can_Submit_Lots_of_Keys()
+        {
+            var query = _bucket.CreateQuery("beer", "brewery_beers")
+                .Keys(Enumerable.Range(1, 1000).Select(i => $"key-{i}"));
+
+            var result = _bucket.Query<dynamic>(query);
+            Assert.IsTrue(result.Success);
         }
 
         [OneTimeTearDown]

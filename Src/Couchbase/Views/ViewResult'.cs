@@ -153,16 +153,16 @@ namespace Couchbase.Views
         }
 
         internal ViewResult<T> ToViewResult()
+        {
+            return new ViewResult<T>
             {
-                return new ViewResult<T>
-                {
-                    Error = error,
-                    Message = reason,
-                    TotalRows = total_rows,
-                    Rows = rows != null ? rows.Select(r => r.ToViewRow()) : null,
-                };
-            }
+                Error = error,
+                Message = reason,
+                TotalRows = total_rows,
+                Rows = rows != null ? rows.Select(r => r.ToViewRow()) : null
+            };
         }
+    }
 }
 
 #region [ License information ]
