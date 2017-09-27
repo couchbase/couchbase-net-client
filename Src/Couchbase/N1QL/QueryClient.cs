@@ -272,8 +272,6 @@ namespace Couchbase.N1QL
                 var result = Prepare(originalRequest);
                 if (!result.Success)
                 {
-                    Log.Warn("Failure to prepare plan for query {0} (it will be reattempted next time it is issued): {1}",
-                        originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
                 }
                 queryPlan = result.FirstOrDefault();
@@ -304,8 +302,6 @@ namespace Couchbase.N1QL
                 var result = await PrepareAsync(originalRequest, cancellationToken).ContinueOnAnyContext();
                 if (!result.Success)
                 {
-                    Log.Warn("Failure to prepare async plan for query {0} (it will be reattempted next time it is issued): {1}",
-                        originalStatement, result.GetErrorsAsString());
                     throw new PrepareStatementException("Unable to optimize async statement: " + result.GetErrorsAsString());
                 }
                 queryPlan = result.FirstOrDefault();
