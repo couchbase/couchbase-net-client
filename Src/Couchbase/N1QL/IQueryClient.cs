@@ -16,6 +16,7 @@ namespace Couchbase.N1QL
         /// <param name="server">The <see cref="Uri"/> of the server.</param>
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
+        [Obsolete("Please use IQueryClient.Query(IQueryRequest) instead.")]
         IQueryResult<T> Query<T>(Uri server, string query);
 
         /// <summary>
@@ -25,6 +26,7 @@ namespace Couchbase.N1QL
         /// <param name="server">The <see cref="Uri"/> of the server.</param>
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        [Obsolete("Please use IQueryClient.QueryAsync(IQueryRequest, CancellationToken) instead.")]
         Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query);
 
         /// <summary>

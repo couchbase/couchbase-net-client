@@ -45,10 +45,10 @@ namespace Couchbase.N1QL
         /// <param name="server">The <see cref="Uri"/> of the server.</param>
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
+        [Obsolete("Please use IQueryClient.QueryAsync(IQueryRequest, CancellationToken) instead.")]
         public Task<IQueryResult<T>> QueryAsync<T>(Uri server, string query)
         {
             var queryRequest = new QueryRequest(query).BaseUri(server);
-
             return QueryAsync<T>(queryRequest);
         }
 
@@ -59,10 +59,10 @@ namespace Couchbase.N1QL
         /// <param name="server">The <see cref="Uri"/> of the server.</param>
         /// <param name="query">A string containing a N1QL query.</param>
         /// <returns>An <see cref="IQueryResult{T}"/> implementation representing the results of the query.</returns>
+        [Obsolete("Please use IQueryClient.Query(IQueryRequest) instead.")]
         public IQueryResult<T> Query<T>(Uri server, string query)
         {
             var queryRequest = new QueryRequest(query).BaseUri(server);
-
             return Query<T>(queryRequest);
         }
 
@@ -79,15 +79,10 @@ namespace Couchbase.N1QL
         /// </remarks>
         public IQueryResult<QueryPlan> Prepare(IQueryRequest toPrepare)
         {
-            var statement = toPrepare.GetOriginalStatement();
-            if (!statement.ToUpper().StartsWith("PREPARE "))
+            using (new SynchronizationContextExclusion())
             {
-                statement = string.Concat("PREPARE ", statement);
+                return PrepareAsync(toPrepare, CancellationToken.None).Result;
             }
-            var query = new QueryRequest(statement);
-            query.BaseUri(toPrepare.GetBaseUri());
-            query.DataMapper = _queryPlanDataMapper;
-            return ExecuteQuery<QueryPlan>(query);
         }
 
         /// <summary>
@@ -123,33 +118,9 @@ namespace Couchbase.N1QL
         /// <returns></returns>
         public IQueryResult<T> Query<T>(IQueryRequest queryRequest)
         {
-            //shortcut for adhoc requests
-            if (queryRequest.IsAdHoc)
+            using (new SynchronizationContextExclusion())
             {
-                return ExecuteQuery<T>(queryRequest);
-            }
-
-            //optimize, return an error result if optimization step cannot complete
-            try
-            {
-                PrepareStatementIfNotAdHoc(queryRequest);
-            }
-            catch (Exception e)
-            {
-                var errorResult = new QueryResult<T>();
-                ProcessError(e, errorResult);
-                return errorResult;
-            }
-
-            //execute and retry if needed
-            var result = ExecuteQuery<T>(queryRequest);
-            if (CheckRetry(queryRequest, result))
-            {
-                return Retry<T>(queryRequest);
-            }
-            else
-            {
-                return result;
+                return QueryAsync<T>(queryRequest, CancellationToken.None).Result;
             }
         }
 
@@ -224,62 +195,17 @@ namespace Couchbase.N1QL
             );
         }
 
-        private IQueryResult<T> Retry<T>(IQueryRequest queryRequest)
-        {
-            //mark as retried, remove from cache
-            string key = queryRequest.GetOriginalStatement();
-            queryRequest.HasBeenRetried = true;
-            QueryPlan dismissed;
-            _queryCache.TryRemove(key, out dismissed);
-
-            //re-optimize
-            PrepareStatementIfNotAdHoc(queryRequest);
-
-            //re-execute
-            return ExecuteQuery<T>(queryRequest);
-        }
-
         private async Task<IQueryResult<T>> RetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             //mark as retried, remove from cache
             queryRequest.HasBeenRetried = true;
-            QueryPlan dismissed;
-            _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out dismissed);
+            _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out QueryPlan _);
 
             //re-optimize asynchronously
             await PrepareStatementIfNotAdHocAsync(queryRequest, cancellationToken).ContinueOnAnyContext();
 
             //re-execute asynchronously
             return await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
-        }
-
-        /// <summary>
-        /// Prepares the statement if the <see cref="IQueryRequest"/> is not ad-hoc and caches it for reuse.
-        /// </summary>
-        /// <param name="originalRequest">The original query request.</param>
-        private void PrepareStatementIfNotAdHoc(IQueryRequest originalRequest)
-        {
-            if (originalRequest.IsAdHoc) return;
-
-            var originalStatement = originalRequest.GetOriginalStatement();
-            QueryPlan queryPlan;
-            if (_queryCache.TryGetValue(originalStatement, out queryPlan))
-            {
-                originalRequest.Prepared(queryPlan, originalStatement);
-            }
-            else
-            {
-                var result = Prepare(originalRequest);
-                if (!result.Success)
-                {
-                    throw new PrepareStatementException("Unable to optimize statement: " + result.GetErrorsAsString());
-                }
-                queryPlan = result.FirstOrDefault();
-                if (queryPlan != null && _queryCache.TryAdd(originalStatement, queryPlan))
-                {
-                    originalRequest.Prepared(queryPlan, originalStatement);
-                }
-            }
         }
 
         /// <summary>
@@ -292,8 +218,7 @@ namespace Couchbase.N1QL
             if (originalRequest.IsAdHoc) return;
 
             var originalStatement = originalRequest.GetOriginalStatement();
-            QueryPlan queryPlan;
-            if (_queryCache.TryGetValue(originalStatement, out queryPlan))
+            if (_queryCache.TryGetValue(originalStatement, out var queryPlan))
             {
                 originalRequest.Prepared(queryPlan, originalStatement);
             }
@@ -319,43 +244,12 @@ namespace Couchbase.N1QL
         /// <returns><see cref="IDataMapper"/> to use for the request</returns>
         internal IDataMapper GetDataMapper(IQueryRequest queryRequest)
         {
-            var requestWithMapper = queryRequest as IQueryRequestWithDataMapper;
-
-            if (requestWithMapper != null)
+            if (queryRequest is IQueryRequestWithDataMapper requestWithMapper)
             {
                 return requestWithMapper.DataMapper ?? DataMapper;
             }
-            else
-            {
-                return DataMapper;
-            }
-        }
 
-        /// <summary>
-        /// Executes the <see cref="IQueryRequest"/> using HTTP POST to the Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> of each row returned by the query.</typeparam>
-        /// <param name="queryRequest">The query request.</param>
-        /// <returns></returns>
-        /// <remarks>The format for the querying is JSON</remarks>
-        private IQueryResult<T> ExecuteQuery<T>(IQueryRequest queryRequest)
-        {
-            // Cache and clear the current SynchronizationContext before we begin.
-            // This eliminates the chance for deadlocks when we wait on an async task sychronously.
-
-            var contextCache = SynchronizationContext.Current;
-            SynchronizationContext.SetSynchronizationContext(null);
-            try
-            {
-                return ExecuteQueryAsync<T>(queryRequest, CancellationToken.None).Result;
-            }
-            finally
-            {
-                if (contextCache != null)
-                {
-                    SynchronizationContext.SetSynchronizationContext(contextCache);
-                }
-            }
+            return DataMapper;
         }
 
         /// <summary>
@@ -370,8 +264,7 @@ namespace Couchbase.N1QL
         {
             var queryResult = new QueryResult<T>();
 
-            FailureCountingUri baseUri;
-            if (!TryGetQueryUri(out baseUri))
+            if (!TryGetQueryUri(out var baseUri))
             {
                 Log.Error(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
                 ProcessError(new InvalidOperationException(ExceptionUtil.EmptyUriTryingSubmitN1QlQuery), queryResult);
