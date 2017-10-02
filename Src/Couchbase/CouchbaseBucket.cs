@@ -5208,6 +5208,7 @@ namespace Couchbase
             return await tcs.Task.ContinueOnAnyContext();
         }
 
+        /// <summary>
         /// Inserts or replaces an existing JSON document into <see cref="IBucket"/> on a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be updated or inserted.</typeparam>
