@@ -11,9 +11,6 @@ namespace Couchbase.Collections
     /// <seealso cref="System.Collections.Generic.IList{T}" />
     public class CouchbaseList<T> : CouchbaseCollectionBase<T>, IList<T>
     {
-        // ReSharper disable once StaticMemberInGenericType
-        private static readonly object SyncObj = new object();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="CouchbaseList{T}"/> class.
         /// </summary>
@@ -138,20 +135,17 @@ namespace Couchbase.Collections
             if (index < 0) throw new IndexOutOfRangeException();
             if (index > Count) throw new IndexOutOfRangeException();
 
-            lock (SyncObj)
-            {
-                var insert = Bucket.MutateIn<List<T>>(Key).
-                    ArrayInsert("[" + index + "]", item, true).
-                    Execute();
+            var insert = Bucket.MutateIn<List<T>>(Key).
+                ArrayInsert("[" + index + "]", item, true).
+                Execute();
 
-                if (!insert.Success)
+            if (!insert.Success)
+            {
+                if (insert.Exception != null)
                 {
-                    if (insert.Exception != null)
-                    {
-                        throw insert.Exception;
-                    }
-                    throw new InvalidOperationException(insert.Status.ToString());
+                    throw insert.Exception;
                 }
+                throw new InvalidOperationException(insert.Status.ToString());
             }
         }
 
@@ -162,23 +156,20 @@ namespace Couchbase.Collections
         /// <exception cref="System.IndexOutOfRangeException"></exception>
         public void RemoveAt(int index)
         {
-            if(index < 0) throw new IndexOutOfRangeException();
+            if (index < 0) throw new IndexOutOfRangeException();
             if (index > Count) throw new IndexOutOfRangeException();
 
-            lock (SyncObj)
-            {
-                var remove = Bucket.MutateIn<List<T>>(Key).
-                    Remove("[" + index + "]").
-                    Execute();
+            var remove = Bucket.MutateIn<List<T>>(Key).
+                Remove("[" + index + "]").
+                Execute();
 
-                if (!remove.Success)
+            if (!remove.Success)
+            {
+                if (remove.Exception != null)
                 {
-                    if (remove.Exception != null)
-                    {
-                        throw remove.Exception;
-                    }
-                    throw new InvalidOperationException(remove.Status.ToString());
+                    throw remove.Exception;
                 }
+                throw new InvalidOperationException(remove.Status.ToString());
             }
         }
 
