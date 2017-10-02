@@ -63,7 +63,7 @@ namespace Couchbase.IO.Services
             var connection = ConnectionPool.Acquire();
 
             Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
-            byte[] response =  null;
+            byte[] response = null;
             try
             {
                 //A new connection will have to check for server features
@@ -234,10 +234,10 @@ namespace Couchbase.IO.Services
         public override async Task ExecuteAsync<T>(IOperation<T> operation)
         {
             ExceptionDispatchInfo capturedException = null;
+            IConnection connection = null;
             try
             {
-                var connection = ConnectionPool.Acquire();
-
+                connection = ConnectionPool.Acquire();
                 Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
                 //A new connection will have to check for server features
@@ -249,6 +249,10 @@ namespace Couchbase.IO.Services
             {
                 Log.Debug(e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                ConnectionPool.Release(connection);
             }
 
             if (capturedException != null)
@@ -270,9 +274,10 @@ namespace Couchbase.IO.Services
         public override async Task ExecuteAsync(IOperation operation)
         {
             ExceptionDispatchInfo capturedException = null;
+            IConnection connection = null;
             try
             {
-                var connection = ConnectionPool.Acquire();
+                connection = ConnectionPool.Acquire();
 
                 Log.Trace("Using conn {0} on {1}", connection.Identity, connection.EndPoint);
 
@@ -285,6 +290,10 @@ namespace Couchbase.IO.Services
             {
                 Log.Debug(e);
                 capturedException = ExceptionDispatchInfo.Capture(e);
+            }
+            finally
+            {
+                ConnectionPool.Release(connection);
             }
 
             if (capturedException != null)
@@ -304,7 +313,8 @@ namespace Couchbase.IO.Services
                 var isSecure = connection.IsSecure;
                 ConnectionPool.Release(connection);
                 return isSecure;
-            } protected set => throw new NotSupportedException();
+            }
+            protected set => throw new NotSupportedException();
         }
 
         /// <summary>
