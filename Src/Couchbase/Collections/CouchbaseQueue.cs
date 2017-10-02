@@ -23,7 +23,7 @@ namespace Couchbase.Collections
         }
 
         /// <summary>
-        /// Removes and returns the object at the beginning of the <see cref="CouchbaseQueue{T}."/>
+        /// Removes and returns the object at the beginning of the <see cref="CouchbaseQueue{T}"/>.
         /// </summary>
         /// <returns>The object that is removed from the beginning of the <see cref="CouchbaseQueue{T}"/>.</returns>
         /// <exception cref="System.InvalidOperationException">The <see cref="CouchbaseQueue{T}"/> is empty.</exception>
