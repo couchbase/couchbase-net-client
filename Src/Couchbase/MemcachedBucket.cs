@@ -519,7 +519,10 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds());
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration.ToTtl()
+            };
             return _requestExecuter.SendWithRetry(operation);
         }
 

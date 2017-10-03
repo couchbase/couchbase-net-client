@@ -737,6 +737,28 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
 
+        [Test]
+        public void Upsert_When_Expiration_Is_Passed_It_Is_Honored()
+        {
+            var timeout = new TimeSpan(0, 0, 15);
+            var expiration = 1000u;
+            var key = "Upsert_When_Expiration_Is_Passed_It_Is_Honored";
+
+            //start clean
+            _bucket.Remove(key);
+
+            var insert = _bucket.Upsert(key, "somevalue", expiration, timeout);
+            Assert.IsTrue(insert.Success);
+
+            var get = _bucket.Get<string>(key);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+            Thread.Sleep(1200);
+
+            get = _bucket.Get<string>(key);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+        }
+
         #region GetClusterVersion
 
         [Test]
