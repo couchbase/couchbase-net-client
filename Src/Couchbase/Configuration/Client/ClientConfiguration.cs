@@ -1105,6 +1105,7 @@ namespace Couchbase.Configuration.Client
                 }
             }
 
+            authenticator.Validate();
             Authenticator = authenticator;
         }
 

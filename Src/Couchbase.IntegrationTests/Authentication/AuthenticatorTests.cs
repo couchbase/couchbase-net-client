@@ -594,7 +594,10 @@ namespace Couchbase.IntegrationTests.Authentication
             config.Servers = config.Servers.Select(x => InsertUsernameIntoUri(x, username)).ToList();
 
             // create authenticator without username
-            var authenticator = new ClassicAuthenticator("password");
+            var authenticator = new ClassicAuthenticator("password")
+            {
+                BucketCredentials = {{"bucket", "password"}}
+            };
             var cluster = new Cluster(config);
             cluster.Authenticate(authenticator);
 

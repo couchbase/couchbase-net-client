@@ -321,7 +321,6 @@ namespace Couchbase
             {
                 throw new ArgumentNullException("authenticator");
             }
-            authenticator.Validate();
             _configuration.SetAuthenticator(authenticator);
         }
 
