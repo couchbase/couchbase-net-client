@@ -1,5 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
@@ -20,9 +22,8 @@ namespace Couchbase
     {
         private static Lazy<Cluster> _instance;
         private static readonly object SyncObj = new object();
-
-        private static readonly ConcurrentDictionary<string, IBucket> Buckets =
-            new ConcurrentDictionary<string, IBucket>();
+        private static readonly SemaphoreSlim SemaphoreSlim = new SemaphoreSlim(1, 1);
+        private static readonly Dictionary<string, IBucket> Buckets = new Dictionary<string, IBucket>();
 
         /// <summary>
         /// True if the <see cref="ClusterHelper"/> has been initialized.  Calling
@@ -75,35 +76,123 @@ namespace Couchbase
         /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
         public static IBucket GetBucket(string bucketName, string password)
         {
+            if (Buckets.TryGetValue(bucketName, out IBucket bucket))
+            {
+                return bucket;
+            }
+
             if (_instance == null)
             {
                 throw new InitializationException("Call Cluster.Initialize() before calling this method.");
             }
-            return Buckets.GetOrAdd(bucketName, (name =>
-            {
-                var cluster = _instance.Value;
 
-                if (string.IsNullOrWhiteSpace(password))
+            SemaphoreSlim.Wait();
+            try
+            {
+                if (Buckets.TryGetValue(bucketName, out bucket))
                 {
-                    //try to find a password in configuration
-                    BucketConfiguration bucketConfig;
-                    if (cluster.Configuration.BucketConfigs.TryGetValue(name, out bucketConfig)
-                        && bucketConfig.Password != null)
-                    {
-                        return cluster.OpenBucket(name, bucketConfig.Password);
-                    }
-                    return cluster.OpenBucket(name);
+                    return bucket;
                 }
-                return cluster.OpenBucket(name, password);
-            }));
+
+                var cluster = _instance.Value;
+                var bucketPassword = DeterminePassword(cluster, bucketName, password);
+                bucket = cluster.OpenBucket(bucketName, bucketPassword);
+                Buckets.Add(bucketName, bucket);
+                return bucket;
+            }
+            finally
+            {
+                SemaphoreSlim.Release();
+            }
+        }
+
+        /// <summary>
+        /// Opens or gets an <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
+        /// The <see cref="IBucket"/> will be cached and subsequent requests for a <see cref="IBucket"/> of the same name will return the
+        /// cached instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <returns>An <see cref="IBucket"/>instance</returns>
+        /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
+        public static async Task<IBucket> GetBucketAsync(string bucketName)
+        {
+            return await GetBucketAsync(bucketName, null);
+        }
+
+        /// <summary>
+        /// Opens or gets an <see cref="IBucket"/> instance from the <see cref="ICluster"/> that this <see cref="ClusterHelper"/> is wrapping.
+        /// The <see cref="IBucket"/> will be cached and subsequent requests for a <see cref="IBucket"/> of the same name will return the
+        /// cached instance.
+        /// </summary>
+        /// <param name="bucketName">The name of the <see cref="IBucket"/> to open or get.</param>
+        /// <param name="password">Bucket password, or null for unsecured buckets.</param>
+        /// <returns>An <see cref="IBucket"/>instance</returns>
+        /// <remarks>Before calling you must call <see cref="ClusterHelper.Initialize()"/>.</remarks>
+        public static async Task<IBucket> GetBucketAsync(string bucketName, string password)
+        {
+            if (Buckets.TryGetValue(bucketName, out IBucket bucket))
+            {
+                return bucket;
+            }
+
+            if (_instance == null)
+            {
+                throw new InitializationException("Call Cluster.Initialize() before calling this method.");
+            }
+
+            await SemaphoreSlim.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (Buckets.TryGetValue(bucketName, out bucket))
+                {
+                    return bucket;
+                }
+
+                var cluster = _instance.Value;
+                var bucketPassword = DeterminePassword(cluster, bucketName, password);
+                bucket = await cluster.OpenBucketAsync(bucketName, bucketPassword);
+                Buckets.Add(bucketName, bucket);
+                return bucket;
+            }
+            finally
+            {
+                SemaphoreSlim.Release();
+            }
+        }
+
+        private static string DeterminePassword(ICluster cluster, string name, string password)
+        {
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                return password;
+            }
+
+            // try to find a password in configuration
+            if (cluster.Configuration.BucketConfigs.TryGetValue(name, out BucketConfiguration bucketConfig)
+                && bucketConfig.Password != null)
+            {
+                return bucketConfig.Password;
+            }
+
+            return null;
         }
 
         public static void RemoveBucket(string bucketName)
         {
-            IBucket bucket;
-            if (Buckets.TryRemove(bucketName, out bucket))
+            SemaphoreSlim.Wait();
+            try
             {
+                if (!Buckets.TryGetValue(bucketName, out IBucket bucket))
+                {
+                    return;
+                }
+
+                Buckets.Remove(bucketName);
                 bucket.Dispose();
+            }
+            finally
+            {
+                SemaphoreSlim.Release();
             }
         }
 
@@ -240,7 +329,7 @@ namespace Couchbase
         public static void Initialize(string configurationSectionName)
         {
             var configurationSection =
-                (CouchbaseClientSection) ConfigurationManager.GetSection(configurationSectionName);
+                (CouchbaseClientSection)ConfigurationManager.GetSection(configurationSectionName);
             var configuration = new ClientConfiguration(configurationSection);
             configuration.Initialize();
 

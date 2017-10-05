@@ -14,8 +14,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Authentication;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Core.Monitoring;
 using Couchbase.Configuration.Server.Monitoring;
@@ -35,6 +35,7 @@ namespace Couchbase.Core
         private readonly Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> _saslFactory;
         private readonly ClusterMonitor _clusterMonitor;
         private readonly object _syncObject = new object();
+        private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
         private volatile bool _disposed;
         private readonly ConfigMonitor _configMonitor;
         private readonly BlockingCollection<IBucketConfig> _configQueue = new BlockingCollection<IBucketConfig>(new ConcurrentQueue<IBucketConfig>());
@@ -216,101 +217,129 @@ namespace Couchbase.Core
 
         public IBucket CreateBucket(string bucketName, string password, IAuthenticator authenticator = null)
         {
-            var exceptions = new List<Exception>();
-            lock (_syncObject)
+            _semaphoreSlim.Wait();
+            try
             {
-                //shortcircuit in case lock was waited upon because another thread bootstraped same bucket
-                if (_buckets.ContainsKey(bucketName))
+                return CreateBucketImpl(bucketName, password, authenticator);
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
+        }
+
+        public async Task<IBucket> CreateBucketAsync(string bucketName, IAuthenticator authenticator = null)
+        {
+            return await CreateBucketAsync(bucketName, null, authenticator);
+        }
+
+        public async Task<IBucket> CreateBucketAsync(string bucketName, string password, IAuthenticator authenticator = null)
+        {
+            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                return CreateBucketImpl(bucketName, password, authenticator);
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
+        }
+
+        private IBucket CreateBucketImpl(string bucketName, string password, IAuthenticator authenticator)
+        {
+            var exceptions = new List<Exception>();
+            //shortcircuit in case lock was waited upon because another thread bootstraped same bucket
+            if (_buckets.ContainsKey(bucketName))
+            {
+                IBucket existingBucket = _buckets[bucketName];
+                if ((existingBucket as IRefCountable).AddRef() != -1)
                 {
-                    IBucket existingBucket = _buckets[bucketName];
-                    if ((existingBucket as IRefCountable).AddRef() != -1)
-                    {
-                        Log.Debug("Bootstraping was already done, returning existing bucket {0}", bucketName);
-                        return existingBucket; // This is the only short circuit. All other cases fall through to bootstrapping.
-                    }
-                    Log.Debug("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
-                    DestroyBucket(existingBucket);
+                    Log.Debug("Bootstraping was already done, returning existing bucket {0}", bucketName);
+                    return existingBucket; // This is the only short circuit. All other cases fall through to bootstrapping.
                 }
-                //otherwise bootstrap a new bucket
-                var success = false;
-                var credentials = ResolveCredentials(bucketName, password, authenticator);
-                IBucket bucket = null;
-                foreach (var provider in _configProviders)
+                Log.Debug("Bucket dictionary contained disposed bucket. Bootstrapping {0}.", bucketName);
+                DestroyBucket(existingBucket);
+            }
+            //otherwise bootstrap a new bucket
+            var success = false;
+            var credentials = ResolveCredentials(bucketName, password, authenticator);
+            IBucket bucket = null;
+            foreach (var provider in _configProviders)
+            {
+                try
                 {
-                    try
+                    Log.Debug("Trying to bootstrap with {0}.", provider);
+                    var config = provider.GetConfig(bucketName, credentials.Key, credentials.Value);
+                    IRefCountable refCountable = null;
+                    switch (config.NodeLocator)
                     {
-                        Log.Debug("Trying to bootstrap with {0}.", provider);
-                        var config = provider.GetConfig(bucketName, credentials.Key, credentials.Value);
-                        IRefCountable refCountable = null;
-                        switch (config.NodeLocator)
-                        {
-                            case NodeLocatorEnum.VBucket:
-                                bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new CouchbaseBucket(this, bucketName, Converter, Transcoder, authenticator));
-                                refCountable = bucket as IRefCountable;
-                                if (refCountable != null)
-                                {
-                                    refCountable.AddRef();
-                                }
-                                break;
-
-                            case NodeLocatorEnum.Ketama:
-                                bucket = _buckets.GetOrAdd(bucketName,
-                                    name => new MemcachedBucket(this, bucketName, Converter, Transcoder, authenticator));
-                                refCountable = bucket as IRefCountable;
-                                if (refCountable != null)
-                                {
-                                    refCountable.AddRef();
-                                }
-                                break;
-
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
-
-                        var configObserver = (IConfigObserver) bucket;
-                        if (provider.ObserverExists(configObserver))
-                        {
-                            Log.Debug("Using existing bootstrap {0}.", provider);
-                            _clientConfig.UpdateBootstrapList(config.BucketConfig);
-
-                            configObserver.NotifyConfigChanged(config);
-                            success = true;
+                        case NodeLocatorEnum.VBucket:
+                            bucket = _buckets.GetOrAdd(bucketName,
+                                name => new CouchbaseBucket(this, bucketName, Converter, Transcoder, authenticator));
+                            refCountable = bucket as IRefCountable;
+                            if (refCountable != null)
+                            {
+                                refCountable.AddRef();
+                            }
                             break;
-                        }
 
-                        if (provider.RegisterObserver(configObserver) &&
-                            _buckets.TryAdd(bucket.Name, bucket))
-                        {
-                            Log.Debug("Successfully bootstrapped using {0}.", provider);
-                            _clientConfig.UpdateBootstrapList(config.BucketConfig);
-                            configObserver.NotifyConfigChanged(config);
-                            success = true;
+                        case NodeLocatorEnum.Ketama:
+                            bucket = _buckets.GetOrAdd(bucketName,
+                                name => new MemcachedBucket(this, bucketName, Converter, Transcoder, authenticator));
+                            refCountable = bucket as IRefCountable;
+                            if (refCountable != null)
+                            {
+                                refCountable.AddRef();
+                            }
                             break;
-                        }
+
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
+                    var configObserver = (IConfigObserver)bucket;
+                    if (provider.ObserverExists(configObserver))
+                    {
+                        Log.Debug("Using existing bootstrap {0}.", provider);
+                        _clientConfig.UpdateBootstrapList(config.BucketConfig);
+
+                        configObserver.NotifyConfigChanged(config);
+                        success = true;
+                        break;
+                    }
+
+                    if (provider.RegisterObserver(configObserver) &&
+                        _buckets.TryAdd(bucket.Name, bucket))
+                    {
+                        Log.Debug("Successfully bootstrapped using {0}.", provider);
                         _clientConfig.UpdateBootstrapList(config.BucketConfig);
                         configObserver.NotifyConfigChanged(config);
                         success = true;
                         break;
                     }
-                    catch (Exception e)
-                    {
-                        Log.Warn(e);
-
-                        if (e is AggregateException aggExp)
-                        {
-                            exceptions.AddRange(aggExp.InnerExceptions);
-                        }
-                        exceptions.Add(e);
-                    }
+                    _clientConfig.UpdateBootstrapList(config.BucketConfig);
+                    configObserver.NotifyConfigChanged(config);
+                    success = true;
+                    break;
                 }
-
-                if (!success)
+                catch (Exception e)
                 {
-                    throw new BootstrapException("Could not bootstrap - check inner exceptions for details.", exceptions);
+                    Log.Warn(e);
+
+                    if (e is AggregateException aggExp)
+                    {
+                        exceptions.AddRange(aggExp.InnerExceptions);
+                    }
+                    exceptions.Add(e);
                 }
-                return bucket;
             }
+
+            if (!success)
+            {
+                throw new BootstrapException("Could not bootstrap - check inner exceptions for details.", exceptions);
+            }
+            return bucket;
         }
 
         public void DestroyBucket(IBucket bucket)
@@ -339,14 +368,20 @@ namespace Couchbase.Core
                     throw new NotSupportedException("Only ClassicAuthenticator supports storing bucket names.");
                 }
 
-                lock (_syncObject)
+                _semaphoreSlim.Wait();
+
+                try
                 {
                     if (_buckets.IsEmpty)
                     {
                         var classicAuthenticator = (ClassicAuthenticator)authenticator;
                         var bucketName = classicAuthenticator.BucketCredentials.First().Key;
-                        return CreateBucket(bucketName, authenticator);
+                        return CreateBucketImpl(bucketName, null, authenticator);
                     }
+                }
+                finally
+                {
+                    _semaphoreSlim.Release();
                 }
             }
             return _buckets.First().Value;
@@ -381,16 +416,14 @@ namespace Couchbase.Core
 
         public void CheckConfigUpdate(string bucketName, IPEndPoint excludeEndPoint)
         {
-            var lockAcquired = false;
+            _semaphoreSlim.Wait();
             try
             {
-                Monitor.TryEnter(_syncObject, ref lockAcquired);
                 var now = DateTime.Now;
                 var lastCheckedPlus = LastConfigCheckedTime.AddMilliseconds(Configuration.ConfigPollCheckFloor);
-                if (!lockAcquired || lastCheckedPlus > now)
+                if (lastCheckedPlus > now)
                 {
-                    Log.Info("Not checking config because {0} > {1} or a lock ({2}) could not be acquired.",
-                        lastCheckedPlus, now, lockAcquired);
+                    Log.Info("Not checking config because {0} > {1}.", lastCheckedPlus, now);
                     return;
                 }
 
@@ -426,10 +459,7 @@ namespace Couchbase.Core
             finally
             {
                 LastConfigCheckedTime = DateTime.Now;
-            }
-            if (lockAcquired)
-            {
-                Monitor.Exit(_syncObject);
+                _semaphoreSlim.Release();
             }
         }
 
@@ -464,6 +494,7 @@ namespace Couchbase.Core
                     {
                         configProvider.Dispose();
                     }
+                    _semaphoreSlim.Dispose();
                     _disposed = true;
                 }
             }
